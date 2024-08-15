@@ -54,9 +54,14 @@ REDIS_PASSWORD=
 GOOGLE_CLIENT_ID=
 
 DISCORD_CLIENT_ID=
+DISCORD_PUBLIC_KEY=
 DISCORD_SECRET=
+DISCORD_BOT_TOKEN=
 
 RESEND_API_KEY=
+
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
 ```
 
 4. In the root of the frontend workspace `/apps/frontend` add a file named `.env.development.local` and populate it as follows:
@@ -64,11 +69,14 @@ RESEND_API_KEY=
 ```
 PUBLIC_API_HOST="http://localhost:3000"
 PUBLIC_SSE_HOST="http://localhost:3000"
+
+PUBLIC_GOOGLE_CLIENT_ID=
+PUBLIC_VAPID_KEY=
 ```
 
 ### Running Locally
 
-1. In a terminal window at the root of the project run `turbo firestore` to start the firestore emulator.
+1. In a terminal window navigate to apps/backend and run `npm run firestore` to start the firestore emulator.
 1. In another terminal window at the root of the project run
    `turbo redis` to start a local redis instance in a container
 1. In yet another terminal window, run `turbo watch dev` to build and run the actual project locally.
