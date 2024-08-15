@@ -76,6 +76,14 @@
         }
     })
 
+    function incrementBid() {
+        bidValue = Math.min(bidValue + 1, playerState?.money ?? 0)
+    }
+
+    function decrementBid() {
+        bidValue = Math.max(bidValue - 1, 0)
+    }
+
     $effect(() => {
         if (gameSession.validActionTypes.length === 1) {
             const singleAction = gameSession.validActionTypes[0]
@@ -100,17 +108,16 @@
     <div class="flex flex-col justify-center items-center mx-4">
         <h1 class="text-lg">{instructions}</h1>
         {#if gameSession.chosenAction === ActionType.PlaceBid}
-            <div class="flex flex-row justify-center items-center">
-                <div>0</div>
-                <Range
-                    class="m-2 w-[200px]"
-                    id="range-steps"
-                    min="0"
-                    max={playerState?.money ?? 0}
-                    bind:value={bidValue}
-                    step="1"
-                />
-                <div>{playerState?.money ?? 0}</div>
+            <div class="flex flex-row justify-center items-center mt-2 mb-3">
+                <button
+                    class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px] bg-gray-400"
+                    onclick={decrementBid}><h1 class="text-2xl">-</h1></button
+                >
+                <h1 class="w-[50px] text-4xl">{bidValue}</h1>
+                <button
+                    class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px] bg-gray-400"
+                    onclick={incrementBid}><h1 class="text-2xl">+</h1></button
+                >
             </div>
         {/if}
         <div class="flex flex-row justify-center items-center">
