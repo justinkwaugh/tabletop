@@ -9,39 +9,48 @@ The API itself is relatively typically designed, using JSON over HTTP. It serves
 Very little logic is found in the backend workspace itself, rather a set of services has been broken out into the libs/backend-services workspace. These services rely on nothing in the backend and are as follows:
 
 **Email**
+
 This service implements the ability to send emails to users. The default implementation provided uses [Resend](https://resend.com).
 
 **Games**
+
 This service handles everything related to creating and running games. It communicates with the persistence layer to store the games, and provides various functions to create / update / join / leave / run etc. the games themselves, as well as initiating notifications about the games via email and realtime transports
 
 **Notifications**
+
 This service manages the sending and listening to realtime notifications on various topics. It utilizes the pubsub service to do so. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
 
 **Persistence**
+
 This service provides stores for various data objects which manage the actual persistence of the objects into datastores. There are currently stores for games, tokens and users. The provided implmentation stores uses Google's Cloud Firestore for persistence, but other datastores could easily be implemented.
 
 **PubSub**
+
 This service handles the actual publishing and subscribing of messages on topics. There are two implementations provided.
 
 -   One is a local in-memory implementation which can be used if you don't want to bother with Redis, but it necessarily requires that it run in the same process as all publishers and subscribers and is synchronous in its delivery of messages
 -   The other os a Redis implementation which utilizes Redis's built-in pubsub functionality to allow for messages to be sent and received across multiple instances in an asynchronous fashion.
 
 **Secrets**
+
 This service provides the means for the backend to access sensitive information such as API keys and secrets. There are two implementations provided.
 
 -   One is an environment variable based one. This may or may not be relatively secure depending on your situation. Locally it will just access environment variables from your .env files which is obviously insecure, but when hosted in Cloud Run, Google Secret Manager is configured to securly inject secrets into the container securely as environment variables.
 -   The other uses Google Secret Manager APIs directly, but also doesn't currently work for authentication reasons that I did not feel like tracking down. Ultimately it would be the most secure way to access any sensitive information held in GCP
 
 **Tasks**
+
 This service provides the ability to run enqueued tasks. It is useful to offload any asynchronous work from the synchronous communications with the user, or to schedule work in the future. Tasks are pushed to the specified endpoint on the configured host. The backend project implements the task handlers as part of its API, but there is no reason it could not be its own workspace if desired.There are two implmentations provided.
 
 -   One is a simple implementation which directly calls the specified endpoint. This is intended for local use
 -   The other uses Google Cloud Tasks which provides a full set of queueing behavior with scheduling, retries, throughput management etc.
 
 **Tokens**
+
 This service provides the ability to create, lookup, verify and expire plaintext tokens which reference unstructured data such as password reset request, email verifications, and game invitations. It uses the persistence layer to store the information in the datastore
 
 **Users**
+
 This service provides management of users of the website, such as creating, reading, external account linking, logins, password hashing and so forth. It communicates with the persistence layer to store the users.
 
 ## Frontend
