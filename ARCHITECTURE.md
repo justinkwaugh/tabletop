@@ -8,6 +8,10 @@ The API itself is relatively typically designed, using JSON over HTTP. It serves
 
 Very little logic is found in the backend workspace itself, rather a set of services has been broken out into the libs/backend-services workspace. These services rely on nothing in the backend and are as follows:
 
+**Discord**
+
+This service handles interactions received via HTTP. A Bot is not used to handle interactions because it would require a single instance, and this architecture is intended to not require specific instances for things.
+
 **Email**
 
 This service implements the ability to send emails to users. The default implementation provided uses [Resend](https://resend.com).
@@ -18,18 +22,18 @@ This service handles everything related to creating and running games. It commun
 
 **Notifications**
 
-This service manages the sending and listening to realtime notifications on various topics. It utilizes the pubsub service to do so. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
+This service manages the sending and listening to realtime notifications on various topics for the application itself as well as pushed notifications to users for various purposes (game invites, turn notifications). It utilizes the pubsub service for the realtime application notifications, and can support any number of transports for the user notifications. Currently Web Push and Discord transports are provided. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
 
 **Persistence**
 
-This service provides stores for various data objects which manage the actual persistence of the objects into datastores. There are currently stores for games, tokens and users. The provided implmentation stores uses Google's Cloud Firestore for persistence, but other datastores could easily be implemented.
+This service provides stores for various data objects which manage the actual persistence of the objects into datastores. There are currently stores for games, tokens, notification subscriptions and users. The provided implmentation stores uses Google's Cloud Firestore for persistence, but other datastores could easily be implemented.
 
 **PubSub**
 
 This service handles the actual publishing and subscribing of messages on topics. There are two implementations provided.
 
 -   One is a local in-memory implementation which can be used if you don't want to bother with Redis, but it necessarily requires that it run in the same process as all publishers and subscribers and is synchronous in its delivery of messages
--   The other os a Redis implementation which utilizes Redis's built-in pubsub functionality to allow for messages to be sent and received across multiple instances in an asynchronous fashion.
+-   The other is a Redis implementation which utilizes Redis's built-in pubsub functionality to allow for messages to be sent and received across multiple instances in an asynchronous fashion.
 
 **Secrets**
 
@@ -40,7 +44,7 @@ This service provides the means for the backend to access sensitive information 
 
 **Tasks**
 
-This service provides the ability to run enqueued tasks. It is useful to offload any asynchronous work from the synchronous communications with the user, or to schedule work in the future. Tasks are pushed to the specified endpoint on the configured host. The backend project implements the task handlers as part of its API, but there is no reason it could not be its own workspace if desired.There are two implmentations provided.
+This service provides the ability to run enqueued tasks. It is useful to offload any asynchronous work from the synchronous communications with the user, or to schedule work in the future. Tasks are pushed to the specified endpoint on the configured host. The backend project implements the task handlers as part of its API, but there is no reason it could not be its own workspace if desired. There are two implmentations provided.
 
 -   One is a simple implementation which directly calls the specified endpoint. This is intended for local use
 -   The other uses Google Cloud Tasks which provides a full set of queueing behavior with scheduling, retries, throughput management etc.
