@@ -1,0 +1,20 @@
+{
+    "name": "@tabletop/tools",
+    "version": "0.0.1",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "deploy-discord": "dotenvx run -f .env.local -- tsx src/deployDiscord.ts"
+    },
+    "dependencies": {
+        "@dotenvx/dotenvx": "^0.44.6",
+        "@tabletop/backend-services": "*",
+        "discord.js": "^14.15.3"
+    },
+    "devDependencies": {
+        "@tabletop/backend-services": "*",
+        "@tabletop/eslint-config": "*",
+        "rimraf": "^3.0.2",
+        "typescript": "5.4.5"
+    }
+}

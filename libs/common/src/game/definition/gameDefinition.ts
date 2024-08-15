@@ -1,0 +1,20 @@
+import { type TSchema } from '@sinclair/typebox'
+import { type GameHydrator } from './gameHydrator.js'
+import { type GameMetadata } from './gameMetadata.js'
+import { GameInitializer } from './gameInitializer.js'
+import { MachineStateHandler } from '../engine/machineStateHandler.js'
+import { HydratedAction } from '../engine/gameAction.js'
+import { StateLogger } from '../../util/stateLogger.js'
+import { GameConfig } from './gameConfig.js'
+
+export interface GameDefinition {
+    id: string
+    metadata: GameMetadata
+    initializer: GameInitializer
+    stateHandlers: Record<string, MachineStateHandler<HydratedAction>>
+    hydrator: GameHydrator
+    apiActions: Record<string, TSchema>
+
+    config?: GameConfig
+    stateLogger?: StateLogger
+}

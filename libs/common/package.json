@@ -1,0 +1,23 @@
+{
+    "name": "@tabletop/common",
+    "version": "0.0.1",
+    "type": "module",
+    "exports": {
+        "import": "./esm/index.js",
+        "types": "./src/index.ts"
+    },
+    "private": true,
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@sinclair/typebox": "^0.32.32",
+        "fast-json-patch": "https://github.com/justinkwaugh/fast-json-patch.git"
+    },
+    "devDependencies": {
+        "@tabletop/eslint-config": "*",
+        "rimraf": "^6.0.1",
+        "typescript": "5.4.5"
+    }
+}

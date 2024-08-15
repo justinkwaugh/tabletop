@@ -1,0 +1,26 @@
+{
+    "private": true,
+    "scripts": {
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint"
+    },
+    "devDependencies": {
+        "eslint": "^8.56.0",
+        "prettier": "^3.3.3",
+        "turbo": "^2.0.12"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "name": "tabletop",
+    "packageManager": "npm@10.7.0",
+    "workspaces": [
+        "apps/*",
+        "libs/*",
+        "games/*"
+    ],
+    "dependencies": {
+        "svelte": "^5.0.0-next.204"
+    }
+}

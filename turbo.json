@@ -1,0 +1,44 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "globalDependencies": [".env"],
+    "ui": "tui",
+    "tasks": {
+        "build": {
+            "dependsOn": ["^build"],
+            "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"],
+            "outputs": [".svelte-kit/**", "build/**/*", "dist/**/*"],
+            "env": [
+                "DISCORD_CLIENT_ID",
+                "FRONTEND_HOST",
+                "K_SERVICE",
+                "GOOGLE_CLIENT_ID",
+                "HOST",
+                "PORT",
+                "TASKS_HOST",
+                "REDIS_HOST",
+                "REDIS_PORT",
+                "GCLOUD_PROJECT",
+                "VAPID_PUBLIC_KEY",
+                "DISCORD_PUBLIC_KEY"
+            ]
+        },
+        "lint": {},
+        "dev": {
+            "dependsOn": ["^build"],
+            "cache": false,
+            "persistent": true
+        },
+        "clean": {
+            "dependsOn": ["^clean"],
+            "cache": false
+        },
+        "redis": {
+            "cache": false,
+            "persistent": true
+        },
+        "docker-build": {
+            "dependsOn": ["@tabletop/backend#build", "@tabletop/frontend#build", "^build"],
+            "cache": false
+        }
+    }
+}

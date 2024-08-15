@@ -1,0 +1,23 @@
+{
+    "name": "@tabletop/email",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        "import": "./esm/index.js",
+        "types": "./index.ts"
+    },
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsc",
+        "dev": "email dev -p 3001"
+    },
+    "dependencies": {
+        "@react-email/components": "0.0.19"
+    },
+    "devDependencies": {
+        "react-email": "2.1.4",
+        "rimraf": "^3.0.2",
+        "typescript": "5.4.5"
+    }
+}

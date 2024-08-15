@@ -1,0 +1,36 @@
+{
+    "name": "@tabletop/backend-services",
+    "version": "0.0.1",
+    "type": "module",
+    "exports": {
+        "import": "./esm/index.js",
+        "types": "./src/index.ts"
+    },
+    "private": true,
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@google-cloud/firestore": "^7.9.0",
+        "@google-cloud/secret-manager": "^5.6.0",
+        "@google-cloud/tasks": "^5.4.0",
+        "@sinclair/typebox": "^0.32.34",
+        "@tabletop/common": "*",
+        "discord-api-types": "^0.37.93",
+        "discord-interactions": "^4.0.0",
+        "discord.js": "^14.15.3",
+        "glob-to-regexp": "^0.4.1",
+        "nanoid": "^3.3.7",
+        "redis": "^4.6.15",
+        "typescript-retry-decorator": "^2.4.2",
+        "web-push": "^3.6.7"
+    },
+    "devDependencies": {
+        "@tabletop/eslint-config": "*",
+        "@types/glob-to-regexp": "^0.4.4",
+        "@types/web-push": "^3.6.3",
+        "rimraf": "^3.0.2",
+        "typescript": "5.4.5"
+    }
+}

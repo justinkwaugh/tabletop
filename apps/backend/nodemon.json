@@ -1,0 +1,15 @@
+{
+    "watch": ["src", "../../node_modules"],
+    "ignoreRoot": [".git"],
+    "ext": "ts,json,js",
+    "ignore": [
+        "../../node_modules/@tabletop/backend",
+        "../../node_modules/@tabletop/frontend",
+        "../../node_modules/@tabletop/frontend-components",
+        "../../node_modules/@tabletop/fresh-fish-ui",
+        "src/**/*.spec.ts",
+        "src/tests/**/*"
+    ],
+    "exec": "dotenvx run -f .env.local -- tsx src/main.ts",
+    "delay": "3000"
+}
