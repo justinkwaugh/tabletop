@@ -273,7 +273,7 @@
                                 >
                                     {gameResultText()}
                                 </div>
-                                <div class="text-xs text-orange-400">
+                                <div class="text-xs text-blue-400">
                                     {gameResultPlayerText()}
                                 </div>
                             </div>
@@ -353,9 +353,11 @@
                         {#each sortedPlayers as player (player.id)}
                             <div class="flex flex-row justify-between">
                                 <div
-                                    class={isActive(player.id) || isWinner(player.id)
+                                    class={isActive(player.id)
                                         ? 'text-orange-400'
-                                        : ''}
+                                        : isWinner(player.id)
+                                          ? 'text-blue-400'
+                                          : ''}
                                 >
                                     {player.name ?? ''}
                                 </div>
