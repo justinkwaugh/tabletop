@@ -180,7 +180,7 @@
 
 <Card
     on:click={toggleExpand}
-    class="mx-2 mb-1 max-w-[300px] bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none"
+    class="mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none"
     padding="none"
     size="sm"
 >
