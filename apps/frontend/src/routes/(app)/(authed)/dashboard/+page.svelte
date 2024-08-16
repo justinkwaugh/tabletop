@@ -25,21 +25,23 @@
 
 {#snippet gameColumn(games: Game[], title: string)}
     <div
-        class="p-2 grow shrink min-w-[90vw] sm:min-w-[340px] w-full h-full max-h-[calc(100vh-70px)] overflow-scroll"
+        class="p-2 grow shrink min-w-[90vw] sm:min-w-[340px] w-full h-full max-h-[calc(100vh-70px)] overflow-hidden"
     >
-        <div class="text-center">
-            <div class="dark:text-gray-200 text-2xl mx-2 mb-2">{title}</div>
-            <div class="flex flex-col justify-center items-center">
-                {#if games.length === 0}
-                    <div
-                        class="text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
-                    >
-                        <p>No games</p>
-                    </div>
-                {/if}
-                {#each games as game (game.id)}
-                    <GameCard {game} onedit={(game) => editGame(game)} />
-                {/each}
+        <div class="text-center h-full">
+            <div class="shrink-0 grow-0 dark:text-gray-200 text-2xl mx-2 mb-2">{title}</div>
+            <div class="h-full overflow-y-scroll">
+                <div class="flex flex-col justify-center items-center">
+                    {#if games.length === 0}
+                        <div
+                            class="text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
+                        >
+                            <p>No games</p>
+                        </div>
+                    {/if}
+                    {#each games as game (game.id)}
+                        <GameCard {game} onedit={(game) => editGame(game)} />
+                    {/each}
+                </div>
             </div>
         </div>
     </div>
