@@ -234,9 +234,13 @@ export class FirestoreGameStore implements GameStore {
                         if (state.result) {
                             gameUpdates.status = GameStatus.Finished
                             gameUpdates.finishedAt = new Date()
+                            gameUpdates.result = state.result
+                            gameUpdates.winningPlayerIds = state.winningPlayerIds
                         } else {
                             gameUpdates.status = GameStatus.Started
                             gameUpdates.finishedAt = undefined
+                            gameUpdates.result = undefined
+                            gameUpdates.winningPlayerIds = []
                         }
                     }
 
@@ -370,6 +374,11 @@ const gameConverter = {
         const data = snapshot.data() as Partial<StoredGame>
         // remove flattened userIds
         delete data.userIds
+
+        // Fix new field
+        if (data.winningPlayerIds === undefined) {
+            data.winningPlayerIds = []
+        }
 
         // Convert back to dates
         data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined

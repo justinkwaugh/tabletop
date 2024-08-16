@@ -1,6 +1,6 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { Player } from './player.js'
-import { GameState } from './gameState.js'
+import { GameResult, GameState } from './gameState.js'
 import { GameConfig } from '../definition/gameConfig.js'
 
 export enum GameStatus {
@@ -32,5 +32,7 @@ export const Game = Type.Object({
     updatedAt: Type.Optional(Type.Date()),
     activePlayerIds: Type.Optional(Type.Array(Type.String())),
     lastActionPlayerId: Type.Optional(Type.String()),
-    lastActionAt: Type.Optional(Type.Date())
+    lastActionAt: Type.Optional(Type.Date()),
+    result: Type.Optional(Type.Enum(GameResult)),
+    winningPlayerIds: Type.Array(Type.String())
 })

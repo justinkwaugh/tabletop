@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Card, Hr, Button } from 'flowbite-svelte'
-    import { GameStatus, PlayerStatus, type Game, Role } from '@tabletop/common'
+    import { GameStatus, PlayerStatus, type Game, Role, GameResult } from '@tabletop/common'
     import { getContext } from 'svelte'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import type { AppContext } from '$lib/stores/appContext.svelte'
@@ -134,6 +134,10 @@
         return game.activePlayerIds?.includes(playerId)
     }
 
+    function isWinner(playerId: string) {
+        return game.winningPlayerIds?.includes(playerId)
+    }
+
     function activePlayerText() {
         if (isMyTurn) {
             return 'You'
@@ -143,6 +147,33 @@
             return game.players.find((p) => p.id === activePlayerIds[0])?.name
         } else {
             return `Multiple players`
+        }
+    }
+
+    function gameResultText() {
+        switch (game.result) {
+            case GameResult.Win:
+                return 'Winner'
+            case GameResult.Draw:
+                return 'Tied'
+            case GameResult.Abandoned:
+                return 'Abandoned'
+            default:
+                return 'Winner'
+        }
+    }
+
+    function gameResultPlayerText() {
+        if (game.winningPlayerIds.includes(myPlayer?.id ?? '')) {
+            return `You${game.winningPlayerIds.length > 1 ? ' and others' : ''}`
+        }
+        if (game.winningPlayerIds.length === 0) {
+            return '-'
+        } else if (game.winningPlayerIds.length === 1) {
+            const winningPlayerIds = game.winningPlayerIds ?? []
+            return game.players.find((p) => p.id === winningPlayerIds[0])?.name
+        } else {
+            return `See below`
         }
     }
 </script>
@@ -208,8 +239,8 @@
                                 {:else if canRevisit}
                                     <Button
                                         size="xs"
-                                        color={isMyTurn ? 'yellow' : 'primary'}
-                                        class="h-[20px]"
+                                        color="light"
+                                        class="h-[20px] dark:text-gray-200"
                                         onclick={playGame}>Revisit</Button
                                     >
                                 {/if}
@@ -232,6 +263,18 @@
                                 </div>
                                 <div class="text-xs text-orange-400">
                                     {activePlayerText()}
+                                </div>
+                            </div>
+                        {:else if game.status === GameStatus.Finished}
+                            <div class="flex flex-col justify-start items-start">
+                                <div
+                                    class="text-gray-600"
+                                    style="font-size:.7rem; line-height:.8rem"
+                                >
+                                    {gameResultText()}
+                                </div>
+                                <div class="text-xs text-orange-400">
+                                    {gameResultPlayerText()}
                                 </div>
                             </div>
                         {:else}
@@ -309,7 +352,11 @@
                         <Hr hrClass="mt-1 mb-1" />
                         {#each sortedPlayers as player (player.id)}
                             <div class="flex flex-row justify-between">
-                                <div class={isActive(player.id) ? 'text-orange-400' : ''}>
+                                <div
+                                    class={isActive(player.id) || isWinner(player.id)
+                                        ? 'text-orange-400'
+                                        : ''}
+                                >
                                     {player.name ?? ''}
                                 </div>
                                 <div>{playerStatusDisplay(player, game.ownerId)}</div>
@@ -317,7 +364,7 @@
                         {/each}
                     </div>
 
-                    {#if canJoin || canStart || canEdit || canDecline || canPlay || canWatch}
+                    {#if canJoin || canStart || canEdit || canDecline || canPlay || canWatch || canRevisit}
                         <Hr hrClass="mt-2 mb-0" />
                         <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
                             {#if canDecline}
@@ -347,6 +394,14 @@
                             {:else if canPlay || canWatch}
                                 <Button size="xs" color="primary" class="mx-2" onclick={playGame}
                                     >{canPlay ? 'Play' : 'Watch'}&nbsp;Game</Button
+                                >
+                            {/if}
+                            {#if canRevisit}
+                                <Button
+                                    size="xs"
+                                    color="light"
+                                    class="mx-2 dark:text-gray-200"
+                                    onclick={playGame}>Revisit</Button
                                 >
                             {/if}
                         </div>
