@@ -5,7 +5,6 @@
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import StallTile from '$lib/components/StallTile.svelte'
     import MarketTile from '$lib/components/MarketTile.svelte'
-    import { fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
     let bidValue = $state(0)
@@ -64,7 +63,7 @@
 
         switch (gameSession.chosenAction) {
             case ActionType.PlaceBid:
-                return 'Choose your bid amount'
+                return 'Place your bid'
             case ActionType.PlaceDisk:
                 return 'Please place a disk on the board'
             case ActionType.PlaceStall:
@@ -105,7 +104,7 @@
             goodsType={gameSession.hydratedState.getChosenStallType()}
         />
     {/if}
-    <div class="flex flex-col justify-center items-center mx-4">
+    <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text-lg">{instructions}</h1>
         {#if gameSession.chosenAction === ActionType.PlaceBid}
             <div class="flex flex-row justify-center items-center mt-2 mb-3">

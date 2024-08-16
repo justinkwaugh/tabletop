@@ -130,7 +130,9 @@
                 </div>
             </div>
             <div class="flex items-center">
-                <NavUl>
+                <NavUl
+                    ulClass="flex flex-col py-0 px-4 mt-4 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:text-sm md:font-medium"
+                >
                     <NavLi href="/about">About Us</NavLi>
                 </NavUl>
                 {#if sessionUser}

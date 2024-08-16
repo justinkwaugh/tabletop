@@ -7,7 +7,9 @@
     let gameSession = getContext('gameSession') as FreshFishGameSession
 </script>
 
-<div class="rounded-lg bg-black space-y-2 text-left ms-2 p-4 h-[calc(100vh-76px)] overflow-scroll">
+<div
+    class="rounded-lg bg-black space-y-2 text-left ms-2 p-4 sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)] overflow-scroll"
+>
     <Tabs tabStyle="underline" divider={false} contentClass="bg-gray-200 rounded-lg p-2">
         <TabItem open title="Game">
             <div style="--json-tree-font-size: 14px;">
