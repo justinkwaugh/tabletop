@@ -129,6 +129,22 @@
     function deleteGame(event: Event) {
         event.stopPropagation()
     }
+
+    function isActive(playerId: string) {
+        return game.activePlayerIds?.includes(playerId)
+    }
+
+    function activePlayerText() {
+        if (isMyTurn) {
+            return 'You'
+        }
+        const activePlayerIds = game.activePlayerIds ?? []
+        if (activePlayerIds.length === 1) {
+            return game.players.find((p) => p.id === activePlayerIds[0])?.name
+        } else {
+            return `Multiple players`
+        }
+    }
 </script>
 
 <Card
@@ -206,14 +222,32 @@
                         {/if}
                     </div>
                     <div class="flex flex-row justify-between items-start text-white">
-                        <div class="flex flex-col justify-start items-start">
-                            <div class="text-gray-600" style="font-size:.7rem; line-height:.8rem">
-                                {libraryService.getNameForTitle(game.typeId)}
+                        {#if game.status === GameStatus.Started}
+                            <div class="flex flex-col justify-start items-start">
+                                <div
+                                    class="text-gray-600"
+                                    style="font-size:.7rem; line-height:.8rem"
+                                >
+                                    Active Player
+                                </div>
+                                <div class="text-xs text-orange-400">
+                                    {activePlayerText()}
+                                </div>
                             </div>
-                            <div class="text-xs text-gray-400">
-                                {totalSeats} player
+                        {:else}
+                            <div class="flex flex-col justify-start items-start">
+                                <div
+                                    class="text-gray-600"
+                                    style="font-size:.7rem; line-height:.8rem"
+                                >
+                                    {libraryService.getNameForTitle(game.typeId)}
+                                </div>
+                                <div class="text-xs text-gray-400">
+                                    {totalSeats} player
+                                </div>
                             </div>
-                        </div>
+                        {/if}
+
                         {#if game.status === GameStatus.Started && game.lastActionAt}
                             <div class="flex flex-col justify-center items-end">
                                 <div
@@ -275,7 +309,9 @@
                         <Hr hrClass="mt-1 mb-1" />
                         {#each sortedPlayers as player (player.id)}
                             <div class="flex flex-row justify-between">
-                                <div>{player.name ?? ''}</div>
+                                <div class={isActive(player.id) ? 'text-orange-400' : ''}>
+                                    {player.name ?? ''}
+                                </div>
                                 <div>{playerStatusDisplay(player, game.ownerId)}</div>
                             </div>
                         {/each}

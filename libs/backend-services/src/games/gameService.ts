@@ -435,10 +435,12 @@ export class GameService {
         const [updatedGame] = await this.gameStore.updateGame({
             gameId: gameId,
             fields: { startedAt: new Date(), status: GameStatus.Started, state: startedGame.state },
-            validator: (existingGame) => {
+            validator: (existingGame, fieldsToUpdate) => {
                 if (existingGame.status !== GameStatus.WaitingToStart) {
                     throw new GameNotWaitingToStartError({ id: gameId })
                 }
+
+                fieldsToUpdate.activePlayerIds = startedGame.state?.activePlayerIds ?? []
 
                 return UpdateValidationResult.Proceed
             }
