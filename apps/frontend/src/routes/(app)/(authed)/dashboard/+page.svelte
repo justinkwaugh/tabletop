@@ -23,60 +23,36 @@
     }
 </script>
 
+{#snippet gameColumn(games: Game[], title: string)}
+    <div class="py-2 text-center">
+        <div class="dark:text-gray-200 text-2xl mx-2 mb-2">{title}</div>
+        <div class="flex flex-col justify-center items-center">
+            {#if games.length === 0}
+                <div
+                    class="max-w-[240px] text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
+                >
+                    <p>No games</p>
+                </div>
+            {/if}
+            {#each games as game (game.id)}
+                <GameCard {game} onedit={(game) => editGame(game)} />
+            {/each}
+        </div>
+    </div>
+{/snippet}
+
 <div class="flex flex-row justify-center flex-wrap">
     {#await gameService.loadGames()}
         <p>Loading...</p>
     {:then}
         <div class="basis-1/3 min-w-[316px] max-h-[calc(100vh-76px)] overflow-scroll">
-            <div class="py-2 text-center">
-                <div class="dark:text-gray-200 text-2xl mx-2 mb-2">Active Games</div>
-                <div class="flex flex-col justify-center items-center">
-                    {#if gameService.getActiveGames().length === 0}
-                        <div
-                            class="max-w-[240px] text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
-                        >
-                            <p>No active games</p>
-                        </div>
-                    {/if}
-                    {#each gameService.getActiveGames() as game}
-                        <GameCard {game} onedit={(game) => editGame(game)} />
-                    {/each}
-                </div>
-            </div>
+            {@render gameColumn(gameService.getActiveGames(), 'Active Games')}
         </div>
         <div class="basis-1/3 min-w-[316px] max-h-[calc(100vh-76px)] overflow-scroll">
-            <div class="py-2 text-center">
-                <div class="dark:text-gray-200 text-2xl mx-2 mb-2">Waiting Games</div>
-                <div class="flex flex-col justify-center items-center pw-2">
-                    {#if gameService.getWaitingGames().length === 0}
-                        <div
-                            class="max-w-[240px] text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
-                        >
-                            <p>No waiting games</p>
-                        </div>
-                    {/if}
-                    {#each gameService.getWaitingGames() as game}
-                        <GameCard {game} onedit={(game) => editGame(game)} />
-                    {/each}
-                </div>
-            </div>
+            {@render gameColumn(gameService.getWaitingGames(), 'Waiting Games')}
         </div>
         <div class="basis-1/3 min-w-[316px] max-h-[calc(100vh-76px)] overflow-scroll">
-            <div class="py-2 text-center">
-                <div class="dark:text-gray-200 text-2xl mx-2 mb-2">Finished Games</div>
-                <div class="flex flex-col justify-center items-center">
-                    {#if gameService.getFinishedGames().length === 0}
-                        <div
-                            class="max-w-[240px] text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
-                        >
-                            <p>No finished games</p>
-                        </div>
-                    {/if}
-                    {#each gameService.getFinishedGames() as game}
-                        <GameCard {game} onedit={(game) => editGame(game)} />
-                    {/each}
-                </div>
-            </div>
+            {@render gameColumn(gameService.getFinishedGames(), 'Finished Games')}
         </div>
     {:catch error}
         <p>{error.message}</p>

@@ -47,6 +47,7 @@ export class FreshFishGameInitializer implements GameInitializer {
             players: game.players,
             config: game.config,
             hotseat: false,
+            winningPlayerIds: [],
             createdAt: new Date() // This will be updated by the db
         }
 
