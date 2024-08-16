@@ -11,7 +11,6 @@ import { AlreadyExistsError, UnknownStorageError } from '../stores/errors.js'
 import { BaseError } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { NotificationStore } from '../stores/notificationStore.js'
-import { WebPushSubscription } from '../../notifications/subscriptions/webPushSubscription.js'
 import { StoredPushTopic } from '../model/storedPushTopic.js'
 import { PushClient } from '../../notifications/pushClient.js'
 import { StoredWebPushSubscription } from '../model/storedWebPushSubscription.js'
@@ -20,11 +19,6 @@ import { NotificationSubscription } from '../../notifications/subscriptions/noti
 import { StoredSubscription } from '../model/storedSubscription.js'
 import { TransportType } from '../../notifications/transports/notificationTransport.js'
 import { NotificationSubscriptionIdentifier } from '../../notifications/subscriptions/notificationSubscriptionIdentifier.js'
-import {
-    WebPushSubscriptionClientData,
-    WebPushTransport
-} from '../../notifications/transports/webPushTransport.js'
-import { Value } from '@sinclair/typebox/value'
 
 export class FirestoreNotificationStore implements NotificationStore {
     readonly webPushSubscriptions: CollectionReference
@@ -270,32 +264,6 @@ export class FirestoreNotificationStore implements NotificationStore {
                 id,
                 cause: error instanceof Error ? error : undefined
             })
-        }
-    }
-
-    async migrateWebPushSubscriptions(): Promise<void> {
-        const querySnapshot = await this.webPushSubscriptions.get()
-        const docs = querySnapshot.docs.map((doc) => doc.data()) as unknown[]
-
-        const subscriptions: { topics: string[]; subscription: WebPushSubscription }[] = docs.map(
-            (doc) => {
-                const topics = (doc as any).topics as string[]
-                return {
-                    topics,
-                    subscription: WebPushTransport.webPushSubscriptionFromClientData(
-                        Value.Clean(
-                            WebPushSubscriptionClientData,
-                            doc
-                        ) as WebPushSubscriptionClientData
-                    )
-                }
-            }
-        )
-
-        for (const { topics, subscription } of subscriptions) {
-            for (const topic of topics) {
-                await this.upsertNotificationSubscription({ subscription, topic })
-            }
         }
     }
 }

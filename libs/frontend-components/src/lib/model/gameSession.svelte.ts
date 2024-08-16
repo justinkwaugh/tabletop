@@ -90,8 +90,8 @@ export class GameSession {
         return this.engine.getValidActionTypesForPlayer(this.game, this.myPlayer.id)
     })
 
-    isAdmin: boolean = $derived.by(() => {
-        return this.authorizationService.isAdmin
+    showDebug: boolean = $derived.by(() => {
+        return this.authorizationService.showDebug
     })
 
     mode: GameSessionMode = $state(GameSessionMode.Play)

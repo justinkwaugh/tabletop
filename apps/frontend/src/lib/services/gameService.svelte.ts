@@ -1,4 +1,4 @@
-import { TabletopApi, type AuthorizationService } from '@tabletop/frontend-components'
+import { GameSession, TabletopApi, type AuthorizationService } from '@tabletop/frontend-components'
 import {
     Game,
     type GameNotification,
@@ -40,6 +40,8 @@ export class GameService {
     private loading = $state(false)
     private loaded = false
     private loadingPromise: Promise<void> | null = null
+
+    currentGameSession: GameSession | undefined = $state(undefined)
 
     constructor(
         private readonly authorizationService: AuthorizationService,

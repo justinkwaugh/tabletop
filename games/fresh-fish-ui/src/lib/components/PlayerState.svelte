@@ -77,7 +77,7 @@
                 </div>
             </div>
         </div>
-        {#if gameSession.isAdmin}
+        {#if gameSession.showDebug}
             <div class="text-xs mt-2">id: {player.id}</div>
         {/if}
     </div>

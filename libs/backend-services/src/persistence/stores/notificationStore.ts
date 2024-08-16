@@ -10,7 +10,4 @@ export interface NotificationStore {
         topic: string
     }): Promise<void>
     deleteNotificationSubscription(identifier: NotificationSubscriptionIdentifier): Promise<void>
-
-    // For transitioning to new store
-    migrateWebPushSubscriptions(): Promise<void>
 }

@@ -33,6 +33,9 @@ export class AuthorizationService {
     private continueUrl: string | undefined
 
     isAdmin: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Admin)))
+    debugViewEnabled: boolean = $state(false)
+
+    showDebug: boolean = $derived(this.isAdmin && this.debugViewEnabled)
 
     constructor(private api: TabletopApi) {}
 

@@ -7,7 +7,7 @@
     let { data }: { data: { gameSession: GameSession } } = $props()
     setContext('gameSession', data.gameSession)
 
-    let { notificationService } = getContext('appContext') as AppContext
+    let { gameService, notificationService } = getContext('appContext') as AppContext
     let table: Component | null = $state(null)
 
     const visibilityChangeHandler = async () => {
@@ -27,6 +27,7 @@
 
     onMount(() => {
         const gameSession = data.gameSession
+        gameService.currentGameSession = gameSession
         gameSession.definition.getTableComponent().then((tableComponent) => {
             table = tableComponent
         })
@@ -43,6 +44,7 @@
         return () => {
             document.removeEventListener('visibilitychange', visibilityChangeHandler)
             gameSession.stopListeningToGame()
+            gameService.currentGameSession = undefined
         }
     })
 </script>

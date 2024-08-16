@@ -163,8 +163,4 @@ export class DefaultNotificationService implements NotificationService {
             }
         }
     }
-
-    async migrateNotifications(): Promise<void> {
-        await this.notificationStore.migrateWebPushSubscriptions()
-    }
 }

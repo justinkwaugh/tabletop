@@ -47,6 +47,4 @@ export interface NotificationService {
     unregisterNotificationSubscription(
         identifier: NotificationSubscriptionIdentifier
     ): Promise<void>
-
-    migrateNotifications(): Promise<void>
 }

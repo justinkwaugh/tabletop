@@ -26,7 +26,7 @@
         expanded?: boolean | 'always'
     } = $props()
 
-    let { libraryService, authorizationService, gameService, notificationService } = getContext(
+    let { libraryService, authorizationService, gameService } = getContext(
         'appContext'
     ) as AppContext
 
@@ -34,7 +34,6 @@
     let isExpanded = $state(expanded ? true : false)
 
     let sessionUser = authorizationService.getSessionUser()
-    let isAdmin = $derived(sessionUser?.roles.includes(Role.Admin))
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
     let sortedPlayers = $derived(
         game.players.sort(
@@ -316,7 +315,7 @@
                             {/if}
                         </div>
                     {/if}
-                    {#if isAdmin}
+                    {#if authorizationService.showDebug}
                         <div class="pt-2 text-xs">{game.id}</div>
                     {/if}
                 </div>

@@ -26,7 +26,7 @@
 
 <div class="p-2 w-full h-full flex flex-row justify-between items-start">
     <div class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] h-[calc(100vh-76px)]">
-        {#if gameSession.isAdmin}
+        {#if gameSession.showDebug}
             <div class="flex flex-row justify-center items-center">
                 <h1 class="text-lg text-white me-4">Test Layout</h1>
                 <ButtonGroup>
@@ -35,12 +35,6 @@
                     {/each}
                 </ButtonGroup>
             </div>
-            <Button
-                onclick={() => {
-                    const scorer = new Scorer(gameSession.hydratedState)
-                    console.log(scorer.calculateScores())
-                }}>Re-score</Button
-            >
         {/if}
         <div class="grow-0 shrink-0">
             <PlayersPanel />
@@ -65,7 +59,7 @@
             </div>
         </ScalingWrapper>
     </div>
-    {#if gameSession.isAdmin}
+    {#if gameSession.showDebug}
         <div class="flex flex-col space-y-2 shrink-0 grow-0 w-[400px]">
             <AdminPanel />
         </div>
