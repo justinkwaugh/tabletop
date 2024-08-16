@@ -106,7 +106,7 @@
 </script>
 
 <div
-    class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-center items-left overflow-hidden"
+    class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-center items-left overflow-hidden min-h-[300px]"
 >
     <h1 class="text-xl font-light text-white pb-1">History</h1>
     <div class="flex flex-row justify-center items-center space-x-2">
