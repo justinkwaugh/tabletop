@@ -10,9 +10,9 @@
             <span class="text-[#427ac7] font-bold text-2xl">Board</span><span
                 class="text-2xl font-light">Together</span
             > is yet another website for playing board games online with friends. It is also an open
-            source project, intend to be free for anyone to use in any way they see fit. Hopefully you
-            have been enjoying your games here without too many hiccups. If you have any feedback, we
-            would love to hear it!
+            source project, intended to be free for anyone to use in any way they see fit. Hopefully
+            you have been enjoying your games here without too many hiccups. If you have any feedback,
+            we would love to hear it!
         </P>
     </div>
     <Card>
