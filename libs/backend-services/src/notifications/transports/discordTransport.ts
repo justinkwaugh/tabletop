@@ -1,7 +1,7 @@
 import { SecretsService } from '../../secrets/secretsService.js'
 import {
     Notification,
-    NotificationType,
+    NotificationCategory,
     UserNotification,
     UserNotificationAction
 } from '@tabletop/common'
@@ -116,7 +116,7 @@ export class DiscordTransport implements NotificationTransport {
     }
 
     private isUserNotification(notification: Notification): notification is UserNotification {
-        return notification.type === NotificationType.User
+        return notification.type === NotificationCategory.User
     }
 
     async login() {

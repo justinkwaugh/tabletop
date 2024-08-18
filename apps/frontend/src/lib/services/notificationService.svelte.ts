@@ -1,32 +1,57 @@
-import { SseConnection } from '$lib/network/sseConnection.svelte'
-import { Notification, NotificationType, UserStatus } from '@tabletop/common'
+// import { SseConnection } from '$lib/network/sseConnection.svelte'
+import {
+    Notification,
+    NotificationCategory,
+    NotificationValidator,
+    UserStatus
+} from '@tabletop/common'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
-import type { TabletopApi } from '@tabletop/frontend-components'
+import {
+    type NotificationListener,
+    NotificationEventType,
+    type DataEvent,
+    type TabletopApi,
+    type DiscontinuityEvent
+} from '@tabletop/frontend-components'
 import { PUBLIC_VAPID_KEY } from '$env/static/public'
-
-export type NotificationListener = (notification: Notification) => void
-export type ConnectionCallback = () => void
+import { AblyConnection } from '$lib/network/ablyConnection.svelte'
+import type { VisibilityService } from './visibilityService.svelte'
+import {
+    Channel,
+    RealtimeEventType,
+    type RealtimeConnection,
+    type RealtimeEvent
+} from '$lib/network/realtimeConnection'
+import { SseConnection } from '$lib/network/sseConnection.svelte'
 
 export class NotificationService {
-    private userEventConnection: SseConnection
-    private gameEventConnection: SseConnection | null = null
+    private realtimeConnection: RealtimeConnection
+
     private applicationServerKey
 
     private listenersByType: Record<string, Set<NotificationListener>> = {}
+
     private mounted = $state(false)
-    private notificationsAllowed = $state(false)
     private promptShown = $state(false)
 
+    private currentSessionUserId: string | undefined = $state(undefined)
+
+    private shouldConnectRealtime: boolean = $derived.by(() => {
+        return this.currentSessionUserId !== undefined && this.visbililtyService.visible
+    })
+
     constructor(
+        private readonly visbililtyService: VisibilityService,
         private readonly authorizationService: AuthorizationService,
         private readonly api: TabletopApi
     ) {
         this.applicationServerKey = this.urlB64ToUint8Array(PUBLIC_VAPID_KEY)
+        // this.realtimeConnection = new AblyConnection()
+        this.realtimeConnection = new SseConnection({ api })
+        this.realtimeConnection.setHandler(this.handleEvent)
 
-        this.userEventConnection = new SseConnection({
-            api,
-            path: '/sse/user',
-            handler: this.handleEvent
+        this.realtimeConnection.addChannel(new Channel(NotificationCategory.System)).catch((e) => {
+            console.error('Failed to add system channel', e)
         })
 
         $effect.root(() => {
@@ -37,19 +62,43 @@ export class NotificationService {
 
                 const user = this.authorizationService.getSessionUser()
                 if (user && user.status === UserStatus.Active) {
-                    this.connectUserNotifications().catch((e) => {
-                        console.error('Failed to connect to user event stream', e)
-                    })
-
-                    this.subscribePushNotifications().catch((e) => {
-                        console.error('Failed to subscribe to push notifications', e)
-                    })
+                    if (user.id !== this.currentSessionUserId) {
+                        console.log('setting session user id', user.id)
+                        this.currentSessionUserId = user.id
+                        this.realtimeConnection
+                            .addChannel(
+                                new Channel(NotificationCategory.User, this.currentSessionUserId)
+                            )
+                            .catch((e) => {
+                                console.error('Failed to add user channel', e)
+                            })
+                        this.subscribePushNotifications().catch((e) => {
+                            console.error('Failed to subscribe to push notifications', e)
+                        })
+                    }
                 } else {
-                    this.userEventConnection.disconnect()
-
+                    console.log('clearing session user id', this.currentSessionUserId)
+                    this.realtimeConnection
+                        .removeChannel(
+                            new Channel(NotificationCategory.User, this.currentSessionUserId)
+                        )
+                        .catch((e) => {
+                            console.error('Failed to add user channel', e)
+                        })
+                    this.currentSessionUserId = undefined
                     this.unsubscribePushNotifications().catch((e) => {
                         console.error('Failed to unsubscribe from push notifications', e)
                     })
+                }
+            })
+
+            $effect(() => {
+                if (this.shouldConnectRealtime) {
+                    this.realtimeConnection.connect().catch((e) => {
+                        console.error('Failed to connect to realtime connection', e)
+                    })
+                } else {
+                    this.realtimeConnection.disconnect()
                 }
             })
         })
@@ -77,34 +126,22 @@ export class NotificationService {
         return permission === 'granted'
     }
 
-    listenToGame(gameId: string, onConnect?: ConnectionCallback) {
-        if (this.gameEventConnection) {
-            this.stopListeningToGame()
-        }
-        this.gameEventConnection = new SseConnection({
-            api: this.api,
-            path: `/sse/game/${gameId}`,
-            handler: this.handleEvent,
-            onConnect: onConnect
-        })
-
-        this.gameEventConnection.connect().catch((e) => {
-            console.error('Failed to connect to game event stream', e)
-        })
+    async listenToGame(gameId: string) {
+        await this.realtimeConnection?.addChannel(new Channel(NotificationCategory.Game, gameId))
     }
 
-    stopListeningToGame() {
-        this.gameEventConnection?.disconnect()
+    async stopListeningToGame(gameId: string) {
+        await this.realtimeConnection?.removeChannel(new Channel(NotificationCategory.Game, gameId))
     }
 
-    addListener(type: NotificationType, listener: NotificationListener) {
+    addListener(type: NotificationCategory, listener: NotificationListener) {
         if (!this.listenersByType[type]) {
             this.listenersByType[type] = new Set()
         }
         this.listenersByType[type].add(listener)
     }
 
-    removeListener(type: NotificationType, listener: NotificationListener) {
+    removeListener(type: NotificationCategory, listener: NotificationListener) {
         this.listenersByType[type]?.delete(listener)
     }
 
@@ -138,14 +175,6 @@ export class NotificationService {
 
     hidePrompt() {
         this.promptShown = false
-    }
-
-    private async connectUserNotifications() {
-        try {
-            await this.userEventConnection.connect()
-        } catch (e) {
-            console.error('Failed to connect to user event stream', e)
-        }
     }
 
     private async subscribePushNotifications() {
@@ -187,13 +216,45 @@ export class NotificationService {
         }
     }
 
-    private handleEvent = (event: MessageEvent) => {
+    private handleEvent = async (event: RealtimeEvent) => {
         try {
-            const data = JSON.parse(event.data) as Notification
-            const listeners = this.listenersByType[data.type] || new Set()
+            console.log('Received notification event', event)
+            let notificationEvent
+            if (event.type === RealtimeEventType.Data) {
+                if (!event.data) {
+                    console.error('No data in event', event)
+                    return
+                }
+
+                if (!NotificationValidator.Check(event.data)) {
+                    console.error('Invalid notification data', event.data)
+                    return
+                }
+
+                const notification = event.data as Notification
+                const dataEvent: DataEvent = {
+                    eventType: NotificationEventType.Data,
+                    category: event.category,
+                    notification
+                }
+                notificationEvent = dataEvent
+            } else if (event.type === RealtimeEventType.Discontinuity) {
+                const discontinuityEvent: DiscontinuityEvent = {
+                    eventType: NotificationEventType.Discontinuity,
+                    category: event.category
+                }
+                notificationEvent = discontinuityEvent
+            }
+
+            if (!notificationEvent) {
+                return
+            }
+
+            const listeners = this.listenersByType[event.category] || new Set()
             for (const listener of listeners) {
                 try {
-                    listener(data)
+                    console.log('notifying listener')
+                    await listener(notificationEvent)
                 } catch (e) {
                     console.error('Error notifying listener', e)
                 }

@@ -18,7 +18,9 @@ import {
     FirestoreNotificationStore,
     DefaultNotificationService,
     DiscordTransport,
-    WebPushTransport
+    WebPushTransport,
+    PubSubTransport,
+    AblyTransport
 } from '@tabletop/backend-services'
 
 import { FastifyInstance } from 'fastify'
@@ -72,6 +74,9 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const discordService = new DiscordService(notificationService, userService)
 
+    const pubSubTransport = new PubSubTransport(pubSubService)
+    const ablyTransport = await AblyTransport.createAblyTransport(secretsService)
+
     const discordTransport = await DiscordTransport.createDiscordTransport(
         secretsService,
         gameService
@@ -80,6 +85,9 @@ export default fp(async (fastify: FastifyInstance) => {
 
     notificationService.addTransport(discordTransport)
     notificationService.addTransport(webPushTransport)
+
+    notificationService.addTopicTransport(pubSubTransport)
+    notificationService.addTopicTransport(ablyTransport)
 
     fastify.decorate('taskService', taskService)
     fastify.decorate('tokenService', tokenService)

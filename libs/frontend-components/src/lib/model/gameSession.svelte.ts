@@ -5,7 +5,7 @@ import {
     GameAddActionsNotification,
     GameEngine,
     GameNotificationAction,
-    NotificationType,
+    NotificationCategory,
     Notification,
     type Player,
     GameState
@@ -15,7 +15,12 @@ import type { AuthorizationService } from '$lib/services/authorizationService.sv
 import { TabletopApi } from '$lib/network/tabletopApi'
 import { toast } from 'svelte-sonner'
 import { nanoid } from 'nanoid'
-import type { NotificationService } from '$lib/services/notificationService.svelte'
+import {
+    isDataEvent,
+    isDiscontinuityEvent,
+    type NotificationEvent,
+    type NotificationService
+} from '$lib/services/notificationService.svelte'
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
 
 export enum GameSessionMode {
@@ -145,16 +150,19 @@ export class GameSession {
         if (this.debug) {
             console.log(`listening to game ${this.game.id}`)
         }
-        this.notificationService.addListener(NotificationType.Game, this.NotificationListener)
-        this.notificationService.listenToGame(this.game.id, this.ConnectionCallback)
+        this.notificationService.addListener(NotificationCategory.Game, this.NotificationListener)
+        this.notificationService.listenToGame(this.game.id)
     }
 
     stopListeningToGame() {
         if (this.debug) {
             console.log(`unlistening to game ${this.game.id}`)
         }
-        this.notificationService.removeListener(NotificationType.Game, this.NotificationListener)
-        this.notificationService.stopListeningToGame()
+        this.notificationService.removeListener(
+            NotificationCategory.Game,
+            this.NotificationListener
+        )
+        this.notificationService.stopListeningToGame(this.game.id)
     }
 
     createBaseAction(type: string): GameAction {
@@ -443,26 +451,29 @@ export class GameSession {
         this.actionsById.set(action.id, action)
     }
 
-    private ConnectionCallback = async () => {
-        console.log('Connected to game event stream, checking for missing actions')
-        const { actions } = await this.api.getActions(this.game.id, this.actions.length - 1)
-        this.applyServerActions(actions)
-    }
+    private NotificationListener = async (event: NotificationEvent) => {
+        if (isDataEvent(event)) {
+            console.log('got data event')
+            const notification = event.notification
+            if (!this.isGameAddActionsNotification(notification)) {
+                return
+            }
+            console.log('for a game')
+            if (notification.data.game.id !== this.game.id) {
+                return
+            }
 
-    private NotificationListener = (notification: Notification) => {
-        if (!this.isGameAddActionsNotification(notification)) {
-            return
+            console.log('action stuff')
+            const actions = notification.data.actions.map((action) =>
+                Value.Convert(GameAction, action)
+            ) as GameAction[]
+
+            this.applyServerActions(actions)
+        } else if (isDiscontinuityEvent(event) && event.category === NotificationCategory.Game) {
+            console.log('Checking for missing actions')
+            const { actions } = await this.api.getActions(this.game.id, this.actions.length - 1)
+            this.applyServerActions(actions)
         }
-
-        if (notification.data.game.id !== this.game.id) {
-            return
-        }
-
-        const actions = notification.data.actions.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
-
-        this.applyServerActions(actions)
     }
 
     private applyServerActions(actions: GameAction[]) {
@@ -492,7 +503,7 @@ export class GameSession {
         notification: Notification
     ): notification is GameAddActionsNotification {
         return (
-            notification.type === NotificationType.Game &&
+            notification.type === NotificationCategory.Game &&
             notification.action === GameNotificationAction.AddActions
         )
     }

@@ -2,6 +2,7 @@ import { Notification } from '@tabletop/common'
 import { NotificationTransport } from './transports/notificationTransport.js'
 import { NotificationSubscription } from './subscriptions/notificationSubscription.js'
 import { NotificationSubscriptionIdentifier } from './subscriptions/notificationSubscriptionIdentifier.js'
+import { TopicTransport } from './transports/topicTransport.js'
 
 export enum NotificationChannel {
     UserPush = 'userPush', // Discord, WebPush, Email?
@@ -14,28 +15,17 @@ export type NotificationListener = {
 }
 
 export interface NotificationService {
-    addTransport(transport: NotificationTransport): void
-
-    addRealtimeListener({
+    addTopicTransport(transport: TopicTransport): void
+    addTopicListener({
         listener,
         topic
     }: {
         listener: NotificationListener
         topic: string
     }): Promise<void>
+    removeTopicListener({ listenerId }: { listenerId: string }): Promise<void>
 
-    removeRealtimeListener({ listenerId }: { listenerId: string }): Promise<void>
-
-    sendNotification({
-        notification,
-        topics,
-        channels
-    }: {
-        notification: Notification
-        topics: string[]
-        channels: NotificationChannel[]
-    }): Promise<void>
-
+    addTransport(transport: NotificationTransport): void
     registerNotificationSubscription({
         subscription,
         topic
@@ -47,4 +37,14 @@ export interface NotificationService {
     unregisterNotificationSubscription(
         identifier: NotificationSubscriptionIdentifier
     ): Promise<void>
+
+    sendNotification({
+        notification,
+        topics,
+        channels
+    }: {
+        notification: Notification
+        topics: string[]
+        channels: NotificationChannel[]
+    }): Promise<void>
 }

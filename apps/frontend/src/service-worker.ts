@@ -5,7 +5,7 @@
 
 import {
     Notification,
-    NotificationType,
+    NotificationCategory,
     type UserNotification,
     UserNotificationAction
 } from '@tabletop/common'
@@ -60,7 +60,7 @@ async function focusOrOpenWindow(gameId?: string) {
 }
 
 function isUserNotification(notification: Notification): notification is UserNotification {
-    return notification.type === NotificationType.User
+    return notification.type === NotificationCategory.User
 }
 
 async function generateLocalNotification(

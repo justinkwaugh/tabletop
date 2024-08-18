@@ -19,7 +19,8 @@
                 "REDIS_PORT",
                 "GCLOUD_PROJECT",
                 "VAPID_PUBLIC_KEY",
-                "DISCORD_PUBLIC_KEY"
+                "DISCORD_PUBLIC_KEY",
+                "ABLY_API_KEY"
             ]
         },
         "lint": {},

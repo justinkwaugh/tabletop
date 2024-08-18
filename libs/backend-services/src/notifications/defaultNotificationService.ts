@@ -9,17 +9,20 @@ import {
 import { NotificationTransport } from './transports/notificationTransport.js'
 import { NotificationSubscription } from './subscriptions/notificationSubscription.js'
 import { NotificationSubscriptionIdentifier } from './subscriptions/notificationSubscriptionIdentifier.js'
+import { TopicTransport } from './transports/topicTransport.js'
 
 export class DefaultNotificationService implements NotificationService {
     private transports: Record<string, NotificationTransport> = {}
+    private topicTransports: Record<string, TopicTransport> = {}
 
+    // For internal topic listeners... where we proxy the messages to the listeners via SSE or whatnot
     private rtListenersById: Record<string, NotificationListener> = {}
     private rtListenersByTopic: Record<string, Set<string>> = {}
 
     private pubSubSubscriber: PubSubSubscriber = {
         id: 'notifications-service', // Need better id probably
         onMessage: async ({ message, topic }) => {
-            await this.notifyRealtimeListeners({ topic, notification: message })
+            await this.notifyTopicListeners({ topic, notification: message })
         }
     }
 
@@ -52,13 +55,11 @@ export class DefaultNotificationService implements NotificationService {
         this.transports[transport.type] = transport
     }
 
-    async addRealtimeListener({
-        listener,
-        topic
-    }: {
-        listener: NotificationListener
-        topic: string
-    }) {
+    addTopicTransport(transport: TopicTransport) {
+        this.topicTransports[transport.type] = transport
+    }
+
+    async addTopicListener({ listener, topic }: { listener: NotificationListener; topic: string }) {
         this.rtListenersById[listener.id] = listener
 
         if (!this.rtListenersByTopic[topic]) {
@@ -67,7 +68,7 @@ export class DefaultNotificationService implements NotificationService {
         this.rtListenersByTopic[topic].add(listener.id)
     }
 
-    async removeRealtimeListener({ listenerId }: { listenerId: string }) {
+    async removeTopicListener({ listenerId }: { listenerId: string }) {
         const listener = this.rtListenersById[listenerId]
         if (!listener) {
             return
@@ -91,13 +92,12 @@ export class DefaultNotificationService implements NotificationService {
     }) {
         for (const topic of topics) {
             if (channels.includes(NotificationChannel.AppRealtime)) {
-                try {
-                    await this.pubSubService.publishMessage({
-                        message: JSON.stringify(notification),
-                        topic: topic
-                    })
-                } catch (e) {
-                    console.log('Error sending notification', e)
+                for (const topicTransport of Object.values(this.topicTransports)) {
+                    try {
+                        await topicTransport.sendNotification({ notification, topic })
+                    } catch (e) {
+                        console.log('Error sending notification', e)
+                    }
                 }
             }
 
@@ -144,7 +144,7 @@ export class DefaultNotificationService implements NotificationService {
         await this.notificationStore.deleteNotificationSubscription(identifier)
     }
 
-    private async notifyRealtimeListeners({
+    private async notifyTopicListeners({
         topic,
         notification
     }: {

@@ -1,11 +1,17 @@
-import { GameSession, TabletopApi, type AuthorizationService } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    TabletopApi,
+    type AuthorizationService,
+    type NotificationEvent,
+    isDataEvent
+} from '@tabletop/frontend-components'
 import {
     Game,
     type GameNotification,
     GameNotificationAction,
     GameStatus,
     Notification,
-    NotificationType,
+    NotificationCategory,
     GameAction
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
@@ -48,7 +54,7 @@ export class GameService {
         private readonly notificationService: NotificationService,
         private readonly api: TabletopApi
     ) {
-        notificationService.addListener(NotificationType.Game, this.NotificationListener)
+        notificationService.addListener(NotificationCategory.Game, this.NotificationListener)
     }
 
     isLoading(): boolean {
@@ -149,21 +155,24 @@ export class GameService {
         this.loaded = false
     }
 
-    private NotificationListener = (notification: Notification) => {
-        if (!this.isGameNotification(notification)) {
-            return
-        }
+    private NotificationListener = async (event: NotificationEvent) => {
+        if (isDataEvent(event)) {
+            const notification = event.notification
+            if (!this.isGameNotification(notification)) {
+                return
+            }
 
-        const game = Value.Convert(Game, notification.data.game) as Game
-        if (
-            notification.action === GameNotificationAction.Create ||
-            notification.action === GameNotificationAction.Update
-        ) {
-            this.gamesById.set(game.id, game)
+            const game = Value.Convert(Game, notification.data.game) as Game
+            if (
+                notification.action === GameNotificationAction.Create ||
+                notification.action === GameNotificationAction.Update
+            ) {
+                this.gamesById.set(game.id, game)
+            }
         }
     }
 
     private isGameNotification(notification: Notification): notification is GameNotification {
-        return notification.type === NotificationType.Game
+        return notification.type === NotificationCategory.Game
     }
 }

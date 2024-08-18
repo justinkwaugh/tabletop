@@ -48,15 +48,15 @@ export default async function (fastify: FastifyInstance) {
             }
         }
 
-        await fastify.notificationService.addRealtimeListener({
+        await fastify.notificationService.addTopicListener({
             listener,
             topic: `user-${user.id}`
         })
 
-        await fastify.notificationService.addRealtimeListener({ listener, topic: `global` })
+        await fastify.notificationService.addTopicListener({ listener, topic: `global` })
 
         request.raw.on('close', async () => {
-            await fastify.notificationService.removeRealtimeListener({ listenerId: listener.id })
+            await fastify.notificationService.removeTopicListener({ listenerId: listener.id })
         })
 
         await fastify.tokenService.invalidateToken(token)

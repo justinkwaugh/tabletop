@@ -24,9 +24,8 @@
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import { BellSolid } from 'flowbite-svelte-icons'
 
-    let { api, authorizationService, gameService, notificationService } = getContext(
-        'appContext'
-    ) as AppContext
+    let { api, authorizationService, gameService, notificationService, visibilityService } =
+        getContext('appContext') as AppContext
 
     let { children } = $props()
 
@@ -99,6 +98,12 @@
 
     onMount(() => {
         notificationService.onMounted()
+        visibilityService.setDocument(document)
+
+        // document.addEventListener('visibilitychange', visibilityChangeHandler)
+        return () => {
+            // document.removeEventListener('visibilitychange', visibilityChangeHandler)
+        }
     })
 
     const slideParams = { axis: 'y', duration: 600 }

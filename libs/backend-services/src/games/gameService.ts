@@ -11,7 +11,7 @@ import {
     GameStartedNotification,
     GameStatus,
     IsYourTurnNotification,
-    NotificationType,
+    NotificationCategory,
     Player,
     PlayerDeclinedNotification,
     PlayerJoinedNotification,
@@ -706,7 +706,7 @@ export class GameService {
     ): Promise<void> {
         const notification = <GameNotification>{
             id: nanoid(),
-            type: NotificationType.Game,
+            type: NotificationCategory.Game,
             action: action,
             data
         }
@@ -722,7 +722,7 @@ export class GameService {
     private async notifyIsYourTurn(user: User, game: Game): Promise<void> {
         const notification: IsYourTurnNotification = {
             id: nanoid(),
-            type: NotificationType.User,
+            type: NotificationCategory.User,
             action: UserNotificationAction.IsYourTurn,
             data: {
                 user: {
@@ -741,7 +741,7 @@ export class GameService {
     private async notifyWasInvited(user: User, owner: User, game: Game): Promise<void> {
         const notification: WasInvitedNotification = {
             id: nanoid(),
-            type: NotificationType.User,
+            type: NotificationCategory.User,
             action: UserNotificationAction.WasInvited,
             data: {
                 user: {
@@ -768,7 +768,7 @@ export class GameService {
             }
             const notification: GameStartedNotification = {
                 id: nanoid(),
-                type: NotificationType.User,
+                type: NotificationCategory.User,
                 action: UserNotificationAction.GameStarted,
                 data: {
                     user: {
@@ -788,7 +788,7 @@ export class GameService {
     private async notifyJoined(user: User, game: Game, player: Player): Promise<void> {
         const notification: PlayerJoinedNotification = {
             id: nanoid(),
-            type: NotificationType.User,
+            type: NotificationCategory.User,
             action: UserNotificationAction.PlayerJoined,
             data: {
                 user: {
@@ -811,7 +811,7 @@ export class GameService {
     private async notifyDeclined(user: User, game: Game, player: Player): Promise<void> {
         const notification: PlayerDeclinedNotification = {
             id: nanoid(),
-            type: NotificationType.User,
+            type: NotificationCategory.User,
             action: UserNotificationAction.PlayerDeclined,
             data: {
                 user: {

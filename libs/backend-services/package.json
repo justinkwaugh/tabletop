@@ -17,6 +17,7 @@
         "@google-cloud/tasks": "^5.4.0",
         "@sinclair/typebox": "^0.32.34",
         "@tabletop/common": "*",
+        "ably": "^2.3.1",
         "discord-api-types": "^0.37.93",
         "discord-interactions": "^4.0.0",
         "discord.js": "^14.15.3",

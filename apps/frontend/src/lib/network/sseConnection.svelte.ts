@@ -1,4 +1,12 @@
 import { TabletopApi } from '@tabletop/frontend-components'
+import {
+    RealtimeEventType,
+    type Channel,
+    type RealtimeConnection,
+    type RealtimeEvent,
+    type RealtimeEventHandler
+} from './realtimeConnection'
+import { NotificationCategory } from '@tabletop/common'
 
 export enum ConnectionStatus {
     Disconnected = 'disconnected',
@@ -6,37 +14,61 @@ export enum ConnectionStatus {
     Connected = 'connected'
 }
 
-export type SseEventHandler = (event: MessageEvent) => void
-export type ConnectionCallback = () => void
+const GAME_PATH = '/sse/game'
+const USER_PATH = '/sse/user'
 
-export class SseConnection {
+export class SseConnection implements RealtimeConnection {
     static MAX_RETRY_TIMEOUT = 10000
 
     public connectionStatus = ConnectionStatus.Disconnected
 
-    private path: string
     private api: TabletopApi
-    private handler: SseEventHandler
-    private connectionCallback: ConnectionCallback | undefined
+    private handler?: RealtimeEventHandler
+    private path?: string
+    private isGame = false
 
     private eventSource: EventSource | null = null
     private retryTimer: ReturnType<typeof setTimeout> | null = null
 
-    constructor({
-        api,
-        path,
-        handler,
-        onConnect
-    }: {
-        api: TabletopApi
-        path: string
-        handler: SseEventHandler
-        onConnect?: ConnectionCallback
-    }) {
+    constructor({ api }: { api: TabletopApi }) {
         this.api = api
-        this.path = path
+    }
+
+    setHandler(handler: RealtimeEventHandler) {
         this.handler = handler
-        this.connectionCallback = onConnect
+    }
+
+    async addChannel(channel: Channel): Promise<void> {
+        const oldPath = this.path
+        const newPath =
+            channel.category === NotificationCategory.Game
+                ? `${GAME_PATH}/${channel.id}`
+                : USER_PATH
+
+        if (channel.category === NotificationCategory.Game) {
+            this.isGame = true
+        }
+
+        if (newPath !== oldPath) {
+            this.path = newPath
+            if (this.connectionStatus === ConnectionStatus.Connected) {
+                console.log('Switching realtime connection to', this.path)
+                this.disconnect()
+                await this.connect()
+            }
+        }
+    }
+
+    async removeChannel(channel: Channel): Promise<void> {
+        if (channel.category === NotificationCategory.Game) {
+            this.isGame = false
+            this.path = USER_PATH
+            if (this.connectionStatus === ConnectionStatus.Connected) {
+                console.log('Switching realtime connection to', this.path)
+                this.disconnect()
+                await this.connect()
+            }
+        }
     }
 
     async connect() {
@@ -53,8 +85,24 @@ export class SseConnection {
             this.eventSource.onopen = () => {
                 console.log('Event source connected')
                 this.connectionStatus = ConnectionStatus.Connected
-                if (this.connectionCallback) {
-                    this.connectionCallback()
+
+                if (this.isGame) {
+                    const realtimeEvent: RealtimeEvent = {
+                        type: RealtimeEventType.Discontinuity,
+                        category: NotificationCategory.Game
+                    }
+                    if (this.handler) {
+                        this.handler(realtimeEvent)
+                    }
+                }
+
+                const realtimeEvent: RealtimeEvent = {
+                    type: RealtimeEventType.Discontinuity,
+                    category: NotificationCategory.User
+                }
+
+                if (this.handler) {
+                    this.handler(realtimeEvent)
                 }
             }
 
@@ -68,7 +116,16 @@ export class SseConnection {
                 if (event.data === 'hello') {
                     return
                 }
-                this.handler(event)
+                console.log('Received event', event)
+                const parsedData = JSON.parse(event.data)
+                const realtimeEvent: RealtimeEvent = {
+                    type: RealtimeEventType.Data,
+                    category: parsedData.type,
+                    data: parsedData
+                }
+                if (this.handler) {
+                    this.handler(realtimeEvent)
+                }
             }
         } catch (e) {
             console.error('Error connecting to event source', e)

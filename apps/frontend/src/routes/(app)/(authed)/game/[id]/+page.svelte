@@ -10,21 +10,6 @@
     let { gameService, notificationService } = getContext('appContext') as AppContext
     let table: Component | null = $state(null)
 
-    const visibilityChangeHandler = async () => {
-        switch (document.visibilityState) {
-            case 'visible':
-                console.log('visible')
-                data.gameSession.listenToGame()
-                break
-            case 'hidden':
-                console.log('not visible')
-                data.gameSession.stopListeningToGame()
-                break
-            default:
-                break
-        }
-    }
-
     onMount(() => {
         const gameSession = data.gameSession
         gameService.currentGameSession = gameSession
@@ -36,13 +21,9 @@
             notificationService.showPrompt()
         }, 2000)
 
-        document.addEventListener('visibilitychange', visibilityChangeHandler)
-        if (document.visibilityState === 'visible') {
-            data.gameSession.listenToGame()
-        }
+        data.gameSession.listenToGame()
 
         return () => {
-            document.removeEventListener('visibilitychange', visibilityChangeHandler)
             gameSession.stopListeningToGame()
             gameService.currentGameSession = undefined
         }
