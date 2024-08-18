@@ -1,6 +1,4 @@
 import Ably from 'ably'
-
-import { PUBLIC_ABLY_API_KEY } from '$env/static/public'
 import type { NotificationCategory } from '@tabletop/common'
 import {
     type RealtimeConnection,
@@ -9,6 +7,7 @@ import {
     type RealtimeEventHandler,
     Channel
 } from './realtimeConnection'
+import type { TabletopApi } from '@tabletop/frontend-components'
 
 export class AblyConnection implements RealtimeConnection {
     private handler?: RealtimeEventHandler
@@ -20,8 +19,20 @@ export class AblyConnection implements RealtimeConnection {
 
     private ably: Ably.Realtime
 
-    constructor() {
-        this.ably = new Ably.Realtime({ key: PUBLIC_ABLY_API_KEY, autoConnect: false })
+    constructor(private readonly api: TabletopApi) {
+        this.ably = new Ably.Realtime({
+            autoConnect: false,
+            authCallback: async (tokenParams, callback) => {
+                let tokenRequest
+                try {
+                    tokenRequest = await api.getAblyToken() // Make a network request to your server
+                } catch (err) {
+                    callback(JSON.stringify(err), null)
+                    return
+                }
+                callback(null, tokenRequest)
+            }
+        })
         this.ably.connection.on('connected', async () => {
             // Subscribe or attach to all channels on connect
             for (const channelData of this.channels.values()) {
@@ -49,12 +60,12 @@ export class AblyConnection implements RealtimeConnection {
         const channelName = channel.channelName
         console.log('Adding channel', channelName)
         const ablyChannel = this.ably.channels.get(channelName)
-        ablyChannel.on('initialized', (event) => {
-            console.log('Channel', channelName, 'initialize', event)
-        })
-        ablyChannel.on('attaching', (event) => {
-            console.log('Channel', channelName, 'attaching', event)
-        })
+        // ablyChannel.on('initialized', (event) => {
+        //     console.log('Channel', channelName, 'initialize', event)
+        // })
+        // ablyChannel.on('attaching', (event) => {
+        //     console.log('Channel', channelName, 'attaching', event)
+        // })
         ablyChannel.on('attached', (event) => {
             const realtimeEvent: RealtimeEvent = {
                 type: RealtimeEventType.Discontinuity,
@@ -65,21 +76,21 @@ export class AblyConnection implements RealtimeConnection {
             }
             console.log('Channel', channelName, 'attached', event)
         })
-        ablyChannel.on('detaching', (event) => {
-            console.log('Channel', channelName, 'detaching', event)
-        })
-        ablyChannel.on('detached', (event) => {
-            console.log('Channel', channelName, 'detached', event)
-        })
-        ablyChannel.on('failed', (err) => {
-            console.log('Channel', channelName, 'failed', err)
-        })
-        ablyChannel.on('suspended', (event) => {
-            console.log('Channel', channelName, 'suspended', event)
-        })
-        ablyChannel.on('update', (event) => {
-            console.log('Channel', channelName, 'update', event)
-        })
+        // ablyChannel.on('detaching', (event) => {
+        //     console.log('Channel', channelName, 'detaching', event)
+        // })
+        // ablyChannel.on('detached', (event) => {
+        //     console.log('Channel', channelName, 'detached', event)
+        // })
+        // ablyChannel.on('failed', (err) => {
+        //     console.log('Channel', channelName, 'failed', err)
+        // })
+        // ablyChannel.on('suspended', (event) => {
+        //     console.log('Channel', channelName, 'suspended', event)
+        // })
+        // ablyChannel.on('update', (event) => {
+        //     console.log('Channel', channelName, 'update', event)
+        // })
 
         const channelData = { category: channel.category, channel: ablyChannel }
         this.channels.set(channelName, channelData)
@@ -129,8 +140,6 @@ export class AblyConnection implements RealtimeConnection {
         await channelData.channel.detach()
 
         this.channels.delete(channel.channelName)
-
-        console.log('Remaining channels', Object.keys(this.channels))
     }
 
     async connect() {

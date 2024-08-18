@@ -46,8 +46,8 @@ export class NotificationService {
         private readonly api: TabletopApi
     ) {
         this.applicationServerKey = this.urlB64ToUint8Array(PUBLIC_VAPID_KEY)
-        // this.realtimeConnection = new AblyConnection()
-        this.realtimeConnection = new SseConnection({ api })
+        this.realtimeConnection = new AblyConnection(api)
+        // this.realtimeConnection = new SseConnection({ api })
         this.realtimeConnection.setHandler(this.handleEvent)
 
         this.realtimeConnection.addChannel(new Channel(NotificationCategory.System)).catch((e) => {

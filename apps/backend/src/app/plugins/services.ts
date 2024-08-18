@@ -20,7 +20,8 @@ import {
     DiscordTransport,
     WebPushTransport,
     PubSubTransport,
-    AblyTransport
+    AblyTransport,
+    AblyService
 } from '@tabletop/backend-services'
 
 import { FastifyInstance } from 'fastify'
@@ -37,6 +38,7 @@ declare module 'fastify' {
         notificationService: NotificationService
         pubSubService: PubSubService
         discordService: DiscordService
+        ablyService: AblyService
     }
 }
 
@@ -89,6 +91,8 @@ export default fp(async (fastify: FastifyInstance) => {
     notificationService.addTopicTransport(pubSubTransport)
     notificationService.addTopicTransport(ablyTransport)
 
+    const ablyService = await AblyService.createAblyService(secretsService)
+
     fastify.decorate('taskService', taskService)
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('userService', userService)
@@ -98,4 +102,5 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('pubSubService', pubSubService)
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)
+    fastify.decorate('ablyService', ablyService)
 })

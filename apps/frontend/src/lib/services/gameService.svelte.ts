@@ -3,7 +3,8 @@ import {
     TabletopApi,
     type AuthorizationService,
     type NotificationEvent,
-    isDataEvent
+    isDataEvent,
+    isDiscontinuityEvent
 } from '@tabletop/frontend-components'
 import {
     Game,
@@ -54,7 +55,7 @@ export class GameService {
         private readonly notificationService: NotificationService,
         private readonly api: TabletopApi
     ) {
-        notificationService.addListener(NotificationCategory.Game, this.NotificationListener)
+        notificationService.addListener(NotificationCategory.User, this.NotificationListener)
     }
 
     isLoading(): boolean {
@@ -169,6 +170,10 @@ export class GameService {
             ) {
                 this.gamesById.set(game.id, game)
             }
+        } else if (isDiscontinuityEvent(event)) {
+            this.loaded = false
+            console.log('Checking for dashboard game updates')
+            await this.loadGames()
         }
     }
 

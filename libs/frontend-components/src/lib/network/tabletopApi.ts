@@ -3,6 +3,7 @@ import QueryStringAddon from 'wretch/addons/queryString'
 import { Value } from '@sinclair/typebox/value'
 import { Game, GameAction, User } from '@tabletop/common'
 import type {
+    AblyTokenResponse,
     ApplyActionResponse,
     GameResponse,
     GamesResponse,
@@ -12,6 +13,7 @@ import type {
 } from './responseTypes.js'
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
+import Ably from 'ably'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
@@ -354,6 +356,22 @@ export class TabletopApi {
             .json<TokenResponse>()
 
         return response.payload.token
+    }
+
+    async getAblyToken(): Promise<Ably.TokenRequest> {
+        const response = await wretch(`${this._baseUrl}/auth/ably/token`)
+            .options({ credentials: 'include' })
+            .get()
+            .unauthorized(() => {
+                throw new APIError({
+                    name: 'Unauthorized',
+                    message: 'You are not authorized'
+                })
+            })
+            .badRequest(this.handleError)
+            .json<AblyTokenResponse>()
+
+        return response.payload.token as Ably.TokenRequest
     }
 
     async subscribeToPushNotifications(subscription: PushSubscription) {

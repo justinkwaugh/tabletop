@@ -66,3 +66,11 @@ export const TokenResponse = Type.Composite([
         payload: Type.Object({ token: Type.String() })
     })
 ])
+
+export type AblyTokenResponse = Static<typeof AblyTokenResponse>
+export const AblyTokenResponse = Type.Composite([
+    Type.Omit(Response, ['payload']),
+    Type.Object({
+        payload: Type.Object({ token: Type.Unknown() })
+    })
+])
