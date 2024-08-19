@@ -3,7 +3,8 @@ import {
     APIBaseInteraction,
     APIApplicationCommandInteraction,
     InteractionResponseType,
-    InteractionType
+    InteractionType,
+    MessageFlags
 } from 'discord-api-types/v10'
 
 import { UserService } from '../users/userService.js'
@@ -40,7 +41,8 @@ export class DiscordService {
             return {
                 type: InteractionResponseType.ChannelMessageWithSource,
                 data: {
-                    content: 'For some reason I could not identify your user id.  Try again?'
+                    content: 'For some reason I could not identify your user id.  Try again?',
+                    flags: MessageFlags.Ephemeral
                 }
             }
         }
@@ -54,7 +56,8 @@ export class DiscordService {
                 type: InteractionResponseType.ChannelMessageWithSource,
                 data: {
                     content:
-                        'Could not find your Discord linked user account on BoardTogether, please login there and go to your profile and link your Discord account.'
+                        'Could not find your Discord linked user account on BoardTogether, please login there and go to your profile and link your Discord account.',
+                    flags: MessageFlags.Ephemeral
                 }
             }
         }
@@ -73,7 +76,8 @@ export class DiscordService {
         return {
             type: InteractionResponseType.ChannelMessageWithSource,
             data: {
-                content: 'You will now be notified.  Type /stop to stop notifications.'
+                content: 'You will now be notified.  Type /stop to stop notifications.',
+                flags: MessageFlags.Ephemeral
             }
         }
     }
@@ -84,7 +88,8 @@ export class DiscordService {
             return {
                 type: InteractionResponseType.ChannelMessageWithSource,
                 data: {
-                    content: 'For some reason I could not identify your user id.  Try again?'
+                    content: 'For some reason I could not identify your user id.  Try again?',
+                    flags: MessageFlags.Ephemeral
                 }
             }
         }
@@ -98,7 +103,10 @@ export class DiscordService {
         await this.notificationService?.unregisterNotificationSubscription(subscription)
         return {
             type: InteractionResponseType.ChannelMessageWithSource,
-            data: { content: 'Notifications will no longer be sent.' }
+            data: {
+                content: 'Notifications will no longer be sent.',
+                flags: MessageFlags.Ephemeral
+            }
         }
     }
 }
