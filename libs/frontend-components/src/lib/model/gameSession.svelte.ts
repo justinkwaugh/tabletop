@@ -18,6 +18,7 @@ import { nanoid } from 'nanoid'
 import {
     isDataEvent,
     isDiscontinuityEvent,
+    NotificationChannel,
     type NotificationEvent,
     type NotificationService
 } from '$lib/services/notificationService.svelte'
@@ -150,7 +151,7 @@ export class GameSession {
         if (this.debug) {
             console.log(`listening to game ${this.game.id}`)
         }
-        this.notificationService.addListener(NotificationCategory.Game, this.NotificationListener)
+        this.notificationService.addListener(this.NotificationListener)
         this.notificationService.listenToGame(this.game.id)
     }
 
@@ -158,10 +159,7 @@ export class GameSession {
         if (this.debug) {
             console.log(`unlistening to game ${this.game.id}`)
         }
-        this.notificationService.removeListener(
-            NotificationCategory.Game,
-            this.NotificationListener
-        )
+        this.notificationService.removeListener(this.NotificationListener)
         this.notificationService.stopListeningToGame(this.game.id)
     }
 
@@ -469,7 +467,10 @@ export class GameSession {
             ) as GameAction[]
 
             this.applyServerActions(actions)
-        } else if (isDiscontinuityEvent(event) && event.category === NotificationCategory.Game) {
+        } else if (
+            isDiscontinuityEvent(event) &&
+            event.channel === NotificationChannel.GameInstance
+        ) {
             console.log('Checking for missing actions')
             const { actions } = await this.api.getActions(this.game.id, this.actions.length - 1)
             this.applyServerActions(actions)

@@ -1,4 +1,9 @@
-import { Notification, NotificationCategory } from '@tabletop/common'
+import { Notification } from '@tabletop/common'
+
+export enum NotificationChannel {
+    GameInstance = 'gameInstance',
+    User = 'user'
+}
 
 export enum NotificationEventType {
     Data = 'data',
@@ -7,12 +12,12 @@ export enum NotificationEventType {
 
 export type DiscontinuityEvent = {
     eventType: NotificationEventType
-    category: NotificationCategory
+    channel: NotificationChannel
 }
 
 export type DataEvent = {
     eventType: NotificationEventType
-    category: NotificationCategory
+    channel: NotificationChannel
     notification: Notification
 }
 
@@ -31,6 +36,6 @@ export type NotificationListener = (event: NotificationEvent) => void
 export type NotificationService = {
     listenToGame(gameId: string): void
     stopListeningToGame(gameId: string): void
-    addListener(type: NotificationCategory, listener: NotificationListener): void
-    removeListener(type: NotificationCategory, listener: NotificationListener): void
+    addListener(listener: NotificationListener): void
+    removeListener(listener: NotificationListener): void
 }

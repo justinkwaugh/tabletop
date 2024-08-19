@@ -1,23 +1,19 @@
 // import { SseConnection } from '$lib/network/sseConnection.svelte'
-import {
-    Notification,
-    NotificationCategory,
-    NotificationValidator,
-    UserStatus
-} from '@tabletop/common'
+import { Notification, NotificationValidator, UserStatus } from '@tabletop/common'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import {
     type NotificationListener,
     NotificationEventType,
     type DataEvent,
     type TabletopApi,
-    type DiscontinuityEvent
+    type DiscontinuityEvent,
+    NotificationChannel
 } from '@tabletop/frontend-components'
 import { PUBLIC_VAPID_KEY } from '$env/static/public'
 import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 import type { VisibilityService } from './visibilityService.svelte'
 import {
-    Channel,
+    ChannelIdentifier,
     RealtimeEventType,
     type RealtimeConnection,
     type RealtimeEvent
@@ -29,7 +25,7 @@ export class NotificationService {
 
     private applicationServerKey
 
-    private listenersByType: Record<string, Set<NotificationListener>> = {}
+    private listeners: Set<NotificationListener> = new Set()
 
     private mounted = $state(false)
     private promptShown = $state(false)
@@ -50,10 +46,6 @@ export class NotificationService {
         // this.realtimeConnection = new SseConnection({ api })
         this.realtimeConnection.setHandler(this.handleEvent)
 
-        this.realtimeConnection.addChannel(new Channel(NotificationCategory.System)).catch((e) => {
-            console.error('Failed to add system channel', e)
-        })
-
         $effect.root(() => {
             $effect(() => {
                 if (!this.mounted) {
@@ -67,7 +59,10 @@ export class NotificationService {
                         this.currentSessionUserId = user.id
                         this.realtimeConnection
                             .addChannel(
-                                new Channel(NotificationCategory.User, this.currentSessionUserId)
+                                new ChannelIdentifier(
+                                    NotificationChannel.User,
+                                    this.currentSessionUserId
+                                )
                             )
                             .catch((e) => {
                                 console.error('Failed to add user channel', e)
@@ -80,7 +75,10 @@ export class NotificationService {
                     console.log('clearing session user id', this.currentSessionUserId)
                     this.realtimeConnection
                         .removeChannel(
-                            new Channel(NotificationCategory.User, this.currentSessionUserId)
+                            new ChannelIdentifier(
+                                NotificationChannel.User,
+                                this.currentSessionUserId
+                            )
                         )
                         .catch((e) => {
                             console.error('Failed to add user channel', e)
@@ -127,22 +125,26 @@ export class NotificationService {
     }
 
     async listenToGame(gameId: string) {
-        await this.realtimeConnection?.addChannel(new Channel(NotificationCategory.Game, gameId))
+        await this.realtimeConnection?.addChannel(
+            new ChannelIdentifier(NotificationChannel.GameInstance, gameId)
+        )
     }
 
     async stopListeningToGame(gameId: string) {
-        await this.realtimeConnection?.removeChannel(new Channel(NotificationCategory.Game, gameId))
+        await this.realtimeConnection?.removeChannel(
+            new ChannelIdentifier(NotificationChannel.GameInstance, gameId)
+        )
     }
 
-    addListener(type: NotificationCategory, listener: NotificationListener) {
-        if (!this.listenersByType[type]) {
-            this.listenersByType[type] = new Set()
+    addListener(listener: NotificationListener) {
+        if (this.listeners.has(listener)) {
+            return
         }
-        this.listenersByType[type].add(listener)
+        this.listeners.add(listener)
     }
 
-    removeListener(type: NotificationCategory, listener: NotificationListener) {
-        this.listenersByType[type]?.delete(listener)
+    removeListener(listener: NotificationListener) {
+        this.listeners.delete(listener)
     }
 
     onMounted() {
@@ -234,14 +236,14 @@ export class NotificationService {
                 const notification = event.data as Notification
                 const dataEvent: DataEvent = {
                     eventType: NotificationEventType.Data,
-                    category: event.category,
+                    channel: event.channel,
                     notification
                 }
                 notificationEvent = dataEvent
             } else if (event.type === RealtimeEventType.Discontinuity) {
                 const discontinuityEvent: DiscontinuityEvent = {
                     eventType: NotificationEventType.Discontinuity,
-                    category: event.category
+                    channel: event.channel
                 }
                 notificationEvent = discontinuityEvent
             }
@@ -250,8 +252,7 @@ export class NotificationService {
                 return
             }
 
-            const listeners = this.listenersByType[event.category] || new Set()
-            for (const listener of listeners) {
+            for (const listener of this.listeners) {
                 try {
                     console.log('notifying listener')
                     await listener(notificationEvent)

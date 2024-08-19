@@ -4,9 +4,9 @@ import { NotificationSubscription } from './subscriptions/notificationSubscripti
 import { NotificationSubscriptionIdentifier } from './subscriptions/notificationSubscriptionIdentifier.js'
 import { TopicTransport } from './transports/topicTransport.js'
 
-export enum NotificationChannel {
-    UserPush = 'userPush', // Discord, WebPush, Email?
-    AppRealtime = 'appRealtime' // Realtime listeners from web app
+export enum NotificationDistributionMethod {
+    UserDirect = 'userDirect', // Discord, WebPush, Email?
+    Topical = 'topical' // Realtime listeners from web app
 }
 
 export type NotificationListener = {
@@ -45,6 +45,6 @@ export interface NotificationService {
     }: {
         notification: Notification
         topics: string[]
-        channels: NotificationChannel[]
+        channels: NotificationDistributionMethod[]
     }): Promise<void>
 }

@@ -1,21 +1,22 @@
 import Ably from 'ably'
-import type { NotificationCategory } from '@tabletop/common'
 import {
     type RealtimeConnection,
     type RealtimeEvent,
     RealtimeEventType,
     type RealtimeEventHandler,
-    Channel
+    ChannelIdentifier
 } from './realtimeConnection'
-import type { TabletopApi } from '@tabletop/frontend-components'
+import type { NotificationChannel, TabletopApi } from '@tabletop/frontend-components'
+
+type ChannelData = {
+    channel: NotificationChannel
+    ablyChannel: Ably.RealtimeChannel
+}
 
 export class AblyConnection implements RealtimeConnection {
     private handler?: RealtimeEventHandler
 
-    private channels: Map<
-        string,
-        { category: NotificationCategory; channel: Ably.RealtimeChannel }
-    > = new Map()
+    private channels: Map<string, ChannelData> = new Map()
 
     private ably: Ably.Realtime
 
@@ -36,7 +37,7 @@ export class AblyConnection implements RealtimeConnection {
         this.ably.connection.on('connected', async () => {
             // Subscribe or attach to all channels on connect
             for (const channelData of this.channels.values()) {
-                const channel = channelData.channel
+                const channel = channelData.ablyChannel
                 console.log('Checking Channel state', channel.state, channel.name)
                 if (channel.state === 'initialized') {
                     await this.subscribeToChannel(channelData)
@@ -52,12 +53,12 @@ export class AblyConnection implements RealtimeConnection {
         this.handler = handler
     }
 
-    async addChannel(channel: Channel) {
-        if (this.channels.get(channel.channelName)) {
+    async addChannel(identifier: ChannelIdentifier) {
+        if (this.channels.get(identifier.channelName)) {
             return
         }
 
-        const channelName = channel.channelName
+        const channelName = identifier.channelName
         console.log('Adding channel', channelName)
         const ablyChannel = this.ably.channels.get(channelName)
         // ablyChannel.on('initialized', (event) => {
@@ -69,7 +70,7 @@ export class AblyConnection implements RealtimeConnection {
         ablyChannel.on('attached', (event) => {
             const realtimeEvent: RealtimeEvent = {
                 type: RealtimeEventType.Discontinuity,
-                category: channel.category
+                channel: identifier.channel
             }
             if (this.handler) {
                 this.handler(realtimeEvent)
@@ -92,7 +93,7 @@ export class AblyConnection implements RealtimeConnection {
         //     console.log('Channel', channelName, 'update', event)
         // })
 
-        const channelData = { category: channel.category, channel: ablyChannel }
+        const channelData: ChannelData = { channel: identifier.channel, ablyChannel: ablyChannel }
         this.channels.set(channelName, channelData)
 
         if (this.ably.connection.state === 'connected') {
@@ -102,20 +103,14 @@ export class AblyConnection implements RealtimeConnection {
         console.log('Now channels', this.channels)
     }
 
-    private async subscribeToChannel({
-        category,
-        channel
-    }: {
-        category: NotificationCategory
-        channel: Ably.RealtimeChannel
-    }) {
-        console.log('Subscribing to channel', channel.name)
-        await channel.subscribe((message) => {
+    private async subscribeToChannel(channelData: ChannelData) {
+        console.log('Subscribing to channel', channelData.channel)
+        await channelData.ablyChannel.subscribe((message) => {
             try {
                 const data = JSON.parse(message.data)
                 const realtimeEvent: RealtimeEvent = {
                     type: RealtimeEventType.Data,
-                    category,
+                    channel: channelData.channel,
                     data: data
                 }
                 if (this.handler) {
@@ -128,7 +123,7 @@ export class AblyConnection implements RealtimeConnection {
         })
     }
 
-    async removeChannel(channel: Channel) {
+    async removeChannel(channel: ChannelIdentifier) {
         const channelData = this.channels.get(channel.channelName)
 
         if (!channelData) {
@@ -136,8 +131,8 @@ export class AblyConnection implements RealtimeConnection {
         }
 
         console.log('Removing channel', channel.channelName)
-        channelData.channel.unsubscribe()
-        await channelData.channel.detach()
+        channelData.ablyChannel.unsubscribe()
+        await channelData.ablyChannel.detach()
 
         this.channels.delete(channel.channelName)
     }

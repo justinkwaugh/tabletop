@@ -31,6 +31,5 @@ export class AblyTransport implements TopicTransport {
     }): Promise<void> {
         const channel = this.ably.channels.get(topic)
         await channel.publish(nanoid(), JSON.stringify(notification))
-        console.log('sending notification', notification, topic)
     }
 }

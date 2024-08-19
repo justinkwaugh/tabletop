@@ -13,67 +13,20 @@ import { isFirestoreError } from './errors.js'
 import { NotificationStore } from '../stores/notificationStore.js'
 import { StoredPushTopic } from '../model/storedPushTopic.js'
 import { PushClient } from '../../notifications/pushClient.js'
-import { StoredWebPushSubscription } from '../model/storedWebPushSubscription.js'
 import { PushTopic } from '../../notifications/pushTopic.js'
 import { NotificationSubscription } from '../../notifications/subscriptions/notificationSubscription.js'
 import { StoredSubscription } from '../model/storedSubscription.js'
-import { TransportType } from '../../notifications/transports/notificationTransport.js'
 import { NotificationSubscriptionIdentifier } from '../../notifications/subscriptions/notificationSubscriptionIdentifier.js'
 
 export class FirestoreNotificationStore implements NotificationStore {
-    readonly webPushSubscriptions: CollectionReference
     readonly notificationSubscriptions: CollectionReference
     readonly pushTopics: CollectionReference
 
     constructor(private firestore: Firestore) {
-        this.webPushSubscriptions = firestore.collection('webPushSubscriptions')
         this.notificationSubscriptions = firestore
             .collection('notificationSubscriptions')
             .withConverter(notificationSubscriptionConverter)
         this.pushTopics = firestore.collection('pushTopics').withConverter(pushTopicConverter)
-    }
-
-    async deleteWebPushSubscription(endpoint: string): Promise<void> {
-        const subscriptionId = this.hashString(endpoint)
-
-        try {
-            await this.webPushSubscriptions.firestore.runTransaction(async (transaction) => {
-                const existingSubscription: StoredWebPushSubscription = (
-                    await transaction.get(this.webPushSubscriptions.doc(subscriptionId))
-                ).data() as StoredWebPushSubscription
-
-                if (!existingSubscription) {
-                    return
-                }
-
-                const pushTopicsToUpdate: StoredPushTopic[] = []
-
-                for (const topic of existingSubscription.topics) {
-                    const existingTopic: StoredPushTopic = (
-                        await transaction.get(this.pushTopics.doc(topic))
-                    ).data() as StoredPushTopic
-
-                    if (existingTopic) {
-                        existingTopic.clients = existingTopic.clients.filter(
-                            (client) =>
-                                client.id !== subscriptionId ||
-                                client.type !== TransportType.WebPush
-                        )
-                        existingTopic.updatedAt = new Date()
-                        pushTopicsToUpdate.push(existingTopic)
-                    }
-                }
-
-                for (const pushTopic of pushTopicsToUpdate) {
-                    transaction.set(this.pushTopics.doc(pushTopic.topic), pushTopic)
-                }
-
-                transaction.delete(this.webPushSubscriptions.doc(subscriptionId))
-            })
-        } catch (error) {
-            this.handleError(error, subscriptionId, 'WebPushSubscription | PushTopic')
-            throw Error('unreachable')
-        }
     }
 
     async findNotificationSubscriptions(topic: string): Promise<NotificationSubscription[]> {
@@ -179,7 +132,7 @@ export class FirestoreNotificationStore implements NotificationStore {
         identifier: NotificationSubscriptionIdentifier
     ): Promise<void> {
         const subscriptionId = this.docIdForSubscription(identifier)
-
+        console.log('sub to remove', subscriptionId)
         try {
             await this.notificationSubscriptions.firestore.runTransaction(async (transaction) => {
                 const existingSubscription: StoredSubscription = (

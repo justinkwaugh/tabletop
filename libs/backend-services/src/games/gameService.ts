@@ -26,7 +26,10 @@ import {
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
 import { UserService } from '../users/userService.js'
-import { NotificationChannel, NotificationService } from '../notifications/notificationService.js'
+import {
+    NotificationDistributionMethod,
+    NotificationService
+} from '../notifications/notificationService.js'
 import {
     DuplicatePlayerError,
     GameAlreadyStartedError,
@@ -715,7 +718,7 @@ export class GameService {
         await this.notificationService.sendNotification({
             notification,
             topics: [...userTopics, gameTopic],
-            channels: [NotificationChannel.AppRealtime]
+            channels: [NotificationDistributionMethod.Topical]
         })
     }
 
@@ -836,7 +839,7 @@ export class GameService {
         await this.notificationService.sendNotification({
             notification,
             topics: [userTopic],
-            channels: [NotificationChannel.UserPush]
+            channels: [NotificationDistributionMethod.UserDirect]
         })
     }
 }

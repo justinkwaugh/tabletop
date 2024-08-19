@@ -1,4 +1,4 @@
-import type { NotificationCategory } from '@tabletop/common'
+import { NotificationChannel } from '@tabletop/frontend-components'
 
 export enum RealtimeEventType {
     Data = 'data',
@@ -7,17 +7,27 @@ export enum RealtimeEventType {
 
 export type RealtimeEvent = {
     type: RealtimeEventType
-    category: NotificationCategory
+    channel: NotificationChannel
     data?: unknown
 }
 
-export class Channel {
+export class ChannelIdentifier {
     constructor(
-        readonly category: NotificationCategory,
+        readonly channel: NotificationChannel,
         readonly id?: string
     ) {}
+
     get channelName() {
-        return this.id ? `${this.category}-${this.id}` : this.category
+        return this.id ? `${this.prefix()}-${this.id}` : this.prefix()
+    }
+
+    private prefix(): string {
+        switch (this.channel) {
+            case NotificationChannel.GameInstance:
+                return 'game'
+            case NotificationChannel.User:
+                return 'user'
+        }
     }
 }
 
@@ -25,8 +35,8 @@ export type RealtimeEventHandler = (event: RealtimeEvent) => void
 
 export interface RealtimeConnection {
     setHandler(handler: RealtimeEventHandler): void
-    addChannel(channel: Channel): Promise<void>
-    removeChannel(channel: Channel): Promise<void>
+    addChannel(identifier: ChannelIdentifier): Promise<void>
+    removeChannel(identifier: ChannelIdentifier): Promise<void>
     connect(): Promise<void>
     disconnect(): void
 }

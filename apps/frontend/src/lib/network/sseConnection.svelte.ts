@@ -1,12 +1,11 @@
-import { TabletopApi } from '@tabletop/frontend-components'
+import { NotificationChannel, TabletopApi } from '@tabletop/frontend-components'
 import {
     RealtimeEventType,
-    type Channel,
+    type ChannelIdentifier,
     type RealtimeConnection,
     type RealtimeEvent,
     type RealtimeEventHandler
 } from './realtimeConnection'
-import { NotificationCategory } from '@tabletop/common'
 
 export enum ConnectionStatus {
     Disconnected = 'disconnected',
@@ -38,14 +37,14 @@ export class SseConnection implements RealtimeConnection {
         this.handler = handler
     }
 
-    async addChannel(channel: Channel): Promise<void> {
+    async addChannel(identifier: ChannelIdentifier): Promise<void> {
         const oldPath = this.path
         const newPath =
-            channel.category === NotificationCategory.Game
-                ? `${GAME_PATH}/${channel.id}`
+            identifier.channel === NotificationChannel.GameInstance
+                ? `${GAME_PATH}/${identifier.id}`
                 : USER_PATH
 
-        if (channel.category === NotificationCategory.Game) {
+        if (identifier.channel === NotificationChannel.GameInstance) {
             this.isGame = true
         }
 
@@ -59,8 +58,8 @@ export class SseConnection implements RealtimeConnection {
         }
     }
 
-    async removeChannel(channel: Channel): Promise<void> {
-        if (channel.category === NotificationCategory.Game) {
+    async removeChannel(identifier: ChannelIdentifier): Promise<void> {
+        if (identifier.channel === NotificationChannel.GameInstance) {
             this.isGame = false
             this.path = USER_PATH
             if (this.connectionStatus === ConnectionStatus.Connected) {
@@ -89,20 +88,20 @@ export class SseConnection implements RealtimeConnection {
                 if (this.isGame) {
                     const realtimeEvent: RealtimeEvent = {
                         type: RealtimeEventType.Discontinuity,
-                        category: NotificationCategory.Game
+                        channel: NotificationChannel.GameInstance
                     }
                     if (this.handler) {
                         this.handler(realtimeEvent)
                     }
-                }
+                } else {
+                    const realtimeEvent: RealtimeEvent = {
+                        type: RealtimeEventType.Discontinuity,
+                        channel: NotificationChannel.User
+                    }
 
-                const realtimeEvent: RealtimeEvent = {
-                    type: RealtimeEventType.Discontinuity,
-                    category: NotificationCategory.User
-                }
-
-                if (this.handler) {
-                    this.handler(realtimeEvent)
+                    if (this.handler) {
+                        this.handler(realtimeEvent)
+                    }
                 }
             }
 
@@ -118,9 +117,12 @@ export class SseConnection implements RealtimeConnection {
                 }
                 console.log('Received event', event)
                 const parsedData = JSON.parse(event.data)
+
                 const realtimeEvent: RealtimeEvent = {
                     type: RealtimeEventType.Data,
-                    category: parsedData.type,
+                    channel: this.isGame
+                        ? NotificationChannel.GameInstance
+                        : NotificationChannel.User,
                     data: parsedData
                 }
                 if (this.handler) {

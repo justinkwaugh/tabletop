@@ -2,7 +2,7 @@ import { PubSubService, PubSubSubscriber } from '../pubsub/pubSubService.js'
 import { Notification } from '@tabletop/common'
 import { NotificationStore } from '../persistence/stores/notificationStore.js'
 import {
-    NotificationChannel,
+    NotificationDistributionMethod,
     NotificationListener,
     NotificationService
 } from './notificationService.js'
@@ -88,10 +88,10 @@ export class DefaultNotificationService implements NotificationService {
     }: {
         notification: Notification
         topics: string[]
-        channels: NotificationChannel[]
+        channels: NotificationDistributionMethod[]
     }) {
         for (const topic of topics) {
-            if (channels.includes(NotificationChannel.AppRealtime)) {
+            if (channels.includes(NotificationDistributionMethod.Topical)) {
                 for (const topicTransport of Object.values(this.topicTransports)) {
                     try {
                         await topicTransport.sendNotification({ notification, topic })
@@ -101,7 +101,7 @@ export class DefaultNotificationService implements NotificationService {
                 }
             }
 
-            if (channels.includes(NotificationChannel.UserPush)) {
+            if (channels.includes(NotificationDistributionMethod.UserDirect)) {
                 try {
                     const subscriptions =
                         await this.notificationStore.findNotificationSubscriptions(topic)
@@ -109,10 +109,9 @@ export class DefaultNotificationService implements NotificationService {
                         const transport = this.transports[subscription.transport]
                         try {
                             const result = await transport.sendNotification(
-                                subscription,
+                                structuredClone(subscription),
                                 notification
                             )
-                            console.log('Push Result', JSON.stringify(result))
 
                             if (result.unregister) {
                                 await this.notificationStore.deleteNotificationSubscription(

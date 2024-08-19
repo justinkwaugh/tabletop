@@ -74,8 +74,7 @@ export class WebPushTransport implements NotificationTransport {
                 WebPushSubscriptionClientData,
                 subscription
             ) as WebPushSubscriptionClientData
-            const result = await webpush.sendNotification(clientData, JSON.stringify(notification))
-            console.log('WEB PUSH RESULT', JSON.stringify(result))
+            await webpush.sendNotification(clientData, JSON.stringify(notification))
             return {
                 success: true,
                 unregister: false
