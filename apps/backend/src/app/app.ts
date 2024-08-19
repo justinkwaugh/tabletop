@@ -22,6 +22,9 @@ const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
 
+const SESSION_SECRET = process.env['SESSION_SECRET'] ?? ''
+const SESSION_SALT = process.env['SESSION_SALT'] ?? ''
+
 /* eslint-disable-next-line */
 export interface AppOptions {
     prefix?: string
@@ -63,8 +66,8 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SecureSession, {
         sessionName: 'session',
         cookieName: '__session',
-        secret: 'mysecretphraseisprettylongbutisitlongenough',
-        salt: 'hSot1jeJJQ63551M',
+        secret: SESSION_SECRET,
+        salt: SESSION_SALT,
         expiry: 24 * 60 * 60 * 7,
         cookie: {
             path: '/',
