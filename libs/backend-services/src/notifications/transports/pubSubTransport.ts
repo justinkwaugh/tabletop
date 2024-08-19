@@ -1,6 +1,6 @@
 import { Notification } from '@tabletop/common'
 import { TopicTransport, TopicTransportType } from './topicTransport.js'
-import { PubSubService } from 'src/pubsub/pubSubService.js'
+import { PubSubService } from '../../pubsub/pubSubService.js'
 
 export class PubSubTransport implements TopicTransport {
     type = TopicTransportType.PubSub

@@ -5,6 +5,7 @@ import { NotificationService } from '$lib/services/notificationService.svelte'
 import { GameService } from '$lib/services/gameService.svelte'
 import { LibraryService } from '$lib/services/libraryService'
 import { VisibilityService } from '$lib/services/visibilityService.svelte'
+import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 
 export type AppContext = {
     libraryService: LibraryService
@@ -19,7 +20,14 @@ const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST)
 const libraryService = new LibraryService()
 const authorizationService = new AuthorizationService(api)
 const visibilityService = new VisibilityService()
-const notificationService = new NotificationService(visibilityService, authorizationService, api)
+const realtimeConnection = new AblyConnection(api)
+// this.realtimeConnection = new SseConnection({ api })
+const notificationService = new NotificationService(
+    realtimeConnection,
+    visibilityService,
+    authorizationService,
+    api
+)
 
 const appContext: AppContext = {
     libraryService,

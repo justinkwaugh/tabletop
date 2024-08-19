@@ -10,7 +10,6 @@ import {
     NotificationChannel
 } from '@tabletop/frontend-components'
 import { PUBLIC_VAPID_KEY } from '$env/static/public'
-import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 import type { VisibilityService } from './visibilityService.svelte'
 import {
     ChannelIdentifier,
@@ -18,11 +17,8 @@ import {
     type RealtimeConnection,
     type RealtimeEvent
 } from '$lib/network/realtimeConnection'
-import { SseConnection } from '$lib/network/sseConnection.svelte'
 
 export class NotificationService {
-    private realtimeConnection: RealtimeConnection
-
     private applicationServerKey
 
     private listeners: Set<NotificationListener> = new Set()
@@ -37,13 +33,12 @@ export class NotificationService {
     })
 
     constructor(
+        private readonly realtimeConnection: RealtimeConnection,
         private readonly visbililtyService: VisibilityService,
         private readonly authorizationService: AuthorizationService,
         private readonly api: TabletopApi
     ) {
         this.applicationServerKey = this.urlB64ToUint8Array(PUBLIC_VAPID_KEY)
-        this.realtimeConnection = new AblyConnection(api)
-        // this.realtimeConnection = new SseConnection({ api })
         this.realtimeConnection.setHandler(this.handleEvent)
 
         $effect.root(() => {
