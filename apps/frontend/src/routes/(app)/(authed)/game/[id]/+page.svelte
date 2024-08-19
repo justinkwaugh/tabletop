@@ -8,13 +8,13 @@
     setContext('gameSession', data.gameSession)
 
     let { gameService, notificationService } = getContext('appContext') as AppContext
-    let table: Component | null = $state(null)
+    let Table: Component | null = $state(null)
 
     onMount(() => {
         const gameSession = data.gameSession
         gameService.currentGameSession = gameSession
         gameSession.definition.getTableComponent().then((tableComponent) => {
-            table = tableComponent
+            Table = tableComponent
         })
 
         setTimeout(() => {
@@ -31,5 +31,5 @@
 </script>
 
 <div class="flex w-screen overflow-auto">
-    <svelte:component this={table} />
+    <Table />
 </div>
