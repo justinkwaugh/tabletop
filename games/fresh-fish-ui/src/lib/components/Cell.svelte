@@ -18,7 +18,7 @@
     import StallTile from '$lib/components/StallTile.svelte'
     import MarketTile from '$lib/components/MarketTile.svelte'
     import TruckTile from '$lib/components/TruckTile.svelte'
-    import { fadeScale, GameSession, GameSessionMode } from '@tabletop/frontend-components'
+    import { fadeScale, GameSessionMode } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
     let { cell, coords }: { cell: Cell; coords: Coordinates } = $props()
@@ -35,9 +35,9 @@
     })
 
     let backgroundImage = $derived.by(() => {
-        if (gameSession.isExpropriationPreviewed(coords)) {
-            return `url(${roadImg})`
-        }
+        // if (gameSession.isExpropriationPreviewed(coords)) {
+        //     return `url(${roadImg})`
+        // }
 
         switch (cell.type) {
             case CellType.Disk:
@@ -113,10 +113,14 @@
     let showBorder = $state(false)
 
     let mayExpropriate = $derived(
-        interactable &&
-            isDiskCell(cell) &&
-            (gameSession.chosenAction === ActionType.PlaceMarket ||
-                gameSession.chosenAction === ActionType.PlaceStall)
+        isDiskCell(cell) &&
+            (!gameSession.isMyTurn ||
+                (gameSession.chosenAction !== ActionType.PlaceMarket &&
+                    gameSession.chosenAction !== ActionType.PlaceStall &&
+                    gameSession.chosenAction !== ActionType.PlaceDisk) ||
+                (interactable &&
+                    (gameSession.chosenAction === ActionType.PlaceMarket ||
+                        gameSession.chosenAction === ActionType.PlaceStall)))
     )
 
     function handleMouseOver() {
@@ -170,16 +174,20 @@
     onkeypress={() => handleClick()}
     onmouseover={() => handleMouseOver()}
     onmouseleave={() => handleMouseLeave()}
-    class="w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center align-center bg-contain bg-origin-border dark:{cellBgColor} {showBorder
+    class="relative w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center align-center bg-contain bg-origin-border dark:{cellBgColor} {showBorder
         ? 'border-4'
         : ''} border-orange-400"
     style="background-image: {backgroundImage}"
 >
+    {#if gameSession.isExpropriationPreviewed(coords)}
+        <img src={roadImg} alt="road" class="absolute x-0 y-0 w-full h-full z-0 opacity-50" />
+    {/if}
+
     {#if cell.type === CellType.Disk}
         <svg
             in:fadeScale={{ baseScale: 0.1, duration: 100 }}
             out:fadeScale={{ baseScale: 0.1, duration: 50 }}
-            class="pointer-events-none"
+            class="pointer-events-none z-10"
             viewBox="0 0 30 30"
             xmlns="http://www.w3.org/2000/svg"
         >
@@ -194,6 +202,8 @@
         <MarketTile />
     {/if}
     <div
-        class="absolute top left w-[100px] h-[100px] bg-black opacity-50 {disabled ? '' : 'hidden'}"
+        class="z-20 absolute top left w-[100px] h-[100px] bg-black opacity-50 {disabled
+            ? ''
+            : 'hidden'}"
     ></div>
 </div>
