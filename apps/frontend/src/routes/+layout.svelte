@@ -11,6 +11,6 @@
     setContext('appContext', getAppContext())
 </script>
 
-<Toaster position={'top-center'} richColors />
+<Toaster position={'top-center'} richColors closeButton />
 {@render children()}
 <RunOnceMounted />

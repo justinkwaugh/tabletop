@@ -23,6 +23,9 @@
     import { UserStatus } from '@tabletop/common'
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import { BellSolid } from 'flowbite-svelte-icons'
+    import { VersionChange } from '@tabletop/frontend-components'
+    import { toast } from 'svelte-sonner'
+    import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
 
     let { api, authorizationService, gameService, notificationService, visibilityService } =
         getContext('appContext') as AppContext
@@ -105,6 +108,42 @@
             // document.removeEventListener('visibilitychange', visibilityChangeHandler)
         }
     })
+
+    $effect: {
+        switch (api.versionChange) {
+            case VersionChange.MajorUpgrade:
+            case VersionChange.Rollback:
+                console.log('Major upgrade detected')
+                onceMounted(() => {
+                    toast.warning(
+                        'The site has been updated and requires a page refresh.  Refreshing in 5 seconds',
+                        {
+                            duration: Number.POSITIVE_INFINITY,
+                            classes: {
+                                closeButton: 'hidden'
+                            }
+                        }
+                    )
+                    setTimeout(() => {
+                        location.reload()
+                    }, 5000)
+                })
+                break
+            case VersionChange.MinorUpgrade:
+                console.log('Minor upgrade detected')
+                onceMounted(() => {
+                    toast.info(
+                        'The site has been updated with new features or fixes, please refresh the page when you have a moment',
+                        {
+                            duration: Number.POSITIVE_INFINITY
+                        }
+                    )
+                })
+                break
+            default:
+                break
+        }
+    }
 
     const slideParams = { axis: 'y', duration: 600 }
 </script>

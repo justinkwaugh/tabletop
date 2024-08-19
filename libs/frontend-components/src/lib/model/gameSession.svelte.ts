@@ -12,7 +12,7 @@ import {
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
-import { TabletopApi } from '$lib/network/tabletopApi'
+import { TabletopApi } from '$lib/network/tabletopApi.svelte'
 import { toast } from 'svelte-sonner'
 import { nanoid } from 'nanoid'
 import {

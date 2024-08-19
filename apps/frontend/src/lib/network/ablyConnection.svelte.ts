@@ -35,17 +35,16 @@ export class AblyConnection implements RealtimeConnection {
             }
         })
         this.ably.connection.on('connected', async () => {
+            console.log('Realtime feed connected')
             // Subscribe or attach to all channels on connect
             for (const channelData of this.channels.values()) {
                 const channel = channelData.ablyChannel
-                console.log('Checking Channel state', channel.state, channel.name)
                 if (channel.state === 'initialized') {
                     await this.subscribeToChannel(channelData)
                 } else if (channel.state !== 'attached' && channel.state !== 'attaching') {
                     await channel.attach()
                 }
             }
-            console.log('Realtime feed connected')
         })
     }
 
@@ -59,15 +58,8 @@ export class AblyConnection implements RealtimeConnection {
         }
 
         const channelName = identifier.channelName
-        console.log('Adding channel', channelName)
         const ablyChannel = this.ably.channels.get(channelName)
-        // ablyChannel.on('initialized', (event) => {
-        //     console.log('Channel', channelName, 'initialize', event)
-        // })
-        // ablyChannel.on('attaching', (event) => {
-        //     console.log('Channel', channelName, 'attaching', event)
-        // })
-        ablyChannel.on('attached', (event) => {
+        ablyChannel.on('attached', () => {
             const realtimeEvent: RealtimeEvent = {
                 type: RealtimeEventType.Discontinuity,
                 channel: identifier.channel
@@ -75,36 +67,17 @@ export class AblyConnection implements RealtimeConnection {
             if (this.handler) {
                 this.handler(realtimeEvent)
             }
-            console.log('Channel', channelName, 'attached', event)
         })
-        // ablyChannel.on('detaching', (event) => {
-        //     console.log('Channel', channelName, 'detaching', event)
-        // })
-        // ablyChannel.on('detached', (event) => {
-        //     console.log('Channel', channelName, 'detached', event)
-        // })
-        // ablyChannel.on('failed', (err) => {
-        //     console.log('Channel', channelName, 'failed', err)
-        // })
-        // ablyChannel.on('suspended', (event) => {
-        //     console.log('Channel', channelName, 'suspended', event)
-        // })
-        // ablyChannel.on('update', (event) => {
-        //     console.log('Channel', channelName, 'update', event)
-        // })
 
         const channelData: ChannelData = { channel: identifier.channel, ablyChannel: ablyChannel }
         this.channels.set(channelName, channelData)
 
         if (this.ably.connection.state === 'connected') {
-            console.log('Adding channel to connected connection')
             await this.subscribeToChannel(channelData)
         }
-        console.log('Now channels', this.channels)
     }
 
     private async subscribeToChannel(channelData: ChannelData) {
-        console.log('Subscribing to channel', channelData.channel)
         await channelData.ablyChannel.subscribe((message) => {
             try {
                 const data = JSON.parse(message.data)
@@ -130,12 +103,11 @@ export class AblyConnection implements RealtimeConnection {
             return
         }
 
-        console.log('Removing channel', channel.channelName)
         channelData.ablyChannel.unsubscribe()
         try {
             await channelData.ablyChannel.detach()
         } catch (e) {
-            console.error('Error detaching channel', channelData.channel, e)
+            // ignore detach errors
         }
 
         this.channels.delete(channel.channelName)

@@ -14,7 +14,7 @@ import type {
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
 import Ably from 'ably'
-import { checkVersion } from './versionChecker.js'
+import { checkVersion, VersionChange } from './versionChecker.js'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
@@ -25,6 +25,7 @@ export class TabletopApi {
     private readonly baseUrl: string
     private readonly baseSseUrl: string
     private wretch: Wretch
+    versionChange: VersionChange | undefined = $state()
 
     constructor(
         host: string = DEFAULT_HOST,
@@ -40,6 +41,7 @@ export class TabletopApi {
             version: this.version,
             onVersionChange: (changeType) => {
                 console.log('Version changed:', changeType)
+                this.versionChange = changeType
             }
         })
         this.wretch = wretch()

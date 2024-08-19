@@ -50,7 +50,6 @@ export class NotificationService {
                 const user = this.authorizationService.getSessionUser()
                 if (user && user.status === UserStatus.Active) {
                     if (user.id !== this.currentSessionUserId) {
-                        console.log('setting session user id', user.id)
                         this.currentSessionUserId = user.id
                         this.realtimeConnection
                             .addChannel(
@@ -67,7 +66,6 @@ export class NotificationService {
                         })
                     }
                 } else {
-                    console.log('clearing session user id', this.currentSessionUserId)
                     this.realtimeConnection
                         .removeChannel(
                             new ChannelIdentifier(
@@ -98,8 +96,6 @@ export class NotificationService {
     }
 
     async requestWebNotificationPermission(): Promise<boolean> {
-        console.log('Requesting web notification permission')
-
         if (this.hasWebNotificationPermission()) {
             return true
         }
@@ -143,12 +139,10 @@ export class NotificationService {
     }
 
     onMounted() {
-        console.log('Notification Service has been informed it was mounted')
         this.mounted = true
     }
 
     hasWebNotificationPermission(): boolean {
-        console.log('Checking notification permission', window.Notification.permission)
         return window.Notification.permission === 'granted'
     }
 
@@ -175,7 +169,6 @@ export class NotificationService {
     }
 
     private async subscribePushNotifications() {
-        console.log('Subscribing to push notifications')
         try {
             const registration = await navigator.serviceWorker.ready
             const options = {
@@ -191,7 +184,6 @@ export class NotificationService {
             const subscription = await registration.pushManager.subscribe(options)
 
             // Send subscription to server
-            console.log(subscription.toJSON())
             await this.api.subscribeToPushNotifications(subscription)
         } catch (err) {
             console.log('Error registering for push notifications', err)
@@ -204,7 +196,6 @@ export class NotificationService {
             const subscription = await registration.pushManager.getSubscription()
 
             if (subscription) {
-                console.log('Unsubscribing from push notifications')
                 await subscription.unsubscribe()
                 await this.api.unsubscribeFromPushNotifications(subscription.endpoint)
             }
@@ -249,7 +240,7 @@ export class NotificationService {
 
             for (const listener of this.listeners) {
                 try {
-                    console.log('notifying listener')
+                    console.log('Notifying listener')
                     await listener(notificationEvent)
                 } catch (e) {
                     console.error('Error notifying listener', e)
