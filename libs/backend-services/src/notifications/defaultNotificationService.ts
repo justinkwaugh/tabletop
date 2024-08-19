@@ -107,6 +107,10 @@ export class DefaultNotificationService implements NotificationService {
                         await this.notificationStore.findNotificationSubscriptions(topic)
                     for (const subscription of subscriptions) {
                         const transport = this.transports[subscription.transport]
+                        if (!transport) {
+                            console.log('No transport found for', subscription.transport)
+                            continue
+                        }
                         try {
                             const result = await transport.sendNotification(
                                 structuredClone(subscription),

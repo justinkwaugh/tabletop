@@ -120,7 +120,9 @@ export class DiscordTransport implements NotificationTransport {
     }
 
     async login() {
-        await this.client.login(this.botToken)
+        this.client.login(this.botToken).catch((e) => {
+            console.error('Error logging in Discord client', e)
+        })
     }
 
     private gameTitle(typeId: string): string | undefined {

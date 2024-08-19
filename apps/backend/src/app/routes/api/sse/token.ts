@@ -9,18 +9,22 @@ export default async function (fastify: FastifyInstance) {
                 relation: 'and'
             })
         },
-        async function (request, _reply) {
+        async function (request, reply) {
             if (!request.user) {
                 throw new Error('No user found')
             }
 
-            const token = await fastify.tokenService.createToken<SSEAuthorizationTokenData>({
-                type: TokenType.SSEAuthorization,
-                data: { userId: request.user.id },
-                expiresInSeconds: 30
-            })
+            // Turn off for a bit
+            await reply.code(401).send()
+            return
 
-            return { status: 'ok', payload: { token } }
+            // const token = await fastify.tokenService.createToken<SSEAuthorizationTokenData>({
+            //     type: TokenType.SSEAuthorization,
+            //     data: { userId: request.user.id },
+            //     expiresInSeconds: 30
+            // })
+
+            // return { status: 'ok', payload: { token } }
         }
     )
 }

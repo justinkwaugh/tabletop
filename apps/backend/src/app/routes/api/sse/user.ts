@@ -21,44 +21,48 @@ export default async function (fastify: FastifyInstance) {
             expectedType: TokenType.SSEAuthorization
         })
 
-        if (!tokenData) {
-            await reply.code(401).send()
-            return
-        }
+        // Turn off for a bit
+        await reply.code(401).send()
+        return
 
-        const user = await fastify.userService.getUser(tokenData.userId)
-        if (!user || user.status !== 'active') {
-            await reply.code(401).send()
-            return
-        }
+        // if (!tokenData) {
+        //     await reply.code(401).send()
+        //     return
+        // }
 
-        let counter = 0
+        // const user = await fastify.userService.getUser(tokenData.userId)
+        // if (!user || user.status !== 'active') {
+        //     await reply.code(401).send()
+        //     return
+        // }
 
-        reply.sse({ id: String(counter++), data: 'hello' })
+        // let counter = 0
 
-        const listener: NotificationListener = {
-            id: nanoid(),
-            onMessage: async ({ message }) => {
-                console.log('message', message)
-                try {
-                    reply.sse({ id: String(counter++), data: message })
-                } catch (e) {
-                    console.log('Error sending user SSE', e)
-                }
-            }
-        }
+        // reply.sse({ id: String(counter++), data: 'hello' })
 
-        await fastify.notificationService.addTopicListener({
-            listener,
-            topic: `user-${user.id}`
-        })
+        // const listener: NotificationListener = {
+        //     id: nanoid(),
+        //     onMessage: async ({ message }) => {
+        //         console.log('message', message)
+        //         try {
+        //             reply.sse({ id: String(counter++), data: message })
+        //         } catch (e) {
+        //             console.log('Error sending user SSE', e)
+        //         }
+        //     }
+        // }
 
-        await fastify.notificationService.addTopicListener({ listener, topic: `global` })
+        // await fastify.notificationService.addTopicListener({
+        //     listener,
+        //     topic: `user-${user.id}`
+        // })
 
-        request.raw.on('close', async () => {
-            await fastify.notificationService.removeTopicListener({ listenerId: listener.id })
-        })
+        // await fastify.notificationService.addTopicListener({ listener, topic: `global` })
 
-        await fastify.tokenService.invalidateToken(token)
+        // request.raw.on('close', async () => {
+        //     await fastify.notificationService.removeTopicListener({ listenerId: listener.id })
+        // })
+
+        // await fastify.tokenService.invalidateToken(token)
     })
 }

@@ -34,7 +34,8 @@ if (service !== 'backend') {
 } else {
     const http2Server = Fastify({
         http2: true,
-        logger: true
+        logger: true,
+        pluginTimeout: 20000
     })
 
     await http2Server.register(rawBody, {

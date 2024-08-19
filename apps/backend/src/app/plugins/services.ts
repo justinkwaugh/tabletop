@@ -21,7 +21,8 @@ import {
     WebPushTransport,
     PubSubTransport,
     AblyTransport,
-    AblyService
+    AblyService,
+    NullPubSubService
 } from '@tabletop/backend-services'
 
 import { FastifyInstance } from 'fastify'
@@ -59,7 +60,8 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const secretsService = new EnvSecretsService()
     const emailService = await EmailService.createEmailService(secretsService)
-    const pubSubService = await RedisPubSubService.createNotificationsService(secretsService)
+    // const pubSubService = await RedisPubSubService.createNotificationsService(secretsService)
+    const pubSubService = new NullPubSubService() // While using Ably we do not need a pub sub service
 
     const notificationService = await DefaultNotificationService.createNotificationService(
         new FirestoreNotificationStore(fastify.firestore),
@@ -76,7 +78,7 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const discordService = new DiscordService(notificationService, userService)
 
-    const pubSubTransport = new PubSubTransport(pubSubService)
+    // const pubSubTransport = new PubSubTransport(pubSubService)
     const ablyTransport = await AblyTransport.createAblyTransport(secretsService)
 
     const discordTransport = await DiscordTransport.createDiscordTransport(
@@ -88,7 +90,7 @@ export default fp(async (fastify: FastifyInstance) => {
     notificationService.addTransport(discordTransport)
     notificationService.addTransport(webPushTransport)
 
-    notificationService.addTopicTransport(pubSubTransport)
+    // notificationService.addTopicTransport(pubSubTransport)
     notificationService.addTopicTransport(ablyTransport)
 
     const ablyService = await AblyService.createAblyService(secretsService)
