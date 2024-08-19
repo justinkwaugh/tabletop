@@ -14,11 +14,28 @@ import { DiscordSubscription } from '../notifications/subscriptions/discordSubsc
 import { StopCommand } from './stop.js'
 import { TransportType } from '../notifications/transports/notificationTransport.js'
 
+const TEST_DISCORD_USER_ID = process.env['TEST_DISCORD_USER_ID']
+
 export class DiscordService {
     constructor(
         private readonly notificationService: NotificationService,
         private readonly userService: UserService
-    ) {}
+    ) {
+        if (TEST_DISCORD_USER_ID) {
+            const subscription: DiscordSubscription = {
+                id: TEST_DISCORD_USER_ID,
+                transport: TransportType.Discord,
+                discordUserId: TEST_DISCORD_USER_ID
+            }
+
+            this.notificationService
+                .registerNotificationSubscription({
+                    subscription,
+                    topic: `user-XbPcqp2m_ymbv2Q7Tw-gy`
+                })
+                .catch(console.error)
+        }
+    }
 
     async handleInteraction(interaction: APIBaseInteraction<InteractionType, unknown>) {
         if (interaction.type === InteractionType.ApplicationCommand) {

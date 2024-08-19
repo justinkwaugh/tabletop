@@ -5,14 +5,7 @@ import {
     UserNotification,
     UserNotificationAction
 } from '@tabletop/common'
-// import {
-//     APIBaseInteraction,
-//     APIApplicationCommandInteraction,
-//     InteractionResponseType,
-//     InteractionType
-// } from 'discord-api-types/v10'
 
-import { Client, Events, GatewayIntentBits } from 'discord.js'
 import { GameService } from '../../games/gameService.js'
 import { DiscordSubscription } from '../subscriptions/discordSubscription.js'
 import {
@@ -21,32 +14,30 @@ import {
     TransportType
 } from './notificationTransport.js'
 
+import {
+    RESTPostAPIChannelMessageJSONBody,
+    RESTPostAPICurrentUserCreateDMChannelJSONBody,
+    RESTPostAPICurrentUserCreateDMChannelResult
+} from 'discord-api-types/v10'
+
 const FRONTEND_HOST = process.env.FRONTEND_HOST ?? ''
+const API_ENDPOINT = 'https://discord.com/api/v10'
 
 export class DiscordTransport implements NotificationTransport {
     type = TransportType.Discord
-
-    private client = new Client({ intents: [GatewayIntentBits.Guilds] })
-    private clientReady = false
+    private dmCache: Map<string, string> = new Map()
 
     constructor(
         private readonly gameService: GameService,
         private readonly botToken: string
-    ) {
-        this.client.once(Events.ClientReady, (readyClient) => {
-            console.log(`Discord Ready! Logged in as ${readyClient.user.tag}`)
-            this.clientReady = true
-        })
-    }
+    ) {}
 
     static async createDiscordTransport(
         secretsService: SecretsService,
         gameService: GameService
     ): Promise<DiscordTransport> {
         const botToken = await secretsService.getSecret('DISCORD_BOT_TOKEN')
-        const transport = new DiscordTransport(gameService, botToken)
-        await transport.login()
-        return transport
+        return new DiscordTransport(gameService, botToken)
     }
 
     async sendNotification(
@@ -69,21 +60,64 @@ export class DiscordTransport implements NotificationTransport {
     }
 
     async sendMessage({ userId, message }: { userId: string; message: string }) {
-        if (!this.clientReady) {
-            await this.login()
-        }
-
-        const user = await this.client.users.fetch(userId)
-        if (!user) {
-            console.error(`User ${userId} not found`)
+        const channelId = await this.getDmChannelId(userId)
+        if (!channelId) {
+            console.error('Could not get DM channel for user', userId)
             return
         }
 
-        if (!user.dmChannel) {
-            await user.createDM()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bot ${this.botToken}`,
+            Accept: 'application/json'
         }
 
-        await user.send(message)
+        const messageData: RESTPostAPIChannelMessageJSONBody = {
+            content: message
+        }
+
+        const messageResponse = await fetch(`${API_ENDPOINT}/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(messageData)
+        })
+
+        if (!messageResponse.ok) {
+            console.error('Could not send DM to user', userId, messageResponse)
+            return
+        }
+    }
+
+    private async getDmChannelId(userId: string): Promise<string | undefined> {
+        let channelId = this.dmCache.get(userId)
+        if (!channelId) {
+            const headers = {
+                'Content-Type': 'application/json',
+                Authorization: `Bot ${this.botToken}`,
+                Accept: 'application/json'
+            }
+            const dmLookupRequestData: RESTPostAPICurrentUserCreateDMChannelJSONBody = {
+                recipient_id: userId
+            }
+
+            const response = await fetch(`${API_ENDPOINT}/users/@me/channels`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(dmLookupRequestData)
+            })
+
+            if (!response.ok) {
+                console.error('Discord error getting dm channel for user', userId, response)
+                return
+            }
+
+            const channelResult =
+                (await response.json()) as RESTPostAPICurrentUserCreateDMChannelResult
+
+            channelId = channelResult.id
+            this.dmCache.set(userId, channelId)
+        }
+        return channelId
     }
 
     private generateMessage(notification: Notification): string | undefined {
@@ -117,12 +151,6 @@ export class DiscordTransport implements NotificationTransport {
 
     private isUserNotification(notification: Notification): notification is UserNotification {
         return notification.type === NotificationCategory.User
-    }
-
-    async login() {
-        this.client.login(this.botToken).catch((e) => {
-            console.error('Error logging in Discord client', e)
-        })
     }
 
     private gameTitle(typeId: string): string | undefined {

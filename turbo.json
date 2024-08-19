@@ -23,7 +23,8 @@
                 "DISCORD_PUBLIC_KEY",
                 "ABLY_API_KEY",
                 "SESSION_SECRET",
-                "SESSION_SALT"
+                "SESSION_SALT",
+                "TEST_DISCORD_USER_ID"
             ]
         },
         "lint": {},

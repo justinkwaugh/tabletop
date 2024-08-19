@@ -93,11 +93,9 @@ export class DefaultNotificationService implements NotificationService {
         for (const topic of topics) {
             if (channels.includes(NotificationDistributionMethod.Topical)) {
                 for (const topicTransport of Object.values(this.topicTransports)) {
-                    try {
-                        await topicTransport.sendNotification({ notification, topic })
-                    } catch (e) {
-                        console.log('Error sending notification', e)
-                    }
+                    topicTransport.sendNotification({ notification, topic }).catch((e) => {
+                        console.log('Error sending topical notification', e)
+                    })
                 }
             }
 
@@ -111,20 +109,19 @@ export class DefaultNotificationService implements NotificationService {
                             console.log('No transport found for', subscription.transport)
                             continue
                         }
-                        try {
-                            const result = await transport.sendNotification(
-                                structuredClone(subscription),
-                                notification
-                            )
 
-                            if (result.unregister) {
-                                await this.notificationStore.deleteNotificationSubscription(
-                                    subscription
-                                )
-                            }
-                        } catch (e) {
-                            console.log('Error sending web push notification', e)
-                        }
+                        transport
+                            .sendNotification(structuredClone(subscription), notification)
+                            .then(async (result) => {
+                                if (result.unregister) {
+                                    await this.notificationStore.deleteNotificationSubscription(
+                                        subscription
+                                    )
+                                }
+                            })
+                            .catch((e) => {
+                                console.log('Error sending web push notification', e)
+                            })
                     }
                 } catch (e) {
                     console.log('Error sending notification', e)
