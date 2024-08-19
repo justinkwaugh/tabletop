@@ -39,6 +39,10 @@ export class GameSession {
     private api: TabletopApi
     private actionsById: Map<string, GameAction> = new Map([])
 
+    private actionsToProcess: GameAction[] = []
+
+    private processingActions = false
+
     // This is very much cheating, but there is no way to tell the compiler
     // that this will be initialized in the constructor
     game: Game = $state({} as Game)
@@ -179,84 +183,103 @@ export class GameSession {
     }
 
     async applyAction(action: GameAction) {
-        // Preserve state in case we need to roll back
-        const gameSnapshot = $state.snapshot(this.game)
-        const priorState = structuredClone(gameSnapshot.state) as GameState
-
-        if (this.debug) {
-            console.log(`Applying ${action.type} ${action.id} from UI: `, action)
-        }
-
-        // Optimistically apply the action locally (this will assign indices to the actions and store them)
-        const { processedActions, updatedState } = this.applyActionLocally(action, gameSnapshot)
-        this.game.state = updatedState
-
-        // Our processed action has the updated index so grab it
-        const processedAction = processedActions.find((a) => a.id === action.id)
-        if (!processedAction) {
-            throw new Error(`Processed action not found for ${action.id}`)
-        }
-        action.index = processedAction.index
-
-        // Now send the action to the server
         try {
+            // Block server actions while we are processing
+            this.processingActions = true
+
+            // Preserve state in case we need to roll back
+            const gameSnapshot = $state.snapshot(this.game)
+            const priorState = structuredClone(gameSnapshot.state) as GameState
+
             if (this.debug) {
-                console.log(`Sending ${action.type} ${action.id} to server: `, action)
+                console.log(`Applying ${action.type} ${action.id} from UI: `, action)
             }
 
-            // Send the actions to the server and receive the updated actions back
-            const { actions, missingActions } = await this.api.applyAction(this.game, action)
+            // Optimistically apply the action locally (this will assign indices to the actions and store them)
+            try {
+                const { processedActions, updatedState } = this.applyActionLocally(
+                    action,
+                    gameSnapshot
+                )
+                this.game.state = updatedState
 
-            // Check to see if the server told us we missed some actions
-            // If the server says so, that means our action was accepted, and these need to be processed
-            // prior to the action we sent
-            if (missingActions && missingActions.length > 0) {
-                // Sort the actions by index to be sure, though the server should have done this
-                // There should never be an index not provided
-                missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-
-                // Rollback our local action
+                // Our processed action has the updated index so grab it
+                const processedAction = processedActions.find((a) => a.id === action.id)
+                if (!processedAction) {
+                    throw new Error(`Processed action not found for ${action.id}`)
+                }
+                action.index = processedAction.index
+            } catch (e) {
+                this.processingActions = false
                 this.rollbackAction(priorState)
+                return
+            }
 
-                // Apply the missing actions
-                for (const missingAction of missingActions) {
-                    if (action.source === ActionSource.User) {
-                        const { updatedState } = this.applyActionLocally(
-                            missingAction,
-                            gameSnapshot
-                        )
-                        gameSnapshot.state = updatedState
+            // Now send the action to the server
+            try {
+                if (this.debug) {
+                    console.log(`Sending ${action.type} ${action.id} to server: `, action)
+                }
+
+                // Send the actions to the server and receive the updated actions back
+                const { actions, missingActions } = await this.api.applyAction(this.game, action)
+
+                // Check to see if the server told us we missed some actions
+                // If the server says so, that means our action was accepted, and these need to be processed
+                // prior to the action we sent
+                if (missingActions && missingActions.length > 0) {
+                    // Sort the actions by index to be sure, though the server should have done this
+                    // There should never be an index not provided
+                    missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+
+                    // Rollback our local action
+                    this.rollbackAction(priorState)
+
+                    // Apply the missing actions
+                    for (const missingAction of missingActions) {
+                        if (action.source === ActionSource.User) {
+                            const { updatedState } = this.applyActionLocally(
+                                missingAction,
+                                gameSnapshot
+                            )
+                            gameSnapshot.state = updatedState
+                        }
+                    }
+
+                    // Now reapply our initial action (using the server provided one instead)
+                    for (const action of actions) {
+                        if (action.source === ActionSource.User) {
+                            const { updatedState } = this.applyActionLocally(action, gameSnapshot)
+                            this.game.state = updatedState
+                        }
                     }
                 }
 
-                // Now reapply our initial action (using the server provided one instead)
+                // Check that the actions we got back are consistent with what we sent
                 for (const action of actions) {
-                    if (action.source === ActionSource.User) {
-                        const { updatedState } = this.applyActionLocally(action, gameSnapshot)
-                        this.game.state = updatedState
+                    const existingAction = this.actionsById.get(action.id)
+                    if (existingAction?.index !== action.index) {
+                        console.log(
+                            `Action ${action.id} from server has index ${action.index} but locally is ${existingAction?.index}`
+                        )
+                        throw new Error('Action indices are inconsistent')
                     }
                 }
-            }
 
-            // Check that the actions we got back are consistent with what we sent
-            for (const action of actions) {
-                const existingAction = this.actionsById.get(action.id)
-                if (existingAction?.index !== action.index) {
-                    console.log(
-                        `Action ${action.id} from server has index ${action.index} but locally is ${existingAction?.index}`
-                    )
-                    throw new Error('Action indices are inconsistent')
-                }
+                // Overwrite the local ones so we have canonical data
+                actions.forEach((action) => {
+                    this.replaceAction(action)
+                })
+            } catch (e) {
+                console.log(e)
+                toast.error('An error occurred talking to the server')
+                this.rollbackAction(priorState)
             }
-
-            // Overwrite the local ones so we have canonical data
-            actions.forEach((action) => {
-                this.replaceAction(action)
-            })
-        } catch (e) {
-            console.log(e)
-            toast.error('An error occurred while applying the action remotely')
-            this.rollbackAction(priorState)
+        } finally {
+            this.processingActions = false
+            const queuedActions = this.actionsToProcess
+            this.actionsToProcess = []
+            this.applyServerActions(queuedActions)
         }
     }
 
@@ -481,6 +504,13 @@ export class GameSession {
         if (actions.length === 0) {
             return
         }
+
+        // If we are already processing actions locally, just queue them up
+        if (this.processingActions) {
+            this.actionsToProcess.push(...actions)
+            return
+        }
+
         const gameSnapshot = $state.snapshot(this.game)
         for (const action of actions) {
             // Make sure we have not already processed this action
@@ -488,15 +518,19 @@ export class GameSession {
                 continue
             }
 
+            // Only process User actions, system ones get generated / processed automatically
             if (action.source !== ActionSource.User) {
                 continue
             }
+
             if (this.debug) {
                 console.log(`Applying ${action.type} ${action.id} from server`, action)
             }
             const { updatedState } = this.applyActionLocally(action, gameSnapshot)
             gameSnapshot.state = updatedState
         }
+
+        // Once all the actions are processed, update the game state
         this.game.state = gameSnapshot.state
     }
 
