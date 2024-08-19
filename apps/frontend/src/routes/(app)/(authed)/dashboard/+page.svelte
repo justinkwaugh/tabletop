@@ -50,7 +50,7 @@
 <div class="flex flex-row overflow-x-scroll w-full h-[calc(100vh-70px)]">
     {#await gameService.loadGames()}
         <div
-            class="max-w-[240px] text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
+            class="min-w-[340px] max-w-[340px] max-h-[100px] text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8 mt-8 mx-auto"
         >
             <p>Loading...</p>
         </div>

@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from '@sinclair/typebox'
 import { Role, User, UserStatus } from '@tabletop/common'
-import { randomUUID } from 'crypto'
+import { nanoid } from 'nanoid'
 import { authSession } from '../../../lib/session.js'
 
 type UserCreateRequest = Static<typeof UserCreateRequest>
@@ -27,7 +27,7 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const newUser = {
-                id: randomUUID(),
+                id: nanoid(),
                 username: request.body.username.trim(),
                 status: UserStatus.Incomplete,
                 externalIds: [],
