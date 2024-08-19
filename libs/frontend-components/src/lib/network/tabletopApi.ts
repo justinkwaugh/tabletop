@@ -1,4 +1,4 @@
-import wretch, { type WretchError } from 'wretch'
+import wretch, { type Wretch, type WretchError } from 'wretch'
 import QueryStringAddon from 'wretch/addons/queryString'
 import { Value } from '@sinclair/typebox/value'
 import { Game, GameAction, User } from '@tabletop/common'
@@ -14,27 +14,43 @@ import type {
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
 import Ably from 'ably'
+import { checkVersion } from './versionChecker.js'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
 export class TabletopApi {
     private readonly host: string
     private readonly sseHost: string
-    private readonly _basePath = '/api/v1'
-    private readonly _baseUrl: string
-    private readonly _baseSseUrl: string
+    private readonly basePath = '/api/v1'
+    private readonly baseUrl: string
+    private readonly baseSseUrl: string
+    private wretch: Wretch
 
-    constructor(host: string = DEFAULT_HOST, sseHost: string = DEFAULT_HOST) {
+    constructor(
+        host: string = DEFAULT_HOST,
+        sseHost: string = DEFAULT_HOST,
+        private readonly version?: string
+    ) {
         this.host = host
         this.sseHost = sseHost
-        this._baseUrl = `${host}${this._basePath}`
-        this._baseSseUrl = `${sseHost}${this._basePath}`
+        this.baseUrl = `${host}${this.basePath}`
+        this.baseSseUrl = `${sseHost}${this.basePath}`
+
+        const versionCheckerMiddleware = checkVersion({
+            version: this.version,
+            onVersionChange: (changeType) => {
+                console.log('Version changed:', changeType)
+            }
+        })
+        this.wretch = wretch()
+            .url(this.baseUrl)
+            .middlewares([versionCheckerMiddleware])
+            .options({ credentials: 'include' })
     }
 
     async getSelf(): Promise<User | undefined> {
-        const response = await wretch(`${this._baseUrl}/user/self`)
-            .options({ credentials: 'include' })
-            .get()
+        const response = await this.wretch
+            .get('/user/self')
             .unauthorized(() => {}) // 401 is okay here, we just return undefined
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -43,9 +59,8 @@ export class TabletopApi {
     }
 
     async login(credentials: Credentials) {
-        const response = await wretch(`${this._baseUrl}/auth/login`)
-            .options({ credentials: 'include' })
-            .post(credentials)
+        const response = await this.wretch
+            .post(credentials, '/auth/login')
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -53,9 +68,8 @@ export class TabletopApi {
     }
 
     async loginGoogle(credential: string) {
-        const response = await wretch(`${this._baseUrl}/auth/google/login`)
-            .options({ credentials: 'include' })
-            .post({ credential })
+        const response = await this.wretch
+            .post({ credential }, '/auth/google/login')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -64,9 +78,8 @@ export class TabletopApi {
     }
 
     async linkGoogle(credential: string) {
-        const response = await wretch(`${this._baseUrl}/auth/google/link`)
-            .options({ credentials: 'include' })
-            .post({ credential })
+        const response = await this.wretch
+            .post({ credential }, '/auth/google/link')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -75,9 +88,8 @@ export class TabletopApi {
     }
 
     async loginDiscord(code: string) {
-        const response = await wretch(`${this._baseUrl}/auth/discord/login`)
-            .options({ credentials: 'include' })
-            .post({ code })
+        const response = await this.wretch
+            .post({ code }, '/auth/discord/login')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -86,9 +98,8 @@ export class TabletopApi {
     }
 
     async linkDiscord(code: string) {
-        const response = await wretch(`${this._baseUrl}/auth/discord/link`)
-            .options({ credentials: 'include' })
-            .post({ code })
+        const response = await this.wretch
+            .post({ code }, '/auth/discord/link')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -97,9 +108,8 @@ export class TabletopApi {
     }
 
     async loginToken(token: string) {
-        const response = await wretch(`${this._baseUrl}/auth/token/login`)
-            .options({ credentials: 'include' })
-            .post({ token })
+        const response = await this.wretch
+            .post({ token }, '/auth/token/login')
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -107,16 +117,12 @@ export class TabletopApi {
     }
 
     async logout() {
-        await wretch(`${this._baseUrl}/auth/logout`)
-            .options({ credentials: 'include' })
-            .get()
-            .json()
+        await this.wretch.get('/auth/logout').json()
     }
 
     async createUser(user: Partial<User>): Promise<User> {
-        const response = await wretch(`${this._baseUrl}/user/create`)
-            .options({ credentials: 'include' })
-            .post(user)
+        const response = await this.wretch
+            .post(user, '/user/create')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -124,9 +130,8 @@ export class TabletopApi {
     }
 
     async updateUser(user: Partial<User>): Promise<User> {
-        const response = await wretch(`${this._baseUrl}/user/update`)
-            .options({ credentials: 'include' })
-            .post(user)
+        const response = await this.wretch
+            .post(user, '/user/update')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -135,9 +140,8 @@ export class TabletopApi {
     }
 
     async unlinkExternalAccount(externalId: string): Promise<User> {
-        const response = await wretch(`${this._baseUrl}/user/unlinkExternalAccount`)
-            .options({ credentials: 'include' })
-            .post({ externalId })
+        const response = await this.wretch
+            .post({ externalId }, '/user/unlinkExternalAccount')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -146,45 +150,40 @@ export class TabletopApi {
     }
 
     async updatePassword({ password, token }: { password: string; token: string }): Promise<void> {
-        await wretch(`${this._baseUrl}/user/setPassword`)
-            .options({ credentials: 'include' })
-            .post({ password, token })
+        await this.wretch
+            .post({ password, token }, '/user/setPassword')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<void>()
     }
 
     async sendVerificationEmail(): Promise<void> {
-        await wretch(`${this._baseUrl}/user/resendEmailVerification`)
-            .options({ credentials: 'include' })
-            .post()
+        await this.wretch
+            .post('/user/resendEmailVerification')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<void>()
     }
 
     async sendAuthVerificationEmail(): Promise<void> {
-        await wretch(`${this._baseUrl}/user/sendEmailAuthVerification`)
-            .options({ credentials: 'include' })
-            .post()
+        await this.wretch
+            .post('/user/sendEmailAuthVerification')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<void>()
     }
 
     async sendPasswordResetEmail(email: string): Promise<void> {
-        await wretch(`${this._baseUrl}/user/email/sendPasswordReset`)
-            .options({ credentials: 'include' })
-            .post({ email })
+        await this.wretch
+            .post({ email }, '/user/email/sendPasswordReset')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<void>()
     }
 
     async verifyToken(token: string): Promise<User> {
-        const response = await wretch(`${this._baseUrl}/user/email/verify/${token}`)
-            .options({ credentials: 'include' })
-            .get()
+        const response = await this.wretch
+            .get(`/user/email/verify/${token}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -193,9 +192,8 @@ export class TabletopApi {
     }
 
     async getMyGames(): Promise<Game[]> {
-        const response = await wretch(`${this._baseUrl}/games/mine`)
-            .options({ credentials: 'include' })
-            .get()
+        const response = await this.wretch
+            .get('/games/mine')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GamesResponse>()
@@ -204,9 +202,8 @@ export class TabletopApi {
     }
 
     async getGame(gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
-        const response = await wretch(`${this._baseUrl}/game/get/${gameId}`)
-            .options({ credentials: 'include' })
-            .get()
+        const response = await this.wretch
+            .get(`/game/get/${gameId}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameWithActionsResponse>()
@@ -219,9 +216,8 @@ export class TabletopApi {
     }
 
     async createGame(game: Partial<Game>): Promise<Game> {
-        const response = await wretch(`${this._baseUrl}/game/${game.typeId}/create`)
-            .options({ credentials: 'include' })
-            .post({ game })
+        const response = await this.wretch
+            .post({ game }, `/game/${game.typeId}/create`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -230,9 +226,8 @@ export class TabletopApi {
     }
 
     async updateGame(game: Partial<Game>): Promise<Game> {
-        const response = await wretch(`${this._baseUrl}/game/update`)
-            .options({ credentials: 'include' })
-            .post({ game })
+        const response = await this.wretch
+            .post({ game }, '/game/update')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -241,9 +236,8 @@ export class TabletopApi {
     }
 
     async checkInvitation(token: string): Promise<Game> {
-        const response = await wretch(`${this._baseUrl}/invitation/token/${token}`)
-            .options({ credentials: 'include' })
-            .get()
+        const response = await this.wretch
+            .get(`/invitation/token/${token}`)
             .notFound(() => {
                 throw new APIError({
                     name: 'InvitationNotFound',
@@ -263,9 +257,8 @@ export class TabletopApi {
     }
 
     async joinGame(gameId: string): Promise<Game> {
-        const response = await wretch(`${this._baseUrl}/game/join`)
-            .options({ credentials: 'include' })
-            .post({ gameId })
+        const response = await this.wretch
+            .post({ gameId }, '/game/join')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -274,9 +267,8 @@ export class TabletopApi {
     }
 
     async declineGame(gameId: string): Promise<Game> {
-        const response = await wretch(`${this._baseUrl}/game/decline`)
-            .options({ credentials: 'include' })
-            .post({ gameId })
+        const response = await this.wretch
+            .post({ gameId }, '/game/decline')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -285,9 +277,8 @@ export class TabletopApi {
     }
 
     async startGame(game: Game): Promise<Game> {
-        const response = await wretch(`${this._baseUrl}/game/${game.typeId}/start`)
-            .options({ credentials: 'include' })
-            .post({ gameId: game.id })
+        const response = await this.wretch
+            .post({ gameId: game.id }, `/game/${game.typeId}/start`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -299,9 +290,8 @@ export class TabletopApi {
         game: Game,
         action: GameAction
     ): Promise<{ actions: GameAction[]; game: Game; missingActions?: GameAction[] }> {
-        const response = await wretch(`${this._baseUrl}/game/${game.typeId}/action/${action.type}`)
-            .options({ credentials: 'include' })
-            .post({ gameId: game.id, action })
+        const response = await this.wretch
+            .post({ gameId: game.id, action }, `/game/${game.typeId}/action/${action.type}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<ApplyActionResponse>()
@@ -322,16 +312,14 @@ export class TabletopApi {
     }
 
     async getActions(gameId: string, since?: number): Promise<{ actions: GameAction[] }> {
-        let w = wretch(`${this._baseUrl}/game/actions/${gameId}`)
-            .addon(QueryStringAddon)
-            .options({ credentials: 'include' })
+        let w = this.wretch.addon(QueryStringAddon)
 
         if (since !== undefined) {
             w = w.query({ since })
         }
 
         const response = await w
-            .get()
+            .get(`/game/actions/${gameId}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameWithActionsResponse>()
@@ -343,9 +331,8 @@ export class TabletopApi {
     }
 
     async getSseToken(): Promise<string> {
-        const response = await wretch(`${this._baseUrl}/sse/token`)
-            .options({ credentials: 'include' })
-            .get()
+        const response = await this.wretch
+            .get('/sse/token')
             .unauthorized(() => {
                 throw new APIError({
                     name: 'Unauthorized',
@@ -359,9 +346,8 @@ export class TabletopApi {
     }
 
     async getAblyToken(): Promise<Ably.TokenRequest> {
-        const response = await wretch(`${this._baseUrl}/auth/ably/token`)
-            .options({ credentials: 'include' })
-            .get()
+        const response = await this.wretch
+            .get('/auth/ably/token')
             .unauthorized(() => {
                 throw new APIError({
                     name: 'Unauthorized',
@@ -375,23 +361,23 @@ export class TabletopApi {
     }
 
     async subscribeToPushNotifications(subscription: PushSubscription) {
-        wretch(`${this._baseUrl}/notification/webpush/subscribe`)
-            .options({ credentials: 'include' })
-            .post({ subscription: subscription.toJSON() })
+        await this.wretch
+            .post({ subscription: subscription.toJSON() }, '/notification/webpush/subscribe')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
+            .res()
     }
 
     async unsubscribeFromPushNotifications(endpoint: string) {
-        wretch(`${this._baseUrl}/notification/webpush/unsubscribe`)
-            .options({ credentials: 'include' })
-            .post({ endpoint })
+        await this.wretch
+            .post({ endpoint }, '/notification/webpush/unsubscribe')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
+            .res()
     }
 
     getEventSource(path: string): EventSource {
-        return new EventSource(`${this._baseSseUrl}${path}`, {
+        return new EventSource(`${this.baseSseUrl}${path}`, {
             withCredentials: true
         })
     }

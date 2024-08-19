@@ -13,7 +13,10 @@ import { FastifySSEPlugin } from 'fastify-sse-v2'
 
 const __dirname = import.meta.dirname
 
-const TABLETOP_VERSION = '1.0.0'
+// Major - Force Page Reload
+// Minor - Suggest Page Reload
+// Patch - No Reload Needed
+const TABLETOP_VERSION = process.env['VERSION'] ?? '0.0.1'
 
 const API_VERSION = 1
 const API_PREFIX = `/api/v${API_VERSION}`

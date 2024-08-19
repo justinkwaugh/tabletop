@@ -29,13 +29,14 @@
         "!dist/**/*.spec.*"
     ],
     "peerDependencies": {
-        "svelte": "^5.0.0-next.1",
-        "@sveltejs/kit": "^2.5.19"
+        "@sveltejs/kit": "^2.5.19",
+        "svelte": "^5.0.0-next.1"
     },
     "dependencies": {
         "@sinclair/typebox": "^0.32.32",
         "@sveltejs/package": "^2.3.2",
         "@tabletop/common": "*",
+        "compare-versions": "^6.1.1",
         "nanoid": "^3.3.7",
         "svelte-sonner": "^0.3.27",
         "wretch": "^2.9.0"

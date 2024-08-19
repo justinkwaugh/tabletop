@@ -1,5 +1,5 @@
 import { TabletopApi } from '@tabletop/frontend-components'
-import { PUBLIC_API_HOST, PUBLIC_SSE_HOST } from '$env/static/public'
+import { PUBLIC_API_HOST, PUBLIC_SSE_HOST, PUBLIC_VERSION } from '$env/static/public'
 import { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { NotificationService } from '$lib/services/notificationService.svelte'
 import { GameService } from '$lib/services/gameService.svelte'
@@ -16,7 +16,7 @@ export type AppContext = {
     api: TabletopApi
 }
 
-const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST)
+const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, PUBLIC_VERSION)
 const libraryService = new LibraryService()
 const authorizationService = new AuthorizationService(api)
 const visibilityService = new VisibilityService()

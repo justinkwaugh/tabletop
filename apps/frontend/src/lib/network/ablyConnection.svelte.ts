@@ -132,7 +132,11 @@ export class AblyConnection implements RealtimeConnection {
 
         console.log('Removing channel', channel.channelName)
         channelData.ablyChannel.unsubscribe()
-        await channelData.ablyChannel.detach()
+        try {
+            await channelData.ablyChannel.detach()
+        } catch (e) {
+            console.error('Error detaching channel', channelData.channel, e)
+        }
 
         this.channels.delete(channel.channelName)
     }
