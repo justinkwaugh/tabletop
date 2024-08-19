@@ -31,7 +31,7 @@ export function isDiscontinuityEvent(event: NotificationEvent): event is Discont
     return event.eventType === NotificationEventType.Discontinuity
 }
 
-export type NotificationListener = (event: NotificationEvent) => void
+export type NotificationListener = (event: NotificationEvent) => Promise<void>
 
 export type NotificationService = {
     listenToGame(gameId: string): void
