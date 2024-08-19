@@ -13,6 +13,8 @@ import { FastifySSEPlugin } from 'fastify-sse-v2'
 
 const __dirname = import.meta.dirname
 
+const TABLETOP_VERSION = '1.0.0'
+
 const API_VERSION = 1
 const API_PREFIX = `/api/v${API_VERSION}`
 
@@ -53,6 +55,12 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             }
             await rep.send({ status: 'error', error: outError })
         }
+    })
+
+    // If I do this as an async hook with await, it hangs forever... why?
+    fastify.addHook('onSend', function handleCors(req, reply, payload, next) {
+        void reply.header('X-TABLETOP-VERSION', TABLETOP_VERSION)
+        next()
     })
 
     await fastify.register(FastifyFormbody)
