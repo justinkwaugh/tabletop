@@ -139,14 +139,6 @@ export class GameEngine {
         return { processedActions, updatedState, indexOffset }
     }
 
-    undo({ game, toActionIndex }: { game: Game; toActionIndex?: number }): Game {
-        if (!game.state) {
-            throw Error('Game has no state')
-        }
-        console.log(toActionIndex)
-        return game
-    }
-
     undoAction(game: Game, action: GameAction): GameState {
         const state = structuredClone(game.state) as GameState
         const undoPatch = action.undoPatch

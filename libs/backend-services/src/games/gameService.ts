@@ -615,6 +615,62 @@ export class GameService {
         }
     }
 
+    async undoAction({
+        definition,
+        gameId,
+        actionId
+    }: {
+        definition: GameDefinition
+        gameId: string
+        actionId: string
+    }) {
+        const game = await this.getGame({ gameId, withState: true })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+
+        const gameState = game.state
+        if (!gameState) {
+            throw new Error(`Game state not found`)
+        }
+
+        const actionToUndo = await this.gameStore.findActionById(game, actionId)
+        if (!actionToUndo || !actionToUndo.index) {
+            throw new Error(`Action not found`)
+        }
+
+        if (actionToUndo.source !== ActionSource.User) {
+            throw new Error(`Cannot undo non-user action`)
+        }
+
+        const startActionIndex = actionToUndo.index
+        const actions = await this.gameStore.findActionRangeForGame({
+            gameId,
+            startIndex: startActionIndex,
+            endIndex: gameState.actionCount
+        })
+
+        if (actions.length === 0) {
+            throw new Error(`No actions to undo`)
+        }
+
+        if (actions[0].id !== actionId) {
+            throw new Error(`Action to undo is not the first action in the range`)
+        }
+
+        if (actions.some((action) => action.revealsInfo)) {
+            throw new Error(`Cannot undo action that reveals information`)
+        }
+
+        const gameEngine = new GameEngine(definition)
+        for (const action of actions.toReversed()) {
+            game.state = gameEngine.undoAction(game, action)
+        }
+
+        //store the updated state
+        const updatedState = game.state
+    }
+
     private verifyUserIsActionPlayer(action: GameAction, game: Game, user: User) {
         const userPlayer = this.findValidPlayerForUser({ user, game })
         if (!userPlayer || userPlayer.id !== action.playerId) {
