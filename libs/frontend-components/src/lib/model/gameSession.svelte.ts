@@ -212,37 +212,39 @@ export class GameSession {
     }
 
     async applyAction(action: GameAction) {
+        // Preserve state in case we need to roll back
+        const gameSnapshot = $state.snapshot(this.game)
+        const priorState = structuredClone(gameSnapshot.state) as GameState
+        console.log('prior state action count', priorState.actionCount)
+
         try {
             // Block server actions while we are processing
             this.processingActions = true
-
-            // Preserve state in case we need to roll back
-            const gameSnapshot = $state.snapshot(this.game)
-            const priorState = structuredClone(gameSnapshot.state) as GameState
 
             if (this.debug) {
                 console.log(`Applying ${action.type} ${action.id} from UI: `, action)
             }
 
-            // Optimistically apply the action locally (this will assign indices to the actions and store them)
-            try {
-                const { processedActions, updatedState } = this.applyActionLocally(
-                    action,
-                    gameSnapshot
-                )
-                this.game.state = updatedState
+            let deferredRevealingState: GameState | undefined
 
-                // Our processed action has the updated index so grab it
-                const processedAction = processedActions.find((a) => a.id === action.id)
-                if (!processedAction) {
-                    throw new Error(`Processed action not found for ${action.id}`)
-                }
-                action.index = processedAction.index
-            } catch (e) {
-                this.processingActions = false
-                this.rollbackAction(priorState)
-                return
+            // Optimistically apply the action locally (this will assign indices to the actions and store them)
+            const { processedActions, updatedState } = this.applyActionLocally(action, gameSnapshot)
+
+            // Don't update the local state if the action reveals info, instead wait for the server to validate.
+            // This is because the server may reject the action due to undo or any other reason and we
+            // do not want to show the player the revealed info.
+            if (processedActions.some((action) => action.revealsInfo)) {
+                deferredRevealingState = updatedState
+            } else {
+                this.game.state = updatedState
             }
+
+            // Our processed action has the updated index so grab it
+            const processedAction = processedActions.find((a) => a.id === action.id)
+            if (!processedAction) {
+                throw new Error(`Processed action not found for ${action.id}`)
+            }
+            action.index = processedAction.index
 
             // Now send the action to the server
             try {
@@ -279,7 +281,13 @@ export class GameSession {
                     for (const action of actions) {
                         if (action.source === ActionSource.User) {
                             const { updatedState } = this.applyActionLocally(action, gameSnapshot)
-                            this.game.state = updatedState
+
+                            // Again defer, because we could still fail a consistency check
+                            if (deferredRevealingState) {
+                                deferredRevealingState = updatedState
+                            } else {
+                                this.game.state = updatedState
+                            }
                         }
                     }
                 }
@@ -299,11 +307,17 @@ export class GameSession {
                 actions.forEach((action) => {
                     this.replaceAction(action)
                 })
+
+                if (deferredRevealingState) {
+                    this.game.state = deferredRevealingState
+                }
             } catch (e) {
                 console.log(e)
                 toast.error('An error occurred talking to the server')
-                this.rollbackAction(priorState)
+                throw e
             }
+        } catch (e) {
+            this.rollbackAction(priorState)
         } finally {
             this.processingActions = false
             this.applyQueuedActions()
@@ -503,12 +517,14 @@ export class GameSession {
     }
 
     private rollbackAction(priorState: GameState) {
+        console.log('rollback actionCount', priorState.actionCount)
         // Reset the state
         this.game.state = priorState
 
         // Remove the actions that were added
-        const actionsToRevert = this.actions.slice(priorState.actionCount)
-        for (const action of actionsToRevert) {
+        const removed = this.actions.slice(priorState.actionCount) || []
+        console.log('removed', removed)
+        for (const action of removed) {
             this.actionsById.delete(action.id)
         }
         this.actions = this.actions.slice(0, priorState.actionCount)
