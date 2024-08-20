@@ -306,9 +306,7 @@ export class GameSession {
             }
         } finally {
             this.processingActions = false
-            const queuedActions = this.actionsToProcess
-            this.actionsToProcess = []
-            this.applyServerActions(queuedActions)
+            this.applyQueuedActions()
         }
     }
 
@@ -316,16 +314,51 @@ export class GameSession {
         if (!this.undoableAction) {
             return
         }
-        // Undo locally
 
-        // Undo on the server
         try {
-            await this.api.undoAction(this.game, this.undoableAction.id)
-        } catch (e) {
-            console.log(e)
-            toast.error('An error occurred while undoing an action')
-            return
+            // Block server actions while we are processing
+            this.processingActions = true
+
+            const targetActionId = this.undoableAction.id
+            console.log('Wanting to undo action', targetActionId)
+
+            // Preserve state in case we need to roll back
+            const gameSnapshot = $state.snapshot(this.game)
+            const priorState = structuredClone(gameSnapshot.state) as GameState
+            const undoneActions = []
+
+            try {
+                // Undo locally
+                let actionToUndo
+                do {
+                    actionToUndo = $state.snapshot(this.actions.pop()) as GameAction
+                    undoneActions.push(actionToUndo)
+                    this.actionsById.delete(actionToUndo.id)
+
+                    const updatedState = this.engine.undoAction(gameSnapshot, actionToUndo)
+                    gameSnapshot.state = updatedState
+                } while (actionToUndo.id !== targetActionId)
+
+                this.game.state = gameSnapshot.state
+
+                // Undo on the server
+                await this.api.undoAction(this.game, targetActionId)
+            } catch (e) {
+                console.log(e)
+                toast.error('An error occurred while undoing an action')
+                this.rollbackUndo(priorState, undoneActions)
+                return
+            }
+        } finally {
+            this.processingActions = false
+            this.applyQueuedActions()
         }
+    }
+
+    private applyQueuedActions() {
+        const queuedActions = this.actionsToProcess
+        this.actionsToProcess = []
+        this.applyServerActions(queuedActions)
     }
 
     public shouldAutoStepAction(action: GameAction) {
@@ -479,6 +512,16 @@ export class GameSession {
             this.actionsById.delete(action.id)
         }
         this.actions = this.actions.slice(0, priorState.actionCount)
+    }
+
+    private rollbackUndo(priorState: GameState, undoneActions: GameAction[]) {
+        // Reset the state
+        this.game.state = priorState
+        undoneActions.reverse()
+        for (const action of undoneActions) {
+            this.actionsById.set(action.id, action)
+        }
+        this.actions.push(...undoneActions)
     }
 
     private applyActionLocally(

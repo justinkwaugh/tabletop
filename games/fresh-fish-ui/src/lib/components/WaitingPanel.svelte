@@ -80,12 +80,12 @@
         {/if}
         {#if gameSession.undoableAction}
             <Button
-                onclick={() => {
+                onclick={async () => {
                     await gameSession.undo()
                 }}
                 size="xs"
                 class="mt-4"
-                color="blue"
+                color="light"
                 >Undo {gameSession.nameForActionType(gameSession.undoableAction.type)}</Button
             >
         {/if}

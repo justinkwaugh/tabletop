@@ -88,6 +88,10 @@ export class FreshFishGameSession extends GameSession {
                 return 'Place Bid'
             case ActionType.PlaceDisk:
                 return 'Place Disk'
+            case ActionType.PlaceMarket:
+                return 'Place Market'
+            case ActionType.PlaceStall:
+                return 'Place Stall'
             default:
                 return actionType
         }
