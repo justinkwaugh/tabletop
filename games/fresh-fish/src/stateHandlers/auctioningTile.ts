@@ -70,13 +70,14 @@ export class AuctioningTileStateHandler implements MachineStateHandler<HydratedP
                     throw Error(`No auction winner found but no one left to bid`)
                 }
 
-                const endAuctionAction = <EndAuction>{
+                const endAuctionAction: EndAuction = {
                     type: ActionType.EndAuction,
                     id: nanoid(),
                     gameId: action.gameId,
                     source: ActionSource.System,
                     winnerId: winnerId,
-                    highBid: currentAuction.highBid ?? 0
+                    highBid: currentAuction.highBid ?? 0,
+                    revealsInfo: true
                 }
 
                 context.addPendingAction(endAuctionAction)
@@ -96,7 +97,7 @@ export class AuctioningTileStateHandler implements MachineStateHandler<HydratedP
 
                 // Oops, player didn't have anywhere to put the stall, so we auto-place it into the void
                 if (!winningPlayer.hasDiskOnBoard()) {
-                    const placeStallAction = <PlaceStall>{
+                    const placeStallAction: PlaceStall = {
                         type: ActionType.PlaceStall,
                         id: nanoid(),
                         gameId: action.gameId,
