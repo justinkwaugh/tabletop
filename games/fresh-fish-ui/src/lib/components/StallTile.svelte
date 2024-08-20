@@ -37,7 +37,7 @@
 </script>
 
 <div
-    class="stall-tile flex justify-center align-center bg-contain bg-origin-border {stallBgColor} border-2 border-gray-900"
+    class="stall-tile flex justify-center align-center bg-contain bg-origin-border {stallBgColor}"
     style="min-width:{sizePx};width:{sizePx};min-height:{sizePx};height:{sizePx};"
 >
     <img src={stallImg} alt="stall" />
