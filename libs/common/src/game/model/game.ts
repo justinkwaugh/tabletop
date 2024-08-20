@@ -12,6 +12,11 @@ export enum GameStatus {
     Archived = 'archived'
 }
 
+export enum GameSyncStatus {
+    InSync = 'inSync',
+    OutOfSync = 'outOfSync'
+}
+
 export type Game = Static<typeof Game>
 export const Game = Type.Object({
     id: Type.String(),

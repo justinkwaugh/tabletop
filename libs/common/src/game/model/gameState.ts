@@ -1,5 +1,8 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { TSchema, Type, type Static } from '@sinclair/typebox'
 import { TurnManager } from '../components/turnManager.js'
+import { Hydratable } from '../../util/hydration.js'
+import { calculateChecksum } from '../../util/checksum.js'
+import { GameAction } from '../engine/gameAction.js'
 
 export enum GameResult {
     Abandoned = 'Abandoned',
@@ -13,6 +16,7 @@ export const GameState = Type.Object({
     gameId: Type.String(),
     activePlayerIds: Type.Array(Type.String()),
     actionCount: Type.Number(),
+    actionChecksum: Type.Number(),
     machineState: Type.String(),
     turnManager: TurnManager,
     result: Type.Optional(Type.Enum(GameResult)),
@@ -20,5 +24,27 @@ export const GameState = Type.Object({
 })
 
 export interface HydratedGameState extends GameState {
+    recordAction(action: GameAction): void
     dehydrate(): GameState
+}
+
+export abstract class HydratableGameState<T extends TSchema>
+    extends Hydratable<T>
+    implements HydratedGameState
+{
+    declare id: string
+    declare gameId: string
+    declare activePlayerIds: string[]
+    declare actionCount: number
+    declare actionChecksum: number
+    declare machineState: string
+    declare turnManager: TurnManager
+    declare result?: GameResult
+    declare winningPlayerIds: string[]
+
+    recordAction(action: GameAction): void {
+        action.index = this.actionCount
+        this.actionCount += 1
+        this.actionChecksum = calculateChecksum(this.actionChecksum, [action])
+    }
 }

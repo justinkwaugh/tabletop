@@ -225,7 +225,7 @@ export class NotificationService {
                     channel: event.channel,
                     notification
                 }
-                notificationEvent = dataEvent
+                // notificationEvent = dataEvent
             } else if (event.type === RealtimeEventType.Discontinuity) {
                 const discontinuityEvent: DiscontinuityEvent = {
                     eventType: NotificationEventType.Discontinuity,

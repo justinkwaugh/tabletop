@@ -1,7 +1,7 @@
 import {
     GameResult,
     GameState,
-    Hydratable,
+    HydratableGameState,
     HydratedSimpleTurnManager,
     HydratedSimultaneousAuction,
     SimultaneousAuction
@@ -44,7 +44,7 @@ type HydratedProperties = {
 }
 
 export class HydratedFreshFishGameState
-    extends Hydratable<typeof FreshFishGameState>
+    extends HydratableGameState<typeof FreshFishGameState>
     implements FreshFishGameState
 {
     declare id: string
@@ -52,6 +52,7 @@ export class HydratedFreshFishGameState
     declare seed: number
     declare activePlayerIds: string[]
     declare actionCount: number
+    declare actionChecksum: number
     declare players: HydratedFreshFishPlayerState[]
     declare turnManager: HydratedSimpleTurnManager
     declare machineState: MachineState

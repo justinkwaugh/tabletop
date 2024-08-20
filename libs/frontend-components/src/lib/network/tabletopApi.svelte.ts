@@ -1,10 +1,11 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import QueryStringAddon from 'wretch/addons/queryString'
 import { Value } from '@sinclair/typebox/value'
-import { Game, GameAction, User } from '@tabletop/common'
+import { Game, GameAction, GameSyncStatus, User } from '@tabletop/common'
 import type {
     AblyTokenResponse,
     ApplyActionResponse,
+    CheckSyncResponse,
     GameResponse,
     GamesResponse,
     GameWithActionsResponse,
@@ -330,6 +331,24 @@ export class TabletopApi {
             Value.Convert(GameAction, action)
         ) as GameAction[]
         return { actions }
+    }
+
+    async checkSync(
+        gameId: string,
+        checksum: number,
+        index: number
+    ): Promise<{ status: GameSyncStatus; actions: GameAction[]; checksum: number }> {
+        const response = await this.wretch
+            .post({ gameId, checksum, index }, `/game/checkSync`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<CheckSyncResponse>()
+
+        const actions = response.payload.actions.map((action) =>
+            Value.Convert(GameAction, action)
+        ) as GameAction[]
+
+        return { status: response.payload.status, actions, checksum: response.payload.checksum }
     }
 
     async getSseToken(): Promise<string> {

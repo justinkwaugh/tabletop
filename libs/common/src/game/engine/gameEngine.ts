@@ -101,6 +101,10 @@ export class GameEngine {
             const hydratedAction = this.definition.hydrator.hydrateAction(
                 structuredClone(currentAction)
             )
+            if (!hydratedAction.createdAt) {
+                hydratedAction.createdAt = new Date()
+            }
+
             const machineState = hydratedState.machineState
             const stateHandler = this.getStateHandler(machineState)
 
@@ -114,12 +118,7 @@ export class GameEngine {
 
             const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
 
-            hydratedAction.index = hydratedState.actionCount
-            if (!hydratedAction.createdAt) {
-                hydratedAction.createdAt = new Date()
-            }
-
-            hydratedState.actionCount += 1
+            hydratedState.recordAction(hydratedAction)
             hydratedState.machineState = nextMachineState
 
             const nextHandler = this.getStateHandler(nextMachineState)

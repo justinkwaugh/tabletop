@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    calculateChecksum,
     findLast,
     Game,
     GameAction,
@@ -10,6 +11,7 @@ import {
     GameNotificationData,
     GameStartedNotification,
     GameStatus,
+    GameSyncStatus,
     IsYourTurnNotification,
     NotificationCategory,
     Player,
@@ -147,12 +149,16 @@ export class GameService {
         return await this.gameStore.findGameById(gameId, withState)
     }
 
-    async getActionsForGame(gameId: string, since?: number): Promise<GameAction[]> {
+    async getActionsForGame(
+        gameId: string,
+        since?: number,
+        until: number = Number.MAX_SAFE_INTEGER
+    ): Promise<GameAction[]> {
         if (since) {
             return await this.gameStore.findActionRangeForGame({
                 gameId,
                 startIndex: since + 1,
-                endIndex: Number.MAX_SAFE_INTEGER
+                endIndex: until
             })
         } else {
             return await this.gameStore.findActionsForGame(gameId)
@@ -161,6 +167,45 @@ export class GameService {
 
     async getGamesForUser(user: User): Promise<Game[]> {
         return await this.gameStore.findGamesForUser(user)
+    }
+
+    async checkSync({
+        gameId,
+        checksum,
+        index
+    }: {
+        gameId: string
+        checksum: number
+        index: number
+    }): Promise<{ status: GameSyncStatus; actions: GameAction[]; checksum: number }> {
+        // To optimize we could store the checksum separately as well, or cache in redis
+        const game = await this.getGame({ gameId, withState: true })
+        if (!game || !game.state) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+
+        const state = game.state
+
+        // We may be already in sync
+        if (index === state.actionCount - 1 && checksum === state.actionChecksum) {
+            return { status: GameSyncStatus.InSync, actions: [], checksum: state.actionChecksum }
+        }
+
+        // Look up actions and verify the checksum
+        const actions = await this.getActionsForGame(gameId, index)
+        const calculatedChecksum = calculateChecksum(checksum, actions)
+
+        let syncStatus = GameSyncStatus.InSync
+        // If we are not in sync, we need to say so and return enough actions to hopefully allow the client to resync
+        if (calculatedChecksum !== state.actionChecksum) {
+            syncStatus = GameSyncStatus.OutOfSync
+
+            // Add 10 actions in the past to help the client resync (this should cover most undo scenarios)
+            const startIndex = Math.min(index - 10, 0)
+            const extraActions = await this.getActionsForGame(gameId, startIndex, index)
+            actions.unshift(...extraActions)
+        }
+        return { status: syncStatus, actions, checksum: state.actionChecksum }
     }
 
     async checkInvitation({ user, gameId }: { user: User; gameId: string }): Promise<Game> {
@@ -663,7 +708,8 @@ export class GameService {
         }
 
         const gameEngine = new GameEngine(definition)
-        for (const action of actions.toReversed()) {
+        actions.reverse()
+        for (const action of actions) {
             game.state = gameEngine.undoAction(game, action)
         }
 

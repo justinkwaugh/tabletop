@@ -8,7 +8,8 @@ import {
     NotificationCategory,
     Notification,
     type Player,
-    GameState
+    GameState,
+    GameSyncStatus
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -495,8 +496,23 @@ export class GameSession {
             event.channel === NotificationChannel.GameInstance
         ) {
             console.log('Checking for missing actions')
-            const { actions } = await this.api.getActions(this.game.id, this.actions.length - 1)
-            this.applyServerActions(actions)
+            const { status, actions, checksum } = await this.api.checkSync(
+                this.game.id,
+                this.game.state?.actionChecksum ?? 0,
+                this.actions.length - 1
+            )
+
+            if (status === GameSyncStatus.InSync) {
+                if (actions.length > 0) {
+                    this.applyServerActions(actions)
+                    if (this.game.state?.actionChecksum !== checksum) {
+                        console.log('Checksums do not match after applying actions from sync')
+                        // TODO: Handle desync
+                    }
+                }
+            } else {
+                // TODO: Handle desync
+            }
         }
     }
 

@@ -78,6 +78,7 @@ export class FreshFishGameInitializer implements GameInitializer {
             activePlayerIds: [],
             turnManager: turnManager,
             actionCount: 0,
+            actionChecksum: 0,
             players: players,
             machineState: MachineState.StartOfTurn,
             winningPlayerIds: [],
