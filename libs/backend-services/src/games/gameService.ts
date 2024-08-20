@@ -33,6 +33,7 @@ import {
     NotificationService
 } from '../notifications/notificationService.js'
 import {
+    DisallowedUndoError,
     DuplicatePlayerError,
     GameAlreadyStartedError,
     GameNotFoundError,
@@ -676,16 +677,20 @@ export class GameService {
 
         const gameState = game.state
         if (!gameState) {
-            throw new Error(`Game state not found`)
+            throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
         }
 
         const actionToUndo = await this.gameStore.findActionById(game, actionId)
         if (!actionToUndo || !actionToUndo.index) {
-            throw new Error(`Action not found`)
+            throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
 
         if (actionToUndo.source !== ActionSource.User) {
-            throw new Error(`Cannot undo non-user action`)
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Cannot undo non-user action`
+            })
         }
 
         const startActionIndex = actionToUndo.index
@@ -696,15 +701,24 @@ export class GameService {
         })
 
         if (actions.length === 0) {
-            throw new Error(`No actions to undo`)
+            throw new DisallowedUndoError({ gameId, actionId, reason: `No actions to undo` })
         }
 
         if (actions[0].id !== actionId) {
-            throw new Error(`Action to undo is not the first action in the range`)
+            // simultaneous will affect this
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Action to undo is not the first action in the range`
+            })
         }
 
         if (actions.some((action) => action.revealsInfo)) {
-            throw new Error(`Cannot undo action that reveals information`)
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Cannot undo action that reveals information`
+            })
         }
 
         const gameEngine = new GameEngine(definition)
@@ -713,8 +727,54 @@ export class GameService {
             game.state = gameEngine.undoAction(game, action)
         }
 
-        //store the updated state
+        // store the updated state
         const updatedState = game.state
+        const { updatedGame, relatedActions, priorState } =
+            await this.gameStore.undoActionsFromGame({
+                gameId,
+                actions,
+                state: updatedState!,
+                validator: async (
+                    existingGame,
+                    existingState,
+                    existingActions,
+                    newState,
+                    gameUpdates
+                ) => {
+                    // We just need to validate transactional consistency here, so we reverse the checksum.
+                    // Because our hash merge is XOR based, we can just run the exact same function but with the reversed actions
+                    existingActions.sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
+                    const checksum = calculateChecksum(
+                        existingState.actionChecksum,
+                        existingActions
+                    )
+
+                    if (checksum !== newState.actionChecksum) {
+                        console.log(
+                            'Checksum mismatch during undo',
+                            checksum,
+                            newState.actionChecksum
+                        )
+                        throw new GameUpdateCollisionError({ id: gameId })
+                    }
+
+                    gameUpdates.activePlayerIds = newState.activePlayerIds
+
+                    // Need to get prior action too
+
+                    // const lastPlayerAction = findLast(
+                    //     existingActions,
+                    //     (a) => a.playerId != undefined
+                    // )
+                    // if (lastPlayerAction) {
+                    //     gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
+                    // }
+
+                    return UpdateValidationResult.Proceed
+                }
+            })
+
+        // send out notifications
     }
 
     private verifyUserIsActionPlayer(action: GameAction, game: Game, user: User) {

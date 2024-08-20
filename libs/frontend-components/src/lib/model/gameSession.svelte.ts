@@ -65,6 +65,34 @@ export class GameSession {
 
     actions: GameAction[] = $state([])
 
+    undoableAction: GameAction | undefined = $derived.by(() => {
+        if (!this.myPlayer || this.actions.length === 0) {
+            return undefined
+        }
+
+        let undoableUserAction: GameAction | undefined
+        for (let i = this.actions.length - 1; i >= 0; i--) {
+            const action = this.actions[i]
+
+            // Cannot undo beyond revealed info
+            if (action.revealsInfo) {
+                break
+            }
+
+            // skip system actions
+            if (action.source !== ActionSource.User) {
+                continue
+            }
+
+            if (action.playerId === this.myPlayer.id) {
+                undoableUserAction = action
+                break
+            }
+        }
+
+        return undoableUserAction
+    })
+
     activePlayers: Player[] = $derived.by(() => {
         const state = this.game.state
         if (!state) {
@@ -281,6 +309,22 @@ export class GameSession {
             const queuedActions = this.actionsToProcess
             this.actionsToProcess = []
             this.applyServerActions(queuedActions)
+        }
+    }
+
+    async undo() {
+        if (!this.undoableAction) {
+            return
+        }
+        // Undo locally
+
+        // Undo on the server
+        try {
+            await this.api.undoAction(this.game, this.undoableAction.id)
+        } catch (e) {
+            console.log(e)
+            toast.error('An error occurred while undoing an action')
+            return
         }
     }
 

@@ -80,6 +80,19 @@ export class FreshFishGameSession extends GameSession {
         }
     }
 
+    nameForActionType(actionType: string) {
+        switch (actionType) {
+            case ActionType.DrawTile:
+                return 'Draw Tile'
+            case ActionType.PlaceBid:
+                return 'Place Bid'
+            case ActionType.PlaceDisk:
+                return 'Place Disk'
+            default:
+                return actionType
+        }
+    }
+
     previewExpropriation(coords: Coordinates) {
         const expropriator = new Expropriator(this.hydratedState.board, coords)
         const { expropriatedCoords } = expropriator.calculateExpropriation()

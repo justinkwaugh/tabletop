@@ -10,6 +10,15 @@ export type ActionUpdateValidator = (
     relatedActions: GameAction[]
 ) => Promise<UpdateValidationResult>
 
+export type ActionUndoValidator = (
+    existingGame: Game,
+    existingState: GameState,
+    existingActions: GameAction[],
+
+    newState: GameState,
+    gameUpdates: Partial<Game>
+) => Promise<UpdateValidationResult>
+
 export interface GameStore {
     createGame(game: Game): Promise<Game>
     findGamesForUser(user: User): Promise<Game[]>
@@ -38,6 +47,22 @@ export interface GameStore {
         validator?: ActionUpdateValidator
     }): Promise<{
         storedActions: GameAction[]
+        updatedGame: Game
+        relatedActions: GameAction[]
+        priorState: GameState
+    }>
+
+    undoActionsFromGame({
+        gameId,
+        actions,
+        state,
+        validator
+    }: {
+        gameId: string
+        actions: GameAction[]
+        state: GameState
+        validator?: ActionUndoValidator
+    }): Promise<{
         updatedGame: Game
         relatedActions: GameAction[]
         priorState: GameState

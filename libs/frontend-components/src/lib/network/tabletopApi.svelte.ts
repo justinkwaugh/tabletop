@@ -314,6 +314,14 @@ export class TabletopApi {
         }
     }
 
+    async undoAction(game: Game, actionId: string): Promise<void> {
+        await this.wretch
+            .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
+    }
+
     async getActions(gameId: string, since?: number): Promise<{ actions: GameAction[] }> {
         let w = this.wretch.addon(QueryStringAddon)
 
