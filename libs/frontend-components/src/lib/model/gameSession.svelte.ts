@@ -31,6 +31,12 @@ export enum GameSessionMode {
     History = 'history'
 }
 
+type ActionResults = {
+    processedActions: GameAction[]
+    updatedState: GameState
+    revealing: boolean
+}
+
 export class GameSession {
     public definition: GameUiDefinition
     private debug? = false
@@ -66,6 +72,7 @@ export class GameSession {
     actions: GameAction[] = $state([])
 
     undoableAction: GameAction | undefined = $derived.by(() => {
+        // No spectators, must have actions
         if (!this.myPlayer || this.actions.length === 0) {
             return undefined
         }
@@ -79,11 +86,12 @@ export class GameSession {
                 break
             }
 
-            // skip system actions
+            // Skip system actions
             if (action.source !== ActionSource.User) {
                 continue
             }
 
+            // Found one
             if (action.playerId === this.myPlayer.id) {
                 undoableUserAction = action
                 break
@@ -129,6 +137,7 @@ export class GameSession {
         return this.engine.getValidActionTypesForPlayer(this.game, this.myPlayer.id)
     })
 
+    // For admin users
     showDebug: boolean = $derived.by(() => {
         return this.authorizationService.showDebug
     })
@@ -215,7 +224,6 @@ export class GameSession {
         // Preserve state in case we need to roll back
         const gameSnapshot = $state.snapshot(this.game)
         const priorState = structuredClone(gameSnapshot.state) as GameState
-        console.log('prior state action count', priorState.actionCount)
 
         try {
             // Block server actions while we are processing
@@ -225,22 +233,18 @@ export class GameSession {
                 console.log(`Applying ${action.type} ${action.id} from UI: `, action)
             }
 
-            let deferredRevealingState: GameState | undefined
-
             // Optimistically apply the action locally (this will assign indices to the actions and store them)
-            const { processedActions, updatedState } = this.applyActionLocally(action, gameSnapshot)
+            const actionResults = this.applyActionToGame(action, gameSnapshot)
 
             // Don't update the local state if the action reveals info, instead wait for the server to validate.
             // This is because the server may reject the action due to undo or any other reason and we
             // do not want to show the player the revealed info.
-            if (processedActions.some((action) => action.revealsInfo)) {
-                deferredRevealingState = updatedState
-            } else {
-                this.game.state = updatedState
+            if (!actionResults.revealing) {
+                this.applyActionResults(actionResults)
             }
 
             // Our processed action has the updated index so grab it
-            const processedAction = processedActions.find((a) => a.id === action.id)
+            const processedAction = actionResults.processedActions.find((a) => a.id === action.id)
             if (!processedAction) {
                 throw new Error(`Processed action not found for ${action.id}`)
             }
@@ -253,8 +257,12 @@ export class GameSession {
                 }
 
                 // Send the actions to the server and receive the updated actions back
-                const { actions, missingActions } = await this.api.applyAction(this.game, action)
+                const { actions: serverActions, missingActions } = await this.api.applyAction(
+                    this.game,
+                    action
+                )
 
+                let applyServerActions = actionResults.revealing
                 // Check to see if the server told us we missed some actions
                 // If the server says so, that means our action was accepted, and these need to be processed
                 // prior to the action we sent
@@ -263,54 +271,29 @@ export class GameSession {
                     // There should never be an index not provided
                     missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
 
-                    // Rollback our local action
+                    // Rollback our local action and any deferred results
                     this.rollbackAction(priorState)
 
-                    // Apply the missing actions
-                    for (const missingAction of missingActions) {
-                        if (action.source === ActionSource.User) {
-                            const { updatedState } = this.applyActionLocally(
-                                missingAction,
-                                gameSnapshot
-                            )
-                            gameSnapshot.state = updatedState
-                        }
-                    }
+                    // Prepend the missing actions
+                    serverActions.unshift(...missingActions)
 
-                    // Now reapply our initial action (using the server provided one instead)
-                    for (const action of actions) {
-                        if (action.source === ActionSource.User) {
-                            const { updatedState } = this.applyActionLocally(action, gameSnapshot)
+                    applyServerActions = true
+                }
 
-                            // Again defer, because we could still fail a consistency check
-                            if (deferredRevealingState) {
-                                deferredRevealingState = updatedState
-                            } else {
-                                this.game.state = updatedState
-                            }
+                // Apply the server provided actions
+                if (applyServerActions) {
+                    for (const action of serverActions) {
+                        if (action.source === ActionSource.User) {
+                            const actionResults = this.applyActionToGame(action, gameSnapshot)
+                            this.applyActionResults(actionResults)
                         }
                     }
                 }
 
-                // Check that the actions we got back are consistent with what we sent
-                for (const action of actions) {
-                    const existingAction = this.actionsById.get(action.id)
-                    if (existingAction?.index !== action.index) {
-                        console.log(
-                            `Action ${action.id} from server has index ${action.index} but locally is ${existingAction?.index}`
-                        )
-                        throw new Error('Action indices are inconsistent')
-                    }
-                }
-
-                // Overwrite the local ones so we have canonical data
-                actions.forEach((action) => {
-                    this.replaceAction(action)
+                // Overwrite the local ones if necessary so we have canonical data
+                serverActions.forEach((action) => {
+                    this.upsertAction(action)
                 })
-
-                if (deferredRevealingState) {
-                    this.game.state = deferredRevealingState
-                }
             } catch (e) {
                 console.log(e)
                 toast.error('An error occurred talking to the server')
@@ -540,24 +523,22 @@ export class GameSession {
         this.actions.push(...undoneActions)
     }
 
-    private applyActionLocally(
-        action: GameAction,
-        game: Game
-    ): { processedActions: GameAction[]; updatedState: GameState } {
-        try {
-            const { processedActions, updatedState } = this.engine.run(action, game)
-            for (const processedAction of processedActions) {
-                this.addAction(processedAction)
-            }
-            return { processedActions, updatedState }
-        } catch (e) {
-            toast.error('An error occurred while applying an action locally')
-            console.log(e)
-            throw e
-        }
+    private applyActionToGame(action: GameAction, game: Game): ActionResults {
+        const { processedActions, updatedState } = this.engine.run(action, game)
+        const revealing = processedActions.some((action) => action.revealsInfo)
+        return { processedActions, updatedState, revealing }
+    }
+
+    private applyActionResults(actionResults: ActionResults) {
+        this.game.state = actionResults.updatedState
+        actionResults.processedActions.forEach((action) => {
+            this.addAction(action)
+        })
+        console.log('Action length now', this.actions.length)
     }
 
     private replaceAction(action: GameAction) {
+        console.log('trying to replace action with index', action.index)
         if (action.index === undefined || action.index < 0 || action.index >= this.actions.length) {
             throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
         }
@@ -566,6 +547,23 @@ export class GameSession {
         }
         this.actions[action.index] = action
         this.actionsById.set(action.id, action)
+    }
+
+    private upsertAction(action: GameAction) {
+        if (action.index === undefined || action.index < 0 || action.index > this.actions.length) {
+            throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
+        }
+
+        if (action.index === this.actions.length) {
+            this.actions.push(action)
+        } else {
+            const priorAction = this.actions[action.index]
+            if (priorAction.id !== action.id) {
+                this.actionsById.delete(priorAction.id)
+            }
+            this.actions[action.index] = action
+            this.actionsById.set(action.id, action)
+        }
     }
 
     private addAction(action: GameAction) {
@@ -631,6 +629,12 @@ export class GameSession {
         }
 
         const gameSnapshot = $state.snapshot(this.game)
+
+        const allActionResults: ActionResults = {
+            processedActions: [],
+            updatedState: gameSnapshot.state!,
+            revealing: false
+        }
         for (const action of actions) {
             // Make sure we have not already processed this action
             if (this.actionsById.get(action.id)) {
@@ -645,12 +649,15 @@ export class GameSession {
             if (this.debug) {
                 console.log(`Applying ${action.type} ${action.id} from server`, action)
             }
-            const { updatedState } = this.applyActionLocally(action, gameSnapshot)
-            gameSnapshot.state = updatedState
+            const actionResults = this.applyActionToGame(action, gameSnapshot)
+            allActionResults.processedActions.push(...actionResults.processedActions)
+            allActionResults.updatedState = actionResults.updatedState
+
+            gameSnapshot.state = actionResults.updatedState
         }
 
         // Once all the actions are processed, update the game state
-        this.game.state = gameSnapshot.state
+        this.applyActionResults(allActionResults)
     }
 
     private isGameAddActionsNotification(
