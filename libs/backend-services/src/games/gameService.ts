@@ -672,10 +672,12 @@ export class GameService {
     }
 
     async undoAction({
+        user,
         definition,
         gameId,
         actionId
     }: {
+        user: User
         definition: GameDefinition
         gameId: string
         actionId: string
@@ -685,6 +687,8 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
 
+        const userPlayer = this.findValidPlayerForUser({ user, game })
+
         const gameState = game.state
         if (!gameState) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
@@ -693,6 +697,14 @@ export class GameService {
         const actionToUndo = await this.gameStore.findActionById(game, actionId)
         if (!actionToUndo || actionToUndo.index === undefined) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
+        }
+
+        if (actionToUndo.playerId !== userPlayer.id) {
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Cannot undo another player's action`
+            })
         }
 
         if (actionToUndo.source !== ActionSource.User) {
@@ -715,7 +727,6 @@ export class GameService {
         }
 
         if (actions[0].id !== actionId) {
-            // simultaneous will affect this
             throw new DisallowedUndoError({
                 gameId,
                 actionId,
@@ -728,6 +739,14 @@ export class GameService {
                 gameId,
                 actionId,
                 reason: `Cannot undo action that reveals information`
+            })
+        }
+
+        if (actions.some((action) => action.playerId && action.playerId !== userPlayer.id)) {
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Cannot undo another player's actions`
             })
         }
 

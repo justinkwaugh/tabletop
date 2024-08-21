@@ -21,7 +21,12 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
             }
 
             const { gameId, actionId } = request.body
-            await fastify.gameService.undoAction({ definition, gameId, actionId })
+            await fastify.gameService.undoAction({
+                user: request.user,
+                definition,
+                gameId,
+                actionId
+            })
 
             return { status: 'ok', payload: {} }
         }

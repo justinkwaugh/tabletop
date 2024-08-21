@@ -10,7 +10,8 @@ import {
     type Player,
     GameState,
     GameSyncStatus,
-    findLastIndex
+    findLastIndex,
+    calculateChecksum
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -169,25 +170,19 @@ export class GameSession {
         this.engine = new GameEngine(definition)
         this.game = game
 
+        this.initializeActions(actions)
+        this.debug = debug
+    }
+
+    private initializeActions(actions: GameAction[]) {
         // all actions must have an index
         if (actions.find((action) => action.index === undefined)) {
             throw new Error('All actions must have an index')
         }
 
         this.actions = actions.toSorted((a, b) => a.index! - b.index!)
-
-        for (let i = 0; i < this.actions.length; i++) {
-            if (this.actions[i].index !== i) {
-                throw new Error('The action indices are not sequential')
-            }
-        }
-
-        if (this.actions.length !== this.game.state?.actionCount) {
-            throw new Error('The game state action count does not match the number of actions')
-        }
-
-        this.actionsById = new Map(actions.map((action) => [action.id, action]))
-        this.debug = debug
+        this.verifyFullChecksum()
+        this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
     }
 
     listenToGame() {
@@ -299,13 +294,16 @@ export class GameSession {
                 serverActions.forEach((action) => {
                     this.upsertAction(action)
                 })
+
+                this.verifyFullChecksum()
             } catch (e) {
                 console.log(e)
-                toast.error('An error occurred talking to the server')
+                toast.error('An error occurred talking to the server, resyncing')
                 throw e
             }
         } catch (e) {
             this.rollbackAction(priorState)
+            await this.checkSync()
         } finally {
             this.processingActions = false
             this.applyQueuedActions()
@@ -349,6 +347,7 @@ export class GameSession {
                 console.log(e)
                 toast.error('An error occurred while undoing an action')
                 this.rollbackUndo(priorState, undoneActions)
+                await this.checkSync()
                 return
             }
         } finally {
@@ -626,6 +625,13 @@ export class GameSession {
         return true
     }
 
+    private verifyFullChecksum() {
+        const checksum = calculateChecksum(0, this.actions)
+        if (checksum !== this.game.state?.actionChecksum) {
+            throw new Error('Full checksum validation failed')
+        }
+    }
+
     private NotificationListener = async (event: NotificationEvent) => {
         if (isDataEvent(event)) {
             console.log('got data event')
@@ -649,25 +655,46 @@ export class GameSession {
             event.channel === NotificationChannel.GameInstance
         ) {
             console.log('Checking for missing actions')
-            const { status, actions, checksum } = await this.api.checkSync(
-                this.game.id,
-                this.game.state?.actionChecksum ?? 0,
-                this.actions.length - 1
-            )
+            await this.checkSync()
+        }
+    }
 
-            if (status === GameSyncStatus.InSync) {
-                if (actions.length > 0) {
-                    this.applyServerActions(actions)
-                    if (this.game.state?.actionChecksum !== checksum) {
-                        console.log('Checksums do not match after applying actions from sync')
-                        // TODO: Handle desync
-                        throw new Error('Unlikely desync!')
-                    }
+    private async checkSync() {
+        const { status, actions, checksum } = await this.api.checkSync(
+            this.game.id,
+            this.game.state?.actionChecksum ?? 0,
+            this.actions.length - 1
+        )
+
+        let resyncNeeded = false
+        if (status === GameSyncStatus.InSync) {
+            if (actions.length > 0) {
+                this.applyServerActions(actions)
+                if (this.game.state?.actionChecksum !== checksum) {
+                    console.log('Checksums do not match after applying actions from sync')
+                    resyncNeeded = true
                 }
-            } else {
-                console.log('desync stuff', status, actions)
-                this.tryToResync(actions, checksum)
             }
+        } else {
+            resyncNeeded = true
+        }
+
+        if (resyncNeeded) {
+            if (!this.tryToResync(actions, checksum)) {
+                await this.doFullResync()
+            }
+        }
+    }
+
+    private async doFullResync() {
+        console.log('DOING FULL RESYNC')
+        try {
+            const { game, actions } = await this.api.getGame(this.game.id)
+            this.game.state = game.state
+            this.initializeActions(actions)
+        } catch (e) {
+            console.log('Error during full resync', e)
+            toast.error('Unable to load game, try refreshing')
         }
     }
 
