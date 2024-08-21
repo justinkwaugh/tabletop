@@ -9,7 +9,8 @@ import {
     Notification,
     type Player,
     GameState,
-    GameSyncStatus
+    GameSyncStatus,
+    findLastIndex
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -537,18 +538,6 @@ export class GameSession {
         console.log('Action length now', this.actions.length)
     }
 
-    private replaceAction(action: GameAction) {
-        console.log('trying to replace action with index', action.index)
-        if (action.index === undefined || action.index < 0 || action.index >= this.actions.length) {
-            throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
-        }
-        if (this.actions[action.index].id !== action.id) {
-            throw new Error(`Unexpected action found when trying to replace action ${action.id}`)
-        }
-        this.actions[action.index] = action
-        this.actionsById.set(action.id, action)
-    }
-
     private upsertAction(action: GameAction) {
         if (action.index === undefined || action.index < 0 || action.index > this.actions.length) {
             throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
@@ -572,6 +561,62 @@ export class GameSession {
         }
         this.actions.splice(action.index, 0, action)
         this.actionsById.set(action.id, action)
+    }
+
+    private undoToAction(gameSnapshot: Game, actionId: string): { undoneActions: GameAction[] } {
+        const undoneActions: GameAction[] = []
+
+        while (this.actions.length > 0 && this.actions[this.actions.length - 1].id !== actionId) {
+            const actionToUndo = $state.snapshot(this.actions.pop()) as GameAction
+            undoneActions.push(actionToUndo)
+            this.actionsById.delete(actionToUndo.id)
+
+            const updatedState = this.engine.undoAction(gameSnapshot, actionToUndo)
+            gameSnapshot.state = updatedState
+        }
+
+        return { undoneActions }
+    }
+
+    private tryToResync(serverActions: GameAction[], checksum: number): boolean {
+        // Find the latest action that matches
+        const matchedActionIndex = findLastIndex(serverActions, (action) => {
+            if (
+                action.index === undefined ||
+                action.index < 0 ||
+                action.index >= this.actions.length
+            ) {
+                return false
+            }
+            return this.actions[action.index].id === action.id
+        })
+
+        if (matchedActionIndex === -1) {
+            return false
+        }
+
+        console.log('matched action index', matchedActionIndex)
+        const matchedAction = serverActions[matchedActionIndex]
+        const snapshot = $state.snapshot(this.game)
+        this.undoToAction(snapshot, matchedAction.id)
+        this.game.state = snapshot.state
+
+        // Apply the actions from the server
+        if (matchedActionIndex < serverActions.length - 1) {
+            const actionsToApply = serverActions.slice(matchedActionIndex + 1)
+            for (const action of actionsToApply) {
+                console.log('applying action ', action)
+                const actionResults = this.applyActionToGame(action, snapshot)
+                this.applyActionResults(actionResults)
+            }
+        }
+
+        // Check the checksum
+        if (this.game.state?.actionChecksum !== checksum) {
+            console.log('Checksums do not match after resync')
+            return false
+        }
+        return true
     }
 
     private NotificationListener = async (event: NotificationEvent) => {
@@ -609,10 +654,12 @@ export class GameSession {
                     if (this.game.state?.actionChecksum !== checksum) {
                         console.log('Checksums do not match after applying actions from sync')
                         // TODO: Handle desync
+                        throw new Error('Unlikely desync!')
                     }
                 }
             } else {
-                // TODO: Handle desync
+                console.log('desync stuff', status, actions)
+                this.tryToResync(actions, checksum)
             }
         }
     }

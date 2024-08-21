@@ -193,7 +193,13 @@ export class GameService {
         }
 
         // Look up actions and verify the checksum
-        const actions = await this.getActionsForGame(gameId, index)
+        // const actions = await this.getActionsForGame(gameId, index)
+        const actions = await this.gameStore.findActionRangeForGame({
+            gameId,
+            startIndex: index + 1,
+            endIndex: game.state.actionCount
+        })
+
         const calculatedChecksum = calculateChecksum(checksum, actions)
 
         let syncStatus = GameSyncStatus.InSync
@@ -202,8 +208,12 @@ export class GameService {
             syncStatus = GameSyncStatus.OutOfSync
 
             // Add 10 actions in the past to help the client resync (this should cover most undo scenarios)
-            const startIndex = Math.min(index - 10, 0)
-            const extraActions = await this.getActionsForGame(gameId, startIndex, index)
+            const startIndex = Math.max(index - 10, 0)
+            const extraActions = await this.gameStore.findActionRangeForGame({
+                gameId,
+                startIndex,
+                endIndex: index + 1
+            })
             actions.unshift(...extraActions)
         }
         return { status: syncStatus, actions, checksum: state.actionChecksum }
