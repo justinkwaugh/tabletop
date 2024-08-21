@@ -742,12 +742,37 @@ export class GameService {
             })
         }
 
-        if (actions.some((action) => action.playerId && action.playerId !== userPlayer.id)) {
+        if (
+            actions.some(
+                (action) =>
+                    action.playerId &&
+                    action.playerId !== userPlayer.id &&
+                    action.simultaneousGroupId !== actions[0].simultaneousGroupId
+            )
+        ) {
             throw new DisallowedUndoError({
                 gameId,
                 actionId,
                 reason: `Cannot undo another player's actions`
             })
+        }
+
+        const redoActions = []
+        for (const action of actions) {
+            if (
+                action.playerId &&
+                action.playerId !== userPlayer.id &&
+                action.simultaneousGroupId === actions[0].simultaneousGroupId
+            ) {
+                const redoAction = structuredClone(action)
+                // Actions should be immutable once stored so it becomes a new one
+                redoAction.id = nanoid()
+                // These fields will be re-assigned by the game engine
+                redoAction.index = undefined
+                redoAction.undoPatch = undefined
+                console.log('Adding redo action', redoAction)
+                redoActions.push(redoAction)
+            }
         }
 
         const gameEngine = new GameEngine(definition)
@@ -756,12 +781,23 @@ export class GameService {
             game.state = gameEngine.undoAction(game, action)
         }
 
+        const redoneActions: GameAction[] = []
+        for (const redoAction of redoActions) {
+            console.log('Redoing action', redoAction)
+            const { processedActions, updatedState } = gameEngine.run(redoAction, game)
+            redoneActions.push(...processedActions)
+            game.state = updatedState
+        }
+
+        console.log('Redone actions', redoneActions)
+
         // store the updated state
         const updatedState = game.state
         const { updatedGame, relatedActions, priorState } =
             await this.gameStore.undoActionsFromGame({
                 gameId,
                 actions,
+                redoneActions,
                 state: updatedState!,
                 validator: async (
                     existingGame,
@@ -773,15 +809,21 @@ export class GameService {
                     // We just need to validate transactional consistency here, so we reverse the checksum.
                     // Because our hash merge is XOR based, we can just run the exact same function but with the reversed actions
                     existingActions.sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
-                    const checksum = calculateChecksum(
+                    // Checksum the undone actions
+                    let undoneChecksum = calculateChecksum(
                         existingState.actionChecksum,
                         existingActions
                     )
 
-                    if (checksum !== newState.actionChecksum) {
+                    // Also checksum the redone actions
+                    if (redoneActions.length > 0) {
+                        undoneChecksum = calculateChecksum(undoneChecksum, redoneActions)
+                    }
+
+                    if (undoneChecksum !== newState.actionChecksum) {
                         console.log(
                             'Checksum mismatch during undo',
-                            checksum,
+                            undoneChecksum,
                             newState.actionChecksum
                         )
                         throw new GameUpdateCollisionError({ id: gameId })
@@ -798,7 +840,6 @@ export class GameService {
                     // if (lastPlayerAction) {
                     //     gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
                     // }
-
                     return UpdateValidationResult.Proceed
                 }
             })

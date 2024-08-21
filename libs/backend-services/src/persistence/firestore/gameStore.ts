@@ -272,11 +272,13 @@ export class FirestoreGameStore implements GameStore {
     async undoActionsFromGame({
         gameId,
         actions,
+        redoneActions,
         state,
         validator
     }: {
         gameId: string
         actions: GameAction[]
+        redoneActions: GameAction[]
         state: GameState
         validator: ActionUndoValidator
     }): Promise<{ updatedGame: Game; relatedActions: GameAction[]; priorState: GameState }> {
@@ -347,6 +349,10 @@ export class FirestoreGameStore implements GameStore {
 
                     existingActions.forEach((action) => {
                         transaction.delete(actionCollection.doc(action.id))
+                    })
+
+                    redoneActions.forEach((action) => {
+                        transaction.create(actionCollection.doc(action.id), action)
                     })
                     transaction.update(this.games.doc(gameId), gameUpdates)
                     transaction.set(stateCollection.doc(gameId), state)

@@ -55,11 +55,13 @@ export interface GameStore {
     undoActionsFromGame({
         gameId,
         actions,
+        redoneActions,
         state,
         validator
     }: {
         gameId: string
         actions: GameAction[]
+        redoneActions: GameAction[]
         state: GameState
         validator?: ActionUndoValidator
     }): Promise<{
