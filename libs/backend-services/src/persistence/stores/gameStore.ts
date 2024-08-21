@@ -80,4 +80,6 @@ export interface GameStore {
         fields: Partial<Game>
         validator?: UpdateValidator<Game>
     }): Promise<[Game, string[], Game]>
+
+    setChecksum({gameId, checksum}:{ gameId: string, checksum:number }): Promise<number>
 }

@@ -281,7 +281,12 @@ export class FirestoreGameStore implements GameStore {
         redoneActions: GameAction[]
         state: GameState
         validator: ActionUndoValidator
-    }): Promise<{ undoneActions:GameAction[]; updatedGame: Game; redoneActions: GameAction[]; priorState: GameState }> {
+    }): Promise<{
+        undoneActions: GameAction[]
+        updatedGame: Game
+        redoneActions: GameAction[]
+        priorState: GameState
+    }> {
         const actionCollection = this.getActionCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
 
@@ -409,6 +414,32 @@ export class FirestoreGameStore implements GameStore {
                 .get()
             const results = querySnapshot.docs.map((doc) => doc.data()) as GameAction[]
             return results
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
+    async setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number> {
+        const stateCollection = this.getStateCollection(gameId)
+        try {
+            return await this.games.firestore.runTransaction(async (transaction) => {
+                const existingState = (
+                    await transaction.get(stateCollection.doc(gameId))
+                ).data() as GameState
+
+                if (!existingState) {
+                    throw new NotFoundError({ type: 'GameState', id: gameId })
+                }
+
+                if (existingState.actionChecksum !== undefined) {
+                    return existingState.actionChecksum
+                }
+
+                existingState.actionChecksum = checksum
+                transaction.set(stateCollection.doc(gameId), existingState)
+                return checksum
+            })
         } catch (error) {
             this.handleError(error, gameId)
             throw Error('unreachable')

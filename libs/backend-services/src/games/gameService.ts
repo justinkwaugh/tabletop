@@ -10,6 +10,7 @@ import {
     GameNotificationAction,
     GameNotificationData,
     GameStartedNotification,
+    GameState,
     GameStatus,
     GameSyncStatus,
     IsYourTurnNotification,
@@ -863,6 +864,12 @@ export class GameService {
             redoneActions: processedRedoneActions,
             checksum
         }
+    }
+
+    async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {
+        const checksum = calculateChecksum(0, actions)
+        state.actionChecksum = checksum
+        return await this.gameStore.setChecksum({ gameId: state.gameId, checksum })
     }
 
     private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {
