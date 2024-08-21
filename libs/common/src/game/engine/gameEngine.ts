@@ -5,6 +5,7 @@ import { GameState } from '../model/gameState.js'
 import { MachineContext } from './machineContext.js'
 import { MachineStateHandler } from './machineStateHandler.js'
 import { GameDefinition } from '../definition/gameDefinition.js'
+import { calculateChecksum } from '../../util/checksum.js'
 
 export type ActionResult = {
     processedActions: GameAction[]
@@ -101,6 +102,10 @@ export class GameEngine {
             const hydratedAction = this.definition.hydrator.hydrateAction(
                 structuredClone(currentAction)
             )
+            if (!hydratedAction.createdAt) {
+                hydratedAction.createdAt = new Date()
+            }
+
             const machineState = hydratedState.machineState
             const stateHandler = this.getStateHandler(machineState)
 
@@ -114,12 +119,7 @@ export class GameEngine {
 
             const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
 
-            hydratedAction.index = hydratedState.actionCount
-            if (!hydratedAction.createdAt) {
-                hydratedAction.createdAt = new Date()
-            }
-
-            hydratedState.actionCount += 1
+            hydratedState.recordAction(hydratedAction)
             hydratedState.machineState = nextMachineState
 
             const nextHandler = this.getStateHandler(nextMachineState)
@@ -139,21 +139,19 @@ export class GameEngine {
         return { processedActions, updatedState, indexOffset }
     }
 
-    undo({ game, toActionIndex }: { game: Game; toActionIndex?: number }): Game {
-        if (!game.state) {
-            throw Error('Game has no state')
-        }
-        console.log(toActionIndex)
-        return game
-    }
-
     undoAction(game: Game, action: GameAction): GameState {
         const state = structuredClone(game.state) as GameState
+        const initialChecksum = state.actionChecksum
         const undoPatch = action.undoPatch
         if (!undoPatch) {
             throw Error('Action has no undo patch')
         }
         jsonpatch.applyPatch(state, undoPatch as Operation[])
+        if (state.actionChecksum === initialChecksum) {
+            console.log('Undoing an old action, calculating checksum manually')
+            // This is only for games created when undo was not a thing
+            state.actionChecksum = calculateChecksum(state.actionChecksum, [action])
+        }
         return state
     }
 

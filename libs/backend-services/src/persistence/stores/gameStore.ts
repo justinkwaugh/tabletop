@@ -10,10 +10,20 @@ export type ActionUpdateValidator = (
     relatedActions: GameAction[]
 ) => Promise<UpdateValidationResult>
 
+export type ActionUndoValidator = (
+    existingGame: Game,
+    existingState: GameState,
+    existingActions: GameAction[],
+
+    newState: GameState,
+    gameUpdates: Partial<Game>
+) => Promise<UpdateValidationResult>
+
 export interface GameStore {
     createGame(game: Game): Promise<Game>
     findGamesForUser(user: User): Promise<Game[]>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
+    findActionById(game: Game, actionId: string): Promise<GameAction | undefined>
     findActionsForGame(gameId: string): Promise<GameAction[]>
     findActionRangeForGame({
         gameId,
@@ -42,6 +52,25 @@ export interface GameStore {
         priorState: GameState
     }>
 
+    undoActionsFromGame({
+        gameId,
+        actions,
+        redoneActions,
+        state,
+        validator
+    }: {
+        gameId: string
+        actions: GameAction[]
+        redoneActions: GameAction[]
+        state: GameState
+        validator?: ActionUndoValidator
+    }): Promise<{
+        undoneActions: GameAction[]
+        updatedGame: Game
+        redoneActions: GameAction[]
+        priorState: GameState
+    }>
+
     updateGame({
         gameId,
         fields,
@@ -51,4 +80,6 @@ export interface GameStore {
         fields: Partial<Game>
         validator?: UpdateValidator<Game>
     }): Promise<[Game, string[], Game]>
+
+    setChecksum({gameId, checksum}:{ gameId: string, checksum:number }): Promise<number>
 }

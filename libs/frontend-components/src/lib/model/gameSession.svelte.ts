@@ -8,7 +8,11 @@ import {
     NotificationCategory,
     Notification,
     type Player,
-    GameState
+    GameState,
+    GameSyncStatus,
+    findLastIndex,
+    calculateChecksum,
+    GameUndoActionNotification
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -28,6 +32,12 @@ export enum GameSessionMode {
     Play = 'play',
     Spectate = 'spectate',
     History = 'history'
+}
+
+type ActionResults = {
+    processedActions: GameAction[]
+    updatedState: GameState
+    revealing: boolean
 }
 
 export class GameSession {
@@ -63,6 +73,58 @@ export class GameSession {
     })
 
     actions: GameAction[] = $state([])
+
+    undoableAction: GameAction | undefined = $derived.by(() => {
+        // No spectators, must have actions
+        if (!this.myPlayer || this.actions.length === 0) {
+            return undefined
+        }
+
+        let currentSimultaneousGroup: string | undefined
+        let undoableUserAction: GameAction | undefined
+        for (let i = this.actions.length - 1; i >= 0; i--) {
+            const action = this.actions[i]
+
+            // Cannot undo beyond revealed info
+            if (action.revealsInfo) {
+                break
+            }
+
+            // Skip system actions
+            if (action.source !== ActionSource.User) {
+                continue
+            }
+
+            // Other player actions can be skipped if we find a simultaneous group
+            // as long as we don't leave it and enter another
+            if (action.playerId !== this.myPlayer.id) {
+                if (
+                    !action.simultaneousGroupId ||
+                    (currentSimultaneousGroup &&
+                        action.simultaneousGroupId !== currentSimultaneousGroup)
+                ) {
+                    break
+                } else {
+                    currentSimultaneousGroup = action.simultaneousGroupId
+                }
+            }
+
+            // Our actions are what we are looking for, but if we are in a simultaneous group
+            // it has to be part of that group
+            if (action.playerId === this.myPlayer.id) {
+                if (
+                    !currentSimultaneousGroup ||
+                    action.simultaneousGroupId === currentSimultaneousGroup
+                ) {
+                    // Found one
+                    undoableUserAction = action
+                }
+                break
+            }
+        }
+
+        return undoableUserAction
+    })
 
     activePlayers: Player[] = $derived.by(() => {
         const state = this.game.state
@@ -100,6 +162,7 @@ export class GameSession {
         return this.engine.getValidActionTypesForPlayer(this.game, this.myPlayer.id)
     })
 
+    // For admin users
     showDebug: boolean = $derived.by(() => {
         return this.authorizationService.showDebug
     })
@@ -130,25 +193,19 @@ export class GameSession {
         this.engine = new GameEngine(definition)
         this.game = game
 
+        this.initializeActions(actions)
+        this.debug = debug
+    }
+
+    private initializeActions(actions: GameAction[]) {
         // all actions must have an index
         if (actions.find((action) => action.index === undefined)) {
             throw new Error('All actions must have an index')
         }
 
         this.actions = actions.toSorted((a, b) => a.index! - b.index!)
-
-        for (let i = 0; i < this.actions.length; i++) {
-            if (this.actions[i].index !== i) {
-                throw new Error('The action indices are not sequential')
-            }
-        }
-
-        if (this.actions.length !== this.game.state?.actionCount) {
-            throw new Error('The game state action count does not match the number of actions')
-        }
-
-        this.actionsById = new Map(actions.map((action) => [action.id, action]))
-        this.debug = debug
+        this.verifyFullChecksum()
+        this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
     }
 
     listenToGame() {
@@ -183,37 +240,34 @@ export class GameSession {
     }
 
     async applyAction(action: GameAction) {
+        // Preserve state in case we need to roll back
+        const gameSnapshot = $state.snapshot(this.game)
+        const priorState = structuredClone(gameSnapshot.state) as GameState
+
         try {
             // Block server actions while we are processing
             this.processingActions = true
-
-            // Preserve state in case we need to roll back
-            const gameSnapshot = $state.snapshot(this.game)
-            const priorState = structuredClone(gameSnapshot.state) as GameState
 
             if (this.debug) {
                 console.log(`Applying ${action.type} ${action.id} from UI: `, action)
             }
 
             // Optimistically apply the action locally (this will assign indices to the actions and store them)
-            try {
-                const { processedActions, updatedState } = this.applyActionLocally(
-                    action,
-                    gameSnapshot
-                )
-                this.game.state = updatedState
+            const actionResults = this.applyActionToGame(action, gameSnapshot)
 
-                // Our processed action has the updated index so grab it
-                const processedAction = processedActions.find((a) => a.id === action.id)
-                if (!processedAction) {
-                    throw new Error(`Processed action not found for ${action.id}`)
-                }
-                action.index = processedAction.index
-            } catch (e) {
-                this.processingActions = false
-                this.rollbackAction(priorState)
-                return
+            // Don't update the local state if the action reveals info, instead wait for the server to validate.
+            // This is because the server may reject the action due to undo or any other reason and we
+            // do not want to show the player the revealed info.
+            if (!actionResults.revealing) {
+                this.applyActionResults(actionResults)
             }
+
+            // Our processed action has the updated index so grab it
+            const processedAction = actionResults.processedActions.find((a) => a.id === action.id)
+            if (!processedAction) {
+                throw new Error(`Processed action not found for ${action.id}`)
+            }
+            action.index = processedAction.index
 
             // Now send the action to the server
             try {
@@ -222,65 +276,172 @@ export class GameSession {
                 }
 
                 // Send the actions to the server and receive the updated actions back
-                const { actions, missingActions } = await this.api.applyAction(this.game, action)
+                const { actions: serverActions, missingActions } = await this.api.applyAction(
+                    this.game,
+                    action
+                )
 
+                let applyServerActions = actionResults.revealing
                 // Check to see if the server told us we missed some actions
                 // If the server says so, that means our action was accepted, and these need to be processed
                 // prior to the action we sent
                 if (missingActions && missingActions.length > 0) {
+                    console.log('got Missing actions', missingActions)
                     // Sort the actions by index to be sure, though the server should have done this
                     // There should never be an index not provided
                     missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
 
-                    // Rollback our local action
-                    this.rollbackAction(priorState)
+                    // Rollback our local action and any deferred results
+                    this.rollbackActions(priorState)
 
-                    // Apply the missing actions
-                    for (const missingAction of missingActions) {
-                        if (action.source === ActionSource.User) {
-                            const { updatedState } = this.applyActionLocally(
-                                missingAction,
-                                gameSnapshot
-                            )
-                            gameSnapshot.state = updatedState
-                        }
-                    }
+                    // Prepend the missing actions
+                    serverActions.unshift(...missingActions)
 
-                    // Now reapply our initial action (using the server provided one instead)
-                    for (const action of actions) {
+                    applyServerActions = true
+                }
+
+                // Apply the server provided actions
+                if (applyServerActions) {
+                    console.log('Applying server actions', serverActions)
+                    for (const action of serverActions) {
                         if (action.source === ActionSource.User) {
-                            const { updatedState } = this.applyActionLocally(action, gameSnapshot)
-                            this.game.state = updatedState
+                            console.log('Applying action', action)
+                            const actionResults = this.applyActionToGame(action, gameSnapshot)
+                            gameSnapshot.state = actionResults.updatedState
+                            this.applyActionResults(actionResults)
                         }
                     }
                 }
 
-                // Check that the actions we got back are consistent with what we sent
-                for (const action of actions) {
-                    const existingAction = this.actionsById.get(action.id)
-                    if (existingAction?.index !== action.index) {
-                        console.log(
-                            `Action ${action.id} from server has index ${action.index} but locally is ${existingAction?.index}`
-                        )
-                        throw new Error('Action indices are inconsistent')
-                    }
-                }
-
-                // Overwrite the local ones so we have canonical data
-                actions.forEach((action) => {
-                    this.replaceAction(action)
+                // Overwrite the local ones if necessary so we have canonical data
+                serverActions.forEach((action) => {
+                    this.upsertAction(action)
                 })
+
+                this.verifyFullChecksum()
             } catch (e) {
                 console.log(e)
-                toast.error('An error occurred talking to the server')
-                this.rollbackAction(priorState)
+                toast.error('An error occurred talking to the server, resyncing')
+                throw e
+            }
+        } catch (e) {
+            this.rollbackActions(priorState)
+            await this.checkSync()
+        } finally {
+            this.processingActions = false
+            this.applyQueuedActions()
+        }
+    }
+
+    async undo() {
+        if (!this.undoableAction) {
+            return
+        }
+
+        try {
+            // Block server actions while we are processing
+            this.processingActions = true
+
+            const targetAction = $state.snapshot(this.undoableAction)
+            const targetActionId = targetAction.id
+            console.log('Wanting to undo action', targetActionId)
+
+            // Preserve state in case we need to roll back
+            const gameSnapshot = $state.snapshot(this.game)
+            const priorState = structuredClone(gameSnapshot.state) as GameState
+            const localUndoneActions = []
+            const localRedoneActions = []
+
+            try {
+                // Undo locally
+                const redoActions: GameAction[] = []
+                let actionToUndo
+                do {
+                    actionToUndo = $state.snapshot(this.actions.pop()) as GameAction
+                    if (
+                        actionToUndo.playerId &&
+                        actionToUndo.playerId !== targetAction.playerId &&
+                        this.isSameSimultaneousGroup(targetAction, actionToUndo)
+                    ) {
+                        const redoAction = structuredClone(actionToUndo)
+                        // Actions should be immutable once stored so it becomes a new one but the new id
+                        // needs to be deterministic so that the server can generate the same one
+                        redoAction.id += `-REDO-${targetActionId}`
+                        // These fields will be re-assigned by the game engine
+                        redoAction.index = undefined
+                        redoAction.undoPatch = undefined
+                        console.log('Adding redo action', redoAction)
+                        redoActions.push(redoAction)
+                    }
+                    localUndoneActions.push(actionToUndo)
+                    this.actionsById.delete(actionToUndo.id)
+
+                    const updatedState = this.engine.undoAction(gameSnapshot, actionToUndo)
+                    gameSnapshot.state = updatedState
+                } while (actionToUndo.id !== targetActionId)
+
+                const preRedoState = structuredClone(gameSnapshot.state) as GameState
+
+                for (const action of redoActions) {
+                    const results = this.applyActionToGame(action, gameSnapshot)
+                    localRedoneActions.push(...results.processedActions)
+                    gameSnapshot.state = results.updatedState
+                    this.applyActionResults(results)
+                }
+
+                this.game.state = gameSnapshot.state
+
+                // Undo on the server
+                const { redoneActions, checksum } = await this.api.undoAction(
+                    this.game,
+                    targetActionId
+                )
+
+                if (checksum !== this.game.state?.actionChecksum) {
+                    // We must not have known about something, but we did succeed so let's see if we can align
+                    // by removing our redos and adding the backend's instead
+                    localRedoneActions.splice(0, localRedoneActions.length)
+                    this.rollbackActions(preRedoState)
+
+                    for (const action of redoneActions) {
+                        const results = this.applyActionToGame(action, gameSnapshot)
+                        localRedoneActions.push(...results.processedActions)
+                        gameSnapshot.state = results.updatedState
+                        this.applyActionResults(results)
+                    }
+                }
+
+                // Overwrite the local ones if necessary so we have canonical data
+                redoneActions.forEach((action) => {
+                    this.upsertAction(action)
+                })
+
+                this.verifyFullChecksum()
+            } catch (e) {
+                console.log(e)
+                toast.error('An error occurred while undoing an action')
+                this.rollbackUndo(priorState, localUndoneActions, localRedoneActions)
+                await this.checkSync()
+                return
             }
         } finally {
             this.processingActions = false
-            const queuedActions = this.actionsToProcess
-            this.actionsToProcess = []
-            this.applyServerActions(queuedActions)
+            this.applyQueuedActions()
         }
+    }
+
+    private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {
+        return (
+            action.simultaneousGroupId !== undefined &&
+            other.simultaneousGroupId !== undefined &&
+            action.simultaneousGroupId === other.simultaneousGroupId
+        )
+    }
+
+    private applyQueuedActions() {
+        const queuedActions = this.actionsToProcess
+        this.actionsToProcess = []
+        this.applyServerActions(queuedActions)
     }
 
     public shouldAutoStepAction(action: GameAction) {
@@ -424,44 +585,68 @@ export class GameSession {
         this.currentHistoryIndex = 0
     }
 
-    private rollbackAction(priorState: GameState) {
+    private rollbackActions(priorState: GameState) {
+        console.log('rollback actionCount', priorState.actionCount)
         // Reset the state
         this.game.state = priorState
 
         // Remove the actions that were added
-        const actionsToRevert = this.actions.slice(priorState.actionCount)
-        for (const action of actionsToRevert) {
+        const removed = this.actions.slice(priorState.actionCount) || []
+        for (const action of removed) {
             this.actionsById.delete(action.id)
         }
         this.actions = this.actions.slice(0, priorState.actionCount)
     }
 
-    private applyActionLocally(
-        action: GameAction,
-        game: Game
-    ): { processedActions: GameAction[]; updatedState: GameState } {
-        try {
-            const { processedActions, updatedState } = this.engine.run(action, game)
-            for (const processedAction of processedActions) {
-                this.addAction(processedAction)
-            }
-            return { processedActions, updatedState }
-        } catch (e) {
-            toast.error('An error occurred while applying an action locally')
-            console.log(e)
-            throw e
+    private rollbackUndo(
+        priorState: GameState,
+        undoneActions: GameAction[],
+        redoneActions: GameAction[]
+    ) {
+        // Reset the state
+        this.game.state = priorState
+
+        for (const action of redoneActions) {
+            this.actionsById.delete(action.id)
         }
+        this.actions.splice(this.actions.length - redoneActions.length, redoneActions.length)
+
+        undoneActions.reverse()
+        for (const action of undoneActions) {
+            this.actionsById.set(action.id, action)
+        }
+        this.actions.push(...undoneActions)
     }
 
-    private replaceAction(action: GameAction) {
-        if (action.index === undefined || action.index < 0 || action.index >= this.actions.length) {
+    private applyActionToGame(action: GameAction, game: Game): ActionResults {
+        const { processedActions, updatedState } = this.engine.run(action, game)
+        const revealing = processedActions.some((action) => action.revealsInfo)
+        return { processedActions, updatedState, revealing }
+    }
+
+    private applyActionResults(actionResults: ActionResults) {
+        this.game.state = actionResults.updatedState
+        actionResults.processedActions.forEach((action) => {
+            this.addAction(action)
+        })
+        console.log('Action length now', this.actions.length)
+    }
+
+    private upsertAction(action: GameAction) {
+        if (action.index === undefined || action.index < 0 || action.index > this.actions.length) {
             throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
         }
-        if (this.actions[action.index].id !== action.id) {
-            throw new Error(`Unexpected action found when trying to replace action ${action.id}`)
+
+        if (action.index === this.actions.length) {
+            this.actions.push(action)
+        } else {
+            const priorAction = this.actions[action.index]
+            if (priorAction.id !== action.id) {
+                this.actionsById.delete(priorAction.id)
+            }
+            this.actions[action.index] = action
+            this.actionsById.set(action.id, action)
         }
-        this.actions[action.index] = action
-        this.actionsById.set(action.id, action)
     }
 
     private addAction(action: GameAction) {
@@ -472,31 +657,164 @@ export class GameSession {
         this.actionsById.set(action.id, action)
     }
 
+    private undoToIndex(gameSnapshot: Game, index: number): { undoneActions: GameAction[] } {
+        const undoneActions: GameAction[] = []
+
+        while (this.actions.length > 0 && this.actions.length - 1 !== index) {
+            const actionToUndo = $state.snapshot(this.actions.pop()) as GameAction
+            undoneActions.push(actionToUndo)
+            this.actionsById.delete(actionToUndo.id)
+
+            const updatedState = this.engine.undoAction(gameSnapshot, actionToUndo)
+            gameSnapshot.state = updatedState
+        }
+
+        return { undoneActions }
+    }
+
+    private tryToResync(serverActions: GameAction[], checksum: number): boolean {
+        // Find the latest action that matches
+        console.log('server actions in sync', serverActions)
+        const matchedActionIndex = findLastIndex(serverActions, (action) => {
+            if (
+                action.index === undefined ||
+                action.index < 0 ||
+                action.index >= this.actions.length
+            ) {
+                return false
+            }
+
+            const foundAction = this.actionsById.get(action.id)
+            return foundAction?.index === action.index
+        })
+
+        console.log('matched action index', matchedActionIndex)
+        if (serverActions.length > 0 && matchedActionIndex === -1) {
+            return false
+        }
+
+        const rollbackIndex =
+            matchedActionIndex >= 0 ? (serverActions[matchedActionIndex].index ?? -1) : -1
+        const snapshot = $state.snapshot(this.game)
+        this.undoToIndex(snapshot, rollbackIndex)
+        this.game.state = snapshot.state
+
+        // Apply the actions from the server
+        if (matchedActionIndex < serverActions.length - 1) {
+            const actionsToApply = serverActions.slice(matchedActionIndex + 1)
+            for (const action of actionsToApply) {
+                console.log('applying action ', action)
+                const actionResults = this.applyActionToGame(action, snapshot)
+                snapshot.state = actionResults.updatedState
+                this.applyActionResults(actionResults)
+            }
+        }
+
+        // Check the checksum
+        if (this.game.state?.actionChecksum !== checksum) {
+            console.log('Checksums do not match after resync')
+            return false
+        }
+        return true
+    }
+
+    private verifyFullChecksum() {
+        const checksum = calculateChecksum(0, this.actions)
+        if (checksum !== this.game.state?.actionChecksum) {
+            throw new Error('Full checksum validation failed')
+        }
+    }
+
     private NotificationListener = async (event: NotificationEvent) => {
         if (isDataEvent(event)) {
             console.log('got data event')
             const notification = event.notification
-            if (!this.isGameAddActionsNotification(notification)) {
-                return
+            try {
+                if (this.isGameAddActionsNotification(notification)) {
+                    await this.handleAddActionsNotification(notification)
+                } else if (this.isGameUndoActionNotification(notification)) {
+                    await this.handleUndoNotification(notification)
+                }
+            } catch (e) {
+                console.log('Error handling notification', e)
+                await this.checkSync()
             }
-            console.log('for a game')
-            if (notification.data.game.id !== this.game.id) {
-                return
-            }
-
-            console.log('action stuff')
-            const actions = notification.data.actions.map((action) =>
-                Value.Convert(GameAction, action)
-            ) as GameAction[]
-
-            this.applyServerActions(actions)
         } else if (
             isDiscontinuityEvent(event) &&
             event.channel === NotificationChannel.GameInstance
         ) {
             console.log('Checking for missing actions')
-            const { actions } = await this.api.getActions(this.game.id, this.actions.length - 1)
-            this.applyServerActions(actions)
+            await this.checkSync()
+        }
+    }
+
+    private async handleAddActionsNotification(notification: GameAddActionsNotification) {
+        if (notification.data.game.id !== this.game.id) {
+            return
+        }
+
+        const actions = notification.data.actions.map((action) =>
+            Value.Convert(GameAction, action)
+        ) as GameAction[]
+
+        this.applyServerActions(actions)
+    }
+
+    private async handleUndoNotification(notification: GameUndoActionNotification) {
+        if (notification.data.action.index === undefined) {
+            return
+        }
+        const targetIndex = notification.data.action.index - 1
+        if (targetIndex < -1 || targetIndex >= this.actions.length) {
+            throw new Error('Undo index is out of our bounds')
+        }
+
+        const redoneActions = notification.data.redoneActions.map((action) =>
+            Value.Convert(GameAction, action)
+        ) as GameAction[]
+
+        const gameSnapshot = $state.snapshot(this.game)
+        this.undoToIndex(gameSnapshot, targetIndex)
+        this.game.state = gameSnapshot.state
+        this.applyServerActions(redoneActions)
+    }
+
+    private async checkSync() {
+        const { status, actions, checksum } = await this.api.checkSync(
+            this.game.id,
+            this.game.state?.actionChecksum ?? 0,
+            this.actions.length - 1
+        )
+
+        let resyncNeeded = false
+        if (status === GameSyncStatus.InSync) {
+            if (actions.length > 0) {
+                this.applyServerActions(actions)
+                if (this.game.state?.actionChecksum !== checksum) {
+                    console.log('Checksums do not match after applying actions from sync')
+                    resyncNeeded = true
+                }
+            }
+        } else {
+            resyncNeeded = true
+        }
+
+        if (resyncNeeded) {
+            if (!this.tryToResync(actions, checksum)) {
+                await this.doFullResync()
+            }
+        }
+    }
+
+    private async doFullResync() {
+        console.log('DOING FULL RESYNC')
+        try {
+            const { game, actions } = await this.api.getGame(this.game.id)
+            this.game.state = game.state
+            this.initializeActions(actions)
+        } catch (e) {
+            console.log('Error during full resync', e)
+            toast.error('Unable to load game, try refreshing')
         }
     }
 
@@ -512,6 +830,12 @@ export class GameSession {
         }
 
         const gameSnapshot = $state.snapshot(this.game)
+
+        const allActionResults: ActionResults = {
+            processedActions: [],
+            updatedState: gameSnapshot.state!,
+            revealing: false
+        }
         for (const action of actions) {
             // Make sure we have not already processed this action
             if (this.actionsById.get(action.id)) {
@@ -526,12 +850,15 @@ export class GameSession {
             if (this.debug) {
                 console.log(`Applying ${action.type} ${action.id} from server`, action)
             }
-            const { updatedState } = this.applyActionLocally(action, gameSnapshot)
-            gameSnapshot.state = updatedState
+            const actionResults = this.applyActionToGame(action, gameSnapshot)
+            allActionResults.processedActions.push(...actionResults.processedActions)
+            allActionResults.updatedState = actionResults.updatedState
+
+            gameSnapshot.state = actionResults.updatedState
         }
 
         // Once all the actions are processed, update the game state
-        this.game.state = gameSnapshot.state
+        this.applyActionResults(allActionResults)
     }
 
     private isGameAddActionsNotification(
@@ -540,6 +867,15 @@ export class GameSession {
         return (
             notification.type === NotificationCategory.Game &&
             notification.action === GameNotificationAction.AddActions
+        )
+    }
+
+    private isGameUndoActionNotification(
+        notification: Notification
+    ): notification is GameUndoActionNotification {
+        return (
+            notification.type === NotificationCategory.Game &&
+            notification.action === GameNotificationAction.UndoAction
         )
     }
 }

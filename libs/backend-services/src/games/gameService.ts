@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    calculateChecksum,
     findLast,
     Game,
     GameAction,
@@ -9,7 +10,9 @@ import {
     GameNotificationAction,
     GameNotificationData,
     GameStartedNotification,
+    GameState,
     GameStatus,
+    GameSyncStatus,
     IsYourTurnNotification,
     NotificationCategory,
     Player,
@@ -31,6 +34,7 @@ import {
     NotificationService
 } from '../notifications/notificationService.js'
 import {
+    DisallowedUndoError,
     DuplicatePlayerError,
     GameAlreadyStartedError,
     GameNotFoundError,
@@ -147,12 +151,16 @@ export class GameService {
         return await this.gameStore.findGameById(gameId, withState)
     }
 
-    async getActionsForGame(gameId: string, since?: number): Promise<GameAction[]> {
+    async getActionsForGame(
+        gameId: string,
+        since?: number,
+        until: number = Number.MAX_SAFE_INTEGER
+    ): Promise<GameAction[]> {
         if (since) {
             return await this.gameStore.findActionRangeForGame({
                 gameId,
                 startIndex: since + 1,
-                endIndex: Number.MAX_SAFE_INTEGER
+                endIndex: until
             })
         } else {
             return await this.gameStore.findActionsForGame(gameId)
@@ -161,6 +169,55 @@ export class GameService {
 
     async getGamesForUser(user: User): Promise<Game[]> {
         return await this.gameStore.findGamesForUser(user)
+    }
+
+    async checkSync({
+        gameId,
+        checksum,
+        index
+    }: {
+        gameId: string
+        checksum: number
+        index: number
+    }): Promise<{ status: GameSyncStatus; actions: GameAction[]; checksum: number }> {
+        // To optimize we could store the checksum separately as well, or cache in redis
+        const game = await this.getGame({ gameId, withState: true })
+        if (!game || !game.state) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+
+        const state = game.state
+
+        // We may be already in sync
+        if (index === state.actionCount - 1 && checksum === state.actionChecksum) {
+            return { status: GameSyncStatus.InSync, actions: [], checksum: state.actionChecksum }
+        }
+
+        // Look up actions and verify the checksum
+        // const actions = await this.getActionsForGame(gameId, index)
+        const actions = await this.gameStore.findActionRangeForGame({
+            gameId,
+            startIndex: index + 1,
+            endIndex: game.state.actionCount
+        })
+
+        const calculatedChecksum = calculateChecksum(checksum, actions)
+
+        let syncStatus = GameSyncStatus.InSync
+        // If we are not in sync, we need to say so and return enough actions to hopefully allow the client to resync
+        if (calculatedChecksum !== state.actionChecksum) {
+            syncStatus = GameSyncStatus.OutOfSync
+
+            // Add 10 actions in the past to help the client resync (this should cover most undo scenarios)
+            const startIndex = Math.max(index - 10, 0)
+            const extraActions = await this.gameStore.findActionRangeForGame({
+                gameId,
+                startIndex,
+                endIndex: index + 1
+            })
+            actions.unshift(...extraActions)
+        }
+        return { status: syncStatus, actions, checksum: state.actionChecksum }
     }
 
     async checkInvitation({ user, gameId }: { user: User; gameId: string }): Promise<Game> {
@@ -585,7 +642,7 @@ export class GameService {
 
         // Only user actions need to be broadcast
         const userActions = storedActions.filter((a) => a.source === ActionSource.User)
-        await this.notifyGamePlayers(GameNotificationAction.AddActions, {
+        await this.notifyGameInstance(GameNotificationAction.AddActions, {
             game: updatedGame,
             actions: userActions
         })
@@ -613,6 +670,210 @@ export class GameService {
             updatedGame,
             missingActions: relatedActions.length > 0 ? relatedActions : undefined
         }
+    }
+
+    async undoAction({
+        user,
+        definition,
+        gameId,
+        actionId
+    }: {
+        user: User
+        definition: GameDefinition
+        gameId: string
+        actionId: string
+    }) {
+        const game = await this.getGame({ gameId, withState: true })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+
+        const userPlayer = this.findValidPlayerForUser({ user, game })
+
+        const gameState = game.state
+        if (!gameState) {
+            throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
+        }
+
+        const actionToUndo = await this.gameStore.findActionById(game, actionId)
+        if (!actionToUndo || actionToUndo.index === undefined) {
+            throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
+        }
+
+        if (actionToUndo.playerId !== userPlayer.id) {
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Cannot undo another player's action`
+            })
+        }
+
+        if (actionToUndo.source !== ActionSource.User) {
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Cannot undo non-user action`
+            })
+        }
+
+        const startActionIndex = actionToUndo.index
+        const actions = await this.gameStore.findActionRangeForGame({
+            gameId,
+            startIndex: startActionIndex,
+            endIndex: gameState.actionCount
+        })
+
+        if (actions.length === 0) {
+            throw new DisallowedUndoError({ gameId, actionId, reason: `No actions to undo` })
+        }
+
+        if (actions[0].id !== actionToUndo.id) {
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Action to undo is not the first action in the range`
+            })
+        }
+
+        if (actions.some((action) => action.revealsInfo)) {
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Cannot undo action that reveals information`
+            })
+        }
+
+        if (
+            actions.some(
+                (action) =>
+                    action.playerId &&
+                    action.playerId !== userPlayer.id &&
+                    !this.isSameSimultaneousGroup(action, actionToUndo)
+            )
+        ) {
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: `Cannot undo another player's actions`
+            })
+        }
+
+        const redoActions = []
+        for (const action of actions) {
+            if (
+                action.playerId &&
+                action.playerId !== userPlayer.id &&
+                this.isSameSimultaneousGroup(action, actionToUndo)
+            ) {
+                const redoAction = structuredClone(action)
+                // Actions should be immutable once stored so it becomes a new one but the new id
+                // needs to be deterministic so that the client can generate the same one
+                redoAction.id += `-REDO-${actionToUndo.id}`
+                // These fields will be re-assigned by the game engine
+                redoAction.index = undefined
+                redoAction.undoPatch = undefined
+                redoActions.push(redoAction)
+            }
+        }
+
+        const gameEngine = new GameEngine(definition)
+        actions.reverse()
+        for (const action of actions) {
+            game.state = gameEngine.undoAction(game, action)
+        }
+
+        const redoneActions: GameAction[] = []
+        for (const redoAction of redoActions) {
+            const { processedActions, updatedState } = gameEngine.run(redoAction, game)
+            redoneActions.push(...processedActions)
+            game.state = updatedState
+        }
+
+        // store the updated state
+        const updatedState = game.state
+        const {
+            undoneActions,
+            updatedGame,
+            redoneActions: processedRedoneActions
+        } = await this.gameStore.undoActionsFromGame({
+            gameId,
+            actions,
+            redoneActions,
+            state: updatedState!,
+            validator: async (
+                existingGame,
+                existingState,
+                existingActions,
+                newState,
+                gameUpdates
+            ) => {
+                // We just need to validate transactional consistency here, so we reverse the checksum.
+                // Because our hash merge is XOR based, we can just run the exact same function but with the reversed actions
+                existingActions.sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
+                // Checksum the undone actions
+                let undoneChecksum = calculateChecksum(
+                    existingState.actionChecksum,
+                    existingActions
+                )
+
+                // Also checksum the redone actions
+                if (redoneActions.length > 0) {
+                    undoneChecksum = calculateChecksum(undoneChecksum, redoneActions)
+                }
+
+                if (undoneChecksum !== newState.actionChecksum) {
+                    console.log(
+                        'Checksum mismatch during undo',
+                        undoneChecksum,
+                        newState.actionChecksum
+                    )
+                    throw new GameUpdateCollisionError({ id: gameId })
+                }
+
+                gameUpdates.activePlayerIds = newState.activePlayerIds
+
+                // Need to get prior action too?
+
+                // const lastPlayerAction = findLast(
+                //     existingActions,
+                //     (a) => a.playerId != undefined
+                // )
+                // if (lastPlayerAction) {
+                //     gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
+                // }
+                return UpdateValidationResult.Proceed
+            }
+        })
+        const checksum = updatedGame.state?.actionChecksum ?? 0
+        delete updatedGame.state
+
+        // send out notifications
+        await this.notifyGameInstance(GameNotificationAction.UndoAction, {
+            game: updatedGame,
+            action: actionToUndo,
+            redoneActions: processedRedoneActions
+        })
+
+        return {
+            undoneActions,
+            updatedGame,
+            redoneActions: processedRedoneActions,
+            checksum
+        }
+    }
+
+    async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {
+        const checksum = calculateChecksum(0, actions)
+        state.actionChecksum = checksum
+        return await this.gameStore.setChecksum({ gameId: state.gameId, checksum })
+    }
+
+    private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {
+        return (
+            action.simultaneousGroupId !== undefined &&
+            other.simultaneousGroupId !== undefined &&
+            action.simultaneousGroupId === other.simultaneousGroupId
+        )
     }
 
     private verifyUserIsActionPlayer(action: GameAction, game: Game, user: User) {
@@ -703,6 +964,24 @@ export class GameService {
         return user
     }
 
+    private async notifyGameInstance(
+        action: GameNotificationAction,
+        data: GameNotificationData
+    ): Promise<void> {
+        const notification = <GameNotification>{
+            id: nanoid(),
+            type: NotificationCategory.Game,
+            action: action,
+            data
+        }
+        const gameTopic = `game-${data.game.id}`
+        await this.notificationService.sendNotification({
+            notification,
+            topics: [gameTopic],
+            channels: [NotificationDistributionMethod.Topical]
+        })
+    }
+
     private async notifyGamePlayers(
         action: GameNotificationAction,
         data: GameNotificationData
@@ -714,10 +993,9 @@ export class GameService {
             data
         }
         const userTopics = data.game.players.map((p) => `user-${p.userId}`)
-        const gameTopic = `game-${data.game.id}`
         await this.notificationService.sendNotification({
             notification,
-            topics: [...userTopics, gameTopic],
+            topics: [...userTopics],
             channels: [NotificationDistributionMethod.Topical]
         })
     }

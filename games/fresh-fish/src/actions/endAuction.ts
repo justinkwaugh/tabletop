@@ -12,6 +12,7 @@ export const EndAuction = Type.Composite([
         type: Type.Literal(ActionType.EndAuction),
         winnerId: Type.String(),
         highBid: Type.Number(),
+        revealsInfo: Type.Literal(true),
         metadata: Type.Optional(Type.Object({ participants: Type.Array(AuctionParticipant) }))
     })
 ])
@@ -25,6 +26,7 @@ export class HydratedEndAuction extends HydratableAction<typeof EndAuction> impl
     declare type: ActionType.EndAuction
     declare winnerId: string
     declare highBid: number
+    declare revealsInfo: true
     declare metadata?: { participants: AuctionParticipant[] }
 
     constructor(data: EndAuction) {

@@ -4,6 +4,7 @@
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { fade } from 'svelte/transition'
     import { MachineState } from '@tabletop/fresh-fish'
+    import { Button } from 'flowbite-svelte'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
 
@@ -76,6 +77,17 @@
                     >{gameSession.getPlayerName(currentPlayerId)}</span
                 > to take their turn...
             </h1>
+        {/if}
+        {#if gameSession.undoableAction}
+            <Button
+                onclick={async () => {
+                    await gameSession.undo()
+                }}
+                size="xs"
+                class="mt-4"
+                color="light"
+                >Undo {gameSession.nameForActionType(gameSession.undoableAction.type)}</Button
+            >
         {/if}
     </div>
 </div>

@@ -5,6 +5,7 @@ import { FreshFishDefinition } from '@tabletop/fresh-fish'
 import CreateGame from '../routes/titleSpecific/create.js'
 import StartGame from '../routes/titleSpecific/start.js'
 import ApplyAction from '../routes/titleSpecific/action.js'
+import UndoAction from '../routes/titleSpecific/undo.js'
 import { AppOptions } from '../app.js'
 
 async function registerGame(
@@ -16,6 +17,7 @@ async function registerGame(
 
     await fastify.register(CreateGame.bind(null, definition), { prefix })
     await fastify.register(StartGame.bind(null, definition), { prefix })
+    await fastify.register(UndoAction.bind(null, definition), { prefix })
 
     // Register all the actions
     for (const actionType of Object.keys(definition.apiActions)) {

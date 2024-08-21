@@ -12,19 +12,6 @@
         gameSession.hydratedState.players.find((p) => p.playerId === gameSession.myPlayer?.id)
     )
 
-    function nameForActionType(actionType: string) {
-        switch (actionType) {
-            case ActionType.DrawTile:
-                return 'Draw Tile'
-            case ActionType.PlaceBid:
-                return 'Place Bid'
-            case ActionType.PlaceDisk:
-                return 'Place Disk'
-            default:
-                return actionType
-        }
-    }
-
     function chooseAction(action: string) {
         switch (action) {
             case ActionType.DrawTile:
@@ -90,6 +77,8 @@
             if (singleAction !== ActionType.DrawTile) {
                 chooseAction(gameSession.validActionTypes[0])
             }
+        } else if (gameSession.validActionTypes.length === 0) {
+            cancelAction()
         }
     })
 </script>
@@ -128,7 +117,7 @@
             {#if showActions}
                 {#each gameSession.validActionTypes as action}
                     <Button onclick={() => chooseAction(action)} size="xs" class="m-1" color="blue"
-                        >{nameForActionType(action)}</Button
+                        >{gameSession.nameForActionType(action)}</Button
                     >
                 {/each}
             {/if}

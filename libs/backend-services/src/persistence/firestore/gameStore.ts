@@ -21,7 +21,7 @@ import { StoredGame } from '../model/storedGame.js'
 import { StoredState } from '../model/storedState.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
-import { ActionUpdateValidator, GameStore } from '../stores/gameStore.js'
+import { ActionUndoValidator, ActionUpdateValidator, GameStore } from '../stores/gameStore.js'
 
 export class FirestoreGameStore implements GameStore {
     readonly games: CollectionReference
@@ -269,6 +269,108 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    async undoActionsFromGame({
+        gameId,
+        actions,
+        redoneActions,
+        state,
+        validator
+    }: {
+        gameId: string
+        actions: GameAction[]
+        redoneActions: GameAction[]
+        state: GameState
+        validator: ActionUndoValidator
+    }): Promise<{
+        undoneActions: GameAction[]
+        updatedGame: Game
+        redoneActions: GameAction[]
+        priorState: GameState
+    }> {
+        const actionCollection = this.getActionCollection(gameId)
+        const stateCollection = this.getStateCollection(gameId)
+
+        try {
+            const [undoneActions, updatedGame, storedRedoneActions, priorState] =
+                await this.games.firestore.runTransaction(async (transaction) => {
+                    const existingGame = (
+                        await transaction.get(this.games.doc(gameId))
+                    ).data() as StoredGame
+
+                    if (!existingGame) {
+                        throw new NotFoundError({ type: 'Game', id: gameId })
+                    }
+
+                    const existingState = (
+                        await transaction.get(stateCollection.doc(gameId))
+                    ).data() as GameState
+
+                    if (!existingState) {
+                        throw new NotFoundError({ type: 'GameState', id: gameId })
+                    }
+
+                    const actionRefs = actions.map((action) => actionCollection.doc(action.id))
+                    const existingActions: StoredAction[] = (
+                        await transaction.getAll(...actionRefs)
+                    )
+                        .map((doc) => doc.data())
+                        .filter((data) => data !== undefined) as StoredAction[]
+
+                    if (existingActions.length !== actions.length) {
+                        console.log('Some actions were not found when trying to undo')
+                        throw new NotFoundError({ type: 'GameAction', id: gameId })
+                    }
+
+                    const gameUpdates = <Partial<Game>>{}
+                    if (validator) {
+                        switch (
+                            await validator(
+                                existingGame,
+                                existingState,
+                                existingActions,
+                                state,
+                                gameUpdates
+                            )
+                        ) {
+                            case UpdateValidationResult.Cancel:
+                                return [[], existingGame, [], existingState]
+                        }
+                    }
+
+                    const updatedGame = structuredClone(existingGame) as Game
+                    gameUpdates.updatedAt = new Date()
+                    gameUpdates.lastActionAt = gameUpdates.updatedAt
+
+                    if (existingState.result !== state.result && !state.result) {
+                        gameUpdates.status = GameStatus.Started
+                        gameUpdates.finishedAt = undefined
+                        gameUpdates.result = undefined
+                        gameUpdates.winningPlayerIds = []
+                    }
+
+                    Object.assign(updatedGame, gameUpdates)
+                    updatedGame.state = state
+
+                    existingActions.forEach((action) => {
+                        transaction.delete(actionCollection.doc(action.id))
+                    })
+
+                    redoneActions.forEach((action) => {
+                        // We keep the create/ update as the original
+                        transaction.create(actionCollection.doc(action.id), action)
+                    })
+                    transaction.update(this.games.doc(gameId), gameUpdates)
+                    transaction.set(stateCollection.doc(gameId), state)
+
+                    return [existingActions, updatedGame, redoneActions, existingState]
+                })
+            return { undoneActions, updatedGame, redoneActions: storedRedoneActions, priorState }
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
     async findActionsForGame(gameId: string): Promise<GameAction[]> {
         const actionCollection = this.getActionCollection(gameId)
         try {
@@ -312,6 +414,32 @@ export class FirestoreGameStore implements GameStore {
                 .get()
             const results = querySnapshot.docs.map((doc) => doc.data()) as GameAction[]
             return results
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
+    async setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number> {
+        const stateCollection = this.getStateCollection(gameId)
+        try {
+            return await this.games.firestore.runTransaction(async (transaction) => {
+                const existingState = (
+                    await transaction.get(stateCollection.doc(gameId))
+                ).data() as GameState
+
+                if (!existingState) {
+                    throw new NotFoundError({ type: 'GameState', id: gameId })
+                }
+
+                if (existingState.actionChecksum !== undefined) {
+                    return existingState.actionChecksum
+                }
+
+                existingState.actionChecksum = checksum
+                transaction.set(stateCollection.doc(gameId), existingState)
+                return checksum
+            })
         } catch (error) {
             this.handleError(error, gameId)
             throw Error('unreachable')

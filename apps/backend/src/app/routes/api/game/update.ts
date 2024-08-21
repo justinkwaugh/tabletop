@@ -39,7 +39,7 @@ export default async function (fastify: FastifyInstance) {
                 owner: request.user
             })
 
-            console.log(`Updated game ${JSON.stringify(updatedGame)}`)
+            console.log(`Updated this game ${JSON.stringify(updatedGame)}`)
             return { status: 'ok', payload: { game: updatedGame } }
         }
     )

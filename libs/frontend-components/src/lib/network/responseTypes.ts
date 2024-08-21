@@ -1,5 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { Game, GameAction, User } from '@tabletop/common'
+import { Game, GameAction, GameSyncStatus, User } from '@tabletop/common'
 
 export const Response = Type.Object({
     status: Type.String(),
@@ -72,5 +72,30 @@ export const AblyTokenResponse = Type.Composite([
     Type.Omit(Response, ['payload']),
     Type.Object({
         payload: Type.Object({ token: Type.Unknown() })
+    })
+])
+
+export type CheckSyncResponse = Static<typeof CheckSyncResponse>
+export const CheckSyncResponse = Type.Composite([
+    Type.Omit(Response, ['payload']),
+    Type.Object({
+        payload: Type.Object({
+            status: Type.Enum(GameSyncStatus),
+            actions: Type.Array(GameAction),
+            checksum: Type.Number()
+        })
+    })
+])
+
+export type UndoActionResponse = Static<typeof UndoActionResponse>
+export const UndoActionResponse = Type.Composite([
+    Type.Omit(Response, ['payload']),
+    Type.Object({
+        payload: Type.Object({
+            undoneActions: Type.Array(GameAction),
+            game: Game,
+            redoneActions: Type.Array(GameAction),
+            checksum: Type.Number()
+        })
     })
 ])

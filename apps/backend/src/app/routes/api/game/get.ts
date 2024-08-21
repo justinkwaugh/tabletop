@@ -30,6 +30,13 @@ export default async function (fastify: FastifyInstance) {
 
             const actions = await fastify.gameService.getActionsForGame(game.id)
 
+            // For transitioning to undo
+            if (game.state && game.state.actionChecksum === undefined) {
+                console.log('Game state has no checksum, calculating...')
+                const checksum = await fastify.gameService.backfillChecksum(game.state, actions)
+                game.state.actionChecksum = checksum
+            }
+
             return { status: 'ok', payload: { game, actions } }
         }
     )

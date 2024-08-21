@@ -17,7 +17,8 @@ enum GameServiceError {
     UserAlreadyJoined = 'UserAlreadyJoinedError',
     UserAlreadyDeclined = 'UserAlreadyDeclinedError',
     DuplicatePlayer = 'DuplicatePlayerError',
-    UnauthorizedAccess = 'UnauthorizedAccessError'
+    UnauthorizedAccess = 'UnauthorizedAccessError',
+    DisallowedUndo = 'DisallowedUndoError'
 }
 
 export class GamePlayerCountInvalidError extends BaseError {
@@ -196,6 +197,24 @@ export class UnauthorizedAccessError extends BaseError {
             name: GameServiceError.UnauthorizedAccess,
             message: `User ${user.username} with id ${user.id} is not authorized to access game with id ${gameId}`,
             metadata: { userId: user.id, gameId: gameId }
+        })
+    }
+}
+
+export class DisallowedUndoError extends BaseError {
+    constructor({
+        gameId,
+        actionId,
+        reason
+    }: {
+        gameId: string
+        actionId: string
+        reason: string
+    }) {
+        super({
+            name: GameServiceError.DisallowedUndo,
+            message: `Action ${actionId} cannot be undone in game ${gameId} because ${reason}`,
+            metadata: { gameId: gameId, actionId: actionId, reason: reason }
         })
     }
 }
