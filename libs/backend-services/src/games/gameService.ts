@@ -691,7 +691,7 @@ export class GameService {
         }
 
         const actionToUndo = await this.gameStore.findActionById(game, actionId)
-        if (!actionToUndo || !actionToUndo.index) {
+        if (!actionToUndo || actionToUndo.index === undefined) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
 

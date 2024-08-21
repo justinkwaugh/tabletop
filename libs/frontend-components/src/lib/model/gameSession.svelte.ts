@@ -268,6 +268,7 @@ export class GameSession {
                 // If the server says so, that means our action was accepted, and these need to be processed
                 // prior to the action we sent
                 if (missingActions && missingActions.length > 0) {
+                    console.log('got Missing actions', missingActions)
                     // Sort the actions by index to be sure, though the server should have done this
                     // There should never be an index not provided
                     missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
@@ -283,9 +284,12 @@ export class GameSession {
 
                 // Apply the server provided actions
                 if (applyServerActions) {
+                    console.log('Applying server actions', serverActions)
                     for (const action of serverActions) {
                         if (action.source === ActionSource.User) {
+                            console.log('Applying action', action)
                             const actionResults = this.applyActionToGame(action, gameSnapshot)
+                            gameSnapshot.state = actionResults.updatedState
                             this.applyActionResults(actionResults)
                         }
                     }
@@ -563,10 +567,10 @@ export class GameSession {
         this.actionsById.set(action.id, action)
     }
 
-    private undoToAction(gameSnapshot: Game, actionId: string): { undoneActions: GameAction[] } {
+    private undoToIndex(gameSnapshot: Game, index: number): { undoneActions: GameAction[] } {
         const undoneActions: GameAction[] = []
 
-        while (this.actions.length > 0 && this.actions[this.actions.length - 1].id !== actionId) {
+        while (this.actions.length > 0 && this.actions.length - 1 !== index) {
             const actionToUndo = $state.snapshot(this.actions.pop()) as GameAction
             undoneActions.push(actionToUndo)
             this.actionsById.delete(actionToUndo.id)
@@ -580,6 +584,7 @@ export class GameSession {
 
     private tryToResync(serverActions: GameAction[], checksum: number): boolean {
         // Find the latest action that matches
+
         const matchedActionIndex = findLastIndex(serverActions, (action) => {
             if (
                 action.index === undefined ||
@@ -591,14 +596,15 @@ export class GameSession {
             return this.actions[action.index].id === action.id
         })
 
-        if (matchedActionIndex === -1) {
+        console.log('matched action index', matchedActionIndex)
+        if (serverActions.length > 0 && matchedActionIndex === -1) {
             return false
         }
 
-        console.log('matched action index', matchedActionIndex)
-        const matchedAction = serverActions[matchedActionIndex]
+        const rollbackIndex =
+            matchedActionIndex >= 0 ? (serverActions[matchedActionIndex].index ?? -1) : -1
         const snapshot = $state.snapshot(this.game)
-        this.undoToAction(snapshot, matchedAction.id)
+        this.undoToIndex(snapshot, rollbackIndex)
         this.game.state = snapshot.state
 
         // Apply the actions from the server
@@ -607,6 +613,7 @@ export class GameSession {
             for (const action of actionsToApply) {
                 console.log('applying action ', action)
                 const actionResults = this.applyActionToGame(action, snapshot)
+                snapshot.state = actionResults.updatedState
                 this.applyActionResults(actionResults)
             }
         }

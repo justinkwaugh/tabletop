@@ -77,6 +77,8 @@
             if (singleAction !== ActionType.DrawTile) {
                 chooseAction(gameSession.validActionTypes[0])
             }
+        } else if (gameSession.validActionTypes.length === 0) {
+            cancelAction()
         }
     })
 </script>
