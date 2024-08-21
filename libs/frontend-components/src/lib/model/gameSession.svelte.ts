@@ -608,7 +608,7 @@ export class GameSession {
         for (const action of redoneActions) {
             this.actionsById.delete(action.id)
         }
-        this.actions = this.actions.slice(0, -redoneActions.length)
+        this.actions.splice(this.actions.length - redoneActions.length, redoneActions.length)
 
         undoneActions.reverse()
         for (const action of undoneActions) {
@@ -673,7 +673,7 @@ export class GameSession {
 
     private tryToResync(serverActions: GameAction[], checksum: number): boolean {
         // Find the latest action that matches
-
+        console.log('server actions in sync', serverActions)
         const matchedActionIndex = findLastIndex(serverActions, (action) => {
             if (
                 action.index === undefined ||
@@ -682,7 +682,9 @@ export class GameSession {
             ) {
                 return false
             }
-            return this.actions[action.index].id === action.id
+
+            const foundAction = this.actionsById.get(action.id)
+            return foundAction?.index === action.index
         })
 
         console.log('matched action index', matchedActionIndex)

@@ -767,7 +767,7 @@ export class GameService {
                 const redoAction = structuredClone(action)
                 // Actions should be immutable once stored so it becomes a new one but the new id
                 // needs to be deterministic so that the client can generate the same one
-                redoAction.id += `-REDO-${action.id}`
+                redoAction.id += `-REDO-${actionToUndo.id}`
                 // These fields will be re-assigned by the game engine
                 redoAction.index = undefined
                 redoAction.undoPatch = undefined
