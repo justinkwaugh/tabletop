@@ -793,58 +793,67 @@ export class GameService {
 
         // store the updated state
         const updatedState = game.state
-        const { updatedGame, relatedActions, priorState } =
-            await this.gameStore.undoActionsFromGame({
-                gameId,
-                actions,
-                redoneActions,
-                state: updatedState!,
-                validator: async (
-                    existingGame,
-                    existingState,
-                    existingActions,
-                    newState,
-                    gameUpdates
-                ) => {
-                    // We just need to validate transactional consistency here, so we reverse the checksum.
-                    // Because our hash merge is XOR based, we can just run the exact same function but with the reversed actions
-                    existingActions.sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
-                    // Checksum the undone actions
-                    let undoneChecksum = calculateChecksum(
-                        existingState.actionChecksum,
-                        existingActions
-                    )
+        const {
+            undoneActions,
+            updatedGame,
+            redoneActions: processedRedoneActions
+        } = await this.gameStore.undoActionsFromGame({
+            gameId,
+            actions,
+            redoneActions,
+            state: updatedState!,
+            validator: async (
+                existingGame,
+                existingState,
+                existingActions,
+                newState,
+                gameUpdates
+            ) => {
+                // We just need to validate transactional consistency here, so we reverse the checksum.
+                // Because our hash merge is XOR based, we can just run the exact same function but with the reversed actions
+                existingActions.sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
+                // Checksum the undone actions
+                let undoneChecksum = calculateChecksum(
+                    existingState.actionChecksum,
+                    existingActions
+                )
 
-                    // Also checksum the redone actions
-                    if (redoneActions.length > 0) {
-                        undoneChecksum = calculateChecksum(undoneChecksum, redoneActions)
-                    }
-
-                    if (undoneChecksum !== newState.actionChecksum) {
-                        console.log(
-                            'Checksum mismatch during undo',
-                            undoneChecksum,
-                            newState.actionChecksum
-                        )
-                        throw new GameUpdateCollisionError({ id: gameId })
-                    }
-
-                    gameUpdates.activePlayerIds = newState.activePlayerIds
-
-                    // Need to get prior action too
-
-                    // const lastPlayerAction = findLast(
-                    //     existingActions,
-                    //     (a) => a.playerId != undefined
-                    // )
-                    // if (lastPlayerAction) {
-                    //     gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
-                    // }
-                    return UpdateValidationResult.Proceed
+                // Also checksum the redone actions
+                if (redoneActions.length > 0) {
+                    undoneChecksum = calculateChecksum(undoneChecksum, redoneActions)
                 }
-            })
+
+                if (undoneChecksum !== newState.actionChecksum) {
+                    console.log(
+                        'Checksum mismatch during undo',
+                        undoneChecksum,
+                        newState.actionChecksum
+                    )
+                    throw new GameUpdateCollisionError({ id: gameId })
+                }
+
+                gameUpdates.activePlayerIds = newState.activePlayerIds
+
+                // Need to get prior action too?
+
+                // const lastPlayerAction = findLast(
+                //     existingActions,
+                //     (a) => a.playerId != undefined
+                // )
+                // if (lastPlayerAction) {
+                //     gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
+                // }
+                return UpdateValidationResult.Proceed
+            }
+        })
 
         // send out notifications
+
+        return {
+            undoneActions,
+            updatedGame,
+            redoneActions: processedRedoneActions
+        }
     }
 
     private verifyUserIsActionPlayer(action: GameAction, game: Game, user: User) {

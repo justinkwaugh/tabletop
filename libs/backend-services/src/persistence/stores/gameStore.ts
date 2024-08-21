@@ -65,8 +65,9 @@ export interface GameStore {
         state: GameState
         validator?: ActionUndoValidator
     }): Promise<{
+        undoneActions: GameAction[]
         updatedGame: Game
-        relatedActions: GameAction[]
+        redoneActions: GameAction[]
         priorState: GameState
     }>
 

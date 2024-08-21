@@ -21,14 +21,18 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
             }
 
             const { gameId, actionId } = request.body
-            await fastify.gameService.undoAction({
-                user: request.user,
-                definition,
-                gameId,
-                actionId
-            })
+            const { undoneActions, updatedGame, redoneActions } =
+                await fastify.gameService.undoAction({
+                    user: request.user,
+                    definition,
+                    gameId,
+                    actionId
+                })
 
-            return { status: 'ok', payload: {} }
+            return {
+                status: 'ok',
+                payload: { undoneActions: undoneActions, game: updatedGame, redoneActions }
+            }
         }
     )
 }

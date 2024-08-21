@@ -281,12 +281,12 @@ export class FirestoreGameStore implements GameStore {
         redoneActions: GameAction[]
         state: GameState
         validator: ActionUndoValidator
-    }): Promise<{ updatedGame: Game; relatedActions: GameAction[]; priorState: GameState }> {
+    }): Promise<{ undoneActions:GameAction[]; updatedGame: Game; redoneActions: GameAction[]; priorState: GameState }> {
         const actionCollection = this.getActionCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
 
         try {
-            const [updatedGame, relatedActions, priorState] =
+            const [undoneActions, updatedGame, storedRedoneActions, priorState] =
                 await this.games.firestore.runTransaction(async (transaction) => {
                     const existingGame = (
                         await transaction.get(this.games.doc(gameId))
@@ -317,7 +317,6 @@ export class FirestoreGameStore implements GameStore {
                     }
 
                     const gameUpdates = <Partial<Game>>{}
-                    const relatedActions: GameAction[] = []
                     if (validator) {
                         switch (
                             await validator(
@@ -329,7 +328,7 @@ export class FirestoreGameStore implements GameStore {
                             )
                         ) {
                             case UpdateValidationResult.Cancel:
-                                return [existingGame, relatedActions, existingState]
+                                return [[], existingGame, [], existingState]
                         }
                     }
 
@@ -352,14 +351,15 @@ export class FirestoreGameStore implements GameStore {
                     })
 
                     redoneActions.forEach((action) => {
+                        // We keep the create/ update as the original
                         transaction.create(actionCollection.doc(action.id), action)
                     })
                     transaction.update(this.games.doc(gameId), gameUpdates)
                     transaction.set(stateCollection.doc(gameId), state)
 
-                    return [updatedGame, relatedActions, existingState]
+                    return [existingActions, updatedGame, redoneActions, existingState]
                 })
-            return { updatedGame, relatedActions, priorState }
+            return { undoneActions, updatedGame, redoneActions: storedRedoneActions, priorState }
         } catch (error) {
             this.handleError(error, gameId)
             throw Error('unreachable')
