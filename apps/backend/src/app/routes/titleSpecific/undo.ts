@@ -31,7 +31,12 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
 
             return {
                 status: 'ok',
-                payload: { undoneActions: undoneActions, game: updatedGame, redoneActions }
+                payload: {
+                    undoneActions,
+                    game: updatedGame,
+                    redoneActions,
+                    checksum: updatedGame.state?.actionChecksum ?? 0
+                }
             }
         }
     )

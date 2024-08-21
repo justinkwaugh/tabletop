@@ -10,6 +10,7 @@ import type {
     GamesResponse,
     GameWithActionsResponse,
     TokenResponse,
+    UndoActionResponse,
     UserResponse
 } from './responseTypes.js'
 import { APIError } from './errors.js'
@@ -314,12 +315,35 @@ export class TabletopApi {
         }
     }
 
-    async undoAction(game: Game, actionId: string): Promise<void> {
-        await this.wretch
+    async undoAction(
+        game: Game,
+        actionId: string
+    ): Promise<{
+        undoneActions: GameAction[]
+        game: Game
+        redoneActions: GameAction[]
+        checksum: number
+    }> {
+        const response = await this.wretch
             .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
-            .json<void>()
+            .json<UndoActionResponse>()
+
+        const responseGame = Value.Convert(Game, response.payload.game) as Game
+        const redoneActions = response.payload.redoneActions.map((action) =>
+            Value.Convert(GameAction, action)
+        ) as GameAction[]
+        const undoneActions = response.payload.undoneActions?.map((action) =>
+            Value.Convert(GameAction, action)
+        ) as GameAction[]
+
+        return {
+            undoneActions,
+            game: responseGame,
+            redoneActions,
+            checksum: response.payload.checksum
+        }
     }
 
     async getActions(gameId: string, since?: number): Promise<{ actions: GameAction[] }> {

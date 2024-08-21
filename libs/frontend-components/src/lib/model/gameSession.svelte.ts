@@ -79,6 +79,7 @@ export class GameSession {
             return undefined
         }
 
+        let currentSimultaneousGroup: string | undefined
         let undoableUserAction: GameAction | undefined
         for (let i = this.actions.length - 1; i >= 0; i--) {
             const action = this.actions[i]
@@ -93,9 +94,30 @@ export class GameSession {
                 continue
             }
 
-            // Found one
+            // Other player actions can be skipped if we find a simultaneous group
+            // as long as we don't leave it and enter another
+            if (action.playerId !== this.myPlayer.id) {
+                if (
+                    !action.simultaneousGroupId ||
+                    (currentSimultaneousGroup &&
+                        action.simultaneousGroupId !== currentSimultaneousGroup)
+                ) {
+                    break
+                } else {
+                    currentSimultaneousGroup = action.simultaneousGroupId
+                }
+            }
+
+            // Our actions are what we are looking for, but if we are in a simultaneous group
+            // it has to be part of that group
             if (action.playerId === this.myPlayer.id) {
-                undoableUserAction = action
+                if (
+                    !currentSimultaneousGroup ||
+                    action.simultaneousGroupId === currentSimultaneousGroup
+                ) {
+                    // Found one
+                    undoableUserAction = action
+                }
                 break
             }
         }
@@ -269,7 +291,7 @@ export class GameSession {
                     missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
 
                     // Rollback our local action and any deferred results
-                    this.rollbackAction(priorState)
+                    this.rollbackActions(priorState)
 
                     // Prepend the missing actions
                     serverActions.unshift(...missingActions)
@@ -302,7 +324,7 @@ export class GameSession {
                 throw e
             }
         } catch (e) {
-            this.rollbackAction(priorState)
+            this.rollbackActions(priorState)
             await this.checkSync()
         } finally {
             this.processingActions = false
@@ -319,34 +341,85 @@ export class GameSession {
             // Block server actions while we are processing
             this.processingActions = true
 
-            const targetActionId = this.undoableAction.id
+            const targetAction = $state.snapshot(this.undoableAction)
+            const targetActionId = targetAction.id
             console.log('Wanting to undo action', targetActionId)
 
             // Preserve state in case we need to roll back
             const gameSnapshot = $state.snapshot(this.game)
             const priorState = structuredClone(gameSnapshot.state) as GameState
-            const undoneActions = []
+            const localUndoneActions = []
+            const localRedoneActions = []
 
             try {
                 // Undo locally
+                const redoActions: GameAction[] = []
                 let actionToUndo
                 do {
                     actionToUndo = $state.snapshot(this.actions.pop()) as GameAction
-                    undoneActions.push(actionToUndo)
+                    if (
+                        actionToUndo.playerId &&
+                        actionToUndo.playerId !== targetAction.playerId &&
+                        this.isSameSimultaneousGroup(targetAction, actionToUndo)
+                    ) {
+                        const redoAction = structuredClone(actionToUndo)
+                        // Actions should be immutable once stored so it becomes a new one but the new id
+                        // needs to be deterministic so that the server can generate the same one
+                        redoAction.id += `-REDO-${targetActionId}`
+                        // These fields will be re-assigned by the game engine
+                        redoAction.index = undefined
+                        redoAction.undoPatch = undefined
+                        console.log('Adding redo action', redoAction)
+                        redoActions.push(redoAction)
+                    }
+                    localUndoneActions.push(actionToUndo)
                     this.actionsById.delete(actionToUndo.id)
 
                     const updatedState = this.engine.undoAction(gameSnapshot, actionToUndo)
                     gameSnapshot.state = updatedState
                 } while (actionToUndo.id !== targetActionId)
 
+                const preRedoState = structuredClone(gameSnapshot.state) as GameState
+
+                for (const action of redoActions) {
+                    const results = this.applyActionToGame(action, gameSnapshot)
+                    localRedoneActions.push(...results.processedActions)
+                    gameSnapshot.state = results.updatedState
+                    this.applyActionResults(results)
+                }
+
                 this.game.state = gameSnapshot.state
 
                 // Undo on the server
-                await this.api.undoAction(this.game, targetActionId)
+                const { undoneActions, redoneActions, checksum } = await this.api.undoAction(
+                    this.game,
+                    targetActionId
+                )
+
+                if (checksum !== this.game.state?.actionChecksum) {
+                    // We must not have known about something, but we did succeed so let's see if we can align
+                    // by removing our redos and adding the backend's instead
+                    localRedoneActions.splice(0, localRedoneActions.length)
+                    this.rollbackActions(preRedoState)
+
+                    for (const action of redoneActions) {
+                        const results = this.applyActionToGame(action, gameSnapshot)
+                        localRedoneActions.push(...results.processedActions)
+                        gameSnapshot.state = results.updatedState
+                        this.applyActionResults(results)
+                    }
+                }
+
+                // Overwrite the local ones if necessary so we have canonical data
+                redoneActions.forEach((action) => {
+                    this.upsertAction(action)
+                })
+
+                this.verifyFullChecksum()
             } catch (e) {
                 console.log(e)
                 toast.error('An error occurred while undoing an action')
-                this.rollbackUndo(priorState, undoneActions)
+                this.rollbackUndo(priorState, localUndoneActions, localRedoneActions)
                 await this.checkSync()
                 return
             }
@@ -354,6 +427,14 @@ export class GameSession {
             this.processingActions = false
             this.applyQueuedActions()
         }
+    }
+
+    private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {
+        return (
+            action.simultaneousGroupId !== undefined &&
+            other.simultaneousGroupId !== undefined &&
+            action.simultaneousGroupId === other.simultaneousGroupId
+        )
     }
 
     private applyQueuedActions() {
@@ -503,23 +584,32 @@ export class GameSession {
         this.currentHistoryIndex = 0
     }
 
-    private rollbackAction(priorState: GameState) {
+    private rollbackActions(priorState: GameState) {
         console.log('rollback actionCount', priorState.actionCount)
         // Reset the state
         this.game.state = priorState
 
         // Remove the actions that were added
         const removed = this.actions.slice(priorState.actionCount) || []
-        console.log('removed', removed)
         for (const action of removed) {
             this.actionsById.delete(action.id)
         }
         this.actions = this.actions.slice(0, priorState.actionCount)
     }
 
-    private rollbackUndo(priorState: GameState, undoneActions: GameAction[]) {
+    private rollbackUndo(
+        priorState: GameState,
+        undoneActions: GameAction[],
+        redoneActions: GameAction[]
+    ) {
         // Reset the state
         this.game.state = priorState
+
+        for (const action of redoneActions) {
+            this.actionsById.delete(action.id)
+        }
+        this.actions = this.actions.slice(0, -redoneActions.length)
+
         undoneActions.reverse()
         for (const action of undoneActions) {
             this.actionsById.set(action.id, action)

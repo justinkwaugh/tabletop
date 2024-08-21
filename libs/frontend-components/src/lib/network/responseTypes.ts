@@ -86,3 +86,16 @@ export const CheckSyncResponse = Type.Composite([
         })
     })
 ])
+
+export type UndoActionResponse = Static<typeof UndoActionResponse>
+export const UndoActionResponse = Type.Composite([
+    Type.Omit(Response, ['payload']),
+    Type.Object({
+        payload: Type.Object({
+            undoneActions: Type.Array(GameAction),
+            game: Game,
+            redoneActions: Type.Array(GameAction),
+            checksum: Type.Number()
+        })
+    })
+])

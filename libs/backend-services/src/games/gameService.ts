@@ -726,7 +726,7 @@ export class GameService {
             throw new DisallowedUndoError({ gameId, actionId, reason: `No actions to undo` })
         }
 
-        if (actions[0].id !== actionId) {
+        if (actions[0].id !== actionToUndo.id) {
             throw new DisallowedUndoError({
                 gameId,
                 actionId,
@@ -747,7 +747,7 @@ export class GameService {
                 (action) =>
                     action.playerId &&
                     action.playerId !== userPlayer.id &&
-                    action.simultaneousGroupId !== actions[0].simultaneousGroupId
+                    !this.isSameSimultaneousGroup(action, actionToUndo)
             )
         ) {
             throw new DisallowedUndoError({
@@ -762,11 +762,12 @@ export class GameService {
             if (
                 action.playerId &&
                 action.playerId !== userPlayer.id &&
-                action.simultaneousGroupId === actions[0].simultaneousGroupId
+                this.isSameSimultaneousGroup(action, actionToUndo)
             ) {
                 const redoAction = structuredClone(action)
-                // Actions should be immutable once stored so it becomes a new one
-                redoAction.id = nanoid()
+                // Actions should be immutable once stored so it becomes a new one but the new id
+                // needs to be deterministic so that the client can generate the same one
+                redoAction.id += `-REDO-${action.id}`
                 // These fields will be re-assigned by the game engine
                 redoAction.index = undefined
                 redoAction.undoPatch = undefined
@@ -854,6 +855,14 @@ export class GameService {
             updatedGame,
             redoneActions: processedRedoneActions
         }
+    }
+
+    private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {
+        return (
+            action.simultaneousGroupId !== undefined &&
+            other.simultaneousGroupId !== undefined &&
+            action.simultaneousGroupId === other.simultaneousGroupId
+        )
     }
 
     private verifyUserIsActionPlayer(action: GameAction, game: Game, user: User) {
