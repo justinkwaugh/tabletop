@@ -109,8 +109,9 @@
         }
     })
 
-    $effect: {
-        switch (api.versionChange) {
+    $effect(() => {
+        const versionChange = api.versionChange
+        switch (versionChange) {
             case VersionChange.MajorUpgrade:
             case VersionChange.Rollback:
                 console.log('Major upgrade detected')
@@ -143,9 +144,7 @@
             default:
                 break
         }
-    }
-
-    const slideParams = { axis: 'y', duration: 600 }
+    })
 </script>
 
 {#snippet gameName()}
