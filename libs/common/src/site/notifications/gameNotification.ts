@@ -6,7 +6,8 @@ import { GameAction } from '../../game/engine/gameAction.js'
 export enum GameNotificationAction {
     Create = 'create',
     Update = 'update',
-    AddActions = 'addActions'
+    AddActions = 'addActions',
+    UndoAction = 'undoAction'
 }
 
 export type GameNotificationUpdateData = Static<typeof GameNotificationUpdateData>
@@ -23,6 +24,13 @@ export type GameNotificationAddActionsData = Static<typeof GameNotificationAddAc
 export const GameNotificationAddActionsData = Type.Object({
     game: Game,
     actions: Type.Array(GameAction)
+})
+
+export type GameNotificationUndoActionData = Static<typeof GameNotificationUndoActionData>
+export const GameNotificationUndoActionData = Type.Object({
+    game: Game,
+    action: GameAction,
+    redoneActions: Type.Array(GameAction)
 })
 
 export type GameCreateNotification = Static<typeof GameCreateNotification>
@@ -55,12 +63,24 @@ export const GameAddActionsNotification = Type.Composite([
     })
 ])
 
+export type GameUndoActionNotification = Static<typeof GameUndoActionNotification>
+export const GameUndoActionNotification = Type.Composite([
+    Type.Omit(Notification, ['type', 'action', 'data']),
+    Type.Object({
+        type: Type.Literal(NotificationCategory.Game),
+        action: Type.Literal(GameNotificationAction.UndoAction),
+        data: GameNotificationUndoActionData
+    })
+])
+
 export type GameNotificationData =
     | GameNotificationCreateData
     | GameNotificationUpdateData
     | GameNotificationAddActionsData
+    | GameNotificationUndoActionData
 
 export type GameNotification =
     | GameCreateNotification
     | GameUpdateNotification
     | GameAddActionsNotification
+    | GameUndoActionNotification

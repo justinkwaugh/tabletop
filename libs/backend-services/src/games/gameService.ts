@@ -641,7 +641,7 @@ export class GameService {
 
         // Only user actions need to be broadcast
         const userActions = storedActions.filter((a) => a.source === ActionSource.User)
-        await this.notifyGamePlayers(GameNotificationAction.AddActions, {
+        await this.notifyGameInstance(GameNotificationAction.AddActions, {
             game: updatedGame,
             actions: userActions
         })
@@ -847,13 +847,21 @@ export class GameService {
                 return UpdateValidationResult.Proceed
             }
         })
+        const checksum = updatedGame.state?.actionChecksum ?? 0
+        delete updatedGame.state
 
         // send out notifications
+        await this.notifyGameInstance(GameNotificationAction.UndoAction, {
+            game: updatedGame,
+            action: actionToUndo,
+            redoneActions: processedRedoneActions
+        })
 
         return {
             undoneActions,
             updatedGame,
-            redoneActions: processedRedoneActions
+            redoneActions: processedRedoneActions,
+            checksum
         }
     }
 
@@ -953,6 +961,24 @@ export class GameService {
         return user
     }
 
+    private async notifyGameInstance(
+        action: GameNotificationAction,
+        data: GameNotificationData
+    ): Promise<void> {
+        const notification = <GameNotification>{
+            id: nanoid(),
+            type: NotificationCategory.Game,
+            action: action,
+            data
+        }
+        const gameTopic = `game-${data.game.id}`
+        await this.notificationService.sendNotification({
+            notification,
+            topics: [gameTopic],
+            channels: [NotificationDistributionMethod.Topical]
+        })
+    }
+
     private async notifyGamePlayers(
         action: GameNotificationAction,
         data: GameNotificationData
@@ -964,10 +990,9 @@ export class GameService {
             data
         }
         const userTopics = data.game.players.map((p) => `user-${p.userId}`)
-        const gameTopic = `game-${data.game.id}`
         await this.notificationService.sendNotification({
             notification,
-            topics: [...userTopics, gameTopic],
+            topics: [...userTopics],
             channels: [NotificationDistributionMethod.Topical]
         })
     }

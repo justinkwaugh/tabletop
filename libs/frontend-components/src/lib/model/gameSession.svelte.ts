@@ -11,7 +11,8 @@ import {
     GameState,
     GameSyncStatus,
     findLastIndex,
-    calculateChecksum
+    calculateChecksum,
+    GameUndoActionNotification
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -728,22 +729,14 @@ export class GameSession {
         if (isDataEvent(event)) {
             console.log('got data event')
             const notification = event.notification
-            if (!this.isGameAddActionsNotification(notification)) {
-                return
-            }
-            console.log('for a game')
-            if (notification.data.game.id !== this.game.id) {
-                return
-            }
-
-            console.log('action stuff')
-            const actions = notification.data.actions.map((action) =>
-                Value.Convert(GameAction, action)
-            ) as GameAction[]
-
             try {
-                this.applyServerActions(actions)
+                if (this.isGameAddActionsNotification(notification)) {
+                    await this.handleAddActionsNotification(notification)
+                } else if (this.isGameUndoActionNotification(notification)) {
+                    await this.handleUndoNotification(notification)
+                }
             } catch (e) {
+                console.log('Error handling notification', e)
                 await this.checkSync()
             }
         } else if (
@@ -753,6 +746,37 @@ export class GameSession {
             console.log('Checking for missing actions')
             await this.checkSync()
         }
+    }
+
+    private async handleAddActionsNotification(notification: GameAddActionsNotification) {
+        if (notification.data.game.id !== this.game.id) {
+            return
+        }
+
+        const actions = notification.data.actions.map((action) =>
+            Value.Convert(GameAction, action)
+        ) as GameAction[]
+
+        this.applyServerActions(actions)
+    }
+
+    private async handleUndoNotification(notification: GameUndoActionNotification) {
+        if (notification.data.action.index === undefined) {
+            return
+        }
+        const targetIndex = notification.data.action.index - 1
+        if (targetIndex < -1 || targetIndex >= this.actions.length) {
+            throw new Error('Undo index is out of our bounds')
+        }
+
+        const redoneActions = notification.data.redoneActions.map((action) =>
+            Value.Convert(GameAction, action)
+        ) as GameAction[]
+
+        const gameSnapshot = $state.snapshot(this.game)
+        this.undoToIndex(gameSnapshot, targetIndex)
+        this.game.state = gameSnapshot.state
+        this.applyServerActions(redoneActions)
     }
 
     private async checkSync() {
@@ -843,6 +867,15 @@ export class GameSession {
         return (
             notification.type === NotificationCategory.Game &&
             notification.action === GameNotificationAction.AddActions
+        )
+    }
+
+    private isGameUndoActionNotification(
+        notification: Notification
+    ): notification is GameUndoActionNotification {
+        return (
+            notification.type === NotificationCategory.Game &&
+            notification.action === GameNotificationAction.UndoAction
         )
     }
 }

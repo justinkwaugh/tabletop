@@ -21,7 +21,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
             }
 
             const { gameId, actionId } = request.body
-            const { undoneActions, updatedGame, redoneActions } =
+            const { undoneActions, updatedGame, redoneActions, checksum } =
                 await fastify.gameService.undoAction({
                     user: request.user,
                     definition,
@@ -35,7 +35,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
                     undoneActions,
                     game: updatedGame,
                     redoneActions,
-                    checksum: updatedGame.state?.actionChecksum ?? 0
+                    checksum
                 }
             }
         }
