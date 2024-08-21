@@ -391,7 +391,7 @@ export class GameSession {
                 this.game.state = gameSnapshot.state
 
                 // Undo on the server
-                const { undoneActions, redoneActions, checksum } = await this.api.undoAction(
+                const { redoneActions, checksum } = await this.api.undoAction(
                     this.game,
                     targetActionId
                 )
@@ -741,7 +741,11 @@ export class GameSession {
                 Value.Convert(GameAction, action)
             ) as GameAction[]
 
-            this.applyServerActions(actions)
+            try {
+                this.applyServerActions(actions)
+            } catch (e) {
+                await this.checkSync()
+            }
         } else if (
             isDiscontinuityEvent(event) &&
             event.channel === NotificationChannel.GameInstance
