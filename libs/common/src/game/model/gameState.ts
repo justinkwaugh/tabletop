@@ -47,4 +47,8 @@ export abstract class HydratableGameState<T extends TSchema>
         this.actionCount += 1
         this.actionChecksum = calculateChecksum(this.actionChecksum, [action])
     }
+
+    isActivePlayer(playerId: string): boolean {
+        return this.activePlayerIds.includes(playerId)
+    }
 }

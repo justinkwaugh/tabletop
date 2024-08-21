@@ -85,10 +85,6 @@ export class HydratedFreshFishGameState
         return player
     }
 
-    isActivePlayer(playerId: string): boolean {
-        return this.activePlayerIds.includes(playerId)
-    }
-
     getAuctionGoodsType(): GoodsType | undefined {
         if (!this.currentAuction) {
             return undefined

@@ -4,7 +4,7 @@ import { type GameMetadata } from './gameMetadata.js'
 import { GameInitializer } from './gameInitializer.js'
 import { MachineStateHandler } from '../engine/machineStateHandler.js'
 import { HydratedAction } from '../engine/gameAction.js'
-import { StateLogger } from '../../util/stateLogger.js'
+import { GameStateLogger } from './gameStateLogger.js'
 import { GameConfig } from './gameConfig.js'
 
 export interface GameDefinition {
@@ -16,5 +16,5 @@ export interface GameDefinition {
     apiActions: Record<string, TSchema>
 
     config?: GameConfig
-    stateLogger?: StateLogger
+    stateLogger?: GameStateLogger
 }

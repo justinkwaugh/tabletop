@@ -4,9 +4,9 @@ import { LogColorizer } from './logColorizer.js'
 import { HydratedGameBoard } from '../components/gameBoard.js'
 import { CellType } from '../components/cells.js'
 import { GoodsType } from '../definition/goodsType.js'
-import { type StateLogger } from '@tabletop/common'
+import { type GameStateLogger } from '@tabletop/common'
 
-export class FreshFishStateLogger implements StateLogger {
+export class FreshFishStateLogger implements GameStateLogger {
     logState(state: HydratedFreshFishGameState) {
         const colorizer = playerColorizer(state)
         let legend = 'Legend: '
