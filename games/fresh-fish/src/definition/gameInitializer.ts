@@ -36,7 +36,7 @@ export class FreshFishGameInitializer implements GameInitializer {
             throw Error(JSON.stringify([...FreshFishGameConfigValidator.Errors(game.config)]))
         }
 
-        const newGame = <Game>{
+        const newGame: Game = <Game>{
             id: game.id,
             isPublic: game.isPublic,
             status: GameStatus.WaitingForPlayers,

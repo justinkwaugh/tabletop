@@ -772,7 +772,6 @@ export class GameService {
                 // These fields will be re-assigned by the game engine
                 redoAction.index = undefined
                 redoAction.undoPatch = undefined
-                console.log('Adding redo action', redoAction)
                 redoActions.push(redoAction)
             }
         }
@@ -785,13 +784,10 @@ export class GameService {
 
         const redoneActions: GameAction[] = []
         for (const redoAction of redoActions) {
-            console.log('Redoing action', redoAction)
             const { processedActions, updatedState } = gameEngine.run(redoAction, game)
             redoneActions.push(...processedActions)
             game.state = updatedState
         }
-
-        console.log('Redone actions', redoneActions)
 
         // store the updated state
         const updatedState = game.state
