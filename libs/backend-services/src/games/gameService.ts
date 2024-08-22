@@ -54,6 +54,7 @@ import {
     UserIsNotAllowedPlayerError
 } from './errors.js'
 import { FreshFishDefinition } from '@tabletop/fresh-fish'
+import { BridgesDefinition } from '@tabletop/bridges-of-shangri-la'
 import { GameInvitationTokenData } from '../tokens/tokenData.js'
 import { nanoid } from 'nanoid'
 import { GameStore } from '../persistence/stores/gameStore.js'
@@ -61,9 +62,11 @@ import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
 
 const FreshFish = FreshFishDefinition
+const BridgesOfShangrila = BridgesDefinition
 
-const AVAILABLE_TITLES: Record<string, GameDefinition> = {
-    [FreshFish.id]: FreshFish
+export const AVAILABLE_TITLES: Record<string, GameDefinition> = {
+    [FreshFish.id]: FreshFish,
+    [BridgesOfShangrila.id]: BridgesOfShangrila
 }
 
 export class GameService {

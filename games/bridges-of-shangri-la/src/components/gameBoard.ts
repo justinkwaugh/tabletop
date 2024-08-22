@@ -1,8 +1,8 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Hydratable } from '@tabletop/common'
-import { MasterType } from './tiles'
-import { HydratedVillage, Village } from './village'
+import { MasterType } from '../definition/masterType.js'
+import { HydratedVillage, Village } from './village.js'
 
 export type Placement = Static<typeof Placement>
 export const Placement = Type.Object({

@@ -32,6 +32,7 @@
         "@tabletop/common": "*",
         "@tabletop/email": "*",
         "@tabletop/fresh-fish": "*",
+        "@tabletop/bridges-of-shangri-la": "*",
         "bcrypt": "^5.1.1",
         "discord-api-types": "^0.37.93",
         "discord-interactions": "^4.0.0",

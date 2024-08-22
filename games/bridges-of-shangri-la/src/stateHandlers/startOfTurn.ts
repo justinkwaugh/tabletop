@@ -4,8 +4,8 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceMaster, isPlaceMaster } from '../actions/placeMaster.js'
 import { HydratedBeginJourney, isBeginJourney } from '..//actions/beginJourney.js'
 import { HydratedRecruitStudents, isRecruitStudents } from '..//actions/recruitStudents.js'
-import { HydratedBridgesGameState } from '..//model/gameState.js'
-import { MasterType } from '../components/tiles.js'
+import { HydratedBridgesGameState } from '../model/gameState.js'
+import { MasterType } from '../definition/masterType.js'
 import { Placement } from '../components/gameBoard.js'
 
 type StartOfTurnAction = HydratedPlaceMaster | HydratedBeginJourney | HydratedRecruitStudents

@@ -1,7 +1,7 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { MasterType } from '../components/tiles'
+import { MasterType } from '../definition/masterType.js'
 
 export enum PlayerColor {
     Red = 'red',

@@ -18,7 +18,7 @@ import { BridgesPlayerState, PlayerColor } from '../model/playerState.js'
 import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { BridgesGameBoard } from '../components/gameBoard.js'
-import { MasterType } from '../components/tiles.js'
+import { MasterType } from './masterType.js'
 import { Village } from '../components/village.js'
 
 export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {

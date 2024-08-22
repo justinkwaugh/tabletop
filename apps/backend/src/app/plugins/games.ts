@@ -2,6 +2,7 @@ import fp from 'fastify-plugin'
 import { FastifyInstance } from 'fastify'
 import { GameDefinition } from '@tabletop/common'
 import { FreshFishDefinition } from '@tabletop/fresh-fish'
+import { BridgesDefinition } from '@tabletop/bridges-of-shangri-la'
 import CreateGame from '../routes/titleSpecific/create.js'
 import StartGame from '../routes/titleSpecific/start.js'
 import ApplyAction from '../routes/titleSpecific/action.js'
@@ -30,6 +31,7 @@ async function registerGame(
 
 const Games = async (fastify: FastifyInstance, opts: AppOptions) => {
     await registerGame(FreshFishDefinition, fastify, opts)
+    await registerGame(BridgesDefinition, fastify, opts)
 }
 
 export default fp(Games)

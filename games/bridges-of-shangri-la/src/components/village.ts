@@ -2,7 +2,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 
 import { Hydratable } from '@tabletop/common'
-import { MasterType } from './tiles'
+import { MasterType } from '../definition/masterType.js'
 
 export type MasterAndStudents = Static<typeof MasterAndStudents>
 export const MasterAndStudents = Type.Object({
@@ -49,10 +49,11 @@ export class HydratedVillage extends Hydratable<typeof Village> implements Villa
     }
 
     getMasterAndStudents(masterType: MasterType): MasterAndStudents {
-        if (this.spaces[masterType] === undefined) {
+        const space = this.spaces[masterType]
+        if (space === undefined) {
             throw Error(`Village does not have a ${masterType}`)
         }
-        return this.spaces[masterType]
+        return space
     }
 
     addStudent(masterType: MasterType, playerId: string) {
