@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Card, Hr, Button } from 'flowbite-svelte'
-    import { GameStatus, PlayerStatus, type Game, Role, GameResult } from '@tabletop/common'
+    import { GameStatus, PlayerStatus, type Game, GameResult } from '@tabletop/common'
     import { getContext } from 'svelte'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import type { AppContext } from '$lib/stores/appContext.svelte'
@@ -190,7 +190,7 @@
                 <img
                     class="w-[80px] h-[80px]"
                     alt="cover thumnbail"
-                    src="https://cf.geekdo-images.com/d8qNi3yb7lzLc9FJYyP91Q__itemrep/img/qW_Sn2tD1w8pGYZnwtoq6L37uoM=/fit-in/246x300/filters:strip_icc()/pic2220379.jpg"
+                    src={libraryService.getThumbnailForTitle(game.typeId)}
                 />
             </div>
             <div class="pl-4 pr-2 py-0 w-full">

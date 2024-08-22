@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import JSONTree from 'svelte-json-tree'
     import { Tabs, TabItem } from 'flowbite-svelte'
-    import type { GameSession } from '@tabletop/frontend-components'
+    import type { GameSession } from '../model/gameSession.svelte'
 
     let gameSession = getContext('gameSession') as GameSession
 </script>

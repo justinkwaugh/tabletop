@@ -1,4 +1,5 @@
 export { default as ScalingWrapper } from './components/ScalingWrapper.svelte'
+export { default as AdminPanel } from './components/AdminPanel.svelte'
 export * from './services/authorizationService.svelte.js'
 export * from './services/gameService.svelte.js'
 export * from './services/notificationService.svelte.js'

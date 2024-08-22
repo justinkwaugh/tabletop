@@ -28,4 +28,5 @@ export interface GameSessionConstructor {
 export interface GameUiDefinition extends GameDefinition {
     getTableComponent: () => Promise<Component>
     sessionClass: GameSessionConstructor
+    thumbnailUrl: string
 }
