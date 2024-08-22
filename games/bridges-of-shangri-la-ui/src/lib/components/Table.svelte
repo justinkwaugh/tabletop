@@ -1,9 +1,9 @@
 <script lang="ts">
     import { GameSessionMode, ScalingWrapper, AdminPanel } from '@tabletop/frontend-components'
-    // import Board from '$lib/components/Board.svelte'
+    import Board from '$lib/components/Board.svelte'
     // import ActionPanel from '$lib/components/ActionPanel.svelte'
     // import History from '$lib/components/History.svelte'
-    // import PlayersPanel from '$lib/components/PlayersPanel.svelte'
+    import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
     import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
@@ -11,8 +11,6 @@
     // import GameDataPanel from '$lib/components/GameDataPanel.svelte'
     // import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { Button, ButtonGroup } from 'flowbite-svelte'
-    import { generateBoard, Scorer } from '@tabletop/fresh-fish'
-    import { generateSeed, getPrng, range } from '@tabletop/common'
     let gameSession = getContext('gameSession') as BridgesGameSession
 </script>
 
@@ -22,10 +20,10 @@
     <div
         class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)]"
     >
-        <!-- <div class="grow-0 shrink-0">
+        <div class="grow-0 shrink-0">
             <PlayersPanel />
         </div>
-        <History /> -->
+        <!-- <History /> -->
     </div>
     <div
         class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)] flex flex-col"
@@ -47,8 +45,8 @@
         <div class="grow-0 overflow-hidden" style="flex:1;">
             <ScalingWrapper justify={'center'}>
                 <div class="w-fit h-fit">
-                    <!-- <GameDataPanel />
-                    <Board /> -->
+                    <!-- <GameDataPanel /> -->
+                    <Board />
                 </div>
             </ScalingWrapper>
         </div>

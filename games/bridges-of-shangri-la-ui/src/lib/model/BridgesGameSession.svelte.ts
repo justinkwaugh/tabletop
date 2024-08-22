@@ -10,9 +10,16 @@ import {
     PlaceMaster,
     RecruitStudents
 } from '@tabletop/bridges-of-shangri-la'
-
+import healer from '$lib/images/healer.png'
+import rainmaker from '$lib/images/rainmaker.png'
+import dragonbreeder from '$lib/images/dragonbreeder.png'
+import firekeeper from '$lib/images/firekeeper.png'
+import priest from '$lib/images/priest.png'
+import yetiwhisperer from '$lib/images/yetiwhisperer.png'
+import astrologer from '$lib/images/astrologer.png'
 import { GameSession } from '@tabletop/frontend-components'
 import { type GameAction } from '@tabletop/common'
+import { uiBgColorForPlayer } from '$lib/utils/playerColors'
 
 export class BridgesGameSession extends GameSession {
     chosenMasterType: string | undefined = $state(undefined)
@@ -39,14 +46,13 @@ export class BridgesGameSession extends GameSession {
     }
 
     getPlayerBgColor(playerId?: string) {
-        return 'bg-gray-500'
-        //     return uiBgColorForPlayer(this.playerColorsById.get(playerId ?? 'unknown')) ?? 'bg-gray-500'
+        return uiBgColorForPlayer(this.playerColorsById.get(playerId ?? 'unknown')) ?? 'bg-gray-500'
     }
 
     getPlayerTextColor(playerId?: string) {
         return this.playerColorsById.get(playerId ?? 'unknown') === 'yellow'
             ? 'text-black'
-            : 'text-white'
+            : 'text-gray-100'
     }
 
     nameForActionType(actionType: string) {
@@ -59,6 +65,25 @@ export class BridgesGameSession extends GameSession {
                 return 'Begin Journey'
             default:
                 return actionType
+        }
+    }
+
+    imageForMasterType(masterType: MasterType) {
+        switch (masterType) {
+            case MasterType.Astrologer:
+                return astrologer
+            case MasterType.DragonBreeder:
+                return dragonbreeder
+            case MasterType.Firekeeper:
+                return firekeeper
+            case MasterType.Healer:
+                return healer
+            case MasterType.Priest:
+                return priest
+            case MasterType.Rainmaker:
+                return rainmaker
+            case MasterType.YetiWhisperer:
+                return yetiwhisperer
         }
     }
 

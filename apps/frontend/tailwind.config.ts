@@ -7,11 +7,8 @@ export default {
         './src/**/*.{html,js,svelte,ts}',
         '../../node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}',
         '../../node_modules/@tabletop/fresh-fish-ui/**/*.{html,js,svelte,ts}',
+        '../../node_modules/@tabletop/bridges-of-shangri-la-ui/**/*.{html,js,svelte,ts}',
         '../../node_modules/@tabletop/frontend-components/**/*.{html,js,svelte,ts}'
-        // path.join(
-        //     path.dirname(require.resolve('@tabletop/fresh-fish-ui')),
-        //     '**/*.{html,js,svelte,ts}'
-        // )
     ],
 
     theme: {

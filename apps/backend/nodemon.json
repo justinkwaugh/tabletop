@@ -7,6 +7,7 @@
         "../../node_modules/@tabletop/frontend",
         "../../node_modules/@tabletop/frontend-components",
         "../../node_modules/@tabletop/fresh-fish-ui",
+        "../../node_modules/@tabletop/bridges-of-shangri-la-ui",
         "src/**/*.spec.ts",
         "src/tests/**/*"
     ],

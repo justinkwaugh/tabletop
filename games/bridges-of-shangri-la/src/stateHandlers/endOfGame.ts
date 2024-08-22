@@ -4,7 +4,7 @@ import {
     GameResult,
     MachineContext
 } from '@tabletop/common'
-import { HydratedBridgesGameState } from '../model/gameState'
+import { HydratedBridgesGameState } from '../model/gameState.js'
 
 // Terminal state
 export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction> {

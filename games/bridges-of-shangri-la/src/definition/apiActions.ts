@@ -1,7 +1,7 @@
-import { RecruitStudents } from '../actions/recruitStudents'
-import { PlaceMaster } from '../actions/placeMaster'
-import { ActionType } from './actions'
-import { BeginJourney } from '../actions/beginJourney'
+import { RecruitStudents } from '../actions/recruitStudents.js'
+import { PlaceMaster } from '../actions/placeMaster.js'
+import { ActionType } from './actions.js'
+import { BeginJourney } from '../actions/beginJourney.js'
 
 export const BridgesApiActions = {
     [ActionType.PlaceMaster]: PlaceMaster,
