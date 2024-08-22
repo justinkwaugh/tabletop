@@ -1,6 +1,7 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { MasterType } from 'src/components/tiles'
 
 export enum PlayerColor {
     Red = 'red',
@@ -17,13 +18,8 @@ export const BridgesPlayerState = Type.Composite([
     PlayerState,
     Type.Object({
         color: Type.Enum(PlayerColor),
-        numHealers: Type.Number(),
-        numDragonBreeders: Type.Number(),
-        numFirekeepers: Type.Number(),
-        numPriests: Type.Number(),
-        numRainmakers: Type.Number(),
-        numAstrologers: Type.Number(),
-        numYetiWhisperers: Type.Number()
+        pieces: Type.Record(Type.Enum(MasterType), Type.Number()),
+        score: Type.Number()
     })
 ])
 
@@ -35,15 +31,30 @@ export class HydratedBridgesPlayerState
 {
     declare playerId: string
     declare color: PlayerColor
-    declare numHealers: number
-    declare numDragonBreeders: number
-    declare numFirekeepers: number
-    declare numPriests: number
-    declare numRainmakers: number
-    declare numAstrologers: number
-    declare numYetiWhisperers: number
+    declare pieces: Record<MasterType, number>
+    declare score: number
 
     constructor(data: BridgesPlayerState) {
         super(data, BridgesPlayerStateValidator)
+    }
+
+    hasPiece(masterType: MasterType) {
+        return this.pieces[masterType] > 0
+    }
+
+    removePiece(masterType: MasterType) {
+        if (this.pieces[masterType] === 0) {
+            throw Error(`Player ${this.playerId} has no ${masterType} to remove`)
+        }
+
+        this.pieces[masterType]--
+    }
+
+    addPiece(masterType: MasterType) {
+        this.pieces[masterType]++
+
+        if (this.pieces[masterType] > 6) {
+            throw Error(`Player ${this.playerId} has too many ${masterType} pieces`)
+        }
     }
 }

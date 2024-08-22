@@ -2,18 +2,12 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Hydratable } from '@tabletop/common'
 import { MasterType } from './tiles'
+import { HydratedVillage, Village } from './village'
 
-export type VillageSpace = Static<typeof VillageSpace>
-export const VillageSpace = Type.Object({
-    playerId: Type.Optional(Type.String()),
-    count: Type.Number()
-})
-
-export type Village = Static<typeof Village>
-export const Village = Type.Object({
-    spaces: Type.Record(Type.Enum(MasterType), VillageSpace),
-    neighbors: Type.Array(Type.Number()),
-    stone: Type.Boolean()
+export type Placement = Static<typeof Placement>
+export const Placement = Type.Object({
+    masterType: Type.Enum(MasterType),
+    village: Type.Number()
 })
 
 export type BridgesGameBoard = Static<typeof BridgesGameBoard>
@@ -23,13 +17,30 @@ export const BridgesGameBoard = Type.Object({
 
 export const BridgesGameBoardValidator = TypeCompiler.Compile(BridgesGameBoard)
 
-export class HydratedGameBoard
+export class HydratedBridgesGameBoard
     extends Hydratable<typeof BridgesGameBoard>
     implements BridgesGameBoard
 {
-    declare villages: Village[]
+    declare villages: HydratedVillage[]
 
     constructor(data: BridgesGameBoard) {
-        super(data, BridgesGameBoardValidator)
+        const hydratedVillages = data.villages.map((village) => new HydratedVillage(village))
+        super(data, BridgesGameBoardValidator, { villages: hydratedVillages })
+    }
+
+    hasVillage(villageIndex: number) {
+        return villageIndex >= 0 && villageIndex < this.villages.length
+    }
+
+    numVillagesOccupiedByPlayer(playerId: string) {
+        return this.villages.filter((village) => village.numberOfMastersForPlayer(playerId) > 0)
+            .length
+    }
+
+    numMastersForPlayer(playerId: string) {
+        return this.villages.reduce(
+            (acc, village) => acc + village.numberOfMastersForPlayer(playerId),
+            0
+        )
     }
 }

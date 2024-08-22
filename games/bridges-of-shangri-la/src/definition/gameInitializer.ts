@@ -13,16 +13,13 @@ import {
     shuffle
 } from '@tabletop/common'
 import { HydratedBridgesGameState } from '../model/gameState.js'
-import {
-    BridgesPlayerState,
-    HydratedBridgesPlayerState,
-    PlayerColor
-} from '../model/playerState.js'
+import { BridgesPlayerState, PlayerColor } from '../model/playerState.js'
 
 import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
-import { BridgesGameBoard, HydratedGameBoard, Village } from '../components/gameBoard.js'
+import { BridgesGameBoard } from '../components/gameBoard.js'
 import { MasterType } from 'src/components/tiles.js'
+import { Village } from 'src/components/village.js'
 
 export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeGameState(game: Game, seed?: number): HydratedGameState {
@@ -59,23 +56,26 @@ export class BridgesGameInitializer extends BaseGameInitializer implements GameI
         shuffle(colors, prng)
 
         const players = game.players.map((player: Player, index: number) => {
-            return new HydratedBridgesPlayerState({
+            return {
                 playerId: player.id,
                 color: colors[index],
-                numAstrologers: 6,
-                numDragonBreeders: 6,
-                numFirekeepers: 6,
-                numHealers: 6,
-                numPriests: 6,
-                numRainmakers: 6,
-                numYetiWhisperers: 6
-            })
+                pieces: {
+                    [MasterType.Astrologer]: 6,
+                    [MasterType.DragonBreeder]: 6,
+                    [MasterType.Firekeeper]: 6,
+                    [MasterType.Healer]: 6,
+                    [MasterType.Priest]: 6,
+                    [MasterType.Rainmaker]: 6,
+                    [MasterType.YetiWhisperer]: 6
+                },
+                score: 0
+            }
         })
 
         return players
     }
 
-    private initializeBoard(numPlayers: number): HydratedGameBoard {
+    private initializeBoard(numPlayers: number): BridgesGameBoard {
         const board: BridgesGameBoard = {
             villages: [
                 this.createVillage([1, 3, 4, 6], false),
@@ -93,19 +93,19 @@ export class BridgesGameInitializer extends BaseGameInitializer implements GameI
                 this.createVillage([8, 9, 11], false)
             ]
         }
-        return new HydratedGameBoard(board)
+        return board
     }
 
     private createVillage(neighbors: number[], stone: boolean): Village {
         return {
             spaces: {
-                [MasterType.Astrologer]: { playerId: undefined, count: 0 },
-                [MasterType.DragonBreeder]: { playerId: undefined, count: 0 },
-                [MasterType.Firekeeper]: { playerId: undefined, count: 0 },
-                [MasterType.Healer]: { playerId: undefined, count: 0 },
-                [MasterType.Priest]: { playerId: undefined, count: 0 },
-                [MasterType.Rainmaker]: { playerId: undefined, count: 0 },
-                [MasterType.YetiWhisperer]: { playerId: undefined, count: 0 }
+                [MasterType.Astrologer]: undefined,
+                [MasterType.DragonBreeder]: undefined,
+                [MasterType.Firekeeper]: undefined,
+                [MasterType.Healer]: undefined,
+                [MasterType.Priest]: undefined,
+                [MasterType.Rainmaker]: undefined,
+                [MasterType.YetiWhisperer]: undefined
             },
             neighbors: neighbors,
             stone: stone
