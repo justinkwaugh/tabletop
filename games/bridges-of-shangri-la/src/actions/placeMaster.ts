@@ -79,11 +79,13 @@ export class HydratedPlaceMaster
 
         if (
             state.turnManager.turnCount(playerId) < 7 &&
-            selectedVillage.numberOfMastersForPlayer(playerId) >= 2
+            selectedVillage.numberOfMastersForPlayer(playerId) >=
+                (state.players.length === 3 ? 1 : 2) &&
+            selectedVillage.numberOfMasters() >= (state.players.length === 3 ? 2 : 3)
         ) {
             return {
                 valid: false,
-                reason: `Player ${playerId} has already placed two masters in this village`
+                reason: `Player ${playerId} has already placed enough masters in this village, or the village is too full`
             }
         }
 
