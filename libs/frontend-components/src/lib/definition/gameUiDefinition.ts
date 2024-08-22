@@ -1,5 +1,5 @@
 import { GameSession } from '$lib/model/gameSession.svelte'
-import type { TabletopApi } from '$lib/network/tabletopApi'
+import type { TabletopApi } from '$lib/network/tabletopApi.svelte'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import type { NotificationService } from '$lib/services/notificationService.svelte'
 import { Game, GameAction, type GameDefinition } from '@tabletop/common'
