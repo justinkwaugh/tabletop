@@ -1,5 +1,5 @@
-import { Game, GameStatus } from '../model/game'
-import { HydratedGameState } from '../model/gameState'
+import { Game, GameStatus } from '../model/game.js'
+import { HydratedGameState } from '../model/gameState.js'
 import { Value } from '@sinclair/typebox/value'
 
 export interface GameInitializer {

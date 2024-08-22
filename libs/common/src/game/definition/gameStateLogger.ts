@@ -1,4 +1,4 @@
-import { GameState } from '../model/gameState'
+import { GameState } from '../model/gameState.js'
 
 export interface GameStateLogger {
     logState(state: GameState): void

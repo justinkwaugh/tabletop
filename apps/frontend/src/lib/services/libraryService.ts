@@ -1,11 +1,11 @@
 import { FreshFishUiDefinition } from '@tabletop/fresh-fish-ui'
-// import { BridgesUiDefinition } from '@tabletop/bridges-of-shangri-la-ui'
+import { BridgesUiDefinition } from '@tabletop/bridges-of-shangri-la-ui'
 import { type GameUiDefinition } from '@tabletop/frontend-components'
 
 export class LibraryService {
     private readonly titles = new Map<string, GameUiDefinition>([
-        [FreshFishUiDefinition.id, FreshFishUiDefinition]
-        // [BridgesUiDefinition.id, BridgesUiDefinition]
+        [FreshFishUiDefinition.id, FreshFishUiDefinition],
+        [BridgesUiDefinition.id, BridgesUiDefinition]
     ])
 
     getTitles(): GameUiDefinition[] {
