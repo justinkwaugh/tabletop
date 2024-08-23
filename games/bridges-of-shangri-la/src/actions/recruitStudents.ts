@@ -11,7 +11,12 @@ export const RecruitStudents = Type.Composite([
     Type.Object({
         type: Type.Literal(ActionType.RecruitStudents),
         playerId: Type.String(),
-        placement: Placement
+        placement: Placement,
+        metadata: Type.Optional(
+            Type.Object({
+                forceSkip: Type.Boolean()
+            })
+        )
     })
 ])
 

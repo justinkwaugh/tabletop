@@ -2,6 +2,7 @@
     import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
+    import { MachineState } from '@tabletop/bridges-of-shangri-la'
 
     let gameSession = getContext('gameSession') as BridgesGameSession
 
@@ -10,6 +11,14 @@
             ? gameSession.gameState.activePlayerIds[0]
             : undefined
     )
+
+    const waitingText = $derived.by(() => {
+        if (gameSession.gameState.machineState === MachineState.RecruitingStudents) {
+            return 'to recruit a second student...'
+        }
+
+        return 'to take their turn...'
+    })
 </script>
 
 <div
@@ -22,7 +31,8 @@
                     currentPlayerId
                 )} font-medium {gameSession.getPlayerTextColor(currentPlayerId)}"
                 >{gameSession.getPlayerName(currentPlayerId)}</span
-            > to take their turn...
+            >
+            {waitingText}
         </h1>
 
         {#if gameSession.undoableAction}

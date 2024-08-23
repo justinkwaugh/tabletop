@@ -30,6 +30,9 @@ export class RecruitingStudentsStateHandler implements MachineStateHandler<Start
 
         switch (true) {
             case isRecruitStudents(action) || isPass(action): {
+                if (isPass(action)) {
+                    action.metadata = { recruiting: true }
+                }
                 gameState.turnManager.endTurn(gameState.actionCount + 1)
                 return MachineState.StartOfTurn
             }

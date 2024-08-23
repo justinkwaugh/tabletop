@@ -57,6 +57,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 if (this.isValidActionType(ActionType.RecruitStudents, action.playerId, context)) {
                     return MachineState.RecruitingStudents
                 } else {
+                    action.metadata = { forceSkip: true }
                     gameState.turnManager.endTurn(gameState.actionCount + 1)
                     return MachineState.StartOfTurn
                 }
