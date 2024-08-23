@@ -89,7 +89,12 @@
         return false
     })
 
-    let disabled = $derived(village.stone || (interacting && !interactable))
+    let disabled = $derived(
+        village.stone ||
+            (interacting && !interactable) ||
+            (gameSession.highlightedVillages.length > 0 &&
+                !gameSession.highlightedVillages.includes(index))
+    )
     let isSourceVillageForJourney = $derived(
         interacting &&
             gameSession.chosenAction === ActionType.BeginJourney &&

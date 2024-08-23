@@ -42,9 +42,9 @@
     function getDescriptionForAction(action: GameAction) {
         switch (true) {
             case isPlaceMaster(action):
-                return `placed a ${gameSession.nameForMasterType(action.placement.masterType)} master`
+                return `placed ${gameSession.nameForMasterType(action.placement.masterType, true)} master`
             case isRecruitStudents(action):
-                return `placed a ${gameSession.nameForMasterType(action.placement.masterType)} student`
+                return `placed ${gameSession.nameForMasterType(action.placement.masterType, true)} student`
             case isBeginJourney(action):
                 return 'began a journey'
             default:
@@ -52,15 +52,29 @@
         }
     }
 
-    function highlight(action: GameAction) {}
+    function highlight(action: GameAction) {
+        if (isPlaceMaster(action) || isRecruitStudents(action)) {
+            if (unhighlightTimeout) {
+                clearTimeout(unhighlightTimeout)
+            }
+
+            gameSession.highlightVillages([action.placement.village])
+        } else if (isBeginJourney(action)) {
+            if (unhighlightTimeout) {
+                clearTimeout(unhighlightTimeout)
+            }
+
+            gameSession.highlightVillages([action.from, action.to])
+        }
+    }
 
     function unhighlight() {
         if (unhighlightTimeout) {
             clearTimeout(unhighlightTimeout)
         }
         unhighlightTimeout = setTimeout(() => {
-            // gameSession.clearHighlightedCoords()
-        }, 250)
+            gameSession.clearHighlightedVillages()
+        }, 150)
     }
 </script>
 

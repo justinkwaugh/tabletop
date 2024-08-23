@@ -7,12 +7,18 @@ import { HydratedRecruitStudents, isRecruitStudents } from '../actions/recruitSt
 import { HydratedBridgesGameState } from '../model/gameState.js'
 import { MasterType } from '../definition/masterType.js'
 import { Placement } from '../components/gameBoard.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 
-type StartOfTurnAction = HydratedPlaceMaster | HydratedBeginJourney | HydratedRecruitStudents
+type StartOfTurnAction =
+    | HydratedPlaceMaster
+    | HydratedBeginJourney
+    | HydratedRecruitStudents
+    | HydratedPass
 
 // Transition from StartOfTurn(PlaceMaster) -> StartOfTurn
 //                 StartOfTurn(RecruitStudents) -> RecruitingStudents
 //                 StartOfTurn(BeginJourney) -> StartOfTurn | EndOfGame
+//                 StartOfTurn(Pass) -> StartOfTurn
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is StartOfTurnAction {
         if (!action.playerId) return false
@@ -20,9 +26,16 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        return Object.values(ActionType).filter((actionType) =>
-            this.isValidActionType(actionType, playerId, context)
-        )
+        const actions = [
+            ActionType.PlaceMaster,
+            ActionType.RecruitStudents,
+            ActionType.BeginJourney
+        ].filter((actionType) => this.isValidActionType(actionType, playerId, context))
+
+        if (!actions.length) {
+            actions.push(ActionType.Pass)
+        }
+        return actions
     }
 
     enter(context: MachineContext) {
@@ -36,7 +49,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const gameState = context.gameState as HydratedBridgesGameState
 
         switch (true) {
-            case isPlaceMaster(action): {
+            case isPlaceMaster(action) || isPass(action): {
                 gameState.turnManager.endTurn(gameState.actionCount + 1)
                 return MachineState.StartOfTurn
             }

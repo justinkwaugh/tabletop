@@ -200,6 +200,7 @@
             {#if gameSession.undoableAction}
                 <Button
                     onclick={async () => {
+                        gameSession.resetAction()
                         await gameSession.undo()
                     }}
                     size="xs"

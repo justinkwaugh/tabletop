@@ -28,6 +28,7 @@ export class BridgesGameSession extends GameSession {
     chosenAction: string | undefined = $state(undefined)
     chosenMasterType: MasterType | undefined = $state(undefined)
     chosenVillage: number | undefined = $state(undefined)
+    highlightedVillages: number[] = $state([])
 
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
@@ -104,22 +105,22 @@ export class BridgesGameSession extends GameSession {
         }
     }
 
-    nameForMasterType(masterType: MasterType) {
+    nameForMasterType(masterType: MasterType, withArticle = false) {
         switch (masterType) {
             case MasterType.Astrologer:
-                return 'Astrologer'
+                return `${withArticle ? 'an ' : ''} Astrologer`
             case MasterType.DragonBreeder:
-                return 'Dragon Breeder'
+                return `${withArticle ? 'a ' : ''} Dragon Breeder`
             case MasterType.Firekeeper:
-                return 'Firekeeper'
+                return `${withArticle ? 'a ' : ''} Firekeeper`
             case MasterType.Healer:
-                return 'Healer'
+                return `${withArticle ? 'a ' : ''} Healer`
             case MasterType.Priest:
-                return 'Priest'
+                return `${withArticle ? 'a ' : ''} Priest`
             case MasterType.Rainmaker:
-                return 'Rainmaker'
+                return `${withArticle ? 'a ' : ''} Rainmaker`
             case MasterType.YetiWhisperer:
-                return 'Yeti Whisperer'
+                return `${withArticle ? 'a ' : ''} Yeti Whisperer`
         }
     }
 
@@ -148,6 +149,14 @@ export class BridgesGameSession extends GameSession {
         this.chosenVillage = undefined
     }
 
+    highlightVillages(villages: number[]) {
+        this.highlightedVillages = villages
+    }
+
+    clearHighlightedVillages() {
+        this.highlightedVillages = []
+    }
+
     createPlaceMasterAction(village: number, masterType: MasterType): PlaceMaster {
         const placement: Placement = { village, masterType }
         return { ...this.createBaseAction(ActionType.PlaceMaster), placement } as PlaceMaster
@@ -168,12 +177,4 @@ export class BridgesGameSession extends GameSession {
     createBeginJourneyAction(from: number, to: number): BeginJourney {
         return { ...this.createBaseAction(ActionType.BeginJourney), from, to } as BeginJourney
     }
-
-    // createDrawTileAction(): DrawTile {
-    //     return { ...this.createBaseAction(ActionType.DrawTile), revealsInfo: true } as DrawTile
-    // }
-
-    // createPlaceStallAction(coords: Coordinates, goodsType: GoodsType): PlaceStall {
-    //     return { ...this.createBaseAction(ActionType.PlaceStall), coords, goodsType } as PlaceStall
-    // }
 }
