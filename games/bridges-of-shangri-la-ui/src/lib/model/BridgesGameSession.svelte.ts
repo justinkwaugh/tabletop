@@ -3,12 +3,12 @@ import {
     BeginJourney,
     BridgesGameState,
     HydratedBridgesGameState,
-    isBeginJourney,
-    isPlaceMaster,
-    isRecruitStudents,
+    MachineState,
     MasterType,
     PlaceMaster,
-    RecruitStudents
+    Placement,
+    RecruitStudents,
+    Pass
 } from '@tabletop/bridges-of-shangri-la'
 import healer from '$lib/images/healer.png'
 import rainmaker from '$lib/images/rainmaker.png'
@@ -18,19 +18,26 @@ import priest from '$lib/images/priest.png'
 import yetiwhisperer from '$lib/images/yetiwhisperer.png'
 import astrologer from '$lib/images/astrologer.png'
 import { GameSession } from '@tabletop/frontend-components'
-import { type GameAction } from '@tabletop/common'
 import { uiBgColorForPlayer } from '$lib/utils/playerColors'
 
 export class BridgesGameSession extends GameSession {
-    chosenMasterType: string | undefined = $state(undefined)
-
-    hydratedState: HydratedBridgesGameState = $derived.by(() => {
-        return new HydratedBridgesGameState(this.gameState)
-    })
-
-    get gameState(): BridgesGameState {
-        return this.visibleGameState as BridgesGameState
+    get gameState(): HydratedBridgesGameState {
+        return new HydratedBridgesGameState(this.visibleGameState as BridgesGameState)
     }
+
+    chosenAction: string | undefined = $state(undefined)
+    chosenMasterType: MasterType | undefined = $state(undefined)
+    chosenVillage: number | undefined = $state(undefined)
+
+    myPlayerState = $derived.by(() =>
+        this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
+    )
+    myTurnCount = $derived.by(() => {
+        if (!this.myPlayer?.id) {
+            return 0
+        }
+        return this.gameState.turnManager.turnCount(this.myPlayer.id)
+    })
 
     private playerNamesById = $derived(
         new Map(this.game.players.map((player) => [player.id, player.name]))
@@ -60,9 +67,19 @@ export class BridgesGameSession extends GameSession {
             case ActionType.PlaceMaster:
                 return 'Place Master'
             case ActionType.RecruitStudents:
-                return 'Recruit Students'
+                if (this.gameState.machineState === MachineState.RecruitingStudents) {
+                    return 'Recruit Another'
+                } else {
+                    return 'Recruit Students'
+                }
             case ActionType.BeginJourney:
                 return 'Begin Journey'
+            case ActionType.Pass:
+                if (this.gameState.machineState === MachineState.RecruitingStudents) {
+                    return 'Skip'
+                } else {
+                    return 'Pass'
+                }
             default:
                 return actionType
         }
@@ -87,9 +104,51 @@ export class BridgesGameSession extends GameSession {
         }
     }
 
-    // createPlaceDiskAction(coords: Coordinates): PlaceDisk {
-    //     return { ...this.createBaseAction(ActionType.PlaceDisk), coords } as PlaceDisk
-    // }
+    cancel() {
+        if (
+            this.chosenAction === ActionType.PlaceMaster ||
+            this.chosenAction === ActionType.RecruitStudents
+        ) {
+            if (this.chosenMasterType) {
+                this.chosenMasterType = undefined
+            } else {
+                this.chosenAction = undefined
+            }
+        } else if (this.chosenAction === ActionType.BeginJourney) {
+            if (this.chosenVillage) {
+                this.chosenVillage = undefined
+            } else {
+                this.chosenAction = undefined
+            }
+        }
+    }
+
+    resetAction() {
+        this.chosenAction = undefined
+        this.chosenMasterType = undefined
+        this.chosenVillage = undefined
+    }
+
+    createPlaceMasterAction(village: number, masterType: MasterType): PlaceMaster {
+        const placement: Placement = { village, masterType }
+        return { ...this.createBaseAction(ActionType.PlaceMaster), placement } as PlaceMaster
+    }
+
+    createRecruitStudentsAction(village: number, masterType: MasterType): RecruitStudents {
+        const placement: Placement = { village, masterType }
+        return {
+            ...this.createBaseAction(ActionType.RecruitStudents),
+            placement
+        } as RecruitStudents
+    }
+
+    createPassAction(): Pass {
+        return { ...this.createBaseAction(ActionType.Pass) } as Pass
+    }
+
+    createBeginJourneyAction(from: number, to: number): BeginJourney {
+        return { ...this.createBaseAction(ActionType.BeginJourney), from, to } as BeginJourney
+    }
 
     // createDrawTileAction(): DrawTile {
     //     return { ...this.createBaseAction(ActionType.DrawTile), revealsInfo: true } as DrawTile

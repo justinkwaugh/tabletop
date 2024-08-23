@@ -33,6 +33,7 @@ export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction
 
         context.gameState.result = winningIds.length > 1 ? GameResult.Draw : GameResult.Win
         context.gameState.winningPlayerIds = winningIds
+        context.gameState.activePlayerIds = []
     }
     onAction(_action: unknown, _context: MachineContext): string {
         throw Error('No actions are valid at the end of the game')

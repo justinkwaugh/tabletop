@@ -1,7 +1,7 @@
 <script lang="ts">
     import { GameSessionMode, ScalingWrapper, AdminPanel } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    // import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import ActionPanel from '$lib/components/ActionPanel.svelte'
     // import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
@@ -29,17 +29,17 @@
         class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)] flex flex-col"
     >
         <!--  Top part is not allowed to shrink -->
-        <!-- <div class="shrink-0">
-            {#if gameSession.gameState.result}
+        <div class="shrink-0">
+            <!-- {#if gameSession.gameState.result}
                 <GameEndPanel />
-            {:else if gameSession.mode === GameSessionMode.Play}
-                {#if gameSession.isMyTurn}
-                    <ActionPanel />
-                {:else}
-                    <WaitingPanel />
-                {/if}
+            {:else if gameSession.mode === GameSessionMode.Play} -->
+            {#if gameSession.isMyTurn}
+                <ActionPanel />
+            {:else}
+                <!-- <WaitingPanel /> -->
             {/if}
-        </div> -->
+            <!-- {/if} -->
+        </div>
         <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
         <div class="grow-0 overflow-hidden" style="flex:1;">

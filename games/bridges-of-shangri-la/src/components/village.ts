@@ -97,7 +97,7 @@ export class HydratedVillage extends Hydratable<typeof Village> implements Villa
     strength(): number {
         return Object.values(this.spaces).reduce((total, masterAndStudents) => {
             if (masterAndStudents !== undefined) {
-                return total + (masterAndStudents.student ? 1 : 2)
+                return total + (masterAndStudents.student ? 2 : 1)
             }
             return total
         }, 0)

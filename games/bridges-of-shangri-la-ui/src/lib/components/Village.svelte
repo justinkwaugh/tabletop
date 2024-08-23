@@ -6,36 +6,174 @@
     import priest from '$lib/images/priest.png'
     import yetiwhisperer from '$lib/images/yetiwhisperer.png'
     import astrologer from '$lib/images/astrologer.png'
+    import {
+        MasterType,
+        type HydratedVillage,
+        HydratedPlaceMaster,
+        Placement,
+        ActionType,
+        HydratedRecruitStudents,
+        HydratedBeginJourney
+    } from '@tabletop/bridges-of-shangri-la'
+    import { getContext } from 'svelte'
+    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+
+    let { village, index }: { village: HydratedVillage; index: number } = $props()
+    let gameSession = getContext('gameSession') as BridgesGameSession
+
+    let interactable = $derived.by(() => {
+        if (!gameSession.isMyTurn || !gameSession.myPlayer?.id) {
+            return false
+        }
+        if (gameSession.chosenAction === ActionType.PlaceMaster && gameSession.chosenMasterType) {
+            const placement: Placement = {
+                village: index,
+                masterType: gameSession.chosenMasterType
+            }
+            const { valid, reason } = HydratedPlaceMaster.isValidPlacement(
+                gameSession.gameState,
+                gameSession.myPlayer?.id,
+                placement
+            )
+            if (!valid) {
+                console.log('Invalid placement at village', index, reason)
+            }
+            return valid
+        } else if (
+            gameSession.chosenAction === ActionType.RecruitStudents &&
+            gameSession.chosenMasterType
+        ) {
+            const placement: Placement = {
+                village: index,
+                masterType: gameSession.chosenMasterType
+            }
+            const { valid, reason } = HydratedRecruitStudents.isValidPlacement(
+                gameSession.gameState,
+                gameSession.myPlayer?.id,
+                placement
+            )
+            if (!valid) {
+                console.log('Invalid placement at village', index, reason)
+            }
+            return valid
+        } else if (gameSession.chosenAction === ActionType.BeginJourney) {
+            if (!gameSession.chosenVillage) {
+                const { valid, reason } = HydratedBeginJourney.isValidSourceVillage(
+                    gameSession.gameState,
+                    gameSession.myPlayer?.id,
+                    index
+                )
+                return valid
+            } else {
+                const { valid, reason } = HydratedBeginJourney.isValidDestinationVillage(
+                    gameSession.gameState,
+                    index,
+                    gameSession.chosenVillage
+                )
+                return valid
+            }
+        }
+        return false
+    })
+
+    let tabIndex = $derived(interactable ? 0 : -1)
+    function bgColorForMaster(masterType: MasterType) {
+        return gameSession.getPlayerBgColor(village.spaces[masterType]?.playerId)
+    }
+
+    function imageForMaster(masterType: MasterType) {
+        switch (masterType) {
+            case MasterType.Healer:
+                return healer
+            case MasterType.Rainmaker:
+                return rainmaker
+            case MasterType.DragonBreeder:
+                return dragonbreeder
+            case MasterType.Firekeeper:
+                return firekeeper
+            case MasterType.Priest:
+                return priest
+            case MasterType.YetiWhisperer:
+                return yetiwhisperer
+            case MasterType.Astrologer:
+                return astrologer
+        }
+    }
+
+    async function handleClick() {
+        if (!interactable) {
+            return
+        }
+
+        if (gameSession.chosenAction === ActionType.PlaceMaster && gameSession.chosenMasterType) {
+            const action = gameSession.createPlaceMasterAction(index, gameSession.chosenMasterType)
+            gameSession.applyAction(action)
+            gameSession.resetAction()
+        } else if (
+            gameSession.chosenAction === ActionType.RecruitStudents &&
+            gameSession.chosenMasterType
+        ) {
+            const action = gameSession.createRecruitStudentsAction(
+                index,
+                gameSession.chosenMasterType
+            )
+            gameSession.applyAction(action)
+            gameSession.resetAction()
+        } else if (gameSession.chosenAction === ActionType.BeginJourney) {
+            if (!gameSession.chosenVillage) {
+                gameSession.chosenVillage = index
+            } else {
+                const action = gameSession.createBeginJourneyAction(
+                    gameSession.chosenVillage,
+                    index
+                )
+                gameSession.applyAction(action)
+                gameSession.resetAction()
+            }
+        }
+    }
 </script>
 
-<div class="relative">
-    <div class="absolute w-[49px] h-[50px] top-0 left-[27px] bg-[#fae54b] border-2 border-gray-800">
-        <img src={rainmaker} alt="rain maker" />
-    </div>
-    <div class="absolute w-[49px] h-[50px] top-0 left-[78px] bg-[#9a0ee6] border-2 border-gray-800">
-        <img src={astrologer} alt="astrologer" />
-    </div>
-    <div class="absolute w-[49px] h-[50px] top-[52px] left-0 bg-[#0d56ad] border-2 border-gray-800">
-        <img src={dragonbreeder} alt="dragon breeder" />
-    </div>
+{#snippet space(masterType: MasterType, offsets: string)}
+    {#if village.hasMaster(masterType)}
+        <div
+            class="pointer-events-none absolute w-[49px] h-[50px] {offsets} {bgColorForMaster(
+                masterType
+            )}
+    )} border-2 border-gray-800 z-10"
+        >
+            <img src={imageForMaster(masterType)} alt="rain maker" />
+        </div>
+        {#if village.hasStudent(masterType)}
+            <div
+                class="absolute w-[49px] h-[50px] {offsets} bg-opacity-40 bg-gray-900 text-white flex flex-col justify-center items-center z-20"
+            >
+                <h1 class="text-2xl">S</h1>
+            </div>
+        {/if}
+    {/if}
+{/snippet}
+
+<div
+    role="button"
+    tabindex={tabIndex}
+    onfocus={() => {}}
+    onclick={() => handleClick()}
+    onkeypress={() => handleClick()}
+    class="relative w-[150px] h-[150px] {interactable
+        ? 'cursor-pointer border-2 border-orange-300'
+        : ''}"
+>
     <div
-        class="absolute w-[49px] h-[50px] top-[52px] left-[51px] bg-[#fae54b] border-2 border-gray-800"
+        class="flex flex-col justify-center items-center border-2 border-gray-400 rounded-full w-[60px] h-[46px] py-2 px-4 bg-gray-800 absolute top-[2px] left-[-40px] text-gray-200"
     >
-        <img src={priest} alt="priest" />
+        <h1 class="text-3xl">{village.strength()}</h1>
     </div>
-    <div
-        class="absolute w-[49px] h-[50px] top-[52px] left-[102px] bg-[#ad0207] border-2 border-gray-800"
-    >
-        <img src={yetiwhisperer} alt="yeti whisperer" />
-    </div>
-    <div
-        class="absolute w-[49px] h-[50px] top-[105px] left-[25px] bg-[#9a0ee6] border-2 border-gray-800"
-    >
-        <img src={firekeeper} alt="fire keeper" />
-    </div>
-    <div
-        class="absolute w-[49px] h-[50px] top-[105px] left-[76px] bg-[#ad0207] border-2 border-gray-800"
-    >
-        <img src={healer} alt="healer" />
-    </div>
+    {@render space(MasterType.Rainmaker, 'top-0 left-[27px]')}
+    {@render space(MasterType.Astrologer, 'top-0 left-[78px]')}
+    {@render space(MasterType.DragonBreeder, 'top-[52px] left-0')}
+    {@render space(MasterType.Priest, 'top-[52px] left-[51px]')}
+    {@render space(MasterType.YetiWhisperer, 'top-[52px] left-[102px]')}
+    {@render space(MasterType.Firekeeper, 'top-[105px] left-[25px]')}
+    {@render space(MasterType.Healer, 'top-[105px] left-[76px]')}
 </div>

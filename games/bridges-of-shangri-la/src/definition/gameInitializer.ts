@@ -81,7 +81,7 @@ export class BridgesGameInitializer extends BaseGameInitializer implements GameI
                 this.createVillage([1, 3, 4, 6], false),
                 this.createVillage(numPlayers === 3 ? [0, 5] : [0, 2, 5], false),
                 this.createVillage(numPlayers === 3 ? [] : [1, 5, 9], numPlayers === 3),
-                this.createVillage([0, 4, 6, 7], false),
+                this.createVillage([0, 4, 6, 10], false),
                 this.createVillage([0, 3, 5, 7], false),
                 this.createVillage(numPlayers === 3 ? [1, 4, 8] : [1, 2, 4, 8], false),
                 this.createVillage([0, 3, 10], false),

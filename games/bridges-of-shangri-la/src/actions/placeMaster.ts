@@ -35,10 +35,6 @@ export class HydratedPlaceMaster
 
     apply(state: HydratedBridgesGameState) {
         const playerState = state.getPlayerState(this.playerId)
-        if (!playerState.hasPiece(this.placement.masterType)) {
-            throw Error(`Player ${this.playerId} has no master to place`)
-        }
-
         const { valid, reason } = HydratedPlaceMaster.isValidPlacement(
             state,
             this.playerId,
@@ -60,6 +56,21 @@ export class HydratedPlaceMaster
         playerId: string,
         placement: Placement
     ): { valid: boolean; reason: string } {
+        const playerState = state.getPlayerState(playerId)
+        if (!playerState.hasPiece(placement.masterType)) {
+            return { valid: false, reason: `Player ${playerId} has no master to place` }
+        }
+
+        if (
+            state.turnManager.turnCount(playerId) < 7 &&
+            playerState.pieces[placement.masterType] < 6
+        ) {
+            return {
+                valid: false,
+                reason: `Player ${playerId} must place one of every master to start`
+            }
+        }
+
         const board = state.board
         if (!board.hasVillage(placement.village)) {
             return { valid: false, reason: `Invalid Village ${placement.village}` }
@@ -79,9 +90,9 @@ export class HydratedPlaceMaster
 
         if (
             state.turnManager.turnCount(playerId) < 7 &&
-            selectedVillage.numberOfMastersForPlayer(playerId) >=
-                (state.players.length === 3 ? 1 : 2) &&
-            selectedVillage.numberOfMasters() >= (state.players.length === 3 ? 2 : 3)
+            (selectedVillage.numberOfMastersForPlayer(playerId) >=
+                (state.players.length === 3 ? 1 : 2) ||
+                selectedVillage.numberOfMasters() >= (state.players.length === 3 ? 2 : 3))
         ) {
             return {
                 valid: false,

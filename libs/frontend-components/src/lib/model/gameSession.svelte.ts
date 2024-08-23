@@ -143,14 +143,13 @@ export class GameSession {
     })
 
     isMyTurn: boolean = $derived.by(() => {
-        console.log('my turn is changing')
         const myPlayer = this.myPlayer
         if (!myPlayer) {
             return false
         }
         const isMyPlayerActive =
             this.activePlayers.find((player) => player.id === myPlayer.id) != undefined
-        console.log('my player is active:', isMyPlayerActive)
+
         return isMyPlayerActive
     })
 
@@ -325,6 +324,7 @@ export class GameSession {
                 throw e
             }
         } catch (e) {
+            console.log(e)
             this.rollbackActions(priorState)
             await this.checkSync()
         } finally {

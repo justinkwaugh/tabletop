@@ -4,7 +4,6 @@ import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedBridgesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Placement } from '../components/gameBoard.js'
-import { HydratedBridgesPlayerState } from '../model/playerState.js'
 
 export type RecruitStudents = Static<typeof RecruitStudents>
 export const RecruitStudents = Type.Composite([
@@ -12,8 +11,7 @@ export const RecruitStudents = Type.Composite([
     Type.Object({
         type: Type.Literal(ActionType.RecruitStudents),
         playerId: Type.String(),
-        studentOne: Type.Optional(Placement),
-        studentTwo: Type.Optional(Placement)
+        placement: Placement
     })
 ])
 
@@ -29,8 +27,7 @@ export class HydratedRecruitStudents
 {
     declare type: ActionType.RecruitStudents
     declare playerId: string
-    declare studentOne: Placement
-    declare studentTwo?: Placement
+    declare placement: Placement
 
     constructor(data: RecruitStudents) {
         super(data, RecruitStudentsValidator)
@@ -39,19 +36,7 @@ export class HydratedRecruitStudents
     apply(state: HydratedBridgesGameState) {
         const playerState = state.getPlayerState(this.playerId)
 
-        this.placeStudent(state, playerState, this.studentOne)
-
-        if (this.studentTwo) {
-            this.placeStudent(state, playerState, this.studentTwo)
-        }
-    }
-
-    placeStudent(
-        state: HydratedBridgesGameState,
-        playerState: HydratedBridgesPlayerState,
-        placement: Placement
-    ) {
-        const masterType = placement.masterType
+        const masterType = this.placement.masterType
         if (!playerState.hasPiece(masterType)) {
             throw Error(`Player ${this.playerId} has no ${masterType} piece to place`)
         }
@@ -59,15 +44,15 @@ export class HydratedRecruitStudents
         const { valid, reason } = HydratedRecruitStudents.isValidPlacement(
             state,
             this.playerId,
-            placement
+            this.placement
         )
         if (!valid) {
             throw Error(reason)
         }
 
-        const village = state.board.villages[placement.village]
-        village.addStudent(placement.masterType, this.playerId)
-        playerState.removePiece(placement.masterType)
+        const village = state.board.villages[this.placement.village]
+        village.addStudent(this.placement.masterType, this.playerId)
+        playerState.removePiece(this.placement.masterType)
     }
 
     static isValidPlacement(

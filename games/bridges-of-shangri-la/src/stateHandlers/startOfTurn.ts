@@ -11,7 +11,7 @@ import { Placement } from '../components/gameBoard.js'
 type StartOfTurnAction = HydratedPlaceMaster | HydratedBeginJourney | HydratedRecruitStudents
 
 // Transition from StartOfTurn(PlaceMaster) -> StartOfTurn
-//                 StartOfTurn(RecruitStudents) -> StartOfTurn
+//                 StartOfTurn(RecruitStudents) -> RecruitingStudents
 //                 StartOfTurn(BeginJourney) -> StartOfTurn | EndOfGame
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is StartOfTurnAction {
@@ -36,13 +36,21 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const gameState = context.gameState as HydratedBridgesGameState
 
         switch (true) {
-            case isPlaceMaster(action) || isRecruitStudents(action): {
+            case isPlaceMaster(action): {
                 gameState.turnManager.endTurn(gameState.actionCount + 1)
                 return MachineState.StartOfTurn
             }
+            case isRecruitStudents(action): {
+                if (this.isValidActionType(ActionType.RecruitStudents, action.playerId, context)) {
+                    return MachineState.RecruitingStudents
+                } else {
+                    gameState.turnManager.endTurn(gameState.actionCount + 1)
+                    return MachineState.StartOfTurn
+                }
+            }
             case isBeginJourney(action): {
                 gameState.turnManager.endTurn(gameState.actionCount + 1)
-                if (gameState.hasStones()) {
+                if (!gameState.hasStones()) {
                     return MachineState.EndOfGame
                 } else {
                     return MachineState.StartOfTurn
@@ -78,6 +86,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 return false
             }
             case ActionType.RecruitStudents: {
+                if (gameState.turnManager.turnCount(playerId) < 7) {
+                    return false
+                }
                 for (let village = 0; village < gameState.board.villages.length; village++) {
                     for (const masterType of Object.values(MasterType)) {
                         if (!playerState.hasPiece(masterType)) {
@@ -94,6 +105,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 return false
             }
             case ActionType.BeginJourney: {
+                if (gameState.turnManager.turnCount(playerId) < 7) {
+                    return false
+                }
                 for (
                     let sourceIndex = 0;
                     sourceIndex < gameState.board.villages.length;

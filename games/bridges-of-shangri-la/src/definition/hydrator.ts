@@ -9,6 +9,7 @@ import { BridgesGameState, HydratedBridgesGameState } from '../model/gameState.j
 import { HydratedPlaceMaster, isPlaceMaster } from '../actions/placeMaster.js'
 import { HydratedRecruitStudents, isRecruitStudents } from '../actions/recruitStudents.js'
 import { HydratedBeginJourney, isBeginJourney } from '../actions/beginJourney.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 
 export class BridgesHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -21,6 +22,9 @@ export class BridgesHydrator implements GameHydrator {
             }
             case isBeginJourney(data): {
                 return new HydratedBeginJourney(data)
+            }
+            case isPass(data): {
+                return new HydratedPass(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)
