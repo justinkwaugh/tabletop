@@ -21,6 +21,7 @@ COPY libs/common backend/node_modules/@tabletop/common
 COPY libs/backend-services backend/node_modules/@tabletop/backend-services
 COPY libs/email backend/node_modules/@tabletop/email
 COPY games/fresh-fish backend/node_modules/@tabletop/fresh-fish
+COPY games/fresh-fish backend/node_modules/@tabletop/bridges-of-shangri-la
 
 COPY apps/backend/.env.prod backend/.env
 COPY apps/backend/dist backend
