@@ -78,7 +78,12 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                             continue
                         }
                         const placement: Placement = { masterType, village }
-                        if (HydratedPlaceMaster.isValidPlacement(gameState, playerId, placement)) {
+                        const { valid } = HydratedPlaceMaster.isValidPlacement(
+                            gameState,
+                            playerId,
+                            placement
+                        )
+                        if (valid) {
                             return true
                         }
                     }
@@ -95,9 +100,12 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                             continue
                         }
                         const placement: Placement = { masterType, village }
-                        if (
-                            HydratedRecruitStudents.isValidPlacement(gameState, playerId, placement)
-                        ) {
+                        const { valid } = HydratedRecruitStudents.isValidPlacement(
+                            gameState,
+                            playerId,
+                            placement
+                        )
+                        if (valid) {
                             return true
                         }
                     }
@@ -113,20 +121,22 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                     sourceIndex < gameState.board.villages.length;
                     sourceIndex++
                 ) {
-                    if (
-                        !HydratedBeginJourney.isValidSourceVillage(gameState, playerId, sourceIndex)
-                    ) {
+                    const { valid } = HydratedBeginJourney.isValidSourceVillage(
+                        gameState,
+                        playerId,
+                        sourceIndex
+                    )
+                    if (!valid) {
                         continue
                     }
                     const sourceVillage = gameState.board.villages[sourceIndex]
                     for (const neighborIndex of sourceVillage.neighbors) {
-                        if (
-                            HydratedBeginJourney.isValidDestinationVillage(
-                                gameState,
-                                sourceIndex,
-                                neighborIndex
-                            )
-                        ) {
+                        const { valid } = HydratedBeginJourney.isValidDestinationVillage(
+                            gameState,
+                            sourceIndex,
+                            neighborIndex
+                        )
+                        if (valid) {
                             return true
                         }
                     }

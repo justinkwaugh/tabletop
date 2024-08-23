@@ -89,7 +89,7 @@
         return false
     })
 
-    let disabled = $derived(interacting && !interactable)
+    let disabled = $derived(village.stone || (interacting && !interactable))
     let isSourceVillageForJourney = $derived(
         interacting &&
             gameSession.chosenAction === ActionType.BeginJourney &&
@@ -197,7 +197,7 @@
 
     {#if village.stone}
         <div
-            class="flex flex-col justify-center items-center w-[150px] h-[150px] absolute top-0 left-0"
+            class="flex flex-col justify-center items-center w-[150px] h-[150px] absolute top-0 left-0 z-50"
         >
             <img class="w-[100px] drop-shadow-xl" src={stone} alt="stone" />
         </div>
@@ -205,7 +205,7 @@
 
     {#if disabled && !isSourceVillageForJourney}
         <div
-            class="absolute rounded-full w-[200px] h-[200px] top-[-25px] left-[-25px] bg-black bg-opacity-50 z-50 shadow-[0_0_40px_0] shadow-black"
+            class="absolute rounded-full w-[200px] h-[200px] top-[-25px] left-[-25px] bg-black bg-opacity-50 z-40 shadow-[0_0_40px_0] shadow-black"
         ></div>
     {/if}
 
