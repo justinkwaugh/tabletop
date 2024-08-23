@@ -2,7 +2,6 @@
     import { getContext } from 'svelte'
     import { isMarketTile, isStallTile } from '@tabletop/fresh-fish'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
-    import { fade } from 'svelte/transition'
     import { MachineState } from '@tabletop/fresh-fish'
     import { Button } from 'flowbite-svelte'
 
