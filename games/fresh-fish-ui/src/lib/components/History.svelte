@@ -42,7 +42,7 @@
                         action.type
                     ) && !(isDrawTile(action) && isMarketTile(action.metadata?.chosenTile))
             )
-            .reverse()
+            .toReversed()
             .toSorted(
                 (a, b) =>
                     (b.createdAt?.getTime() ?? Date.now()) - (a.createdAt?.getTime() ?? Date.now())

@@ -102,7 +102,7 @@
                     return 'Choose a student to place'
                 }
             case ActionType.BeginJourney:
-                if (!gameSession.chosenVillage) {
+                if (gameSession.chosenVillage === undefined) {
                     return 'Choose a village to begin their journey'
                 } else {
                     return 'Choose a destination village'
@@ -195,6 +195,17 @@
                         >{gameSession.nameForActionType(action)}</Button
                     >
                 {/each}
+            {/if}
+
+            {#if gameSession.undoableAction}
+                <Button
+                    onclick={async () => {
+                        await gameSession.undo()
+                    }}
+                    size="xs"
+                    class="m-1"
+                    color="light">Undo</Button
+                >
             {/if}
         </div>
     </div>

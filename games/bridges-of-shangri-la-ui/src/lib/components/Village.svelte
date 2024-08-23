@@ -22,6 +22,18 @@
     let { village, index }: { village: HydratedVillage; index: number } = $props()
     let gameSession = getContext('gameSession') as BridgesGameSession
 
+    let interacting = $derived.by(() => {
+        if (
+            gameSession.chosenAction === ActionType.PlaceMaster ||
+            gameSession.chosenAction === ActionType.RecruitStudents
+        ) {
+            return gameSession.chosenMasterType !== undefined
+        } else if (gameSession.chosenAction === ActionType.BeginJourney) {
+            return true
+        }
+        return false
+    })
+
     let interactable = $derived.by(() => {
         if (!gameSession.isMyTurn || !gameSession.myPlayer?.id) {
             return false
@@ -58,7 +70,7 @@
             }
             return valid
         } else if (gameSession.chosenAction === ActionType.BeginJourney) {
-            if (!gameSession.chosenVillage) {
+            if (gameSession.chosenVillage === undefined) {
                 const { valid, reason } = HydratedBeginJourney.isValidSourceVillage(
                     gameSession.gameState,
                     gameSession.myPlayer?.id,
@@ -76,6 +88,13 @@
         }
         return false
     })
+
+    let disabled = $derived(interacting && !interactable)
+    let isSourceVillageForJourney = $derived(
+        interacting &&
+            gameSession.chosenAction === ActionType.BeginJourney &&
+            gameSession.chosenVillage === index
+    )
 
     let tabIndex = $derived(interactable ? 0 : -1)
     function bgColorForMaster(masterType: MasterType) {
@@ -121,7 +140,7 @@
             gameSession.applyAction(action)
             gameSession.resetAction()
         } else if (gameSession.chosenAction === ActionType.BeginJourney) {
-            if (!gameSession.chosenVillage) {
+            if (gameSession.chosenVillage === undefined) {
                 gameSession.chosenVillage = index
             } else {
                 const action = gameSession.createBeginJourneyAction(
@@ -161,9 +180,7 @@
     onfocus={() => {}}
     onclick={() => handleClick()}
     onkeypress={() => handleClick()}
-    class="relative w-[150px] h-[150px] {interactable
-        ? 'cursor-pointer border-2 border-orange-300'
-        : ''}"
+    class="relative w-[150px] h-[150px] {interactable ? 'cursor-pointer' : ''}"
 >
     <div
         class="flex flex-col justify-center items-center border-2 border-gray-400 rounded-full w-[60px] h-[46px] py-2 px-4 bg-gray-800 absolute top-[2px] left-[-40px] text-gray-200"
@@ -184,5 +201,17 @@
         >
             <img class="w-[100px] drop-shadow-xl" src={stone} alt="stone" />
         </div>
+    {/if}
+
+    {#if disabled && !isSourceVillageForJourney}
+        <div
+            class="absolute rounded-full w-[200px] h-[200px] top-[-25px] left-[-25px] bg-black bg-opacity-50 z-50 shadow-[0_0_40px_0] shadow-black"
+        ></div>
+    {/if}
+
+    {#if isSourceVillageForJourney}
+        <div
+            class="absolute rounded-full w-[150px] h-[150px] top-0 left-0 bg-green-500 bg-opacity-60 z-0 shadow-[0_0_40px_0] shadow-green-500"
+        ></div>
     {/if}
 </div>

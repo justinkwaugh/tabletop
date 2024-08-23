@@ -31,7 +31,7 @@
         }
 
         const reversed = actions
-            .reverse()
+            .toReversed()
             .toSorted(
                 (a, b) =>
                     (b.createdAt?.getTime() ?? Date.now()) - (a.createdAt?.getTime() ?? Date.now())

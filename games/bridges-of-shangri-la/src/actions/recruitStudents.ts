@@ -77,6 +77,13 @@ export class HydratedRecruitStudents
             }
         }
 
+        if (selectedVillage.hasStudent(placement.masterType)) {
+            return {
+                valid: false,
+                reason: `Village ${selectedVillage} ${placement.masterType} already has a student`
+            }
+        }
+
         return { valid: true, reason: '' }
     }
 }

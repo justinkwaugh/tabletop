@@ -134,7 +134,7 @@ export class BridgesGameSession extends GameSession {
                 this.chosenAction = undefined
             }
         } else if (this.chosenAction === ActionType.BeginJourney) {
-            if (this.chosenVillage) {
+            if (this.chosenVillage !== undefined) {
                 this.chosenVillage = undefined
             } else {
                 this.chosenAction = undefined
