@@ -3,7 +3,6 @@
     import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import {
-        ActionType,
         isPass,
         isPlaceMaster,
         isRecruitStudents,
