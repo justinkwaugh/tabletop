@@ -104,6 +104,25 @@ export class BridgesGameSession extends GameSession {
         }
     }
 
+    nameForMasterType(masterType: MasterType) {
+        switch (masterType) {
+            case MasterType.Astrologer:
+                return 'Astrologer'
+            case MasterType.DragonBreeder:
+                return 'Dragon Breeder'
+            case MasterType.Firekeeper:
+                return 'Firekeeper'
+            case MasterType.Healer:
+                return 'Healer'
+            case MasterType.Priest:
+                return 'Priest'
+            case MasterType.Rainmaker:
+                return 'Rainmaker'
+            case MasterType.YetiWhisperer:
+                return 'Yeti Whisperer'
+        }
+    }
+
     cancel() {
         if (
             this.chosenAction === ActionType.PlaceMaster ||

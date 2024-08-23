@@ -6,6 +6,7 @@
     import priest from '$lib/images/priest.png'
     import yetiwhisperer from '$lib/images/yetiwhisperer.png'
     import astrologer from '$lib/images/astrologer.png'
+    import stone from '$lib/images/stone.png'
     import {
         MasterType,
         type HydratedVillage,
@@ -176,4 +177,12 @@
     {@render space(MasterType.YetiWhisperer, 'top-[52px] left-[102px]')}
     {@render space(MasterType.Firekeeper, 'top-[105px] left-[25px]')}
     {@render space(MasterType.Healer, 'top-[105px] left-[76px]')}
+
+    {#if village.stone}
+        <div
+            class="flex flex-col justify-center items-center w-[150px] h-[150px] absolute top-0 left-0"
+        >
+            <img class="w-[100px] drop-shadow-xl" src={stone} alt="stone" />
+        </div>
+    {/if}
 </div>

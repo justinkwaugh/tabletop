@@ -42,9 +42,9 @@
     function getDescriptionForAction(action: GameAction) {
         switch (true) {
             case isPlaceMaster(action):
-                return 'placed a master'
+                return `placed a ${gameSession.nameForMasterType(action.placement.masterType)} master`
             case isRecruitStudents(action):
-                return 'placed a student'
+                return `placed a ${gameSession.nameForMasterType(action.placement.masterType)} student`
             case isBeginJourney(action):
                 return 'began a journey'
             default:
