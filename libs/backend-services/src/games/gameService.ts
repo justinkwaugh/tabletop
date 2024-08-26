@@ -144,6 +144,10 @@ export class GameService {
         return createdGame
     }
 
+    async getGameEtag(gameId: string): Promise<string | undefined> {
+        return await this.gameStore.getGameEtag(gameId)
+    }
+
     async getGame({
         gameId,
         withState = false

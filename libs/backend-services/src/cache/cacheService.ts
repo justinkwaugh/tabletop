@@ -57,11 +57,11 @@ export class RedisCacheService {
         return newValue
     }
 
-    public async lockWhileWriting<T>(key: string, writer: ValueWriter<T>): Promise<T> {
-        console.log('locking while writing', key)
+    public async lockWhileWriting<T>(keys: string[], writer: ValueWriter<T>): Promise<T> {
+        console.log('locking while writing', keys)
         let lockId
         try {
-            lockId = await this.tryLockWrite(key)
+            lockId = await this.tryLockWrite(keys)
 
             return await writer()
         } catch (error) {
@@ -69,7 +69,7 @@ export class RedisCacheService {
             throw error
         } finally {
             if (lockId) {
-                await this.unlockWrite(key, lockId)
+                await this.unlockWrite(keys, lockId)
             }
         }
     }
@@ -97,70 +97,91 @@ export class RedisCacheService {
         return undefined
     }
 
-    private async tryLockWrite(key: string): Promise<string | undefined> {
+    private async tryLockWrite(keys: string[]): Promise<string | undefined> {
         // We treat write locks somewhat like a semaphore... multiple writers could lock, and it will only unlock
         // when all writers have finished and unlocked.  Note that writers are not locking to write to the cache, they
         // are locking *while* they are writing to a separate store, and preventing readers from writing to the cache
         const lockId = '.' + nanoid()
-        let lockValue = WRITE_LOCK_PREFIX
-
+        const lockValues = new Array(keys.length).fill(WRITE_LOCK_PREFIX)
+        console.log('LOCK WRITE', keys, lockId)
         try {
             // Watch the key to ensure it doesn't change
-            console.log('lw watch', key)
-            await this.client.watch(key)
-            console.log('lw get', key)
-            const currentValue = await this.client.get(key)
-            console.log('lw curr', currentValue)
-            // If the key is already write locked, we append our id to it
-            if (currentValue && this.isWriteLocked(currentValue)) {
-                lockValue += currentValue
+            console.log('lw watch', keys)
+            await this.client.watch(keys)
+            console.log('lw get', keys)
+            const currentValues = await this.client.mGet(keys)
+            console.log('lw curr', currentValues)
+
+            for (const [index, currentValue] of currentValues.entries()) {
+                if (currentValue && this.isWriteLocked(currentValue)) {
+                    lockValues[index] += currentValue
+                }
+
+                lockValues[index] += lockId
             }
 
-            lockValue += lockId
-
-            console.log('lw set', key, lockValue)
+            console.log('lw set', keys, lockValues)
             // Set our lock value
             try {
-                await this.client.multi().setEx(key, LOCK_TIMEOUT, lockValue).exec()
+                const lockData: [string, string][] = keys.map((key, index) => [
+                    key,
+                    lockValues[index]
+                ])
+                console.log('lw set', keys, lockData)
+                const transaction = this.client.multi().mSet(lockData)
+                for (const key of keys) {
+                    transaction.expire(key, LOCK_TIMEOUT)
+                }
+                await transaction.exec()
             } catch (error) {
                 console.log('lock value set error', error)
             }
-            console.log('lw done', key)
-            return lockValue
+            console.log('lw done', keys)
+            return lockId
         } catch (error) {
-            console.log('unable to acquire write lock for key', key, error)
+            console.log('unable to acquire write lock for keys', keys, error)
         }
         return undefined
     }
 
-    private async unlockWrite(key: string, lockId: string): Promise<void> {
+    private async unlockWrite(keys: string[], lockId: string): Promise<void> {
+        console.log('UNLOCK WRITE', keys, lockId)
         try {
-            console.log('ulw watch', key)
-            await this.client.watch(key)
-            console.log('ulw get', key)
-            const currentValue = await this.client.get(key)
-            console.log('ulw curr', currentValue)
-            if (currentValue === null) {
-                // This should not typically happen, it would mean that the lock expired or the key was flushed before we could unlock
-                await this.client.unwatch()
-                return
+            console.log('ulw watch', keys)
+            await this.client.watch(keys)
+            console.log('ulw get', keys)
+            const currentValues = await this.client.mGet(keys)
+            console.log('ulw curr', currentValues)
+
+            const newValues = new Array(keys.length).fill(null)
+            for (const [index, currentValue] of currentValues.entries()) {
+                if (currentValue === null) {
+                    continue
+                }
+
+                // Try to remove our lock id from the lock value
+                let newValue = currentValue.replace(lockId, '')
+
+                // If we are the last lock removed, or somewhow a value got in there that wasn't a lock, we clear the value
+                // The latter could happen if the key was flushed or expired and then a reader set a value
+                if (newValue && (newValue === WRITE_LOCK_PREFIX || !this.isLocked(newValue))) {
+                    newValue = ''
+                }
+                newValues[index] = newValue
             }
 
-            // Try to remove our lock id from the lock value
-            let newValue = currentValue.replace(lockId, '')
-
-            // If we are the last lock removed, or somewhow a value got in there that wasn't a lock, we clear the value
-            // The latter could happen if the key was flushed or expired and then a reader set a value
-            if (newValue && (newValue === WRITE_LOCK_PREFIX || !this.isLocked(newValue))) {
-                newValue = ''
-            }
+            const lockData: [string, string][] = keys.map((key, index) => [key, newValues[index]])
 
             // Set the new value
-            console.log('ulw set', key, newValue)
-            await this.client.multi().setEx(key, LOCK_TIMEOUT, newValue).exec()
-            console.log('ulw done', key)
+            console.log('ulw set', keys, lockData)
+            const transaction = this.client.multi().mSet(lockData)
+            for (const key of keys) {
+                transaction.expire(key, LOCK_TIMEOUT)
+            }
+            await transaction.exec()
+            console.log('ulw done', keys)
         } catch (error) {
-            console.log('unable to unlock write lock for key', key, error)
+            console.log('unable to unlock write lock for keys', keys, error)
         }
     }
 

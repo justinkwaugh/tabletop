@@ -24,6 +24,7 @@ import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { ActionUndoValidator, ActionUpdateValidator, GameStore } from '../stores/gameStore.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
+import { nanoid } from 'nanoid'
 
 export class FirestoreGameStore implements GameStore {
     readonly games: CollectionReference
@@ -42,8 +43,18 @@ export class FirestoreGameStore implements GameStore {
         storedGame.createdAt = date
         storedGame.updatedAt = date
 
+        const checksumCacheKey = `csum-${game.id}`
+        const gameRevisionCacheKey = `etag-${game.id}`
+
         try {
-            await this.games.doc(game.id).create(structuredClone(storedGame))
+            await this.cacheService.lockWhileWriting(
+                [checksumCacheKey, gameRevisionCacheKey],
+                async () =>
+                    this.games.firestore.runTransaction(
+                        async () =>
+                            await this.games.doc(game.id).create(structuredClone(storedGame))
+                    )
+            )
         } catch (error) {
             this.handleError(error, game.id)
             throw Error('unreachable')
@@ -62,82 +73,106 @@ export class FirestoreGameStore implements GameStore {
         validator?: UpdateValidator<Game>
     }): Promise<[Game, string[], Game]> {
         const stateCollection = this.getStateCollection(gameId)
+        const transactionBody = async (
+            transaction: Transaction
+        ): Promise<{ updatedGame: Game; updatedFields: string[]; existingGame: Game }> => {
+            const fieldsToUpdate = structuredClone(fields) as Partial<StoredGame>
+            const updatedFields: string[] = Object.keys(fieldsToUpdate)
+
+            const existingGame = (
+                await transaction.get(this.games.doc(gameId))
+            ).data() as StoredGame
+
+            if (!existingGame) {
+                throw new NotFoundError({ type: 'Game', id: gameId })
+            }
+
+            if (validator) {
+                switch (validator(existingGame, fieldsToUpdate)) {
+                    case UpdateValidationResult.Cancel:
+                        return { updatedGame: existingGame, updatedFields: [], existingGame }
+                }
+            }
+
+            let stateToUpdate: GameState | undefined
+            const updatedGame = structuredClone(existingGame)
+            Object.assign(updatedGame, fieldsToUpdate)
+
+            if (fieldsToUpdate.state !== undefined) {
+                stateToUpdate = fieldsToUpdate.state
+                delete fieldsToUpdate.state
+            }
+
+            if (fieldsToUpdate.players !== undefined) {
+                // Flatten userIds for querying
+                fieldsToUpdate.userIds = fieldsToUpdate.players
+                    .map((player) => player.userId)
+                    .filter((userId) => userId !== undefined && userId !== null) as string[]
+            }
+
+            // Should this be in the game service instead?  I think maybe
+            if (
+                fieldsToUpdate.status === undefined &&
+                updatedGame.status === GameStatus.WaitingForPlayers &&
+                updatedGame.players.every((player) => player.status === PlayerStatus.Joined)
+            ) {
+                updatedGame.status = GameStatus.WaitingToStart
+                fieldsToUpdate.status = updatedGame.status
+                updatedFields.push('status')
+            }
+
+            // Should this be in the game service instead?  I think maybe
+            if (
+                fieldsToUpdate.status === undefined &&
+                updatedGame.status === GameStatus.WaitingToStart &&
+                updatedGame.players.find((player) => player.status !== PlayerStatus.Joined)
+            ) {
+                updatedGame.status = GameStatus.WaitingForPlayers
+                fieldsToUpdate.status = updatedGame.status
+                updatedFields.push('status')
+            }
+
+            if (updatedFields.length > 0) {
+                fieldsToUpdate.updatedAt = new Date()
+                updatedGame.updatedAt = fieldsToUpdate.updatedAt
+                updatedFields.push('updatedAt')
+
+                transaction.update(this.games.doc(updatedGame.id), fieldsToUpdate)
+            }
+
+            if (stateToUpdate) {
+                transaction.set(stateCollection.doc(updatedGame.id), stateToUpdate)
+            }
+
+            return { updatedGame, updatedFields, existingGame }
+        }
+
+        const checksumCacheKey = `csum-${gameId}`
+        const gameRevisionCacheKey = `etag-${gameId}`
+
         try {
-            return await this.games.firestore.runTransaction(async (transaction) => {
-                const fieldsToUpdate = structuredClone(fields) as Partial<StoredGame>
-                const updatedFields: string[] = Object.keys(fieldsToUpdate)
+            const { updatedGame, updatedFields, existingGame } =
+                await this.cacheService.lockWhileWriting(
+                    [checksumCacheKey, gameRevisionCacheKey],
+                    async () => this.games.firestore.runTransaction(transactionBody)
+                )
 
-                const existingGame = (
-                    await transaction.get(this.games.doc(gameId))
-                ).data() as StoredGame
-
-                if (!existingGame) {
-                    throw new NotFoundError({ type: 'Game', id: gameId })
-                }
-
-                if (validator) {
-                    switch (validator(existingGame, fieldsToUpdate)) {
-                        case UpdateValidationResult.Cancel:
-                            return [existingGame, [], existingGame]
-                    }
-                }
-
-                let stateToUpdate: GameState | undefined
-                const updatedGame = structuredClone(existingGame)
-                Object.assign(updatedGame, fieldsToUpdate)
-
-                if (fieldsToUpdate.state !== undefined) {
-                    stateToUpdate = fieldsToUpdate.state
-                    delete fieldsToUpdate.state
-                }
-
-                if (fieldsToUpdate.players !== undefined) {
-                    // Flatten userIds for querying
-                    fieldsToUpdate.userIds = fieldsToUpdate.players
-                        .map((player) => player.userId)
-                        .filter((userId) => userId !== undefined && userId !== null) as string[]
-                }
-
-                // Should this be in the game service instead?  I think maybe
-                if (
-                    fieldsToUpdate.status === undefined &&
-                    updatedGame.status === GameStatus.WaitingForPlayers &&
-                    updatedGame.players.every((player) => player.status === PlayerStatus.Joined)
-                ) {
-                    updatedGame.status = GameStatus.WaitingToStart
-                    fieldsToUpdate.status = updatedGame.status
-                    updatedFields.push('status')
-                }
-
-                // Should this be in the game service instead?  I think maybe
-                if (
-                    fieldsToUpdate.status === undefined &&
-                    updatedGame.status === GameStatus.WaitingToStart &&
-                    updatedGame.players.find((player) => player.status !== PlayerStatus.Joined)
-                ) {
-                    updatedGame.status = GameStatus.WaitingForPlayers
-                    fieldsToUpdate.status = updatedGame.status
-                    updatedFields.push('status')
-                }
-
-                if (updatedFields.length > 0) {
-                    fieldsToUpdate.updatedAt = new Date()
-                    updatedGame.updatedAt = fieldsToUpdate.updatedAt
-                    updatedFields.push('updatedAt')
-
-                    transaction.update(this.games.doc(updatedGame.id), fieldsToUpdate)
-                }
-
-                if (stateToUpdate) {
-                    transaction.set(stateCollection.doc(updatedGame.id), stateToUpdate)
-                }
-
-                return [updatedGame, updatedFields, existingGame]
-            })
+            return [updatedGame, updatedFields, existingGame]
         } catch (error) {
+            console.log(error)
             this.handleError(error, gameId)
             throw Error('unreachable')
         }
+    }
+
+    async getGameEtag(gameId: string): Promise<string | undefined> {
+        const cacheKey = `etag-${gameId}`
+
+        const generateEtag = async (): Promise<string> => {
+            return nanoid()
+        }
+
+        return await this.cacheService.getThenCacheIfMissing(cacheKey, generateEtag)
     }
 
     async findGameById(gameId: string, includeState: boolean = false): Promise<Game | undefined> {
@@ -190,8 +225,6 @@ export class FirestoreGameStore implements GameStore {
     }> {
         const actionCollection = this.getActionCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
-
-        const checksumCacheKey = `csum-${gameId}`
 
         const transactionBody = async (
             transaction: Transaction
@@ -278,9 +311,13 @@ export class FirestoreGameStore implements GameStore {
             return { storedActions, updatedGame, relatedActions, priorState: existingState }
         }
 
+        const checksumCacheKey = `csum-${gameId}`
+        const gameRevisionCacheKey = `etag-${gameId}`
+
         try {
-            return this.cacheService.lockWhileWriting(checksumCacheKey, async () =>
-                this.games.firestore.runTransaction(transactionBody)
+            return this.cacheService.lockWhileWriting(
+                [checksumCacheKey, gameRevisionCacheKey],
+                async () => this.games.firestore.runTransaction(transactionBody)
             )
         } catch (error) {
             console.log(error)
@@ -309,8 +346,6 @@ export class FirestoreGameStore implements GameStore {
     }> {
         const actionCollection = this.getActionCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
-
-        const checksumCacheKey = `csum-${gameId}`
 
         const transactionBody = async (
             transaction: Transaction
@@ -400,9 +435,13 @@ export class FirestoreGameStore implements GameStore {
             }
         }
 
+        const checksumCacheKey = `csum-${gameId}`
+        const gameRevisionCacheKey = `etag-${gameId}`
+
         try {
-            return this.cacheService.lockWhileWriting(checksumCacheKey, async () =>
-                this.games.firestore.runTransaction(transactionBody)
+            return this.cacheService.lockWhileWriting(
+                [checksumCacheKey, gameRevisionCacheKey],
+                async () => this.games.firestore.runTransaction(transactionBody)
             )
         } catch (error) {
             this.handleError(error, gameId)
