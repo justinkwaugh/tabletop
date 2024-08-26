@@ -24,6 +24,10 @@ export class RedisService {
             socket: {
                 host: redisHost,
                 port: redisPort
+            },
+            isolationPoolOptions: {
+                min: 1,
+                max: 2
             }
         })
     }
