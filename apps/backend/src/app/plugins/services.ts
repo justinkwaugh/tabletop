@@ -20,7 +20,10 @@ import {
     WebPushTransport,
     AblyTransport,
     AblyService,
-    NullPubSubService
+    NullPubSubService,
+    // RedisPubSubService,
+    RedisCacheService,
+    RedisService
 } from '@tabletop/backend-services'
 
 import { FastifyInstance } from 'fastify'
@@ -58,7 +61,9 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const secretsService = new EnvSecretsService()
     const emailService = await EmailService.createEmailService(secretsService)
-    // const pubSubService = await RedisPubSubService.createNotificationsService(secretsService)
+    const redisService = await RedisService.createRedisService(secretsService)
+    const redisCacheService = new RedisCacheService(redisService)
+    // const pubSubService = await RedisPubSubService.createRedisPubSubService(secretsService)
     const pubSubService = new NullPubSubService() // While using Ably we do not need a pub sub service
 
     const notificationService = await DefaultNotificationService.createNotificationService(
@@ -67,7 +72,7 @@ export default fp(async (fastify: FastifyInstance) => {
     )
 
     const gameService = new GameService(
-        new FirestoreGameStore(fastify.firestore),
+        new FirestoreGameStore(redisCacheService, fastify.firestore),
         userService,
         tokenService,
         taskService,

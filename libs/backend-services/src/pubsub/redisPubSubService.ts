@@ -1,6 +1,6 @@
-import { SecretsService } from '../secrets/secretsService'
-import { PubSubService, PubSubSubscriber } from './pubSubService'
-import { createClient, RedisClientType } from 'redis'
+import { RedisService } from '../redis/redisService.js'
+import { PubSubService, PubSubSubscriber } from './pubSubService.js'
+import { RedisClientType } from 'redis'
 
 type SubscriberEntry = {
     subscriber: PubSubSubscriber
@@ -15,52 +15,19 @@ export class RedisPubSubService implements PubSubService {
     private pubClient: RedisClientType
     private subClient: RedisClientType
 
-    private constructor(client: RedisClientType) {
-        this.pubClient = client
-        this.subClient = client.duplicate()
+    private constructor(redisService: RedisService) {
+        this.pubClient = redisService.client
+        this.subClient = this.pubClient.duplicate()
     }
 
-    static async createNotificationsService(
-        secretsService: SecretsService
-    ): Promise<RedisPubSubService> {
-        const client = await this.createClient(secretsService)
-        const service = new RedisPubSubService(client)
+    static async createPubSubService(redisService: RedisService): Promise<RedisPubSubService> {
+        const service = new RedisPubSubService(redisService)
         await service.initialize()
         return service
     }
 
-    static async createClient(secretsService: SecretsService): Promise<RedisClientType> {
-        const redisHost = process.env['REDIS_HOST'] || 'localhost'
-        const redisPort = Number(process.env['REDIS_PORT'] ?? '6379')
-
-        const redisUsername = await secretsService.getSecret('REDIS_USERNAME')
-        const redisPassword = await secretsService.getSecret('REDIS_PASSWORD')
-
-        return createClient({
-            username: redisUsername,
-            password: redisPassword,
-            socket: {
-                host: redisHost,
-                port: redisPort
-            }
-        })
-    }
-
     private async initialize(): Promise<void> {
         console.log(`Initializing RedisPubSubService`)
-        this.pubClient.on('error', (err) => console.log('Redis publisher error:', err))
-        this.pubClient.on('connect', () => console.log('Redis publisher connected'))
-        this.pubClient.on('ready', () => console.log('Redis publisher ready'))
-        this.pubClient.on('end', () => console.log('Redis publisher has ended its connection'))
-        this.pubClient.on('reconnecting', () => console.log('Redis publisher is reconnecting'))
-
-        this.subClient.on('error', (err) => console.log('Redis subscriber error:', err))
-        this.subClient.on('connect', () => console.log('Redis subscriber connected'))
-        this.subClient.on('ready', () => console.log('Redis subscriber ready'))
-        this.subClient.on('end', () => console.log('Redis subscriber has ended its connection'))
-        this.subClient.on('reconnecting', () => console.log('Redis subscriber is reconnecting'))
-
-        await this.pubClient.connect()
         await this.subClient.connect()
     }
 

@@ -81,5 +81,8 @@ export interface GameStore {
         validator?: UpdateValidator<Game>
     }): Promise<[Game, string[], Game]>
 
-    setChecksum({gameId, checksum}:{ gameId: string, checksum:number }): Promise<number>
+    getActionChecksum(gameId: string): Promise<number | undefined>
+
+    // This is just for seamless migration to the new checksum system
+    setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number>
 }

@@ -183,18 +183,19 @@ export class GameService {
         checksum: number
         index: number
     }): Promise<{ status: GameSyncStatus; actions: GameAction[]; checksum: number }> {
-        // To optimize we could store the checksum separately as well, or cache in redis
+        // Try a potentially cached check
+        const currentChecksum = await this.gameStore.getActionChecksum(gameId)
+        if (checksum === currentChecksum) {
+            return { status: GameSyncStatus.InSync, actions: [], checksum: currentChecksum }
+        }
+
+        // If we don't match we have to do more complicated things
         const game = await this.getGame({ gameId, withState: true })
         if (!game || !game.state) {
             throw new GameNotFoundError({ id: gameId })
         }
 
         const state = game.state
-
-        // We may be already in sync
-        if (index === state.actionCount - 1 && checksum === state.actionChecksum) {
-            return { status: GameSyncStatus.InSync, actions: [], checksum: state.actionChecksum }
-        }
 
         // Look up actions and verify the checksum
         // const actions = await this.getActionsForGame(gameId, index)

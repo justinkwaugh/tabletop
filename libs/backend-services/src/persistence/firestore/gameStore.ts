@@ -4,7 +4,8 @@ import {
     Timestamp,
     QueryDocumentSnapshot,
     PartialWithFieldValue,
-    Filter
+    Filter,
+    Transaction
 } from '@google-cloud/firestore'
 import {
     GameAction,
@@ -22,11 +23,15 @@ import { StoredState } from '../model/storedState.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { ActionUndoValidator, ActionUpdateValidator, GameStore } from '../stores/gameStore.js'
+import { RedisCacheService } from '../../cache/cacheService.js'
 
 export class FirestoreGameStore implements GameStore {
     readonly games: CollectionReference
 
-    constructor(private firestore: Firestore) {
+    constructor(
+        private readonly cacheService: RedisCacheService,
+        private firestore: Firestore
+    ) {
         this.games = firestore.collection('games').withConverter(gameConverter)
     }
 
@@ -186,84 +191,99 @@ export class FirestoreGameStore implements GameStore {
         const actionCollection = this.getActionCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
 
+        const checksumCacheKey = `csum-${gameId}`
+
+        const transactionBody = async (
+            transaction: Transaction
+        ): Promise<{
+            storedActions: GameAction[]
+            updatedGame: Game
+            relatedActions: GameAction[]
+            priorState: GameState
+        }> => {
+            const storedActions = actions.map((action) => structuredClone(action)) as StoredAction[]
+
+            const existingState = (
+                await transaction.get(stateCollection.doc(gameId))
+            ).data() as GameState
+
+            const existingGame = (
+                await transaction.get(this.games.doc(gameId))
+            ).data() as StoredGame
+
+            if (!existingGame) {
+                throw new NotFoundError({ type: 'Game', id: gameId })
+            }
+
+            if (!existingState) {
+                throw new NotFoundError({ type: 'GameState', id: gameId })
+            }
+
+            const gameUpdates = <Partial<Game>>{}
+            const relatedActions: GameAction[] = []
+            if (validator) {
+                switch (
+                    await validator(
+                        existingGame,
+                        existingState,
+                        state,
+                        storedActions,
+                        gameUpdates,
+                        relatedActions
+                    )
+                ) {
+                    case UpdateValidationResult.Cancel:
+                        return {
+                            storedActions: [],
+                            updatedGame: existingGame,
+                            relatedActions,
+                            priorState: existingState
+                        }
+                }
+            }
+            const updatedGame = structuredClone(existingGame)
+            gameUpdates.updatedAt = new Date()
+            gameUpdates.lastActionAt = gameUpdates.updatedAt
+
+            if (existingState.result !== state.result) {
+                if (state.result) {
+                    gameUpdates.status = GameStatus.Finished
+                    gameUpdates.finishedAt = new Date()
+                    gameUpdates.result = state.result
+                    gameUpdates.winningPlayerIds = state.winningPlayerIds
+                } else {
+                    gameUpdates.status = GameStatus.Started
+                    gameUpdates.finishedAt = undefined
+                    gameUpdates.result = undefined
+                    gameUpdates.winningPlayerIds = []
+                }
+            }
+
+            Object.assign(updatedGame, gameUpdates)
+            updatedGame.state = state
+
+            const updateDate = new Date()
+            storedActions.forEach((action) => {
+                action.createdAt = updateDate
+                action.updatedAt = updateDate
+            })
+
+            storedActions.forEach((action) => {
+                transaction.create(actionCollection.doc(action.id), action)
+            })
+
+            transaction.update(this.games.doc(gameId), gameUpdates)
+            transaction.set(stateCollection.doc(gameId), state)
+
+            return { storedActions, updatedGame, relatedActions, priorState: existingState }
+        }
+
         try {
-            const [storedActions, updatedGame, relatedActions, priorState] =
-                await this.games.firestore.runTransaction(async (transaction) => {
-                    const storedActions = actions.map((action) =>
-                        structuredClone(action)
-                    ) as StoredAction[]
-
-                    const existingState = (
-                        await transaction.get(stateCollection.doc(gameId))
-                    ).data() as GameState
-
-                    const existingGame = (
-                        await transaction.get(this.games.doc(gameId))
-                    ).data() as StoredGame
-
-                    if (!existingGame) {
-                        throw new NotFoundError({ type: 'Game', id: gameId })
-                    }
-
-                    if (!existingState) {
-                        throw new NotFoundError({ type: 'GameState', id: gameId })
-                    }
-
-                    const gameUpdates = <Partial<Game>>{}
-                    const relatedActions: GameAction[] = []
-                    if (validator) {
-                        switch (
-                            await validator(
-                                existingGame,
-                                existingState,
-                                state,
-                                storedActions,
-                                gameUpdates,
-                                relatedActions
-                            )
-                        ) {
-                            case UpdateValidationResult.Cancel:
-                                return [[], existingGame, relatedActions, existingState]
-                        }
-                    }
-                    const updatedGame = structuredClone(existingGame)
-                    gameUpdates.updatedAt = new Date()
-                    gameUpdates.lastActionAt = gameUpdates.updatedAt
-
-                    if (existingState.result !== state.result) {
-                        if (state.result) {
-                            gameUpdates.status = GameStatus.Finished
-                            gameUpdates.finishedAt = new Date()
-                            gameUpdates.result = state.result
-                            gameUpdates.winningPlayerIds = state.winningPlayerIds
-                        } else {
-                            gameUpdates.status = GameStatus.Started
-                            gameUpdates.finishedAt = undefined
-                            gameUpdates.result = undefined
-                            gameUpdates.winningPlayerIds = []
-                        }
-                    }
-
-                    Object.assign(updatedGame, gameUpdates)
-                    updatedGame.state = state
-
-                    const updateDate = new Date()
-                    storedActions.forEach((action) => {
-                        action.createdAt = updateDate
-                        action.updatedAt = updateDate
-                    })
-
-                    storedActions.forEach((action) => {
-                        transaction.create(actionCollection.doc(action.id), action)
-                    })
-
-                    transaction.update(this.games.doc(gameId), gameUpdates)
-                    transaction.set(stateCollection.doc(gameId), state)
-
-                    return [storedActions, updatedGame, relatedActions, existingState]
-                })
-            return { storedActions, updatedGame, relatedActions, priorState }
+            return this.cacheService.lockWhileWriting(checksumCacheKey, async () =>
+                this.games.firestore.runTransaction(transactionBody)
+            )
         } catch (error) {
+            console.log(error)
             this.handleError(error, gameId)
             throw Error('unreachable')
         }
@@ -290,81 +310,100 @@ export class FirestoreGameStore implements GameStore {
         const actionCollection = this.getActionCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
 
-        try {
-            const [undoneActions, updatedGame, storedRedoneActions, priorState] =
-                await this.games.firestore.runTransaction(async (transaction) => {
-                    const existingGame = (
-                        await transaction.get(this.games.doc(gameId))
-                    ).data() as StoredGame
+        const checksumCacheKey = `csum-${gameId}`
 
-                    if (!existingGame) {
-                        throw new NotFoundError({ type: 'Game', id: gameId })
-                    }
+        const transactionBody = async (
+            transaction: Transaction
+        ): Promise<{
+            undoneActions: GameAction[]
+            updatedGame: Game
+            redoneActions: GameAction[]
+            priorState: GameState
+        }> => {
+            const existingGame = (
+                await transaction.get(this.games.doc(gameId))
+            ).data() as StoredGame
 
-                    const existingState = (
-                        await transaction.get(stateCollection.doc(gameId))
-                    ).data() as GameState
+            if (!existingGame) {
+                throw new NotFoundError({ type: 'Game', id: gameId })
+            }
 
-                    if (!existingState) {
-                        throw new NotFoundError({ type: 'GameState', id: gameId })
-                    }
+            const existingState = (
+                await transaction.get(stateCollection.doc(gameId))
+            ).data() as GameState
 
-                    const actionRefs = actions.map((action) => actionCollection.doc(action.id))
-                    const existingActions: StoredAction[] = (
-                        await transaction.getAll(...actionRefs)
+            if (!existingState) {
+                throw new NotFoundError({ type: 'GameState', id: gameId })
+            }
+
+            const actionRefs = actions.map((action) => actionCollection.doc(action.id))
+            const existingActions: StoredAction[] = (await transaction.getAll(...actionRefs))
+                .map((doc) => doc.data())
+                .filter((data) => data !== undefined) as StoredAction[]
+
+            if (existingActions.length !== actions.length) {
+                console.log('Some actions were not found when trying to undo')
+                throw new NotFoundError({ type: 'GameAction', id: gameId })
+            }
+
+            const gameUpdates = <Partial<Game>>{}
+            if (validator) {
+                switch (
+                    await validator(
+                        existingGame,
+                        existingState,
+                        existingActions,
+                        state,
+                        gameUpdates
                     )
-                        .map((doc) => doc.data())
-                        .filter((data) => data !== undefined) as StoredAction[]
-
-                    if (existingActions.length !== actions.length) {
-                        console.log('Some actions were not found when trying to undo')
-                        throw new NotFoundError({ type: 'GameAction', id: gameId })
-                    }
-
-                    const gameUpdates = <Partial<Game>>{}
-                    if (validator) {
-                        switch (
-                            await validator(
-                                existingGame,
-                                existingState,
-                                existingActions,
-                                state,
-                                gameUpdates
-                            )
-                        ) {
-                            case UpdateValidationResult.Cancel:
-                                return [[], existingGame, [], existingState]
+                ) {
+                    case UpdateValidationResult.Cancel:
+                        return {
+                            undoneActions: [],
+                            updatedGame: existingGame,
+                            redoneActions: [],
+                            priorState: existingState
                         }
-                    }
+                }
+            }
 
-                    const updatedGame = structuredClone(existingGame) as Game
-                    gameUpdates.updatedAt = new Date()
-                    gameUpdates.lastActionAt = gameUpdates.updatedAt
+            const updatedGame = structuredClone(existingGame) as Game
+            gameUpdates.updatedAt = new Date()
+            gameUpdates.lastActionAt = gameUpdates.updatedAt
 
-                    if (existingState.result !== state.result && !state.result) {
-                        gameUpdates.status = GameStatus.Started
-                        gameUpdates.finishedAt = undefined
-                        gameUpdates.result = undefined
-                        gameUpdates.winningPlayerIds = []
-                    }
+            if (existingState.result !== state.result && !state.result) {
+                gameUpdates.status = GameStatus.Started
+                gameUpdates.finishedAt = undefined
+                gameUpdates.result = undefined
+                gameUpdates.winningPlayerIds = []
+            }
 
-                    Object.assign(updatedGame, gameUpdates)
-                    updatedGame.state = state
+            Object.assign(updatedGame, gameUpdates)
+            updatedGame.state = state
 
-                    existingActions.forEach((action) => {
-                        transaction.delete(actionCollection.doc(action.id))
-                    })
+            existingActions.forEach((action) => {
+                transaction.delete(actionCollection.doc(action.id))
+            })
 
-                    redoneActions.forEach((action) => {
-                        // We keep the create/ update as the original
-                        transaction.create(actionCollection.doc(action.id), action)
-                    })
-                    transaction.update(this.games.doc(gameId), gameUpdates)
-                    transaction.set(stateCollection.doc(gameId), state)
+            redoneActions.forEach((action) => {
+                // We keep the create/ update as the original
+                transaction.create(actionCollection.doc(action.id), action)
+            })
+            transaction.update(this.games.doc(gameId), gameUpdates)
+            transaction.set(stateCollection.doc(gameId), state)
 
-                    return [existingActions, updatedGame, redoneActions, existingState]
-                })
-            return { undoneActions, updatedGame, redoneActions: storedRedoneActions, priorState }
+            return {
+                undoneActions: existingActions,
+                updatedGame,
+                redoneActions,
+                priorState: existingState
+            }
+        }
+
+        try {
+            return this.cacheService.lockWhileWriting(checksumCacheKey, async () =>
+                this.games.firestore.runTransaction(transactionBody)
+            )
         } catch (error) {
             this.handleError(error, gameId)
             throw Error('unreachable')
@@ -420,6 +459,27 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    async getActionChecksum(gameId: string): Promise<number | undefined> {
+        const cacheKey = `csum-${gameId}`
+
+        const lookupChecksum = async () => {
+            const gameState = await this.getGameState(gameId)
+            const checksum = gameState?.actionChecksum
+            return checksum !== undefined ? String(checksum) : undefined
+        }
+
+        const cachedValue = await this.cacheService.getThenCacheIfMissing(cacheKey, lookupChecksum)
+        if (cachedValue === undefined) {
+            return undefined
+        }
+
+        try {
+            return parseInt(cachedValue)
+        } catch (error) {
+            return undefined
+        }
+    }
+
     async setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number> {
         const stateCollection = this.getStateCollection(gameId)
         try {
@@ -444,6 +504,11 @@ export class FirestoreGameStore implements GameStore {
             this.handleError(error, gameId)
             throw Error('unreachable')
         }
+    }
+
+    private async getGameState(gameId: string): Promise<GameState | undefined> {
+        const doc = this.getStateCollection(gameId).doc(gameId)
+        return (await doc.get()).data() as GameState
     }
 
     private getActionCollection(gameId: string): CollectionReference {
