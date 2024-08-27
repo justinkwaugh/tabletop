@@ -190,7 +190,7 @@
     <div
         class="flex flex-col justify-center items-center border-2 border-gray-400 rounded-full w-[60px] h-[46px] py-2 px-4 bg-gray-800 absolute top-[2px] left-[-40px] text-gray-200"
     >
-        <h1 class="text-3xl">{village.strength()}</h1>
+        <h1 class="text-3xl select-none">{village.strength()}</h1>
     </div>
     {@render space(MasterType.Rainmaker, 'top-0 left-[27px]')}
     {@render space(MasterType.Astrologer, 'top-0 left-[78px]')}
