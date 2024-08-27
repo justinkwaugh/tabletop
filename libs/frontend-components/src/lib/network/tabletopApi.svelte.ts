@@ -163,7 +163,7 @@ export class TabletopApi {
 
     async sendVerificationEmail(): Promise<void> {
         await this.wretch
-            .post('/user/resendEmailVerification')
+            .post(undefined, '/user/resendEmailVerification')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<void>()
@@ -171,7 +171,7 @@ export class TabletopApi {
 
     async sendAuthVerificationEmail(): Promise<void> {
         await this.wretch
-            .post('/user/sendEmailAuthVerification')
+            .post(undefined, '/user/sendEmailAuthVerification')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<void>()
