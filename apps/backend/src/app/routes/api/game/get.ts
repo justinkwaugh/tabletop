@@ -21,7 +21,7 @@ export default async function (fastify: FastifyInstance) {
 
             const { gameId } = request.params
             const etagData = await fastify.gameService.getGameEtag(gameId)
-            const etag = etagData ? `W/${etagData}` : undefined
+            const etag = etagData ? `W/"${etagData}"` : undefined
             const ifNoneMatch = request.headers['if-none-match']
             console.log('etag', etag)
             console.log('if-none-match', ifNoneMatch)
