@@ -35,29 +35,46 @@
 
         let { width: cw, height: ch } = content.getBoundingClientRect()
         let scaleAmt = Math.min(wrapperWidth / cw, wrapperHeight / ch)
+
+        // Check if the content fits the wrapper width regardless of scale
         widthFits = cw <= wrapperWidth
 
-        let diff = 1 - scaleAmt
-
+        // For zooming we scale the content in 15% increments, so we figure out
+        // how many increments we can fit in the range between 1 and the scale amount
+        let scaleRange = 1 - scaleAmt
         if (scaleAmt === 1) {
             zoomed = 0
             zoomLevels = 0
         } else {
-            zoomLevels = Math.floor(diff / 0.15)
+            zoomLevels = Math.floor(scaleRange / 0.15)
             zoomed = Math.min(zoomLevels, zoomed)
         }
 
-        scaleAmt = zoomed ? scaleAmt + (diff / zoomLevels) * zoomed : scaleAmt
+        // Apply the scale based on zoom level
+        scaleAmt = zoomed ? scaleAmt + (scaleRange / zoomLevels) * zoomed : scaleAmt
         content.style.transform = `scale(${scaleAmt}, ${scaleAmt})`
 
         if (zoomed) {
+            // This is complicated stuff to make the scaled content either centered or left justified...
+            let { width: scw, height: sch } = content.getBoundingClientRect()
+            if (scaleAmt < 1 && !widthFits) {
+                // If the scaled width is larger than the wrapper we set the width to 0
+                // in order to make it scroll correctly
+                if (scw > wrapperWidth) {
+                    content.style.width = '0'
+                } else {
+                    // To center it we have take the difference between the wrapper width and the scaled content width
+                    // and multiply it by the reciprocal of the difference between 1 and the scale amount
+                    const multiplier = 1 / (1 - scaleAmt)
+                    content.style.width = (wrapperWidth - scw) * multiplier + 'px'
+                }
+            } else {
+                content.style.width = cw + 'px'
+            }
+
+            // We do not want to center the height
             if (scaleAmt < 1) {
                 content.style.height = '0'
-                content.style.width = '0'
-            } else {
-                let { width: cw, height: ch } = content.getBoundingClientRect()
-                content.style.height = ch + 'px'
-                content.style.width = cw + 'px'
             }
         }
     }
