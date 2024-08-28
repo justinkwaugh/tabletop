@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
-    import { BridgesPlayerState, MasterType, PlayerColor } from '@tabletop/bridges-of-shangri-la'
+    import { BridgesPlayerState, MasterType } from '@tabletop/bridges-of-shangri-la'
     import { uiBgColorForPlayer } from '$lib/utils/playerColors'
     import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'

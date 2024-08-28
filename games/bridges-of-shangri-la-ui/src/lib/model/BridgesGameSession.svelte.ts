@@ -40,18 +40,9 @@ export class BridgesGameSession extends GameSession {
         return this.gameState.turnManager.turnCount(this.myPlayer.id)
     })
 
-    private playerNamesById = $derived(
-        new Map(this.game.players.map((player) => [player.id, player.name]))
-    )
-
     private playerColorsById = $derived(
         new Map(this.gameState.players.map((player) => [player.playerId, player.color]))
     )
-
-    getPlayerName(playerId?: string) {
-        if (!playerId) return 'Someone'
-        return this.playerNamesById.get(playerId) ?? 'Someone'
-    }
 
     getPlayerBgColor(playerId?: string) {
         return uiBgColorForPlayer(this.playerColorsById.get(playerId ?? 'unknown')) ?? 'bg-gray-500'

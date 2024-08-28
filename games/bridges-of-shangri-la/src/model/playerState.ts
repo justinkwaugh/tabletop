@@ -11,7 +11,6 @@ export type BridgesPlayerState = Static<typeof BridgesPlayerState>
 export const BridgesPlayerState = Type.Composite([
     PlayerState,
     Type.Object({
-        color: Type.Enum(PlayerColor),
         pieces: Type.Record(Type.Enum(MasterType), Type.Number()),
         score: Type.Number()
     })

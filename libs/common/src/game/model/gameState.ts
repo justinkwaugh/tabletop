@@ -3,6 +3,7 @@ import { TurnManager } from '../components/turnManager.js'
 import { Hydratable } from '../../util/hydration.js'
 import { calculateChecksum } from '../../util/checksum.js'
 import { GameAction } from '../engine/gameAction.js'
+import { PlayerState } from './playerState.js'
 
 export enum GameResult {
     Abandoned = 'Abandoned',
@@ -14,6 +15,7 @@ export type GameState = Static<typeof GameState>
 export const GameState = Type.Object({
     id: Type.String(),
     gameId: Type.String(),
+    players: Type.Array(PlayerState),
     activePlayerIds: Type.Array(Type.String()),
     actionCount: Type.Number(),
     actionChecksum: Type.Number(),
@@ -34,6 +36,7 @@ export abstract class HydratableGameState<T extends TSchema>
 {
     declare id: string
     declare gameId: string
+    declare players: PlayerState[]
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number

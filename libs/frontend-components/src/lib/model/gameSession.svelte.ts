@@ -126,6 +126,10 @@ export class GameSession {
         return undoableUserAction
     })
 
+    private playerNamesById = $derived(
+        new Map(this.game.players.map((player) => [player.id, player.name]))
+    )
+
     activePlayers: Player[] = $derived.by(() => {
         const state = this.game.state
         if (!state) {
@@ -205,6 +209,11 @@ export class GameSession {
         this.actions = actions.toSorted((a, b) => a.index! - b.index!)
         this.verifyFullChecksum()
         this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
+    }
+
+    getPlayerName(playerId?: string) {
+        if (!playerId) return 'Someone'
+        return this.playerNamesById.get(playerId) ?? 'Someone'
     }
 
     listenToGame() {

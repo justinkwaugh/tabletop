@@ -19,7 +19,6 @@ export type FreshFishPlayerState = Static<typeof FreshFishPlayerState>
 export const FreshFishPlayerState = Type.Composite([
     PlayerState,
     Type.Object({
-        color: Type.Enum(PlayerColor),
         money: Type.Number(),
         score: Type.Number(),
         stalls: Type.Array(PlayerStall),

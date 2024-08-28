@@ -33,18 +33,9 @@ export class FreshFishGameSession extends GameSession {
     previewExpropriateCoords: Coordinates[] = $state([])
     highlightedCoords: Coordinates | undefined = $state()
 
-    private playerNamesById = $derived(
-        new Map(this.game.players.map((player) => [player.id, player.name]))
-    )
-
     private playerColorsById = $derived(
         new Map(this.gameState.players.map((player) => [player.playerId, player.color]))
     )
-
-    getPlayerName(playerId?: string) {
-        if (!playerId) return 'Someone'
-        return this.playerNamesById.get(playerId) ?? 'Someone'
-    }
 
     getPlayerBgColor(playerId?: string) {
         return uiBgColorForPlayer(this.playerColorsById.get(playerId ?? 'unknown')) ?? 'bg-gray-500'
