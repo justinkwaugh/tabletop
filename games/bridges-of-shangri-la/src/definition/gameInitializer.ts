@@ -13,13 +13,14 @@ import {
     shuffle
 } from '@tabletop/common'
 import { HydratedBridgesGameState } from '../model/gameState.js'
-import { BridgesPlayerState, PlayerColor } from '../model/playerState.js'
+import { BridgesPlayerState } from '../model/playerState.js'
 
 import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { BridgesGameBoard } from '../components/gameBoard.js'
 import { MasterType } from './masterType.js'
 import { Village } from '../components/village.js'
+import { BridgesPlayerColors } from './colors.js'
 
 export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeGameState(game: Game, seed?: number): HydratedGameState {
@@ -51,7 +52,7 @@ export class BridgesGameInitializer extends BaseGameInitializer implements GameI
     }
 
     private initializePlayers(game: Game, prng: RandomFunction): BridgesPlayerState[] {
-        const colors = [PlayerColor.Red, PlayerColor.Blue, PlayerColor.Yellow, PlayerColor.Purple]
+        const colors = structuredClone(BridgesPlayerColors)
 
         shuffle(colors, prng)
 

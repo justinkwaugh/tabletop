@@ -1,4 +1,4 @@
-import { PlayerColor } from '@tabletop/fresh-fish'
+import { PlayerColor } from '@tabletop/common'
 
 export function uiColorForPlayer(color?: string): string {
     switch (color) {

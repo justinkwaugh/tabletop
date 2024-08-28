@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { type Player } from '@tabletop/common'
-    import { FreshFishPlayerState, GoodsType, PlayerColor } from '@tabletop/fresh-fish'
+    import { PlayerColor, type Player } from '@tabletop/common'
+    import { FreshFishPlayerState, GoodsType } from '@tabletop/fresh-fish'
     import { uiBgColorForPlayer } from '$lib/utils/playerColors'
     import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'

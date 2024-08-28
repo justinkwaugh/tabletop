@@ -8,11 +8,7 @@ import {
     GameStatus
 } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
-import {
-    FreshFishPlayerState,
-    HydratedFreshFishPlayerState,
-    PlayerColor
-} from '../model/playerState.js'
+import { FreshFishPlayerState, HydratedFreshFishPlayerState } from '../model/playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
 
 import { nanoid } from 'nanoid'
@@ -23,6 +19,7 @@ import { MachineState } from './states.js'
 import { StallTile, TileType } from '../components/tiles.js'
 import { Value } from '@sinclair/typebox/value'
 import { generateBoard } from '../util/boardGenerator.js'
+import { FreshFishPlayerColors } from './colors.js'
 
 export class FreshFishGameInitializer implements GameInitializer {
     initializeGame(game: Partial<Game>): Game {
@@ -93,13 +90,7 @@ export class FreshFishGameInitializer implements GameInitializer {
     }
 
     private initializePlayers(game: Game, prng: RandomFunction): FreshFishPlayerState[] {
-        const colors = [
-            PlayerColor.Red,
-            PlayerColor.Blue,
-            PlayerColor.Green,
-            PlayerColor.Yellow,
-            PlayerColor.Purple
-        ]
+        const colors = structuredClone(FreshFishPlayerColors)
 
         shuffle(colors, prng)
 

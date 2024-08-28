@@ -4,14 +4,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Coordinates } from '../components/gameBoard.js'
 import { ScoringInfo } from '../util/scoring.js'
-
-export enum PlayerColor {
-    Red = 'red',
-    Blue = 'blue',
-    Green = 'green',
-    Yellow = 'yellow',
-    Purple = 'purple'
-}
+import { PlayerColor } from '@tabletop/common'
 
 export type PlayerStall = Static<typeof PlayerStall>
 export const PlayerStall = Type.Object({

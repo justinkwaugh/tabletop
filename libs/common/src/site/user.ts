@@ -19,6 +19,12 @@ export enum ExternalAuthService {
     Discord = 'discord'
 }
 
+export type UserPreferences = Static<typeof UserPreferences>
+export const UserPreferences = Type.Object({
+    webNotifications: Type.Boolean(),
+    preferredColors: Type.Array(Type.String())
+})
+
 export type User = Static<typeof User>
 export const User = Type.Object({
     id: Type.String(),
@@ -32,6 +38,7 @@ export const User = Type.Object({
     sms: Type.Optional(Type.String()),
     roles: Type.Array(Type.Enum(Role)),
     externalIds: Type.Array(Type.String()),
+    preferences: Type.Optional(UserPreferences),
     createdAt: Type.Optional(Type.Date()),
     updatedAt: Type.Optional(Type.Date())
 })

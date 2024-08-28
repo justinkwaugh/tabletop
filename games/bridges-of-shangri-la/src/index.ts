@@ -1,4 +1,5 @@
 export * from './definition/gameDefinition.js'
+export * from './definition/colors.js'
 export * from './model/gameState.js'
 export * from './components/gameBoard.js'
 export * from './components/village.js'

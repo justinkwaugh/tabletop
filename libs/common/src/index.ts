@@ -22,6 +22,7 @@ export * from './game/model/player.js'
 export * from './game/model/playerState.js'
 export * from './game/model/actionGroup.js'
 export * from './game/model/turn.js'
+export * from './game/model/playerColors.js'
 
 export * from './site/notifications/notification.js'
 export * from './site/notifications/gameNotification.js'

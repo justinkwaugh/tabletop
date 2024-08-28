@@ -8,9 +8,8 @@
     import gelatoStallDarkImg from '$lib/images/gelato-stall-dark.png'
     import sodaStallDarkImg from '$lib/images/soda-stall-dark.png'
     import { uiBgColorForPlayer } from '$lib/utils/playerColors'
-    import { GoodsType, PlayerColor } from '@tabletop/fresh-fish'
-    import { fadeScale, type FadeScaleParams } from '@tabletop/frontend-components'
-    import { fade } from 'svelte/transition'
+    import { GoodsType } from '@tabletop/fresh-fish'
+    import { PlayerColor } from '@tabletop/common'
 
     let {
         size = 100,
