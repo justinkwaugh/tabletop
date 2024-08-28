@@ -148,37 +148,38 @@
                     {/each}
                 {/if} -->
 
-            <Label class="space-y-2">
+            <div>
                 <Toggle bind:checked={preferences.preferredColorsEnabled}
                     >Preferred Player Colors</Toggle
                 >
+
                 {#if preferences.preferredColorsEnabled}
-                    <div
-                        class="h-[48px] rounded-lg border-gray-600 border p-2 flex flex-row justify-start items-center"
-                    >
-                        {#each preferences.preferredColors as color, i (color)}
-                            <div
-                                role="button"
-                                tabindex="0"
-                                draggable={color !== undefined}
-                                ondragover={(e) => allowDrop(e)}
-                                ondrop={(e) => drop(e)}
-                                ondragstart={(e) => dragStart(e, 'colors', i, color)}
-                                ondragenter={(e) => dragEnter(e, 'colors', i)}
-                                animate:flip={{ duration: 100 }}
-                                class="{color === draggedColor
-                                    ? ''
-                                    : ''} rounded-lg h-[30px] w-[26px] {bgColorForColor(
-                                    color
-                                )} border-gray-800 border-2"
-                            ></div>
-                        {/each}
+                    <div class="mt-4 flex flex-col rounded-lg border-gray-600 border p-2">
+                        <div class="flex flex-row justify-between items-center">
+                            {#each preferences.preferredColors as color, i (color)}
+                                <div
+                                    role="button"
+                                    tabindex="0"
+                                    draggable={color !== undefined}
+                                    ondragover={(e) => allowDrop(e)}
+                                    ondrop={(e) => drop(e)}
+                                    ondragstart={(e) => dragStart(e, 'colors', i, color)}
+                                    ondragenter={(e) => dragEnter(e, 'colors', i)}
+                                    animate:flip={{ duration: 100 }}
+                                    class="{color === draggedColor
+                                        ? ''
+                                        : ''} rounded-lg h-[40px] w-[26px] {bgColorForColor(
+                                        color
+                                    )} border-gray-800 border-2"
+                                ></div>
+                            {/each}
+                        </div>
+                        <Helper class="mt-2" color="gray"
+                            ><span class="font-medium">drag to reorder</span></Helper
+                        >
                     </div>
-                    <Helper class="mb-2" color="green"
-                        ><span class="font-medium">drag to reorder</span></Helper
-                    >
                 {/if}
-            </Label>
+            </div>
             <div class="flex justify-end"><Button type="submit" class="">Save</Button></div>
         </form>
     </Card>
