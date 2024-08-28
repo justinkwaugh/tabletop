@@ -50,11 +50,11 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         cache: 10000, // default 5000
         keyGenerator: (request: FastifyRequest) => {
             if (request.session.userId) {
-                console.log('using session user id: ', request.session.userId)
                 return `user:${request.session.userId}`
             }
-            console.log('using ip: ', request.ip)
-            return `ip:${request.ip}`
+            const clientIp = request.headers['fastly-client-ip'] || request.ip
+            console.log('client ip: ', clientIp)
+            return `ip:${clientIp}`
         }
     })
 
