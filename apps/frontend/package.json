@@ -16,10 +16,10 @@
         "test:unit": "vitest"
     },
     "dependencies": {
+        "@tabletop/bridges-of-shangri-la-ui": "*",
         "@tabletop/common": "*",
         "@tabletop/fresh-fish": "*",
         "@tabletop/fresh-fish-ui": "*",
-        "@tabletop/bridges-of-shangri-la-ui": "*",
         "@tabletop/frontend-components": "*",
         "ably": "^2.3.1",
         "javascript-time-ago": "^2.5.10",

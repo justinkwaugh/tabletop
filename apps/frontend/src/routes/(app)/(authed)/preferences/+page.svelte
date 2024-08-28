@@ -105,6 +105,13 @@
     }
 </script>
 
+<div>
+    <script
+        src="https://drag-drop-touch-js.github.io/dragdroptouch/dist/drag-drop-touch.esm.min.js?autoload"
+        type="module"
+    ></script>
+</div>
+
 <div class="h-[calc(100vh-70px)] flex flex-col items-center justify-center space-y-6">
     <Card class="bg-gray-300">
         <form class="flex flex-col space-y-6" action="/" onsubmit={submit}>
