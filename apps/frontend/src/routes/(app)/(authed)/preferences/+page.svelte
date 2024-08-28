@@ -174,9 +174,11 @@
                                 ></div>
                             {/each}
                         </div>
-                        <Helper class="mt-2" color="gray"
-                            ><span class="font-medium">drag to reorder</span></Helper
-                        >
+                        <div class="flex flex-row justify-center items-center">
+                            <Helper class="mt-2" color="gray"
+                                ><span class="font-medium">drag to reorder</span></Helper
+                            >
+                        </div>
                     </div>
                 {/if}
             </div>
