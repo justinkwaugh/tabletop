@@ -16,14 +16,18 @@
             return false
         }
 
-        if (gameSession.validActionTypes.length === 1) {
+        if (
+            (gameSession.chosenAction === ActionType.PlaceMaster ||
+                gameSession.chosenAction === ActionType.RecruitStudents) &&
+            gameSession.validActionTypes.length === 1 &&
+            (!gameSession.chosenMasterType || validMasterTypesToPlace.length === 1)
+        ) {
             return false
         }
 
         if (
-            (gameSession.chosenAction === ActionType.PlaceMaster ||
-                gameSession.chosenAction === ActionType.RecruitStudents) &&
-            validMasterTypesToPlace.length === 1
+            gameSession.chosenAction === ActionType.BeginJourney &&
+            gameSession.validActionTypes.length === 1
         ) {
             return false
         }
