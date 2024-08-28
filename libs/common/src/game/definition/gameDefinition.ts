@@ -6,6 +6,7 @@ import { MachineStateHandler } from '../engine/machineStateHandler.js'
 import { HydratedAction } from '../engine/gameAction.js'
 import { GameStateLogger } from './gameStateLogger.js'
 import { GameConfig } from './gameConfig.js'
+import { PlayerColor } from '../model/playerColors.js'
 
 export interface GameDefinition {
     id: string
@@ -14,6 +15,7 @@ export interface GameDefinition {
     stateHandlers: Record<string, MachineStateHandler<HydratedAction>>
     hydrator: GameHydrator
     apiActions: Record<string, TSchema>
+    playerColors: PlayerColor[]
 
     config?: GameConfig
     stateLogger?: GameStateLogger

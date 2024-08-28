@@ -3,6 +3,7 @@ import { BridgesHydrator } from './hydrator.js'
 import { BridgesGameInitializer } from './gameInitializer.js'
 import { BridgesApiActions } from './apiActions.js'
 import { BridgesStateHandlers } from './stateHandlers.js'
+import { BridgesPlayerColors } from './colors.js'
 
 export const BridgesDefinition = <GameDefinition>{
     id: 'bridges',
@@ -21,6 +22,7 @@ export const BridgesDefinition = <GameDefinition>{
 
     stateHandlers: BridgesStateHandlers,
     apiActions: BridgesApiActions,
+    playerColors: BridgesPlayerColors,
 
     config: {},
     stateLogger: new DefaultStateLogger()

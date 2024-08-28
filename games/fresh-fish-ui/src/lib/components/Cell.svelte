@@ -13,7 +13,6 @@
     import emptyTileImg from '$lib/images/tile-empty.png'
     import roadImg from '$lib/images/tile-road.png'
     import { getContext } from 'svelte'
-    import { uiColorForPlayer } from '$lib/utils/playerColors'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import StallTile from '$lib/components/StallTile.svelte'
     import MarketTile from '$lib/components/MarketTile.svelte'
@@ -35,10 +34,6 @@
     })
 
     let backgroundImage = $derived.by(() => {
-        // if (gameSession.isExpropriationPreviewed(coords)) {
-        //     return `url(${roadImg})`
-        // }
-
         switch (cell.type) {
             case CellType.Disk:
             case CellType.Empty:
@@ -55,15 +50,11 @@
     })
 
     let playerColor = $derived(
-        isStallCell(cell)
-            ? gameSession.hydratedState.getPlayerState(cell.playerId)?.color
-            : 'transparent'
+        isStallCell(cell) ? gameSession.getPlayerColor(cell.playerId) : 'transparent'
     )
 
     let uiPlayerColor = $derived(
-        isDiskCell(cell)
-            ? uiColorForPlayer(gameSession.hydratedState.getPlayerState(cell.playerId)?.color)
-            : 'transparent'
+        isDiskCell(cell) ? gameSession.getPlayerUiColor(cell.playerId) : 'transparent'
     )
 
     let interacting = $derived(

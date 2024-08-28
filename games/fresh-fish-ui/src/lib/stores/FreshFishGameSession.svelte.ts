@@ -17,7 +17,7 @@ import {
     isStallTile
 } from '@tabletop/fresh-fish'
 import { type GameAction } from '@tabletop/common'
-import { uiBgColorForPlayer } from '$lib/utils/playerColors'
+import { uiBgColorForPlayer, uiColorForPlayer } from '$lib/utils/playerColors'
 
 export class FreshFishGameSession extends GameSession {
     chosenAction: string | undefined = $state(undefined)
@@ -33,18 +33,16 @@ export class FreshFishGameSession extends GameSession {
     previewExpropriateCoords: Coordinates[] = $state([])
     highlightedCoords: Coordinates | undefined = $state()
 
-    private playerColorsById = $derived(
-        new Map(this.gameState.players.map((player) => [player.playerId, player.color]))
-    )
-
     getPlayerBgColor(playerId?: string) {
-        return uiBgColorForPlayer(this.playerColorsById.get(playerId ?? 'unknown')) ?? 'bg-gray-500'
+        return uiBgColorForPlayer(this.getPlayerColor(playerId)) ?? 'bg-gray-500'
+    }
+
+    getPlayerUiColor(playerId?: string) {
+        return uiColorForPlayer(this.getPlayerColor(playerId)) ?? 'bg-gray-500'
     }
 
     getPlayerTextColor(playerId?: string) {
-        return this.playerColorsById.get(playerId ?? 'unknown') === 'yellow'
-            ? 'text-black'
-            : 'text-white'
+        return this.getPlayerColor(playerId) === 'yellow' ? 'text-black' : 'text-white'
     }
 
     getGoodsName(goodsType: string) {

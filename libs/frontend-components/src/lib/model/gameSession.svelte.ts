@@ -12,7 +12,9 @@ import {
     GameSyncStatus,
     findLastIndex,
     calculateChecksum,
-    GameUndoActionNotification
+    GameUndoActionNotification,
+    User,
+    PlayerColor
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -130,6 +132,57 @@ export class GameSession {
         new Map(this.game.players.map((player) => [player.id, player.name]))
     )
 
+    private playerColorsById = $derived.by(() => {
+        const state = this.game.state
+        if (!state) {
+            return new Map()
+        }
+
+        const sessionUser = this.authorizationService.getSessionUser()
+        const preferredColor = this.getPreferredColor(sessionUser)
+
+        const playerCopies = $state.snapshot(state.players)
+
+        const conflictingPlayer = playerCopies.find(
+            (player) =>
+                preferredColor &&
+                player.color === preferredColor &&
+                player.playerId !== this.myPlayer?.id
+        )
+        const myPlayer = playerCopies.find((player) => player.playerId === this.myPlayer?.id)
+
+        if (preferredColor && myPlayer && myPlayer.color !== preferredColor) {
+            const myOriginalColor = myPlayer.color
+            myPlayer.color = preferredColor
+            if (conflictingPlayer) {
+                conflictingPlayer.color = myOriginalColor
+            }
+        }
+        return new Map(
+            playerCopies.map((player) => {
+                return [player.playerId, player.color]
+            })
+        )
+    })
+
+    private getPreferredColor(user?: User): PlayerColor | undefined {
+        if (!user || !user.preferences) {
+            return undefined
+        }
+
+        const preferredColors = user.preferences.preferredColors
+        let preferredColor: PlayerColor | undefined
+        let bestRank = 999
+        for (const color of this.definition.playerColors) {
+            const rank = preferredColors.indexOf(color)
+            if (rank >= 0 && rank < bestRank) {
+                preferredColor = color
+                bestRank = rank
+            }
+        }
+        return preferredColor
+    }
+
     activePlayers: Player[] = $derived.by(() => {
         const state = this.game.state
         if (!state) {
@@ -214,6 +267,10 @@ export class GameSession {
     getPlayerName(playerId?: string) {
         if (!playerId) return 'Someone'
         return this.playerNamesById.get(playerId) ?? 'Someone'
+    }
+
+    getPlayerColor(playerId?: string) {
+        return this.playerColorsById.get(playerId ?? 'unknown') ?? PlayerColor.Gray
     }
 
     listenToGame() {

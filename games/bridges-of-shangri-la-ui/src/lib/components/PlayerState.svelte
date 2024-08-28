@@ -9,8 +9,7 @@
     let { player, playerState }: { player: Player; playerState: BridgesPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
-
-    let bgColor = $derived(uiBgColorForPlayer(playerState.color))
+    let bgColor = $derived(gameSession.getPlayerBgColor(player.id))
 </script>
 
 <div class="relative">

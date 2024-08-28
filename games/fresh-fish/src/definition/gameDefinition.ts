@@ -5,6 +5,7 @@ import { FreshFishStateLogger } from '../util/stateLogger.js'
 import { FreshFishApiActions } from './apiActions.js'
 import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishGameConfig } from './gameConfig.js'
+import { FreshFishPlayerColors } from './colors.js'
 
 export const FreshFishDefinition = <GameDefinition>{
     id: 'freshfish',
@@ -23,6 +24,7 @@ export const FreshFishDefinition = <GameDefinition>{
 
     stateHandlers: FreshFishStateHandlers,
     apiActions: FreshFishApiActions,
+    playerColors: FreshFishPlayerColors,
 
     config: FreshFishGameConfig,
     stateLogger: new FreshFishStateLogger()

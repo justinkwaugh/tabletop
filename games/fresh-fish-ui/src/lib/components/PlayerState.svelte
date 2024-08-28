@@ -1,7 +1,6 @@
 <script lang="ts">
     import { PlayerColor, type Player } from '@tabletop/common'
     import { FreshFishPlayerState, GoodsType } from '@tabletop/fresh-fish'
-    import { uiBgColorForPlayer } from '$lib/utils/playerColors'
     import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
 
@@ -9,17 +8,8 @@
     let { player, playerState }: { player: Player; playerState: FreshFishPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
-
-    let bgColor = $derived(uiBgColorForPlayer(playerState.color))
-
-    let textColor = $derived.by(() => {
-        switch (playerState.color) {
-            case PlayerColor.Yellow:
-                return 'text-black'
-            default:
-                return 'text-white'
-        }
-    })
+    let bgColor = $derived(gameSession.getPlayerBgColor(player.id))
+    let textColor = $derived(gameSession.getPlayerTextColor(player.id))
 
     function letterForGoodsType(goodsType: string) {
         switch (goodsType) {
