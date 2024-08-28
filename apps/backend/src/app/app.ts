@@ -55,6 +55,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             const clientIp = request.headers['fastly-client-ip'] || request.ip
             console.log('client ip: ', clientIp)
             return `ip:${clientIp}`
+        },
+        onExceeded: (request: FastifyRequest, key: string) => {
+            console.log('REQUEST LIMIT EXCEEDED to', request.url, 'for key', key)
         }
     })
 
