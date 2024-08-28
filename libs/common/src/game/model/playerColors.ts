@@ -9,7 +9,5 @@ export enum PlayerColor {
     Brown = 'brown',
     Gray = 'gray',
     Black = 'black',
-    White = 'white',
-    Silver = 'silver',
-    Gold = 'gold'
+    White = 'white'
 }

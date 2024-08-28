@@ -14,7 +14,8 @@
         NavUl,
         NavLi,
         Toggle,
-        Heading
+        Heading,
+        Alert
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
     import { goto } from '$app/navigation'
@@ -22,7 +23,7 @@
     import GameEditForm from '$lib/components/GameEditForm.svelte'
     import { UserStatus } from '@tabletop/common'
     import type { AppContext } from '$lib/stores/appContext.svelte'
-    import { BellSolid } from 'flowbite-svelte-icons'
+    import { BellSolid, InfoCircleSolid } from 'flowbite-svelte-icons'
     import { VersionChange } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
@@ -34,6 +35,7 @@
 
     let sessionUser = $derived(authorizationService.getSessionUser())
     let showCreateGameModel = $state(false)
+    let showCancelPrompt = $state(false)
 
     async function onLogout() {
         await api.logout()
@@ -53,6 +55,11 @@
 
     async function gotoProfile() {
         await goto('/profile')
+    }
+
+    async function gotoPreferences() {
+        showCancelPrompt = false
+        await goto('/preferences')
     }
 
     async function gotoDashboard() {
@@ -97,16 +104,12 @@
 
     async function dismissPrompt() {
         notificationService.hidePrompt()
+        showCancelPrompt = true
     }
 
     onMount(() => {
         notificationService.onMounted()
         visibilityService.setDocument(document)
-
-        // document.addEventListener('visibilitychange', visibilityChangeHandler)
-        return () => {
-            // document.removeEventListener('visibilitychange', visibilityChangeHandler)
-        }
     })
 
     $effect(() => {
@@ -196,6 +199,7 @@
                             <DropdownItem onclick={gotoDashboard}>Dashboard</DropdownItem>
                         {/if}
                         <DropdownItem onclick={gotoProfile}>Profile</DropdownItem>
+                        <DropdownItem onclick={gotoPreferences}>Preferences</DropdownItem>
                         <DropdownDivider />
                         <DropdownItem onclick={gotoAbout} class="md:hidden">About us</DropdownItem>
                         <DropdownDivider class="md:hidden" />
@@ -227,6 +231,37 @@
     onclick={(e) => e.stopPropagation()}
 >
     <GameEditForm oncancel={() => closeCreateModal()} onsave={(game) => onGameCreate()} />
+</Modal>
+<Modal
+    bind:open={showCancelPrompt}
+    size="xs"
+    autoclose={false}
+    class="w-full"
+    outsideclose
+    dismissable={false}
+    onclick={(e) => e.stopPropagation()}
+>
+    <Alert color="blue">
+        <div class="flex items-center gap-3">
+            <span class="text-lg font-medium">Just so you know...</span>
+        </div>
+        <p class="mt-2 mb-4 text-sm">
+            If you do not want to be prompted about notifications any more, you can configure that
+            in your prefences.
+        </p>
+        <div class="flex gap-2">
+            <Button
+                onclick={() => {
+                    showCancelPrompt = false
+                }}
+                size="xs"
+                color="blue">Got it</Button
+            >
+            <Button onclick={() => gotoPreferences()} size="xs" outline color="light"
+                >Go to Preferences</Button
+            >
+        </div>
+    </Alert>
 </Modal>
 {#if notificationService.shouldShowPrompt()}
     <Banner

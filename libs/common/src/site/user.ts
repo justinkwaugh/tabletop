@@ -1,4 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
+import { PlayerColor } from '../game/model/playerColors'
 
 export enum Role {
     User = 'user',
@@ -21,8 +22,9 @@ export enum ExternalAuthService {
 
 export type UserPreferences = Static<typeof UserPreferences>
 export const UserPreferences = Type.Object({
-    webNotifications: Type.Boolean(),
-    preferredColors: Type.Array(Type.String())
+    preventWebNotificationPrompt: Type.Boolean(),
+    preferredColorsEnabled: Type.Boolean(),
+    preferredColors: Type.Array(Type.Enum(PlayerColor))
 })
 
 export type User = Static<typeof User>

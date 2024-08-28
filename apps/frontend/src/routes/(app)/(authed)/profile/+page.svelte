@@ -160,7 +160,7 @@
     }
 </script>
 
-<div class="h-screen flex flex-col items-center justify-center space-y-6">
+<div class="h-[calc(100vh-70px)] flex flex-col items-center justify-center space-y-6">
     <Card class="bg-gray-300">
         <form class="flex flex-col space-y-6" action="/" onsubmit={submit}>
             <h3 class="text-xl font-medium text-gray-900 dark:text-white">Edit your profile...</h3>

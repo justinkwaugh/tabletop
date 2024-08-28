@@ -1,5 +1,5 @@
 import { UserStore } from '../persistence/stores/userStore.js'
-import { ExternalAuthService, Role, User, UserStatus } from '@tabletop/common'
+import { ExternalAuthService, Role, User, UserPreferences, UserStatus } from '@tabletop/common'
 import { TokenType, TokenService } from '../tokens/tokenService.js'
 import { TaskService } from '../tasks/taskService.js'
 import {
@@ -59,6 +59,14 @@ export class UserService {
         }
 
         return createdUser
+    }
+
+    async updateUserPreferences(userId: string, preferences: UserPreferences): Promise<User> {
+        const [updatedUser] = await this.userStore.updateUser({
+            userId,
+            fields: { preferences }
+        })
+        return updatedUser
     }
 
     async updateUser(

@@ -1,7 +1,7 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import QueryStringAddon from 'wretch/addons/queryString'
 import { Value } from '@sinclair/typebox/value'
-import { Game, GameAction, GameSyncStatus, User } from '@tabletop/common'
+import { Game, GameAction, GameSyncStatus, User, UserPreferences } from '@tabletop/common'
 import type {
     AblyTokenResponse,
     ApplyActionResponse,
@@ -136,6 +136,16 @@ export class TabletopApi {
     async updateUser(user: Partial<User>): Promise<User> {
         const response = await this.wretch
             .post(user, '/user/update')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
+    async updateUserPreferences(userId: string, preferences: UserPreferences): Promise<User> {
+        const response = await this.wretch
+            .post({ userId, preferences }, '/user/updatePreferences')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()

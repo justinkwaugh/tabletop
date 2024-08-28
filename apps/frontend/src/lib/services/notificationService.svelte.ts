@@ -158,6 +158,10 @@ export class NotificationService {
         if (this.promptShown) {
             return
         }
+        const user = this.authorizationService.getSessionUser()
+        if (user && user.preferences?.preventWebNotificationPrompt) {
+            return
+        }
 
         if (!this.hasWebNotificationPermission() && this.canAskforWebNotificationPermission()) {
             this.promptShown = true

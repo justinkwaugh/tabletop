@@ -279,6 +279,11 @@ export class FirestoreUserStore implements UserStore {
                         updatedFields.push('email')
                     }
 
+                    if (fieldsToUpdate.preferences) {
+                        updatedUser.preferences = fieldsToUpdate.preferences
+                        updatedFields.push('preferences')
+                    }
+
                     if (
                         fieldsToUpdate.emailVerified !== undefined &&
                         existingUser.emailVerified !== fieldsToUpdate.emailVerified
