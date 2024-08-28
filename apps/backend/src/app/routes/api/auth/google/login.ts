@@ -15,6 +15,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: LoginRequest }>(
         '/login',
         {
+            config: { rateLimit: { max: 50, timeWindow: '1 minute' } },
             schema: { body: LoginRequest }
         },
         async function (request, _reply) {

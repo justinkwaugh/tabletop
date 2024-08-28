@@ -19,6 +19,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: UserCreateRequest }>(
         '/create',
         {
+            config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
             schema: { body: UserCreateRequest }
         },
         async function (request, _reply) {

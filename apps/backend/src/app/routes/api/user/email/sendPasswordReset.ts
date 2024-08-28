@@ -10,6 +10,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: ResetPasswordRequest }>(
         '/sendPasswordReset',
         {
+            config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
             schema: { body: ResetPasswordRequest }
         },
         async function (request, _reply) {

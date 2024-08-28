@@ -46,7 +46,6 @@ export default fp(async function (fastify: FastifyInstance) {
         if (!userId) {
             throw new Error('No user id in session')
         }
-        fastify.log.info(`userId was ${userId}`)
 
         const user = await fastify.userService.getUser(userId)
         if (!user) {

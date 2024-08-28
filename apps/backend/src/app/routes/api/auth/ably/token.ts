@@ -4,6 +4,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.get(
         '/token',
         {
+            config: { rateLimit: { max: 1000, timeWindow: '1 minute' } },
             onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
                 relation: 'and'
             })

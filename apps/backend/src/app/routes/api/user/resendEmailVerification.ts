@@ -4,6 +4,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.post(
         '/resendEmailVerification',
         {
+            config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
             onRequest: fastify.auth([fastify.verifyIncompleteUser, fastify.verifyRoleUser], {
                 relation: 'and'
             })

@@ -17,6 +17,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
     fastify.post<{ Body: CreateGameRequest }>(
         `/create`,
         {
+            config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
             schema: { body: CreateGameRequest },
             onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
                 relation: 'and'

@@ -4,6 +4,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.post(
         '/sendEmailAuthVerification',
         {
+            config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
             onRequest: fastify.auth([fastify.verifyActiveUser], { relation: 'and' })
         },
         async function (request, _reply) {

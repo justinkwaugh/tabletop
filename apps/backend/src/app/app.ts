@@ -1,5 +1,5 @@
 import * as path from 'path'
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import AutoLoad from '@fastify/autoload'
 import SecureSession from '@fastify/secure-session'
 import Auth from '@fastify/auth'
@@ -8,6 +8,7 @@ import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
 import fastifyStatic from '@fastify/static'
+import fastifyRateLimit from '@fastify/rate-limit'
 import { BaseError, ErrorCategory } from '@tabletop/common'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
 
@@ -37,6 +38,25 @@ export interface AppOptions {
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(fastifyPrintRoutes)
+
+    await fastify.register(fastifyRateLimit, {
+        global: true,
+        max: (request: FastifyRequest, key: string) => {
+            if (key.startsWith('user:')) {
+                return 500
+            }
+            return 100
+        },
+        cache: 10000, // default 5000
+        keyGenerator: (request: FastifyRequest) => {
+            if (request.session.userId) {
+                console.log('using session user id: ', request.session.userId)
+                return `user:${request.session.userId}`
+            }
+            console.log('using ip: ', request.ip)
+            return `ip:${request.ip}`
+        }
+    })
 
     fastify.setErrorHandler(async function (error, req, rep) {
         if (!rep.statusCode || rep.statusCode < 400) {

@@ -14,6 +14,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: LoginRequest }>(
         '/link',
         {
+            config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
             schema: { body: LoginRequest },
             onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
         },
