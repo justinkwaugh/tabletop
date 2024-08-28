@@ -1,5 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { PlayerColor } from '../game/model/playerColors'
+import { PlayerColor } from '../game/model/playerColors.js'
 
 export enum Role {
     User = 'user',
