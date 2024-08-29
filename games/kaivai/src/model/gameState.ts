@@ -9,6 +9,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { MachineState } from '../definition/states.js'
 import { KaivaiGameBoard, HydratedKaivaiGameBoard } from '../components/gameBoard.js'
+import { PlayerAction } from 'src/definition/playerActions.js'
 
 export type KaivaiGameState = Static<typeof KaivaiGameState>
 export const KaivaiGameState = Type.Composite([
@@ -17,7 +18,9 @@ export const KaivaiGameState = Type.Composite([
         seed: Type.Number(),
         players: Type.Array(KaivaiPlayerState),
         machineState: Type.Enum(MachineState),
-        board: KaivaiGameBoard
+        board: KaivaiGameBoard,
+        influence: Type.Record(Type.Enum(PlayerAction), Type.Number()),
+        cultTiles: Type.Number()
     })
 ])
 
@@ -45,7 +48,8 @@ export class HydratedKaivaiGameState
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare board: HydratedKaivaiGameBoard
-    declare stones: number
+    declare influence: Record<PlayerAction, number>
+    declare cultTiles: number
 
     constructor(data: KaivaiGameState) {
         const hydratedProperties: HydratedProperties = {

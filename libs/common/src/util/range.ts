@@ -1,6 +1,6 @@
-export function range(start: number, stop: number) {
+export function range(start: number, steps: number) {
     const result = []
-    const end = start + stop
+    const end = start + steps
     for (start; start < end; start++) {
         result.push(start)
     }

@@ -3,7 +3,8 @@ import {
     generateSeed,
     getPrng,
     RandomFunction,
-    BaseGameInitializer
+    BaseGameInitializer,
+    range
 } from '@tabletop/common'
 import {
     Game,
@@ -19,6 +20,7 @@ import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { KaivaiGameBoard } from '../components/gameBoard.js'
 import { KaivaiPlayerColors } from './colors.js'
+import { PlayerAction } from './playerActions.js'
 
 export class KaivaiGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeGameState(game: Game, seed?: number): HydratedGameState {
@@ -42,7 +44,16 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             players: players,
             machineState: MachineState.EndOfGame,
             winningPlayerIds: [],
-            board
+            board,
+            influence: {
+                [PlayerAction.Build]: 0,
+                [PlayerAction.Fish]: 0,
+                [PlayerAction.Deliver]: 0,
+                [PlayerAction.Celebrate]: 0,
+                [PlayerAction.Move]: 0,
+                [PlayerAction.Increase]: 0
+            },
+            cultTiles: 12
         })
 
         return state
@@ -57,6 +68,15 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             return {
                 playerId: player.id,
                 color: colors[index],
+                boats: range(1, 6).map((index) => {
+                    return {
+                        id: String(index),
+                        owner: player.id
+                    }
+                }),
+                movementModiferPosition: 0,
+                shells: [0, 0, 0, 0, 3], // 3 five-value shells
+                fish: [0, 0, 0, 3, 0], // 3 four-value fish
                 score: 0
             }
         })
