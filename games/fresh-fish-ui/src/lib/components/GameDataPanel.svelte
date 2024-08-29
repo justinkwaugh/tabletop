@@ -30,7 +30,9 @@
             {#each gameSession.gameState.finalStalls as stall}
                 <StallTile
                     size={56}
-                    playerColor={playerForFinalStall(stall.goodsType)?.color ?? ''}
+                    playerColor={gameSession.getPlayerColor(
+                        playerForFinalStall(stall.goodsType)?.playerId
+                    ) ?? ''}
                     goodsType={stall.goodsType}
                 />
             {/each}
