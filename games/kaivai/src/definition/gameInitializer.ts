@@ -85,7 +85,9 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
     }
 
     private initializeBoard(_numPlayers: number): KaivaiGameBoard {
-        const board: KaivaiGameBoard = {}
+        const board: KaivaiGameBoard = {
+            islands: []
+        }
         return board
     }
 }
