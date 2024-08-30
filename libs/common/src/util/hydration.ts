@@ -16,7 +16,3 @@ export abstract class Hydratable<T extends TSchema> {
         return structuredClone(this)
     }
 }
-
-export function dehydrate<T>(hydrated: T): T {
-    return structuredClone(hydrated)
-}

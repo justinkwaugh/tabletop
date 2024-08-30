@@ -51,6 +51,6 @@ export const HexCoordinates = Type.Union([
     HexTupleCoordinates
 ])
 
-export function axialCoordinatesToNumber(q: number, r: number): number {
-    return szudzikPairSigned(q, r)
+export function axialCoordinatesToNumber(axial: AxialCoordinates): number {
+    return szudzikPairSigned(axial.q, axial.r)
 }
