@@ -2,7 +2,7 @@ import { Hydratable, PlayerState } from '@tabletop/common'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { PlayerColor } from '@tabletop/common'
-import { Boat } from 'src/components/boat'
+import { Boat } from '../components/boat.js'
 
 export type PlayerTile = Static<typeof PlayerTile>
 export const PlayerTile = Type.Object({})

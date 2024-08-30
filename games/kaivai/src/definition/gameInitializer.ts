@@ -85,7 +85,14 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
     }
 
     private initializeBoard(_numPlayers: number): KaivaiGameBoard {
+        // const Hex = defineHex()
+        // const spiralTraverser = spiral({ radius: 7 })
+        // const hexGrid = new Grid(Hex, spiralTraverser)
+
+        // find place to put the two cult tiles
+
         const board: KaivaiGameBoard = {
+            cells: {},
             islands: []
         }
         return board

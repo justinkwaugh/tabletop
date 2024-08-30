@@ -9,7 +9,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { MachineState } from '../definition/states.js'
 import { KaivaiGameBoard, HydratedKaivaiGameBoard } from '../components/gameBoard.js'
-import { PlayerAction } from 'src/definition/playerActions.js'
+import { PlayerAction } from '../definition/playerActions.js'
 
 export type KaivaiGameState = Static<typeof KaivaiGameState>
 export const KaivaiGameState = Type.Composite([

@@ -1,4 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
+import { szudzikPairSigned } from '../util/pairing.js'
 
 // Useful for both square and hex grids
 export type OffsetCoordinates = Static<typeof OffsetCoordinates>
@@ -49,3 +50,7 @@ export const HexCoordinates = Type.Union([
     OffsetCoordinates,
     HexTupleCoordinates
 ])
+
+export function axialCoordinatesToNumber(q: number, r: number): number {
+    return szudzikPairSigned(q, r)
+}

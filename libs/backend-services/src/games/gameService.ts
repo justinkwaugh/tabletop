@@ -55,6 +55,7 @@ import {
 } from './errors.js'
 import { FreshFishDefinition } from '@tabletop/fresh-fish'
 import { BridgesDefinition } from '@tabletop/bridges-of-shangri-la'
+import { KaivaiDefinition } from '@tabletop/kaivai'
 import { GameInvitationTokenData } from '../tokens/tokenData.js'
 import { nanoid } from 'nanoid'
 import { GameStore } from '../persistence/stores/gameStore.js'
@@ -63,10 +64,12 @@ import { Retryable } from 'typescript-retry-decorator'
 
 const FreshFish = FreshFishDefinition
 const BridgesOfShangrila = BridgesDefinition
+const Kaivai = KaivaiDefinition
 
 export const AVAILABLE_TITLES: Record<string, GameDefinition> = {
     [FreshFish.id]: FreshFish,
-    [BridgesOfShangrila.id]: BridgesOfShangrila
+    [BridgesOfShangrila.id]: BridgesOfShangrila,
+    [Kaivai.id]: Kaivai
 }
 
 export class GameService {
