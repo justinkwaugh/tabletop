@@ -1,4 +1,5 @@
 export enum MachineState {
-    StartOfGame = 'StartOfGame',
+    Bidding = 'Bidding',
+    InitialHuts = 'InitialHuts',
     EndOfGame = 'EndOfGame'
 }

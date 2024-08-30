@@ -24,7 +24,7 @@ import { MachineState } from './states.js'
 import { KaivaiGameBoard } from '../components/gameBoard.js'
 import { KaivaiPlayerColors } from './colors.js'
 import { PlayerAction } from './playerActions.js'
-import { Cell, CellType } from './cells.js'
+import { Cell, CellType, CultCell } from './cells.js'
 import { defineHex, Grid, Hex, ring, spiral } from 'honeycomb-grid'
 import { Island } from '../components/island.js'
 
@@ -48,7 +48,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             actionCount: 0,
             actionChecksum: 0,
             players: players,
-            machineState: MachineState.EndOfGame,
+            machineState: MachineState.Bidding,
             winningPlayerIds: [],
             board,
             influence: {
@@ -80,6 +80,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                         owner: player.id
                     }
                 }),
+                fishermen: 6,
                 movementModiferPosition: 0,
                 shells: [0, 0, 0, 0, 3], // 3 five-value shells
                 fish: [0, 0, 0, 3, 0], // 3 four-value fish
@@ -104,7 +105,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
         // Mark initial islands
         for (const coords of initialCoords) {
-            islands.push({ coordList: [coords] })
+            islands.push({ id: nanoid(), coordList: [coords] })
         }
 
         // Create additional two islands
@@ -120,11 +121,14 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         initialCoords.push(...island2.coordList)
         islands.push(island2)
 
-        for (const coords of initialCoords) {
-            const id = axialCoordinatesToNumber(coords)
-            cells[id] = {
-                type: CellType.Cult,
-                coords
+        for (const island of islands) {
+            for (const coords of island.coordList) {
+                const cell: CultCell = {
+                    type: CellType.Cult,
+                    coords,
+                    islandId: island.id
+                }
+                cells[axialCoordinatesToNumber(coords)] = cell
             }
         }
 
@@ -162,6 +166,6 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             }
         }
 
-        return { coordList: pickRandom(validPositions, prng) }
+        return { id: nanoid(), coordList: pickRandom(validPositions, prng) }
     }
 }

@@ -1,12 +1,12 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { AxialCoordinates } from '@tabletop/common'
 import { Boat } from '../components/boat.js'
+import { HutType } from './huts.js'
 
 export enum CellType {
     Water = 'Water',
     Cult = 'Cult',
-    MeetingHut = 'MeetingHut',
-    FishermanHut = 'FishermanHut'
+    Hut = 'Hut'
 }
 
 export type BaseCell = Static<typeof BaseCell>
@@ -25,22 +25,18 @@ export const WaterCell = Type.Object({
 export type CultCell = Static<typeof CultCell>
 export const CultCell = Type.Object({
     ...BaseCell.properties,
-    type: Type.Literal(CellType.Cult)
+    type: Type.Literal(CellType.Cult),
+    islandId: Type.String()
 })
 
-export type MeetingHutCell = Static<typeof MeetingHutCell>
-export const MeetingHutCell = Type.Object({
+export type HutCell = Static<typeof HutCell>
+export const HutCell = Type.Object({
     ...BaseCell.properties,
-    type: Type.Literal(CellType.MeetingHut),
-    owner: Type.String()
-})
-
-export type FishermanHutCell = Static<typeof FishermanHutCell>
-export const FishermanHutCell = Type.Object({
-    ...BaseCell.properties,
-    type: Type.Literal(CellType.FishermanHut),
+    type: Type.Literal(CellType.Hut),
+    islandId: Type.String(),
+    hutType: Type.Enum(HutType),
     owner: Type.String()
 })
 
 export type Cell = Static<typeof Cell>
-export const Cell = Type.Union([WaterCell, CultCell, MeetingHutCell, FishermanHutCell])
+export const Cell = Type.Union([WaterCell, CultCell, HutCell])
