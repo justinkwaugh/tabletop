@@ -4,7 +4,10 @@ import {
     getPrng,
     RandomFunction,
     BaseGameInitializer,
-    range
+    range,
+    AxialCoordinates,
+    axialCoordinatesToNumber,
+    pickRandom
 } from '@tabletop/common'
 import {
     Game,
@@ -21,6 +24,8 @@ import { MachineState } from './states.js'
 import { KaivaiGameBoard } from '../components/gameBoard.js'
 import { KaivaiPlayerColors } from './colors.js'
 import { PlayerAction } from './playerActions.js'
+import { Cell, CellType } from './cells.js'
+import { defineHex, Grid, ring, spiral } from 'honeycomb-grid'
 
 export class KaivaiGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeGameState(game: Game, seed?: number): HydratedGameState {
@@ -31,7 +36,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         const numPlayers = game.players.length
         const turnManager = HydratedSimpleTurnManager.generate(players, prng)
 
-        const board = this.initializeBoard(numPlayers)
+        const board = this.initializeBoard(numPlayers, prng)
 
         const state = new HydratedKaivaiGameState({
             id: nanoid(),
@@ -84,15 +89,57 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         return players
     }
 
-    private initializeBoard(_numPlayers: number): KaivaiGameBoard {
-        // const Hex = defineHex()
-        // const spiralTraverser = spiral({ radius: 7 })
-        // const hexGrid = new Grid(Hex, spiralTraverser)
+    private initializeBoard(_numPlayers: number, prng: RandomFunction): KaivaiGameBoard {
+        const cells: Record<number, Cell> = {}
+        const initialCoords: AxialCoordinates[] = [
+            { q: -4, r: -1 },
+            { q: 0, r: -2 },
+            { q: -2, r: 2 },
+            { q: 5, r: -5 },
+            { q: 3, r: -1 },
+            { q: 1, r: 4 }
+        ]
 
-        // find place to put the two cult tiles
+        // find place to put the two variable cult tiles
+        const Hex = defineHex()
+        const spiralTraverser = spiral({ radius: 6 })
+        const hexGrid = new Grid(Hex, spiralTraverser)
+
+        // They can only be placed on the outer ring
+        const ringTraverser = ring({ center: [0, 0], radius: 6 })
+
+        let tileOneCoords: AxialCoordinates | undefined
+        const validPositions: [AxialCoordinates, AxialCoordinates][] = []
+
+        for (const hex of hexGrid.traverse(ringTraverser)) {
+            const hexCoords = { q: hex.q, r: hex.r }
+
+            // Check distance from all initial coords
+            if (initialCoords.some((coords) => hexGrid.distance(hex, coords) <= 3)) {
+                tileOneCoords = undefined
+                continue
+            }
+
+            if (!tileOneCoords) {
+                tileOneCoords = hexCoords
+            } else {
+                validPositions.push([tileOneCoords, hexCoords])
+                tileOneCoords = hexCoords
+            }
+        }
+
+        initialCoords.push(...pickRandom(validPositions, prng))
+
+        for (const coords of initialCoords) {
+            const id = axialCoordinatesToNumber(coords.q, coords.r)
+            cells[id] = {
+                type: CellType.Cult,
+                coords
+            }
+        }
 
         const board: KaivaiGameBoard = {
-            cells: {},
+            cells: cells,
             islands: []
         }
         return board

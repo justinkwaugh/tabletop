@@ -1,5 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { CubeCoordinates } from '@tabletop/common'
+import { AxialCoordinates } from '@tabletop/common'
 import { Boat } from '../components/boat.js'
 
 export enum CellType {
@@ -12,7 +12,7 @@ export enum CellType {
 export type BaseCell = Static<typeof BaseCell>
 export const BaseCell = Type.Object({
     type: Type.Enum(CellType),
-    coords: CubeCoordinates
+    coords: AxialCoordinates
 })
 
 export type WaterCell = Static<typeof WaterCell>

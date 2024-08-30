@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" class="dark">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
+        <meta name="msapplication-TileColor" content="#da532c" />
+        <meta name="theme-color" content="#333333" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        
+    </head>
+    <body data-sveltekit-preload-data="hover" class="bg-[#343a40] dark:bg-gray-900">
+        <div style="display: contents">
+			<script>
+				{
+					__sveltekit_dev = {
+						base: new URL("..", location).pathname.slice(0, -1),
+						env: {"PUBLIC_API_HOST":"http://localhost:3000","PUBLIC_SSE_HOST":"http://localhost:3000","PUBLIC_VERSION":"2.0.1","PUBLIC_GOOGLE_CLIENT_ID":"1047285629200-p78f8p8rrqtak6pcfbgiltikv516vn59.apps.googleusercontent.com","PUBLIC_VAPID_KEY":"BAyfrK5NRNfun8M7Zug28V5nk6Y7a_LB8ha1EkRW-b6MU_p9tF5_rV0j1MYa-omqo1SSOdtpGfvUbtt24wDYwFA"}
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("/@fs/Users/justin.w/dev/tabletop/node_modules/@sveltejs/kit/src/runtime/client/entry.js"),
+						import("/@fs/Users/justin.w/dev/tabletop/apps/frontend/.svelte-kit/generated/client/app.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+
+					if ('serviceWorker' in navigator) {
+						addEventListener('load', function () {
+							navigator.serviceWorker.register('../service-worker.js', { type: 'module' });
+						});
+					}
+				}
+			</script>
+		</div>
+    </body>
+</html>

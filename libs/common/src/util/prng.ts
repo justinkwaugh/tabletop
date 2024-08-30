@@ -22,3 +22,7 @@ export function getPrng(seed?: number): RandomFunction {
     }
     return splitmix32(seed)
 }
+
+export function pickRandom<T>(array: T[], prng: RandomFunction = getPrng()): T {
+    return array[Math.floor(prng() * array.length)]
+}

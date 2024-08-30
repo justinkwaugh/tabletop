@@ -29,20 +29,22 @@
         "!dist/**/*.spec.*"
     ],
     "peerDependencies": {
-        "svelte": "^5.0.0-next.1",
-        "@sveltejs/kit": "^2.5.19"
+        "@sveltejs/kit": "^2.5.19",
+        "svelte": "^5.0.0-next.1"
     },
     "dependencies": {
+        "@svgdotjs/svg.js": "^3.2.4",
         "@tabletop/common": "*",
-        "@tabletop/kaivai": "*",
         "@tabletop/frontend-components": "*",
+        "@tabletop/kaivai": "*",
+        "honeycomb-grid": "^4.1.5",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^3.3.7"
     },
     "devDependencies": {
-        "@sveltejs/package": "^2.3.2",
         "@playwright/test": "^1.42.1",
         "@sveltejs/kit": "^2.5.19",
+        "@sveltejs/package": "^2.3.2",
         "@sveltejs/vite-plugin-svelte": "^3.1.1",
         "@tabletop/eslint-config": "*",
         "@typescript-eslint/eslint-plugin": "^7.1.0",
