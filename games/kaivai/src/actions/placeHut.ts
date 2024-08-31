@@ -3,9 +3,10 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { AxialCoordinates, GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { CellType } from '../definition/cells.js'
+import { CellType, HutCell } from '../definition/cells.js'
 import { HutType } from '../definition/huts.js'
 import { MachineState } from '../definition/states.js'
+import { PhaseName } from 'src/definition/phases.js'
 
 export type PlaceHut = Static<typeof PlaceHut>
 export const PlaceHut = Type.Composite([
@@ -37,20 +38,35 @@ export class HydratedPlaceHut extends HydratableAction<typeof PlaceHut> implemen
     }
 
     apply(state: HydratedKaivaiGameState) {
-        // const playerState = state.getPlayerState(this.playerId)
+        const playerState = state.getPlayerState(this.playerId)
         const { valid, reason } = HydratedPlaceHut.isValidPlacement(state, this)
 
         if (!valid) {
             throw Error(reason)
         }
 
-        // const cell: HutCell = {
-        //     type: CellType.Hut,
-        //     coords: this.coords,
-        //     hutType: this.hutType,
-        //     owner: this.playerId
-        // }
-        // state.board.setCell(cell)
+        const neighboringIslandIds = state.board.getNeighboringIslands(this.coords)
+        if (neighboringIslandIds.length !== 1) {
+            throw Error(
+                'Hut must be placed adjacent to exactly one island... validationg should have caught this'
+            )
+        }
+
+        // needs a boat or fisherman
+        if (this.hutType === HutType.BoatBuilding) {
+            const boat = playerState.getBoat()
+        } else if (this.hutType === HutType.Fishing) {
+            playerState.removeFisherman()
+        }
+        const cell: HutCell = {
+            type: CellType.Hut,
+            coords: this.coords,
+            islandId: neighboringIslandIds[0],
+            hutType: this.hutType,
+            owner: this.playerId
+        }
+        state.board.addCell(cell)
+        playerState.initialHutsPlaced += 1
     }
 
     static isValidPlacement(
@@ -60,7 +76,13 @@ export class HydratedPlaceHut extends HydratableAction<typeof PlaceHut> implemen
         const playerState = state.getPlayerState(placement.playerId)
         const board = state.board
 
-        // One has to be boatbuilder in player setup
+        if (
+            state.phases.currentPhase?.name === PhaseName.InitialHuts &&
+            playerState.boats.length === 4 &&
+            placement.hutType !== HutType.BoatBuilding
+        ) {
+            return { valid: false, reason: 'One of the intial hut placements must be a boat' }
+        }
 
         if (!board.isInBounds(placement.coords)) {
             return { valid: false, reason: 'Placement is off board' }

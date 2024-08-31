@@ -39,13 +39,15 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
 
         switch (true) {
             case isPlaceBid(action): {
-                gameState.turnManager.endTurn(gameState.actionCount + 1)
+                gameState.turnManager.endTurn(gameState.actionCount)
 
                 if (gameState.bids.length === gameState.players.length) {
                     const turnOrder = Object.entries(gameState.bids)
                         .toSorted((a, b) => b[1] - a[1])
                         .map(([playerId]) => playerId)
                     gameState.turnManager.turnOrder = turnOrder
+
+                    gameState.phases.endPhase(gameState.actionCount)
 
                     if (gameState.rounds.currentRound?.number === 1) {
                         return MachineState.InitialHuts

@@ -2,30 +2,55 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
-import { HydratedPlaceHut } from '../actions/placeHut.js'
+import { HydratedPlaceHut, isPlaceHut } from '../actions/placeHut.js'
+import { PhaseName } from 'src/definition/phases.js'
 
-// Transition from InitialHuts(PlaceHut) -> InitialHuts | Actions
+// Transition from InitialHuts(PlaceHut) -> InitialHuts | PlacingGod
 export class InitialHutsStateHandler implements MachineStateHandler<HydratedPlaceHut> {
     isValidAction(action: HydratedAction, context: MachineContext): action is HydratedPlaceHut {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context)
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext): ActionType[] {
-        return []
+    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+        if (this.isValidActionType(ActionType.PlaceHut, playerId, context)) {
+            return [ActionType.PlaceHut]
+        } else {
+            return []
+        }
     }
 
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedKaivaiGameState
-
-        const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
+        let nextPlayerId
+        if (!gameState.phases.currentPhase) {
+            gameState.phases.startPhase(PhaseName.InitialHuts, gameState.actionCount)
+            nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
+        } else {
+            nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
+        }
         gameState.activePlayerIds = [nextPlayerId]
     }
 
-    onAction(_action: HydratedPlaceHut, _context: MachineContext): MachineState {
-        // const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: HydratedPlaceHut, context: MachineContext): MachineState {
+        const gameState = context.gameState as HydratedKaivaiGameState
+        const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {
+            case isPlaceHut(action): {
+                if (playerState.initialHutsPlaced < 2) {
+                    return MachineState.InitialHuts
+                } else {
+                    gameState.turnManager.endTurn(gameState.actionCount)
+
+                    if (gameState.players.every((player) => player.initialHutsPlaced === 2)) {
+                        gameState.phases.endPhase(gameState.actionCount)
+                        return MachineState.PlacingGod
+                    } else {
+                        return MachineState.InitialHuts
+                    }
+                }
+            }
             default: {
                 throw Error('Invalid action type')
             }
@@ -34,16 +59,13 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedPlac
 
     private isValidActionType(
         actionType: string,
-        _playerId: string,
-        _context: MachineContext
+        playerId: string,
+        context: MachineContext
     ): boolean {
-        // const gameState = context.gameState as HydratedKaivaiGameState
-        // const playerState = gameState.getPlayerState(playerId)
-
-        switch (actionType) {
-            default:
-                return false
-        }
-        return false
+        const gameState = context.gameState as HydratedKaivaiGameState
+        return (
+            actionType === ActionType.PlaceHut &&
+            gameState.getPlayerState(playerId).initialHutsPlaced < 2
+        )
     }
 }

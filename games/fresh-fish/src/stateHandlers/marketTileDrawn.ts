@@ -19,7 +19,7 @@ export class MarketTileDrawnStateHandler implements MachineStateHandler<Hydrated
 
     onAction(action: HydratedPlaceMarket, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedFreshFishGameState
-        gameState.turnManager.endTurn(gameState.actionCount + 1)
+        gameState.turnManager.endTurn(gameState.actionCount)
         if (gameState.tileBag.isEmpty()) {
             return MachineState.TileBagEmptied
         } else {

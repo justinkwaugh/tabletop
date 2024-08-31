@@ -89,7 +89,8 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 fish: [0, 0, 0, 3, 0], // 3 four-value fish
                 score: 0,
                 buildingCost: 0,
-                baseMovement: 0
+                baseMovement: 0,
+                initialHutsPlaced: 0
             }
         })
 

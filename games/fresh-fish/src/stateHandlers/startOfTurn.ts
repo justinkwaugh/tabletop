@@ -53,7 +53,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
         switch (true) {
             case isPlaceDisk(action): {
-                gameState.turnManager.endTurn(gameState.actionCount + 1)
+                gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.StartOfTurn
             }
             case isDrawTile(action): {

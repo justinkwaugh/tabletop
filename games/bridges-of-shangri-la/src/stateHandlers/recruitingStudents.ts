@@ -33,7 +33,7 @@ export class RecruitingStudentsStateHandler implements MachineStateHandler<Start
                 if (isPass(action)) {
                     action.metadata = { recruiting: true }
                 }
-                gameState.turnManager.endTurn(gameState.actionCount + 1)
+                gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.StartOfTurn
             }
             default: {

@@ -50,7 +50,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
         switch (true) {
             case isPlaceMaster(action) || isPass(action): {
-                gameState.turnManager.endTurn(gameState.actionCount + 1)
+                gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.StartOfTurn
             }
             case isRecruitStudents(action): {
@@ -58,12 +58,12 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                     return MachineState.RecruitingStudents
                 } else {
                     action.metadata = { forceSkip: true }
-                    gameState.turnManager.endTurn(gameState.actionCount + 1)
+                    gameState.turnManager.endTurn(gameState.actionCount)
                     return MachineState.StartOfTurn
                 }
             }
             case isBeginJourney(action): {
-                gameState.turnManager.endTurn(gameState.actionCount + 1)
+                gameState.turnManager.endTurn(gameState.actionCount)
                 if (!gameState.hasStones()) {
                     return MachineState.EndOfGame
                 } else {

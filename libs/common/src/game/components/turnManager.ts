@@ -59,10 +59,16 @@ export class HydratedSimpleTurnManager
         return turn
     }
 
-    startNextTurn(endIndex: number, startIndex?: number): string {
+    restartTurnOrder(actionIndex: number): string {
+        const nextPlayer = this.turnOrder[0]
+        this.startTurn(nextPlayer, actionIndex)
+        return nextPlayer
+    }
+
+    startNextTurn(actionIndex: number): string {
         const lastPlayerId = this.lastPlayer()
         const nextPlayer = this.nextPlayer(lastPlayerId)
-        this.startTurn(nextPlayer, startIndex ?? endIndex)
+        this.startTurn(nextPlayer, actionIndex)
         return nextPlayer
     }
 
@@ -71,7 +77,7 @@ export class HydratedSimpleTurnManager
         if (!turnToEnd) {
             throw Error(`Cannot find turn to end`)
         }
-        turnToEnd.end = actionIndex
+        turnToEnd.end = actionIndex + 1 // non inclusive
         this.turnCounts[turnToEnd.playerId] += 1
         return turnToEnd
     }

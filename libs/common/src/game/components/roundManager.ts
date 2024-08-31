@@ -49,7 +49,7 @@ export class HydratedRoundManager extends Hydratable<typeof RoundManager> implem
             throw Error(`Round has already ended`)
         }
 
-        roundToEnd.end = actionIndex
+        roundToEnd.end = actionIndex + 1
         return roundToEnd
     }
 }

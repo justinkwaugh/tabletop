@@ -49,7 +49,7 @@ export class HydratedPhaseManager extends Hydratable<typeof PhaseManager> implem
             throw Error(`Phase has already ended`)
         }
 
-        phaseToEnd.end = actionIndex
+        phaseToEnd.end = actionIndex + 1
         return phaseToEnd
     }
 }

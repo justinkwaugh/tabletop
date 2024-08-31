@@ -26,7 +26,15 @@ export class HydratedKaivaiGameBoard
         super(data, KaivaiGameBoardValidator)
     }
 
-    setCell(cell: Cell) {
+    addCell(cell: Cell) {
+        if (cell.type === CellType.Hut || cell.type === CellType.Cult) {
+            const island = this.islands.find((island) => island.id === cell.islandId)
+            if (island) {
+                island.coordList.push(cell.coords)
+            } else {
+                this.islands.push({ id: cell.islandId, coordList: [cell.coords] })
+            }
+        }
         this.cells[axialCoordinatesToNumber(cell.coords)] = cell
     }
 

@@ -27,12 +27,12 @@ export class AuctionEndedStateHandler implements MachineStateHandler<HydratedPla
         gameState.currentAuction = undefined
 
         if (gameState.tileBag.isEmpty()) {
-            gameState.turnManager.endTurn(gameState.actionCount + 1)
+            gameState.turnManager.endTurn(gameState.actionCount)
             return MachineState.TileBagEmptied
         } else {
             // If the auctioneer (i.e the player who drew the tile) did not win the auction, they get to go again
             if (currentAuction.winnerId === currentAuction.auctioneerId) {
-                gameState.turnManager.endTurn(gameState.actionCount + 1)
+                gameState.turnManager.endTurn(gameState.actionCount)
             } else {
                 gameState.activePlayerIds = [currentAuction.auctioneerId]
             }
