@@ -7,7 +7,9 @@ import {
     range,
     AxialCoordinates,
     axialCoordinatesToNumber,
-    pickRandom
+    pickRandom,
+    HydratedRoundManager,
+    HydratedPhaseManager
 } from '@tabletop/common'
 import {
     Game,
@@ -35,8 +37,6 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
         const players = this.initializePlayers(game, prng)
         const numPlayers = game.players.length
-        const turnManager = HydratedSimpleTurnManager.generate(players, prng)
-
         const board = this.initializeBoard(numPlayers, prng)
 
         const state = new HydratedKaivaiGameState({
@@ -44,7 +44,9 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             gameId: game.id,
             seed,
             activePlayerIds: [],
-            turnManager: turnManager,
+            turnManager: HydratedSimpleTurnManager.generate(players, prng),
+            rounds: HydratedRoundManager.generate(),
+            phases: HydratedPhaseManager.generate(),
             actionCount: 0,
             actionChecksum: 0,
             players: players,
@@ -59,6 +61,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 [PlayerAction.Move]: 0,
                 [PlayerAction.Increase]: 0
             },
+            bids: {},
             cultTiles: 12
         })
 
@@ -84,7 +87,9 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 movementModiferPosition: 0,
                 shells: [0, 0, 0, 0, 3], // 3 five-value shells
                 fish: [0, 0, 0, 3, 0], // 3 four-value fish
-                score: 0
+                score: 0,
+                buildingCost: 0,
+                baseMovement: 0
             }
         })
 

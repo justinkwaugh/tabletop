@@ -1,8 +1,8 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { ActionGroup } from './actionGroup.js'
 
-export type Turn = Static<typeof Turn>
-export const Turn = Type.Object({
+export type Round = Static<typeof Round>
+export const Round = Type.Object({
     ...ActionGroup.properties,
-    playerId: Type.String()
+    number: Type.Number()
 })

@@ -16,7 +16,9 @@ export const KaivaiPlayerState = Type.Composite([
         boats: Type.Array(Boat),
         fishermen: Type.Number(),
         shells: Type.Array(Type.Number()),
-        fish: Type.Array(Type.Number())
+        fish: Type.Array(Type.Number()),
+        buildingCost: Type.Number(),
+        baseMovement: Type.Number()
     })
 ])
 
@@ -34,6 +36,8 @@ export class HydratedKaivaiPlayerState
     declare fishermen: number
     declare shells: number[]
     declare fish: number[]
+    declare buildingCost: number
+    declare baseMovement: number
 
     constructor(data: KaivaiPlayerState) {
         super(data, KaivaiPlayerStateValidator)

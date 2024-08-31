@@ -2,7 +2,11 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
-    HydratedSimpleTurnManager
+    HydratedPhaseManager,
+    HydratedRoundManager,
+    HydratedSimpleTurnManager,
+    PhaseManager,
+    RoundManager
 } from '@tabletop/common'
 import { KaivaiPlayerState, HydratedKaivaiPlayerState } from './playerState.js'
 import { Type, type Static } from '@sinclair/typebox'
@@ -18,8 +22,11 @@ export const KaivaiGameState = Type.Composite([
         seed: Type.Number(),
         players: Type.Array(KaivaiPlayerState),
         machineState: Type.Enum(MachineState),
+        rounds: RoundManager,
+        phases: PhaseManager,
         board: KaivaiGameBoard,
         influence: Type.Record(Type.Enum(PlayerAction), Type.Number()),
+        bids: Type.Record(Type.String(), Type.Number()),
         cultTiles: Type.Number()
     })
 ])
@@ -28,6 +35,8 @@ const KaivaiGameStateValidator = TypeCompiler.Compile(KaivaiGameState)
 
 type HydratedProperties = {
     turnManager: HydratedSimpleTurnManager
+    rounds: HydratedRoundManager
+    phases: HydratedPhaseManager
     players: HydratedKaivaiPlayerState[]
     board: HydratedKaivaiGameBoard
 }
@@ -44,16 +53,21 @@ export class HydratedKaivaiGameState
     declare actionChecksum: number
     declare players: HydratedKaivaiPlayerState[]
     declare turnManager: HydratedSimpleTurnManager
+    declare rounds: HydratedRoundManager
+    declare phases: HydratedPhaseManager
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare board: HydratedKaivaiGameBoard
     declare influence: Record<PlayerAction, number>
+    declare bids: Record<string, number>
     declare cultTiles: number
 
     constructor(data: KaivaiGameState) {
         const hydratedProperties: HydratedProperties = {
             turnManager: new HydratedSimpleTurnManager(data.turnManager),
+            rounds: new HydratedRoundManager(data.rounds),
+            phases: new HydratedPhaseManager(data.phases),
             players: data.players.map((player) => new HydratedKaivaiPlayerState(player)),
             board: new HydratedKaivaiGameBoard(data.board)
         }
