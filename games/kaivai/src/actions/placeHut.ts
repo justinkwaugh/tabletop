@@ -3,10 +3,10 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { AxialCoordinates, GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { CellType, HutCell } from '../definition/cells.js'
+import { BoatBuildingCell, Cell, CellType, FishingCell, MeetingCell } from '../definition/cells.js'
 import { HutType } from '../definition/huts.js'
 import { MachineState } from '../definition/states.js'
-import { PhaseName } from 'src/definition/phases.js'
+import { PhaseName } from '../definition/phases.js'
 
 export type PlaceHut = Static<typeof PlaceHut>
 export const PlaceHut = Type.Composite([
@@ -48,22 +48,38 @@ export class HydratedPlaceHut extends HydratableAction<typeof PlaceHut> implemen
         const neighboringIslandIds = state.board.getNeighboringIslands(this.coords)
         if (neighboringIslandIds.length !== 1) {
             throw Error(
-                'Hut must be placed adjacent to exactly one island... validationg should have caught this'
+                'Hut must be placed adjacent to exactly one island... validation should have caught this'
             )
         }
 
-        // needs a boat or fisherman
+        let cell: Cell
         if (this.hutType === HutType.BoatBuilding) {
             const boat = playerState.getBoat()
+            cell = <BoatBuildingCell>{
+                type: CellType.BoatBuilding,
+                coords: this.coords,
+                islandId: neighboringIslandIds[0],
+                hutType: this.hutType,
+                owner: this.playerId,
+                boat
+            }
         } else if (this.hutType === HutType.Fishing) {
             playerState.removeFisherman()
-        }
-        const cell: HutCell = {
-            type: CellType.Hut,
-            coords: this.coords,
-            islandId: neighboringIslandIds[0],
-            hutType: this.hutType,
-            owner: this.playerId
+            cell = <FishingCell>{
+                type: CellType.Fishing,
+                coords: this.coords,
+                islandId: neighboringIslandIds[0],
+                hutType: this.hutType,
+                owner: this.playerId
+            }
+        } else {
+            cell = <MeetingCell>{
+                type: CellType.Meeting,
+                coords: this.coords,
+                islandId: neighboringIslandIds[0],
+                hutType: this.hutType,
+                owner: this.playerId
+            }
         }
         state.board.addCell(cell)
         playerState.initialHutsPlaced += 1

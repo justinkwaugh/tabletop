@@ -27,7 +27,7 @@ export class HydratedKaivaiGameBoard
     }
 
     addCell(cell: Cell) {
-        if (cell.type === CellType.Hut || cell.type === CellType.Cult) {
+        if (cell.type !== CellType.Water) {
             const island = this.islands.find((island) => island.id === cell.islandId)
             if (island) {
                 island.coordList.push(cell.coords)
@@ -67,7 +67,7 @@ export class HydratedKaivaiGameBoard
     isNeighborToIsland(coords: AxialCoordinates) {
         return this.isNeighborTo(coords, (hex) => {
             const cell = this.getCellAt(hex)
-            return cell?.type === CellType.Cult || cell?.type === CellType.Hut
+            return cell.type && cell.type !== CellType.Water
         })
     }
 
@@ -75,7 +75,7 @@ export class HydratedKaivaiGameBoard
         const ringTraverser = ring({ center: coords, radius: 1 })
         return this.grid.traverse(ringTraverser).reduce((acc: string[], hex: Hex) => {
             const cell = this.getCellAt(hex)
-            if (cell?.type === CellType.Hut || cell?.type === CellType.Cult) {
+            if (cell.type && cell.type !== CellType.Water) {
                 if (!acc.includes(cell.islandId)) {
                     acc.push(cell.islandId)
                 }

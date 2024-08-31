@@ -3,7 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { HydratedPlaceHut, isPlaceHut } from '../actions/placeHut.js'
-import { PhaseName } from 'src/definition/phases.js'
+import { PhaseName } from '../definition/phases.js'
 
 // Transition from InitialHuts(PlaceHut) -> InitialHuts | PlacingGod
 export class InitialHutsStateHandler implements MachineStateHandler<HydratedPlaceHut> {

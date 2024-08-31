@@ -6,7 +6,9 @@ import { HutType } from './huts.js'
 export enum CellType {
     Water = 'Water',
     Cult = 'Cult',
-    Hut = 'Hut'
+    Fishing = 'Fishing',
+    BoatBuilding = 'BoatBuilding',
+    Meeting = 'Meeting'
 }
 
 export type BaseCell = Static<typeof BaseCell>
@@ -29,14 +31,33 @@ export const CultCell = Type.Object({
     islandId: Type.String()
 })
 
-export type HutCell = Static<typeof HutCell>
-export const HutCell = Type.Object({
+export type MeetingCell = Static<typeof MeetingCell>
+export const MeetingCell = Type.Object({
     ...BaseCell.properties,
-    type: Type.Literal(CellType.Hut),
+    type: Type.Literal(CellType.Meeting),
     islandId: Type.String(),
-    hutType: Type.Enum(HutType),
+    hutType: Type.Literal(HutType.Meeting),
     owner: Type.String()
 })
 
+export type FishingCell = Static<typeof FishingCell>
+export const FishingCell = Type.Object({
+    ...BaseCell.properties,
+    type: Type.Literal(CellType.Fishing),
+    islandId: Type.String(),
+    hutType: Type.Literal(HutType.Fishing),
+    owner: Type.String()
+})
+
+export type BoatBuildingCell = Static<typeof BoatBuildingCell>
+export const BoatBuildingCell = Type.Object({
+    ...BaseCell.properties,
+    type: Type.Literal(CellType.BoatBuilding),
+    islandId: Type.String(),
+    hutType: Type.Literal(HutType.BoatBuilding),
+    owner: Type.String(),
+    boat: Boat
+})
+
 export type Cell = Static<typeof Cell>
-export const Cell = Type.Union([WaterCell, CultCell, HutCell])
+export const Cell = Type.Union([WaterCell, CultCell, MeetingCell, FishingCell, BoatBuildingCell])
