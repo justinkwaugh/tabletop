@@ -29,7 +29,7 @@
     >
         <div class="text-center h-full">
             <div class="shrink-0 grow-0 dark:text-gray-200 text-2xl mx-2 mb-2">{title}</div>
-            <div class="h-full overflow-y-scroll">
+            <div class="h-[calc(100%-32px)] overflow-y-scroll">
                 <div class="flex flex-col justify-center items-center">
                     {#if games.length === 0}
                         <div
