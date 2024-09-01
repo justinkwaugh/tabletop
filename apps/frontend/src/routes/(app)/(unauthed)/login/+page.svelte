@@ -9,7 +9,7 @@
     }
 </script>
 
-<div class="h-screen flex flex-col items-center justify-center">
+<div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center">
     <Card>
         <h1 class="text-5xl font-medium text-gray-900 dark:text-gray-300 mb-6">Welcome!</h1>
         <div class="mb-2"><GoogleSignIn mode={'login'} /></div>

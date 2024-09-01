@@ -1,8 +1,8 @@
 <script lang="ts">
     import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
     import { goto } from '$app/navigation'
-    import { type AppContext } from '@tabletop/frontend-components'
     import { getContext } from 'svelte'
+    import type { AppContext } from '$lib/stores/appContext.svelte'
 
     let { api } = getContext('appContext') as AppContext
     let email: string | undefined = $state(undefined)
@@ -28,7 +28,7 @@
     }
 </script>
 
-<div class="h-screen flex flex-col items-center justify-center space-y-6">
+<div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
     <Card>
         <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300">
             Enter your email address...

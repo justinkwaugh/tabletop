@@ -73,7 +73,7 @@
     }
 </script>
 
-<div class="h-screen flex flex-col items-center justify-center space-y-6">
+<div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
     {#if user && user.email && !user.emailVerified}
         <Card>
             <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300">
