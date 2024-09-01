@@ -16,7 +16,7 @@
 <div class="p-2 w-full h-full flex flex-row justify-between items-start">
     <!--  Panels have screen minus the height of navbar plus padding -->
     <div
-        class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)]"
+        class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)]"
     >
         <div class="grow-0 shrink-0">
             <PlayersPanel />
@@ -24,7 +24,7 @@
         <History />
     </div>
     <div
-        class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)] flex flex-col"
+        class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] flex flex-col"
     >
         <!--  Top part is not allowed to shrink -->
         <div class="shrink-0">

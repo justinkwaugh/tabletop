@@ -8,7 +8,7 @@
 </script>
 
 <div
-    class="rounded-lg bg-black space-y-2 text-left ms-2 p-4 sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)] overflow-scroll"
+    class="rounded-lg bg-black space-y-2 text-left ms-2 p-4 sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] overflow-scroll"
 >
     <Tabs tabStyle="underline" divider={false} contentClass="bg-gray-200 rounded-lg p-2">
         <TabItem open title="Game">
