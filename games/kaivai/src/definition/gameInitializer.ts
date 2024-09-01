@@ -62,7 +62,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 [PlayerAction.Increase]: 0
             },
             bids: {},
-            cultTiles: 12
+            cultTiles: 8
         })
 
         return state
@@ -87,6 +87,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 movementModiferPosition: 0,
                 shells: [0, 0, 0, 0, 3], // 3 five-value shells
                 fish: [0, 0, 0, 3, 0], // 3 four-value fish
+                influence: 3,
                 score: 0,
                 buildingCost: 0,
                 baseMovement: 0,
@@ -99,7 +100,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
     private initializeBoard(_numPlayers: number, prng: RandomFunction): KaivaiGameBoard {
         const cells: Record<number, Cell> = {}
-        const islands: Island[] = []
+        const islands: Record<string, Island> = {}
         const initialCoords: AxialCoordinates[] = [
             { q: -4, r: -1 },
             { q: 0, r: -2 },
@@ -111,7 +112,8 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
         // Mark initial islands
         for (const coords of initialCoords) {
-            islands.push({ id: nanoid(), coordList: [coords] })
+            const islandId = nanoid()
+            islands[islandId] = { id: islandId, coordList: [coords] }
         }
 
         // Create additional two islands
@@ -121,13 +123,13 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
         const island = this.createAdditionalIsland(hexGrid, initialCoords, prng)
         initialCoords.push(...island.coordList)
-        islands.push(island)
+        islands[island.id] = island
 
         const island2 = this.createAdditionalIsland(hexGrid, initialCoords, prng)
         initialCoords.push(...island2.coordList)
-        islands.push(island2)
+        islands[island.id] = island
 
-        for (const island of islands) {
+        for (const island of Object.values(islands)) {
             for (const coords of island.coordList) {
                 const cell: CultCell = {
                     type: CellType.Cult,

@@ -1,6 +1,6 @@
 export enum PhaseName {
     Bidding = 'Bidding',
     InitialHuts = 'InitialHuts',
-    PlacingGod = 'PlacingGod',
+    MoveGod = 'MoveGod',
     Actions = 'Actions'
 }

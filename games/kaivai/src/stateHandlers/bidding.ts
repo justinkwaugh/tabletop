@@ -5,7 +5,7 @@ import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { PhaseName } from '../definition/phases.js'
 
-// Transition from HydratedPlaceBid(PlaceBid) -> PlaceBid | InitialHuts | PlacingGod
+// Transition from Bidding(PlaceBid) -> PlaceBid | InitialHuts | PlacingGod
 export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid> {
     isValidAction(action: HydratedAction, context: MachineContext): action is HydratedPlaceBid {
         if (!action.playerId) return false
@@ -52,7 +52,7 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
                     if (gameState.rounds.currentRound?.number === 1) {
                         return MachineState.InitialHuts
                     } else {
-                        return MachineState.PlacingGod
+                        return MachineState.MovingGod
                     }
                 } else {
                     return MachineState.Bidding

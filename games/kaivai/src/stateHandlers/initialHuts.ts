@@ -45,7 +45,7 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedPlac
 
                     if (gameState.players.every((player) => player.initialHutsPlaced === 2)) {
                         gameState.phases.endPhase(gameState.actionCount)
-                        return MachineState.PlacingGod
+                        return MachineState.MovingGod
                     } else {
                         return MachineState.InitialHuts
                     }

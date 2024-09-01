@@ -8,7 +8,7 @@ import { defineHex, Grid, Hex, ring, spiral } from 'honeycomb-grid'
 export type KaivaiGameBoard = Static<typeof KaivaiGameBoard>
 export const KaivaiGameBoard = Type.Object({
     cells: Type.Record(Type.Number(), Cell),
-    islands: Type.Array(Island)
+    islands: Type.Record(Type.String(), Island)
 })
 
 export const KaivaiGameBoardValidator = TypeCompiler.Compile(KaivaiGameBoard)
@@ -18,7 +18,7 @@ export class HydratedKaivaiGameBoard
     implements KaivaiGameBoard
 {
     declare cells: Record<number, Cell>
-    declare islands: Island[]
+    declare islands: Record<string, Island>
 
     private internalGrid?: Grid<Hex>
 
@@ -28,11 +28,11 @@ export class HydratedKaivaiGameBoard
 
     addCell(cell: Cell) {
         if (cell.type !== CellType.Water) {
-            const island = this.islands.find((island) => island.id === cell.islandId)
+            const island = this.islands[cell.islandId]
             if (island) {
                 island.coordList.push(cell.coords)
             } else {
-                this.islands.push({ id: cell.islandId, coordList: [cell.coords] })
+                this.islands[cell.islandId] = { id: cell.islandId, coordList: [cell.coords] }
             }
         }
         this.cells[axialCoordinatesToNumber(cell.coords)] = cell

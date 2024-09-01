@@ -17,6 +17,7 @@ export const KaivaiPlayerState = Type.Composite([
         fishermen: Type.Number(),
         shells: Type.Array(Type.Number()),
         fish: Type.Array(Type.Number()),
+        influence: Type.Number(),
         buildingCost: Type.Number(),
         baseMovement: Type.Number(),
         initialHutsPlaced: Type.Number()
@@ -37,6 +38,7 @@ export class HydratedKaivaiPlayerState
     declare fishermen: number
     declare shells: number[]
     declare fish: number[]
+    declare influence: number
     declare buildingCost: number
     declare baseMovement: number
     declare initialHutsPlaced: number

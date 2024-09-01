@@ -1,4 +1,5 @@
 import {
+    AxialCoordinates,
     GameResult,
     GameState,
     HydratableGameState,
@@ -27,7 +28,8 @@ export const KaivaiGameState = Type.Composite([
         board: KaivaiGameBoard,
         influence: Type.Record(Type.Enum(PlayerAction), Type.Number()),
         bids: Type.Record(Type.String(), Type.Number()),
-        cultTiles: Type.Number()
+        cultTiles: Type.Number(),
+        godCoords: Type.Optional(Type.Object({ coords: AxialCoordinates, islandId: Type.String() }))
     })
 ])
 
@@ -62,6 +64,7 @@ export class HydratedKaivaiGameState
     declare influence: Record<PlayerAction, number>
     declare bids: Record<string, number>
     declare cultTiles: number
+    declare godLocation?: { coords: AxialCoordinates; islandId: string }
 
     constructor(data: KaivaiGameState) {
         const hydratedProperties: HydratedProperties = {
