@@ -127,7 +127,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
         const island2 = this.createAdditionalIsland(hexGrid, initialCoords, prng)
         initialCoords.push(...island2.coordList)
-        islands[island.id] = island
+        islands[island2.id] = island2
 
         for (const island of Object.values(islands)) {
             for (const coords of island.coordList) {

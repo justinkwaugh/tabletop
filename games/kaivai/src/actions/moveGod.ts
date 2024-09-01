@@ -3,7 +3,7 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { AxialCoordinates, GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { CellType, CultCell } from 'src/definition/cells.js'
+import { CellType, CultCell } from '../definition/cells.js'
 
 export type MoveGod = Static<typeof MoveGod>
 export const MoveGod = Type.Composite([
