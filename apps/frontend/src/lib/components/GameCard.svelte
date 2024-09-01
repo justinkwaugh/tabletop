@@ -189,7 +189,7 @@
             <div>
                 <img
                     class="w-[80px] h-[80px]"
-                    alt="cover thumnbail"
+                    alt="cover thumbnail"
                     src={libraryService.getThumbnailForTitle(game.typeId)}
                 />
             </div>

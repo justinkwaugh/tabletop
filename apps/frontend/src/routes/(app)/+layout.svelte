@@ -110,6 +110,9 @@
     onMount(() => {
         notificationService.onMounted()
         visibilityService.setDocument(document)
+        if (/mobile/i.test(navigator.userAgent ?? '') && !location.hash) {
+            window.scrollTo(0, 1)
+        }
     })
 
     $effect(() => {

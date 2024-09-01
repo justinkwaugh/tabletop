@@ -25,7 +25,7 @@
 
 {#snippet gameColumn(games: Game[], title: string)}
     <div
-        class="p-2 grow shrink min-w-[90vw] sm:min-w-[340px] w-full h-full max-h-[calc(100vh-70px)] overflow-hidden"
+        class="p-2 grow shrink min-w-[90vw] sm:min-w-[340px] w-full h-full max-h-[calc(100dvh-70px)] overflow-hidden"
     >
         <div class="text-center h-full">
             <div class="shrink-0 grow-0 dark:text-gray-200 text-2xl mx-2 mb-2">{title}</div>
@@ -47,7 +47,7 @@
     </div>
 {/snippet}
 
-<div class="flex flex-row overflow-x-scroll w-full h-[calc(100vh-70px)]">
+<div class="flex flex-row overflow-x-scroll w-full h-[calc(100dvh-70px)]">
     {#await gameService.loadGames()}
         <div
             class="min-w-[340px] max-w-[340px] max-h-[100px] text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8 mt-8 mx-auto"
