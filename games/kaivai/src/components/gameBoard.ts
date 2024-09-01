@@ -109,6 +109,7 @@ export class HydratedKaivaiGameBoard
                 return true
             }
         }
+        return false
     }
 
     willSurroundBoat(boatCoords: AxialCoordinates, hutCoords: AxialCoordinates) {
@@ -120,6 +121,7 @@ export class HydratedKaivaiGameBoard
                 const cell = this.getCellAt(hex)
                 return !cell || cell.type === CellType.Water // we don't store all water cells
             })
+
         return (
             neighboringWaterHexes.length === 1 &&
             neighboringWaterHexes[0].q === hutCoords.q &&

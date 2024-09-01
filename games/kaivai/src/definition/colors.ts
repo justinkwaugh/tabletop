@@ -4,5 +4,5 @@ export const KaivaiPlayerColors = [
     PlayerColor.Red,
     PlayerColor.Blue,
     PlayerColor.Yellow,
-    PlayerColor.Purple
+    PlayerColor.Green
 ]

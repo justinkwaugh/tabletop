@@ -1,6 +1,12 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { szudzikPairSigned } from '../util/pairing.js'
 
+export type Point = Static<typeof Point>
+export const Point = Type.Object({
+    x: Type.Number(),
+    y: Type.Number()
+})
+
 // Useful for both square and hex grids
 export type OffsetCoordinates = Static<typeof OffsetCoordinates>
 export const OffsetCoordinates = Type.Object({
