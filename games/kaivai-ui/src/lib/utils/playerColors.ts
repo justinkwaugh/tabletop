@@ -5,9 +5,9 @@ export function uiColorForPlayer(color?: string): string {
         case PlayerColor.Blue:
             return '#0d56ad'
         case PlayerColor.Red:
-            return '#ad0207'
+            return '#c14239'
         case PlayerColor.Yellow:
-            return '#fae54b'
+            return '#ffee86'
         case PlayerColor.Green:
             return '#016e0a'
         default:
@@ -20,9 +20,9 @@ export function uiBgColorForPlayer(color?: string): string {
         case PlayerColor.Blue:
             return 'bg-[#0d56ad]'
         case PlayerColor.Red:
-            return 'bg-[#ad0207]'
+            return 'bg-[#c14239]'
         case PlayerColor.Yellow:
-            return 'bg-[#fae54b]'
+            return 'bg-[#ffee86]'
         case PlayerColor.Green:
             return 'bg-[#016e0a]'
         default:
