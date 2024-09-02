@@ -3,6 +3,7 @@
     import Board from '$lib/components/Board.svelte'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 </script>
 
@@ -12,10 +13,10 @@
     <div
         class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)]"
     >
-        <!-- <div class="grow-0 shrink-0">
+        <div class="grow-0 shrink-0">
             <PlayersPanel />
         </div>
-        <History /> -->
+        <!-- <History /> -->
     </div>
     <div
         class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)] flex flex-col"
