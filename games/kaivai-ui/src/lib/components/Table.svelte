@@ -7,7 +7,7 @@
 </script>
 
 <!-- Full Height and Width with 8px padding-->
-<div class="p-2 w-full h-full flex flex-row justify-between items-start">
+<div class="p-2 w-full h-full flex flex-row justify-between items-start bg-[#f5e397]">
     <!--  Panels have screen minus the height of navbar plus padding -->
     <div
         class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)]"

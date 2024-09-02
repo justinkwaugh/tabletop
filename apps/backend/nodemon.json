@@ -8,6 +8,7 @@
         "../../node_modules/@tabletop/frontend-components",
         "../../node_modules/@tabletop/fresh-fish-ui",
         "../../node_modules/@tabletop/bridges-of-shangri-la-ui",
+        "../../node_modules/@tabletop/kaivai-ui",
         "src/**/*.spec.ts",
         "src/tests/**/*"
     ],

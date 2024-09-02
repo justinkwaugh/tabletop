@@ -1,15 +1,19 @@
 <script lang="ts">
-    import { getContext, onMount } from 'svelte'
+    import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { defineHex, Grid, ring, spiral } from 'honeycomb-grid'
-    import { SVG } from '@svgdotjs/svg.js'
-    import cultTile from '$lib/images/culttile.png'
-    import { axialCoordinatesToNumber } from '@tabletop/common'
+    import { defineHex, Grid, ring, spiral, Orientation } from 'honeycomb-grid'
+    import board from '$lib/images/board.png'
     import Cell from './Cell.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
-    const Hex = defineHex({ dimensions: { height: 100, width: 87 } })
+    const Hex = defineHex({
+        dimensions: { width: 100, height: 87 },
+        orientation: Orientation.FLAT
+    })
+
+    const temp = new Hex({ q: 0, r: 0 })
+    console.log(temp.corners)
 
     const spiralTraverser = spiral({ radius: 6, start: [0, 0] })
     const grid = new Grid(Hex, spiralTraverser)
@@ -19,13 +23,20 @@
     let origin = { x: xOffset, y: yOffset }
 </script>
 
-<div
-    class="relative flex justify-center items-center p-2"
-    style="width:{grid.pixelWidth + 16 + 'px'};height:{grid.pixelHeight + 16 + 'px'};"
->
-    <svg width={Math.ceil(grid.pixelWidth)} height={Math.ceil(grid.pixelHeight)}>
-        {#each grid as hex}
-            <Cell {hex} {origin} />
-        {/each}
-    </svg>
+<div class="relative flex flex-col justify-center items-center p-2 fit-content">
+    <div class="absolute top-0 left-0"><img class="w-[1200px]" src={board} alt="board" /></div>
+    <div
+        class="z-10"
+        style="width:{grid.pixelWidth + 16 + 'px'};height:{grid.pixelHeight + 16 + 'px'};"
+    >
+        <svg
+            transform="translate(7,-12) scale(1.02,.99)"
+            width={Math.ceil(grid.pixelWidth)}
+            height={Math.ceil(grid.pixelHeight)}
+        >
+            {#each grid as hex}
+                <Cell {hex} {origin} />
+            {/each}
+        </svg>
+    </div>
 </div>

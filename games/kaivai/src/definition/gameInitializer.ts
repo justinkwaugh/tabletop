@@ -102,12 +102,12 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         const cells: Record<number, Cell> = {}
         const islands: Record<string, Island> = {}
         const initialCoords: AxialCoordinates[] = [
-            { q: -4, r: -1 },
-            { q: 0, r: -2 },
+            { q: -5, r: 0 },
+            { q: -1, r: -2 },
+            { q: 4, r: -5 },
             { q: -2, r: 2 },
-            { q: 5, r: -5 },
-            { q: 3, r: -1 },
-            { q: 1, r: 4 }
+            { q: 2, r: 0 },
+            { q: -1, r: 5 }
         ]
 
         // Mark initial islands

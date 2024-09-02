@@ -20,22 +20,24 @@
         }
         return undefined
     })
+
+    const corners = hex.corners
+        .map(({ x, y }: { x: number; y: number }) => `${x + origin.x},${y + origin.y}`)
+        .join(' ')
+    console.log('corners', corners)
 </script>
 
-<g stroke="black" stroke-width="2">
-    <polygon
-        points={hex.corners
-            .map(({ x, y }: { x: number; y: number }) => `${x + origin.x},${y + origin.y}`)
-            .join(' ')}
-        fill="#4592be"
-    ></polygon>
+<g stroke="none" stroke-width="2" transform="translate({hex.x + origin.x}, {hex.y + origin.y})">
+    <polygon points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5" fill="none"></polygon>
     {#if cellImage}
-        <image
-            href={cellImage}
-            x={hex.x - hex.width / 2 + origin.x}
-            y={hex.y - hex.height / 2 + origin.y}
-            width={hex.width}
-            height={hex.height}
-        ></image>
+        <g transform="rotate(30)">
+            <image
+                href={cellImage}
+                x={-hex.height / 2}
+                y={-hex.width / 2}
+                width={hex.height}
+                height={hex.width}
+            ></image>
+        </g>
     {/if}
 </g>
