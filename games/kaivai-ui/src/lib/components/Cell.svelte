@@ -7,9 +7,10 @@
     import {
         ActionType,
         CellType,
-        HydratedPlaceHut,
+        HydratedBuild,
         HutType,
-        HydratedMoveGod
+        HydratedMoveGod,
+        MachineState
     } from '@tabletop/kaivai'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
@@ -53,7 +54,7 @@
     })
 
     let interacting = $derived.by(() => {
-        if (gameSession.chosenAction === ActionType.PlaceHut && gameSession.chosenHutType) {
+        if (gameSession.chosenAction === ActionType.Build && gameSession.chosenHutType) {
             return true
         }
 
@@ -67,8 +68,8 @@
             return false
         }
 
-        if (gameSession.chosenAction === ActionType.PlaceHut && gameSession.chosenHutType) {
-            const { valid, reason } = HydratedPlaceHut.isValidPlacement(gameSession.gameState, {
+        if (gameSession.chosenAction === ActionType.Build && gameSession.chosenHutType) {
+            const { valid, reason } = HydratedBuild.isValidPlacement(gameSession.gameState, {
                 playerId: gameSession.myPlayer.id,
                 hutType: gameSession.chosenHutType,
                 coords: { q: hex.q, r: hex.r }
@@ -86,25 +87,22 @@
         return false
     })
     let disabled = $derived.by(() => {
-        // if (gameSession.highlightedCoords !== undefined) {
-        //     if (
-        //         gameSession.highlightedCoords[0] !== coords[0] ||
-        //         gameSession.highlightedCoords[1] !== coords[1]
-        //     ) {
-        //         return true
-        //     } else {
-        //         return false
-        //     }
-        // }
+        if (gameSession.highlightedHexes.size > 0) {
+            if (!gameSession.highlightedHexes.has(axialCoordinatesToNumber(hex))) {
+                return true
+            } else {
+                return false
+            }
+        }
         return interacting && !interactable
     })
 
-    async function placeHut() {
+    async function build() {
         if (!gameSession.chosenHutType) {
             return
         }
 
-        const action = gameSession.createPlaceHutAction(
+        const action = gameSession.createBuildAction(
             { q: hex.q, r: hex.r },
             gameSession.chosenHutType
         )
@@ -119,17 +117,29 @@
     }
 
     async function onClick() {
-        console.log('click')
-        if (!interactable) {
-            return
-        }
+        // if (!interactable) {
+        //     return
+        // }
 
-        if (gameSession.chosenAction === ActionType.PlaceHut) {
-            await placeHut()
+        if (gameSession.chosenAction === ActionType.Build) {
+            await build()
         }
 
         if (gameSession.chosenAction === ActionType.MoveGod) {
             await moveGod()
+        }
+
+        if (gameSession.gameState.machineState === MachineState.TakingActions) {
+            if (!gameSession.myPlayerState) {
+                return
+            }
+            console.log('highlighting hexes')
+            gameSession.highlightedHexes = new Set(
+                gameSession.gameState.board
+                    .getCoordinatesReachableByBoat(hex, gameSession.myPlayerState)
+                    .map(axialCoordinatesToNumber)
+            )
+            console.log(gameSession.highlightedHexes)
         }
     }
     let tabIndex = $derived(interactable ? 0 : -1)
@@ -160,6 +170,9 @@
             ></image>
         </g>
     {/if}
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="20" fill="white">
+        {hex.q}, {hex.r}
+    </text>
     {#if cellText}
         <text
             x="0"

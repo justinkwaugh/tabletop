@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import { Button } from 'flowbite-svelte'
-    import { ActionType, HutType, PlaceBid } from '@tabletop/kaivai'
+    import { ActionType, HutType } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import BidBoard from './BidBoard.svelte'
 
@@ -30,7 +30,7 @@
         switch (gameSession.chosenAction) {
             case ActionType.PlaceBid:
                 return 'Place your bid'
-            case ActionType.PlaceHut:
+            case ActionType.Build:
                 if (!gameSession.chosenHutType) {
                     return 'Choose a hut type'
                 } else {
@@ -73,7 +73,7 @@
 >
     <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text-lg">{instructions}</h1>
-        {#if gameSession.chosenAction === ActionType.PlaceHut}
+        {#if gameSession.chosenAction === ActionType.Build}
             <div class="flex flex-row justify-center items-center space-x-2">
                 {#if !gameSession.chosenHutType || gameSession.chosenHutType === HutType.Meeting}
                     <button

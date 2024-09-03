@@ -14,7 +14,6 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { MachineState } from '../definition/states.js'
 import { KaivaiGameBoard, HydratedKaivaiGameBoard } from '../components/gameBoard.js'
-import { PlayerAction } from '../definition/playerActions.js'
 
 export type KaivaiGameState = Static<typeof KaivaiGameState>
 export const KaivaiGameState = Type.Composite([
@@ -26,7 +25,7 @@ export const KaivaiGameState = Type.Composite([
         rounds: RoundManager,
         phases: PhaseManager,
         board: KaivaiGameBoard,
-        influence: Type.Record(Type.Enum(PlayerAction), Type.Number()),
+        influence: Type.Record(Type.String(), Type.Number()),
         bids: Type.Record(Type.String(), Type.Number()),
         cultTiles: Type.Number(),
         godCoords: Type.Optional(Type.Object({ coords: AxialCoordinates, islandId: Type.String() }))
@@ -61,7 +60,7 @@ export class HydratedKaivaiGameState
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare board: HydratedKaivaiGameBoard
-    declare influence: Record<PlayerAction, number>
+    declare influence: Record<string, number>
     declare bids: Record<string, number>
     declare cultTiles: number
     declare godLocation?: { coords: AxialCoordinates; islandId: string }

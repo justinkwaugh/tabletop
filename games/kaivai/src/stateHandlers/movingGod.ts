@@ -32,7 +32,7 @@ export class MovingGodStateHandler implements MachineStateHandler<HydratedMoveGo
                 gameState.turnManager.endTurn(gameState.actionCount)
                 gameState.phases.endPhase(gameState.actionCount)
 
-                return MachineState.Actions
+                return MachineState.TakingActions
             }
             default: {
                 throw Error('Invalid action type')

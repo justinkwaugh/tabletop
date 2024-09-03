@@ -15,7 +15,7 @@ import {
     HydratedKaivaiGameState,
     KaivaiGameState,
     PlaceBid,
-    PlaceHut
+    Build
 } from '@tabletop/kaivai'
 import { PlayerColor, type AxialCoordinates } from '@tabletop/common'
 
@@ -23,6 +23,8 @@ export class KaivaiGameSession extends GameSession {
     get gameState(): HydratedKaivaiGameState {
         return new HydratedKaivaiGameState(this.visibleGameState as KaivaiGameState)
     }
+
+    highlightedHexes: Set<number> = $state(new Set())
 
     chosenAction: string | undefined = $state(undefined)
     chosenHutType: HutType | undefined = $state(undefined)
@@ -93,8 +95,8 @@ export class KaivaiGameSession extends GameSession {
         return { ...this.createBaseAction(ActionType.PlaceBid), amount: bid } as PlaceBid
     }
 
-    createPlaceHutAction(coords: AxialCoordinates, hutType: HutType): PlaceHut {
-        return { ...this.createBaseAction(ActionType.PlaceHut), coords, hutType } as PlaceHut
+    createBuildAction(coords: AxialCoordinates, hutType: HutType): Build {
+        return { ...this.createBaseAction(ActionType.Build), coords, hutType } as Build
     }
 
     createMoveGodAction(coords: AxialCoordinates) {

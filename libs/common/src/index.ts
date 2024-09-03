@@ -29,6 +29,7 @@ export * from './game/model/phase.js'
 export * from './game/model/playerColors.js'
 
 export * from './grid/coordinates.js'
+export * from './grid/floodTraverser.js'
 
 export * from './site/notifications/notification.js'
 export * from './site/notifications/gameNotification.js'

@@ -2,19 +2,19 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
-import { HydratedPlaceHut, isPlaceHut } from '../actions/placeHut.js'
+import { HydratedBuild, isBuild } from '../actions/build.js'
 import { PhaseName } from '../definition/phases.js'
 
-// Transition from InitialHuts(PlaceHut) -> InitialHuts | PlacingGod
-export class InitialHutsStateHandler implements MachineStateHandler<HydratedPlaceHut> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedPlaceHut {
+// Transition from InitialHuts(Build) -> InitialHuts | PlacingGod
+export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuild> {
+    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedBuild {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        if (this.isValidActionType(ActionType.PlaceHut, playerId, context)) {
-            return [ActionType.PlaceHut]
+        if (this.isValidActionType(ActionType.Build, playerId, context)) {
+            return [ActionType.Build]
         } else {
             return []
         }
@@ -32,12 +32,12 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedPlac
         gameState.activePlayerIds = [nextPlayerId]
     }
 
-    onAction(action: HydratedPlaceHut, context: MachineContext): MachineState {
+    onAction(action: HydratedBuild, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedKaivaiGameState
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {
-            case isPlaceHut(action): {
+            case isBuild(action): {
                 if (playerState.initialHutsPlaced < 2) {
                     return MachineState.InitialHuts
                 } else {
@@ -64,7 +64,7 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedPlac
     ): boolean {
         const gameState = context.gameState as HydratedKaivaiGameState
         return (
-            actionType === ActionType.PlaceHut &&
+            actionType === ActionType.Build &&
             gameState.getPlayerState(playerId).initialHutsPlaced < 2
         )
     }

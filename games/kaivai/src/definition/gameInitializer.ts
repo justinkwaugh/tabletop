@@ -25,10 +25,10 @@ import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { KaivaiGameBoard } from '../components/gameBoard.js'
 import { KaivaiPlayerColors } from './colors.js'
-import { PlayerAction } from './playerActions.js'
 import { Cell, CellType, CultCell } from './cells.js'
 import { defineHex, Grid, Hex, ring, spiral } from 'honeycomb-grid'
 import { Island } from '../components/island.js'
+import { ActionType } from './actions.js'
 
 export class KaivaiGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeGameState(game: Game, seed?: number): HydratedGameState {
@@ -54,12 +54,12 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             winningPlayerIds: [],
             board,
             influence: {
-                [PlayerAction.Build]: 0,
-                [PlayerAction.Fish]: 0,
-                [PlayerAction.Deliver]: 0,
-                [PlayerAction.Celebrate]: 0,
-                [PlayerAction.Move]: 0,
-                [PlayerAction.Increase]: 0
+                [ActionType.Build]: 0,
+                [ActionType.Fish]: 0,
+                [ActionType.Deliver]: 0,
+                [ActionType.Celebrate]: 0,
+                [ActionType.Move]: 0,
+                [ActionType.Increase]: 0
             },
             bids: {},
             cultTiles: 8

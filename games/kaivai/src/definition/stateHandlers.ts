@@ -9,6 +9,6 @@ export const KaivaiStateHandlers: Record<MachineState, MachineStateHandler<Hydra
     [MachineState.Bidding]: new BiddingStateHandler(),
     [MachineState.InitialHuts]: new InitialHutsStateHandler(),
     [MachineState.MovingGod]: new MovingGodStateHandler(),
-    [MachineState.Actions]: new TerminalStateHandler(),
+    [MachineState.TakingActions]: new TerminalStateHandler(),
     [MachineState.EndOfGame]: new TerminalStateHandler()
 }

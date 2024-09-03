@@ -1,7 +1,11 @@
 export enum ActionType {
-    PlaceCultTile = 'PlaceCultTile',
-    PlaceHut = 'PlaceHut',
     PlaceBid = 'PlaceBid',
     MoveGod = 'MoveGod',
+    Build = 'Build',
+    Fish = 'Fish',
+    Deliver = 'Deliver',
+    Celebrate = 'Celebrate',
+    Increase = 'Increase',
+    Move = 'Move',
     Pass = 'pass'
 }

@@ -2,6 +2,6 @@ export enum MachineState {
     Bidding = 'Bidding',
     InitialHuts = 'InitialHuts',
     MovingGod = 'MovingGod',
-    Actions = 'Actions',
+    TakingActions = 'TakingActions',
     EndOfGame = 'EndOfGame'
 }

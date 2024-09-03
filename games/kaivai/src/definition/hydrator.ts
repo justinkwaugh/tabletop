@@ -8,7 +8,7 @@ import {
 import { KaivaiGameState, HydratedKaivaiGameState } from '../model/gameState.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
-import { HydratedPlaceHut, isPlaceHut } from '../actions/placeHut.js'
+import { HydratedBuild, isBuild } from '../actions/build.js'
 import { HydratedMoveGod, isMoveGod } from '../actions/moveGod.js'
 
 export class KaivaiHydrator implements GameHydrator {
@@ -20,8 +20,8 @@ export class KaivaiHydrator implements GameHydrator {
             case isPlaceBid(data): {
                 return new HydratedPlaceBid(data)
             }
-            case isPlaceHut(data): {
-                return new HydratedPlaceHut(data)
+            case isBuild(data): {
+                return new HydratedBuild(data)
             }
             case isMoveGod(data): {
                 return new HydratedMoveGod(data)

@@ -8,11 +8,11 @@ import { HutType } from '../definition/huts.js'
 import { MachineState } from '../definition/states.js'
 import { PhaseName } from '../definition/phases.js'
 
-export type PlaceHut = Static<typeof PlaceHut>
-export const PlaceHut = Type.Composite([
+export type Build = Static<typeof Build>
+export const Build = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
     Type.Object({
-        type: Type.Literal(ActionType.PlaceHut),
+        type: Type.Literal(ActionType.Build),
         coords: AxialCoordinates,
         playerId: Type.String(),
         hutType: Type.Enum(HutType),
@@ -20,26 +20,26 @@ export const PlaceHut = Type.Composite([
     })
 ])
 
-export const PlaceHutValidator = TypeCompiler.Compile(PlaceHut)
+export const BuildValidator = TypeCompiler.Compile(Build)
 
-export function isPlaceHut(action?: GameAction): action is PlaceHut {
-    return action?.type === ActionType.PlaceHut
+export function isBuild(action?: GameAction): action is Build {
+    return action?.type === ActionType.Build
 }
 
-export class HydratedPlaceHut extends HydratableAction<typeof PlaceHut> implements PlaceHut {
-    declare type: ActionType.PlaceHut
+export class HydratedBuild extends HydratableAction<typeof Build> implements Build {
+    declare type: ActionType.Build
     declare coords: AxialCoordinates
     declare playerId: string
     declare hutType: HutType
     declare boatCoords?: AxialCoordinates
 
-    constructor(data: PlaceHut) {
-        super(data, PlaceHutValidator)
+    constructor(data: Build) {
+        super(data, BuildValidator)
     }
 
     apply(state: HydratedKaivaiGameState) {
         const playerState = state.getPlayerState(this.playerId)
-        const { valid, reason } = HydratedPlaceHut.isValidPlacement(state, this)
+        const { valid, reason } = HydratedBuild.isValidPlacement(state, this)
 
         if (!valid) {
             throw Error(reason)
@@ -87,7 +87,7 @@ export class HydratedPlaceHut extends HydratableAction<typeof PlaceHut> implemen
 
     static isValidPlacement(
         state: HydratedKaivaiGameState,
-        placement: Pick<PlaceHut, 'playerId' | 'hutType' | 'coords' | 'boatCoords'>
+        placement: Pick<Build, 'playerId' | 'hutType' | 'coords' | 'boatCoords'>
     ): { valid: boolean; reason: string } {
         const playerState = state.getPlayerState(placement.playerId)
         const board = state.board

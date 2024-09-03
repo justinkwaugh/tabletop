@@ -1,6 +1,8 @@
-export enum PlayerAction {
-    Build = 'Build',
-    Fish = 'Fish',
+import { ActionType } from './actions'
+
+export enum InfluenceableAction {
+    Build = ActionType.Build,
+    Fish = ActionType.Fish,
     Deliver = 'Deliver',
     Celebrate = 'Celebrate',
     Move = 'Move',

@@ -26,6 +26,8 @@ export const KaivaiPlayerState = Type.Composite([
 
 export const KaivaiPlayerStateValidator = TypeCompiler.Compile(KaivaiPlayerState)
 
+const movementModifiers = [0, 1, 2, 2, 3, 3, 4, 4, 5]
+
 export class HydratedKaivaiPlayerState
     extends Hydratable<typeof KaivaiPlayerState>
     implements KaivaiPlayerState
@@ -77,5 +79,9 @@ export class HydratedKaivaiPlayerState
                 ${this.playerId} but they have none`)
         }
         this.fishermen -= 1
+    }
+
+    movement(): number {
+        return this.baseMovement + movementModifiers[this.movementModiferPosition]
     }
 }

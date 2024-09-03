@@ -48,7 +48,7 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
                     gameState.turnManager.turnOrder = turnOrder
 
                     gameState.phases.endPhase(gameState.actionCount)
-
+                    gameState.bids = {}
                     if (gameState.rounds.currentRound?.number === 1) {
                         return MachineState.InitialHuts
                     } else {
@@ -72,7 +72,7 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
         const gameState = context.gameState as HydratedKaivaiGameState
         switch (actionType) {
             case ActionType.PlaceBid: {
-                return true // gameState.bids[playerId] === undefined
+                return gameState.bids[playerId] === undefined
             }
             default:
                 return false

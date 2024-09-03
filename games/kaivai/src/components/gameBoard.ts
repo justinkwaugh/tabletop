@@ -1,9 +1,10 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { AxialCoordinates, axialCoordinatesToNumber, Hydratable } from '@tabletop/common'
+import { AxialCoordinates, axialCoordinatesToNumber, flood, Hydratable } from '@tabletop/common'
 import { Island } from './island.js'
 import { Cell, CellType } from '../definition/cells.js'
-import { defineHex, Grid, Hex, ring, spiral } from 'honeycomb-grid'
+import { defineHex, Grid, Hex, Orientation, ring, spiral } from 'honeycomb-grid'
+import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 
 export type KaivaiGameBoard = Static<typeof KaivaiGameBoard>
 export const KaivaiGameBoard = Type.Object({
@@ -130,9 +131,29 @@ export class HydratedKaivaiGameBoard
         )
     }
 
+    getCoordinatesReachableByBoat(
+        boatCoords: AxialCoordinates,
+        playerState: HydratedKaivaiPlayerState
+    ) {
+        const movement = playerState.movement()
+        console.log('Movement', movement)
+        const floodTraverser = flood({
+            start: boatCoords,
+            range: movement,
+            canTraverse: (hex) => {
+                const cell = this.getCellAt(hex)
+                return !cell || cell.type === CellType.Water
+            }
+        })
+
+        const reachableHexes = this.grid.traverse(floodTraverser).toArray()
+        console.log('Reachable Hexes', reachableHexes)
+        return reachableHexes
+    }
+
     get grid(): Grid<Hex> {
         if (!this.internalGrid) {
-            const DefaultHex = defineHex()
+            const DefaultHex = defineHex({ orientation: Orientation.FLAT })
             const spiralTraverser = spiral({ radius: 6 })
             this.internalGrid = new Grid(DefaultHex, spiralTraverser)
         }
