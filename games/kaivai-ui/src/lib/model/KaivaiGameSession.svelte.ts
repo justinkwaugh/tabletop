@@ -1,11 +1,13 @@
 import { GameSession } from '@tabletop/frontend-components'
 import { uiBgColorForPlayer } from '$lib/utils/playerColors'
-import { HydratedKaivaiGameState, KaivaiGameState } from '@tabletop/kaivai'
+import { ActionType, HydratedKaivaiGameState, KaivaiGameState, PlaceBid } from '@tabletop/kaivai'
 
 export class KaivaiGameSession extends GameSession {
     get gameState(): HydratedKaivaiGameState {
         return new HydratedKaivaiGameState(this.visibleGameState as KaivaiGameState)
     }
+
+    chosenAction: string | undefined = $state(undefined)
 
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
@@ -23,5 +25,17 @@ export class KaivaiGameSession extends GameSession {
 
     getPlayerTextColor(playerId?: string) {
         return this.getPlayerColor(playerId) === 'yellow' ? 'text-black' : 'text-gray-100'
+    }
+
+    cancel() {
+        this.chosenAction = undefined
+    }
+
+    resetAction() {
+        this.chosenAction = undefined
+    }
+
+    createPlaceBidAction(bid: number): PlaceBid {
+        return { ...this.createBaseAction(ActionType.PlaceBid), amount: bid } as PlaceBid
     }
 }

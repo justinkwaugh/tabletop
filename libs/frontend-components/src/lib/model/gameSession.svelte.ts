@@ -264,12 +264,12 @@ export class GameSession {
         this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
     }
 
-    getPlayerName(playerId?: string) {
+    getPlayerName(playerId?: string): string {
         if (!playerId) return 'Someone'
         return this.playerNamesById.get(playerId) ?? 'Someone'
     }
 
-    getPlayerColor(playerId?: string) {
+    getPlayerColor(playerId?: string): PlayerColor {
         return this.playerColorsById.get(playerId ?? 'unknown') ?? PlayerColor.Gray
     }
 

@@ -4,6 +4,10 @@
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
+    import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import Phase from '$lib/components/Phase.svelte'
+    import BidBoard from '$lib/components/BidBoard.svelte'
+    import { MachineState } from '@tabletop/kaivai'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 </script>
 
@@ -25,19 +29,25 @@
         <div class="shrink-0">
             <!-- {#if gameSession.gameState.result}
                 <GameEndPanel />
-            {:else if gameSession.mode === GameSessionMode.Play}
-                {#if gameSession.isMyTurn}
-                    <ActionPanel />
-                {:else}
-                    <WaitingPanel />
-                {/if}
-            {/if} -->
+            {:else if gameSession.mode === GameSessionMode.Play}-->
+            {#if gameSession.isMyTurn}
+                <Phase />
+                <ActionPanel />
+                <!-- {:else}
+                    <WaitingPanel /> -->
+            {/if}
+            <!-- {/if}  -->
         </div>
         <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
         <div class="grow-0 overflow-hidden" style="flex:1;">
             <ScalingWrapper justify={'center'} controls={'top-left'}>
-                <Board />
+                <div class="w-fit h-fit">
+                    {#if gameSession.gameState.machineState === MachineState.Bidding}
+                        <BidBoard />
+                    {/if}
+                    <Board />
+                </div>
             </ScalingWrapper>
         </div>
     </div>

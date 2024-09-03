@@ -41,7 +41,7 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
             case isPlaceBid(action): {
                 gameState.turnManager.endTurn(gameState.actionCount)
 
-                if (gameState.bids.length === gameState.players.length) {
+                if (Object.keys(gameState.bids).length === gameState.players.length) {
                     const turnOrder = Object.entries(gameState.bids)
                         .toSorted((a, b) => b[1] - a[1])
                         .map(([playerId]) => playerId)
@@ -72,7 +72,7 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
         const gameState = context.gameState as HydratedKaivaiGameState
         switch (actionType) {
             case ActionType.PlaceBid: {
-                return gameState.bids[playerId] === undefined
+                return true // gameState.bids[playerId] === undefined
             }
             default:
                 return false
