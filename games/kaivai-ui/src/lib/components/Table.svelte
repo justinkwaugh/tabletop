@@ -30,8 +30,8 @@
             <!-- {#if gameSession.gameState.result}
                 <GameEndPanel />
             {:else if gameSession.mode === GameSessionMode.Play}-->
+            <Phase />
             {#if gameSession.isMyTurn}
-                <Phase />
                 <ActionPanel />
                 <!-- {:else}
                     <WaitingPanel /> -->

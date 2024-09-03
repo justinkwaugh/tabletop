@@ -4,7 +4,13 @@
     import { Hex } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
     import { axialCoordinatesToNumber, Point } from '@tabletop/common'
-    import { CellType } from '@tabletop/kaivai'
+    import {
+        ActionType,
+        CellType,
+        HydratedPlaceHut,
+        HutType,
+        HydratedMoveGod
+    } from '@tabletop/kaivai'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let { hex, origin }: { hex: Hex; origin: Point } = $props()
@@ -14,6 +20,13 @@
             switch (cell.type) {
                 case CellType.Cult:
                     return cultTile
+                case CellType.Meeting:
+                    return gameSession.getHutImage(HutType.Meeting, cell.owner)
+                case CellType.Fishing:
+                    return gameSession.getHutImage(HutType.Fishing, cell.owner)
+                case CellType.BoatBuilding:
+                    return gameSession.getHutImage(HutType.BoatBuilding, cell.owner)
+                case CellType.Water:
                 default:
                     return undefined
             }
@@ -21,14 +34,121 @@
         return undefined
     })
 
-    const corners = hex.corners
-        .map(({ x, y }: { x: number; y: number }) => `${x + origin.x},${y + origin.y}`)
-        .join(' ')
-    console.log('corners', corners)
+    let cellText = $derived.by(() => {
+        if (cell) {
+            if (cell.type === CellType.BoatBuilding && cell.boat) {
+                return 'BOAT'
+            }
+            if (cell.type === CellType.Fishing) {
+                return 'FISHMAN'
+            }
+            if (
+                gameSession.gameState.godLocation?.coords.q === hex.q &&
+                gameSession.gameState.godLocation?.coords.r === hex.r
+            ) {
+                return 'GOD'
+            }
+        }
+        return undefined
+    })
+
+    let interacting = $derived.by(() => {
+        if (gameSession.chosenAction === ActionType.PlaceHut && gameSession.chosenHutType) {
+            return true
+        }
+
+        if (gameSession.chosenAction === ActionType.MoveGod) {
+            return true
+        }
+        return false
+    })
+    let interactable = $derived.by(() => {
+        if (!gameSession.isMyTurn || !gameSession.myPlayer?.id) {
+            return false
+        }
+
+        if (gameSession.chosenAction === ActionType.PlaceHut && gameSession.chosenHutType) {
+            const { valid, reason } = HydratedPlaceHut.isValidPlacement(gameSession.gameState, {
+                playerId: gameSession.myPlayer.id,
+                hutType: gameSession.chosenHutType,
+                coords: { q: hex.q, r: hex.r }
+            })
+            return valid
+        }
+
+        if (gameSession.chosenAction === ActionType.MoveGod) {
+            const { valid, reason } = HydratedMoveGod.isValidPlacement(gameSession.gameState, {
+                q: hex.q,
+                r: hex.r
+            })
+            return valid
+        }
+        return false
+    })
+    let disabled = $derived.by(() => {
+        // if (gameSession.highlightedCoords !== undefined) {
+        //     if (
+        //         gameSession.highlightedCoords[0] !== coords[0] ||
+        //         gameSession.highlightedCoords[1] !== coords[1]
+        //     ) {
+        //         return true
+        //     } else {
+        //         return false
+        //     }
+        // }
+        return interacting && !interactable
+    })
+
+    async function placeHut() {
+        if (!gameSession.chosenHutType) {
+            return
+        }
+
+        const action = gameSession.createPlaceHutAction(
+            { q: hex.q, r: hex.r },
+            gameSession.chosenHutType
+        )
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
+    async function moveGod() {
+        const action = gameSession.createMoveGodAction({ q: hex.q, r: hex.r })
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
+    async function onClick() {
+        console.log('click')
+        if (!interactable) {
+            return
+        }
+
+        if (gameSession.chosenAction === ActionType.PlaceHut) {
+            await placeHut()
+        }
+
+        if (gameSession.chosenAction === ActionType.MoveGod) {
+            await moveGod()
+        }
+    }
+    let tabIndex = $derived(interactable ? 0 : -1)
 </script>
 
-<g stroke="none" stroke-width="2" transform="translate({hex.x + origin.x}, {hex.y + origin.y})">
-    <polygon points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5" fill="none"></polygon>
+<g
+    role="button"
+    onkeypress={() => onClick()}
+    onclick={() => onClick()}
+    pointer-events="visible"
+    stroke="none"
+    stroke-width="2"
+    transform="translate({hex.x + origin.x}, {hex.y + origin.y})"
+>
+    <polygon
+        points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5"
+        fill={disabled ? 'black' : 'none'}
+        opacity={disabled ? 0.5 : 1}
+    ></polygon>
     {#if cellImage}
         <g transform="rotate(30)">
             <image
@@ -39,5 +159,17 @@
                 height={hex.width}
             ></image>
         </g>
+    {/if}
+    {#if cellText}
+        <text
+            x="0"
+            y="0"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="20"
+            fill="white"
+        >
+            {cellText}
+        </text>
     {/if}
 </g>

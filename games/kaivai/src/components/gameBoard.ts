@@ -24,6 +24,7 @@ export class HydratedKaivaiGameBoard
 
     constructor(data: KaivaiGameBoard) {
         super(data, KaivaiGameBoardValidator)
+        this.internalGrid = undefined
     }
 
     addCell(cell: Cell) {
@@ -75,7 +76,7 @@ export class HydratedKaivaiGameBoard
         const ringTraverser = ring({ center: coords, radius: 1 })
         return this.grid.traverse(ringTraverser).reduce((acc: string[], hex: Hex) => {
             const cell = this.getCellAt(hex)
-            if (cell.type && cell.type !== CellType.Water) {
+            if (cell && cell.type && cell.type !== CellType.Water) {
                 if (!acc.includes(cell.islandId)) {
                     acc.push(cell.islandId)
                 }

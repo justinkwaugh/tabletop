@@ -87,22 +87,23 @@ export class HydratedPlaceHut extends HydratableAction<typeof PlaceHut> implemen
 
     static isValidPlacement(
         state: HydratedKaivaiGameState,
-        placement: Omit<PlaceHut, 'type'>
+        placement: Pick<PlaceHut, 'playerId' | 'hutType' | 'coords' | 'boatCoords'>
     ): { valid: boolean; reason: string } {
         const playerState = state.getPlayerState(placement.playerId)
         const board = state.board
 
         if (
             state.phases.currentPhase?.name === PhaseName.InitialHuts &&
+            playerState.initialHutsPlaced === 1 &&
             playerState.boats.length === 4 &&
             placement.hutType !== HutType.BoatBuilding
         ) {
             return { valid: false, reason: 'One of the intial hut placements must be a boat' }
         }
 
-        if (!board.isInBounds(placement.coords)) {
-            return { valid: false, reason: 'Placement is off board' }
-        }
+        // if (!board.isInBounds(placement.coords)) {
+        //     return { valid: false, reason: 'Placement is off board' }
+        // }
 
         if (!board.isWaterCell(placement.coords)) {
             return { valid: false, reason: 'Hut must be placed on water' }

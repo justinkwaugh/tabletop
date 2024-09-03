@@ -32,6 +32,10 @@
                     <div class="text-xl">{playerState.buildingCost}</div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
+                    <div class="" style="font-size:.7rem; line-height:.8rem">influence</div>
+                    <div class="text-xl">{playerState.influence}</div>
+                </div>
+                <div class="flex flex-col justify-center items-center">
                     <div class="" style="font-size:.7rem; line-height:.8rem">score</div>
                     <div class="text-xl">{playerState.score}</div>
                 </div>

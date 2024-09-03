@@ -77,7 +77,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             return {
                 playerId: player.id,
                 color: colors[index],
-                boats: range(1, 6).map((index) => {
+                boats: range(1, 4).map((index) => {
                     return {
                         id: String(index),
                         owner: player.id
