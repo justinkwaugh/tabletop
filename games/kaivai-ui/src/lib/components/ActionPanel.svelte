@@ -6,7 +6,9 @@
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let showCancel = $derived.by(() => {
-        if (gameSession.chosenHutType) {
+        if (gameSession.chosenHutType || gameSession.chosenBoatLocation || gameSession.chosenBoat) {
+            return true
+        } else if (gameSession.chosenAction && gameSession.validActionTypes.length > 1) {
             return true
         }
         return false

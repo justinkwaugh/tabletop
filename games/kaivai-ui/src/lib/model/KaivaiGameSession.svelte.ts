@@ -163,6 +163,10 @@ export class KaivaiGameSession extends GameSession {
     cancel() {
         if (this.chosenHutType) {
             this.chosenHutType = undefined
+        } else if (this.chosenBoatLocation) {
+            this.chosenBoatLocation = undefined
+        } else if (this.chosenBoat) {
+            this.chosenBoat = undefined
         } else {
             this.chosenAction = undefined
         }
