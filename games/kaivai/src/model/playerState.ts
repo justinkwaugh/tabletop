@@ -79,6 +79,29 @@ export class HydratedKaivaiPlayerState
     }
 
     money(): number {
-        return this.shells.reduce((sum, shells, index) => sum + (shells * index + 1), 0)
+        return this.shells.reduce((sum, shells, index) => sum + shells * (index + 1), 0)
+    }
+
+    pay(amount: number) {
+        let remaining = amount
+        for (let i = 0; i < this.shells.length && remaining > 0; i++) {
+            let shells = this.shells[i]
+            const value = i + 1
+
+            while (remaining > 0 && shells > 0) {
+                shells -= 1
+                remaining -= value
+            }
+            this.shells[i] = shells
+
+            // make change
+            if (remaining < 0) {
+                this.shells[Math.abs(remaining) - 1] += 1
+            }
+        }
+
+        if (remaining > 0) {
+            throw Error(`Player ${this.playerId} doesn't have enough shells to pay ${amount}`)
+        }
     }
 }

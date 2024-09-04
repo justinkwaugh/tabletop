@@ -56,9 +56,10 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
         }
 
         const islandId = neighboringIslandIds[0]
-        const cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
 
         // Pay for building
+        const cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
+        playerState.pay(cost)
 
         // Move boat
         if (this.boatId && this.boatCoords) {
