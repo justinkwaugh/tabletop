@@ -66,6 +66,8 @@
                     return 'Choose a boat to use'
                 } else if (!gameSession.chosenBoatLocation) {
                     return 'Choose a destination for your boat'
+                } else if (gameSession.validDeliveryLocationIds.length > 0) {
+                    return 'Choose a delivery location'
                 } else {
                     return 'Deliver the fish'
                 }

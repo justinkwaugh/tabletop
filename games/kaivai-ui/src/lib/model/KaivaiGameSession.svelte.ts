@@ -20,9 +20,15 @@ import {
     MachineState,
     HydratedFish,
     Fish,
-    HydratedDeliver
+    HydratedDeliver,
+    Delivery
 } from '@tabletop/kaivai'
-import { axialCoordinatesToNumber, PlayerColor, type AxialCoordinates } from '@tabletop/common'
+import {
+    axialCoordinatesToNumber,
+    PlayerColor,
+    sameCoordinates,
+    type AxialCoordinates
+} from '@tabletop/common'
 
 export class KaivaiGameSession extends GameSession {
     get gameState(): HydratedKaivaiGameState {
@@ -35,6 +41,7 @@ export class KaivaiGameSession extends GameSession {
     chosenBoat: string | undefined = $state(undefined)
     chosenHutType: HutType | undefined = $state(undefined)
     chosenBoatLocation: AxialCoordinates | undefined = $state(undefined)
+    chosenDeliveries: Delivery[] = $state([])
 
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
@@ -151,6 +158,32 @@ export class KaivaiGameSession extends GameSession {
         }
 
         return []
+    })
+
+    validDeliveryLocationIds: number[] = $derived.by(() => {
+        if (this.chosenAction !== ActionType.Deliver || !this.chosenBoatLocation) {
+            return []
+        }
+
+        const playerState = this.myPlayerState
+        if (!playerState) {
+            return []
+        }
+
+        const deliveredFish = this.chosenDeliveries.reduce((sum, d) => sum + d.amount, 0)
+        if (deliveredFish === playerState.numFish()) {
+            return []
+        }
+
+        return this.gameState.board
+            .getDeliverableNeighbors(this.chosenBoatLocation)
+            .filter((cell) => {
+                const delivery = this.chosenDeliveries.find((d) => {
+                    return sameCoordinates(d.coords, cell.coords)
+                })
+                return !delivery || cell.fish + delivery.amount <= 3
+            })
+            .map((cell) => axialCoordinatesToNumber(cell.coords))
     })
 
     getPlayerBgColor(playerId?: string) {
