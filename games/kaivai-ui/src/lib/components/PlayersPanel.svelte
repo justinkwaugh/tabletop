@@ -1,13 +1,13 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import type { KaivaiPlayerState } from '@tabletop/kaivai'
+    import type { HydratedKaivaiPlayerState, KaivaiPlayerState } from '@tabletop/kaivai'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
-    type PlayerAndState = { player: Player; playerState: KaivaiPlayerState }
+    type PlayerAndState = { player: Player; playerState: HydratedKaivaiPlayerState }
 
     let playersAndStates: PlayerAndState[] = $derived.by(() => {
         const playersAndStates = gameSession.gameState.players.map((playerState) => {

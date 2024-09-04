@@ -3,7 +3,7 @@
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { Hex } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
-    import { axialCoordinatesToNumber, Point } from '@tabletop/common'
+    import { axialCoordinatesToNumber, sameCoordinates, Point } from '@tabletop/common'
     import {
         ActionType,
         CellType,
@@ -36,10 +36,12 @@
     })
 
     let cellText = $derived.by(() => {
+        const boat = getBoat()
+        if ((boat && !boatWasMoved()) || isTargetBoatLocation()) {
+            return 'BOAT'
+        }
+
         if (cell) {
-            if (cell.type === CellType.BoatBuilding && cell.boat) {
-                return 'BOAT'
-            }
             if (cell.type === CellType.Fishing) {
                 return 'FISHMAN'
             }
@@ -53,9 +55,34 @@
         return undefined
     })
 
+    function boatWasMoved() {
+        const boat = getBoat()
+        return (
+            boat &&
+            gameSession.chosenBoat === boat.id &&
+            gameSession.chosenBoatLocation &&
+            !sameCoordinates(hex, gameSession.chosenBoatLocation)
+        )
+    }
+
+    function isTargetBoatLocation() {
+        return sameCoordinates(hex, gameSession.chosenBoatLocation)
+    }
+
     let interacting = $derived.by(() => {
-        if (gameSession.chosenAction === ActionType.Build && gameSession.chosenHutType) {
-            return true
+        if (gameSession.chosenAction === ActionType.Build) {
+            if (
+                gameSession.gameState.machineState === MachineState.InitialHuts &&
+                gameSession.chosenHutType
+            ) {
+                return true
+            } else if (
+                (gameSession.gameState.machineState === MachineState.TakingActions &&
+                    !gameSession.chosenBoatLocation) ||
+                gameSession.chosenHutType
+            ) {
+                return true
+            }
         }
 
         if (gameSession.chosenAction === ActionType.MoveGod) {
@@ -68,16 +95,34 @@
             return false
         }
 
-        if (gameSession.chosenAction === ActionType.Build && gameSession.chosenHutType) {
-            const { valid, reason } = HydratedBuild.isValidPlacement(gameSession.gameState, {
-                playerId: gameSession.myPlayer.id,
-                hutType: gameSession.chosenHutType,
-                coords: { q: hex.q, r: hex.r }
-            })
+        if (
+            gameSession.chosenAction === ActionType.Build &&
+            gameSession.gameState.machineState === MachineState.TakingActions
+        ) {
+            if (!gameSession.chosenBoat) {
+                const boat = getBoat()
+                return boat && gameSession.usableBoats.includes(boat.id)
+            } else if (!gameSession.chosenBoatLocation) {
+                return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
+            } else if (gameSession.chosenHutType) {
+                return gameSession.validBuildLocationIds.has(axialCoordinatesToNumber(hex))
+            }
+        } else if (
+            gameSession.chosenAction === ActionType.Build &&
+            gameSession.gameState.machineState === MachineState.InitialHuts &&
+            gameSession.chosenHutType
+        ) {
+            const { valid, reason } = HydratedBuild.isValidPlacement(
+                gameSession.gameState,
+                {
+                    playerId: gameSession.myPlayer.id,
+                    hutType: gameSession.chosenHutType,
+                    coords: { q: hex.q, r: hex.r }
+                },
+                true
+            )
             return valid
-        }
-
-        if (gameSession.chosenAction === ActionType.MoveGod) {
+        } else if (gameSession.chosenAction === ActionType.MoveGod) {
             const { valid, reason } = HydratedMoveGod.isValidPlacement(gameSession.gameState, {
                 q: hex.q,
                 r: hex.r
@@ -86,6 +131,7 @@
         }
         return false
     })
+
     let disabled = $derived.by(() => {
         if (gameSession.highlightedHexes.size > 0) {
             if (!gameSession.highlightedHexes.has(axialCoordinatesToNumber(hex))) {
@@ -117,30 +163,43 @@
     }
 
     async function onClick() {
-        // if (!interactable) {
-        //     return
-        // }
+        if (!interactable) {
+            return
+        }
 
         if (gameSession.chosenAction === ActionType.Build) {
-            await build()
+            if (gameSession.gameState.machineState === MachineState.TakingActions) {
+                if (!gameSession.chosenBoat) {
+                    const boat = getBoat()
+                    if (!boat) {
+                        return
+                    }
+                    gameSession.chosenBoat = boat.id
+                    return
+                } else if (!gameSession.chosenBoatLocation) {
+                    gameSession.chosenBoatLocation = { q: hex.q, r: hex.r }
+                    return
+                } else if (gameSession.chosenHutType) {
+                    await build()
+                }
+            } else if (
+                gameSession.gameState.machineState === MachineState.InitialHuts &&
+                gameSession.chosenHutType
+            ) {
+                await build()
+            }
         }
 
         if (gameSession.chosenAction === ActionType.MoveGod) {
             await moveGod()
         }
+    }
 
-        if (gameSession.gameState.machineState === MachineState.TakingActions) {
-            if (!gameSession.myPlayerState) {
-                return
-            }
-            console.log('highlighting hexes')
-            gameSession.highlightedHexes = new Set(
-                gameSession.gameState.board
-                    .getCoordinatesReachableByBoat(hex, gameSession.myPlayerState)
-                    .map(axialCoordinatesToNumber)
-            )
-            console.log(gameSession.highlightedHexes)
+    function getBoat() {
+        if (!cell || (cell.type !== CellType.BoatBuilding && cell.type !== CellType.Water)) {
+            return undefined
         }
+        return cell.boat
     }
     let tabIndex = $derived(interactable ? 0 : -1)
 </script>
@@ -154,10 +213,7 @@
     stroke-width="2"
     transform="translate({hex.x + origin.x}, {hex.y + origin.y})"
 >
-    <polygon
-        points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5"
-        fill={disabled ? 'black' : 'none'}
-        opacity={disabled ? 0.5 : 1}
+    <polygon points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5" fill="none" opacity="1"
     ></polygon>
     {#if cellImage}
         <g transform="rotate(30)">
@@ -170,7 +226,11 @@
             ></image>
         </g>
     {/if}
-    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="20" fill="white">
+    {#if disabled}
+        <polygon points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5" fill="black" opacity="0.5"
+        ></polygon>
+    {/if}
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="20" fill="black">
         {hex.q}, {hex.r}
     </text>
     {#if cellText}

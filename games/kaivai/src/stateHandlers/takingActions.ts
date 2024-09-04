@@ -5,7 +5,6 @@ import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { HydratedBuild, isBuild } from '../actions/build.js'
 import { HydratedPass } from '../actions/pass.js'
-import { InfluenceableAction } from 'src/definition/playerActions.js'
 
 // Transition from TakingActions(Build) -> TakingActions
 //                 TakingActions(Pass) -> TakingActions
@@ -23,15 +22,61 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         const gameState = context.gameState as HydratedKaivaiGameState
         const playerState = gameState.getPlayerState(playerId)
 
-        // First figure out which are affordable by influence as that is an easy filter
-        const actions = [ActionType.Build]
-        const affordableActions = actions.filter(
-            (action) =>
-                action === ActionType.Pass ||
-                playerState.influence >= gameState.influence[InfluenceableAction.Build]
-        )
+        const validActions = [ActionType.Pass]
 
-        return [ActionType.Build || ActionType.Pass]
+        // First figure out which are affordable by influence as that is an easy filter
+        const actions = [ActionType.Build].filter((action) => {
+            if (playerState.influence < gameState.influence[action]) {
+                return false
+            }
+
+            // Also throw in a very basic check for money for build to eliminate lots of checking if
+            // they can't even meet the bare minimum
+            if (action === ActionType.Build && playerState.money() < playerState.buildingCost + 1) {
+                return false
+            }
+            return true
+        })
+
+        console.log('Possible actions', actions)
+
+        // For build, fish, deliver we have to do all the annoying boat checking.
+        if (
+            actions.includes(ActionType.Build) ||
+            actions.includes(ActionType.Fish) ||
+            actions.includes(ActionType.Deliver)
+        ) {
+            const playerBoatCoords = Object.values(playerState.boatLocations)
+            console.log(
+                'Player has boats at ',
+                playerBoatCoords.map((coords) => coords.q + ',' + coords.r).join(' ')
+            )
+            for (const boatId of Object.keys(playerState.boatLocations)) {
+                if (
+                    !validActions.includes(ActionType.Build) &&
+                    actions.includes(ActionType.Build) &&
+                    HydratedBuild.canBoatBuild({ gameState, playerState, boatId })
+                ) {
+                    console.log('can build')
+                    validActions.push(ActionType.Build)
+                }
+
+                // if all of the actions are valid that could be tested, stop
+                if (
+                    (!actions.includes(ActionType.Build) ||
+                        validActions.includes(ActionType.Build)) &&
+                    (!actions.includes(ActionType.Fish) ||
+                        validActions.includes(ActionType.Fish)) &&
+                    (!actions.includes(ActionType.Deliver) ||
+                        validActions.includes(ActionType.Deliver))
+                ) {
+                    break
+                }
+            }
+        }
+
+        console.log('Valid actions', validActions)
+        return validActions
     }
 
     enter(context: MachineContext) {

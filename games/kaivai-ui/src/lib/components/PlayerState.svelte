@@ -1,12 +1,12 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
-    import { KaivaiPlayerState } from '@tabletop/kaivai'
-    import { uiBgColorForPlayer } from '$lib/utils/playerColors'
+    import { HydratedKaivaiPlayerState } from '@tabletop/kaivai'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
-    let { player, playerState }: { player: Player; playerState: KaivaiPlayerState } = $props()
+    let { player, playerState }: { player: Player; playerState: HydratedKaivaiPlayerState } =
+        $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
     let bgColor = $derived(gameSession.getPlayerBgColor(player.id))
@@ -30,6 +30,10 @@
                 <div class="flex flex-col justify-center items-center">
                     <div class="" style="font-size:.7rem; line-height:.8rem">build</div>
                     <div class="text-xl">{playerState.buildingCost}</div>
+                </div>
+                <div class="flex flex-col justify-center items-center">
+                    <div class="" style="font-size:.7rem; line-height:.8rem">money</div>
+                    <div class="text-xl">{playerState.money()}</div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
                     <div class="" style="font-size:.7rem; line-height:.8rem">influence</div>

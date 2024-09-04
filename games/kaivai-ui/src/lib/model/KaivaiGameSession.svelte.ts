@@ -15,9 +15,11 @@ import {
     HydratedKaivaiGameState,
     KaivaiGameState,
     PlaceBid,
-    Build
+    Build,
+    HydratedBuild,
+    MachineState
 } from '@tabletop/kaivai'
-import { PlayerColor, type AxialCoordinates } from '@tabletop/common'
+import { axialCoordinatesToNumber, PlayerColor, type AxialCoordinates } from '@tabletop/common'
 
 export class KaivaiGameSession extends GameSession {
     get gameState(): HydratedKaivaiGameState {
@@ -27,7 +29,9 @@ export class KaivaiGameSession extends GameSession {
     highlightedHexes: Set<number> = $state(new Set())
 
     chosenAction: string | undefined = $state(undefined)
+    chosenBoat: string | undefined = $state(undefined)
     chosenHutType: HutType | undefined = $state(undefined)
+    chosenBoatLocation: AxialCoordinates | undefined = $state(undefined)
 
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
@@ -37,6 +41,84 @@ export class KaivaiGameSession extends GameSession {
             return 0
         }
         return this.gameState.turnManager.turnCount(this.myPlayer.id)
+    })
+
+    usableBoats: string[] = $derived.by(() => {
+        const playerState = this.myPlayerState
+        if (!playerState) {
+            return []
+        }
+
+        if (this.chosenAction === ActionType.Build) {
+            return Object.keys(playerState.boatLocations).filter((boatId) => {
+                return HydratedBuild.canBoatBuild({
+                    gameState: this.gameState,
+                    playerState,
+                    boatId
+                })
+            })
+        }
+        return []
+    })
+
+    validBoatLocationIds: Set<number> = $derived.by(() => {
+        if (!this.chosenBoat) {
+            return new Set()
+        }
+
+        const playerState = this.myPlayerState
+        if (!playerState) {
+            return new Set()
+        }
+
+        if (this.chosenAction === ActionType.Build) {
+            return new Set(
+                HydratedBuild.validBoatLocations({
+                    gameState: this.gameState,
+                    playerState: playerState,
+                    boatId: this.chosenBoat
+                }).map((coords) => axialCoordinatesToNumber(coords))
+            )
+        }
+        return new Set()
+    })
+
+    validBuildLocationIds: Set<number> = $derived.by(() => {
+        if (this.chosenAction !== ActionType.Build || !this.chosenBoatLocation) {
+            return new Set()
+        }
+
+        const playerState = this.myPlayerState
+        if (!playerState) {
+            return new Set()
+        }
+
+        if (
+            this.chosenAction === ActionType.Build &&
+            this.gameState.machineState === MachineState.TakingActions &&
+            this.chosenHutType
+        ) {
+            const neighbors = this.gameState.board.getNeighbors(this.chosenBoatLocation)
+            return new Set(
+                neighbors
+                    .filter((coords) => {
+                        const { valid } = HydratedBuild.isValidPlacement(
+                            this.gameState,
+                            {
+                                playerId: playerState.playerId,
+                                hutType: this.chosenHutType!,
+                                coords,
+                                boatCoords: this.chosenBoatLocation
+                            },
+                            true
+                        )
+                        return valid
+                    })
+                    .map((coords) => axialCoordinatesToNumber(coords))
+            )
+        }
+
+        return new Set()
     })
 
     getPlayerBgColor(playerId?: string) {
@@ -89,13 +171,15 @@ export class KaivaiGameSession extends GameSession {
     resetAction() {
         this.chosenAction = undefined
         this.chosenHutType = undefined
+        this.chosenBoat = undefined
+        this.chosenBoatLocation = undefined
     }
 
     createPlaceBidAction(bid: number): PlaceBid {
         return { ...this.createBaseAction(ActionType.PlaceBid), amount: bid } as PlaceBid
     }
 
-    createBuildAction(coords: AxialCoordinates, hutType: HutType): Build {
+    createBuildAction(coords: AxialCoordinates, hutType: HutType, boatCoords?): Build {
         return { ...this.createBaseAction(ActionType.Build), coords, hutType } as Build
     }
 

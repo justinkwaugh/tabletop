@@ -69,7 +69,7 @@ export class HydratedKaivaiGameBoard
     isNeighborToIsland(coords: AxialCoordinates) {
         return this.isNeighborTo(coords, (hex) => {
             const cell = this.getCellAt(hex)
-            return cell.type && cell.type !== CellType.Water
+            return cell && cell.type !== CellType.Water
         })
     }
 
@@ -94,7 +94,7 @@ export class HydratedKaivaiGameBoard
     getBoatCoordinates(playerId?: string) {
         return Object.values(this.cells).reduce((acc: AxialCoordinates[], cell) => {
             if (
-                cell.type === CellType.Water &&
+                (cell.type === CellType.Water || cell.type === CellType.BoatBuilding) &&
                 cell.boat &&
                 (!playerId || cell.boat.owner === playerId)
             ) {
@@ -136,7 +136,6 @@ export class HydratedKaivaiGameBoard
         playerState: HydratedKaivaiPlayerState
     ) {
         const movement = playerState.movement()
-        console.log('Movement', movement)
         const floodTraverser = flood({
             start: boatCoords,
             range: movement,
@@ -147,8 +146,17 @@ export class HydratedKaivaiGameBoard
         })
 
         const reachableHexes = this.grid.traverse(floodTraverser).toArray()
-        console.log('Reachable Hexes', reachableHexes)
         return reachableHexes
+    }
+
+    getNeighbors(coords: AxialCoordinates) {
+        const ringTraverser = ring({ center: coords, radius: 1 })
+        return this.grid.traverse(ringTraverser).toArray()
+    }
+
+    hasOtherBoat(coords: AxialCoordinates, boatId: string) {
+        const cell = this.getCellAt(coords)
+        return cell && cell.type === CellType.Water && cell.boat && cell.boat.id !== boatId
     }
 
     get grid(): Grid<Hex> {

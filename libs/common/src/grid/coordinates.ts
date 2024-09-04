@@ -60,3 +60,7 @@ export const HexCoordinates = Type.Union([
 export function axialCoordinatesToNumber(axial: AxialCoordinates): number {
     return szudzikPairSigned(axial.q, axial.r)
 }
+
+export function sameCoordinates(a?: AxialCoordinates, b?: AxialCoordinates): boolean {
+    return a !== undefined && b !== undefined && a.q === b.q && a.r === b.r
+}

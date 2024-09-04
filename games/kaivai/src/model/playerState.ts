@@ -1,4 +1,4 @@
-import { Hydratable, PlayerState } from '@tabletop/common'
+import { AxialCoordinates, Hydratable, PlayerState } from '@tabletop/common'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { PlayerColor } from '@tabletop/common'
@@ -14,6 +14,7 @@ export const KaivaiPlayerState = Type.Composite([
         score: Type.Number(),
         movementModiferPosition: Type.Number(),
         boats: Type.Array(Boat),
+        boatLocations: Type.Record(Type.String(), AxialCoordinates),
         fishermen: Type.Number(),
         shells: Type.Array(Type.Number()),
         fish: Type.Array(Type.Number()),
@@ -37,6 +38,7 @@ export class HydratedKaivaiPlayerState
     declare score: number
     declare movementModiferPosition: number
     declare boats: Boat[]
+    declare boatLocations: Record<string, AxialCoordinates>
     declare fishermen: number
     declare shells: number[]
     declare fish: number[]
@@ -60,15 +62,6 @@ export class HydratedKaivaiPlayerState
         return this.boats.pop()!
     }
 
-    addBoat(boat: Boat) {
-        if (this.boats.length >= 6) {
-            throw Error(
-                `Trying to add a boat to player ${this.playerId} but they have 6 boats already`
-            )
-        }
-        this.boats.push(boat)
-    }
-
     hasFisherman(): boolean {
         return this.fishermen > 0
     }
@@ -83,5 +76,9 @@ export class HydratedKaivaiPlayerState
 
     movement(): number {
         return this.baseMovement + movementModifiers[this.movementModiferPosition]
+    }
+
+    money(): number {
+        return this.shells.reduce((sum, shells, index) => sum + (shells * index + 1), 0)
     }
 }

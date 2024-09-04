@@ -22,14 +22,17 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuil
 
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedKaivaiGameState
+
         let nextPlayerId
         if (!gameState.phases.currentPhase) {
             gameState.phases.startPhase(PhaseName.InitialHuts, gameState.actionCount)
             nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
-        } else {
+        } else if (!gameState.turnManager.currentTurn()) {
             nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
         }
-        gameState.activePlayerIds = [nextPlayerId]
+        if (nextPlayerId) {
+            gameState.activePlayerIds = [nextPlayerId]
+        }
     }
 
     onAction(action: HydratedBuild, context: MachineContext): MachineState {

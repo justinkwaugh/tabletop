@@ -1,9 +1,8 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import { Button } from 'flowbite-svelte'
-    import { ActionType, HutType } from '@tabletop/kaivai'
+    import { ActionType, HutType, MachineState } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import BidBoard from './BidBoard.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let showCancel = $derived.by(() => {
@@ -31,6 +30,14 @@
             case ActionType.PlaceBid:
                 return 'Place your bid'
             case ActionType.Build:
+                if (gameSession.gameState.machineState === MachineState.TakingActions) {
+                    if (!gameSession.chosenBoat) {
+                        return 'Choose a boat to use'
+                    } else if (!gameSession.chosenBoatLocation) {
+                        return 'Choose a destination for your boat'
+                    }
+                }
+
                 if (!gameSession.chosenHutType) {
                     return 'Choose a hut type'
                 } else {
@@ -66,6 +73,20 @@
     function chooseHutType(hutType: HutType) {
         gameSession.chosenHutType = hutType
     }
+
+    function canChooseHutType(hutType: HutType) {
+        if (gameSession.chosenHutType) {
+            return false
+        }
+        switch (hutType) {
+            case HutType.Meeting:
+                return true
+            case HutType.BoatBuilding:
+                return gameSession.myPlayerState?.hasBoats()
+            case HutType.Fishing:
+                return gameSession.myPlayerState?.hasFisherman()
+        }
+    }
 </script>
 
 <div
@@ -73,9 +94,9 @@
 >
     <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text-lg">{instructions}</h1>
-        {#if gameSession.chosenAction === ActionType.Build}
+        {#if gameSession.chosenAction === ActionType.Build && ((gameSession.chosenBoat && gameSession.chosenBoatLocation) || gameSession.gameState.machineState === MachineState.InitialHuts)}
             <div class="flex flex-row justify-center items-center space-x-2">
-                {#if !gameSession.chosenHutType || gameSession.chosenHutType === HutType.Meeting}
+                {#if canChooseHutType(HutType.Meeting) || gameSession.chosenHutType === HutType.Meeting}
                     <button
                         onclick={() => chooseHutType(HutType.Meeting)}
                         class="flex flex-col justify-center items-center"
@@ -90,7 +111,7 @@
                         {/if}
                     </button>
                 {/if}
-                {#if !gameSession.chosenHutType || gameSession.chosenHutType === HutType.BoatBuilding}
+                {#if canChooseHutType(HutType.BoatBuilding) || gameSession.chosenHutType === HutType.BoatBuilding}
                     <button
                         onclick={() => chooseHutType(HutType.BoatBuilding)}
                         class="flex flex-col justify-center items-center"
@@ -108,7 +129,7 @@
                         {/if}
                     </button>
                 {/if}
-                {#if !gameSession.chosenHutType || gameSession.chosenHutType === HutType.Fishing}
+                {#if canChooseHutType(HutType.Fishing) || gameSession.chosenHutType === HutType.Fishing}
                     <button
                         onclick={() => chooseHutType(HutType.Fishing)}
                         class="flex flex-col justify-center items-center"

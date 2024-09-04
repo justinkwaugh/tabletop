@@ -7,6 +7,7 @@ import { BoatBuildingCell, Cell, CellType, FishingCell, MeetingCell } from '../d
 import { HutType } from '../definition/huts.js'
 import { MachineState } from '../definition/states.js'
 import { PhaseName } from '../definition/phases.js'
+import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 
 export type Build = Static<typeof Build>
 export const Build = Type.Composite([
@@ -55,6 +56,8 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
         let cell: Cell
         if (this.hutType === HutType.BoatBuilding) {
             const boat = playerState.getBoat()
+            playerState.boatLocations[boat.id] = this.coords
+
             cell = <BoatBuildingCell>{
                 type: CellType.BoatBuilding,
                 coords: this.coords,
@@ -87,7 +90,8 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
 
     static isValidPlacement(
         state: HydratedKaivaiGameState,
-        placement: Pick<Build, 'playerId' | 'hutType' | 'coords' | 'boatCoords'>
+        placement: Pick<Build, 'playerId' | 'hutType' | 'coords' | 'boatCoords'>,
+        test: boolean = false
     ): { valid: boolean; reason: string } {
         const playerState = state.getPlayerState(placement.playerId)
         const board = state.board
@@ -113,7 +117,9 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             return { valid: false, reason: 'Boat coordinates required' }
         }
 
-        if (placement.boatCoords) {
+        // When just testing sites we do not care about the details of the boat because we
+        // check most of that prior to this call
+        if (placement.boatCoords && !test) {
             if (!board.isNeighborToCultSite(placement.boatCoords)) {
                 return { valid: false, reason: 'Boat must next to a cult tile to build' }
             }
@@ -152,10 +158,93 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             return { valid: false, reason: 'Hut must be adjacent to an island' }
         }
 
+        // Make sure they share the same island which is the cult island
+        if (placement.boatCoords) {
+            const boatIslands = board.getNeighboringIslands(placement.boatCoords)
+            if (!boatIslands.includes(neighboringIslands[0])) {
+                return { valid: false, reason: 'Boat and hut must be on the same island' }
+            }
+        }
+
         if (board.willSurroundAnyBoats(placement.coords)) {
             return { valid: false, reason: 'Boats may not be surrounded by island' }
         }
 
         return { valid: true, reason: '' }
+    }
+
+    static canBoatBuild({
+        gameState,
+        playerState,
+        boatId
+    }: {
+        gameState: HydratedKaivaiGameState
+        playerState: HydratedKaivaiPlayerState
+        boatId: string
+    }): boolean {
+        const validLocations = HydratedBuild.validBoatLocations({
+            gameState,
+            playerState,
+            boatId,
+            stopAtFirst: true
+        })
+
+        return validLocations.length > 0
+    }
+
+    static validBoatLocations({
+        gameState,
+        playerState,
+        boatId,
+        stopAtFirst = false
+    }: {
+        gameState: HydratedKaivaiGameState
+        playerState: HydratedKaivaiPlayerState
+        boatId: string
+        stopAtFirst?: boolean
+    }): AxialCoordinates[] {
+        const boatCoords = playerState.boatLocations[boatId]
+        if (!boatCoords) {
+            return []
+        }
+
+        const reachableHexes = gameState.board.getCoordinatesReachableByBoat(
+            boatCoords,
+            playerState
+        )
+
+        const cultAdjacentHexes = reachableHexes.filter(
+            (hex) => gameState.board.isWaterCell(hex) && gameState.board.isNeighborToCultSite(hex)
+        )
+
+        const validHexes: AxialCoordinates[] = []
+        for (const hex of cultAdjacentHexes) {
+            if (gameState.board.hasOtherBoat(hex, boatId)) {
+                continue
+            }
+            const neighbors = gameState.board.getNeighbors(hex)
+            // Test each for validity
+            if (
+                neighbors.some((buildHex) => {
+                    const { valid } = HydratedBuild.isValidPlacement(
+                        gameState,
+                        {
+                            playerId: playerState.playerId,
+                            hutType: HutType.Meeting,
+                            coords: buildHex,
+                            boatCoords: hex
+                        },
+                        true
+                    )
+                    return valid
+                })
+            ) {
+                validHexes.push(hex)
+                if (stopAtFirst) {
+                    return validHexes
+                }
+            }
+        }
+        return validHexes
     }
 }
