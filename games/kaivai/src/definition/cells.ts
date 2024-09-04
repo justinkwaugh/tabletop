@@ -21,7 +21,7 @@ export type WaterCell = Static<typeof WaterCell>
 export const WaterCell = Type.Object({
     ...BaseCell.properties,
     type: Type.Literal(CellType.Water),
-    boat: Boat
+    boat: Type.Optional(Boat)
 })
 
 export type CultCell = Static<typeof CultCell>
@@ -56,7 +56,7 @@ export const BoatBuildingCell = Type.Object({
     islandId: Type.String(),
     hutType: Type.Literal(HutType.BoatBuilding),
     owner: Type.String(),
-    boat: Boat
+    boat: Type.Optional(Boat)
 })
 
 export type Cell = Static<typeof Cell>

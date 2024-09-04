@@ -148,10 +148,12 @@
             return
         }
 
-        const action = gameSession.createBuildAction(
-            { q: hex.q, r: hex.r },
-            gameSession.chosenHutType
-        )
+        const action = gameSession.createBuildAction({
+            coords: { q: hex.q, r: hex.r },
+            hutType: gameSession.chosenHutType,
+            boatId: gameSession.chosenBoat,
+            boatCoords: gameSession.chosenBoatLocation
+        })
         gameSession.applyAction(action)
         gameSession.resetAction()
     }

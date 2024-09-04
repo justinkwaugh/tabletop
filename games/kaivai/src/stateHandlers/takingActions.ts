@@ -82,13 +82,19 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedKaivaiGameState
 
-        gameState.phases.startPhase(PhaseName.TakingActions, gameState.actionCount)
-        const nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
-        gameState.activePlayerIds = [nextPlayerId]
+        if (!gameState.phases.currentPhase) {
+            gameState.phases.startPhase(PhaseName.TakingActions, gameState.actionCount)
+            const nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
+            gameState.activePlayerIds = [nextPlayerId]
+        } else {
+            const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
+            gameState.activePlayerIds = [nextPlayerId]
+        }
     }
 
     onAction(action: TakingActionsAction, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedKaivaiGameState
+        gameState.turnManager.endTurn(gameState.actionCount)
 
         switch (true) {
             case isBuild(action): {

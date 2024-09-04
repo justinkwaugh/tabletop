@@ -179,8 +179,24 @@ export class KaivaiGameSession extends GameSession {
         return { ...this.createBaseAction(ActionType.PlaceBid), amount: bid } as PlaceBid
     }
 
-    createBuildAction(coords: AxialCoordinates, hutType: HutType, boatCoords?): Build {
-        return { ...this.createBaseAction(ActionType.Build), coords, hutType } as Build
+    createBuildAction({
+        coords,
+        hutType,
+        boatId,
+        boatCoords
+    }: {
+        coords: AxialCoordinates
+        hutType: HutType
+        boatId?: string
+        boatCoords?: AxialCoordinates
+    }): Build {
+        return {
+            ...this.createBaseAction(ActionType.Build),
+            coords,
+            hutType,
+            boatId,
+            boatCoords: $state.snapshot(boatCoords)
+        } as Build
     }
 
     createMoveGodAction(coords: AxialCoordinates) {

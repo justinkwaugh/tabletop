@@ -17,6 +17,7 @@ export const Build = Type.Composite([
         coords: AxialCoordinates,
         playerId: Type.String(),
         hutType: Type.Enum(HutType),
+        boatId: Type.Optional(Type.String()),
         boatCoords: Type.Optional(AxialCoordinates)
     })
 ])
@@ -32,6 +33,7 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
     declare coords: AxialCoordinates
     declare playerId: string
     declare hutType: HutType
+    declare boatId?: string
     declare boatCoords?: AxialCoordinates
 
     constructor(data: Build) {
@@ -53,8 +55,29 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             )
         }
 
+        const islandId = neighboringIslandIds[0]
+        const cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
+
+        // Pay for building
+
+        // Move boat
+        if (this.boatId && this.boatCoords) {
+            const originalLocation = playerState.boatLocations[this.boatId]
+            if (!originalLocation) {
+                throw Error('Boat location not found')
+            }
+
+            const boat = state.board.removeBoatFrom(originalLocation)
+            if (!boat) {
+                throw Error('Boat not found at original location')
+            }
+            state.board.addBoatTo(this.boatCoords, boat)
+            playerState.boatLocations[boat.id] = this.boatCoords
+        }
+
         let cell: Cell
         if (this.hutType === HutType.BoatBuilding) {
+            // Place new boat
             const boat = playerState.getBoat()
             playerState.boatLocations[boat.id] = this.coords
 
@@ -82,6 +105,10 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
                 islandId: neighboringIslandIds[0],
                 hutType: this.hutType,
                 owner: this.playerId
+            }
+
+            if (state.godLocation?.islandId === islandId) {
+                playerState.influence += 1
             }
         }
         state.board.addCell(cell)
@@ -117,23 +144,6 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             return { valid: false, reason: 'Boat coordinates required' }
         }
 
-        // When just testing sites we do not care about the details of the boat because we
-        // check most of that prior to this call
-        if (placement.boatCoords && !test) {
-            if (!board.isNeighborToCultSite(placement.boatCoords)) {
-                return { valid: false, reason: 'Boat must next to a cult tile to build' }
-            }
-
-            const cell = board.getCellAt(placement.boatCoords)
-            if (cell.type !== CellType.Water || !cell.boat) {
-                return { valid: false, reason: 'Boat must be present and on water' }
-            }
-
-            if (!board.isNeighborToBoat(placement.coords, cell.boat.id)) {
-                return { valid: false, reason: 'Hut must be placed next to the specified boat' }
-            }
-        }
-
         if (placement.hutType === HutType.BoatBuilding && !playerState.hasBoats()) {
             return { valid: false, reason: 'Player has no boats to build' }
         }
@@ -158,9 +168,25 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             return { valid: false, reason: 'Hut must be adjacent to an island' }
         }
 
-        // Make sure they share the same island which is the cult island
+        const islandId = neighboringIslands[0]
+        const cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
+        if (playerState.money() < cost) {
+            return { valid: false, reason: 'Player cannot afford to build' }
+        }
+
         if (placement.boatCoords) {
-            const boatIslands = board.getNeighboringIslands(placement.boatCoords)
+            if (!test) {
+                if (!board.isNeighborToCultSite(placement.boatCoords)) {
+                    return { valid: false, reason: 'Boat must next to a cult tile to build' }
+                }
+
+                if (!board.areNeighbors(placement.coords, placement.boatCoords)) {
+                    return { valid: false, reason: 'Hut must be placed next to the specified boat' }
+                }
+            }
+
+            // Make sure they share the same island
+            const boatIslands = board.getNeighboringIslands(placement.boatCoords, CellType.Cult)
             if (!boatIslands.includes(neighboringIslands[0])) {
                 return { valid: false, reason: 'Boat and hut must be on the same island' }
             }
