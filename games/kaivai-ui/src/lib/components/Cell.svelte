@@ -84,9 +84,9 @@
             ) {
                 return true
             }
-        }
-
-        if (gameSession.chosenAction === ActionType.MoveGod) {
+        } else if (gameSession.chosenAction === ActionType.Fish) {
+            return true
+        } else if (gameSession.chosenAction === ActionType.MoveGod) {
             return true
         }
         return false
@@ -108,16 +108,12 @@
                 return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
             } else if (gameSession.chosenHutType) {
                 // Why is checking every cell faster than using the validBuildLocationIds set?
-                const { valid } = HydratedBuild.isValidPlacement(
-                    gameSession.gameState,
-                    {
-                        playerId: gameSession.myPlayer!.id,
-                        hutType: gameSession.chosenHutType!,
-                        coords: hex,
-                        boatCoords: gameSession.chosenBoatLocation
-                    },
-                    true
-                )
+                const { valid } = HydratedBuild.isValidPlacement(gameSession.gameState, {
+                    playerId: gameSession.myPlayer!.id,
+                    hutType: gameSession.chosenHutType!,
+                    coords: hex,
+                    boatCoords: gameSession.chosenBoatLocation
+                })
                 return valid
                 // return gameSession.validBuildLocationIds.includes(axialCoordinatesToNumber(hex))
             }
@@ -126,16 +122,19 @@
             gameSession.gameState.machineState === MachineState.InitialHuts &&
             gameSession.chosenHutType
         ) {
-            const { valid, reason } = HydratedBuild.isValidPlacement(
-                gameSession.gameState,
-                {
-                    playerId: gameSession.myPlayer.id,
-                    hutType: gameSession.chosenHutType,
-                    coords: { q: hex.q, r: hex.r }
-                },
-                true
-            )
+            const { valid, reason } = HydratedBuild.isValidPlacement(gameSession.gameState, {
+                playerId: gameSession.myPlayer.id,
+                hutType: gameSession.chosenHutType,
+                coords: { q: hex.q, r: hex.r }
+            })
             return valid
+        } else if (gameSession.chosenAction === ActionType.Fish) {
+            if (!gameSession.chosenBoat) {
+                const boat = getBoat()
+                return boat && gameSession.usableBoats.includes(boat.id)
+            } else if (!gameSession.chosenBoatLocation) {
+                return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
+            }
         } else if (gameSession.chosenAction === ActionType.MoveGod) {
             const { valid, reason } = HydratedMoveGod.isValidPlacement(gameSession.gameState, {
                 q: hex.q,
@@ -172,6 +171,20 @@
         gameSession.resetAction()
     }
 
+    async function fish() {
+        if (!gameSession.chosenBoat || !gameSession.chosenBoatLocation) {
+            return
+        }
+
+        const action = gameSession.createFishAction({
+            coords: { q: hex.q, r: hex.r },
+            boatId: gameSession.chosenBoat,
+            boatCoords: gameSession.chosenBoatLocation
+        })
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
     async function moveGod() {
         const action = gameSession.createMoveGodAction({ q: hex.q, r: hex.r })
         gameSession.applyAction(action)
@@ -200,17 +213,31 @@
                     return
                 } else if (gameSession.chosenHutType) {
                     await build()
+                    return
                 }
             } else if (
                 gameSession.gameState.machineState === MachineState.InitialHuts &&
                 gameSession.chosenHutType
             ) {
                 await build()
+                return
             }
-        }
-
-        if (gameSession.chosenAction === ActionType.MoveGod) {
+        } else if (gameSession.chosenAction === ActionType.Fish) {
+            if (!gameSession.chosenBoat) {
+                const boat = getBoat()
+                if (!boat) {
+                    return
+                }
+                gameSession.chosenBoat = boat.id
+                return
+            } else if (!gameSession.chosenBoatLocation) {
+                gameSession.chosenBoatLocation = { q: hex.q, r: hex.r }
+                await fish()
+                return
+            }
+        } else if (gameSession.chosenAction === ActionType.MoveGod) {
             await moveGod()
+            return
         }
     }
 

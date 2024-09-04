@@ -55,6 +55,12 @@
                             return 'Place your fishing hut'
                     }
                 }
+            case ActionType.Fish:
+                if (!gameSession.chosenBoat) {
+                    return 'Choose a boat to use'
+                } else {
+                    return 'Choose a destination for your boat'
+                }
             case ActionType.MoveGod:
                 if (!gameSession.gameState.godLocation) {
                     return 'Place the Fisherman God'

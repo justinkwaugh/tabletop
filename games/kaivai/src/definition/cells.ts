@@ -59,5 +59,21 @@ export const BoatBuildingCell = Type.Object({
     boat: Type.Optional(Boat)
 })
 
+export function isMeetingCell(cell?: Cell): cell is MeetingCell {
+    return cell?.type === CellType.Meeting
+}
+
+export function isBoatBuildingCell(cell?: Cell): cell is BoatBuildingCell {
+    return cell?.type === CellType.BoatBuilding
+}
+
+export function isFishingCell(cell?: Cell): cell is FishingCell {
+    return cell?.type === CellType.Fishing
+}
+
+export function isPlayerCell(cell?: Cell): cell is MeetingCell | FishingCell | BoatBuildingCell {
+    return isMeetingCell(cell) || isFishingCell(cell) || isBoatBuildingCell(cell)
+}
+
 export type Cell = Static<typeof Cell>
 export const Cell = Type.Union([WaterCell, CultCell, MeetingCell, FishingCell, BoatBuildingCell])

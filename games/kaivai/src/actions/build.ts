@@ -139,8 +139,7 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
 
     static isValidPlacement(
         state: HydratedKaivaiGameState,
-        placement: Pick<Build, 'playerId' | 'hutType' | 'coords' | 'boatCoords'>,
-        test: boolean = false
+        placement: Pick<Build, 'playerId' | 'hutType' | 'coords' | 'boatId' | 'boatCoords'>
     ): { valid: boolean; reason: string } {
         const playerState = state.getPlayerState(placement.playerId)
         const board = state.board
@@ -153,10 +152,6 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
         ) {
             return { valid: false, reason: 'One of the intial hut placements must be a boat' }
         }
-
-        // if (!board.isInBounds(placement.coords)) {
-        //     return { valid: false, reason: 'Placement is off board' }
-        // }
 
         if (!board.isWaterCell(placement.coords)) {
             return { valid: false, reason: 'Hut must be placed on water' }
@@ -197,17 +192,18 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
         }
 
         if (placement.boatCoords) {
-            if (!test) {
-                if (!board.isNeighborToCultSite(placement.boatCoords)) {
-                    return { valid: false, reason: 'Boat must next to a cult tile to build' }
-                }
-
-                if (!board.areNeighbors(placement.coords, placement.boatCoords)) {
-                    return { valid: false, reason: 'Hut must be placed next to the specified boat' }
-                }
+            if (
+                placement.boatId &&
+                state.board.hasOtherBoat(placement.boatCoords, placement.boatId)
+            ) {
+                return { valid: false, reason: 'Another boat is already at the specified location' }
             }
 
-            // Make sure they share the same island
+            if (!board.areNeighbors(placement.coords, placement.boatCoords)) {
+                return { valid: false, reason: 'Hut must be placed next to the specified boat' }
+            }
+
+            // Make sure they share the same island (this also incidentally checks boat / cult site adjacency)
             const boatIslands = board.getNeighboringIslands(placement.boatCoords, CellType.Cult)
             if (!boatIslands.includes(neighboringIslands[0])) {
                 return { valid: false, reason: 'Boat and hut must be on the same island' }
@@ -274,16 +270,12 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             // Test each for validity
             if (
                 neighbors.some((buildHex) => {
-                    const { valid } = HydratedBuild.isValidPlacement(
-                        gameState,
-                        {
-                            playerId: playerState.playerId,
-                            hutType: HutType.Meeting,
-                            coords: buildHex,
-                            boatCoords: hex
-                        },
-                        true
-                    )
+                    const { valid } = HydratedBuild.isValidPlacement(gameState, {
+                        playerId: playerState.playerId,
+                        hutType: HutType.Meeting,
+                        coords: buildHex,
+                        boatCoords: hex
+                    })
                     return valid
                 })
             ) {

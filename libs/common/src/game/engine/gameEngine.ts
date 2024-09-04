@@ -115,7 +115,7 @@ export class GameEngine {
                 )
             }
 
-            hydratedAction.apply(hydratedState)
+            hydratedAction.apply(hydratedState, machineContext)
 
             const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
 

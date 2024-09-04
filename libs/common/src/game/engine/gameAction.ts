@@ -1,6 +1,7 @@
 import { Type, type Static, type TSchema } from '@sinclair/typebox'
 import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
+import { MachineContext } from './machineContext.js'
 
 export enum ActionSource {
     User = 'user',
@@ -46,7 +47,7 @@ export type APIAction = Static<typeof APIAction>
 export const APIAction = ToAPIAction(GameAction)
 
 export interface HydratedAction extends GameAction {
-    apply(state: GameState): void
+    apply(state: GameState, context?: MachineContext): void
     dehydrate(): GameAction
 }
 

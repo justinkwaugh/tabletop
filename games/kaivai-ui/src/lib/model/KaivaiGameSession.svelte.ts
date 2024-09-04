@@ -17,7 +17,9 @@ import {
     PlaceBid,
     Build,
     HydratedBuild,
-    MachineState
+    MachineState,
+    HydratedFish,
+    Fish
 } from '@tabletop/kaivai'
 import { axialCoordinatesToNumber, PlayerColor, type AxialCoordinates } from '@tabletop/common'
 
@@ -57,6 +59,14 @@ export class KaivaiGameSession extends GameSession {
                     boatId
                 })
             })
+        } else if (this.chosenAction === ActionType.Fish) {
+            return playerState.availableBoats.filter((boatId) => {
+                return HydratedFish.canBoatFish({
+                    gameState: this.gameState,
+                    playerState,
+                    boatId
+                })
+            })
         }
         return []
     })
@@ -74,6 +84,14 @@ export class KaivaiGameSession extends GameSession {
         if (this.chosenAction === ActionType.Build) {
             return new Set(
                 HydratedBuild.validBoatLocations({
+                    gameState: this.gameState,
+                    playerState: playerState,
+                    boatId: this.chosenBoat
+                }).map((coords) => axialCoordinatesToNumber(coords))
+            )
+        } else if (this.chosenAction === ActionType.Fish) {
+            return new Set(
+                HydratedFish.validBoatLocations({
                     gameState: this.gameState,
                     playerState: playerState,
                     boatId: this.chosenBoat
@@ -104,16 +122,12 @@ export class KaivaiGameSession extends GameSession {
             const neighbors = this.gameState.board.getNeighbors(this.chosenBoatLocation)
             return neighbors
                 .filter((coords) => {
-                    const { valid } = HydratedBuild.isValidPlacement(
-                        this.gameState,
-                        {
-                            playerId: playerState.playerId,
-                            hutType: this.chosenHutType!,
-                            coords,
-                            boatCoords: this.chosenBoatLocation
-                        },
-                        true
-                    )
+                    const { valid } = HydratedBuild.isValidPlacement(this.gameState, {
+                        playerId: playerState.playerId,
+                        hutType: this.chosenHutType!,
+                        coords,
+                        boatCoords: this.chosenBoatLocation
+                    })
                     return valid
                 })
                 .map((coords) => axialCoordinatesToNumber(coords))
@@ -202,6 +216,23 @@ export class KaivaiGameSession extends GameSession {
             boatId,
             boatCoords: $state.snapshot(boatCoords)
         } as Build
+    }
+
+    createFishAction({
+        coords,
+        boatId,
+        boatCoords
+    }: {
+        coords: AxialCoordinates
+        boatId: string
+        boatCoords: AxialCoordinates
+    }): Fish {
+        return {
+            ...this.createBaseAction(ActionType.Fish),
+            coords,
+            boatId,
+            boatCoords: $state.snapshot(boatCoords)
+        } as Fish
     }
 
     createMoveGodAction(coords: AxialCoordinates) {

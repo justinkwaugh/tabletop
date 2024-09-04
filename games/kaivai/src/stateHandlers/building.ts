@@ -28,7 +28,7 @@ export class BuildingStateHandler implements MachineStateHandler<BuildingAction>
         }
 
         // Has another boat to build
-        for (const boatId of Object.values(playerState.availableBoats)) {
+        for (const boatId of playerState.availableBoats) {
             console.log('Checking boat', boatId)
             if (HydratedBuild.canBoatBuild({ gameState, playerState, boatId })) {
                 console.log('can build')
@@ -56,11 +56,13 @@ export class BuildingStateHandler implements MachineStateHandler<BuildingAction>
                 ) {
                     return MachineState.Building
                 } else {
+                    playerState.availableBoats = []
                     gameState.turnManager.endTurn(gameState.actionCount)
                     return MachineState.TakingActions
                 }
             }
             case isPass(action): {
+                playerState.availableBoats = []
                 gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.TakingActions
             }

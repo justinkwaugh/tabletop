@@ -2,10 +2,11 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { AxialCoordinates, axialCoordinatesToNumber, flood, Hydratable } from '@tabletop/common'
 import { Island } from './island.js'
-import { Cell, CellType } from '../definition/cells.js'
+import { Cell, CellType, isPlayerCell } from '../definition/cells.js'
 import { defineHex, distance, Grid, Hex, Orientation, ring, spiral } from 'honeycomb-grid'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { Boat } from './boat.js'
+import { HutType } from '../definition/huts.js'
 
 export type KaivaiGameBoard = Static<typeof KaivaiGameBoard>
 export const KaivaiGameBoard = Type.Object({
@@ -197,6 +198,21 @@ export class HydratedKaivaiGameBoard
                 boat
             })
         }
+    }
+
+    numHutsOnIsland(islandId: string, hutType: HutType, playerId: string) {
+        const island = this.islands[islandId]
+        if (!island) {
+            return 0
+        }
+
+        return island.coordList.reduce((acc, coords) => {
+            const cell = this.getCellAt(coords)
+            if (isPlayerCell(cell) && cell.hutType === hutType && cell.owner === playerId) {
+                acc++
+            }
+            return acc
+        }, 0)
     }
 
     get grid(): Grid<Hex> {
