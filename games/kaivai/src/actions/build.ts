@@ -109,6 +109,7 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
                 islandId: neighboringIslandIds[0],
                 hutType: this.hutType,
                 owner: this.playerId,
+                fish: 0,
                 boat
             }
         } else if (this.hutType === HutType.Fishing) {
@@ -126,7 +127,8 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
                 coords: this.coords,
                 islandId: neighboringIslandIds[0],
                 hutType: this.hutType,
-                owner: this.playerId
+                owner: this.playerId,
+                fish: 0
             }
 
             if (state.godLocation?.islandId === islandId) {

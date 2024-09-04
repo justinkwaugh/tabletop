@@ -10,7 +10,7 @@ import {
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
-import { isDeliveryCell } from 'src/definition/cells.js'
+import { isDeliveryCell } from '../definition/cells.js'
 
 export type Delivery = Static<typeof Delivery>
 export const Delivery = Type.Object({
@@ -138,7 +138,7 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
             const cell = deliverableCells.find((cell) =>
                 sameCoordinates(cell.coords, delivery.coords)
             )
-            if (!cell) {
+            if (!isDeliveryCell(cell)) {
                 return { valid: false, reason: 'Invalid delivery location' }
             }
             if (cell.fish + delivery.amount > 3) {

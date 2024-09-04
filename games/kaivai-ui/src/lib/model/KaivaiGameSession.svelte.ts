@@ -19,7 +19,8 @@ import {
     HydratedBuild,
     MachineState,
     HydratedFish,
-    Fish
+    Fish,
+    HydratedDeliver
 } from '@tabletop/kaivai'
 import { axialCoordinatesToNumber, PlayerColor, type AxialCoordinates } from '@tabletop/common'
 
@@ -67,6 +68,14 @@ export class KaivaiGameSession extends GameSession {
                     boatId
                 })
             })
+        } else if (this.chosenAction === ActionType.Deliver) {
+            return playerState.availableBoats.filter((boatId) => {
+                return HydratedDeliver.canBoatDeliver({
+                    gameState: this.gameState,
+                    playerState,
+                    boatId
+                })
+            })
         }
         return []
     })
@@ -92,6 +101,14 @@ export class KaivaiGameSession extends GameSession {
         } else if (this.chosenAction === ActionType.Fish) {
             return new Set(
                 HydratedFish.validBoatLocations({
+                    gameState: this.gameState,
+                    playerState: playerState,
+                    boatId: this.chosenBoat
+                }).map((coords) => axialCoordinatesToNumber(coords))
+            )
+        } else if (this.chosenAction === ActionType.Deliver) {
+            return new Set(
+                HydratedDeliver.validBoatLocations({
                     gameState: this.gameState,
                     playerState: playerState,
                     boatId: this.chosenBoat

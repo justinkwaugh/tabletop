@@ -61,6 +61,14 @@
                 } else {
                     return 'Choose a destination for your boat'
                 }
+            case ActionType.Deliver:
+                if (!gameSession.chosenBoat) {
+                    return 'Choose a boat to use'
+                } else if (!gameSession.chosenBoatLocation) {
+                    return 'Choose a destination for your boat'
+                } else {
+                    return 'Deliver the fish'
+                }
             case ActionType.MoveGod:
                 if (!gameSession.gameState.godLocation) {
                     return 'Place the Fisherman God'
