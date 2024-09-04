@@ -37,7 +37,8 @@ export const MeetingCell = Type.Object({
     type: Type.Literal(CellType.Meeting),
     islandId: Type.String(),
     hutType: Type.Literal(HutType.Meeting),
-    owner: Type.String()
+    owner: Type.String(),
+    fish: Type.Number()
 })
 
 export type FishingCell = Static<typeof FishingCell>
@@ -56,7 +57,8 @@ export const BoatBuildingCell = Type.Object({
     islandId: Type.String(),
     hutType: Type.Literal(HutType.BoatBuilding),
     owner: Type.String(),
-    boat: Type.Optional(Boat)
+    boat: Type.Optional(Boat),
+    fish: Type.Number()
 })
 
 export function isMeetingCell(cell?: Cell): cell is MeetingCell {
@@ -73,6 +75,20 @@ export function isFishingCell(cell?: Cell): cell is FishingCell {
 
 export function isPlayerCell(cell?: Cell): cell is MeetingCell | FishingCell | BoatBuildingCell {
     return isMeetingCell(cell) || isFishingCell(cell) || isBoatBuildingCell(cell)
+}
+
+export function isDeliveryCell(cell?: Cell): cell is MeetingCell | BoatBuildingCell {
+    return isMeetingCell(cell) || (isBoatBuildingCell(cell) && !cell.boat && cell.fish < 3)
+}
+
+export function isIslandCell(
+    cell?: Cell
+): cell is CultCell | MeetingCell | FishingCell | BoatBuildingCell {
+    return cell !== undefined && cell?.type !== CellType.Water
+}
+
+export function isBoatCell(cell?: Cell): cell is WaterCell | BoatBuildingCell {
+    return cell?.type === CellType.Water || isBoatBuildingCell(cell)
 }
 
 export type Cell = Static<typeof Cell>

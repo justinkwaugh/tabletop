@@ -28,9 +28,7 @@ type IslandFishingData = { islandId: string; numHuts: number; hasGod: boolean }
 
 export class HydratedFish extends HydratableAction<typeof Fish> implements Fish {
     declare type: ActionType.Fish
-    declare coords: AxialCoordinates
     declare playerId: string
-    declare hutType: HutType
     declare boatId: string
     declare boatCoords: AxialCoordinates
 
@@ -67,7 +65,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         // Mark boat as used
         playerState.availableBoats = playerState.availableBoats.filter((id) => id !== this.boatId)
 
-        const neighboringIslandIds = state.board.getNeighboringIslands(this.coords)
+        const neighboringIslandIds = state.board.getNeighboringIslands(this.boatCoords)
         const fishingData: IslandFishingData[] = neighboringIslandIds.map((islandId) => {
             const numHuts = state.board.numHutsOnIsland(islandId, HutType.Fishing, this.playerId)
             const hasGod = state.godLocation?.islandId === islandId

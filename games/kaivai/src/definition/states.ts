@@ -4,6 +4,7 @@ export enum MachineState {
     MovingGod = 'MovingGod',
     TakingActions = 'TakingActions',
     Building = 'Building',
+    Delivering = 'Delivering',
     Fishing = 'Fishing',
     EndOfGame = 'EndOfGame'
 }

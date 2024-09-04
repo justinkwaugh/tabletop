@@ -6,13 +6,15 @@ import { PhaseName } from '../definition/phases.js'
 import { HydratedBuild, isBuild } from '../actions/build.js'
 import { HydratedPass } from '../actions/pass.js'
 import { HydratedFish, isFish } from '../actions/fish.js'
+import { HydratedDeliver, isDeliver } from '../actions/deliver.js'
 
 // Transition from TakingActions(Build) -> Building | TakingActions
 //                 TakingActions(Fish) -> Fishing | TakingActions
+//                 TakingActions(Deliver) -> Delivering | TakingActions
 //                 TakingActions(Pass) -> TakingActions
 //                 TakingActions(Pass) -> LosingValue
 
-type TakingActionsAction = HydratedBuild | HydratedPass
+type TakingActionsAction = HydratedBuild | HydratedFish | HydratedDeliver | HydratedPass
 
 export class TakingActionsStateHandler implements MachineStateHandler<TakingActionsAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is TakingActionsAction {
@@ -20,6 +22,7 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         return (
             action.type === ActionType.Build ||
             action.type === ActionType.Fish ||
+            action.type === ActionType.Deliver ||
             action.type === ActionType.Pass
         )
     }
@@ -31,7 +34,7 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         const validActions = [ActionType.Pass]
 
         // First figure out which are affordable by influence as that is an easy filter
-        const actions = [ActionType.Build, ActionType.Fish].filter((action) => {
+        const actions = [ActionType.Build, ActionType.Fish, ActionType.Deliver].filter((action) => {
             if (playerState.influence < gameState.influence[action]) {
                 return false
             }
@@ -41,6 +44,11 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             if (action === ActionType.Build && playerState.money() < playerState.buildingCost + 1) {
                 return false
             }
+
+            if (action === ActionType.Deliver && playerState.numFish() === 0) {
+                return false
+            }
+
             return true
         })
 
@@ -74,6 +82,15 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                 ) {
                     console.log('can fish')
                     validActions.push(ActionType.Fish)
+                }
+
+                if (
+                    !validActions.includes(ActionType.Deliver) &&
+                    actions.includes(ActionType.Deliver) &&
+                    HydratedDeliver.canBoatDeliver({ gameState, playerState, boatId })
+                ) {
+                    console.log('can deliver')
+                    validActions.push(ActionType.Deliver)
                 }
 
                 // if all of the actions are valid that could be tested, stop
@@ -136,6 +153,18 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                     )
                 ) {
                     return MachineState.Fishing
+                } else {
+                    gameState.turnManager.endTurn(gameState.actionCount)
+                    return MachineState.TakingActions
+                }
+            }
+            case isDeliver(action): {
+                if (
+                    playerState.availableBoats.some((boatId) =>
+                        HydratedDeliver.canBoatDeliver({ gameState, playerState, boatId })
+                    )
+                ) {
+                    return MachineState.Delivering
                 } else {
                     gameState.turnManager.endTurn(gameState.actionCount)
                     return MachineState.TakingActions

@@ -2,7 +2,14 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { AxialCoordinates, axialCoordinatesToNumber, flood, Hydratable } from '@tabletop/common'
 import { Island } from './island.js'
-import { Cell, CellType, isPlayerCell } from '../definition/cells.js'
+import {
+    Cell,
+    CellType,
+    isBoatCell,
+    isDeliveryCell,
+    isIslandCell,
+    isPlayerCell
+} from '../definition/cells.js'
 import { defineHex, distance, Grid, Hex, Orientation, ring, spiral } from 'honeycomb-grid'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { Boat } from './boat.js'
@@ -79,12 +86,7 @@ export class HydratedKaivaiGameBoard
         const ringTraverser = ring({ center: coords, radius: 1 })
         return this.grid.traverse(ringTraverser).reduce((acc: string[], hex: Hex) => {
             const cell = this.getCellAt(hex)
-            if (
-                cell &&
-                cell.type &&
-                cell.type !== CellType.Water &&
-                (!withCellType || cell.type === withCellType)
-            ) {
+            if (isIslandCell(cell) && (!withCellType || cell.type === withCellType)) {
                 if (!acc.includes(cell.islandId)) {
                     acc.push(cell.islandId)
                 }
@@ -98,17 +100,13 @@ export class HydratedKaivaiGameBoard
         return this.grid.traverse(ringTraverser).toArray().some(predicate)
     }
 
-    areNeighbors(coords1: AxialCoordinates, coords2: AxialCoordinates) {
-        return distance({ offset: -1, orientation: Orientation.FLAT }, coords1, coords2)
+    areNeighbors(coords1: AxialCoordinates, coords2: AxialCoordinates): boolean {
+        return distance({ offset: -1, orientation: Orientation.FLAT }, coords1, coords2) === 1
     }
 
     getBoatCoordinates(playerId?: string) {
         return Object.values(this.cells).reduce((acc: AxialCoordinates[], cell) => {
-            if (
-                (cell.type === CellType.Water || cell.type === CellType.BoatBuilding) &&
-                cell.boat &&
-                (!playerId || cell.boat.owner === playerId)
-            ) {
+            if (isBoatCell(cell) && cell.boat && (!playerId || cell.boat.owner === playerId)) {
                 acc.push(cell.coords)
             }
             return acc
@@ -165,6 +163,12 @@ export class HydratedKaivaiGameBoard
         return this.grid.traverse(ringTraverser).toArray()
     }
 
+    getDeliverableNeighbors(coords: AxialCoordinates) {
+        return this.getNeighbors(coords)
+            .map((hex) => this.getCellAt(hex))
+            .filter((cell) => isDeliveryCell(cell))
+    }
+
     hasOtherBoat(coords: AxialCoordinates, boatId: string) {
         const cell = this.getCellAt(coords)
         return cell && cell.type === CellType.Water && cell.boat && cell.boat.id !== boatId
@@ -172,14 +176,12 @@ export class HydratedKaivaiGameBoard
 
     getBoatAt(coords: AxialCoordinates) {
         const cell = this.getCellAt(coords)
-        return cell?.type === CellType.Water || cell?.type === CellType.BoatBuilding
-            ? cell.boat
-            : undefined
+        return isBoatCell(cell) ? cell.boat : undefined
     }
 
     removeBoatFrom(coords: AxialCoordinates): Boat | undefined {
         const cell = this.getCellAt(coords)
-        if (cell && (cell.type === CellType.Water || cell.type === CellType.BoatBuilding)) {
+        if (isBoatCell(cell)) {
             const boat = cell.boat
             cell.boat = undefined
             return boat
@@ -189,7 +191,7 @@ export class HydratedKaivaiGameBoard
 
     addBoatTo(coords: AxialCoordinates, boat: Boat) {
         const cell = this.getCellAt(coords)
-        if (cell && (cell.type === CellType.Water || cell.type === CellType.BoatBuilding)) {
+        if (isBoatCell(cell)) {
             cell.boat = boat
         } else {
             this.addCell({

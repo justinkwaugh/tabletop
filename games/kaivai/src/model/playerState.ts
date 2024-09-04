@@ -80,6 +80,28 @@ export class HydratedKaivaiPlayerState
         return this.baseMovement + movementModifiers[this.movementModiferPosition]
     }
 
+    numFish(): number {
+        return this.fish.reduce((sum, fish) => sum + fish, 0)
+    }
+
+    removeFish(amount: number) {
+        let remaining = amount
+        for (let i = 0; i < this.fish.length && remaining > 0; i++) {
+            const fish = this.fish[i]
+            if (fish >= remaining) {
+                this.fish[i] -= remaining
+                remaining = 0
+            } else {
+                this.fish[i] = 0
+                remaining -= fish
+            }
+        }
+
+        if (remaining > 0) {
+            throw Error(`Player ${this.playerId} doesn't have enough fish to deliver ${amount}`)
+        }
+    }
+
     money(): number {
         return this.shells.reduce((sum, shells, index) => sum + shells * (index + 1), 0)
     }
