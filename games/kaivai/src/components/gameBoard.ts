@@ -183,6 +183,7 @@ export class HydratedKaivaiGameBoard
             cell.boat = undefined
             return boat
         }
+        return undefined
     }
 
     addBoatTo(coords: AxialCoordinates, boat: Boat) {

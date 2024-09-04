@@ -83,14 +83,17 @@ export class KaivaiGameSession extends GameSession {
         return new Set()
     })
 
-    validBuildLocationIds: Set<number> = $derived.by(() => {
+    // Why is this slower combined with the cell interactable check?
+    // This method takes only 5 ms to run.
+
+    validBuildLocationIds: number[] = $derived.by(() => {
         if (this.chosenAction !== ActionType.Build || !this.chosenBoatLocation) {
-            return new Set()
+            return []
         }
 
         const playerState = this.myPlayerState
         if (!playerState) {
-            return new Set()
+            return []
         }
 
         if (
@@ -99,26 +102,24 @@ export class KaivaiGameSession extends GameSession {
             this.chosenHutType
         ) {
             const neighbors = this.gameState.board.getNeighbors(this.chosenBoatLocation)
-            return new Set(
-                neighbors
-                    .filter((coords) => {
-                        const { valid } = HydratedBuild.isValidPlacement(
-                            this.gameState,
-                            {
-                                playerId: playerState.playerId,
-                                hutType: this.chosenHutType!,
-                                coords,
-                                boatCoords: this.chosenBoatLocation
-                            },
-                            true
-                        )
-                        return valid
-                    })
-                    .map((coords) => axialCoordinatesToNumber(coords))
-            )
+            return neighbors
+                .filter((coords) => {
+                    const { valid } = HydratedBuild.isValidPlacement(
+                        this.gameState,
+                        {
+                            playerId: playerState.playerId,
+                            hutType: this.chosenHutType!,
+                            coords,
+                            boatCoords: this.chosenBoatLocation
+                        },
+                        true
+                    )
+                    return valid
+                })
+                .map((coords) => axialCoordinatesToNumber(coords))
         }
 
-        return new Set()
+        return []
     })
 
     getPlayerBgColor(playerId?: string) {

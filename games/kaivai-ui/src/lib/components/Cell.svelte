@@ -105,7 +105,19 @@
             } else if (!gameSession.chosenBoatLocation) {
                 return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
             } else if (gameSession.chosenHutType) {
-                return gameSession.validBuildLocationIds.has(axialCoordinatesToNumber(hex))
+                // Why is checking every cell faster than using the validBuildLocationIds set?
+                const { valid } = HydratedBuild.isValidPlacement(
+                    gameSession.gameState,
+                    {
+                        playerId: gameSession.myPlayer!.id,
+                        hutType: gameSession.chosenHutType!,
+                        coords: hex,
+                        boatCoords: gameSession.chosenBoatLocation
+                    },
+                    true
+                )
+                return valid
+                // return gameSession.validBuildLocationIds.includes(axialCoordinatesToNumber(hex))
             }
         } else if (
             gameSession.chosenAction === ActionType.Build &&
