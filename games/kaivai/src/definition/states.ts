@@ -3,5 +3,6 @@ export enum MachineState {
     InitialHuts = 'InitialHuts',
     MovingGod = 'MovingGod',
     TakingActions = 'TakingActions',
+    Building = 'Building',
     EndOfGame = 'EndOfGame'
 }

@@ -77,7 +77,8 @@
             ) {
                 return true
             } else if (
-                (gameSession.gameState.machineState === MachineState.TakingActions &&
+                ((gameSession.gameState.machineState === MachineState.TakingActions ||
+                    gameSession.gameState.machineState === MachineState.Building) &&
                     !gameSession.chosenBoatLocation) ||
                 gameSession.chosenHutType
             ) {
@@ -97,7 +98,8 @@
 
         if (
             gameSession.chosenAction === ActionType.Build &&
-            gameSession.gameState.machineState === MachineState.TakingActions
+            (gameSession.gameState.machineState === MachineState.TakingActions ||
+                gameSession.gameState.machineState === MachineState.Building)
         ) {
             if (!gameSession.chosenBoat) {
                 const boat = getBoat()
@@ -182,7 +184,10 @@
         }
 
         if (gameSession.chosenAction === ActionType.Build) {
-            if (gameSession.gameState.machineState === MachineState.TakingActions) {
+            if (
+                gameSession.gameState.machineState === MachineState.TakingActions ||
+                gameSession.gameState.machineState === MachineState.Building
+            ) {
                 if (!gameSession.chosenBoat) {
                     const boat = getBoat()
                     if (!boat) {

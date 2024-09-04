@@ -6,7 +6,7 @@ import { PhaseName } from '../definition/phases.js'
 import { HydratedBuild, isBuild } from '../actions/build.js'
 import { HydratedPass } from '../actions/pass.js'
 
-// Transition from TakingActions(Build) -> TakingActions
+// Transition from TakingActions(Build) -> Building | TakingActions
 //                 TakingActions(Pass) -> TakingActions
 //                 TakingActions(Pass) -> LosingValue
 
@@ -82,23 +82,37 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedKaivaiGameState
 
+        let nextPlayerId
         if (!gameState.phases.currentPhase) {
             gameState.phases.startPhase(PhaseName.TakingActions, gameState.actionCount)
-            const nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
-            gameState.activePlayerIds = [nextPlayerId]
+            nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
         } else {
-            const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
+            nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
+        }
+
+        if (nextPlayerId) {
             gameState.activePlayerIds = [nextPlayerId]
+            const playerState = gameState.getPlayerState(nextPlayerId)
+            playerState.availableBoats = Object.keys(playerState.boatLocations)
         }
     }
 
     onAction(action: TakingActionsAction, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedKaivaiGameState
-        gameState.turnManager.endTurn(gameState.actionCount)
+        const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {
             case isBuild(action): {
-                return MachineState.TakingActions
+                if (
+                    playerState.availableBoats.some((boatId) =>
+                        HydratedBuild.canBoatBuild({ gameState, playerState, boatId })
+                    )
+                ) {
+                    return MachineState.Building
+                } else {
+                    gameState.turnManager.endTurn(gameState.actionCount)
+                    return MachineState.TakingActions
+                }
             }
             default: {
                 throw Error('Invalid action type')

@@ -50,7 +50,7 @@ export class KaivaiGameSession extends GameSession {
         }
 
         if (this.chosenAction === ActionType.Build) {
-            return Object.keys(playerState.boatLocations).filter((boatId) => {
+            return playerState.availableBoats.filter((boatId) => {
                 return HydratedBuild.canBoatBuild({
                     gameState: this.gameState,
                     playerState,

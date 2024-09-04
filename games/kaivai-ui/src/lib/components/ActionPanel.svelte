@@ -32,7 +32,10 @@
             case ActionType.PlaceBid:
                 return 'Place your bid'
             case ActionType.Build:
-                if (gameSession.gameState.machineState === MachineState.TakingActions) {
+                if (
+                    gameSession.gameState.machineState === MachineState.TakingActions ||
+                    gameSession.gameState.machineState === MachineState.Building
+                ) {
                     if (!gameSession.chosenBoat) {
                         return 'Choose a boat to use'
                     } else if (!gameSession.chosenBoatLocation) {

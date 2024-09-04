@@ -83,6 +83,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                         owner: player.id
                     }
                 }),
+                availableBoats: [],
                 boatLocations: {},
                 fishermen: 6,
                 movementModiferPosition: 0,

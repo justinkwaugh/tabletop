@@ -15,6 +15,7 @@ export const KaivaiPlayerState = Type.Composite([
         movementModiferPosition: Type.Number(),
         boats: Type.Array(Boat),
         boatLocations: Type.Record(Type.String(), AxialCoordinates),
+        availableBoats: Type.Array(Type.String()),
         fishermen: Type.Number(),
         shells: Type.Array(Type.Number()),
         fish: Type.Array(Type.Number()),
@@ -38,6 +39,7 @@ export class HydratedKaivaiPlayerState
     declare score: number
     declare movementModiferPosition: number
     declare boats: Boat[]
+    declare availableBoats: string[]
     declare boatLocations: Record<string, AxialCoordinates>
     declare fishermen: number
     declare shells: number[]

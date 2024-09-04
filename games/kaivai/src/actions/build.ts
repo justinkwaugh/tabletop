@@ -55,24 +55,27 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             )
         }
 
-        // Pay influence
-        const requiredInfluence = state.influence[ActionType.Build]
-        if (playerState.influence < requiredInfluence) {
-            throw Error('Player does not have enough influence to build')
-        }
-
-        if (requiredInfluence === 0) {
-            playerState.influence += 1
-        } else {
-            playerState.influence -= requiredInfluence
-            state.influence[ActionType.Build] += requiredInfluence
-        }
-
         const islandId = neighboringIslandIds[0]
 
-        // Pay for building
-        const cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
-        playerState.pay(cost)
+        // Initial huts are free
+        if (state.phases.currentPhase?.name !== PhaseName.InitialHuts) {
+            // // Pay influence
+            // const requiredInfluence = state.influence[ActionType.Build]
+            // if (playerState.influence < requiredInfluence) {
+            //     throw Error('Player does not have enough influence to build')
+            // }
+
+            // if (requiredInfluence === 0) {
+            //     playerState.influence += 1
+            // } else {
+            //     playerState.influence -= requiredInfluence
+            //     state.influence[ActionType.Build] += requiredInfluence
+            // }
+
+            // Pay for building
+            const cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
+            playerState.pay(cost)
+        }
 
         // Move boat
         if (this.boatId && this.boatCoords) {
@@ -87,6 +90,11 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             }
             state.board.addBoatTo(this.boatCoords, boat)
             playerState.boatLocations[boat.id] = this.boatCoords
+
+            // Mark boat as used
+            playerState.availableBoats = playerState.availableBoats.filter(
+                (id) => id !== this.boatId
+            )
         }
 
         let cell: Cell
