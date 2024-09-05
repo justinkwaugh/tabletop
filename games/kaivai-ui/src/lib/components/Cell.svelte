@@ -93,6 +93,7 @@
             }
             case ActionType.Fish:
             case ActionType.Deliver:
+            case ActionType.Move:
             case ActionType.Celebrate:
             case ActionType.MoveGod: {
                 return true
@@ -122,6 +123,8 @@
             return isInteractableForFish()
         } else if (gameSession.chosenAction === ActionType.Deliver) {
             return isInteractableForDeliver()
+        } else if (gameSession.chosenAction === ActionType.Move) {
+            return isInteractableForMove()
         } else if (gameSession.chosenAction === ActionType.Celebrate) {
             return isInteractableForCelebrate()
         } else if (gameSession.chosenAction === ActionType.MoveGod) {
@@ -188,6 +191,16 @@
         return false
     }
 
+    function isInteractableForMove(): boolean {
+        if (!gameSession.chosenBoat) {
+            const boat = getBoat()
+            return boat !== undefined && gameSession.usableBoats.includes(boat.id)
+        } else if (!gameSession.chosenBoatLocation) {
+            return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
+        }
+        return false
+    }
+
     function isInteractableForCelebrate(): boolean {
         if (!isIslandCell(cell)) {
             return false
@@ -235,7 +248,19 @@
         }
 
         const action = gameSession.createFishAction({
-            coords: { q: hex.q, r: hex.r },
+            boatId: gameSession.chosenBoat,
+            boatCoords: gameSession.chosenBoatLocation
+        })
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
+    async function move() {
+        if (!gameSession.chosenBoat || !gameSession.chosenBoatLocation) {
+            return
+        }
+
+        const action = gameSession.createMoveAction({
             boatId: gameSession.chosenBoat,
             boatCoords: gameSession.chosenBoatLocation
         })
@@ -315,6 +340,19 @@
                 return
             } else if (!gameSession.currentDeliveryLocation) {
                 gameSession.currentDeliveryLocation = { q: hex.q, r: hex.r }
+                return
+            }
+        } else if (gameSession.chosenAction === ActionType.Move) {
+            if (!gameSession.chosenBoat) {
+                const boat = getBoat()
+                if (!boat) {
+                    return
+                }
+                gameSession.chosenBoat = boat.id
+                return
+            } else if (!gameSession.chosenBoatLocation) {
+                gameSession.chosenBoatLocation = { q: hex.q, r: hex.r }
+                await move()
                 return
             }
         } else if (gameSession.chosenAction === ActionType.Celebrate) {

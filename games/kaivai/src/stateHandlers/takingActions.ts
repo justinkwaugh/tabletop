@@ -9,14 +9,15 @@ import { HydratedFish, isFish } from '../actions/fish.js'
 import { HydratedDeliver, isDeliver } from '../actions/deliver.js'
 import { HydratedCelebrate, isCelebrate } from '../actions/celebrate.js'
 import { HydratedIncrease, isIncrease } from '../actions/increase.js'
+import { HydratedMove, isMove } from '../actions/move.js'
 
 // Transition from TakingActions(Build) -> Building | TakingActions
 //                 TakingActions(Fish) -> Fishing | TakingActions
 //                 TakingActions(Deliver) -> Delivering | TakingActions
 //                 TakingActions(Celebrate) -> TakingActions
 //                 TakingActions(Increase) -> TakingActions
-//                 TakingActions(Pass) -> TakingActions
-//                 TakingActions(Pass) -> LosingValue
+//                 TakingActions(Move) -> Moving | TakingActions
+//                 TakingActions(Pass) -> TakingActions | LosingValue
 
 type TakingActionsAction =
     | HydratedBuild
@@ -24,6 +25,7 @@ type TakingActionsAction =
     | HydratedDeliver
     | HydratedCelebrate
     | HydratedIncrease
+    | HydratedMove
     | HydratedPass
 
 export class TakingActionsStateHandler implements MachineStateHandler<TakingActionsAction> {
@@ -35,6 +37,7 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             action.type === ActionType.Deliver ||
             action.type === ActionType.Celebrate ||
             action.type === ActionType.Increase ||
+            action.type === ActionType.Move ||
             action.type === ActionType.Pass
         )
     }
@@ -51,7 +54,8 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             ActionType.Fish,
             ActionType.Deliver,
             ActionType.Celebrate,
-            ActionType.Increase
+            ActionType.Increase,
+            ActionType.Move
         ].filter((action) => {
             if (playerState.influence < gameState.influence[action]) {
                 return false
@@ -88,7 +92,8 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                 }
                 case ActionType.Build:
                 case ActionType.Fish:
-                case ActionType.Deliver: {
+                case ActionType.Deliver:
+                case ActionType.Move: {
                     const playerBoatCoords = Object.values(playerState.boatLocations)
                     console.log(
                         'Player has boats at ',
@@ -122,6 +127,15 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                             validActions.push(ActionType.Deliver)
                         }
 
+                        if (
+                            !validActions.includes(ActionType.Move) &&
+                            actions.includes(ActionType.Move) &&
+                            HydratedMove.canBoatMove({ gameState, playerState, boatId })
+                        ) {
+                            console.log('can deliver')
+                            validActions.push(ActionType.Move)
+                        }
+
                         // if all of the actions are valid that could be tested, stop
                         if (
                             (!actions.includes(ActionType.Build) ||
@@ -129,7 +143,9 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                             (!actions.includes(ActionType.Fish) ||
                                 validActions.includes(ActionType.Fish)) &&
                             (!actions.includes(ActionType.Deliver) ||
-                                validActions.includes(ActionType.Deliver))
+                                validActions.includes(ActionType.Deliver)) &&
+                            (!actions.includes(ActionType.Move) ||
+                                validActions.includes(ActionType.Move))
                         ) {
                             break
                         }
@@ -197,6 +213,18 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                     )
                 ) {
                     return MachineState.Delivering
+                } else {
+                    gameState.turnManager.endTurn(gameState.actionCount)
+                    return MachineState.TakingActions
+                }
+            }
+            case isMove(action): {
+                if (
+                    playerState.availableBoats.some((boatId) =>
+                        HydratedMove.canBoatMove({ gameState, playerState, boatId })
+                    )
+                ) {
+                    return MachineState.Moving
                 } else {
                     gameState.turnManager.endTurn(gameState.actionCount)
                     return MachineState.TakingActions

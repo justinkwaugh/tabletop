@@ -7,5 +7,6 @@ export enum ActionType {
     Celebrate = 'Celebrate',
     Increase = 'Increase',
     Move = 'Move',
+    Sacrifice = 'Sacrifice',
     Pass = 'pass'
 }

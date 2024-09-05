@@ -24,7 +24,9 @@ import {
     Deliver,
     Delivery,
     Celebrate,
-    Increase
+    Increase,
+    HydratedMove,
+    Move
 } from '@tabletop/kaivai'
 import {
     axialCoordinatesToNumber,
@@ -87,6 +89,14 @@ export class KaivaiGameSession extends GameSession {
                     boatId
                 })
             })
+        } else if (this.chosenAction === ActionType.Move) {
+            return playerState.availableBoats.filter((boatId) => {
+                return HydratedMove.canBoatMove({
+                    gameState: this.gameState,
+                    playerState,
+                    boatId
+                })
+            })
         }
         return []
     })
@@ -120,6 +130,14 @@ export class KaivaiGameSession extends GameSession {
         } else if (this.chosenAction === ActionType.Deliver) {
             return new Set(
                 HydratedDeliver.validBoatLocations({
+                    gameState: this.gameState,
+                    playerState: playerState,
+                    boatId: this.chosenBoat
+                }).map((coords) => axialCoordinatesToNumber(coords))
+            )
+        } else if (this.chosenAction === ActionType.Move) {
+            return new Set(
+                HydratedMove.validBoatLocations({
                     gameState: this.gameState,
                     playerState: playerState,
                     boatId: this.chosenBoat
@@ -312,17 +330,14 @@ export class KaivaiGameSession extends GameSession {
     }
 
     createFishAction({
-        coords,
         boatId,
         boatCoords
     }: {
-        coords: AxialCoordinates
         boatId: string
         boatCoords: AxialCoordinates
     }): Fish {
         return {
             ...this.createBaseAction(ActionType.Fish),
-            coords,
             boatId,
             boatCoords: $state.snapshot(boatCoords)
         } as Fish
@@ -343,6 +358,20 @@ export class KaivaiGameSession extends GameSession {
             boatCoords,
             deliveries
         } as Deliver
+    }
+
+    createMoveAction({
+        boatId,
+        boatCoords
+    }: {
+        boatId: string
+        boatCoords: AxialCoordinates
+    }): Move {
+        return {
+            ...this.createBaseAction(ActionType.Move),
+            boatId,
+            boatCoords: $state.snapshot(boatCoords)
+        } as Move
     }
 
     createIncreaseAction(): Increase {

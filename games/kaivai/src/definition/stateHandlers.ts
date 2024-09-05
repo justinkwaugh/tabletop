@@ -8,6 +8,7 @@ import { TakingActionsStateHandler } from '../stateHandlers/takingActions.js'
 import { BuildingStateHandler } from '../stateHandlers/building.js'
 import { FishingStateHandler } from '../stateHandlers/fishing.js'
 import { DeliveringStateHandler } from '../stateHandlers/delivering.js'
+import { MovingStateHandler } from '../stateHandlers/moving.js'
 
 export const KaivaiStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
     [MachineState.Bidding]: new BiddingStateHandler(),
@@ -17,5 +18,6 @@ export const KaivaiStateHandlers: Record<MachineState, MachineStateHandler<Hydra
     [MachineState.Building]: new BuildingStateHandler(),
     [MachineState.Fishing]: new FishingStateHandler(),
     [MachineState.Delivering]: new DeliveringStateHandler(),
+    [MachineState.Moving]: new MovingStateHandler(),
     [MachineState.EndOfGame]: new TerminalStateHandler()
 }

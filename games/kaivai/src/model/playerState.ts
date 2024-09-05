@@ -64,6 +64,11 @@ export class HydratedKaivaiPlayerState
         return this.boats.pop()!
     }
 
+    returnBoat(boat: Boat) {
+        this.boats.push(boat)
+        delete this.boatLocations[boat.id]
+    }
+
     hasFisherman(): boolean {
         return this.fishermen > 0
     }

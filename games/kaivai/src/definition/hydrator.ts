@@ -14,6 +14,7 @@ import { HydratedFish, isFish } from '../actions/fish.js'
 import { HydratedDeliver, isDeliver } from '../actions/deliver.js'
 import { HydratedCelebrate, isCelebrate } from '../actions/celebrate.js'
 import { HydratedIncrease, isIncrease } from '../actions/increase.js'
+import { HydratedMove, isMove } from '../actions/move.js'
 
 export class KaivaiHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -38,6 +39,9 @@ export class KaivaiHydrator implements GameHydrator {
             }
             case isIncrease(data): {
                 return new HydratedIncrease(data)
+            }
+            case isMove(data): {
+                return new HydratedMove(data)
             }
             case isMoveGod(data): {
                 return new HydratedMoveGod(data)

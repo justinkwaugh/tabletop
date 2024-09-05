@@ -83,6 +83,12 @@
                 } else if (gameSession.validDeliveryLocationIds.length > 0) {
                     return 'Choose any delivery location'
                 }
+            case ActionType.Move:
+                if (!gameSession.chosenBoat) {
+                    return 'Choose a boat to move'
+                } else {
+                    return 'Choose a destination for your boat'
+                }
             case ActionType.Celebrate:
                 return 'Choose an island for your celebration'
             case ActionType.MoveGod:
