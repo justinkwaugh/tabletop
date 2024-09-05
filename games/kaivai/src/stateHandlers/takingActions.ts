@@ -7,7 +7,7 @@ import { HydratedBuild, isBuild } from '../actions/build.js'
 import { HydratedPass } from '../actions/pass.js'
 import { HydratedFish, isFish } from '../actions/fish.js'
 import { HydratedDeliver, isDeliver } from '../actions/deliver.js'
-import { HydratedCelebrate } from '../actions/celebrate.js'
+import { HydratedCelebrate, isCelebrate } from '../actions/celebrate.js'
 
 // Transition from TakingActions(Build) -> Building | TakingActions
 //                 TakingActions(Fish) -> Fishing | TakingActions
@@ -190,6 +190,10 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                     gameState.turnManager.endTurn(gameState.actionCount)
                     return MachineState.TakingActions
                 }
+            }
+            case isCelebrate(action): {
+                gameState.turnManager.endTurn(gameState.actionCount)
+                return MachineState.TakingActions
             }
             default: {
                 throw Error('Invalid action type')

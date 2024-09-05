@@ -244,6 +244,15 @@
         gameSession.resetAction()
     }
 
+    async function celebrate() {
+        if (!isIslandCell(cell)) {
+            return
+        }
+        const action = gameSession.createCelebrateAction(cell.islandId)
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
     async function moveGod() {
         const action = gameSession.createMoveGodAction({ q: hex.q, r: hex.r })
         gameSession.applyAction(action)
@@ -309,6 +318,9 @@
                 gameSession.currentDeliveryLocation = { q: hex.q, r: hex.r }
                 return
             }
+        } else if (gameSession.chosenAction === ActionType.Celebrate) {
+            await celebrate()
+            return
         } else if (gameSession.chosenAction === ActionType.MoveGod) {
             await moveGod()
             return

@@ -343,6 +343,10 @@ export class KaivaiGameSession extends GameSession {
         } as Deliver
     }
 
+    createCelebrateAction(islandId: string) {
+        return { ...this.createBaseAction(ActionType.Celebrate), islandId }
+    }
+
     createMoveGodAction(coords: AxialCoordinates) {
         return { ...this.createBaseAction(ActionType.MoveGod), coords }
     }
