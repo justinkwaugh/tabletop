@@ -41,7 +41,17 @@
     })
 
     let hasFisherman = $derived(isFishingCell(cell))
-    let hasBoat = $derived(isBoatCell(cell) && cell.boat !== undefined)
+    let hasBoat = $derived.by(() => {
+        if (isBoatCell(cell) && cell.boat) {
+            return (
+                gameSession.chosenBoat !== cell.boat.id ||
+                !gameSession.chosenBoatLocation ||
+                sameCoordinates(gameSession.chosenBoatLocation, hex)
+            )
+        } else {
+            return sameCoordinates(gameSession.chosenBoatLocation, hex)
+        }
+    })
     let hasGod = $derived(
         gameSession.gameState.godLocation?.coords.q === hex.q &&
             gameSession.gameState.godLocation?.coords.r === hex.r
@@ -58,8 +68,9 @@
             return uiColorForPlayer(gameSession.getPlayerColor(cell.boat?.owner))
         } else if (isFishingCell(cell)) {
             return uiColorForPlayer(gameSession.getPlayerColor(cell.owner))
+        } else {
+            return uiColorForPlayer(gameSession.getPlayerColor(gameSession.myPlayer?.id))
         }
-        return 'transparent'
     })
 
     let interacting = $derived.by(() => {
@@ -301,7 +312,6 @@
 
 <g
     role="button"
-    tabindex={-1}
     onkeypress={() => onClick()}
     onclick={() => onClick()}
     pointer-events="visible"

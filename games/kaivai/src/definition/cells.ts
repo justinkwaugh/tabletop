@@ -82,7 +82,7 @@ export function isDeliverableCell(cell?: Cell): cell is MeetingCell | BoatBuildi
 }
 
 export function isDeliveryCell(cell?: Cell): cell is MeetingCell | BoatBuildingCell {
-    return isMeetingCell(cell) || (isBoatBuildingCell(cell)
+    return isMeetingCell(cell) || isBoatBuildingCell(cell)
 }
 
 export function isIslandCell(

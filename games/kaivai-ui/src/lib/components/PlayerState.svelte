@@ -40,6 +40,10 @@
                     <div class="text-xl">{playerState.influence}</div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
+                    <div class="" style="font-size:.7rem; line-height:.8rem">fish</div>
+                    <div class="text-xl">{playerState.numFish()}</div>
+                </div>
+                <div class="flex flex-col justify-center items-center">
                     <div class="" style="font-size:.7rem; line-height:.8rem">score</div>
                     <div class="text-xl">{playerState.score}</div>
                 </div>
