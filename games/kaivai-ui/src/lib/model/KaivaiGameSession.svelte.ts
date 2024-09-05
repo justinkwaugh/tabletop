@@ -22,7 +22,9 @@ import {
     Fish,
     HydratedDeliver,
     Deliver,
-    Delivery
+    Delivery,
+    Celebrate,
+    Increase
 } from '@tabletop/kaivai'
 import {
     axialCoordinatesToNumber,
@@ -343,8 +345,12 @@ export class KaivaiGameSession extends GameSession {
         } as Deliver
     }
 
-    createCelebrateAction(islandId: string) {
-        return { ...this.createBaseAction(ActionType.Celebrate), islandId }
+    createIncreaseAction(): Increase {
+        return { ...(this.createBaseAction(ActionType.Increase) as Increase) }
+    }
+
+    createCelebrateAction(islandId: string): Celebrate {
+        return { ...(this.createBaseAction(ActionType.Celebrate) as Celebrate), islandId }
     }
 
     createMoveGodAction(coords: AxialCoordinates) {

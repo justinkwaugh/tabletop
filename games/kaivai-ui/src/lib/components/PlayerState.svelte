@@ -25,7 +25,7 @@
             <div class="flex flex-row justify-start items-center space-x-2 ms-4">
                 <div class="flex flex-col justify-center items-center">
                     <div class="" style="font-size:.7rem; line-height:.8rem">move</div>
-                    <div class="text-xl">{playerState.baseMovement}</div>
+                    <div class="text-xl">{playerState.movement()}</div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
                     <div class="" style="font-size:.7rem; line-height:.8rem">build</div>

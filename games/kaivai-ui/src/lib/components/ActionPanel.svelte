@@ -2,7 +2,6 @@
     import { getContext } from 'svelte'
     import { Button } from 'flowbite-svelte'
     import { ActionType, HutType, MachineState } from '@tabletop/kaivai'
-    import fishtoken from '$lib/images/fishtoken.png'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import DeliverySelection from './DeliverySelection.svelte'
 
@@ -17,12 +16,21 @@
     })
     let showActions = $derived(!gameSession.chosenAction)
 
-    function chooseAction(action: string) {
+    async function chooseAction(action: string) {
         switch (action) {
+            case ActionType.Increase:
+                await increase()
+                break
             default:
                 gameSession.chosenAction = action
                 break
         }
+    }
+
+    async function increase() {
+        const action = gameSession.createIncreaseAction()
+        gameSession.applyAction(action)
+        gameSession.resetAction()
     }
 
     const instructions = $derived.by(() => {

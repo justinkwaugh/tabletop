@@ -8,11 +8,13 @@ import { HydratedPass } from '../actions/pass.js'
 import { HydratedFish, isFish } from '../actions/fish.js'
 import { HydratedDeliver, isDeliver } from '../actions/deliver.js'
 import { HydratedCelebrate, isCelebrate } from '../actions/celebrate.js'
+import { HydratedIncrease, isIncrease } from '../actions/increase.js'
 
 // Transition from TakingActions(Build) -> Building | TakingActions
 //                 TakingActions(Fish) -> Fishing | TakingActions
 //                 TakingActions(Deliver) -> Delivering | TakingActions
 //                 TakingActions(Celebrate) -> TakingActions
+//                 TakingActions(Increase) -> TakingActions
 //                 TakingActions(Pass) -> TakingActions
 //                 TakingActions(Pass) -> LosingValue
 
@@ -21,6 +23,7 @@ type TakingActionsAction =
     | HydratedFish
     | HydratedDeliver
     | HydratedCelebrate
+    | HydratedIncrease
     | HydratedPass
 
 export class TakingActionsStateHandler implements MachineStateHandler<TakingActionsAction> {
@@ -31,6 +34,7 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             action.type === ActionType.Fish ||
             action.type === ActionType.Deliver ||
             action.type === ActionType.Celebrate ||
+            action.type === ActionType.Increase ||
             action.type === ActionType.Pass
         )
     }
@@ -46,7 +50,8 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             ActionType.Build,
             ActionType.Fish,
             ActionType.Deliver,
-            ActionType.Celebrate
+            ActionType.Celebrate,
+            ActionType.Increase
         ].filter((action) => {
             if (playerState.influence < gameState.influence[action]) {
                 return false
@@ -72,6 +77,12 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                 case ActionType.Celebrate: {
                     if (gameState.board.getCelebratableCells().length > 0) {
                         validActions.push(ActionType.Celebrate)
+                    }
+                    break
+                }
+                case ActionType.Increase: {
+                    if (HydratedIncrease.isValidIncrease(gameState, playerId)) {
+                        validActions.push(ActionType.Increase)
                     }
                     break
                 }
@@ -191,7 +202,7 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                     return MachineState.TakingActions
                 }
             }
-            case isCelebrate(action): {
+            case isCelebrate(action) || isIncrease(action): {
                 gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.TakingActions
             }

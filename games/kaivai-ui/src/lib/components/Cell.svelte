@@ -3,7 +3,6 @@
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { Hex } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
-    import fishtoken from '$lib/images/fishtoken.png'
     import { axialCoordinatesToNumber, sameCoordinates, Point } from '@tabletop/common'
     import {
         ActionType,

@@ -1,6 +1,6 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { GameAction, HexCoordinates, HydratableAction } from '@tabletop/common'
+import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { isCelebratableCell } from '../definition/cells.js'
