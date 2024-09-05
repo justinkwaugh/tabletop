@@ -301,6 +301,7 @@
 
 <g
     role="button"
+    tabindex={-1}
     onkeypress={() => onClick()}
     onclick={() => onClick()}
     pointer-events="visible"
@@ -327,12 +328,11 @@
     </text> -->
     {#if hasFisherman}
         <svg
-            class="z-30"
             width="87px"
             height="100px"
-            x={-hex.height / 2}
-            y={-hex.width / 2}
-            viewBox="-8.5 -2 30 30"
+            x={-43.5}
+            y={-50}
+            viewBox="-9.5 -5 31 31"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             ><path
@@ -392,22 +392,61 @@
     {/if}
 
     {#if hasFishToken}
-        <image href={fishtoken} x={-25} y={-25} width="50px" height="50px"></image>
+        <!-- <image href={fishtoken} x={-25} y={-25} width="50px" height="50px"></image>
         <circle cx="0" cy="0" r="25" fill="black" stroke="black" opacity=".1" stroke-width="2"
-        ></circle>
+        ></circle> -->
+        <text
+            style="filter: url(#textshadow); fill: black"
+            x="0"
+            y="0"
+            text-anchor="end"
+            dominant-baseline="middle"
+            font-size="50"
+            font-weight="bold"
+            stroke-width="1"
+            stroke="#000000"
+            opacity=".5"
+            fill="black">{numFish}</text
+        >
         <text
             x="0"
-            y="2"
-            text-anchor="middle"
+            y="5"
+            text-anchor="end"
             dominant-baseline="middle"
-            font-size="40"
+            font-size="50"
             font-weight="bold"
             stroke-width="1"
             stroke="#FFFFFF"
             fill="white"
-        >
-            {numFish}
+            >{numFish}
         </text>
+
+        <g transform="rotate(90)">
+            <svg
+                x={-19}
+                y={-35}
+                height="38px"
+                width="38px"
+                version="1.1"
+                id="_x32_"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                viewBox="0 0 512 512"
+                xml:space="preserve"
+                filter="url(#dropshadow)"
+                fill="#FFFFFF"
+            >
+                <g>
+                    <path
+                        class="st0"
+                        d="M508.727,159.883c-14.908-8.942-74.31,45.732-91.456,68.595c-57.163-34.302-108.602-57.164-108.602-57.164
+		s22.862-100.025-8.578-94.318c-28.638,5.212-81.664,42.558-125.749,77.172C100.033,174.176,10.164,225.086,0,274.201
+		c28.577,94.318,191.489,140.042,288.66,160.05c47.831,9.852,20.009-57.155,20.009-57.155s51.439-22.87,108.602-57.163
+		c17.147,22.862,76.548,77.536,91.456,68.594c14.293-8.577-22.862-114.326-22.862-114.326S523.02,168.461,508.727,159.883z"
+                    ></path>
+                </g>
+            </svg>
+        </g>
     {/if}
 
     {#if disabled}

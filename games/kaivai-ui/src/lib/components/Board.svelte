@@ -39,6 +39,29 @@
                 width={Math.ceil(grid.pixelWidth)}
                 height={Math.ceil(grid.pixelHeight)}
             >
+                <defs>
+                    <filter id="dropshadow" height="130%">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="10 10"></feGaussianBlur>
+                        <!-- stdDeviation is how much to blur -->
+                        <feOffset dx="50" dy="-20" result="offsetblur"></feOffset>
+                        <!-- how much to offset -->
+                        <feComponentTransfer>
+                            <feFuncA type="linear" slope="0.5"></feFuncA>
+                            <!-- slope is the opacity of the shadow -->
+                        </feComponentTransfer>
+                        <feMerge>
+                            <feMergeNode></feMergeNode>
+                            <!-- this contains the offset blurred image -->
+                            <feMergeNode in="SourceGraphic"></feMergeNode>
+                            <!-- this contains the element that the filter is applied to -->
+                        </feMerge>
+                    </filter>
+                    <filter id="textshadow" width="130%" height="130%">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="1 1" result="shadow"
+                        ></feGaussianBlur>
+                        <feOffset dx="3" dy="9"></feOffset>
+                    </filter>
+                </defs>
                 {#each grid as hex}
                     <Cell {hex} {origin} />
                 {/each}
