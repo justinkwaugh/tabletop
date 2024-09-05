@@ -3,6 +3,7 @@
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { Hex } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
+    import fishtoken from '$lib/images/fishtoken.png'
     import { axialCoordinatesToNumber, sameCoordinates, Point } from '@tabletop/common'
     import {
         ActionType,
@@ -12,7 +13,8 @@
         HydratedMoveGod,
         MachineState,
         isFishingCell,
-        isBoatCell
+        isBoatCell,
+        isDeliveryCell
     } from '@tabletop/kaivai'
     import { uiColorForPlayer } from '$lib/utils/playerColors'
 
@@ -38,24 +40,18 @@
         return undefined
     })
 
-    let cellText = $derived.by(() => {
-        if (cell) {
-            if (
-                gameSession.gameState.godLocation?.coords.q === hex.q &&
-                gameSession.gameState.godLocation?.coords.r === hex.r
-            ) {
-                return 'GOD'
-            }
-        }
-        return undefined
-    })
-
     let hasFisherman = $derived(isFishingCell(cell))
     let hasBoat = $derived(isBoatCell(cell) && cell.boat !== undefined)
     let hasGod = $derived(
         gameSession.gameState.godLocation?.coords.q === hex.q &&
             gameSession.gameState.godLocation?.coords.r === hex.r
     )
+    let numFish = $derived.by(() => {
+        const storedFish = isDeliveryCell(cell) ? cell.fish : 0
+        const delivery = gameSession.chosenDeliveries.find((d) => sameCoordinates(d.coords, hex))
+        return storedFish + (delivery?.amount ?? 0)
+    })
+    let hasFishToken = $derived(numFish > 0)
 
     let playerColor = $derived.by(() => {
         if (isBoatCell(cell)) {
@@ -65,20 +61,6 @@
         }
         return 'transparent'
     })
-
-    function boatWasMoved() {
-        const boat = getBoat()
-        return (
-            boat &&
-            gameSession.chosenBoat === boat.id &&
-            gameSession.chosenBoatLocation &&
-            !sameCoordinates(hex, gameSession.chosenBoatLocation)
-        )
-    }
-
-    function isTargetBoatLocation() {
-        return sameCoordinates(hex, gameSession.chosenBoatLocation)
-    }
 
     let interacting = $derived.by(() => {
         if (gameSession.chosenAction === ActionType.Build) {
@@ -298,6 +280,9 @@
             } else if (!gameSession.chosenBoatLocation) {
                 gameSession.chosenBoatLocation = { q: hex.q, r: hex.r }
                 return
+            } else if (!gameSession.currentDeliveryLocation) {
+                gameSession.currentDeliveryLocation = { q: hex.q, r: hex.r }
+                return
             }
         } else if (gameSession.chosenAction === ActionType.MoveGod) {
             await moveGod()
@@ -405,6 +390,26 @@
             ></path>
         </svg>
     {/if}
+
+    {#if hasFishToken}
+        <image href={fishtoken} x={-25} y={-25} width="50px" height="50px"></image>
+        <circle cx="0" cy="0" r="25" fill="black" stroke="black" opacity=".1" stroke-width="2"
+        ></circle>
+        <text
+            x="0"
+            y="2"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="40"
+            font-weight="bold"
+            stroke-width="1"
+            stroke="#FFFFFF"
+            fill="white"
+        >
+            {numFish}
+        </text>
+    {/if}
+
     {#if disabled}
         <polygon points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5" fill="black" opacity="0.5"
         ></polygon>

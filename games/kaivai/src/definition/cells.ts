@@ -77,8 +77,12 @@ export function isPlayerCell(cell?: Cell): cell is MeetingCell | FishingCell | B
     return isMeetingCell(cell) || isFishingCell(cell) || isBoatBuildingCell(cell)
 }
 
-export function isDeliveryCell(cell?: Cell): cell is MeetingCell | BoatBuildingCell {
+export function isDeliverableCell(cell?: Cell): cell is MeetingCell | BoatBuildingCell {
     return isMeetingCell(cell) || (isBoatBuildingCell(cell) && !cell.boat && cell.fish < 3)
+}
+
+export function isDeliveryCell(cell?: Cell): cell is MeetingCell | BoatBuildingCell {
+    return isMeetingCell(cell) || (isBoatBuildingCell(cell)
 }
 
 export function isIslandCell(

@@ -10,7 +10,7 @@ import {
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
-import { isDeliveryCell } from '../definition/cells.js'
+import { isDeliverableCell } from '../definition/cells.js'
 
 export type Delivery = Static<typeof Delivery>
 export const Delivery = Type.Object({
@@ -80,7 +80,7 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
         // Deliver fish
         for (const delivery of this.deliveries) {
             const cell = state.board.getCellAt(delivery.coords)
-            if (!isDeliveryCell(cell)) {
+            if (!isDeliverableCell(cell)) {
                 throw Error('Invalid delivery location')
             }
 
@@ -138,7 +138,7 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
             const cell = deliverableCells.find((cell) =>
                 sameCoordinates(cell.coords, delivery.coords)
             )
-            if (!isDeliveryCell(cell)) {
+            if (!isDeliverableCell(cell)) {
                 return { valid: false, reason: 'Invalid delivery location' }
             }
             if (cell.fish + delivery.amount > 3) {
@@ -158,6 +158,10 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
         playerState: HydratedKaivaiPlayerState
         boatId: string
     }): boolean {
+        if (playerState.numFish() === 0) {
+            return false
+        }
+
         const validLocations = HydratedDeliver.validBoatLocations({
             gameState,
             playerState,

@@ -6,7 +6,7 @@ import {
     Cell,
     CellType,
     isBoatCell,
-    isDeliveryCell,
+    isDeliverableCell,
     isIslandCell,
     isPlayerCell
 } from '../definition/cells.js'
@@ -166,7 +166,7 @@ export class HydratedKaivaiGameBoard
     getDeliverableNeighbors(coords: AxialCoordinates) {
         return this.getNeighbors(coords)
             .map((hex) => this.getCellAt(hex))
-            .filter((cell) => isDeliveryCell(cell))
+            .filter((cell) => isDeliverableCell(cell))
     }
 
     hasOtherBoat(coords: AxialCoordinates, boatId: string) {

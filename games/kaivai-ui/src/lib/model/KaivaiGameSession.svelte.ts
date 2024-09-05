@@ -21,6 +21,7 @@ import {
     HydratedFish,
     Fish,
     HydratedDeliver,
+    Deliver,
     Delivery
 } from '@tabletop/kaivai'
 import {
@@ -42,6 +43,7 @@ export class KaivaiGameSession extends GameSession {
     chosenHutType: HutType | undefined = $state(undefined)
     chosenBoatLocation: AxialCoordinates | undefined = $state(undefined)
     chosenDeliveries: Delivery[] = $state([])
+    currentDeliveryLocation: AxialCoordinates | undefined = $state(undefined)
 
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
@@ -228,6 +230,11 @@ export class KaivaiGameSession extends GameSession {
     cancel() {
         if (this.chosenHutType) {
             this.chosenHutType = undefined
+        } else if (this.currentDeliveryLocation) {
+            this.currentDeliveryLocation = undefined
+        } else if (this.chosenDeliveries.length > 0) {
+            this.chosenDeliveries = []
+            this.chosenBoatLocation = undefined
         } else if (this.chosenBoatLocation) {
             this.chosenBoatLocation = undefined
         } else if (this.chosenBoat) {
@@ -242,6 +249,26 @@ export class KaivaiGameSession extends GameSession {
         this.chosenHutType = undefined
         this.chosenBoat = undefined
         this.chosenBoatLocation = undefined
+        this.chosenDeliveries = []
+        this.currentDeliveryLocation = undefined
+    }
+
+    setDelivery(amount: number) {
+        if (!this.currentDeliveryLocation) {
+            return
+        }
+
+        const coords = this.currentDeliveryLocation
+        const existingIndex = this.chosenDeliveries.findIndex((d) =>
+            sameCoordinates(d.coords, coords)
+        )
+        if (existingIndex !== -1) {
+            this.chosenDeliveries[existingIndex].amount = amount
+        } else {
+            this.chosenDeliveries.push({ coords, amount })
+        }
+
+        this.currentDeliveryLocation = undefined
     }
 
     createPlaceBidAction(bid: number): PlaceBid {
@@ -283,6 +310,23 @@ export class KaivaiGameSession extends GameSession {
             boatId,
             boatCoords: $state.snapshot(boatCoords)
         } as Fish
+    }
+
+    createDeliverAction({
+        boatId,
+        boatCoords,
+        deliveries
+    }: {
+        boatId: string
+        boatCoords: AxialCoordinates
+        deliveries: Delivery[]
+    }): Deliver {
+        return {
+            ...this.createBaseAction(ActionType.Deliver),
+            boatId,
+            boatCoords,
+            deliveries
+        } as Deliver
     }
 
     createMoveGodAction(coords: AxialCoordinates) {

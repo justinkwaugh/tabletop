@@ -2,7 +2,9 @@
     import { getContext } from 'svelte'
     import { Button } from 'flowbite-svelte'
     import { ActionType, HutType, MachineState } from '@tabletop/kaivai'
+    import fishtoken from '$lib/images/fishtoken.png'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import DeliverySelection from './DeliverySelection.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let showCancel = $derived.by(() => {
@@ -66,10 +68,12 @@
                     return 'Choose a boat to use'
                 } else if (!gameSession.chosenBoatLocation) {
                     return 'Choose a destination for your boat'
+                } else if (gameSession.currentDeliveryLocation) {
+                    return 'How many fish will you deliver here?'
+                } else if (gameSession.chosenDeliveries.length > 0) {
+                    return 'Add or change deliveries or deliver the fish!'
                 } else if (gameSession.validDeliveryLocationIds.length > 0) {
-                    return 'Choose a delivery location'
-                } else {
-                    return 'Deliver the fish'
+                    return 'Choose any delivery location'
                 }
             case ActionType.MoveGod:
                 if (!gameSession.gameState.godLocation) {
@@ -107,6 +111,24 @@
             case HutType.Fishing:
                 return gameSession.myPlayerState?.hasFisherman()
         }
+    }
+
+    function deliverFish() {
+        if (
+            !gameSession.chosenBoat ||
+            !gameSession.chosenBoatLocation ||
+            gameSession.chosenDeliveries.length === 0
+        ) {
+            return
+        }
+
+        const action = gameSession.createDeliverAction({
+            boatId: $state.snapshot(gameSession.chosenBoat),
+            boatCoords: $state.snapshot(gameSession.chosenBoatLocation),
+            deliveries: $state.snapshot(gameSession.chosenDeliveries)
+        })
+        gameSession.applyAction(action)
+        gameSession.resetAction()
     }
 </script>
 
@@ -168,10 +190,19 @@
             </div>
         {/if}
 
+        {#if gameSession.currentDeliveryLocation}
+            <DeliverySelection />
+        {/if}
+
         <div class="flex flex-row justify-center items-center">
             {#if showCancel}
                 <Button onclick={() => gameSession.cancel()} size="xs" class="m-1" color="red"
                     >Cancel</Button
+                >
+            {/if}
+            {#if gameSession.chosenAction === ActionType.Deliver && gameSession.chosenDeliveries.length > 0}
+                <Button onclick={() => deliverFish()} size="xs" class="m-1" color="blue"
+                    >Deliver the Fish</Button
                 >
             {/if}
             {#if showActions}
