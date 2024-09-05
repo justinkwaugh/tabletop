@@ -81,6 +81,10 @@ export function isDeliverableCell(cell?: Cell): cell is MeetingCell | BoatBuildi
     return isMeetingCell(cell) || (isBoatBuildingCell(cell) && !cell.boat && cell.fish < 3)
 }
 
+export function isCelebratableCell(cell?: Cell): cell is MeetingCell | BoatBuildingCell {
+    return isDeliveryCell(cell) && cell.fish > 0
+}
+
 export function isDeliveryCell(cell?: Cell): cell is MeetingCell | BoatBuildingCell {
     return isMeetingCell(cell) || isBoatBuildingCell(cell)
 }

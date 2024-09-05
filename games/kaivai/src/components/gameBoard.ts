@@ -3,12 +3,15 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { AxialCoordinates, axialCoordinatesToNumber, flood, Hydratable } from '@tabletop/common'
 import { Island } from './island.js'
 import {
+    BoatBuildingCell,
     Cell,
     CellType,
     isBoatCell,
+    isCelebratableCell,
     isDeliverableCell,
     isIslandCell,
-    isPlayerCell
+    isPlayerCell,
+    MeetingCell
 } from '../definition/cells.js'
 import { defineHex, distance, Grid, Hex, Orientation, ring, spiral } from 'honeycomb-grid'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
@@ -167,6 +170,10 @@ export class HydratedKaivaiGameBoard
         return this.getNeighbors(coords)
             .map((hex) => this.getCellAt(hex))
             .filter((cell) => isDeliverableCell(cell))
+    }
+
+    getCelebratableCells(): (MeetingCell | BoatBuildingCell)[] {
+        return Object.values(this.cells).filter(isCelebratableCell)
     }
 
     hasOtherBoat(coords: AxialCoordinates, boatId: string) {

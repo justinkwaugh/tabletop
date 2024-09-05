@@ -14,7 +14,8 @@
         MachineState,
         isFishingCell,
         isBoatCell,
-        isDeliveryCell
+        isDeliveryCell,
+        isIslandCell
     } from '@tabletop/kaivai'
     import { uiColorForPlayer } from '$lib/utils/playerColors'
 
@@ -74,28 +75,32 @@
     })
 
     let interacting = $derived.by(() => {
-        if (gameSession.chosenAction === ActionType.Build) {
-            if (
-                gameSession.gameState.machineState === MachineState.InitialHuts &&
-                gameSession.chosenHutType
-            ) {
-                return true
-            } else if (
-                ((gameSession.gameState.machineState === MachineState.TakingActions ||
-                    gameSession.gameState.machineState === MachineState.Building) &&
-                    !gameSession.chosenBoatLocation) ||
-                gameSession.chosenHutType
-            ) {
+        switch (gameSession.chosenAction) {
+            case ActionType.Build: {
+                if (
+                    gameSession.gameState.machineState === MachineState.InitialHuts &&
+                    gameSession.chosenHutType
+                ) {
+                    return true
+                } else if (
+                    ((gameSession.gameState.machineState === MachineState.TakingActions ||
+                        gameSession.gameState.machineState === MachineState.Building) &&
+                        !gameSession.chosenBoatLocation) ||
+                    gameSession.chosenHutType
+                ) {
+                    return true
+                }
+                break
+            }
+            case ActionType.Fish:
+            case ActionType.Deliver:
+            case ActionType.Celebrate:
+            case ActionType.MoveGod: {
                 return true
             }
-        } else if (gameSession.chosenAction === ActionType.Fish) {
-            return true
-        } else if (gameSession.chosenAction === ActionType.Deliver) {
-            return true
-        } else if (gameSession.chosenAction === ActionType.MoveGod) {
-            return true
+            default:
+                return false
         }
-        return false
     })
 
     let interactable = $derived.by(() => {
@@ -118,6 +123,8 @@
             return isInteractableForFish()
         } else if (gameSession.chosenAction === ActionType.Deliver) {
             return isInteractableForDeliver()
+        } else if (gameSession.chosenAction === ActionType.Celebrate) {
+            return isInteractableForCelebrate()
         } else if (gameSession.chosenAction === ActionType.MoveGod) {
             return isInteractableForMoveGod()
         }
@@ -180,6 +187,13 @@
             return gameSession.validDeliveryLocationIds.includes(axialCoordinatesToNumber(hex))
         }
         return false
+    }
+
+    function isInteractableForCelebrate(): boolean {
+        if (!isIslandCell(cell)) {
+            return false
+        }
+        return gameSession.validCelebrationIslands.has(cell?.islandId)
     }
 
     function isInteractableForMoveGod(): boolean {

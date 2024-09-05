@@ -5,6 +5,7 @@ import { Build } from '../actions/build.js'
 import { MoveGod } from '../actions/moveGod.js'
 import { Fish } from '../actions/fish.js'
 import { Deliver } from '../actions/deliver.js'
+import { Celebrate } from '../actions/celebrate.js'
 
 export const KaivaiApiActions = {
     [ActionType.Pass]: Pass,
@@ -12,5 +13,6 @@ export const KaivaiApiActions = {
     [ActionType.Build]: Build,
     [ActionType.Fish]: Fish,
     [ActionType.Deliver]: Deliver,
+    [ActionType.Celebrate]: Celebrate,
     [ActionType.MoveGod]: MoveGod
 }

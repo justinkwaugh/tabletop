@@ -188,6 +188,20 @@ export class KaivaiGameSession extends GameSession {
             .map((cell) => axialCoordinatesToNumber(cell.coords))
     })
 
+    validCelebrationIslands: Set<string> = $derived.by(() => {
+        if (this.chosenAction !== ActionType.Celebrate) {
+            return new Set()
+        }
+
+        const islandIds = new Set<string>()
+        for (const cell of this.gameState.board.getCelebratableCells()) {
+            islandIds.add(cell.islandId)
+        }
+        console.log('valid islands', islandIds)
+
+        return islandIds
+    })
+
     getPlayerBgColor(playerId?: string) {
         return uiBgColorForPlayer(this.getPlayerColor(playerId)) ?? 'bg-gray-500'
     }

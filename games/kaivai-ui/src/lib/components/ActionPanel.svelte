@@ -75,6 +75,8 @@
                 } else if (gameSession.validDeliveryLocationIds.length > 0) {
                     return 'Choose any delivery location'
                 }
+            case ActionType.Celebrate:
+                return 'Choose an island for your celebration'
             case ActionType.MoveGod:
                 if (!gameSession.gameState.godLocation) {
                     return 'Place the Fisherman God'

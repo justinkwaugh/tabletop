@@ -1,6 +1,6 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { AxialCoordinates, GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
@@ -10,7 +10,7 @@ export const Celebrate = Type.Composite([
     Type.Object({
         type: Type.Literal(ActionType.Celebrate),
         playerId: Type.String(),
-        coords: AxialCoordinates
+        islandId: Type.String()
     })
 ])
 
@@ -23,23 +23,23 @@ export function isCelebrate(action?: GameAction): action is Celebrate {
 export class HydratedCelebrate extends HydratableAction<typeof Celebrate> implements Celebrate {
     declare type: ActionType.Celebrate
     declare playerId: string
-    declare coords: AxialCoordinates
+    declare islandId: string
 
     constructor(data: Celebrate) {
         super(data, CelebrateValidator)
     }
 
     apply(state: HydratedKaivaiGameState) {
-        const { valid, reason } = HydratedCelebrate.isValidAction(state, this.coords)
+        const { valid, reason } = HydratedCelebrate.isValidIsland(state, this.islandId)
 
         if (!valid) {
             throw Error(reason)
         }
     }
 
-    static isValidAction(
+    static isValidIsland(
         state: HydratedKaivaiGameState,
-        coords: AxialCoordinates
+        islandId: string
     ): { valid: boolean; reason: string } {
         const board = state.board
 
