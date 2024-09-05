@@ -4,8 +4,12 @@
     import { defineHex, Grid, ring, spiral, Orientation } from 'honeycomb-grid'
     import board from '$lib/images/board.png'
     import Cell from './Cell.svelte'
-    import { ActionType } from '@tabletop/kaivai'
-    import BidBoard from '$lib/components/BidBoard.svelte'
+    import buildImg from '$lib/images/build.png'
+    import moveImg from '$lib/images/move.png'
+    import increaseImg from '$lib/images/increase.png'
+    import celebrateImg from '$lib/images/celebrate.png'
+    import fishImg from '$lib/images/fish.png'
+    import deliverImg from '$lib/images/deliver.png'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -22,22 +26,22 @@
     const yOffset = grid.pixelHeight / 2
     const xOffset = grid.pixelWidth / 2
 
-    let origin = { x: xOffset, y: yOffset }
+    let origin = { x: xOffset, y: yOffset + 100 }
 </script>
 
 <div class="flex flex-col justify-center items-center p-2">
     <div class="relative mt-8 w-full fit-content">
-        <div class="absolute top-0 left-0 w-full">
+        <div class="absolute top-[100px] left-0 w-full">
             <img class="w-[1200px]" src={board} alt="board" />
         </div>
         <div
             class="z-10"
-            style="width:{grid.pixelWidth + 16 + 'px'};height:{grid.pixelHeight + 16 + 'px'};"
+            style="width:{grid.pixelWidth + 16 + 'px'};height:{grid.pixelHeight + 16 + 100 + 'px'};"
         >
             <svg
                 transform="translate(7,-12) scale(1.005,.975)"
                 width={Math.ceil(grid.pixelWidth)}
-                height={Math.ceil(grid.pixelHeight)}
+                height={Math.ceil(grid.pixelHeight) + 100}
             >
                 <defs>
                     <filter id="dropshadow" height="130%">
@@ -62,6 +66,31 @@
                         <feOffset dx="3" dy="9"></feOffset>
                     </filter>
                 </defs>
+
+                <image href={moveImg} x={5} y={150} width={150} height={150}> </image>
+                <circle cx={80} cy={225} r="75" fill="none" stroke="#634a11" stroke-width="4"
+                ></circle>
+
+                <image href={buildImg} x={85} y={5} width={150} height={150}> </image>
+                <circle cx={160} cy={80} r="75" fill="none" stroke="#634a11" stroke-width="4"
+                ></circle>
+
+                <image href={increaseImg} x={250} y={5} width={150} height={150}> </image>
+                <circle cx={325} cy={80} r="75" fill="none" stroke="#634a11" stroke-width="4"
+                ></circle>
+
+                <image href={deliverImg} x={845} y={150} width={150} height={150}> </image>
+                <circle cx={920} cy={225} r="75" fill="none" stroke="#634a11" stroke-width="4"
+                ></circle>
+
+                <image href={fishImg} x={765} y={5} width={150} height={150}> </image>
+                <circle cx={840} cy={80} r="75" fill="none" stroke="#634a11" stroke-width="4"
+                ></circle>
+
+                <image href={celebrateImg} x={600} y={5} width={150} height={150}> </image>
+                <circle cx={675} cy={80} r="75" fill="none" stroke="#634a11" stroke-width="4"
+                ></circle>
+
                 {#each grid as hex}
                     <Cell {hex} {origin} />
                 {/each}
