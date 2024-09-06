@@ -3,6 +3,7 @@
     import type { GameSession } from '$lib/model/gameSession.svelte'
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { UserSolid } from 'flowbite-svelte-icons'
+    import { findLastIndex } from '@tabletop/common'
 
     let {
         enabledColor = 'text-white',
@@ -10,10 +11,54 @@
     }: { enabledColor?: string; disabledColor?: string } = $props()
 
     let gameSession = getContext('gameSession') as GameSession
+
+    let myFirstAction = $derived(
+        gameSession.actions.findIndex((action) => action.playerId === gameSession.myPlayer?.id)
+    )
+
+    let hasPreviousAction = $derived(
+        myFirstAction >= 0 &&
+            (gameSession.mode !== GameSessionMode.History ||
+                myFirstAction < gameSession.currentHistoryIndex)
+    )
+
+    let myLastAction = $derived(
+        gameSession.actions.findLastIndex((action) => action.playerId === gameSession.myPlayer?.id)
+    )
+
+    let hasNextAction = $derived(
+        myLastAction >= 0 &&
+            gameSession.mode === GameSessionMode.History &&
+            myLastAction > gameSession.currentHistoryIndex
+    )
 </script>
 
 <div class="flex flex-row justify-between items-center">
-    <div></div>
+    <button
+        onclick={() => gameSession.goToMyPreviousTurn()}
+        class="flex flex-row justify-center items-center {hasPreviousAction
+            ? enabledColor
+            : disabledColor}"
+    >
+        <svg
+            class="-me-1 w-[12px] h-[12px]"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            transform="rotate(180)"
+        >
+            <path
+                fill-rule="evenodd"
+                d="M8.6 5.2A1 1 0 0 0 7 6v12a1 1 0 0 0 1.6.8l8-6a1 1 0 0 0 0-1.6l-8-6Z"
+                clip-rule="evenodd"
+            ></path>
+        </svg>
+        <UserSolid size="lg" />
+    </button>
+
     <div class="flex flex-row justify-center items-center space-x-2">
         <button onclick={() => gameSession.gotoAction(-1)}
             ><svg
@@ -140,12 +185,14 @@
         </button>
     </div>
     <button
-        onclick={() => gameSession.playHistoryFromMyTurn()}
-        class="flex flex-row justify-center items-center {enabledColor}"
+        onclick={() => gameSession.goToMyNextTurn()}
+        class="flex flex-row justify-center items-center {hasNextAction
+            ? enabledColor
+            : disabledColor}"
     >
-        <UserSolid />
+        <UserSolid size="lg" />
         <svg
-            class="w-[10px] h-[10px] -ms-1"
+            class="-ms-1 w-[12px] h-[12px]"
             aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
             width="24"

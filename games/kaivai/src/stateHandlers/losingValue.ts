@@ -30,7 +30,11 @@ export class LosingValueStateHandler implements MachineStateHandler<HydratedLose
                 gameState.phases.endPhase(gameState.actionCount)
                 gameState.rounds.endRound(gameState.actionCount)
 
-                return MachineState.Bidding
+                if (gameState.cultTiles === 0) {
+                    return MachineState.EndOfGame
+                } else {
+                    return MachineState.Bidding
+                }
             }
             default: {
                 throw Error('Invalid action type')

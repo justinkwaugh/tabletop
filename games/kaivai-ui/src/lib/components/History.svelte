@@ -9,6 +9,7 @@
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
     import { GameSessionMode, HistoryControls } from '@tabletop/frontend-components'
+    import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -32,15 +33,6 @@
             )
         return reversed
     })
-
-    function getDescriptionForAction(action: GameAction) {
-        switch (true) {
-            case isPass(action):
-                return 'passed'
-            default:
-                return action.type
-        }
-    }
 
     function highlight(action: GameAction) {}
 
@@ -95,7 +87,7 @@
                                     )}">{gameSession.getPlayerName(action.playerId)}</span
                                 >
                             {/if}
-                            {getDescriptionForAction(action)}
+                            {getHistoryDescriptionForAction(action)}
                         </p>
                     </TimelineItem>
                 </div>

@@ -623,16 +623,18 @@ export class GameSession {
         }
     }
 
-    public playHistoryFromMyTurn() {
+    public goToMyPreviousTurn() {
+        const myFirstActionIndex = this.actions.findIndex(
+            (action) => action.playerId === this.myPlayer?.id
+        )
         if (
             this.actions.length === 0 ||
-            this.actions[this.actions.length - 1].playerId === this.myPlayer?.id
+            myFirstActionIndex === -1 ||
+            (this.mode === GameSessionMode.History &&
+                myFirstActionIndex >= this.currentHistoryIndex)
         ) {
             return
         }
-
-        // Go to the end
-        this.gotoAction(this.actions.length - 1)
 
         // Now find my last turn
         do {
@@ -641,11 +643,27 @@ export class GameSession {
             this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
             this.currentHistoryIndex >= 0
         )
+    }
 
-        // Play from there
-        setTimeout(() => {
-            this.playHistory()
-        }, 1000)
+    public goToMyNextTurn() {
+        const myLastActionIndex = this.actions.findLastIndex(
+            (action) => action.playerId === this.myPlayer?.id
+        )
+        if (
+            this.actions.length === 0 ||
+            myLastActionIndex === -1 ||
+            (this.mode === GameSessionMode.History && myLastActionIndex <= this.currentHistoryIndex)
+        ) {
+            return
+        }
+
+        // Now find my last turn
+        do {
+            this.stepForward({ stopPlayback: true })
+        } while (
+            this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
+            this.mode === GameSessionMode.History
+        )
     }
 
     public stopHistoryPlayback() {

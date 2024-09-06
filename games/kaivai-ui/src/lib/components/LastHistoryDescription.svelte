@@ -2,6 +2,8 @@
     import { getContext } from 'svelte'
     import { ActionType, HutType, MachineState } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import { get } from 'svelte/store'
+    import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -34,7 +36,7 @@
                     >{gameSession.getPlayerName(lastAction.playerId)}</span
                 >
             {/if}
-            {description}
+            {getHistoryDescriptionForAction(lastAction)}
         </h1>
     </div>
 </div>

@@ -231,6 +231,14 @@ export class KaivaiGameSession extends GameSession {
         return this.getPlayerColor(playerId) === 'yellow' ? 'text-black' : 'text-gray-100'
     }
 
+    getPlayerBorderColor(playerId?: string) {
+        return this.getPlayerColor(playerId) === 'yellow' ? 'border-black' : 'border-gray-100'
+    }
+
+    getPlayerSvgColor(playerId?: string) {
+        return this.getPlayerColor(playerId) === 'yellow' ? 'black' : 'white'
+    }
+
     getHutImage(hutType: HutType, playerId?: string) {
         const color = this.getPlayerColor(playerId)
         switch (hutType) {

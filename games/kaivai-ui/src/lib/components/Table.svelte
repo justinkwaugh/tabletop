@@ -19,9 +19,10 @@
     import LastHistoryDescription from './LastHistoryDescription.svelte'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
-    let activeTabClasses = 'py-2 px-3 bg-[#634a11] rounded-lg text-gray-200 h-[42px] box-border'
+    let activeTabClasses =
+        'py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border'
     let inactiveTabClasses =
-        'text-[#634a11] py-2 px-3 h-[42px] rounded-lg border-2 border-transparent hover:border-[#634a11] box-border'
+        'text-[#634a11] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#634a11] box-border'
 </script>
 
 <!-- Full Height and Width with 8px padding-->
@@ -31,9 +32,9 @@
         class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)]"
     >
         <div class="p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]">
-            <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-gray-300" />
+            <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-[#cabb7a]" />
         </div>
-        <Tabs tabStyle="pill" contentClass="p-0 bg-transparent" activeClasses="p-2 kaivai-font">
+        <Tabs tabStyle="pill" contentClass="p-0 bg-transparent">
             <TabItem
                 open
                 defaultClass="uppercase kaivai-font"
