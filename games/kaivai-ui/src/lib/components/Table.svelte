@@ -63,4 +63,12 @@
         font-family: 'stacatto';
         src: url('/stacatto222bt.woff') format('woff');
     }
+
+    :global(.kaivai-font) {
+        font-family: 'stacatto', ui-sans-serif, system-ui, sans-serif;
+    }
+
+    :global(.text-shadow) {
+        text-shadow: 2px 3px 6px black;
+    }
 </style>

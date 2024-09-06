@@ -167,7 +167,7 @@
     class="rounded-lg bg-transparent p-2 text-center flex flex-row flex-wrap justify-center items-center"
 >
     <div class="flex flex-col justify-center items-center mx-8">
-        <h1 class="text-2xl uppercase text-[#372b0a]" style="font-family: stacatto;">
+        <h1 class="text-2xl uppercase text-[#372b0a] kaivai-font">
             {instructions}
         </h1>
         {#if gameSession.chosenAction === ActionType.Build && ((gameSession.chosenBoat && gameSession.chosenBoatLocation) || gameSession.gameState.machineState === MachineState.InitialHuts)}
@@ -183,9 +183,7 @@
                             class="w-16 h-16"
                         />
                         {#if !gameSession.chosenHutType}
-                            <div class="text-md uppercase" style="font-family:stacatto;">
-                                Meeting
-                            </div>
+                            <div class="text-md uppercase kaivai-font">Meeting</div>
                         {/if}
                     </button>
                 {/if}
@@ -203,7 +201,7 @@
                             class="w-16 h-16"
                         />
                         {#if !gameSession.chosenHutType}
-                            <div class="text-md uppercase" style="font-family:stacatto;">Boat</div>
+                            <div class="text-md uppercase kaivai-font">Boat</div>
                         {/if}
                     </button>
                 {/if}
@@ -218,9 +216,7 @@
                             class="w-16 h-16"
                         />
                         {#if !gameSession.chosenHutType}
-                            <div class="text-md uppercase" style="font-family:stacatto;">
-                                Fishing
-                            </div>
+                            <div class="text-md uppercase kaivai-font">Fishing</div>
                         {/if}
                     </button>
                 {/if}
@@ -236,20 +232,20 @@
                 {#if showCancel}
                     <button
                         onclick={() => gameSession.cancel()}
-                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white"
-                        style="font-family: stacatto;">{'\u21bc'} Back</button
+                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
+                        >{'\u21bc'} Back</button
                     >
                     <!-- <div
                     onclick={() => gameSession.cancel()}
                     class="uppercase text-md text-[#372b0a]"
-                    ><span style="font-family: staccato;">Cancel</span></div
+                    ><span style="font-family: stacatto;">Cancel</span></div
                 > -->
                 {/if}
                 {#if gameSession.chosenAction === ActionType.Deliver && gameSession.chosenDeliveries.length > 0}
                     <button
                         onclick={() => deliverFish()}
-                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white"
-                        style="font-family: stacatto;">Deliver the fish! {'\u21c0'}</button
+                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
+                        >Deliver the fish! {'\u21c0'}</button
                     >
                     <!-- <Button onclick={() => deliverFish()} size="xs" class="m-1" color="blue"
                         >Deliver the Fish</Button

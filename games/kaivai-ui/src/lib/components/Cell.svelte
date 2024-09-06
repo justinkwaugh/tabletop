@@ -469,8 +469,9 @@
         <circle cx="0" cy="0" r="25" fill="black" stroke="black" opacity=".1" stroke-width="2"
         ></circle> -->
         <text
+            class="kaivai-font"
             style="filter: url(#textshadow); fill: black"
-            x="0"
+            x="-4"
             y="0"
             text-anchor="end"
             dominant-baseline="middle"
@@ -482,7 +483,8 @@
             fill="black">{numFish}</text
         >
         <text
-            x="0"
+            class="kaivai-font"
+            x="-4"
             y="5"
             text-anchor="end"
             dominant-baseline="middle"
@@ -497,7 +499,7 @@
         <g transform="rotate(90)">
             <svg
                 x={-19}
-                y={-35}
+                y={-33}
                 height="38px"
                 width="38px"
                 version="1.1"

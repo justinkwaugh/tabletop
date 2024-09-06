@@ -63,20 +63,20 @@
         </div>
         <div>
             <span
-                class="max-md:hidden ms-4 uppercase text-2xl text-gray-200 text-nowrap"
-                style="font-family:stacatto">{phase}</span
+                class="max-md:hidden ms-4 uppercase text-2xl text-gray-200 text-nowrap kaivai-font"
+                >{phase}</span
             >
             <span
-                class="font-bold md:hidden ms-4 uppercase text-2xl text-gray-200 text-nowrap"
-                style="font-family:stacatto">{smallPhase}</span
+                class="font-bold md:hidden ms-4 uppercase text-2xl text-gray-200 text-nowrap kaivai-font"
+                >{smallPhase}</span
             >
         </div>
     </div>
     {#if gameSession.undoableAction}
         <button
             onclick={() => undo()}
-            class="px-2 uppercase bg-transparent border-2 border-white rounded-lg text-white"
-            style="font-family: stacatto;">Undo</button
+            class="px-2 uppercase bg-transparent border-2 border-white rounded-lg text-white kaivai-font"
+            >Undo</button
         >
     {/if}
 </div>

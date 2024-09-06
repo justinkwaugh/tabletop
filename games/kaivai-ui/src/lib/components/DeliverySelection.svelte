@@ -31,35 +31,25 @@
     }
 </script>
 
+{#snippet token(amount: number)}
+    <button onclick={() => setDeliveryAmount(amount)} class="relative fit-content">
+        <img src={fishtoken} alt="fishtoken" class="w-[50px] h-[50px]" />
+        <div
+            class="rounded-full absolute top-0 left-0 w-full h-full flex justify-center items-center font-bold text-4xl text-white bg-black bg-opacity-10 kaivai-font text-shadow"
+        >
+            {amount}
+        </div>
+    </button>
+{/snippet}
+
 <div class="flex flex-row justify-center items-center space-x-2 p-2">
     {#if maxValue > 0}
-        <button onclick={() => setDeliveryAmount(1)} class="relative fit-content">
-            <img src={fishtoken} alt="fishtoken" class="w-[50px] h-[50px]" />
-            <div
-                class="rounded-full absolute top-0 left-0 w-full h-full flex justify-center items-center font-bold text-4xl text-white bg-black bg-opacity-10"
-            >
-                1
-            </div>
-        </button>
+        {@render token(1)}
     {/if}
     {#if maxValue > 1}
-        <button onclick={() => setDeliveryAmount(2)} class="relative fit-content">
-            <img src={fishtoken} alt="fishtoken" class="w-[50px] h-[50px]" />
-            <div
-                class="rounded-full absolute top-0 left-0 w-full h-full flex justify-center items-center font-bold text-4xl text-white bg-black bg-opacity-10"
-            >
-                2
-            </div>
-        </button>
+        {@render token(2)}
     {/if}
     {#if maxValue > 2}
-        <button onclick={() => setDeliveryAmount(3)} class="relative fit-content">
-            <img src={fishtoken} alt="fishtoken" class="w-[50px] h-[50px]" />
-            <div
-                class="rounded-full absolute top-0 left-0 w-full h-full flex justify-center items-center font-bold text-4xl text-white bg-black bg-opacity-10"
-            >
-                3
-            </div>
-        </button>
+        {@render token(3)}
     {/if}
 </div>
