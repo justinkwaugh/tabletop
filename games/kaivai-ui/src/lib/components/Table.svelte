@@ -16,6 +16,7 @@
     import { TabItem, Tabs } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid } from 'flowbite-svelte-icons'
     import History from './History.svelte'
+    import LastHistoryDescription from './LastHistoryDescription.svelte'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let activeTabClasses = 'py-2 px-3 bg-[#634a11] rounded-lg text-gray-200 h-[42px] box-border'
@@ -29,8 +30,8 @@
     <div
         class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)]"
     >
-        <div class="py-2 rounded-lg bg-[#634a11] h-[42px]">
-            <HistoryControls />
+        <div class="p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]">
+            <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-gray-300" />
         </div>
         <Tabs tabStyle="pill" contentClass="p-0 bg-transparent" activeClasses="p-2 kaivai-font">
             <TabItem
@@ -72,7 +73,9 @@
                 <GameEndPanel />
             {:else if gameSession.mode === GameSessionMode.Play}-->
             <Phase />
-            {#if gameSession.isMyTurn}
+            {#if gameSession.mode === GameSessionMode.History}
+                <LastHistoryDescription />
+            {:else if gameSession.isMyTurn}
                 <ActionPanel />
                 <!-- {:else}
                     <WaitingPanel /> -->

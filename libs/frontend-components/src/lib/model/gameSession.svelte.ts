@@ -623,6 +623,31 @@ export class GameSession {
         }
     }
 
+    public playHistoryFromMyTurn() {
+        if (
+            this.actions.length === 0 ||
+            this.actions[this.actions.length - 1].playerId === this.myPlayer?.id
+        ) {
+            return
+        }
+
+        // Go to the end
+        this.gotoAction(this.actions.length - 1)
+
+        // Now find my last turn
+        do {
+            this.stepBackward({ stopPlayback: true })
+        } while (
+            this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
+            this.currentHistoryIndex >= 0
+        )
+
+        // Play from there
+        setTimeout(() => {
+            this.playHistory()
+        }, 1000)
+    }
+
     public stopHistoryPlayback() {
         if (!this.playingHistory) {
             return

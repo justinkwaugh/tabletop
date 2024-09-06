@@ -2,7 +2,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { HydratedKaivaiGameState } from 'src/model/gameState.js'
+import { HydratedKaivaiGameState } from '../model/gameState.js'
 
 export type LoseValue = Static<typeof LoseValue>
 export const LoseValue = Type.Composite([
