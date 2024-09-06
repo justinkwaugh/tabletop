@@ -65,9 +65,9 @@ export class HydratedSimpleTurnManager
         return nextPlayer
     }
 
-    startNextTurn(actionIndex: number): string {
+    startNextTurn(actionIndex: number, predicate?: (playerId: string) => boolean): string {
         const lastPlayerId = this.lastPlayer()
-        const nextPlayer = this.nextPlayer(lastPlayerId)
+        const nextPlayer = this.nextPlayer(lastPlayerId, predicate)
         this.startTurn(nextPlayer, actionIndex)
         return nextPlayer
     }
@@ -99,12 +99,21 @@ export class HydratedSimpleTurnManager
         return this.series[this.series.length - 2].playerId
     }
 
-    nextPlayer(currentPlayerId?: string): string {
+    nextPlayer(currentPlayerId?: string, predicate?: (nextPlayerId: string) => boolean): string {
         if (!currentPlayerId) {
             return this.turnOrder[0]
         }
+
         const currentPlayerIndex = this.getTurnOrderIndex(currentPlayerId)
-        const nextPlayerIndex = (currentPlayerIndex + 1) % this.turnOrder.length
+        let nextPlayerIndex = currentPlayerIndex
+        do {
+            nextPlayerIndex = (nextPlayerIndex + 1) % this.turnOrder.length
+        } while (
+            predicate &&
+            !predicate(this.turnOrder[nextPlayerIndex]) &&
+            nextPlayerIndex !== currentPlayerIndex
+        )
+
         return this.turnOrder[nextPlayerIndex]
     }
 

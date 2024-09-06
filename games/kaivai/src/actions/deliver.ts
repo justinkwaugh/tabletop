@@ -11,6 +11,7 @@ import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { isDeliverableCell } from '../definition/cells.js'
+import { MachineState } from '../definition/states.js'
 
 export type Delivery = Static<typeof Delivery>
 export const Delivery = Type.Object({
@@ -59,6 +60,20 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
 
         if (!valid) {
             throw Error(reason)
+        }
+
+        if (state.machineState === MachineState.TakingActions) {
+            const requiredInfluence = state.influence[ActionType.Deliver] ?? 0
+            if (playerState.influence < requiredInfluence) {
+                throw Error('Player does not have enough influence to deliver')
+            }
+
+            if (requiredInfluence === 0) {
+                state.influence[ActionType.Deliver] = 1
+            } else {
+                playerState.influence -= requiredInfluence
+                state.influence[ActionType.Deliver] += requiredInfluence
+            }
         }
 
         // Move boat

@@ -4,6 +4,7 @@ import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { isCelebratableCell } from '../definition/cells.js'
+import { MachineState } from '../definition/states.js'
 
 export type Celebrate = Static<typeof Celebrate>
 export const Celebrate = Type.Composite([
@@ -31,10 +32,25 @@ export class HydratedCelebrate extends HydratableAction<typeof Celebrate> implem
     }
 
     apply(state: HydratedKaivaiGameState) {
+        const playerState = state.getPlayerState(this.playerId)
         const { valid, reason } = HydratedCelebrate.isValidIsland(state, this.islandId)
 
         if (!valid) {
             throw Error(reason)
+        }
+
+        if (state.machineState === MachineState.TakingActions) {
+            const requiredInfluence = state.influence[ActionType.Celebrate] ?? 0
+            if (playerState.influence < requiredInfluence) {
+                throw Error('Player does not have enough influence to celebrate')
+            }
+
+            if (requiredInfluence === 0) {
+                state.influence[ActionType.Celebrate] = 1
+            } else {
+                playerState.influence -= requiredInfluence
+                state.influence[ActionType.Celebrate] += requiredInfluence
+            }
         }
 
         const island = state.board.islands[this.islandId]
@@ -50,7 +66,6 @@ export class HydratedCelebrate extends HydratableAction<typeof Celebrate> implem
             cell.fish = 0
         }
 
-        const playerState = state.getPlayerState(this.playerId)
         playerState.score += bonusFish
     }
 

@@ -3,6 +3,7 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { MachineState } from '../definition/states.js'
 
 export type Increase = Static<typeof Increase>
 export const Increase = Type.Composite([
@@ -28,13 +29,27 @@ export class HydratedIncrease extends HydratableAction<typeof Increase> implemen
     }
 
     apply(state: HydratedKaivaiGameState) {
+        const playerState = state.getPlayerState(this.playerId)
         const { valid, reason } = HydratedIncrease.isValidIncrease(state, this.playerId)
 
         if (!valid) {
             throw Error(reason)
         }
 
-        const playerState = state.getPlayerState(this.playerId)
+        if (state.machineState === MachineState.TakingActions) {
+            const requiredInfluence = state.influence[ActionType.Increase] ?? 0
+            if (playerState.influence < requiredInfluence) {
+                throw Error('Player does not have enough influence to fish')
+            }
+
+            if (requiredInfluence === 0) {
+                state.influence[ActionType.Increase] = 1
+            } else {
+                playerState.influence -= requiredInfluence
+                state.influence[ActionType.Increase] += requiredInfluence
+            }
+        }
+
         playerState.movementModiferPosition += 1
     }
 

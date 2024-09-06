@@ -6,6 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { CellType } from '../definition/cells.js'
 import { HutType } from '../definition/huts.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
+import { MachineState } from '../definition/states.js'
 
 export type Fish = Static<typeof Fish>
 export const Fish = Type.Composite([
@@ -47,6 +48,20 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
 
         if (!valid) {
             throw Error(reason)
+        }
+
+        if (state.machineState === MachineState.TakingActions) {
+            const requiredInfluence = state.influence[ActionType.Fish] ?? 0
+            if (playerState.influence < requiredInfluence) {
+                throw Error('Player does not have enough influence to fish')
+            }
+
+            if (requiredInfluence === 0) {
+                state.influence[ActionType.Fish] = 1
+            } else {
+                playerState.influence -= requiredInfluence
+                state.influence[ActionType.Fish] += requiredInfluence
+            }
         }
 
         // Move boat

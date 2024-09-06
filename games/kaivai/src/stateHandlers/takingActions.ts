@@ -174,7 +174,12 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             gameState.phases.startPhase(PhaseName.TakingActions, gameState.actionCount)
             nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
         } else {
-            nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
+            nextPlayerId = gameState.turnManager.startNextTurn(
+                gameState.actionCount,
+                (playerId: string) => {
+                    return !gameState.passedPlayers.includes(playerId)
+                }
+            )
         }
 
         if (nextPlayerId) {
@@ -238,7 +243,9 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                 }
             }
             case isCelebrate(action) || isIncrease(action) || isPass(action): {
-                gameState.passedPlayers.push(action.playerId)
+                if (isPass(action)) {
+                    gameState.passedPlayers.push(action.playerId)
+                }
                 gameState.turnManager.endTurn(gameState.actionCount)
                 if (gameState.passedPlayers.length === gameState.players.length) {
                     gameState.phases.endPhase(gameState.actionCount)

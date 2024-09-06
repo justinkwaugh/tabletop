@@ -8,12 +8,11 @@ import { HydratedLoseValue, isLoseValue } from '../actions/loseValue.js'
 // Transition from LosingValue(LoseValue) -> Bidding
 export class LosingValueStateHandler implements MachineStateHandler<HydratedLoseValue> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is HydratedLoseValue {
-        if (!action.playerId) return false
-        return action.type === ActionType.MoveGod
+        return action.type === ActionType.LoseValue
     }
 
     validActionsForPlayer(_playerId: string, _context: MachineContext): ActionType[] {
-        return [ActionType.MoveGod]
+        return [ActionType.LoseValue]
     }
 
     enter(context: MachineContext) {

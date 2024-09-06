@@ -4,6 +4,7 @@ import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
+import { MachineState } from '../definition/states.js'
 
 export type Move = Static<typeof Move>
 export const Move = Type.Composite([
@@ -43,6 +44,20 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
 
         if (!valid) {
             throw Error(reason)
+        }
+
+        if (state.machineState === MachineState.TakingActions) {
+            const requiredInfluence = state.influence[ActionType.Move] ?? 0
+            if (playerState.influence < requiredInfluence) {
+                throw Error('Player does not have enough influence to fish')
+            }
+
+            if (requiredInfluence === 0) {
+                state.influence[ActionType.Move] = 1
+            } else {
+                playerState.influence -= requiredInfluence
+                state.influence[ActionType.Move] += requiredInfluence
+            }
         }
 
         // Sink opponents if needed

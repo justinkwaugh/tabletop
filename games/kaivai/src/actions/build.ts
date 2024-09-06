@@ -59,19 +59,19 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
 
         // Initial huts are free
         if (state.phases.currentPhase?.name !== PhaseName.InitialHuts) {
-            // // Pay influence
-            // const requiredInfluence = state.influence[ActionType.Build]
-            // if (playerState.influence < requiredInfluence) {
-            //     throw Error('Player does not have enough influence to build')
-            // }
+            if (state.machineState === MachineState.TakingActions) {
+                const requiredInfluence = state.influence[ActionType.Build] ?? 0
+                if (playerState.influence < requiredInfluence) {
+                    throw Error('Player does not have enough influence to build')
+                }
 
-            // if (requiredInfluence === 0) {
-            //     playerState.influence += 1
-            // } else {
-            //     playerState.influence -= requiredInfluence
-            //     state.influence[ActionType.Build] += requiredInfluence
-            // }
-
+                if (requiredInfluence === 0) {
+                    state.influence[ActionType.Build] = 1
+                } else {
+                    playerState.influence -= requiredInfluence
+                    state.influence[ActionType.Build] += requiredInfluence
+                }
+            }
             // Pay for building
             const cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
             playerState.pay(cost)
