@@ -64,8 +64,8 @@
     let hasFishToken = $derived(numFish > 0)
 
     let playerColor = $derived.by(() => {
-        if (isBoatCell(cell)) {
-            return uiColorForPlayer(gameSession.getPlayerColor(cell.boat?.owner))
+        if (isBoatCell(cell) && cell.boat) {
+            return uiColorForPlayer(gameSession.getPlayerColor(cell.boat.owner))
         } else if (isFishingCell(cell)) {
             return uiColorForPlayer(gameSession.getPlayerColor(cell.owner))
         } else {
