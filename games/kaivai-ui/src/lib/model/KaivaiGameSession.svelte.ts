@@ -26,7 +26,8 @@ import {
     Celebrate,
     Increase,
     HydratedMove,
-    Move
+    Move,
+    Pass
 } from '@tabletop/kaivai'
 import {
     axialCoordinatesToNumber,
@@ -384,5 +385,9 @@ export class KaivaiGameSession extends GameSession {
 
     createMoveGodAction(coords: AxialCoordinates) {
         return { ...this.createBaseAction(ActionType.MoveGod), coords }
+    }
+
+    createPassAction(): Pass {
+        return { ...this.createBaseAction(ActionType.Pass) } as Pass
     }
 }

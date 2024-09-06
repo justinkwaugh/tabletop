@@ -133,4 +133,20 @@ export class HydratedKaivaiPlayerState
             throw Error(`Player ${this.playerId} doesn't have enough shells to pay ${amount}`)
         }
     }
+
+    loseFishValue() {
+        this.fish[0] = this.fish[1]
+        this.fish[1] = this.fish[2]
+        this.fish[2] = this.fish[3]
+        this.fish[3] = this.fish[4]
+        this.fish[4] = 0
+    }
+
+    loseShellValue() {
+        this.shells[0] = this.shells[1]
+        this.shells[1] = this.shells[2]
+        this.shells[2] = this.shells[3]
+        this.shells[3] = this.shells[4]
+        this.shells[4] = 0
+    }
 }

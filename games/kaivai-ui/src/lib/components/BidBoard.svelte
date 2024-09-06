@@ -70,7 +70,9 @@
     }
 </script>
 
-<div class="relative flex flex-col justify-center items-center w-full rounded-lg overflow-hidden">
+<div
+    class="pb-4 relative flex flex-col justify-center items-center w-full rounded-lg overflow-hidden"
+>
     <img class="z-0" src={bidding} alt="bidding" />
     {#each bidData as bid}
         <div

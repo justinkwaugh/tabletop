@@ -8,7 +8,7 @@
     }: {
         children: Snippet
         justify?: 'center' | 'left' | 'right'
-        controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+        controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
     } = $props()
 
     let zoomed = $state(0)
@@ -140,7 +140,7 @@
         </div>
     </div>
     <div
-        class="{zoomLevels > 0
+        class="{zoomLevels > 0 || controls !== 'none'
             ? ''
             : 'hidden'} absolute flex flex-row justify-center items-center {controlsPosition} bg-black bg-opacity-70 border-gray-700 border-2 px-2 py-1 rounded-lg text-gray-300"
     >

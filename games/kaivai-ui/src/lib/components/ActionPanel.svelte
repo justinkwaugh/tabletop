@@ -1,6 +1,5 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import { Button } from 'flowbite-svelte'
     import { ActionType, HutType, MachineState } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import DeliverySelection from './DeliverySelection.svelte'
@@ -14,7 +13,14 @@
         }
         return false
     })
-    let showActions = $derived(!gameSession.chosenAction)
+
+    let buttonRow = $derived.by(() => {
+        return (
+            showCancel ||
+            (gameSession.chosenAction === ActionType.Deliver &&
+                gameSession.chosenDeliveries.length > 0)
+        )
+    })
 
     async function chooseAction(action: string) {
         switch (action) {
@@ -35,6 +41,15 @@
 
     const instructions = $derived.by(() => {
         if (!gameSession.chosenAction) {
+            if (gameSession.gameState.machineState === MachineState.Building) {
+                return 'Build again with another boat?'
+            } else if (gameSession.gameState.machineState === MachineState.Delivering) {
+                return 'Deliver again with another boat?'
+            } else if (gameSession.gameState.machineState === MachineState.Fishing) {
+                return 'Fish again with another boat?'
+            } else if (gameSession.gameState.machineState === MachineState.Moving) {
+                return 'Move another boat?'
+            }
             return 'Choose an action'
         }
 
@@ -149,10 +164,12 @@
 </script>
 
 <div
-    class="mb-2 rounded-lg bg-transparent p-2 text-center flex flex-row flex-wrap justify-center items-center"
+    class="rounded-lg bg-transparent p-2 text-center flex flex-row flex-wrap justify-center items-center"
 >
     <div class="flex flex-col justify-center items-center mx-8">
-        <h1 class="text-lg">{instructions}</h1>
+        <h1 class="text-2xl uppercase text-[#372b0a]" style="font-family: stacatto;">
+            {instructions}
+        </h1>
         {#if gameSession.chosenAction === ActionType.Build && ((gameSession.chosenBoat && gameSession.chosenBoatLocation) || gameSession.gameState.machineState === MachineState.InitialHuts)}
             <div class="flex flex-row justify-center items-center space-x-2">
                 {#if canChooseHutType(HutType.Meeting) || gameSession.chosenHutType === HutType.Meeting}
@@ -166,7 +183,9 @@
                             class="w-16 h-16"
                         />
                         {#if !gameSession.chosenHutType}
-                            <div class="text-md">Meeting</div>
+                            <div class="text-md uppercase" style="font-family:stacatto;">
+                                Meeting
+                            </div>
                         {/if}
                     </button>
                 {/if}
@@ -184,7 +203,7 @@
                             class="w-16 h-16"
                         />
                         {#if !gameSession.chosenHutType}
-                            <div class="text-md">Boat</div>
+                            <div class="text-md uppercase" style="font-family:stacatto;">Boat</div>
                         {/if}
                     </button>
                 {/if}
@@ -199,7 +218,9 @@
                             class="w-16 h-16"
                         />
                         {#if !gameSession.chosenHutType}
-                            <div class="text-md">Fishing</div>
+                            <div class="text-md uppercase" style="font-family:stacatto;">
+                                Fishing
+                            </div>
                         {/if}
                     </button>
                 {/if}
@@ -210,24 +231,31 @@
             <DeliverySelection />
         {/if}
 
-        <div class="flex flex-row justify-center items-center">
-            {#if showCancel}
-                <Button onclick={() => gameSession.cancel()} size="xs" class="m-1" color="red"
-                    >Cancel</Button
-                >
-            {/if}
-            {#if gameSession.chosenAction === ActionType.Deliver && gameSession.chosenDeliveries.length > 0}
-                <Button onclick={() => deliverFish()} size="xs" class="m-1" color="blue"
-                    >Deliver the Fish</Button
-                >
-            {/if}
-            {#if showActions}
-                {#each gameSession.validActionTypes as action}
-                    <Button onclick={() => chooseAction(action)} size="xs" class="m-1" color="blue"
-                        >{action}</Button
+        {#if buttonRow}
+            <div class="flex flex-row justify-center items-center mt-2 space-x-2">
+                {#if showCancel}
+                    <button
+                        onclick={() => gameSession.cancel()}
+                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white"
+                        style="font-family: stacatto;">{'\u21bc'} Back</button
                     >
-                {/each}
-            {/if}
-        </div>
+                    <!-- <div
+                    onclick={() => gameSession.cancel()}
+                    class="uppercase text-md text-[#372b0a]"
+                    ><span style="font-family: staccato;">Cancel</span></div
+                > -->
+                {/if}
+                {#if gameSession.chosenAction === ActionType.Deliver && gameSession.chosenDeliveries.length > 0}
+                    <button
+                        onclick={() => deliverFish()}
+                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white"
+                        style="font-family: stacatto;">Deliver the fish! {'\u21c0'}</button
+                    >
+                    <!-- <Button onclick={() => deliverFish()} size="xs" class="m-1" color="blue"
+                        >Deliver the Fish</Button
+                    > -->
+                {/if}
+            </div>
+        {/if}
     </div>
 </div>

@@ -10,6 +10,10 @@
     import celebrateImg from '$lib/images/celebrate.png'
     import fishImg from '$lib/images/fish.png'
     import deliverImg from '$lib/images/deliver.png'
+    import passImg from '$lib/images/pass.png'
+    import skipImg from '$lib/images/skip.png'
+
+    import { ActionType, MachineState } from '@tabletop/kaivai'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -19,7 +23,6 @@
     })
 
     const temp = new Hex({ q: 0, r: 0 })
-    console.log(temp.corners)
 
     const spiralTraverser = spiral({ radius: 6, start: [0, 0] })
     const grid = new Grid(Hex, spiralTraverser)
@@ -27,10 +30,96 @@
     const xOffset = grid.pixelWidth / 2
 
     let origin = { x: xOffset, y: yOffset + 100 }
+
+    function getImageForAction(actionType: ActionType) {
+        switch (actionType) {
+            case ActionType.Move:
+                return moveImg
+            case ActionType.Build:
+                return buildImg
+            case ActionType.Increase:
+                return increaseImg
+            case ActionType.Deliver:
+                return deliverImg
+            case ActionType.Celebrate:
+                return celebrateImg
+            case ActionType.Fish:
+                return fishImg
+            case ActionType.Pass:
+                if (
+                    gameSession.gameState.machineState === MachineState.Fishing ||
+                    gameSession.gameState.machineState === MachineState.Building ||
+                    gameSession.gameState.machineState === MachineState.Moving ||
+                    gameSession.gameState.machineState === MachineState.Delivering
+                ) {
+                    return skipImg
+                } else {
+                    return passImg
+                }
+            default:
+                return ''
+        }
+    }
+
+    async function chooseAction(action: ActionType) {
+        if (gameSession.validActionTypes.includes(action) && !gameSession.chosenAction) {
+            if (action === ActionType.Increase) {
+                await increase()
+            } else if (action === ActionType.Pass) {
+                await pass()
+            } else {
+                gameSession.chosenAction = action
+            }
+        }
+    }
+
+    async function increase() {
+        const action = gameSession.createIncreaseAction()
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
+    async function pass() {
+        const action = gameSession.createPassAction()
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
+    function isEnabled(action: ActionType) {
+        return (
+            !gameSession.isMyTurn ||
+            (gameSession.validActionTypes.includes(action) &&
+                (!gameSession.chosenAction || gameSession.chosenAction === action))
+        )
+    }
 </script>
 
+{#snippet actionDisk(actionType: ActionType, x: number, y: number, radius: number = 75)}
+    <g pointer-events="visible">
+        <image
+            href={getImageForAction(actionType)}
+            {x}
+            {y}
+            width={radius * 2}
+            height={radius * 2}
+            opacity={isEnabled(actionType) ? '1' : '.4'}
+        >
+        </image>
+        <circle
+            onclick={() => chooseAction(actionType)}
+            cx={x + radius}
+            cy={y + radius}
+            r={radius}
+            fill={isEnabled(actionType) ? 'none' : 'black'}
+            opacity={isEnabled(actionType) ? '1' : '0.3'}
+            stroke={isEnabled(actionType) ? '#634a11' : 'black'}
+            stroke-width="4"
+        ></circle>
+    </g>
+{/snippet}
+
 <div class="flex flex-col justify-center items-center p-2">
-    <div class="relative mt-8 w-full fit-content">
+    <div class="relative w-full fit-content">
         <div class="absolute top-[100px] left-0 w-full">
             <img class="w-[1200px]" src={board} alt="board" />
         </div>
@@ -46,18 +135,13 @@
                 <defs>
                     <filter id="dropshadow" height="130%">
                         <feGaussianBlur in="SourceAlpha" stdDeviation="10 10"></feGaussianBlur>
-                        <!-- stdDeviation is how much to blur -->
                         <feOffset dx="50" dy="-20" result="offsetblur"></feOffset>
-                        <!-- how much to offset -->
                         <feComponentTransfer>
                             <feFuncA type="linear" slope="0.5"></feFuncA>
-                            <!-- slope is the opacity of the shadow -->
                         </feComponentTransfer>
                         <feMerge>
                             <feMergeNode></feMergeNode>
-                            <!-- this contains the offset blurred image -->
                             <feMergeNode in="SourceGraphic"></feMergeNode>
-                            <!-- this contains the element that the filter is applied to -->
                         </feMerge>
                     </filter>
                     <filter id="textshadow" width="130%" height="130%">
@@ -67,29 +151,15 @@
                     </filter>
                 </defs>
 
-                <image href={moveImg} x={5} y={150} width={150} height={150}> </image>
-                <circle cx={80} cy={225} r="75" fill="none" stroke="#634a11" stroke-width="4"
-                ></circle>
-
-                <image href={buildImg} x={85} y={5} width={150} height={150}> </image>
-                <circle cx={160} cy={80} r="75" fill="none" stroke="#634a11" stroke-width="4"
-                ></circle>
-
-                <image href={increaseImg} x={250} y={5} width={150} height={150}> </image>
-                <circle cx={325} cy={80} r="75" fill="none" stroke="#634a11" stroke-width="4"
-                ></circle>
-
-                <image href={deliverImg} x={845} y={150} width={150} height={150}> </image>
-                <circle cx={920} cy={225} r="75" fill="none" stroke="#634a11" stroke-width="4"
-                ></circle>
-
-                <image href={fishImg} x={765} y={5} width={150} height={150}> </image>
-                <circle cx={840} cy={80} r="75" fill="none" stroke="#634a11" stroke-width="4"
-                ></circle>
-
-                <image href={celebrateImg} x={600} y={5} width={150} height={150}> </image>
-                <circle cx={675} cy={80} r="75" fill="none" stroke="#634a11" stroke-width="4"
-                ></circle>
+                {@render actionDisk(ActionType.Move, 5, 150)}
+                {@render actionDisk(ActionType.Build, 85, 5)}
+                {@render actionDisk(ActionType.Increase, 250, 5)}
+                {@render actionDisk(ActionType.Deliver, 845, 150)}
+                {@render actionDisk(ActionType.Fish, 765, 5)}
+                {@render actionDisk(ActionType.Celebrate, 600, 5)}
+                {#if gameSession.isMyTurn}
+                    {@render actionDisk(ActionType.Pass, 460, 5, 40)}
+                {/if}
 
                 {#each grid as hex}
                     <Cell {hex} {origin} />

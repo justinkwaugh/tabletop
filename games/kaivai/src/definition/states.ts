@@ -7,5 +7,6 @@ export enum MachineState {
     Delivering = 'Delivering',
     Fishing = 'Fishing',
     Moving = 'Moving',
+    LosingValue = 'LosingValue',
     EndOfGame = 'EndOfGame'
 }

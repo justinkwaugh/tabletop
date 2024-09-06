@@ -3,11 +3,11 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
-import { HydratedMoveGod, isMoveGod } from '../actions/moveGod.js'
+import { HydratedLoseValue, isLoseValue } from '../actions/loseValue.js'
 
-// Transition from MovingGod(MoveGod) -> Actions?
-export class MovingGodStateHandler implements MachineStateHandler<HydratedMoveGod> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is HydratedMoveGod {
+// Transition from LosingValue(LoseValue) -> Bidding
+export class LosingValueStateHandler implements MachineStateHandler<HydratedLoseValue> {
+    isValidAction(action: HydratedAction, _context: MachineContext): action is HydratedLoseValue {
         if (!action.playerId) return false
         return action.type === ActionType.MoveGod
     }
@@ -19,23 +19,19 @@ export class MovingGodStateHandler implements MachineStateHandler<HydratedMoveGo
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedKaivaiGameState
 
-        gameState.phases.startPhase(PhaseName.MoveGod, gameState.actionCount)
-        const nextPlayerId =
-            gameState.turnManager.turnOrder[gameState.turnManager.turnOrder.length - 1]
-
-        gameState.turnManager.startTurn(nextPlayerId, gameState.actionCount)
-        gameState.activePlayerIds = [nextPlayerId]
+        gameState.phases.startPhase(PhaseName.LosingValue, gameState.actionCount)
+        gameState.activePlayerIds = []
     }
 
-    onAction(action: HydratedMoveGod, context: MachineContext): MachineState {
+    onAction(action: HydratedLoseValue, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedKaivaiGameState
 
         switch (true) {
-            case isMoveGod(action): {
-                gameState.turnManager.endTurn(gameState.actionCount)
+            case isLoseValue(action): {
                 gameState.phases.endPhase(gameState.actionCount)
+                gameState.rounds.endRound(gameState.actionCount)
 
-                return MachineState.TakingActions
+                return MachineState.Bidding
             }
             default: {
                 throw Error('Invalid action type')

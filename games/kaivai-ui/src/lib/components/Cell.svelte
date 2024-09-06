@@ -396,7 +396,7 @@
         </g>
     {/if}
 
-    <!-- <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="20" fill="black">
+    <!-- <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="30" fill="yellow">
         {hex.q}, {hex.r}
     </text> -->
     {#if hasFisherman}

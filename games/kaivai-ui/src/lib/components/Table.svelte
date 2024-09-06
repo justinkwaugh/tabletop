@@ -41,7 +41,7 @@
         <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
         <div class="grow-0 overflow-hidden" style="flex:1;">
-            <ScalingWrapper justify={'center'} controls={'top-left'}>
+            <ScalingWrapper justify={'center'} controls={'none'}>
                 <div class="w-fit h-fit">
                     {#if gameSession.gameState.machineState === MachineState.Bidding}
                         <BidBoard />
@@ -57,3 +57,10 @@
         </div>
     {/if}
 </div>
+
+<style global>
+    @font-face {
+        font-family: 'stacatto';
+        src: url('/stacatto222bt.woff') format('woff');
+    }
+</style>

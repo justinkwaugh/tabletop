@@ -1,15 +1,22 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    ActionSource,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { HydratedBuild, isBuild } from '../actions/build.js'
-import { HydratedPass } from '../actions/pass.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedFish, isFish } from '../actions/fish.js'
 import { HydratedDeliver, isDeliver } from '../actions/deliver.js'
 import { HydratedCelebrate, isCelebrate } from '../actions/celebrate.js'
 import { HydratedIncrease, isIncrease } from '../actions/increase.js'
 import { HydratedMove, isMove } from '../actions/move.js'
+import { LoseValue } from '../actions/loseValue.js'
+import { nanoid } from 'nanoid'
 
 // Transition from TakingActions(Build) -> Building | TakingActions
 //                 TakingActions(Fish) -> Fishing | TakingActions
@@ -230,9 +237,25 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                     return MachineState.TakingActions
                 }
             }
-            case isCelebrate(action) || isIncrease(action): {
+            case isCelebrate(action) || isIncrease(action) || isPass(action): {
+                gameState.passedPlayers.push(action.playerId)
                 gameState.turnManager.endTurn(gameState.actionCount)
-                return MachineState.TakingActions
+                if (gameState.passedPlayers.length === gameState.players.length) {
+                    gameState.phases.endPhase(gameState.actionCount)
+                    gameState.passedPlayers = []
+
+                    const loseValueAction: LoseValue = {
+                        type: ActionType.LoseValue,
+                        id: nanoid(),
+                        gameId: action.gameId,
+                        source: ActionSource.System
+                    }
+
+                    context.addPendingAction(loseValueAction)
+                    return MachineState.LosingValue
+                } else {
+                    return MachineState.TakingActions
+                }
             }
             default: {
                 throw Error('Invalid action type')

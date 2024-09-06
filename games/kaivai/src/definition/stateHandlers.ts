@@ -9,6 +9,7 @@ import { BuildingStateHandler } from '../stateHandlers/building.js'
 import { FishingStateHandler } from '../stateHandlers/fishing.js'
 import { DeliveringStateHandler } from '../stateHandlers/delivering.js'
 import { MovingStateHandler } from '../stateHandlers/moving.js'
+import { LosingValueStateHandler } from '../stateHandlers/losingValue.js'
 
 export const KaivaiStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
     [MachineState.Bidding]: new BiddingStateHandler(),
@@ -19,5 +20,6 @@ export const KaivaiStateHandlers: Record<MachineState, MachineStateHandler<Hydra
     [MachineState.Fishing]: new FishingStateHandler(),
     [MachineState.Delivering]: new DeliveringStateHandler(),
     [MachineState.Moving]: new MovingStateHandler(),
+    [MachineState.LosingValue]: new LosingValueStateHandler(),
     [MachineState.EndOfGame]: new TerminalStateHandler()
 }
