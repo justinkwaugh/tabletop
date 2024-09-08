@@ -4,6 +4,7 @@
     import { flip } from 'svelte/animate'
     import { getContext } from 'svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
+    import { getColorBlindBgColor } from '@tabletop/frontend-components'
 
     let { authorizationService, api } = getContext('appContext') as AppContext
 
@@ -26,6 +27,10 @@
     })
 
     let bgColorForColor = (color?: PlayerColor) => {
+        if (preferences.colorBlindPalette) {
+            return getColorBlindBgColor(color)
+        }
+
         switch (color) {
             case PlayerColor.Red:
                 return 'bg-red-700'
@@ -147,7 +152,8 @@
                         >
                     {/each}
                 {/if} -->
-
+            <Toggle bind:checked={preferences.colorBlindPalette}>Colorblind Friendly Palette</Toggle
+            >
             <div>
                 <Toggle bind:checked={preferences.preferredColorsEnabled}
                     >Preferred Player Colors</Toggle

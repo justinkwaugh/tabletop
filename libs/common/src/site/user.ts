@@ -24,7 +24,8 @@ export type UserPreferences = Static<typeof UserPreferences>
 export const UserPreferences = Type.Object({
     preventWebNotificationPrompt: Type.Boolean(),
     preferredColorsEnabled: Type.Boolean(),
-    preferredColors: Type.Array(Type.Enum(PlayerColor))
+    preferredColors: Type.Array(Type.Enum(PlayerColor)),
+    colorBlindPalette: Type.Optional(Type.Boolean())
 })
 
 export type User = Static<typeof User>

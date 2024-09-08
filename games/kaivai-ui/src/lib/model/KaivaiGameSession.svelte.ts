@@ -31,6 +31,7 @@ import {
 } from '@tabletop/kaivai'
 import {
     axialCoordinatesToNumber,
+    GameAction,
     PlayerColor,
     sameCoordinates,
     type AxialCoordinates
@@ -397,5 +398,9 @@ export class KaivaiGameSession extends GameSession {
 
     createPassAction(): Pass {
         return { ...this.createBaseAction(ActionType.Pass) } as Pass
+    }
+
+    override shouldAutoStepAction(_action: GameAction) {
+        return false
     }
 }
