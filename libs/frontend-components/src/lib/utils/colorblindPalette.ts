@@ -14,6 +14,7 @@ export enum ColorblindColor {
     ReddishPurple = '#CC79A7'
 }
 
+// This is so tailwind can compile the definition
 const bgColorForColor = {
     [ColorblindColor.Black]: `bg-[#000000]`,
     [ColorblindColor.White]: `bg-[#FFFFFF]`,
@@ -26,6 +27,20 @@ const bgColorForColor = {
     [ColorblindColor.Blue]: `bg-[#0072B2]`,
     [ColorblindColor.Vermilion]: `bg-[#D55E00]`,
     [ColorblindColor.ReddishPurple]: `bg-[#CC79A7]`
+}
+
+const borderColorForColor = {
+    [ColorblindColor.Black]: `border-[#000000]`,
+    [ColorblindColor.White]: `border-[#FFFFFF]`,
+    [ColorblindColor.Gray]: `border-[#888888]`,
+    [ColorblindColor.Brown]: `border-[#444444]`,
+    [ColorblindColor.Orange]: `border-[#E69F00]`,
+    [ColorblindColor.SkyBlue]: `border-[#56B4E9]`,
+    [ColorblindColor.BluishGreen]: `border-[#009E73]`,
+    [ColorblindColor.Yellow]: `border-[#F0E442]`,
+    [ColorblindColor.Blue]: `border-[#0072B2]`,
+    [ColorblindColor.Vermilion]: `border-[#D55E00]`,
+    [ColorblindColor.ReddishPurple]: `border-[#CC79A7]`
 }
 
 export function getColorBlindColor(color?: PlayerColor) {
@@ -57,4 +72,8 @@ export function getColorBlindColor(color?: PlayerColor) {
 
 export function getColorBlindBgColor(color?: PlayerColor) {
     return bgColorForColor[getColorBlindColor(color)]
+}
+
+export function getColorBlindBorderColor(color?: PlayerColor) {
+    return borderColorForColor[getColorBlindColor(color)]
 }

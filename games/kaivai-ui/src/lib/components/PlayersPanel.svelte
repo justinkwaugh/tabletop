@@ -33,7 +33,4 @@
     {#each playersAndStates as playerAndState}
         <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
     {/each}
-    {#each playersAndStates as playerAndState}
-        <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
-    {/each}
 </div>

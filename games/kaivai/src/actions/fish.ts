@@ -1,12 +1,19 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import {
+    AxialCoordinates,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    RandomFunction
+} from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { CellType } from '../definition/cells.js'
 import { HutType } from '../definition/huts.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { MachineState } from '../definition/states.js'
+import { KaivaiGameConfig, Ruleset } from '../definition/gameConfig.js'
 
 export type Fish = Static<typeof Fish>
 export const Fish = Type.Composite([
@@ -15,7 +22,12 @@ export const Fish = Type.Composite([
         type: Type.Literal(ActionType.Fish),
         playerId: Type.String(),
         boatId: Type.String(),
-        boatCoords: AxialCoordinates
+        boatCoords: AxialCoordinates,
+        metadata: Type.Optional(
+            Type.Object({
+                dieResults: Type.Array(Type.Boolean())
+            })
+        )
     })
 ])
 
@@ -32,12 +44,13 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
     declare playerId: string
     declare boatId: string
     declare boatCoords: AxialCoordinates
+    declare metadata: { dieResults: boolean[] }
 
     constructor(data: Fish) {
         super(data, FishValidator)
     }
 
-    apply(state: HydratedKaivaiGameState, _context?: MachineContext) {
+    apply(state: HydratedKaivaiGameState, context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
         const { valid, reason } = HydratedFish.isValidFishingLocation(
             state,
@@ -88,15 +101,73 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         })
 
         // Depending on rules, different islands might be better
-        // const config = context?.gameConfig
-
+        const config = context?.gameConfig as KaivaiGameConfig
         let numFish = 0
-        const luckless = true
-        if (luckless) {
+        if (config?.lucklessFishing) {
+            // One fish per hut and god
             numFish = Math.max(...fishingData.map((data) => data.numHuts + (data.hasGod ? 1 : 0)))
+        } else if (config?.ruleSet === Ruleset.FirstEdition) {
+            // God adds a die roll
+            const numDice = Math.max(
+                ...fishingData.map((data) => data.numHuts + (data.hasGod ? 1 : 0))
+            )
+            const dieResults = this.rollDice(Math.max(numDice, 4), state.prng)
+            this.metadata = { dieResults }
+            numFish = dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0)
+            this.revealsInfo = true
+        } else if (config?.ruleSet === Ruleset.SecondEdition) {
+            // God gives a guaranteed fish
+            const bestIsland: IslandFishingData | undefined = fishingData.reduce(
+                (best: IslandFishingData | undefined, current) => {
+                    if (!best) {
+                        return current
+                    }
+                    const bestTotal = best.numHuts + (best.hasGod ? 1 : 0)
+                    const currentTotal = current.numHuts + (current.hasGod ? 1 : 0)
+                    if (
+                        currentTotal > bestTotal ||
+                        (currentTotal === bestTotal && current.hasGod)
+                    ) {
+                        return current
+                    }
+                },
+                undefined
+            )
+
+            if (!bestIsland) {
+                throw Error('No valid fishing locations')
+            }
+
+            const dieResults = this.rollDice(Math.max(bestIsland.numHuts, 4), state.prng)
+            this.metadata = { dieResults }
+            numFish =
+                dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0) +
+                (bestIsland.hasGod ? 1 : 0)
+            this.revealsInfo = true
         }
 
-        playerState.fish[3] += numFish
+        playerState.fish[config?.ruleSet === Ruleset.SecondEdition ? 3 : 4] += numFish
+    }
+
+    private rollDice(numDice: number, prng: RandomFunction): boolean[] {
+        const results = []
+        if (numDice > 0) {
+            results.push(Math.floor(prng() * 6) < 5)
+        }
+
+        if (numDice > 1) {
+            results.push(Math.floor(prng() * 6) < 4)
+        }
+
+        if (numDice > 2) {
+            results.push(Math.floor(prng() * 6) < 3)
+        }
+
+        if (numDice > 3) {
+            results.push(Math.floor(prng() * 6) < 2)
+        }
+
+        return new Array(numDice).fill(true)
     }
 
     static isValidFishingLocation(

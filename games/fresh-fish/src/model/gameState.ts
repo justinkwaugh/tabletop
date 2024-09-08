@@ -22,7 +22,6 @@ export type FreshFishGameState = Static<typeof FreshFishGameState>
 export const FreshFishGameState = Type.Composite([
     Type.Omit(GameState, ['players', 'machineState']),
     Type.Object({
-        seed: Type.Number(),
         players: Type.Array(FreshFishPlayerState),
         machineState: Type.Enum(MachineState),
         tileBag: TileBag,

@@ -14,7 +14,6 @@ export type BridgesGameState = Static<typeof BridgesGameState>
 export const BridgesGameState = Type.Composite([
     Type.Omit(GameState, ['players', 'machineState']),
     Type.Object({
-        seed: Type.Number(),
         players: Type.Array(BridgesPlayerState),
         machineState: Type.Enum(MachineState),
         board: BridgesGameBoard,

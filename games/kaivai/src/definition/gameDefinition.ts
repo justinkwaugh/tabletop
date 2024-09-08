@@ -4,6 +4,7 @@ import { KaivaiGameInitializer } from './gameInitializer.js'
 import { KaivaiApiActions } from './apiActions.js'
 import { KaivaiStateHandlers } from './stateHandlers.js'
 import { KaivaiPlayerColors } from './colors.js'
+import { KaivaiGameConfigOptions } from './gameConfig.js'
 
 export const KaivaiDefinition = <GameDefinition>{
     id: 'kaivai',
@@ -24,6 +25,6 @@ export const KaivaiDefinition = <GameDefinition>{
     apiActions: KaivaiApiActions,
     playerColors: KaivaiPlayerColors,
 
-    config: {},
+    configOptions: KaivaiGameConfigOptions,
     stateLogger: new DefaultStateLogger()
 }
