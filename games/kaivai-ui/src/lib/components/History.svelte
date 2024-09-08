@@ -45,14 +45,13 @@
 </script>
 
 <div
-    class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-center items-left overflow-hidden min-h-[300px] bg-gray-900"
+    class="rounded-lg border-2 border-[#634a11] text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden bg-[#302408]"
 >
     <div class="overflow-scroll h-full">
-        <Timeline class="ms-1">
+        <Timeline class="ms-1 dark:border-[#cabb7a]">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
                 <TimelineItem
-                    classTime=""
-                    classLi="mb-5 text-left"
+                    classDiv="dark:bg-[#cabb7a] border-[#cabb7a]"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
                     <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
@@ -73,8 +72,9 @@
                     onmouseleave={() => unhighlight()}
                 >
                     <TimelineItem
-                        classTime=""
+                        classTime="dark:text-[#8d794d]"
                         classLi="mb-5 text-left"
+                        classDiv="dark:bg-[#cabb7a] border-[#cabb7a]"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
@@ -93,8 +93,9 @@
                 </div>
             {/each}
             <TimelineItem
-                classTime=""
+                classTime="dark:text-[#8d794d]"
                 classLi="mb-5 text-left"
+                classDiv="dark:bg-[#cabb7a] border-[#cabb7a]"
                 date={timeAgo.format(gameSession.game.createdAt)}
             >
                 <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">

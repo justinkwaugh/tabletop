@@ -218,6 +218,14 @@ export class GameSession {
         return this.engine.getValidActionTypesForPlayer(this.game, this.myPlayer.id)
     })
 
+    lastAction: GameAction | undefined = $derived.by(() => {
+        if (this.currentHistoryIndex > 0) {
+            return this.actions[this.currentHistoryIndex - 1]
+        } else {
+            return this.actions.length > 0 ? this.actions[this.actions.length] : undefined
+        }
+    })
+
     // For admin users
     showDebug: boolean = $derived.by(() => {
         return this.authorizationService.showDebug

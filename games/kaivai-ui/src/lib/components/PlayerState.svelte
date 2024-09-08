@@ -20,30 +20,31 @@
             playerState.playerId
         )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
     >
-        <h1 class="{isTurn ? 'text-xl font-semibold' : 'text-lg font-medium'} mb-2">
-            {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
-        </h1>
-        <!-- <div class="flex flex-row justify-between items-center">
-            <div class="flex flex-row justify-start items-center space-x-2 ms-4">
+        <div class="flex flex-row justify-between items-center">
+            <h1 class={isTurn ? 'text-xl font-semibold' : 'text-lg font-medium'}>
+                {isTurn ? '\u276f' : ''}
+                {player.name}
+            </h1>
+
+            <div class="flex flex-row justify-center items-center kaivai-font space-x-2">
                 <div class="flex flex-col justify-center items-center">
-                    <div class="" style="font-size:.7rem; line-height:.8rem">move</div>
+                    <div class="uppercase" style="font-size:.7rem; line-height:.8rem">move</div>
                     <div class="text-xl">{playerState.movement()}</div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
-                    <div class="" style="font-size:.7rem; line-height:.8rem">build</div>
+                    <div class="uppercase" style="font-size:.7rem; line-height:.8rem">build</div>
                     <div class="text-xl">{playerState.buildingCost}</div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
-                    <div class="" style="font-size:.7rem; line-height:.8rem">influence</div>
+                    <div class="uppercase" style="font-size:.7rem; line-height:.8rem">infl.</div>
                     <div class="text-xl">{playerState.influence}</div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
-                    <div class="" style="font-size:.7rem; line-height:.8rem">score</div>
+                    <div class="uppercase" style="font-size:.7rem; line-height:.8rem">glory</div>
                     <div class="text-xl">{playerState.score}</div>
                 </div>
             </div>
-        </div> -->
-
+        </div>
         <div class="flex flex-row justify-center items-center mb-2 rounded-lg bg-gray-100">
             <div>
                 <svg

@@ -12,7 +12,7 @@
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import Phase from '$lib/components/Phase.svelte'
     import BidBoard from '$lib/components/BidBoard.svelte'
-    import { MachineState } from '@tabletop/kaivai'
+    import { ActionType, MachineState } from '@tabletop/kaivai'
     import { TabItem, Tabs } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid } from 'flowbite-svelte-icons'
     import History from './History.svelte'
@@ -31,10 +31,12 @@
     <div
         class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)]"
     >
-        <div class="p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]">
+        <div
+            class="shrink-0 grow-0 p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]"
+        >
             <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-[#cabb7a]" />
         </div>
-        <Tabs tabStyle="pill" contentClass="p-0 bg-transparent">
+        <Tabs tabStyle="pill" contentClass="p-0 bg-transparent h-full overflow-scroll rounded-lg">
             <TabItem
                 open
                 defaultClass="uppercase kaivai-font"
@@ -57,9 +59,7 @@
                     <ClockSolid size="md" />
                     History
                 </div>
-                <div class="h-[600px]">
-                    <History />
-                </div>
+                <History />
             </TabItem>
         </Tabs>
 
