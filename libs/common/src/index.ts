@@ -11,6 +11,7 @@ export * from './game/components/drawBag.js'
 export * from './game/components/turnManager.js'
 export * from './game/components/roundManager.js'
 export * from './game/components/phaseManager.js'
+export * from './game/components/prng.js'
 
 export * from './game/definition/gameDefinition.js'
 export * from './game/definition/gameConfig.js'

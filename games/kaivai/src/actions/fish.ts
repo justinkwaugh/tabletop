@@ -111,34 +111,29 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
             const numDice = Math.max(
                 ...fishingData.map((data) => data.numHuts + (data.hasGod ? 1 : 0))
             )
-            const dieResults = this.rollDice(Math.max(numDice, 4), state.prng)
+            const dieResults = this.rollDice(Math.max(numDice, 4), state.prng.random)
             this.metadata = { dieResults }
             numFish = dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0)
             this.revealsInfo = true
         } else if (config?.ruleSet === Ruleset.SecondEdition) {
             // God gives a guaranteed fish
-            const bestIsland: IslandFishingData | undefined = fishingData.reduce(
-                (best: IslandFishingData | undefined, current) => {
-                    if (!best) {
-                        return current
-                    }
-                    const bestTotal = best.numHuts + (best.hasGod ? 1 : 0)
-                    const currentTotal = current.numHuts + (current.hasGod ? 1 : 0)
-                    if (
-                        currentTotal > bestTotal ||
-                        (currentTotal === bestTotal && current.hasGod)
-                    ) {
-                        return current
-                    }
-                },
-                undefined
-            )
+            const bestIsland = fishingData.reduce((best, current) => {
+                if (!best) {
+                    return current
+                }
+                const bestTotal = best.numHuts + (best.hasGod ? 1 : 0)
+                const currentTotal = current.numHuts + (current.hasGod ? 1 : 0)
+                if (currentTotal > bestTotal || (currentTotal === bestTotal && current.hasGod)) {
+                    return current
+                }
+                return best
+            })
 
             if (!bestIsland) {
                 throw Error('No valid fishing locations')
             }
 
-            const dieResults = this.rollDice(Math.max(bestIsland.numHuts, 4), state.prng)
+            const dieResults = this.rollDice(Math.max(bestIsland.numHuts, 4), state.prng.random)
             this.metadata = { dieResults }
             numFish =
                 dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0) +
@@ -149,22 +144,22 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         playerState.fish[config?.ruleSet === Ruleset.SecondEdition ? 3 : 4] += numFish
     }
 
-    private rollDice(numDice: number, prng: RandomFunction): boolean[] {
+    private rollDice(numDice: number, random: RandomFunction): boolean[] {
         const results = []
         if (numDice > 0) {
-            results.push(Math.floor(prng() * 6) < 5)
+            results.push(Math.floor(random() * 6) < 5)
         }
 
         if (numDice > 1) {
-            results.push(Math.floor(prng() * 6) < 4)
+            results.push(Math.floor(random() * 6) < 4)
         }
 
         if (numDice > 2) {
-            results.push(Math.floor(prng() * 6) < 3)
+            results.push(Math.floor(random() * 6) < 3)
         }
 
         if (numDice > 3) {
-            results.push(Math.floor(prng() * 6) < 2)
+            results.push(Math.floor(random() * 6) < 2)
         }
 
         return new Array(numDice).fill(true)

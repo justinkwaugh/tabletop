@@ -24,8 +24,8 @@ export abstract class HydratedDrawBag<T, U extends TSchema> extends Hydratable<U
         return this.remaining
     }
 
-    shuffle(prng?: RandomFunction) {
-        shuffle(this.items, prng)
+    shuffle(random?: RandomFunction) {
+        shuffle(this.items, random)
     }
 
     isEmpty(): boolean {

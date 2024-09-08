@@ -1,9 +1,9 @@
 import {
     GameInitializer,
     generateSeed,
-    getPrng,
     RandomFunction,
-    BaseGameInitializer
+    BaseGameInitializer,
+    HydratedPrng
 } from '@tabletop/common'
 import {
     Game,
@@ -25,18 +25,18 @@ import { BridgesPlayerColors } from './colors.js'
 export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeGameState(game: Game, seed?: number): HydratedGameState {
         seed = seed === undefined ? generateSeed() : seed
-        const prng = getPrng(seed)
+        const prng = new HydratedPrng({ seed, invocations: 0 })
 
-        const players = this.initializePlayers(game, prng)
+        const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length
-        const turnManager = HydratedSimpleTurnManager.generate(players, prng)
+        const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
 
         const board = this.initializeBoard(numPlayers)
 
         const state = new HydratedBridgesGameState({
             id: nanoid(),
             gameId: game.id,
-            seed,
+            prng,
             activePlayerIds: [],
             turnManager: turnManager,
             actionCount: 0,
@@ -51,10 +51,10 @@ export class BridgesGameInitializer extends BaseGameInitializer implements GameI
         return state
     }
 
-    private initializePlayers(game: Game, prng: RandomFunction): BridgesPlayerState[] {
+    private initializePlayers(game: Game, random: RandomFunction): BridgesPlayerState[] {
         const colors = structuredClone(BridgesPlayerColors)
 
-        shuffle(colors, prng)
+        shuffle(colors, random)
 
         const players = game.players.map((player: Player, index: number) => {
             return {

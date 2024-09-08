@@ -14,7 +14,8 @@ import {
     User,
     BaseError,
     PlayerStatus,
-    GameStatus
+    GameStatus,
+    generateSeed
 } from '@tabletop/common'
 import { AlreadyExistsError, NotFoundError, UnknownStorageError } from '../stores/errors.js'
 import { StoredAction } from '../model/storedAction.js'
@@ -552,7 +553,9 @@ export class FirestoreGameStore implements GameStore {
 
     private async getGameState(gameId: string): Promise<GameState | undefined> {
         const doc = this.getStateCollection(gameId).doc(gameId)
-        return (await doc.get()).data() as GameState
+        const state = (await doc.get()).data() as GameState
+        console.log(state)
+        return state
     }
 
     private getActionCollection(gameId: string): CollectionReference {
@@ -638,8 +641,16 @@ const stateConverter = {
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): GameState {
         const docData = snapshot.data() as StoredState
-        return JSON.parse(docData.data) as GameState
+        const state = JSON.parse(docData.data) as GameState
+        return migrateFromSeedToPrng(state)
     }
+}
+
+const migrateFromSeedToPrng = (state: GameState): GameState => {
+    if (!state.prng) {
+        state.prng = { seed: state.seed ?? generateSeed(), invocations: 0 }
+    }
+    return state
 }
 
 const actionConverter = {

@@ -4,6 +4,7 @@ import {
     GameState,
     HydratableGameState,
     HydratedPhaseManager,
+    HydratedPrng,
     HydratedRoundManager,
     HydratedSimpleTurnManager,
     PhaseManager,
@@ -19,7 +20,6 @@ export type KaivaiGameState = Static<typeof KaivaiGameState>
 export const KaivaiGameState = Type.Composite([
     Type.Omit(GameState, ['players', 'machineState']),
     Type.Object({
-        seed: Type.Number(),
         players: Type.Array(KaivaiPlayerState),
         machineState: Type.Enum(MachineState),
         rounds: RoundManager,
@@ -38,6 +38,7 @@ export const KaivaiGameState = Type.Composite([
 const KaivaiGameStateValidator = TypeCompiler.Compile(KaivaiGameState)
 
 type HydratedProperties = {
+    prng: HydratedPrng
     turnManager: HydratedSimpleTurnManager
     rounds: HydratedRoundManager
     phases: HydratedPhaseManager
@@ -51,7 +52,7 @@ export class HydratedKaivaiGameState
 {
     declare id: string
     declare gameId: string
-    declare seed: number
+    declare prng: HydratedPrng
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number
@@ -71,6 +72,7 @@ export class HydratedKaivaiGameState
 
     constructor(data: KaivaiGameState) {
         const hydratedProperties: HydratedProperties = {
+            prng: new HydratedPrng(data.prng),
             turnManager: new HydratedSimpleTurnManager(data.turnManager),
             rounds: new HydratedRoundManager(data.rounds),
             phases: new HydratedPhaseManager(data.phases),

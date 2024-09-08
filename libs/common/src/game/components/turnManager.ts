@@ -28,14 +28,14 @@ export class HydratedSimpleTurnManager
         super(data, TurnManagerValidator)
     }
 
-    static generate(players: PlayerState[], prng: RandomFunction) {
+    static generate(players: PlayerState[], random: RandomFunction) {
         const turnOrder = players.map((player) => player.playerId)
         const turnCounts = <Record<string, number>>{}
         players.forEach((player) => {
             turnCounts[player.playerId] = 0
         })
 
-        shuffle(turnOrder, prng)
+        shuffle(turnOrder, random)
         return new HydratedSimpleTurnManager({
             series: [],
             turnOrder: turnOrder,

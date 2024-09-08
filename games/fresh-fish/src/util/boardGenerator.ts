@@ -46,15 +46,15 @@ const colorizer = new LogColorizer(colorFuncs)
 
 export function generateBoard(
     numPlayers: number,
-    prng: RandomFunction
+    random: RandomFunction
 ): { board: HydratedGameBoard; numMarketTiles: number } {
     let boardData = { board: new HydratedGameBoard({ cells: [] }), numMarketTiles: 0 }
 
     do {
-        boardData = layoutBoard(numPlayers, prng)
+        boardData = layoutBoard(numPlayers, random)
     } while (!isValidBoard(boardData.board))
 
-    placeTrucks(boardData.board, prng)
+    placeTrucks(boardData.board, random)
     expropriate(boardData.board)
 
     logBoard(boardData.board, colorizer)
@@ -116,14 +116,14 @@ function isQuadrantBlank(
 
 export function layoutBoard(
     numPlayers: number,
-    prng: RandomFunction
+    random: RandomFunction
 ): { board: HydratedGameBoard; numMarketTiles: number } {
     const randomizedTiles = structuredClone(BoardTiles)
 
     let chosenTiles: BoardTile[] = []
     let validChoice = false
     while (!validChoice) {
-        shuffle(randomizedTiles, prng)
+        shuffle(randomizedTiles, random)
         chosenTiles = randomizedTiles.slice(0, numPlayers + 1)
         validChoice = isValidMarketTotal(chosenTiles, numPlayers)
     }
@@ -150,7 +150,7 @@ export function layoutBoard(
 
         if (i === 0) {
             // Pick random orientation for first tile
-            if (Math.round(prng())) {
+            if (Math.round(random())) {
                 tile.dimensions.reverse()
             }
 
@@ -167,7 +167,7 @@ export function layoutBoard(
         }
 
         if (i >= 1) {
-            const longestSide = findLongestSide(currentBoard, prng)
+            const longestSide = findLongestSide(currentBoard, random)
             console.log('Longest Side: ', DirectionName[longestSide])
             const regularDimensions: Dimensions = [tile.dimensions[0], tile.dimensions[1]]
             const allowNegative = i < chosenTiles.length - 1
@@ -176,7 +176,7 @@ export function layoutBoard(
                 longestSide,
                 regularDimensions,
                 allowNegative,
-                prng
+                random
             )
             options.push({
                 point: startPoint,
@@ -197,7 +197,7 @@ export function layoutBoard(
                 longestSide,
                 reversedDimensions,
                 allowNegative,
-                prng
+                random
             )
 
             options.push({
@@ -360,7 +360,7 @@ function generateNewBoardWithTile({
     return newCells
 }
 
-function placeTrucks(board: HydratedGameBoard, prng: RandomFunction) {
+function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
     const xMid = Math.floor(board.dimensions()[0] / 2)
     const yMid = Math.floor(board.dimensions()[1] / 2)
 
@@ -370,7 +370,7 @@ function placeTrucks(board: HydratedGameBoard, prng: RandomFunction) {
         { type: CellType.Truck, goodsType: GoodsType.IceCream },
         { type: CellType.Truck, goodsType: GoodsType.Lemonade }
     ]
-    shuffle(truckCells, prng)
+    shuffle(truckCells, random)
 
     const { coords, direction } = board.getMostSquareExternalCorner()
 
@@ -435,9 +435,9 @@ function placeTrucks(board: HydratedGameBoard, prng: RandomFunction) {
     }
 }
 
-function findLongestSide(board: HydratedGameBoard, prng: RandomFunction): Direction {
+function findLongestSide(board: HydratedGameBoard, random: RandomFunction): Direction {
     const directions = [Direction.North, Direction.East, Direction.South, Direction.West]
-    shuffle(directions, prng)
+    shuffle(directions, random)
 
     const longestSide = directions
         .map((direction) => {
@@ -454,32 +454,32 @@ function getStartPointForEdge(
     edge: Direction,
     tileDimensions: Dimensions,
     allowNegative: boolean = true,
-    prng: RandomFunction
+    random: RandomFunction
 ): Point {
     const side = board.getContiguousSide(edge)
     const newStartPoint = { x: 0, y: 0 }
-    const neg = Math.round(prng())
+    const neg = Math.round(random())
     switch (edge) {
         case Direction.North: {
-            const offset = Math.floor(prng() * (side.length - tileDimensions[0]))
+            const offset = Math.floor(random() * (side.length - tileDimensions[0]))
             newStartPoint.y = -tileDimensions[1]
             newStartPoint.x = allowNegative && neg ? side.start[0] - offset : side.start[0] + offset
             break
         }
         case Direction.East: {
-            const offset = Math.floor(prng() * (side.length - tileDimensions[1]))
+            const offset = Math.floor(random() * (side.length - tileDimensions[1]))
             newStartPoint.y = allowNegative && neg ? side.start[1] - offset : side.start[1] + offset
             newStartPoint.x = side.start[0] + 1
             break
         }
         case Direction.South: {
-            const offset = Math.floor(prng() * (side.length - tileDimensions[0]))
+            const offset = Math.floor(random() * (side.length - tileDimensions[0]))
             newStartPoint.y = side.start[1] + 1
             newStartPoint.x = allowNegative && neg ? side.start[0] - offset : side.start[0] + offset
             break
         }
         case Direction.West: {
-            const offset = Math.floor(prng() * (side.length - tileDimensions[1]))
+            const offset = Math.floor(random() * (side.length - tileDimensions[1]))
             newStartPoint.y = allowNegative && neg ? side.start[1] - offset : side.start[1] + offset
             newStartPoint.x = -tileDimensions[0]
             break

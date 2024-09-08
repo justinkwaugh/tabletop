@@ -16,7 +16,7 @@ export class HydratedTileBag extends HydratedDrawBag<Tile, typeof TileBag> imple
         numCheese: number,
         numIceCream: number,
         numLemonade: number,
-        prng: RandomFunction
+        random: RandomFunction
     ) {
         const newTiles: Tile[] = []
         for (let i: number = 0; i < numMarket; i++) {
@@ -41,7 +41,7 @@ export class HydratedTileBag extends HydratedDrawBag<Tile, typeof TileBag> imple
         }
 
         const hydratedTileBag = new HydratedTileBag(tileBag)
-        hydratedTileBag.shuffle(prng)
+        hydratedTileBag.shuffle(random)
         return hydratedTileBag
     }
 

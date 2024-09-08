@@ -1,4 +1,4 @@
-import { GameInitializer, generateSeed, getPrng, RandomFunction } from '@tabletop/common'
+import { GameInitializer, generateSeed, HydratedPrng, RandomFunction } from '@tabletop/common'
 import {
     Game,
     Player,
@@ -57,21 +57,21 @@ export class FreshFishGameInitializer implements GameInitializer {
 
     initializeGameState(game: Game, seed?: number): HydratedGameState {
         seed = seed === undefined ? generateSeed() : seed
-        const prng = getPrng(seed)
+        const prng = new HydratedPrng({ seed, invocations: 0 })
 
-        const players = this.initializePlayers(game, prng)
-        const turnManager = HydratedSimpleTurnManager.generate(players, prng)
+        const players = this.initializePlayers(game, prng.random)
+        const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
         const finalStalls = Object.values(GoodsType).map(
             (goodsType) => <StallTile>{ type: TileType.Stall, goodsType }
         )
-        shuffle(finalStalls, prng)
+        shuffle(finalStalls, prng.random)
 
-        const { board, numMarketTiles } = generateBoard(game.players.length, prng)
+        const { board, numMarketTiles } = generateBoard(game.players.length, prng.random)
 
         const state = new HydratedFreshFishGameState({
             id: nanoid(),
             gameId: game.id,
-            seed,
+            prng,
             activePlayerIds: [],
             turnManager: turnManager,
             actionCount: 0,
@@ -79,7 +79,7 @@ export class FreshFishGameInitializer implements GameInitializer {
             players: players,
             machineState: MachineState.StartOfTurn,
             winningPlayerIds: [],
-            tileBag: this.initializeTileBag(game, numMarketTiles, prng),
+            tileBag: this.initializeTileBag(game, numMarketTiles, prng.random),
             board,
             finalStalls: finalStalls
         })
@@ -89,10 +89,10 @@ export class FreshFishGameInitializer implements GameInitializer {
         return state
     }
 
-    private initializePlayers(game: Game, prng: RandomFunction): FreshFishPlayerState[] {
+    private initializePlayers(game: Game, random: RandomFunction): FreshFishPlayerState[] {
         const colors = structuredClone(FreshFishPlayerColors)
 
-        shuffle(colors, prng)
+        shuffle(colors, random)
 
         const players = game.players.map((player: Player, index: number) => {
             return new HydratedFreshFishPlayerState({
@@ -108,7 +108,7 @@ export class FreshFishGameInitializer implements GameInitializer {
         return players
     }
 
-    private initializeTileBag(game: Game, numMarketTiles: number, prng: RandomFunction): TileBag {
+    private initializeTileBag(game: Game, numMarketTiles: number, random: RandomFunction): TileBag {
         const numBagStalls = game.players.length - 1
         return HydratedTileBag.generate(
             numMarketTiles,
@@ -116,7 +116,7 @@ export class FreshFishGameInitializer implements GameInitializer {
             numBagStalls,
             numBagStalls,
             numBagStalls,
-            prng
+            random
         )
     }
 }
