@@ -123,7 +123,8 @@
     }
 
     onMount(() => {
-        setTimeout(() => performScale(wrapper.clientWidth, wrapper.clientHeight), 0)
+        if (!wrapper) return
+        setTimeout(() => performScale(wrapper.clientWidth, wrapper.clientHeight), 100)
     })
 </script>
 
