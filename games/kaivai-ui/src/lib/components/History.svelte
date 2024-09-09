@@ -10,6 +10,7 @@
     import { quartIn } from 'svelte/easing'
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
+    import PlayerName from './PlayerName.svelte'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -50,15 +51,6 @@
         'w-[15px] h-[15px]'
     ]
 </script>
-
-{#snippet playerName(playerId: string)}
-    <span
-        class="rounded px-2 {gameSession.getPlayerBgColor(
-            playerId
-        )} font-medium {gameSession.getPlayerTextColor(playerId)}"
-        >{gameSession.getPlayerName(playerId)}</span
-    >
-{/snippet}
 
 {#snippet fishingAction(action: Fish)}
     {#if action.metadata?.dieResults}
@@ -112,7 +104,7 @@
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                             {#if action.playerId}
-                                {@render playerName(action.playerId)}
+                                <PlayerName playerId={action.playerId} />
                             {/if}
                             {getHistoryDescriptionForAction(action)}
                             {#if isFish(action)}

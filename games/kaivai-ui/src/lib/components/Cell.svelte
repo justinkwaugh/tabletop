@@ -465,7 +465,7 @@
         <circle cx="0" cy="0" r="25" fill="black" stroke="black" opacity=".1" stroke-width="2"
         ></circle> -->
         <text
-            class="kaivai-font"
+            class="kaivai-font select-none"
             style="filter: url(#textshadow); fill: black"
             x="-4"
             y="0"
@@ -479,7 +479,7 @@
             fill="black">{numFish}</text
         >
         <text
-            class="kaivai-font"
+            class="kaivai-font select-none"
             x="-4"
             y="5"
             text-anchor="end"

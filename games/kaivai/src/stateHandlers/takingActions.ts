@@ -17,6 +17,7 @@ import { HydratedIncrease, isIncrease } from '../actions/increase.js'
 import { HydratedMove, isMove } from '../actions/move.js'
 import { LoseValue } from '../actions/loseValue.js'
 import { nanoid } from 'nanoid'
+import { isSacrifice } from '../actions/sacrifice.js'
 
 // Transition from TakingActions(Build) -> Building | TakingActions
 //                 TakingActions(Fish) -> Fishing | TakingActions
@@ -25,6 +26,7 @@ import { nanoid } from 'nanoid'
 //                 TakingActions(Increase) -> TakingActions
 //                 TakingActions(Move) -> Moving | TakingActions
 //                 TakingActions(Pass) -> TakingActions | LosingValue
+//                 TakingActions(Sacrifice) -> TakingActions | LosingValue
 
 type TakingActionsAction =
     | HydratedBuild
@@ -242,8 +244,11 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                     return MachineState.TakingActions
                 }
             }
-            case isCelebrate(action) || isIncrease(action) || isPass(action): {
-                if (isPass(action)) {
+            case isCelebrate(action) ||
+                isIncrease(action) ||
+                isPass(action) ||
+                isSacrifice(action): {
+                if (isPass(action) || isSacrifice(action)) {
                     gameState.passedPlayers.push(action.playerId)
                 }
                 gameState.turnManager.endTurn(gameState.actionCount)

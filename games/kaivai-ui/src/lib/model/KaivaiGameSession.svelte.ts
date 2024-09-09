@@ -400,6 +400,10 @@ export class KaivaiGameSession extends GameSession {
         return { ...this.createBaseAction(ActionType.Pass) } as Pass
     }
 
+    createSacrificeAction(): Pass {
+        return { ...this.createBaseAction(ActionType.Sacrifice) } as Pass
+    }
+
     override shouldAutoStepAction(_action: GameAction) {
         return false
     }

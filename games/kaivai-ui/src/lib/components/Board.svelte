@@ -23,8 +23,6 @@
         orientation: Orientation.FLAT
     })
 
-    const temp = new Hex({ q: 0, r: 0 })
-
     const spiralTraverser = spiral({ radius: 6, start: [0, 0] })
     const grid = new Grid(Hex, spiralTraverser)
     const yOffset = grid.pixelHeight / 2
@@ -86,6 +84,12 @@
         gameSession.resetAction()
     }
 
+    async function sacrifice() {
+        const action = gameSession.createSacrificeAction()
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
     function isEnabled(action: ActionType) {
         return (
             !gameSession.isMyTurn ||
@@ -117,27 +121,29 @@
             stroke-width="4"
         ></circle>
         {#if gameSession.gameState.influence[actionType] > 0}
-            <image
-                href={influenceImg}
-                x={x + radius - 25}
-                y={y + radius + 15}
-                width={50}
-                height={50}
-            >
-            </image>
-            <text
-                class="kaivai-font"
-                x={x + radius}
-                y={y + radius + 43}
-                text-anchor="middle"
-                dominant-baseline="middle"
-                font-size="40"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#FFFFFF"
-                fill="white"
-                >{gameSession.gameState.influence[actionType]}
-            </text>
+            <g class="pointer-events-none">
+                <image
+                    href={influenceImg}
+                    x={x + radius - 25}
+                    y={y + radius + 15}
+                    width={50}
+                    height={50}
+                >
+                </image>
+                <text
+                    class="kaivai-font select-none"
+                    x={x + radius}
+                    y={y + radius + 43}
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size="40"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#FFFFFF"
+                    fill="white"
+                    >{gameSession.gameState.influence[actionType]}
+                </text>
+            </g>
         {/if}
     </g>
 {/snippet}

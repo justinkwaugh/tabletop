@@ -8,12 +8,7 @@ export const Pass = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
     Type.Object({
         type: Type.Literal(ActionType.Pass),
-        playerId: Type.String(),
-        metadata: Type.Optional(
-            Type.Object({
-                recruiting: Type.Boolean()
-            })
-        )
+        playerId: Type.String()
     })
 ])
 

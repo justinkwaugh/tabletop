@@ -17,6 +17,7 @@
     import { UserCircleSolid, ClockSolid } from 'flowbite-svelte-icons'
     import History from './History.svelte'
     import LastHistoryDescription from './LastHistoryDescription.svelte'
+    import WaitingPanel from './WaitingPanel.svelte'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let activeTabClasses =
@@ -78,10 +79,9 @@
                 <LastHistoryDescription />
             {:else if gameSession.isMyTurn}
                 <ActionPanel />
-                <!-- {:else}
-                    <WaitingPanel /> -->
+            {:else}
+                <WaitingPanel />
             {/if}
-            <!-- {/if}  -->
         </div>
         <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
