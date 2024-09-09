@@ -179,7 +179,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 continue
             }
 
-            if (!singleIsland) {
+            if (singleIsland) {
                 validPositions.push([hexCoords])
                 continue
             }

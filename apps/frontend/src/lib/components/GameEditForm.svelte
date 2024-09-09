@@ -15,6 +15,7 @@
         BooleanConfigOption,
         ConfigOption,
         Game,
+        GameConfig,
         isBooleanConfigOption,
         isListConfigOption,
         ListConfigOption,
@@ -87,9 +88,9 @@
     let maxPlayers = $derived<number>(title?.metadata.maxPlayers ?? 1)
 
     function generateDefaultOptions() {
-        const defaultConfig = {}
+        const defaultConfig: GameConfig = {}
         for (const option of title?.configOptions ?? []) {
-            config[option.id] = option.default
+            defaultConfig[option.id] = option.default
         }
         return defaultConfig
     }
@@ -154,12 +155,16 @@
             }
         }
 
+        const chosenConfig = $state.snapshot(config)
+        const defaultConfig = generateDefaultOptions()
+        const mergedConfig = Object.assign(defaultConfig, chosenConfig)
+
         const gameData = <Partial<Game>>{
             id: editedGame.id,
             name: (formData.get('name') as string).trim(),
             players: playersToUpload,
             isPublic,
-            config: Object.assign(generateDefaultOptions(), config)
+            config: mergedConfig
         }
 
         if (mode === EditMode.Create) {
@@ -167,7 +172,7 @@
         }
 
         try {
-            console.log(`sending data: ${gameData}`)
+            console.log(`sending data: ${JSON.stringify(gameData)}`)
             let updatedGame: Game
             if (mode === EditMode.Create) {
                 updatedGame = await gameService.createGame(gameData)

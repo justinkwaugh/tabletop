@@ -24,41 +24,41 @@ export class RedisCacheService {
         key: string,
         produceValue: ValueProducer
     ): Promise<string | undefined> {
-        console.log('cache get', key)
+        // console.log('cache get', key)
         const value = await this.client.get(key)
-        console.log('cache get value', key, value)
+        // console.log('cache get value', key, value)
         // If we have a value, we can happily return it, it's a cache hit
         if (this.isCached(value)) {
-            console.log('was cached', key)
+            // console.log('was cached', key)
             return this.valueFromCache(value)
         }
 
         // Try to acquire a lock if the value is not a lock
         let lockValue: string | undefined
         if (!this.isLocked(value)) {
-            console.log('get readlock cached', key)
+            // console.log('get readlock cached', key)
             lockValue = await this.tryLockRead(key)
         }
 
-        console.log('produce value', key)
+        // console.log('produce value', key)
         // Get the value from the producer
         const newValue = await produceValue()
-        console.log('produced', newValue)
+        // console.log('produced', newValue)
         // If we could not lock, just return the produced value
         if (lockValue === undefined) {
-            console.log('no lock return', key)
+            // console.log('no lock return', key)
             return newValue
         }
-        console.log('try to cache', key, newValue)
+        // console.log('try to cache', key, newValue)
         // Try to set the new value
         const cacheValue = newValue === undefined ? NONE_PREFIX : VALUE_PREFIX + newValue
         await this.trySetValue(key, lockValue, cacheValue)
-        console.log('done caching', key)
+        // console.log('done caching', key)
         return newValue
     }
 
     public async lockWhileWriting<T>(keys: string[], writer: ValueWriter<T>): Promise<T> {
-        console.log('locking while writing', keys)
+        // console.log('locking while writing', keys)
         let lockId
         try {
             lockId = await this.tryLockWrite(keys)
@@ -105,15 +105,15 @@ export class RedisCacheService {
         // are locking *while* they are writing to a separate store, and preventing readers from writing to the cache
         const lockId = '.' + nanoid()
         const lockValues = new Array(keys.length).fill(WRITE_LOCK_PREFIX)
-        console.log('LOCK WRITE', keys, lockId)
+        // console.log('LOCK WRITE', keys, lockId)
         try {
             return await this.client.executeIsolated(async (isolatedClient) => {
                 // Watch the key to ensure it doesn't change
-                console.log('lw watch', keys)
+                // console.log('lw watch', keys)
                 await isolatedClient.watch(keys)
-                console.log('lw get', keys)
+                // console.log('lw get', keys)
                 const currentValues = await isolatedClient.mGet(keys)
-                console.log('lw curr', currentValues)
+                // console.log('lw curr', currentValues)
 
                 for (const [index, currentValue] of currentValues.entries()) {
                     if (currentValue && this.isWriteLocked(currentValue)) {
@@ -123,23 +123,23 @@ export class RedisCacheService {
                     lockValues[index] += lockId
                 }
 
-                console.log('lw set', keys, lockValues)
+                // console.log('lw set', keys, lockValues)
                 // Set our lock value
                 try {
                     const lockData: [string, string][] = keys.map((key, index) => [
                         key,
                         lockValues[index]
                     ])
-                    console.log('lw set', keys, lockData)
+                    // console.log('lw set', keys, lockData)
                     const transaction = isolatedClient.multi().mSet(lockData)
                     for (const key of keys) {
                         transaction.expire(key, LOCK_TIMEOUT)
                     }
                     await transaction.exec()
                 } catch (error) {
-                    console.log('lock value set error', error)
+                    // console.log('lock value set error', error)
                 }
-                console.log('lw done', keys)
+                // console.log('lw done', keys)
                 return lockId
             })
         } catch (error) {
@@ -149,14 +149,14 @@ export class RedisCacheService {
     }
 
     private async unlockWrite(keys: string[], lockId: string): Promise<void> {
-        console.log('UNLOCK WRITE', keys, lockId)
+        // console.log('UNLOCK WRITE', keys, lockId)
         try {
             await this.client.executeIsolated(async (isolatedClient) => {
-                console.log('ulw watch', keys)
+                // console.log('ulw watch', keys)
                 await isolatedClient.watch(keys)
-                console.log('ulw get', keys)
+                // console.log('ulw get', keys)
                 const currentValues = await isolatedClient.mGet(keys)
-                console.log('ulw curr', currentValues)
+                // console.log('ulw curr', currentValues)
 
                 const newValues = new Array(keys.length).fill(null)
                 for (const [index, currentValue] of currentValues.entries()) {
