@@ -24,5 +24,6 @@ export function getPrng(seed?: number): RandomFunction {
 }
 
 export function pickRandom<T>(array: T[], prng: RandomFunction = getPrng()): T {
-    return array[Math.floor(prng() * array.length)]
+    const randInt = Math.floor(prng() * array.length)
+    return array[randInt]
 }

@@ -29,7 +29,7 @@ import { KaivaiPlayerColors } from './colors.js'
 import { Cell, CellType, CultCell } from './cells.js'
 import { defineHex, Grid, Hex, ring, spiral } from 'honeycomb-grid'
 import { Island } from '../components/island.js'
-import { KaivaiGameConfigValidator } from './gameConfig.js'
+import { KaivaiGameConfig, KaivaiGameConfigValidator, Ruleset } from './gameConfig.js'
 
 export class KaivaiGameInitializer extends BaseGameInitializer implements GameInitializer {
     override initializeGame(game: Partial<Game>): Game {
@@ -46,7 +46,8 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         const prng = new Prng(prngState)
         const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length
-        const board = this.initializeBoard(numPlayers, prng.random)
+        const config = game.config as KaivaiGameConfig
+        const board = this.initializeBoard(numPlayers, config.ruleset, prng.random)
 
         const state = new HydratedKaivaiGameState({
             id: nanoid(),
@@ -64,7 +65,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             board,
             influence: {},
             bids: {},
-            cultTiles: 8,
+            cultTiles: game.config.ruleset === Ruleset.FirstEdition ? 10 : 8,
             passedPlayers: []
         })
 
@@ -103,7 +104,11 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         return players
     }
 
-    private initializeBoard(_numPlayers: number, random: RandomFunction): KaivaiGameBoard {
+    private initializeBoard(
+        _numPlayers: number,
+        ruleset: Ruleset,
+        random: RandomFunction
+    ): KaivaiGameBoard {
         const cells: Record<number, Cell> = {}
         const islands: Record<string, Island> = {}
         const initialCoords: AxialCoordinates[] = [
@@ -126,11 +131,13 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         const spiralTraverser = spiral({ radius: 6 })
         const hexGrid = new Grid(DefaultHex, spiralTraverser)
 
-        const island = this.createAdditionalIsland(hexGrid, initialCoords, random)
+        const singleIsland = ruleset === Ruleset.FirstEdition
+
+        const island = this.createAdditionalIsland(hexGrid, initialCoords, singleIsland, random)
         initialCoords.push(...island.coordList)
         islands[island.id] = island
 
-        const island2 = this.createAdditionalIsland(hexGrid, initialCoords, random)
+        const island2 = this.createAdditionalIsland(hexGrid, initialCoords, singleIsland, random)
         initialCoords.push(...island2.coordList)
         islands[island2.id] = island2
 
@@ -155,12 +162,13 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
     private createAdditionalIsland<T extends Hex>(
         grid: Grid<T>,
         initialCoords: AxialCoordinates[],
+        singleIsland: boolean,
         random: RandomFunction
     ): Island {
         const ringTraverser = ring<T>({ center: [0, 0], radius: 6 })
 
         let tileOneCoords: AxialCoordinates | undefined
-        const validPositions: [AxialCoordinates, AxialCoordinates][] = []
+        const validPositions: AxialCoordinates[][] = []
 
         for (const hex of grid.traverse(ringTraverser)) {
             const hexCoords = { q: hex.q, r: hex.r }
@@ -168,6 +176,11 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             // Check distance from all initial coords
             if (initialCoords.some((coords) => grid.distance(hex, coords) <= 3)) {
                 tileOneCoords = undefined
+                continue
+            }
+
+            if (!singleIsland) {
+                validPositions.push([hexCoords])
                 continue
             }
 
