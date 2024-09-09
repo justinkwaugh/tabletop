@@ -30,7 +30,10 @@
             return gameSession.gameState.machineState === MachineState.Bidding
         }
         if (gameSession.mode === GameSessionMode.History) {
-            return gameSession.actions[gameSession.currentHistoryIndex].type === ActionType.PlaceBid
+            return (
+                gameSession.currentHistoryIndex >= 0 &&
+                gameSession.actions[gameSession.currentHistoryIndex].type === ActionType.PlaceBid
+            )
         }
 
         return false

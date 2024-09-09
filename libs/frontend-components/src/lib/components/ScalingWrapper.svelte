@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Snippet } from 'svelte'
+    import { onMount, type Snippet } from 'svelte'
 
     let {
         children,
@@ -121,6 +121,10 @@
             }
         }
     }
+
+    onMount(() => {
+        setTimeout(() => performScale(wrapper.clientWidth, wrapper.clientHeight), 0)
+    })
 </script>
 
 <div
