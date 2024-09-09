@@ -4,10 +4,10 @@ import {
     GameState,
     HydratableGameState,
     HydratedPhaseManager,
-    HydratedPrng,
     HydratedRoundManager,
     HydratedSimpleTurnManager,
     PhaseManager,
+    PrngState,
     RoundManager
 } from '@tabletop/common'
 import { KaivaiPlayerState, HydratedKaivaiPlayerState } from './playerState.js'
@@ -38,7 +38,6 @@ export const KaivaiGameState = Type.Composite([
 const KaivaiGameStateValidator = TypeCompiler.Compile(KaivaiGameState)
 
 type HydratedProperties = {
-    prng: HydratedPrng
     turnManager: HydratedSimpleTurnManager
     rounds: HydratedRoundManager
     phases: HydratedPhaseManager
@@ -52,7 +51,7 @@ export class HydratedKaivaiGameState
 {
     declare id: string
     declare gameId: string
-    declare prng: HydratedPrng
+    declare prng: PrngState
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number
@@ -72,7 +71,6 @@ export class HydratedKaivaiGameState
 
     constructor(data: KaivaiGameState) {
         const hydratedProperties: HydratedProperties = {
-            prng: new HydratedPrng(data.prng),
             turnManager: new HydratedSimpleTurnManager(data.turnManager),
             rounds: new HydratedRoundManager(data.rounds),
             phases: new HydratedPhaseManager(data.phases),

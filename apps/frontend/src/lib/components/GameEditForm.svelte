@@ -11,7 +11,17 @@
         RadioButton
     } from 'flowbite-svelte'
     import { trim } from '$lib/utils/trimInput'
-    import { Game, Player, PlayerStatus, range } from '@tabletop/common'
+    import {
+        BooleanConfigOption,
+        ConfigOption,
+        Game,
+        isBooleanConfigOption,
+        isListConfigOption,
+        ListConfigOption,
+        Player,
+        PlayerStatus,
+        range
+    } from '@tabletop/common'
     import { nanoid } from 'nanoid'
     import { getContext } from 'svelte'
     import { playerSortValue } from '$lib/utils/player'
@@ -19,7 +29,10 @@
     import { APIError } from '@tabletop/frontend-components'
     import type { AppContext } from '$lib/stores/appContext.svelte'
 
-    type EditableGame = Pick<Game, 'id' | 'typeId' | 'name' | 'players' | 'isPublic' | 'ownerId'>
+    type EditableGame = Pick<
+        Game,
+        'id' | 'typeId' | 'name' | 'players' | 'isPublic' | 'ownerId' | 'config'
+    >
     enum EditMode {
         Create = 'create',
         Edit = 'edit'
@@ -57,19 +70,37 @@
                   }
               ],
               isPublic: false,
-              ownerId: sessionUser?.id
+              ownerId: sessionUser?.id,
+              config: {}
           }
 
     // State
     let unexpectedError = $state(false)
     let errors: Record<string, string[]> = $state({})
     let name = $state(editedGame.name)
+    let config = $state(editedGame.config)
     let numPlayers = $state(editedGame.players.length)
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
     let title = $state(editedGame.typeId ? libraryService.getTitle(editedGame.typeId) : undefined)
     let minPlayers = $derived<number>(title?.metadata.minPlayers ?? 1)
     let maxPlayers = $derived<number>(title?.metadata.maxPlayers ?? 1)
+
+    function generateDefaultOptions() {
+        const defaultConfig = {}
+        for (const option of title?.configOptions ?? []) {
+            config[option.id] = option.default
+        }
+        return defaultConfig
+    }
+    function onOptionChange(option: ConfigOption, event: Event) {
+        if (isBooleanConfigOption(option)) {
+            config[option.id] = (event.target as HTMLInputElement).checked
+        } else if (isListConfigOption(option)) {
+            config[option.id] = (event.target as HTMLSelectElement).value
+        }
+        console.log(JSON.stringify(config))
+    }
 
     function updatePlayers(numPlayers: number) {
         const difference: number = numPlayers - players.length
@@ -127,7 +158,8 @@
             id: editedGame.id,
             name: (formData.get('name') as string).trim(),
             players: playersToUpload,
-            isPublic: isPublic
+            isPublic,
+            config: Object.assign(generateDefaultOptions(), config)
         }
 
         if (mode === EditMode.Create) {
@@ -185,6 +217,28 @@
         errors = {}
     }
 </script>
+
+{#snippet booleanOption(option: BooleanConfigOption)}
+    <Toggle
+        onchange={(event: Event) => onOptionChange(option, event)}
+        id={option.id}
+        checked={option.default}>{option.name}</Toggle
+    >
+{/snippet}
+
+{#snippet listOption(option: ListConfigOption)}
+    <Label class="space-y-2">
+        <span>{option.name}</span>
+        <Select
+            onchange={(event: Event) => onOptionChange(option, event)}
+            id={option.id}
+            size="sm"
+            items={option.options}
+            value={option.default}
+            required
+        />
+    </Label>
+{/snippet}
 
 <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">
     {#if mode === EditMode.Create}
@@ -322,6 +376,17 @@
             </Label>
         {/each}
         <!-- <Toggle bind:checked={isPublic}>Public</Toggle> -->
+        <div
+            class="p-4 border-2 border-gray-700 rounded-lg flex flex-col space-y-4 justify-center items-start"
+        >
+            {#each title.configOptions as option (option.id)}
+                {#if isBooleanConfigOption(option)}
+                    {@render booleanOption(option)}
+                {:else if isListConfigOption(option)}
+                    {@render listOption(option)}
+                {/if}
+            {/each}
+        </div>
     {/if}
 
     <div class="flex justify-between mt-6">

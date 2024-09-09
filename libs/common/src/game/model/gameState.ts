@@ -4,7 +4,7 @@ import { Hydratable } from '../../util/hydration.js'
 import { calculateChecksum } from '../../util/checksum.js'
 import { GameAction } from '../engine/gameAction.js'
 import { PlayerState } from './playerState.js'
-import { Prng } from '../components/prng.js'
+import { PrngState } from '../components/prng.js'
 
 export enum GameResult {
     Abandoned = 'Abandoned',
@@ -21,7 +21,7 @@ export const GameState = Type.Object({
     actionCount: Type.Number(),
     actionChecksum: Type.Number(),
     seed: Type.Optional(Type.Number()), // deprecated
-    prng: Prng,
+    prng: PrngState,
     machineState: Type.String(),
     turnManager: TurnManager,
     result: Type.Optional(Type.Enum(GameResult)),
@@ -43,7 +43,7 @@ export abstract class HydratableGameState<T extends TSchema>
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number
-    declare prng: Prng
+    declare prng: PrngState
     declare machineState: string
     declare turnManager: TurnManager
     declare result?: GameResult

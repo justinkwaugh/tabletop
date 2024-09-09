@@ -5,7 +5,7 @@ import {
     GameAction,
     HydratableAction,
     MachineContext,
-    RandomFunction
+    Prng
 } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
@@ -25,6 +25,9 @@ export const Fish = Type.Composite([
         boatCoords: AxialCoordinates,
         metadata: Type.Optional(
             Type.Object({
+                numFish: Type.Number(),
+                islandId: Type.String(),
+                hadGod: Type.Boolean(),
                 dieResults: Type.Array(Type.Boolean())
             })
         )
@@ -44,7 +47,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
     declare playerId: string
     declare boatId: string
     declare boatCoords: AxialCoordinates
-    declare metadata: { dieResults: boolean[] }
+    declare metadata: { numFish: number; islandId: string; hadGod: boolean; dieResults: boolean[] }
 
     constructor(data: Fish) {
         super(data, FishValidator)
@@ -105,22 +108,41 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         let numFish = 0
         if (config?.lucklessFishing) {
             // One fish per hut and god
-            numFish = Math.max(...fishingData.map((data) => data.numHuts + (data.hasGod ? 1 : 0)))
-        } else if (config?.ruleSet === Ruleset.FirstEdition) {
-            // God adds a die roll
-            const numDice = Math.max(
-                ...fishingData.map((data) => data.numHuts + (data.hasGod ? 1 : 0))
-            )
-            const dieResults = this.rollDice(Math.max(numDice, 4), state.prng.random)
-            this.metadata = { dieResults }
-            numFish = dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0)
-            this.revealsInfo = true
-        } else if (config?.ruleSet === Ruleset.SecondEdition) {
-            // God gives a guaranteed fish
             const bestIsland = fishingData.reduce((best, current) => {
-                if (!best) {
-                    return current
-                }
+                const bestTotal = best.numHuts + (best.hasGod ? 1 : 0)
+                const currentTotal = current.numHuts + (current.hasGod ? 1 : 0)
+                return currentTotal > bestTotal ? current : best
+            })
+            numFish = bestIsland.numHuts + (bestIsland.hasGod ? 1 : 0)
+            this.metadata = {
+                numFish,
+                islandId: bestIsland.islandId,
+                hadGod: bestIsland.hasGod,
+                dieResults: []
+            }
+        } else if (config?.ruleset === Ruleset.FirstEdition) {
+            // God adds a die roll
+            const prng = new Prng(state.prng)
+            const bestIsland = fishingData.reduce((best, current) => {
+                const bestTotal = best.numHuts + (best.hasGod ? 1 : 0)
+                const currentTotal = current.numHuts + (current.hasGod ? 1 : 0)
+                return currentTotal > bestTotal ? current : best
+            })
+            const numDice = bestIsland.numHuts + (bestIsland.hasGod ? 1 : 0)
+            const dieResults = this.rollDice(Math.max(numDice, 4), prng)
+
+            numFish = dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0)
+            this.metadata = {
+                numFish,
+                islandId: bestIsland.islandId,
+                hadGod: bestIsland.hasGod,
+                dieResults
+            }
+            this.revealsInfo = true
+        } else if (config?.ruleset === Ruleset.SecondEdition) {
+            // God gives a guaranteed fish
+            const prng = new Prng(state.prng)
+            const bestIsland = fishingData.reduce((best, current) => {
                 const bestTotal = best.numHuts + (best.hasGod ? 1 : 0)
                 const currentTotal = current.numHuts + (current.hasGod ? 1 : 0)
                 if (currentTotal > bestTotal || (currentTotal === bestTotal && current.hasGod)) {
@@ -128,41 +150,42 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
                 }
                 return best
             })
+            const dieResults = this.rollDice(Math.min(bestIsland.numHuts, 4), prng)
 
-            if (!bestIsland) {
-                throw Error('No valid fishing locations')
-            }
-
-            const dieResults = this.rollDice(Math.max(bestIsland.numHuts, 4), state.prng.random)
-            this.metadata = { dieResults }
             numFish =
                 dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0) +
                 (bestIsland.hasGod ? 1 : 0)
+            this.metadata = {
+                numFish,
+                islandId: bestIsland.islandId,
+                hadGod: bestIsland.hasGod,
+                dieResults
+            }
             this.revealsInfo = true
         }
 
-        playerState.fish[config?.ruleSet === Ruleset.SecondEdition ? 3 : 4] += numFish
+        playerState.fish[config?.ruleset === Ruleset.SecondEdition ? 3 : 4] += numFish
     }
 
-    private rollDice(numDice: number, random: RandomFunction): boolean[] {
+    private rollDice(numDice: number, prng: Prng): boolean[] {
         const results = []
         if (numDice > 0) {
-            results.push(Math.floor(random() * 6) < 5)
+            results.push(prng.randInt(6) < 5)
         }
 
         if (numDice > 1) {
-            results.push(Math.floor(random() * 6) < 4)
+            results.push(prng.randInt(6) < 4)
         }
 
         if (numDice > 2) {
-            results.push(Math.floor(random() * 6) < 3)
+            results.push(prng.randInt(6) < 3)
         }
 
         if (numDice > 3) {
-            results.push(Math.floor(random() * 6) < 2)
+            results.push(prng.randInt(6) < 2)
         }
 
-        return new Array(numDice).fill(true)
+        return results
     }
 
     static isValidFishingLocation(

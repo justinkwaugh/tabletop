@@ -6,7 +6,9 @@ export default {
     content: [
         './src/**/*.{html,js,svelte,ts}',
         '../../node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}',
-        '../../node_modules/@tabletop/*-ui/**/*.{html,js,svelte,ts}',
+        '../../node_modules/@tabletop/fresh-fish-ui/**/*.{html,js,svelte,ts}',
+        '../../node_modules/@tabletop/bridges-of-shangri-la-ui/**/*.{html,js,svelte,ts}',
+        '../../node_modules/@tabletop/kaivai-ui/**/*.{html,js,svelte,ts}',
         '../../node_modules/@tabletop/frontend-components/**/*.{html,js,svelte,ts}'
     ],
 

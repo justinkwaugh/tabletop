@@ -42,7 +42,7 @@ export function getHistoryDescriptionForAction(action?: GameAction) {
             return 'celebrated' // earning X points
         }
         case isFish(action): {
-            return 'went fishing'
+            return `went fishing and caught ${action.metadata?.numFish ?? 'some'} fish`
         }
         case isIncrease(action): {
             return 'increased their movement bonus'

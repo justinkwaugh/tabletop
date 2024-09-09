@@ -2,7 +2,8 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
-    HydratedSimpleTurnManager
+    HydratedSimpleTurnManager,
+    PrngState
 } from '@tabletop/common'
 import { BridgesPlayerState, HydratedBridgesPlayerState } from './playerState.js'
 import { Type, type Static } from '@sinclair/typebox'
@@ -35,7 +36,7 @@ export class HydratedBridgesGameState
 {
     declare id: string
     declare gameId: string
-    declare seed: number
+    declare prng: PrngState
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number

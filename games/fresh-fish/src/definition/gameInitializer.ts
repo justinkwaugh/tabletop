@@ -1,4 +1,4 @@
-import { GameInitializer, generateSeed, HydratedPrng, RandomFunction } from '@tabletop/common'
+import { GameInitializer, generateSeed, Prng, PrngState, RandomFunction } from '@tabletop/common'
 import {
     Game,
     Player,
@@ -57,8 +57,8 @@ export class FreshFishGameInitializer implements GameInitializer {
 
     initializeGameState(game: Game, seed?: number): HydratedGameState {
         seed = seed === undefined ? generateSeed() : seed
-        const prng = new HydratedPrng({ seed, invocations: 0 })
-
+        const prngState: PrngState = { seed, invocations: 0 }
+        const prng = new Prng(prngState)
         const players = this.initializePlayers(game, prng.random)
         const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
         const finalStalls = Object.values(GoodsType).map(
@@ -71,7 +71,7 @@ export class FreshFishGameInitializer implements GameInitializer {
         const state = new HydratedFreshFishGameState({
             id: nanoid(),
             gameId: game.id,
-            prng,
+            prng: prngState,
             activePlayerIds: [],
             turnManager: turnManager,
             actionCount: 0,

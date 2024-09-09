@@ -19,7 +19,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
             name: game.name?.trim() || 'Good Game',
             ownerId: game.ownerId,
             players: game.players,
-            config: {},
+            config: game.config ?? {},
             hotseat: false,
             winningPlayerIds: [],
             createdAt: new Date() // This will be updated by the db

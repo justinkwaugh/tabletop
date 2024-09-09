@@ -2,13 +2,13 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { isPass } from '@tabletop/kaivai'
+    import { Fish, isFish, isPass } from '@tabletop/kaivai'
     import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, HistoryControls } from '@tabletop/frontend-components'
+    import { GameSessionMode } from '@tabletop/frontend-components'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
 
     const timeAgo = new TimeAgo('en-US')
@@ -42,7 +42,40 @@
         }
         unhighlightTimeout = setTimeout(() => {}, 150)
     }
+
+    const dieCircleSize = [
+        'w-[24px] h-[24px]',
+        'w-[21px] h-[21px]',
+        'w-[18px] h-[18px]',
+        'w-[15px] h-[15px]'
+    ]
 </script>
+
+{#snippet playerName(playerId: string)}
+    <span
+        class="rounded px-2 {gameSession.getPlayerBgColor(
+            playerId
+        )} font-medium {gameSession.getPlayerTextColor(playerId)}"
+        >{gameSession.getPlayerName(playerId)}</span
+    >
+{/snippet}
+
+{#snippet fishingAction(action: Fish)}
+    {#if action.metadata?.dieResults}
+        <div class="flex flex-row justify-start items-center space-x-2 w-full mt-2">
+            <div>Die results:</div>
+            {#each action.metadata.dieResults as result, i}
+                <div
+                    class="flex justify-center items-center w-[30px] h-[30px] rounded-lg bg-gray-200"
+                >
+                    {#if result}
+                        <div class="{dieCircleSize[i]} rounded-full bg-blue-500"></div>
+                    {/if}
+                </div>
+            {/each}
+        </div>
+    {/if}
+{/snippet}
 
 <div
     class="rounded-lg border-2 border-[#634a11] text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden bg-[#302408]"
@@ -79,15 +112,12 @@
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                             {#if action.playerId}
-                                <span
-                                    class="rounded px-2 {gameSession.getPlayerBgColor(
-                                        action.playerId
-                                    )} font-medium {gameSession.getPlayerTextColor(
-                                        action.playerId
-                                    )}">{gameSession.getPlayerName(action.playerId)}</span
-                                >
+                                {@render playerName(action.playerId)}
                             {/if}
                             {getHistoryDescriptionForAction(action)}
+                            {#if isFish(action)}
+                                {@render fishingAction(action)}
+                            {/if}
                         </p>
                     </TimelineItem>
                 </div>

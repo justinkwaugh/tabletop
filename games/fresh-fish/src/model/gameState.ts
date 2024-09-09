@@ -2,10 +2,9 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
-    HydratedPrng,
     HydratedSimpleTurnManager,
     HydratedSimultaneousAuction,
-    Prng,
+    PrngState,
     SimultaneousAuction
 } from '@tabletop/common'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from './playerState.js'
@@ -37,7 +36,6 @@ export const FreshFishGameState = Type.Composite([
 const FreshFishGameStateValidator = TypeCompiler.Compile(FreshFishGameState)
 
 type HydratedProperties = {
-    prng: HydratedPrng
     tileBag: HydratedTileBag
     turnManager: HydratedSimpleTurnManager
     board: HydratedGameBoard
@@ -51,7 +49,7 @@ export class HydratedFreshFishGameState
 {
     declare id: string
     declare gameId: string
-    declare prng: Prng
+    declare prng: PrngState
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number
@@ -68,7 +66,6 @@ export class HydratedFreshFishGameState
 
     constructor(data: FreshFishGameState) {
         const hydratedProperties: HydratedProperties = {
-            prng: new HydratedPrng(data.prng),
             tileBag: new HydratedTileBag(data.tileBag),
             turnManager: new HydratedSimpleTurnManager(data.turnManager),
             board: new HydratedGameBoard(data.board),

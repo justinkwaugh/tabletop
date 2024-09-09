@@ -12,6 +12,7 @@
     import deliverImg from '$lib/images/deliver.png'
     import passImg from '$lib/images/pass.png'
     import skipImg from '$lib/images/skip.png'
+    import influenceImg from '$lib/images/influence.png'
 
     import { ActionType, MachineState } from '@tabletop/kaivai'
 
@@ -115,6 +116,29 @@
             stroke={isEnabled(actionType) ? '#634a11' : 'black'}
             stroke-width="4"
         ></circle>
+        {#if gameSession.gameState.influence[actionType] > 0}
+            <image
+                href={influenceImg}
+                x={x + radius - 25}
+                y={y + radius + 15}
+                width={50}
+                height={50}
+            >
+            </image>
+            <text
+                class="kaivai-font"
+                x={x + radius}
+                y={y + radius + 43}
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="40"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#FFFFFF"
+                fill="white"
+                >{gameSession.gameState.influence[actionType]}
+            </text>
+        {/if}
     </g>
 {/snippet}
 

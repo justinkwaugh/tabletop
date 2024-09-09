@@ -9,7 +9,8 @@ import {
     pickRandom,
     HydratedRoundManager,
     HydratedPhaseManager,
-    HydratedPrng
+    PrngState,
+    Prng
 } from '@tabletop/common'
 import {
     Game,
@@ -28,12 +29,21 @@ import { KaivaiPlayerColors } from './colors.js'
 import { Cell, CellType, CultCell } from './cells.js'
 import { defineHex, Grid, Hex, ring, spiral } from 'honeycomb-grid'
 import { Island } from '../components/island.js'
+import { KaivaiGameConfigValidator } from './gameConfig.js'
 
 export class KaivaiGameInitializer extends BaseGameInitializer implements GameInitializer {
+    override initializeGame(game: Partial<Game>): Game {
+        const config = game.config
+        if (!KaivaiGameConfigValidator.Check(config)) {
+            throw Error(JSON.stringify([...KaivaiGameConfigValidator.Errors(config)]))
+        }
+        return super.initializeGame(game)
+    }
+
     initializeGameState(game: Game, seed?: number): HydratedGameState {
         seed = seed === undefined ? generateSeed() : seed
-        const prng = new HydratedPrng({ seed, invocations: 0 })
-
+        const prngState: PrngState = { seed, invocations: 0 }
+        const prng = new Prng(prngState)
         const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length
         const board = this.initializeBoard(numPlayers, prng.random)
@@ -41,7 +51,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         const state = new HydratedKaivaiGameState({
             id: nanoid(),
             gameId: game.id,
-            prng,
+            prng: prngState,
             activePlayerIds: [],
             turnManager: HydratedSimpleTurnManager.generate(players, prng.random),
             rounds: HydratedRoundManager.generate(),

@@ -7,6 +7,7 @@ export enum ConfigOptionType {
 
 export type BaseConfigOption = Static<typeof BaseConfigOption>
 export const BaseConfigOption = Type.Object({
+    id: Type.String(),
     type: Type.Enum(ConfigOptionType),
     name: Type.String(),
     description: Type.String()
@@ -19,7 +20,7 @@ export const BooleanConfigOption = Type.Object({
     default: Type.Boolean()
 })
 
-export type ListConfigOption = Static<typeof BooleanConfigOption>
+export type ListConfigOption = Static<typeof ListConfigOption>
 export const ListConfigOption = Type.Object({
     ...BaseConfigOption.properties,
     type: Type.Literal(ConfigOptionType.List),
@@ -47,4 +48,7 @@ export type GameConfigOptions = Static<typeof GameConfigOptions>
 export const GameConfigOptions = Type.Array(ConfigOption)
 
 export type GameConfig = Static<typeof GameConfig>
-export const GameConfig = Type.Object({})
+export const GameConfig = Type.Record(
+    Type.String(),
+    Type.Union([Type.Boolean(), Type.String(), Type.Number()])
+)

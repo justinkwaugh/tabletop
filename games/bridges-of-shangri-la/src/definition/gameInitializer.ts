@@ -3,7 +3,8 @@ import {
     generateSeed,
     RandomFunction,
     BaseGameInitializer,
-    HydratedPrng
+    PrngState,
+    Prng
 } from '@tabletop/common'
 import {
     Game,
@@ -25,8 +26,8 @@ import { BridgesPlayerColors } from './colors.js'
 export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeGameState(game: Game, seed?: number): HydratedGameState {
         seed = seed === undefined ? generateSeed() : seed
-        const prng = new HydratedPrng({ seed, invocations: 0 })
-
+        const prngState: PrngState = { seed, invocations: 0 }
+        const prng = new Prng(prngState)
         const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length
         const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
@@ -36,7 +37,7 @@ export class BridgesGameInitializer extends BaseGameInitializer implements GameI
         const state = new HydratedBridgesGameState({
             id: nanoid(),
             gameId: game.id,
-            prng,
+            prng: prngState,
             activePlayerIds: [],
             turnManager: turnManager,
             actionCount: 0,
