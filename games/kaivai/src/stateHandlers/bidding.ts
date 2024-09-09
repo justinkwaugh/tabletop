@@ -27,6 +27,7 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
         }
 
         if (!gameState.phases.currentPhase) {
+            gameState.bids = {}
             gameState.phases.startPhase(PhaseName.Bidding, gameState.actionCount)
         }
 
@@ -48,7 +49,6 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
                     gameState.turnManager.turnOrder = turnOrder
 
                     gameState.phases.endPhase(gameState.actionCount)
-                    gameState.bids = {}
                     if (gameState.rounds.currentRound?.number === 1) {
                         return MachineState.InitialHuts
                     } else {

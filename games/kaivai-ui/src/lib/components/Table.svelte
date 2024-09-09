@@ -15,15 +15,26 @@
     import { ActionType, MachineState } from '@tabletop/kaivai'
     import { TabItem, Tabs } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid } from 'flowbite-svelte-icons'
-    import History from './History.svelte'
-    import LastHistoryDescription from './LastHistoryDescription.svelte'
-    import WaitingPanel from './WaitingPanel.svelte'
+    import History from '$lib/components/History.svelte'
+    import LastHistoryDescription from '$lib/components/LastHistoryDescription.svelte'
+    import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let activeTabClasses =
         'py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border'
     let inactiveTabClasses =
         'text-[#634a11] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#634a11] box-border'
+
+    let showBidBoard = $derived.by(() => {
+        if (gameSession.mode === GameSessionMode.Play) {
+            return gameSession.gameState.machineState === MachineState.Bidding
+        }
+        if (gameSession.mode === GameSessionMode.History) {
+            return gameSession.actions[gameSession.currentHistoryIndex].type === ActionType.PlaceBid
+        }
+
+        return false
+    })
 </script>
 
 <!-- Full Height and Width with 8px padding-->
@@ -88,7 +99,7 @@
         <div class="grow-0 overflow-hidden" style="flex:1;">
             <ScalingWrapper justify={'center'} controls={'none'}>
                 <div class="w-fit h-fit">
-                    {#if gameSession.gameState.machineState === MachineState.Bidding}
+                    {#if showBidBoard}
                         <BidBoard />
                     {/if}
                     <Board />

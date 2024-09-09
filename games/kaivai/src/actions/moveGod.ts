@@ -62,12 +62,12 @@ export class HydratedMoveGod extends HydratableAction<typeof MoveGod> implements
     ): { valid: boolean; reason: string } {
         const board = state.board
 
-        // if (!board.isInBounds(coords)) {
-        //     return { valid: false, reason: 'Placement is off board' }
-        // }
-
         if (!board.isWaterCell(coords)) {
             return { valid: false, reason: 'New cult site must be placed on water' }
+        }
+
+        if (board.getBoatAt(coords)) {
+            return { valid: false, reason: 'Destination cell must be empty' }
         }
 
         const neighboringIslands = board.getNeighboringIslands(coords)

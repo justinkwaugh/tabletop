@@ -19,7 +19,7 @@ export function getHistoryDescriptionForAction(action?: GameAction) {
     }
     switch (true) {
         case isPlaceBid(action): {
-            return `bid ${action.amount}`
+            return `placed a bid of ${action.amount}`
         }
         case isDeliver(action): {
             const numFish = action.deliveries.reduce((acc, delivery) => acc + delivery.amount, 0)

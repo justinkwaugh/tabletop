@@ -349,7 +349,8 @@ export class KaivaiGameSession extends GameSession {
         return {
             ...this.createBaseAction(ActionType.Fish),
             boatId,
-            boatCoords: $state.snapshot(boatCoords)
+            boatCoords: $state.snapshot(boatCoords),
+            revealsInfo: !this.game.config.lucklessFishing
         } as Fish
     }
 

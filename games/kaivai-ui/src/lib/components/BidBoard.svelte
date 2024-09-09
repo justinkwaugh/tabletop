@@ -64,6 +64,9 @@
     })
 
     async function placeBid(bid: number) {
+        if (!gameSession.isMyTurn) {
+            return
+        }
         const action = gameSession.createPlaceBidAction(bid)
         gameSession.applyAction(action)
         gameSession.resetAction()
