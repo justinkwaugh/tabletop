@@ -53,10 +53,10 @@
 </script>
 
 {#snippet fishingAction(action: Fish)}
-    {#if action.metadata?.dieResults}
+    {#if action.metadata?.dieResults && action.metadata?.dieResults.length > 0}
         <div class="flex flex-row justify-start items-center space-x-2 w-full mt-2">
             <div>Die results:</div>
-            {#each action.metadata.dieResults as result, i}
+            {#each action.metadata?.dieResults as result, i}
                 <div
                     class="flex justify-center items-center w-[30px] h-[30px] rounded-lg bg-gray-200"
                 >

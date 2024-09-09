@@ -13,14 +13,6 @@
         }
         return undefined
     })
-
-    let description = $derived.by(() => {
-        if (!lastAction) {
-            return 'The game was started'
-        } else {
-            return lastAction.type
-        }
-    })
 </script>
 
 <div

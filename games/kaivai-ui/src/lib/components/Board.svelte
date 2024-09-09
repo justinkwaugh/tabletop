@@ -13,6 +13,7 @@
     import passImg from '$lib/images/pass.png'
     import skipImg from '$lib/images/skip.png'
     import influenceImg from '$lib/images/influence.png'
+    import sacrificeImg from '$lib/images/sacrifice.png'
 
     import { ActionType, MachineState } from '@tabletop/kaivai'
 
@@ -55,10 +56,16 @@
                 } else {
                     return passImg
                 }
+            case ActionType.Sacrifice:
+                return sacrificeImg
             default:
                 return ''
         }
     }
+
+    let canSacrifice: boolean = $derived(
+        gameSession.validActionTypes.includes(ActionType.Sacrifice) && !gameSession.chosenAction
+    )
 
     async function chooseAction(action: ActionType) {
         if (gameSession.validActionTypes.includes(action) && !gameSession.chosenAction) {
@@ -66,6 +73,8 @@
                 await increase()
             } else if (action === ActionType.Pass) {
                 await pass()
+            } else if (action === ActionType.Sacrifice) {
+                await sacrifice()
             } else {
                 gameSession.chosenAction = action
             }
@@ -115,9 +124,8 @@
             cx={x + radius}
             cy={y + radius}
             r={radius}
-            fill={isEnabled(actionType) ? 'none' : 'black'}
-            opacity={isEnabled(actionType) ? '1' : '0.3'}
-            stroke={isEnabled(actionType) ? '#634a11' : 'black'}
+            fill="none"
+            stroke="#634a11"
             stroke-width="4"
         ></circle>
         {#if gameSession.gameState.influence[actionType] > 0}
@@ -144,6 +152,17 @@
                     >{gameSession.gameState.influence[actionType]}
                 </text>
             </g>
+        {/if}
+        {#if !isEnabled(actionType)}
+            <circle
+                cx={x + radius}
+                cy={y + radius}
+                r={radius}
+                fill="black"
+                opacity="0.3"
+                stroke="black"
+                stroke-width="4"
+            ></circle>
         {/if}
     </g>
 {/snippet}
@@ -188,7 +207,11 @@
                 {@render actionDisk(ActionType.Fish, 765, 5)}
                 {@render actionDisk(ActionType.Celebrate, 600, 5)}
                 {#if gameSession.isMyTurn}
-                    {@render actionDisk(ActionType.Pass, 460, 5, 40)}
+                    {#if canSacrifice}
+                        {@render actionDisk(ActionType.Sacrifice, 460, 5, 40)}
+                    {:else}
+                        {@render actionDisk(ActionType.Pass, 460, 5, 40)}
+                    {/if}
                 {/if}
 
                 {#each grid as hex}

@@ -121,6 +121,13 @@ export class HydratedSimpleTurnManager
         return this.turnCounts[playerId] ?? 0
     }
 
+    hadTurnSinceAction(playerId: string, actionIndex: number): boolean {
+        const lastTurn = findLast(this.series, (turn) => {
+            return turn.playerId === playerId && turn.end !== undefined
+        })
+        return lastTurn !== undefined && (lastTurn.end ?? 0) > actionIndex
+    }
+
     private getTurnOrderIndex(playerId: string): number {
         const turnOrderIndex = this.turnOrder.indexOf(playerId)
         if (turnOrderIndex < 0) {

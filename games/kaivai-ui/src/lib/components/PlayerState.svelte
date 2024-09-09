@@ -12,13 +12,17 @@
     let bgColor = $derived(gameSession.getPlayerBgColor(player.id))
 
     let movementBonusList = ['+1', '+2', '+2', '+3', '+3', '+4', '+4', '+5']
+
+    let isPassed = $derived(gameSession.gameState.passedPlayers.includes(player.id))
 </script>
 
 <div class="relative">
     <div
         class="rounded-lg {bgColor} py-[3px] px-4 text-center {gameSession.getPlayerTextColor(
             playerState.playerId
-        )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
+        )} {isPassed ? 'opacity-40' : ''} font-medium flex flex-col justify-between {isTurn
+            ? 'border-2 pulse-border'
+            : ''}"
     >
         <div class="flex flex-row justify-between items-center">
             <h1 class={isTurn ? 'text-xl font-semibold' : 'text-lg font-medium'}>

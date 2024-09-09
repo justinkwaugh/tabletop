@@ -9,7 +9,8 @@ import {
     isPass,
     isPlaceBid,
     isLoseValue,
-    isIncrease
+    isIncrease,
+    isSacrifice
 } from '@tabletop/kaivai'
 
 export function getHistoryDescriptionForAction(action?: GameAction) {
@@ -55,6 +56,9 @@ export function getHistoryDescriptionForAction(action?: GameAction) {
         }
         case isMoveGod(action): {
             return 'moved the Fisherman God'
+        }
+        case isSacrifice(action): {
+            return 'sacrificed all of their actions to gain 2 influence'
         }
         default:
             return action.type

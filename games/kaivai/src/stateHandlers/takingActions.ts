@@ -47,7 +47,8 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             action.type === ActionType.Celebrate ||
             action.type === ActionType.Increase ||
             action.type === ActionType.Move ||
-            action.type === ActionType.Pass
+            action.type === ActionType.Pass ||
+            action.type === ActionType.Sacrifice
         )
     }
 
@@ -55,7 +56,19 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         const gameState = context.gameState as HydratedKaivaiGameState
         const playerState = gameState.getPlayerState(playerId)
 
-        const validActions = [ActionType.Pass]
+        // If player has not taken a turn this phase, they could sacrifice instead of pass
+
+        const currentPhaseStart = gameState.phases.currentPhase?.start ?? 0
+
+        console.log('Current phase start', currentPhaseStart)
+        const passOrSacrifice = gameState.turnManager.hadTurnSinceAction(
+            playerId,
+            currentPhaseStart
+        )
+            ? ActionType.Pass
+            : ActionType.Sacrifice
+
+        const validActions = [passOrSacrifice]
 
         // First figure out which are affordable by influence as that is an easy filter
         const actions = [

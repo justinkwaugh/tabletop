@@ -16,6 +16,7 @@ import { HydratedCelebrate, isCelebrate } from '../actions/celebrate.js'
 import { HydratedIncrease, isIncrease } from '../actions/increase.js'
 import { HydratedMove, isMove } from '../actions/move.js'
 import { HydratedLoseValue, isLoseValue } from '../actions/loseValue.js'
+import { HydratedSacrifice, isSacrifice } from '../actions/sacrifice.js'
 
 export class KaivaiHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -49,6 +50,9 @@ export class KaivaiHydrator implements GameHydrator {
             }
             case isLoseValue(data): {
                 return new HydratedLoseValue(data)
+            }
+            case isSacrifice(data): {
+                return new HydratedSacrifice(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

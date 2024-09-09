@@ -8,6 +8,7 @@ import { Deliver } from '../actions/deliver.js'
 import { Celebrate } from '../actions/celebrate.js'
 import { Increase } from '../actions/increase.js'
 import { Move } from '../actions/move.js'
+import { Sacrifice } from '../actions/sacrifice.js'
 
 export const KaivaiApiActions = {
     [ActionType.Pass]: Pass,
@@ -18,5 +19,6 @@ export const KaivaiApiActions = {
     [ActionType.Celebrate]: Celebrate,
     [ActionType.Increase]: Increase,
     [ActionType.Move]: Move,
-    [ActionType.MoveGod]: MoveGod
+    [ActionType.MoveGod]: MoveGod,
+    [ActionType.Sacrifice]: Sacrifice
 }

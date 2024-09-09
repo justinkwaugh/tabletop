@@ -2,7 +2,6 @@
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { MachineState } from '@tabletop/kaivai'
-    import { GamesResponse } from '@tabletop/frontend-components'
     import PlayerName from './PlayerName.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
@@ -16,15 +15,15 @@
     const waitingText = $derived.by(() => {
         if (gameSession.gameState.machineState === MachineState.Bidding) {
             return 'to place their bid...'
-        } else if (GamesResponse.gameState === MachineState.Building) {
+        } else if (gameSession.gameState.machineState === MachineState.Building) {
             return 'to build another hut...'
-        } else if (GamesResponse.gameState === MachineState.Delivering) {
+        } else if (gameSession.gameState.machineState === MachineState.Delivering) {
             return 'to deliver more fish...'
-        } else if (GamesResponse.gameState === MachineState.Fishing) {
+        } else if (gameSession.gameState.machineState === MachineState.Fishing) {
             return 'to fish again...'
-        } else if (GamesResponse.gameState === MachineState.InitialHuts) {
+        } else if (gameSession.gameState.machineState === MachineState.InitialHuts) {
             return 'to place their initial huts...'
-        } else if (GamesResponse.gameState === MachineState.MovingGod) {
+        } else if (gameSession.gameState.machineState === MachineState.MovingGod) {
             return 'to move the fisherman god...'
         }
 
