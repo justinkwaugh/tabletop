@@ -83,8 +83,11 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                 return false
             }
 
-            // Basic check for minimum money to build
-            if (action === ActionType.Build && playerState.money() < playerState.buildingCost + 1) {
+            // Basic check for minimum money and tiles to build
+            if (
+                action === ActionType.Build &&
+                (playerState.money() < playerState.buildingCost + 1 || playerState.tiles === 0)
+            ) {
                 return false
             }
 
@@ -211,6 +214,7 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         switch (true) {
             case isBuild(action): {
                 if (
+                    playerState.tiles > 0 &&
                     playerState.availableBoats.some((boatId) =>
                         HydratedBuild.canBoatBuild({ gameState, playerState, boatId })
                     )

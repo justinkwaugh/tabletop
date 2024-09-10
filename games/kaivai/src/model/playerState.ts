@@ -22,7 +22,8 @@ export const KaivaiPlayerState = Type.Composite([
         influence: Type.Number(),
         buildingCost: Type.Number(),
         baseMovement: Type.Number(),
-        initialHutsPlaced: Type.Number()
+        initialHutsPlaced: Type.Number(),
+        tiles: Type.Number()
     })
 ])
 
@@ -48,6 +49,7 @@ export class HydratedKaivaiPlayerState
     declare buildingCost: number
     declare baseMovement: number
     declare initialHutsPlaced: number
+    declare tiles: number
 
     constructor(data: KaivaiPlayerState) {
         super(data, KaivaiPlayerStateValidator)

@@ -136,7 +136,10 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             }
         }
         state.board.addCell(cell)
-        playerState.initialHutsPlaced += 1
+        if (state.machineState === MachineState.InitialHuts) {
+            playerState.initialHutsPlaced += 1
+        }
+        playerState.tiles -= 1
     }
 
     static isValidPlacement(
@@ -145,6 +148,10 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
     ): { valid: boolean; reason: string } {
         const playerState = state.getPlayerState(placement.playerId)
         const board = state.board
+
+        if (playerState.tiles === 0) {
+            return { valid: false, reason: 'Player has no tiles remaining' }
+        }
 
         if (
             state.phases.currentPhase?.name === PhaseName.InitialHuts &&

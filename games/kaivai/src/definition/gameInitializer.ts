@@ -103,7 +103,8 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 score: 0,
                 buildingCost: 0,
                 baseMovement: 0,
-                initialHutsPlaced: 0
+                initialHutsPlaced: 0,
+                tiles: 15
             }
         })
 

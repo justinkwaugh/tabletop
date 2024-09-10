@@ -108,6 +108,7 @@ export class HydratedKaivaiGameState
                 if (a.numFish() !== b.numFish()) {
                     return a.numFish() - b.numFish()
                 }
+
                 if (
                     Object.values(a.boatLocations).length !== Object.values(b.boatLocations).length
                 ) {
@@ -118,7 +119,7 @@ export class HydratedKaivaiGameState
                 }
 
                 // Need to piece limit and track huts
-                return 0
+                return b.tiles - a.tiles
             })
             .map((player) => player.playerId)
     }
