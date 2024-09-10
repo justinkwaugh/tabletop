@@ -22,8 +22,8 @@ export const KaivaiPlayerState = Type.Composite([
         influence: Type.Number(),
         buildingCost: Type.Number(),
         baseMovement: Type.Number(),
-        initialHutsPlaced: Type.Number(),
-        tiles: Type.Number()
+        initialHutsPlaced: Type.Number()
+        // tiles: Type.Number()
     })
 ])
 

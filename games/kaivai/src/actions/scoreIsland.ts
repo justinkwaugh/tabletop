@@ -28,7 +28,8 @@ export const ScoreIsland = Type.Composite([
         metadata: Type.Optional(
             Type.Object({
                 playerMajorities: Type.Record(Type.String(), PlayerIslandMajority),
-                winners: Type.Array(Type.String())
+                winners: Type.Array(Type.String()),
+                award: Type.Number()
             })
         )
     })
@@ -50,6 +51,7 @@ export class HydratedScoreIsland
     declare metadata?: {
         playerMajorities: Record<string, PlayerIslandMajority>
         winners: string[]
+        award: number
     }
 
     constructor(data: ScoreIsland) {
@@ -83,9 +85,11 @@ export class HydratedScoreIsland
 
         const config = context?.gameConfig as KaivaiGameConfig
 
+        let award = 0
         if (winners.length === 1) {
             const actualWinner = state.getPlayerState(winners[0])
-            actualWinner.score += state.board.numCultSitesOnIsland(island.id)
+            award = state.board.numCultSitesOnIsland(island.id)
+            actualWinner.score += award
 
             // Only winner loses their bid in 1st edition
             if (config.ruleset === Ruleset.FirstEdition) {
@@ -102,6 +106,6 @@ export class HydratedScoreIsland
         }
 
         remove(state.islandsToScore, this.islandId)
-        this.metadata = { playerMajorities, winners }
+        this.metadata = { playerMajorities, winners, award }
     }
 }

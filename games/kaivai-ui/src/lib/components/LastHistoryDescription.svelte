@@ -1,9 +1,11 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import { ActionType, HutType, MachineState } from '@tabletop/kaivai'
+    import { isFish, isScoreIsland } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { get } from 'svelte/store'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
+    import FishingResults from './FishingResults.svelte'
+    import PlayerName from './PlayerName.svelte'
+    import ScoringResults from './ScoringResults.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -21,14 +23,15 @@
     <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text-xl uppercase text-[#372b0a] kaivai-font">
             {#if lastAction && lastAction.playerId}
-                <span
-                    class="rounded px-2 {gameSession.getPlayerBgColor(
-                        lastAction.playerId
-                    )} {gameSession.getPlayerTextColor(lastAction.playerId)}"
-                    >{gameSession.getPlayerName(lastAction.playerId)}</span
-                >
+                <PlayerName playerId={lastAction.playerId} />
             {/if}
             {getHistoryDescriptionForAction(lastAction)}
+            {#if isFish(lastAction)}
+                <FishingResults action={lastAction} />
+            {/if}
+            {#if isScoreIsland(lastAction)}
+                <ScoringResults action={lastAction} />
+            {/if}
         </h1>
     </div>
 </div>
