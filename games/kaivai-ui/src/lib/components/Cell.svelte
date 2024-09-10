@@ -1,9 +1,9 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { Hex } from 'honeycomb-grid'
+    import { Direction, Hex, ring } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
-    import { axialCoordinatesToNumber, sameCoordinates, Point } from '@tabletop/common'
+    import { axialCoordinatesToNumber, sameCoordinates, Point, Game } from '@tabletop/common'
     import {
         ActionType,
         CellType,
@@ -14,9 +14,16 @@
         isFishingCell,
         isBoatCell,
         isDeliveryCell,
-        isIslandCell
+        isIslandCell,
+        isFish,
+        isDeliver,
+        isBuild,
+        isCelebrate,
+        isMoveGod,
+        isMove
     } from '@tabletop/kaivai'
     import { uiColorForPlayer } from '$lib/utils/playerColors'
+    import { GameSessionMode } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let { hex, origin }: { hex: Hex; origin: Point } = $props()
@@ -74,6 +81,10 @@
     })
 
     let interacting = $derived.by(() => {
+        if (gameSession.mode !== GameSessionMode.Play) {
+            return false
+        }
+
         switch (gameSession.chosenAction) {
             case ActionType.Build: {
                 if (
@@ -227,6 +238,34 @@
     }
 
     let disabled = $derived.by(() => {
+        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
+            const action = gameSession.actions[gameSession.currentHistoryIndex]
+            switch (true) {
+                case isFish(action):
+                    return !sameCoordinates(hex, action.boatCoords)
+                case isDeliver(action):
+                    return (
+                        !sameCoordinates(hex, action.boatCoords) &&
+                        !action.deliveries.some((delivery) => sameCoordinates(hex, delivery.coords))
+                    )
+                case isBuild(action):
+                    return (
+                        !sameCoordinates(hex, action.coords) &&
+                        !sameCoordinates(hex, action.boatCoords)
+                    )
+
+                case isCelebrate(action):
+                    return !isIslandCell(cell) || cell.islandId !== action.islandId
+
+                case isMoveGod(action):
+                    return !sameCoordinates(hex, action.coords)
+
+                case isMove(action):
+                    return !sameCoordinates(hex, action.boatCoords)
+            }
+            return false
+        }
+
         const state = gameSession.gameState
         if (gameSession.highlightedHexes.size > 0) {
             if (!gameSession.highlightedHexes.has(axialCoordinatesToNumber(hex))) {
@@ -400,6 +439,64 @@
         return cell.boat
     }
     let tabIndex = $derived(interactable ? 0 : -1)
+
+    const borders = [
+        { x1: -25, y1: -43.5, x2: 25, y2: -43.5 },
+        { x1: 25, y1: -43.5, x2: 50, y2: 0 },
+        { x1: 50, y1: 0, x2: 25, y2: 43.5 },
+        { x1: 25, y1: 43.5, x2: -25, y2: 43.5 },
+        { x1: -25, y1: 43.5, x2: -50, y2: 0 },
+        { x1: -50, y1: 0, x2: -25, y2: -43.5 }
+    ]
+
+    const directions = [
+        Direction.N,
+        Direction.NE,
+        Direction.SE,
+        Direction.S,
+        Direction.SW,
+        Direction.NW
+    ]
+
+    let visibleBorders = $derived.by(() => {
+        if (!isIslandCell(cell)) {
+            return []
+        }
+
+        const board = gameSession.gameState.board
+
+        const borders = []
+        for (const [index, direction] of directions.entries()) {
+            const cell = board.getCellAt(board.getNeighborForDirection(hex, direction))
+            if (!cell || cell.type === CellType.Water) {
+                borders.push(index)
+            }
+        }
+
+        return borders
+    })
+
+    let showIslandBorders = $derived.by(() => {
+        if (!isIslandCell(cell)) {
+            return false
+        }
+        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
+            const action = gameSession.actions[gameSession.currentHistoryIndex]
+            return isCelebrate(action) && cell.islandId === action.islandId
+        }
+
+        if (gameSession.chosenAction === ActionType.Celebrate) {
+            return gameSession.validCelebrationIslands.has(cell.islandId)
+        }
+
+        if (gameSession.gameState.machineState === MachineState.IslandBidding) {
+            return gameSession.gameState.chosenIsland === cell.islandId
+        }
+
+        if (gameSession.gameState.machineState === MachineState.FinalScoring) {
+            return gameSession.gameState.islandsToScore.includes(cell.islandId)
+        }
+    })
 </script>
 
 <g
@@ -411,7 +508,11 @@
     stroke-width="2"
     transform="translate({hex.x + origin.x}, {hex.y + origin.y})"
 >
-    <polygon points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5" fill="none" opacity="1"
+    <polygon
+        points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5"
+        fill="none"
+        stroke="none"
+        opacity="1"
     ></polygon>
     {#if cellImage}
         <g transform="rotate(30)">
@@ -550,7 +651,28 @@
     {/if}
 
     {#if disabled}
-        <polygon points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5" fill="black" opacity="0.5"
+        <polygon
+            points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5"
+            class="z-40"
+            fill="black"
+            opacity="0.5"
         ></polygon>
+    {/if}
+
+    {#if showIslandBorders}
+        {#each visibleBorders as border}
+            <line
+                class="z-50"
+                x1={borders[border].x1}
+                y1={borders[border].y1}
+                x2={borders[border].x2}
+                y2={borders[border].y2}
+                fill="none"
+                stroke="#FF5A1F"
+                stroke-width="4"
+                opacity="1"
+                stroke-linecap="round"
+            ></line>
+        {/each}
     {/if}
 </g>

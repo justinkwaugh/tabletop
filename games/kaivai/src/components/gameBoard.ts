@@ -15,7 +15,16 @@ import {
     isPlayerCell,
     MeetingCell
 } from '../definition/cells.js'
-import { defineHex, distance, Grid, Hex, Orientation, ring, spiral } from 'honeycomb-grid'
+import {
+    defineHex,
+    Direction,
+    distance,
+    Grid,
+    Hex,
+    Orientation,
+    ring,
+    spiral
+} from 'honeycomb-grid'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { Boat } from './boat.js'
 import { HutType } from '../definition/huts.js'
@@ -166,6 +175,10 @@ export class HydratedKaivaiGameBoard
     getNeighbors(coords: AxialCoordinates) {
         const ringTraverser = ring({ center: coords, radius: 1 })
         return this.grid.traverse(ringTraverser).toArray()
+    }
+
+    getNeighborForDirection(coords: AxialCoordinates, direction: Direction) {
+        return this.grid.neighborOf(coords, direction)
     }
 
     getDeliverableNeighbors(coords: AxialCoordinates) {

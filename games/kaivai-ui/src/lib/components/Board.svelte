@@ -177,7 +177,7 @@
             style="width:{grid.pixelWidth + 16 + 'px'};height:{grid.pixelHeight + 16 + 100 + 'px'};"
         >
             <svg
-                transform="translate(7,-12) scale(1.005,.975)"
+                transform="translate(6,-11) scale(1.007,.977)"
                 width={Math.ceil(grid.pixelWidth)}
                 height={Math.ceil(grid.pixelHeight) + 100}
             >
