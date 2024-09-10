@@ -1,4 +1,4 @@
-import { HydratedAction, TerminalStateHandler, type MachineStateHandler } from '@tabletop/common'
+import { HydratedAction, type MachineStateHandler } from '@tabletop/common'
 
 import { MachineState } from './states.js'
 import { BiddingStateHandler } from '../stateHandlers/bidding.js'
@@ -11,7 +11,8 @@ import { DeliveringStateHandler } from '../stateHandlers/delivering.js'
 import { MovingStateHandler } from '../stateHandlers/moving.js'
 import { LosingValueStateHandler } from '../stateHandlers/losingValue.js'
 import { FinalScoringStateHandler } from '../stateHandlers/finalScoring.js'
-import { IslandBiddingStateHandler } from 'src/stateHandlers/islandBidding.js'
+import { IslandBiddingStateHandler } from '../stateHandlers/islandBidding.js'
+import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 
 export const KaivaiStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
     [MachineState.Bidding]: new BiddingStateHandler(),
@@ -25,5 +26,5 @@ export const KaivaiStateHandlers: Record<MachineState, MachineStateHandler<Hydra
     [MachineState.LosingValue]: new LosingValueStateHandler(),
     [MachineState.FinalScoring]: new FinalScoringStateHandler(),
     [MachineState.IslandBidding]: new IslandBiddingStateHandler(),
-    [MachineState.EndOfGame]: new TerminalStateHandler()
+    [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }

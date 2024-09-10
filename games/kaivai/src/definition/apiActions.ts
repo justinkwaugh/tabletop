@@ -9,6 +9,8 @@ import { Celebrate } from '../actions/celebrate.js'
 import { Increase } from '../actions/increase.js'
 import { Move } from '../actions/move.js'
 import { Sacrifice } from '../actions/sacrifice.js'
+import { ChooseScoringIsland } from '../actions/chooseScoringIsland.js'
+import { PlaceScoringBid } from '../actions/placeScoringBid.js'
 
 export const KaivaiApiActions = {
     [ActionType.Pass]: Pass,
@@ -20,5 +22,7 @@ export const KaivaiApiActions = {
     [ActionType.Increase]: Increase,
     [ActionType.Move]: Move,
     [ActionType.MoveGod]: MoveGod,
-    [ActionType.Sacrifice]: Sacrifice
+    [ActionType.Sacrifice]: Sacrifice,
+    [ActionType.ChooseScoringIsland]: ChooseScoringIsland,
+    [ActionType.PlaceScoringBid]: PlaceScoringBid
 }

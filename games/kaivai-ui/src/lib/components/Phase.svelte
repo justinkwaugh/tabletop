@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import { Button } from 'flowbite-svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { PhaseName } from '@tabletop/kaivai'
+    import { MachineState, PhaseName } from '@tabletop/kaivai'
     let gameSession = getContext('gameSession') as KaivaiGameSession
     const phase = $derived.by(() => {
         switch (gameSession.gameState.phases.currentPhase?.name) {
@@ -17,6 +17,9 @@
 
             case PhaseName.TakingActions:
                 return 'Taking Actions'
+
+            case PhaseName.FinalScoring:
+                return 'Final Scoring'
 
             default:
                 return ''
@@ -37,6 +40,9 @@
             case PhaseName.TakingActions:
                 return 'Taking Actions'
 
+            case PhaseName.FinalScoring:
+                return 'Final Scoring'
+
             default:
                 return ''
         }
@@ -54,20 +60,26 @@
 >
     <div class="flex flex-row justify-center items-center">
         <div>
-            <span class="font-bold max-md:hidden uppercase text-3xl text-[#f5e397] text-nowrap"
-                >Round {round}</span
-            >
-            <span class="font-bold md:hidden uppercase text-3xl text-[#f5e397] text-nowrap"
-                >R{round}</span
-            >
+            {#if gameSession.gameState.machineState === MachineState.EndOfGame}
+                <span class="font-bold me-4 uppercase text-3xl text-[#f5e397] text-nowrap"
+                    >Game Over</span
+                >
+            {:else if round !== undefined}
+                <span
+                    class="font-bold me-4 max-md:hidden uppercase text-3xl text-[#f5e397] text-nowrap"
+                    >Round {round}</span
+                >
+                <span class="font-bold me-4 md:hidden uppercase text-3xl text-[#f5e397] text-nowrap"
+                    >R{round}</span
+                >
+            {/if}
         </div>
         <div>
-            <span
-                class="max-md:hidden ms-4 uppercase text-2xl text-gray-200 text-nowrap kaivai-font"
+            <span class="max-md:hidden uppercase text-2xl text-gray-200 text-nowrap kaivai-font"
                 >{phase}</span
             >
             <span
-                class="font-bold md:hidden ms-4 uppercase text-2xl text-gray-200 text-nowrap kaivai-font"
+                class="font-bold md:hidden uppercase text-2xl text-gray-200 text-nowrap kaivai-font"
                 >{smallPhase}</span
             >
         </div>

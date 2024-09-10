@@ -13,8 +13,9 @@ import {
     HydratedChooseScoringIsland,
     isChooseScoringIsland
 } from '../actions/chooseScoringIsland.js'
-import { HydratedScoreIsland, isScoreIsland, ScoreIsland } from 'src/actions/scoreIsland.js'
+import { HydratedScoreIsland, isScoreIsland, ScoreIsland } from '../actions/scoreIsland.js'
 import { nanoid } from 'nanoid'
+import { PhaseName } from '../definition/phases.js'
 
 // Transition from FinalScoring(ScoreHuts) -> FinalScoring
 //                 FinalScoring(ChooseScoringIsland) -> IslandBidding | FinalScoring
@@ -25,10 +26,12 @@ type FinalScoringAction = HydratedScoreHuts | HydratedChooseScoringIsland | Hydr
 export class FinalScoringStateHandler implements MachineStateHandler<FinalScoringAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is FinalScoringAction {
         const gameState = context.gameState as HydratedKaivaiGameState
-        if (action.type !== ActionType.ScoreHuts && !action.playerId) return false
+        if (action.source === ActionSource.User && !action.playerId) return false
 
         if (!gameState.hutsScored) {
             return action.type === ActionType.ScoreHuts
+        } else if (gameState.chosenIsland) {
+            return action.type === ActionType.ScoreIsland
         } else if (gameState.islandsToScore.length > 0) {
             return action.type === ActionType.ChooseScoringIsland
         }
@@ -43,11 +46,12 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedKaivaiGameState
         if (!gameState.hutsScored) {
+            gameState.phases.startPhase(PhaseName.FinalScoring, gameState.actionCount)
             gameState.activePlayerIds = []
             return
         }
 
-        const nextPlayerId = this.calculateNextPlayer(gameState)[0]
+        const nextPlayerId = this.calculateNextPlayer(gameState)
         gameState.activePlayerIds = [nextPlayerId]
     }
 
@@ -55,20 +59,20 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
         return state.players
             .sort((a, b) => {
                 if (a.score !== b.score) {
-                    return b.score - a.score
+                    return a.score - b.score
                 }
                 if (a.money() !== b.money()) {
-                    return b.money() - a.money()
+                    return a.money() - b.money()
                 }
                 if (a.numFish() !== b.numFish()) {
-                    return b.numFish() - a.numFish()
+                    return a.numFish() - b.numFish()
                 }
                 if (
                     Object.values(a.boatLocations).length !== Object.values(b.boatLocations).length
                 ) {
                     return (
-                        Object.values(b.boatLocations).length -
-                        Object.values(a.boatLocations).length
+                        Object.values(a.boatLocations).length -
+                        Object.values(b.boatLocations).length
                     )
                 }
 
@@ -110,7 +114,10 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
                 }
             }
             case isScoreIsland(action): {
+                gameState.chosenIsland = undefined
+
                 if (gameState.islandsToScore.length === 0) {
+                    gameState.phases.endPhase(gameState.actionCount)
                     return MachineState.EndOfGame
                 }
 

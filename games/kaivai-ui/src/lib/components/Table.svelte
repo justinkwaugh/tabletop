@@ -18,6 +18,7 @@
     import History from '$lib/components/History.svelte'
     import LastHistoryDescription from '$lib/components/LastHistoryDescription.svelte'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
+    import EndOfGamePanel from './EndOfGamePanel.svelte'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let activeTabClasses =
@@ -77,24 +78,23 @@
                 <History />
             </TabItem>
         </Tabs>
-
-        <!-- <History /> -->
     </div>
     <div
         class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)] flex flex-col"
     >
         <!--  Top part is not allowed to shrink -->
         <div class="shrink-0">
-            <!-- {#if gameSession.gameState.result}
-                <GameEndPanel />
-            {:else if gameSession.mode === GameSessionMode.Play}-->
             <Phase />
-            {#if gameSession.mode === GameSessionMode.History}
+            {#if gameSession.gameState.result}
+                <EndOfGamePanel />
+            {:else if gameSession.mode === GameSessionMode.History}
                 <LastHistoryDescription />
-            {:else if gameSession.isMyTurn}
-                <ActionPanel />
-            {:else}
-                <WaitingPanel />
+            {:else if gameSession.mode === GameSessionMode.Play}
+                {#if gameSession.isMyTurn}
+                    <ActionPanel />
+                {:else}
+                    <WaitingPanel />
+                {/if}
             {/if}
         </div>
         <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.

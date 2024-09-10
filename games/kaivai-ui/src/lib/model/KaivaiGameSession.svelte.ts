@@ -27,7 +27,9 @@ import {
     Increase,
     HydratedMove,
     Move,
-    Pass
+    Pass,
+    ChooseScoringIsland,
+    PlaceScoringBid
 } from '@tabletop/kaivai'
 import {
     axialCoordinatesToNumber,
@@ -403,6 +405,21 @@ export class KaivaiGameSession extends GameSession {
 
     createSacrificeAction(): Pass {
         return { ...this.createBaseAction(ActionType.Sacrifice) } as Pass
+    }
+
+    createChooseScoringIslandAction(islandId: string): ChooseScoringIsland {
+        return {
+            ...(this.createBaseAction(ActionType.ChooseScoringIsland) as ChooseScoringIsland),
+            islandId
+        }
+    }
+
+    createPlaceScoringBidAction(bid: number): PlaceScoringBid {
+        return {
+            ...this.createBaseAction(ActionType.PlaceScoringBid),
+            amount: bid,
+            simultaneousGroupId: `bid-${this.gameState.chosenIsland}`
+        } as PlaceScoringBid
     }
 
     override shouldAutoStepAction(_action: GameAction) {

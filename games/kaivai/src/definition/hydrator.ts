@@ -17,6 +17,13 @@ import { HydratedIncrease, isIncrease } from '../actions/increase.js'
 import { HydratedMove, isMove } from '../actions/move.js'
 import { HydratedLoseValue, isLoseValue } from '../actions/loseValue.js'
 import { HydratedSacrifice, isSacrifice } from '../actions/sacrifice.js'
+import { HydratedScoreHuts, isScoreHuts } from '../actions/scoreHuts.js'
+import {
+    HydratedChooseScoringIsland,
+    isChooseScoringIsland
+} from '../actions/chooseScoringIsland.js'
+import { HydratedPlaceScoringBid, isPlaceScoringBid } from '../actions/placeScoringBid.js'
+import { HydratedScoreIsland, isScoreIsland } from '../actions/scoreIsland.js'
 
 export class KaivaiHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -53,6 +60,18 @@ export class KaivaiHydrator implements GameHydrator {
             }
             case isSacrifice(data): {
                 return new HydratedSacrifice(data)
+            }
+            case isScoreHuts(data): {
+                return new HydratedScoreHuts(data)
+            }
+            case isChooseScoringIsland(data): {
+                return new HydratedChooseScoringIsland(data)
+            }
+            case isPlaceScoringBid(data): {
+                return new HydratedPlaceScoringBid(data)
+            }
+            case isScoreIsland(data): {
+                return new HydratedScoreIsland(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

@@ -286,6 +286,18 @@ export class HydratedKaivaiGameBoard
         }, 0)
     }
 
+    playerInfluenceOnIsland(playerId: string, islandId: string) {
+        const island = this.islands[islandId]
+        if (!island) {
+            return 0
+        }
+
+        const huts = this.numHutsOnIsland(islandId, playerId)
+        const boats = this.numBoatsAtIslandCultSites(islandId, playerId)
+
+        return huts + boats
+    }
+
     get grid(): Grid<Hex> {
         if (!this.internalGrid) {
             const DefaultHex = defineHex({ orientation: Orientation.FLAT })

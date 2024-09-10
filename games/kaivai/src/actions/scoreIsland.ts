@@ -37,7 +37,7 @@ export const ScoreIsland = Type.Composite([
 export const ScoreIslandValidator = TypeCompiler.Compile(ScoreIsland)
 
 export function isScoreIsland(action?: GameAction): action is ScoreIsland {
-    return action?.type === ActionType.ScoreHuts
+    return action?.type === ActionType.ScoreIsland
 }
 
 export class HydratedScoreIsland
@@ -85,7 +85,7 @@ export class HydratedScoreIsland
 
         if (winners.length === 1) {
             const actualWinner = state.getPlayerState(winners[0])
-            actualWinner.score = state.board.numCultSitesOnIsland(island.id)
+            actualWinner.score += state.board.numCultSitesOnIsland(island.id)
 
             // Only winner loses their bid in 1st edition
             if (config.ruleset === Ruleset.FirstEdition) {
@@ -95,9 +95,9 @@ export class HydratedScoreIsland
 
         // Everyone loses their bids in 2nd edition
         if (config.ruleset === Ruleset.SecondEdition) {
-            for (const playerId of winners) {
+            for (const playerId of Object.keys(state.bids)) {
                 const playerState = state.getPlayerState(playerId)
-                playerState.influence -= playerMajorities[playerId].influence
+                playerState.influence -= state.bids[playerId] ?? 0
             }
         }
 

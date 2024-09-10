@@ -3,5 +3,6 @@ export enum PhaseName {
     InitialHuts = 'InitialHuts',
     MoveGod = 'MoveGod',
     TakingActions = 'TakingActions',
-    LosingValue = 'LosingValue'
+    LosingValue = 'LosingValue',
+    FinalScoring = 'FinalScoring'
 }

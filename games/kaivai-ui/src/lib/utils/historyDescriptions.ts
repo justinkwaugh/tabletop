@@ -10,7 +10,10 @@ import {
     isPlaceBid,
     isLoseValue,
     isIncrease,
-    isSacrifice
+    isSacrifice,
+    isChooseScoringIsland,
+    isScoreHuts,
+    isScoreIsland
 } from '@tabletop/kaivai'
 
 export function getHistoryDescriptionForAction(action?: GameAction) {
@@ -59,6 +62,19 @@ export function getHistoryDescriptionForAction(action?: GameAction) {
         }
         case isSacrifice(action): {
             return 'sacrificed all of their actions to gain 2 influence'
+        }
+        case isChooseScoringIsland(action): {
+            if (action.playerId) {
+                return 'chose an island to score'
+            } else {
+                return 'The last island is being scored'
+            }
+        }
+        case isScoreHuts(action): {
+            return 'Huts were scored'
+        }
+        case isScoreIsland(action): {
+            return 'An island was scored'
         }
         default:
             return action.type

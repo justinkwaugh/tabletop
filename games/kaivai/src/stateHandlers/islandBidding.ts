@@ -10,7 +10,7 @@ import { HydratedPlaceScoringBid, isPlaceScoringBid } from '../actions/placeScor
 import { MachineState } from '../definition/states.js'
 import { nanoid } from 'nanoid'
 import { ActionType } from '../definition/actions.js'
-import { ScoreIsland } from 'src/actions/scoreIsland.js'
+import { ScoreIsland } from '../actions/scoreIsland.js'
 
 // Transition from IslandBidding(PlaceBid) -> IslandBidding | FinalScoring
 export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPlaceScoringBid> {
@@ -36,7 +36,12 @@ export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPl
         return gameState.bidders.includes(playerId) ? [ActionType.PlaceScoringBid] : []
     }
 
-    enter(_context: MachineContext) {}
+    enter(context: MachineContext) {
+        const gameState = context.gameState as HydratedKaivaiGameState
+        if (Object.keys(gameState.bids).length === 0) {
+            gameState.activePlayerIds = gameState.bidders
+        }
+    }
 
     onAction(action: HydratedPlaceScoringBid, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedKaivaiGameState

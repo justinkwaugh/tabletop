@@ -2,7 +2,7 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { Fish, isFish, isPass } from '@tabletop/kaivai'
+    import { ActionType, Fish, isFish, isPass } from '@tabletop/kaivai'
     import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
@@ -27,6 +27,7 @@
         }
 
         const reversed = actions
+            .filter((action) => action.type !== ActionType.PlaceScoringBid)
             .toReversed()
             .toSorted(
                 (a, b) =>
@@ -76,6 +77,8 @@
         <Timeline class="ms-1 dark:border-[#cabb7a]">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
                 <TimelineItem
+                    classTime="dark:text-[#8d794d]"
+                    classLi="mb-5 text-left"
                     classDiv="dark:bg-[#cabb7a] border-[#cabb7a]"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >

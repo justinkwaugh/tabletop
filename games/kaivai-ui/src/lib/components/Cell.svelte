@@ -95,7 +95,8 @@
             case ActionType.Deliver:
             case ActionType.Move:
             case ActionType.Celebrate:
-            case ActionType.MoveGod: {
+            case ActionType.MoveGod:
+            case ActionType.ChooseScoringIsland: {
                 return true
             }
             default:
@@ -129,6 +130,8 @@
             return isInteractableForCelebrate()
         } else if (gameSession.chosenAction === ActionType.MoveGod) {
             return isInteractableForMoveGod()
+        } else if (gameSession.chosenAction === ActionType.ChooseScoringIsland) {
+            return isInteractableForChooseScoringIsland()
         }
         return false
     })
@@ -216,13 +219,27 @@
         return valid
     }
 
+    function isInteractableForChooseScoringIsland(): boolean {
+        if (!isIslandCell(cell)) {
+            return false
+        }
+        return gameSession.gameState.islandsToScore.includes(cell?.islandId)
+    }
+
     let disabled = $derived.by(() => {
+        const state = gameSession.gameState
         if (gameSession.highlightedHexes.size > 0) {
             if (!gameSession.highlightedHexes.has(axialCoordinatesToNumber(hex))) {
                 return true
             } else {
                 return false
             }
+        }
+
+        if (state.machineState === MachineState.IslandBidding && state.chosenIsland !== undefined) {
+            return !state.board.islands[state.chosenIsland].coordList.find((c) =>
+                sameCoordinates(c, hex)
+            )
         }
         return interacting && !interactable
     })
@@ -279,6 +296,15 @@
 
     async function moveGod() {
         const action = gameSession.createMoveGodAction({ q: hex.q, r: hex.r })
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
+
+    async function chooseScoringIsland() {
+        if (!isIslandCell(cell)) {
+            return
+        }
+        const action = gameSession.createChooseScoringIslandAction(cell.islandId)
         gameSession.applyAction(action)
         gameSession.resetAction()
     }
@@ -360,6 +386,9 @@
             return
         } else if (gameSession.chosenAction === ActionType.MoveGod) {
             await moveGod()
+            return
+        } else if (gameSession.chosenAction === ActionType.ChooseScoringIsland) {
+            await chooseScoringIsland()
             return
         }
     }

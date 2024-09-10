@@ -9,7 +9,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { HydratedLoseValue, isLoseValue } from '../actions/loseValue.js'
-import { ScoreHuts } from 'src/actions/scoreHuts.js'
+import { ScoreHuts } from '../actions/scoreHuts.js'
 import { nanoid } from 'nanoid'
 
 // Transition from LosingValue(LoseValue) -> Bidding

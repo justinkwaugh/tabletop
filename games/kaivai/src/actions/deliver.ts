@@ -99,18 +99,16 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
                 throw Error('Invalid delivery location')
             }
 
-            cell.fish += delivery.amount
-            playerState.removeFish(delivery.amount)
-
             if (cell.owner !== this.playerId) {
-                playerState.shells[4] += 1
-                if (delivery.amount > 1) {
-                    playerState.shells[3] += 1
-                }
-                if (delivery.amount > 2) {
-                    playerState.shells[2] += 1
+                let valueIndex = 4 - cell.fish
+                for (let i = 0; i < delivery.amount; i++) {
+                    playerState.shells[valueIndex] += 1
+                    valueIndex--
                 }
             }
+
+            cell.fish += delivery.amount
+            playerState.removeFish(delivery.amount)
         }
     }
 

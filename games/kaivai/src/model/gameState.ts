@@ -95,4 +95,31 @@ export class HydratedKaivaiGameState
         }
         return player
     }
+
+    playersOrderedByAscendingWealth(): string[] {
+        return this.players
+            .sort((a, b) => {
+                if (a.score !== b.score) {
+                    return a.score - b.score
+                }
+                if (a.money() !== b.money()) {
+                    return a.money() - b.money()
+                }
+                if (a.numFish() !== b.numFish()) {
+                    return a.numFish() - b.numFish()
+                }
+                if (
+                    Object.values(a.boatLocations).length !== Object.values(b.boatLocations).length
+                ) {
+                    return (
+                        Object.values(a.boatLocations).length -
+                        Object.values(b.boatLocations).length
+                    )
+                }
+
+                // Need to piece limit and track huts
+                return 0
+            })
+            .map((player) => player.playerId)
+    }
 }

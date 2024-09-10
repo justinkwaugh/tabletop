@@ -1,10 +1,12 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import { ActionType, HutType, MachineState } from '@tabletop/kaivai'
+    import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import DeliverySelection from './DeliverySelection.svelte'
+    import PlayerName from './PlayerName.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
+    let bidValue = $state(0)
     let showCancel = $derived.by(() => {
         if (gameSession.chosenHutType || gameSession.chosenBoatLocation || gameSession.chosenBoat) {
             return true
@@ -112,6 +114,14 @@
                 } else {
                     return 'Move the Fisherman God'
                 }
+            case ActionType.ChooseScoringIsland: {
+                return 'Choose an island to score'
+            }
+            case ActionType.PlaceScoringBid: {
+                const verb =
+                    gameSession.game.config.ruleset === Ruleset.FirstEdition ? 'bid' : 'spend'
+                return `How much influence do you want to ${verb}?`
+            }
             default:
                 return ''
         }
@@ -161,6 +171,31 @@
         gameSession.applyAction(action)
         gameSession.resetAction()
     }
+
+    function incrementBid() {
+        bidValue = Math.min(bidValue + 1, gameSession.myPlayerState?.influence ?? 0)
+    }
+
+    function decrementBid() {
+        bidValue = Math.max(bidValue - 1, 0)
+    }
+
+    function getIslandInfluence(playerId: string) {
+        let influence = gameSession.gameState.board.playerInfluenceOnIsland(
+            playerId,
+            gameSession.gameState.chosenIsland ?? '?'
+        )
+        if (playerId === gameSession.myPlayer?.id) {
+            influence += bidValue
+        }
+        return influence
+    }
+
+    async function placeScoringBid() {
+        const action = gameSession.createPlaceScoringBidAction(bidValue)
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
 </script>
 
 <div
@@ -170,6 +205,45 @@
         <h1 class="text-xl uppercase text-[#372b0a] kaivai-font">
             {instructions}
         </h1>
+        {#if gameSession.chosenAction === ActionType.PlaceScoringBid}
+            <div class="mt-2 flex flex-row justify-center items-center gap-8">
+                <div
+                    class="p-2 flex flex-col justify-center items-center rounded-lg border-2 border-[#634a11]"
+                >
+                    <h1 class="text-lg kaivai-font uppercase">Majorities</h1>
+                    <div class="flex flex-col justify-center items-start">
+                        {#each gameSession.gameState.players as player}
+                            <div class="flex flex-row justify-between items-center w-full">
+                                <div class="mr-8">
+                                    <PlayerName playerId={player.playerId} />
+                                </div>
+                                <div>
+                                    {getIslandInfluence(player.playerId)}
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+                <div class="flex flex-col justify-center items-center">
+                    <div class="flex flex-row justify-center items-center mt-2 mb-3 text-white">
+                        <button
+                            class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px] bg-[#634a11]"
+                            onclick={decrementBid}><h1 class="text-2xl">-</h1></button
+                        >
+                        <h1 class="w-[50px] text-4xl text-[#372b0a]">{bidValue}</h1>
+                        <button
+                            class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px] bg-[#634a11]"
+                            onclick={incrementBid}><h1 class="text-2xl">+</h1></button
+                        >
+                    </div>
+                    <button
+                        onclick={() => placeScoringBid()}
+                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
+                        >Submit</button
+                    >
+                </div>
+            </div>
+        {/if}
         {#if gameSession.chosenAction === ActionType.Build && ((gameSession.chosenBoat && gameSession.chosenBoatLocation) || gameSession.gameState.machineState === MachineState.InitialHuts)}
             <div class="flex flex-row justify-center items-center space-x-2">
                 {#if canChooseHutType(HutType.Meeting) || gameSession.chosenHutType === HutType.Meeting}
