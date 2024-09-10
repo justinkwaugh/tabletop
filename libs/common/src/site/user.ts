@@ -4,7 +4,8 @@ import { PlayerColor } from '../game/model/playerColors.js'
 export enum Role {
     User = 'user',
     Developer = 'developer',
-    Admin = 'admin'
+    Admin = 'admin',
+    BetaTester = 'betatester'
 }
 
 export enum UserStatus {

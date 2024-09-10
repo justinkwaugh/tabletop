@@ -2,7 +2,7 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { ActionType, isFish, isScoreIsland } from '@tabletop/kaivai'
+    import { ActionType, isFish, isScoreHuts, isScoreIsland } from '@tabletop/kaivai'
     import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
@@ -12,7 +12,8 @@
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
     import PlayerName from './PlayerName.svelte'
     import FishingResults from './FishingResults.svelte'
-    import ScoringResults from './ScoringResults.svelte'
+    import IslandScoringResults from './IslandScoringResults.svelte'
+    import HutScoringResults from './HutScoringResults.svelte'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -99,7 +100,10 @@
                                 <FishingResults {action} />
                             {/if}
                             {#if isScoreIsland(action)}
-                                <ScoringResults {action} />
+                                <IslandScoringResults {action} />
+                            {/if}
+                            {#if isScoreHuts(action)}
+                                <HutScoringResults {action} />
                             {/if}
                         </p>
                     </TimelineItem>

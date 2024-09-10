@@ -5,4 +5,5 @@ export interface GameMetadata {
     minPlayers: number
     maxPlayers: number
     defaultPlayerCount: number
+    beta: boolean
 }

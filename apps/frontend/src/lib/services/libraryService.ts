@@ -2,6 +2,8 @@ import { FreshFishUiDefinition } from '@tabletop/fresh-fish-ui'
 import { BridgesUiDefinition } from '@tabletop/bridges-of-shangri-la-ui'
 import { KaivaiUiDefinition } from '@tabletop/kaivai-ui'
 import { type GameUiDefinition } from '@tabletop/frontend-components'
+import type { AuthorizationService } from './authorizationService.svelte'
+import { Role } from '@tabletop/common'
 
 export class LibraryService {
     private readonly titles = new Map<string, GameUiDefinition>([
@@ -10,8 +12,15 @@ export class LibraryService {
         [KaivaiUiDefinition.id, KaivaiUiDefinition]
     ])
 
+    constructor(private readonly authorizationService: AuthorizationService) {}
+
     getTitles(): GameUiDefinition[] {
-        return Array.from(this.titles.values())
+        const user = this.authorizationService.getSessionUser()
+        return Array.from(this.titles.values()).filter(
+            (title) =>
+                !title.metadata.beta ||
+                (user && (user.roles.includes(Role.Admin) || user?.roles.includes(Role.BetaTester)))
+        )
     }
 
     getTitle(id: string): GameUiDefinition | undefined {

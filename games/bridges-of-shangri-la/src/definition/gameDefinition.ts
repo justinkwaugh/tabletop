@@ -14,7 +14,8 @@ export const BridgesDefinition = <GameDefinition>{
         year: '2003',
         minPlayers: 3,
         maxPlayers: 4,
-        defaultPlayerCount: 3
+        defaultPlayerCount: 3,
+        beta: false
     },
 
     initializer: new BridgesGameInitializer(),

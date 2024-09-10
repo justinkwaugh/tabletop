@@ -17,8 +17,9 @@ export type AppContext = {
 }
 
 const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, PUBLIC_VERSION)
-const libraryService = new LibraryService()
 const authorizationService = new AuthorizationService(api)
+const libraryService = new LibraryService(authorizationService)
+
 const visibilityService = new VisibilityService()
 const realtimeConnection = new AblyConnection(api)
 // this.realtimeConnection = new SseConnection({ api })

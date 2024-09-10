@@ -1,11 +1,12 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import { isFish, isScoreIsland } from '@tabletop/kaivai'
+    import { isFish, isScoreHuts, isScoreIsland } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
     import FishingResults from './FishingResults.svelte'
     import PlayerName from './PlayerName.svelte'
-    import ScoringResults from './ScoringResults.svelte'
+    import IslandScoringResults from './IslandScoringResults.svelte'
+    import HutScoringResults from './HutScoringResults.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -30,7 +31,10 @@
                 <FishingResults action={lastAction} />
             {/if}
             {#if isScoreIsland(lastAction)}
-                <ScoringResults action={lastAction} />
+                <IslandScoringResults action={lastAction} />
+            {/if}
+            {#if isScoreHuts(lastAction)}
+                <HutScoringResults action={lastAction} />
             {/if}
         </h1>
     </div>

@@ -8,5 +8,5 @@ export const KaivaiUiDefinition: GameUiDefinition = Object.assign({}, KaivaiDefi
     },
     sessionClass: KaivaiGameSession,
     thumbnailUrl:
-        'https://cf.geekdo-images.com/3Pq36HH-IdFQdMb3OHOVdA__itemrep/img/qHKBb4oW3LIg6E0uZRaw8qz8LxQ=/fit-in/246x300/filters:strip_icc()/pic265554.jpg'
+        'https://cf.geekdo-images.com/9kuCa24rLmMxptabkzui0Q__imagepagezoom/img/E6pBLrKogJh247-SLuFMuestVCQ=/fit-in/1200x900/filters:no_upscale():strip_icc()/pic751269.jpg'
 })

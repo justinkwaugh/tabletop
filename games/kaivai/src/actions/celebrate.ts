@@ -12,7 +12,12 @@ export const Celebrate = Type.Composite([
     Type.Object({
         type: Type.Literal(ActionType.Celebrate),
         playerId: Type.String(),
-        islandId: Type.String()
+        islandId: Type.String(),
+        metadata: Type.Optional(
+            Type.Object({
+                scores: Type.Record(Type.String(), Type.Number())
+            })
+        )
     })
 ])
 
@@ -60,8 +65,10 @@ export class HydratedCelebrate extends HydratableAction<typeof Celebrate> implem
         const totalFish = celebratableCells.reduce((acc, cell) => acc + cell.fish, 0)
         const bonusFish = Math.floor(totalFish / 3)
 
+        const metadata: { scores: Record<string, number> } = { scores: {} }
         for (const cell of celebratableCells) {
             const ownerState = state.getPlayerState(cell.owner)
+            metadata.scores[cell.owner] = cell.fish
             ownerState.score += cell.fish
             cell.fish = 0
         }

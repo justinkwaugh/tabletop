@@ -15,7 +15,8 @@ export const FreshFishDefinition = <GameDefinition>{
         year: '1997',
         minPlayers: 2,
         maxPlayers: 5,
-        defaultPlayerCount: 4
+        defaultPlayerCount: 4,
+        beta: false
     },
 
     initializer: new FreshFishGameInitializer(),

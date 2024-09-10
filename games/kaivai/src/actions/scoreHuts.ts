@@ -41,7 +41,7 @@ export class HydratedScoreHuts extends HydratableAction<typeof ScoreHuts> implem
 
     apply(state: HydratedKaivaiGameState) {
         this.metadata = { scores: {} }
-        // easier once tracking hut pieces
+
         for (const player of state.players) {
             const numHuts = state.board.numHutsForPlayer(player.playerId)
             this.metadata.scores[player.playerId] = { numHuts, score: numHuts * 2 }
