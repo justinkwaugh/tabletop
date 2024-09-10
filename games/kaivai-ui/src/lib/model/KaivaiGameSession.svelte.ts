@@ -422,7 +422,7 @@ export class KaivaiGameSession extends GameSession {
         } as PlaceScoringBid
     }
 
-    override shouldAutoStepAction(_action: GameAction) {
-        return false
+    override shouldAutoStepAction(action: GameAction) {
+        return action.type === ActionType.PlaceScoringBid
     }
 }

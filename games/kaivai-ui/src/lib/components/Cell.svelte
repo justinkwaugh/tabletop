@@ -20,7 +20,9 @@
         isBuild,
         isCelebrate,
         isMoveGod,
-        isMove
+        isMove,
+        isScoreIsland,
+        isChooseScoringIsland
     } from '@tabletop/kaivai'
     import { uiColorForPlayer } from '$lib/utils/playerColors'
     import { GameSessionMode } from '@tabletop/frontend-components'
@@ -254,7 +256,7 @@
                         !sameCoordinates(hex, action.boatCoords)
                     )
 
-                case isCelebrate(action):
+                case isCelebrate(action) || isScoreIsland(action) || isChooseScoringIsland(action):
                     return !isIslandCell(cell) || cell.islandId !== action.islandId
 
                 case isMoveGod(action):
@@ -482,7 +484,10 @@
         }
         if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
             const action = gameSession.actions[gameSession.currentHistoryIndex]
-            return isCelebrate(action) && cell.islandId === action.islandId
+            return (
+                (isCelebrate(action) || isChooseScoringIsland(action) || isScoreIsland(action)) &&
+                cell.islandId === action.islandId
+            )
         }
 
         if (gameSession.chosenAction === ActionType.Celebrate) {
