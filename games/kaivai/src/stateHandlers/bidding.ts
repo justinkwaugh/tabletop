@@ -26,13 +26,45 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
             gameState.rounds.startRound(gameState.actionCount + 1)
         }
 
+        let nextPlayerId
         if (!gameState.phases.currentPhase) {
             gameState.bids = {}
             gameState.phases.startPhase(PhaseName.Bidding, gameState.actionCount)
+            // Set turn order for bidding.. lowest score, money, fish, boats, huts
+            gameState.turnManager.turnOrder = this.calculateBiddingTurnOrder(gameState)
+            nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
+        } else {
+            nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
         }
 
-        const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
         gameState.activePlayerIds = [nextPlayerId]
+    }
+
+    private calculateBiddingTurnOrder(state: HydratedKaivaiGameState): string[] {
+        return state.players
+            .sort((a, b) => {
+                if (a.score !== b.score) {
+                    return b.score - a.score
+                }
+                if (a.money() !== b.money()) {
+                    return b.money() - a.money()
+                }
+                if (a.numFish() !== b.numFish()) {
+                    return b.numFish() - a.numFish()
+                }
+                if (
+                    Object.values(a.boatLocations).length !== Object.values(b.boatLocations).length
+                ) {
+                    return (
+                        Object.values(b.boatLocations).length -
+                        Object.values(a.boatLocations).length
+                    )
+                }
+
+                // Need to piece limit and track huts
+                return 0
+            })
+            .map((player) => player.playerId)
     }
 
     onAction(action: HydratedPlaceBid, context: MachineContext): MachineState {

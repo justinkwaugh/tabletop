@@ -64,9 +64,13 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             winningPlayerIds: [],
             board,
             influence: {},
+            bidders: [],
             bids: {},
             cultTiles: game.config.ruleset === Ruleset.FirstEdition ? 10 : 8,
-            passedPlayers: []
+            passedPlayers: [],
+            hutsScored: false,
+            islandsToScore: [],
+            chosenIsland: undefined
         })
 
         return state
@@ -76,6 +80,8 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         const colors = structuredClone(KaivaiPlayerColors)
 
         shuffle(colors, random)
+
+        const config = game.config as KaivaiGameConfig
 
         const players = game.players.map((player: Player, index: number) => {
             return {
@@ -92,7 +98,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 fishermen: 6,
                 movementModiferPosition: 0,
                 shells: [0, 0, 0, 0, 3], // 3 five-value shells
-                fish: [0, 0, 0, 3, 0], // 3 four-value fish
+                fish: config.ruleset === Ruleset.FirstEdition ? [0, 0, 0, 0, 3] : [0, 0, 0, 3, 0],
                 influence: 3,
                 score: 0,
                 buildingCost: 0,

@@ -9,5 +9,9 @@ export enum ActionType {
     Move = 'Move',
     LoseValue = 'LoseValue',
     Sacrifice = 'Sacrifice',
-    Pass = 'pass'
+    Pass = 'Pass',
+    ScoreHuts = 'ScoreHuts',
+    ChooseScoringIsland = 'ChooseScoringIsland',
+    PlaceScoringBid = 'PlaceScoringBid',
+    ScoreIsland = 'ScoreIsland'
 }

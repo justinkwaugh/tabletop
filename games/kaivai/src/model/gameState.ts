@@ -26,12 +26,16 @@ export const KaivaiGameState = Type.Composite([
         phases: PhaseManager,
         board: KaivaiGameBoard,
         influence: Type.Record(Type.String(), Type.Number()),
+        bidders: Type.Array(Type.String()),
         bids: Type.Record(Type.String(), Type.Number()),
         cultTiles: Type.Number(),
         godCoords: Type.Optional(
             Type.Object({ coords: AxialCoordinates, islandId: Type.String() })
         ),
-        passedPlayers: Type.Array(Type.String())
+        passedPlayers: Type.Array(Type.String()),
+        hutsScored: Type.Boolean(),
+        islandsToScore: Type.Array(Type.String()),
+        chosenIsland: Type.Optional(Type.String())
     })
 ])
 
@@ -64,10 +68,14 @@ export class HydratedKaivaiGameState
     declare winningPlayerIds: string[]
     declare board: HydratedKaivaiGameBoard
     declare influence: Record<string, number>
+    declare bidders: string[]
     declare bids: Record<string, number>
     declare cultTiles: number
     declare godLocation?: { coords: AxialCoordinates; islandId: string }
     declare passedPlayers: string[]
+    declare hutsScored: boolean
+    declare islandsToScore: string[]
+    declare chosenIsland?: string
 
     constructor(data: KaivaiGameState) {
         const hydratedProperties: HydratedProperties = {

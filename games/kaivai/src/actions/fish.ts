@@ -98,7 +98,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
 
         const neighboringIslandIds = state.board.getNeighboringIslands(this.boatCoords)
         const fishingData: IslandFishingData[] = neighboringIslandIds.map((islandId) => {
-            const numHuts = state.board.numHutsOnIsland(islandId, HutType.Fishing, this.playerId)
+            const numHuts = state.board.numHutsOnIsland(islandId, this.playerId, HutType.Fishing)
             const hasGod = state.godLocation?.islandId === islandId
             return { islandId, numHuts, hasGod }
         })
@@ -129,7 +129,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
                 return currentTotal > bestTotal ? current : best
             })
             const numDice = bestIsland.numHuts + (bestIsland.hasGod ? 1 : 0)
-            const dieResults = this.rollDice(Math.max(numDice, 4), prng)
+            const dieResults = this.rollDice(numDice, prng)
 
             numFish = dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0)
             this.metadata = {
@@ -185,6 +185,14 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
             results.push(prng.randInt(6) < 2)
         }
 
+        if (numDice > 4) {
+            results.push(prng.randInt(6) < 2)
+        }
+
+        if (numDice > 5) {
+            results.push(prng.randInt(6) < 2)
+        }
+
         return results
     }
 
@@ -209,7 +217,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         if (
             !neighboringIslands.some(
                 (islandId) =>
-                    board.numHutsOnIsland(islandId, HutType.Fishing, playerId) > 0 ||
+                    board.numHutsOnIsland(islandId, playerId, HutType.Fishing) > 0 ||
                     state.godLocation?.islandId === islandId
             )
         ) {

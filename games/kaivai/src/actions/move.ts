@@ -96,6 +96,10 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
         playerState: HydratedKaivaiPlayerState
         boatId: string
     }): boolean {
+        if (playerState.movement() === 0) {
+            return false
+        }
+
         const validLocations = HydratedMove.validBoatLocations({
             gameState,
             playerState,

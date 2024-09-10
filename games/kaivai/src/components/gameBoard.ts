@@ -6,8 +6,10 @@ import {
     BoatBuildingCell,
     Cell,
     CellType,
+    isBoatBuildingCell,
     isBoatCell,
     isCelebratableCell,
+    isCultCell,
     isDeliverableCell,
     isIslandCell,
     isPlayerCell,
@@ -209,7 +211,7 @@ export class HydratedKaivaiGameBoard
         }
     }
 
-    numHutsOnIsland(islandId: string, hutType: HutType, playerId: string) {
+    numHutsOnIsland(islandId: string, playerId: string, hutType?: HutType) {
         const island = this.islands[islandId]
         if (!island) {
             return 0
@@ -217,7 +219,67 @@ export class HydratedKaivaiGameBoard
 
         return island.coordList.reduce((acc, coords) => {
             const cell = this.getCellAt(coords)
-            if (isPlayerCell(cell) && cell.hutType === hutType && cell.owner === playerId) {
+            if (
+                isPlayerCell(cell) &&
+                (!hutType || cell.hutType === hutType) &&
+                cell.owner === playerId
+            ) {
+                acc++
+            }
+            return acc
+        }, 0)
+    }
+
+    numCultSitesOnIsland(islandId: string) {
+        const island = this.islands[islandId]
+        if (!island) {
+            return 0
+        }
+
+        return island.coordList.reduce((acc, coords) => {
+            const cell = this.getCellAt(coords)
+            if (isCultCell(cell)) {
+                acc++
+            }
+            return acc
+        }, 0)
+    }
+
+    numBoatsAtIslandCultSites(islandId: string, playerId: string) {
+        const island = this.islands[islandId]
+        if (!island) {
+            return 0
+        }
+
+        const seenBoats = new Set<string>()
+
+        return island.coordList.reduce((acc, coords) => {
+            const cell = this.getCellAt(coords)
+            if (!isCultCell(cell)) {
+                return acc
+            }
+
+            for (const neighbor of this.getNeighbors(coords)) {
+                const neighborCell = this.getCellAt(neighbor)
+                if (
+                    isBoatCell(neighborCell) &&
+                    !isBoatBuildingCell(cell) &&
+                    neighborCell.boat &&
+                    neighborCell.boat.owner === playerId &&
+                    !seenBoats.has(neighborCell.boat.id)
+                ) {
+                    seenBoats.add(neighborCell.boat.id)
+                    acc++
+                }
+            }
+
+            return acc
+        }, 0)
+    }
+
+    numHutsForPlayer(playerId: string) {
+        return Object.values(this.cells).reduce((acc, cell) => {
+            if (isPlayerCell(cell) && cell.owner === playerId) {
                 acc++
             }
             return acc

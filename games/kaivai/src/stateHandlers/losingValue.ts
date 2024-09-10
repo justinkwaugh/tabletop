@@ -1,9 +1,16 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    ActionSource,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { HydratedLoseValue, isLoseValue } from '../actions/loseValue.js'
+import { ScoreHuts } from 'src/actions/scoreHuts.js'
+import { nanoid } from 'nanoid'
 
 // Transition from LosingValue(LoseValue) -> Bidding
 export class LosingValueStateHandler implements MachineStateHandler<HydratedLoseValue> {
@@ -31,7 +38,15 @@ export class LosingValueStateHandler implements MachineStateHandler<HydratedLose
                 gameState.rounds.endRound(gameState.actionCount)
 
                 if (gameState.cultTiles === 0) {
-                    return MachineState.EndOfGame
+                    const scoreHutsAction: ScoreHuts = {
+                        type: ActionType.ScoreHuts,
+                        id: nanoid(),
+                        gameId: action.gameId,
+                        source: ActionSource.System
+                    }
+
+                    context.addPendingAction(scoreHutsAction)
+                    return MachineState.FinalScoring
                 } else {
                     return MachineState.Bidding
                 }

@@ -61,6 +61,10 @@ export const BoatBuildingCell = Type.Object({
     fish: Type.Number()
 })
 
+export function isCultCell(cell?: Cell): cell is CultCell {
+    return cell?.type === CellType.Cult
+}
+
 export function isMeetingCell(cell?: Cell): cell is MeetingCell {
     return cell?.type === CellType.Meeting
 }
