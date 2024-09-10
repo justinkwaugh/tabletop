@@ -51,35 +51,8 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
             return
         }
 
-        const nextPlayerId = this.calculateNextPlayer(gameState)
+        const nextPlayerId = gameState.playersOrderedByAscendingWealth()[0]
         gameState.activePlayerIds = [nextPlayerId]
-    }
-
-    private calculateNextPlayer(state: HydratedKaivaiGameState): string {
-        return state.players
-            .sort((a, b) => {
-                if (a.score !== b.score) {
-                    return a.score - b.score
-                }
-                if (a.money() !== b.money()) {
-                    return a.money() - b.money()
-                }
-                if (a.numFish() !== b.numFish()) {
-                    return a.numFish() - b.numFish()
-                }
-                if (
-                    Object.values(a.boatLocations).length !== Object.values(b.boatLocations).length
-                ) {
-                    return (
-                        Object.values(a.boatLocations).length -
-                        Object.values(b.boatLocations).length
-                    )
-                }
-
-                // Need to piece limit and track huts
-                return 0
-            })
-            .map((player) => player.playerId)[0]
     }
 
     onAction(action: FinalScoringAction, context: MachineContext): MachineState {

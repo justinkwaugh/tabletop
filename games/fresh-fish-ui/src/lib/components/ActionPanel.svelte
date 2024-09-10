@@ -129,7 +129,7 @@
             {#if gameSession.chosenAction === ActionType.PlaceStall}
                 <div class="my-2">
                     <StallTile
-                        playerColor={playerState?.color ?? ''}
+                        playerColor={gameSession.getPlayerColor()}
                         goodsType={gameSession.hydratedState.getChosenStallType()}
                     />
                 </div>
