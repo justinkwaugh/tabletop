@@ -381,17 +381,19 @@
             </Label>
         {/each}
         <!-- <Toggle bind:checked={isPublic}>Public</Toggle> -->
-        <div
-            class="p-4 border-2 border-gray-700 rounded-lg flex flex-col space-y-4 justify-center items-start"
-        >
-            {#each title.configOptions as option (option.id)}
-                {#if isBooleanConfigOption(option)}
-                    {@render booleanOption(option)}
-                {:else if isListConfigOption(option)}
-                    {@render listOption(option)}
-                {/if}
-            {/each}
-        </div>
+        {#if title.configOptions.length > 0}
+            <div
+                class="p-4 border-2 border-gray-700 rounded-lg flex flex-col space-y-4 justify-center items-start"
+            >
+                {#each title.configOptions as option (option.id)}
+                    {#if isBooleanConfigOption(option)}
+                        {@render booleanOption(option)}
+                    {:else if isListConfigOption(option)}
+                        {@render listOption(option)}
+                    {/if}
+                {/each}
+            </div>
+        {/if}
     {/if}
 
     <div class="flex justify-between mt-6">
