@@ -1,9 +1,8 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import type { GameSession } from '$lib/model/gameSession.svelte'
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { UserSolid } from 'flowbite-svelte-icons'
-    import { findLastIndex } from '@tabletop/common'
 
     let {
         enabledColor = 'text-white',
@@ -31,7 +30,22 @@
             gameSession.mode === GameSessionMode.History &&
             myLastAction > gameSession.currentHistoryIndex
     )
+
+    function onKeyDown(event: KeyboardEvent) {
+        event.preventDefault()
+        if (event.key === 'ArrowUp') {
+            gameSession.goToMyNextTurn()
+        } else if (event.key === 'ArrowDown') {
+            gameSession.goToMyPreviousTurn()
+        } else if (event.key === 'ArrowLeft') {
+            gameSession.stepBackward()
+        } else if (event.key === 'ArrowRight') {
+            gameSession.stepForward()
+        }
+    }
 </script>
+
+<svelte:window onkeydown={onKeyDown} />
 
 <div class="flex flex-row justify-between items-center">
     <button

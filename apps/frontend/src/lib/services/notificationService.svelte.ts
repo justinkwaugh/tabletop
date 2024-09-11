@@ -210,7 +210,6 @@ export class NotificationService {
 
     private handleEvent = async (event: RealtimeEvent) => {
         try {
-            console.log('Received notification event', event)
             let notificationEvent
             if (event.type === RealtimeEventType.Data) {
                 if (!event.data) {
@@ -244,7 +243,6 @@ export class NotificationService {
 
             for (const listener of this.listeners) {
                 try {
-                    console.log('Notifying listener')
                     await listener(notificationEvent)
                 } catch (e) {
                     console.error('Error notifying listener', e)

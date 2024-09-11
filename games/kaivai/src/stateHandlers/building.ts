@@ -29,9 +29,7 @@ export class BuildingStateHandler implements MachineStateHandler<BuildingAction>
 
         // Has another boat to build
         for (const boatId of playerState.availableBoats) {
-            console.log('Checking boat', boatId)
             if (HydratedBuild.canBoatBuild({ gameState, playerState, boatId })) {
-                console.log('can build')
                 validActions.push(ActionType.Build)
                 break
             }

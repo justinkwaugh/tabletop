@@ -84,8 +84,6 @@ export class GameService {
 
     async loadGame(id: string): Promise<{ game: Game; actions: GameAction[] }> {
         const { game, actions } = await this.api.getGame(id)
-        console.log('Loaded game:', game)
-        console.log('Loaded actions:', actions)
         if (game) {
             this.gamesById.set(game.id, game)
         }
@@ -173,7 +171,6 @@ export class GameService {
             }
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
             this.loaded = false
-            console.log('Checking for dashboard game updates')
             await this.loadGames()
         }
     }

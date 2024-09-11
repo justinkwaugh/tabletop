@@ -611,9 +611,6 @@ export class GameService {
                     // Lookup and verify the missing actions
                     let missingActions: GameAction[] = []
                     if (indexOffset > 0 && initialIndex) {
-                        console.log(
-                            `Getting missing actions ${initialIndex} to ${initialIndex + indexOffset} for game ${game.id}`
-                        )
                         const startIndex = initialIndex
                         const endIndex = initialIndex + indexOffset
                         missingActions = await this.gameStore.findActionRangeForGame({

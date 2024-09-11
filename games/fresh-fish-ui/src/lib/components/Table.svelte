@@ -17,7 +17,6 @@
 
     function generateABoard(size: number) {
         const seed = generateSeed()
-        console.log('seed:', seed)
         const prng = getPrng(seed)
         generateBoard(size, prng)
     }

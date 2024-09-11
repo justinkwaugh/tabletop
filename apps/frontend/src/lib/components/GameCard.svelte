@@ -106,7 +106,6 @@
 
     async function startGame(event: Event) {
         event.stopPropagation()
-        console.log('Starting game: ', game)
         game = await gameService.startGame(game)
         await goto(`/game/${game.id}`)
         if (onstart) {

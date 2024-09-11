@@ -13,7 +13,6 @@
 
     const runAll = () => {
         for (const callback of functionsToRunOnMount) {
-            console.log('calling callback')
             callback()
         }
 

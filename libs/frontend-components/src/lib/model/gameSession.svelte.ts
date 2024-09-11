@@ -360,7 +360,6 @@ export class GameSession {
                 // If the server says so, that means our action was accepted, and these need to be processed
                 // prior to the action we sent
                 if (missingActions && missingActions.length > 0) {
-                    console.log('got Missing actions', missingActions)
                     // Sort the actions by index to be sure, though the server should have done this
                     // There should never be an index not provided
                     missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
@@ -376,10 +375,8 @@ export class GameSession {
 
                 // Apply the server provided actions
                 if (applyServerActions) {
-                    console.log('Applying server actions', serverActions)
                     for (const action of serverActions) {
                         if (action.source === ActionSource.User) {
-                            console.log('Applying action', action)
                             const actionResults = this.applyActionToGame(action, gameSnapshot)
                             gameSnapshot.state = actionResults.updatedState
                             this.applyActionResults(actionResults)
@@ -419,7 +416,6 @@ export class GameSession {
 
             const targetAction = $state.snapshot(this.undoableAction)
             const targetActionId = targetAction.id
-            console.log('Wanting to undo action', targetActionId)
 
             // Preserve state in case we need to roll back
             const gameSnapshot = $state.snapshot(this.game)
@@ -445,7 +441,6 @@ export class GameSession {
                         // These fields will be re-assigned by the game engine
                         redoAction.index = undefined
                         redoAction.undoPatch = undefined
-                        console.log('Adding redo action', redoAction)
                         redoActions.push(redoAction)
                     }
                     localUndoneActions.push(actionToUndo)
@@ -577,7 +572,6 @@ export class GameSession {
         do {
             this.currentHistoryIndex += 1
             nextAction = $state.snapshot(this.actions[this.currentHistoryIndex]) as GameAction
-            console.log('nextAction', nextAction.type, nextAction.index)
             const { updatedState } = this.engine.run(nextAction, gameSnapshot, RunMode.Single)
             gameSnapshot.state = updatedState
         } while (
@@ -704,7 +698,6 @@ export class GameSession {
     }
 
     private rollbackActions(priorState: GameState) {
-        console.log('rollback actionCount', priorState.actionCount)
         // Reset the state
         this.game.state = priorState
 
@@ -747,7 +740,6 @@ export class GameSession {
         actionResults.processedActions.forEach((action) => {
             this.addAction(action)
         })
-        console.log('Action length now', this.actions.length)
     }
 
     private upsertAction(action: GameAction) {
@@ -792,7 +784,6 @@ export class GameSession {
 
     private tryToResync(serverActions: GameAction[], checksum: number): boolean {
         // Find the latest action that matches
-        console.log('server actions in sync', serverActions)
         const matchedActionIndex = findLastIndex(serverActions, (action) => {
             if (
                 action.index === undefined ||
@@ -806,7 +797,6 @@ export class GameSession {
             return foundAction?.index === action.index
         })
 
-        console.log('matched action index', matchedActionIndex)
         if (serverActions.length > 0 && matchedActionIndex === -1) {
             return false
         }
@@ -821,7 +811,6 @@ export class GameSession {
         if (matchedActionIndex < serverActions.length - 1) {
             const actionsToApply = serverActions.slice(matchedActionIndex + 1)
             for (const action of actionsToApply) {
-                console.log('applying action ', action)
                 const actionResults = this.applyActionToGame(action, snapshot)
                 snapshot.state = actionResults.updatedState
                 this.applyActionResults(actionResults)
@@ -845,7 +834,6 @@ export class GameSession {
 
     private NotificationListener = async (event: NotificationEvent) => {
         if (isDataEvent(event)) {
-            console.log('got data event')
             const notification = event.notification
             try {
                 if (this.isGameAddActionsNotification(notification)) {
@@ -861,7 +849,6 @@ export class GameSession {
             isDiscontinuityEvent(event) &&
             event.channel === NotificationChannel.GameInstance
         ) {
-            console.log('Checking for missing actions')
             await this.checkSync()
         }
     }

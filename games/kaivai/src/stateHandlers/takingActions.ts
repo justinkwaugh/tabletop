@@ -59,8 +59,6 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         // If player has not taken a turn this phase, they could sacrifice instead of pass
 
         const currentPhaseStart = gameState.phases.currentPhase?.start ?? 0
-
-        console.log('Current phase start', currentPhaseStart)
         const passOrSacrifice = gameState.turnManager.hadTurnSinceAction(
             playerId,
             currentPhaseStart
@@ -99,8 +97,6 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             return true
         })
 
-        console.log('Possible actions', actions)
-
         for (const action of actions) {
             switch (action) {
                 case ActionType.Celebrate: {
@@ -119,18 +115,12 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                 case ActionType.Fish:
                 case ActionType.Deliver:
                 case ActionType.Move: {
-                    const playerBoatCoords = Object.values(playerState.boatLocations)
-                    console.log(
-                        'Player has boats at ',
-                        playerBoatCoords.map((coords) => coords.q + ',' + coords.r).join(' ')
-                    )
                     for (const boatId of Object.keys(playerState.boatLocations)) {
                         if (
                             !validActions.includes(ActionType.Build) &&
                             actions.includes(ActionType.Build) &&
                             HydratedBuild.canBoatBuild({ gameState, playerState, boatId })
                         ) {
-                            console.log('can build')
                             validActions.push(ActionType.Build)
                         }
 
@@ -139,7 +129,6 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                             actions.includes(ActionType.Fish) &&
                             HydratedFish.canBoatFish({ gameState, playerState, boatId })
                         ) {
-                            console.log('can fish')
                             validActions.push(ActionType.Fish)
                         }
 
@@ -148,7 +137,6 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                             actions.includes(ActionType.Deliver) &&
                             HydratedDeliver.canBoatDeliver({ gameState, playerState, boatId })
                         ) {
-                            console.log('can deliver')
                             validActions.push(ActionType.Deliver)
                         }
 
@@ -157,7 +145,6 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                             actions.includes(ActionType.Move) &&
                             HydratedMove.canBoatMove({ gameState, playerState, boatId })
                         ) {
-                            console.log('can deliver')
                             validActions.push(ActionType.Move)
                         }
 

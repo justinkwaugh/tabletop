@@ -100,7 +100,6 @@
         } else if (isListConfigOption(option)) {
             config[option.id] = (event.target as HTMLSelectElement).value
         }
-        console.log(JSON.stringify(config))
     }
 
     function updatePlayers(numPlayers: number) {
@@ -172,7 +171,6 @@
         }
 
         try {
-            console.log(`sending data: ${JSON.stringify(gameData)}`)
             let updatedGame: Game
             if (mode === EditMode.Create) {
                 updatedGame = await gameService.createGame(gameData)

@@ -23,26 +23,22 @@ export async function load({ params, url }) {
     } catch (e) {
         if (e instanceof APIError) {
             if (e.name === 'InvitationNotFound') {
-                console.log('invitation was not found toast')
                 onceMounted(() => {
                     toast.error('The invitation was expired or not found')
                 })
                 await goto('/dashboard')
                 return
             } else if (e.name === 'Unauthorized') {
-                console.log('invitation was not authorized')
                 onceMounted(() => {
                     toast.error('The invitation link is not for this user')
                 })
                 await goto('/dashboard')
                 return
             } else if (e.name === 'UserAlreadyJoinedError') {
-                console.log('already joined')
                 // TODO: Goto the game
                 await goto('/dashboard')
                 return
             } else if (e.name === 'UserAlreadyDeclinedError') {
-                console.log('already declined')
                 onceMounted(() => {
                     toast.error('You have already declined the invitation')
                 })

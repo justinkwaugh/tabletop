@@ -32,7 +32,6 @@ export async function load({ params, url }) {
             return
         }
 
-        console.log('Got game:', game)
         return {
             gameSession: new definition.sessionClass({
                 authorizationService: appContext.authorizationService,

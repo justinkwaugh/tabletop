@@ -181,13 +181,13 @@ export class RedisCacheService {
                 ])
 
                 // Set the new value
-                console.log('ulw set', keys, lockData)
+                // console.log('ulw set', keys, lockData)
                 const transaction = isolatedClient.multi().mSet(lockData)
                 for (const key of keys) {
                     transaction.expire(key, LOCK_TIMEOUT)
                 }
                 await transaction.exec()
-                console.log('ulw done', keys)
+                // console.log('ulw done', keys)
             })
         } catch (error) {
             console.log('unable to unlock write lock for keys', keys, error)

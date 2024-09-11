@@ -11,7 +11,6 @@ import {
 } from '@tabletop/common'
 
 const sw = self as unknown as ServiceWorkerGlobalScope
-console.log('Hello from service worker')
 
 sw.addEventListener('activate', async () => {
     // This will be called only once when the service worker is activated.
@@ -27,7 +26,6 @@ sw.addEventListener('push', async (event) => {
         const pushData = pushEvent.data.json() as Notification
         const { title, options } = (await generateLocalNotification(pushData)) || {}
         if (title && options) {
-            console.log('Showing local notification')
             event.waitUntil(sw.registration.showNotification(title, options))
         }
     } catch (e) {
@@ -37,8 +35,6 @@ sw.addEventListener('push', async (event) => {
 
 sw.addEventListener('notificationclick', async (event) => {
     event.preventDefault() // I have heard iOS cares about this
-
-    console.log('On notification click: ', event.notification.tag)
     const gameId = event.notification.tag
 
     event.notification.close()
@@ -50,11 +46,8 @@ async function focusOrOpenWindow(gameId?: string) {
     const windows = await findGameWindows(url)
 
     if (windows.length > 0) {
-        console.log('Num windows: ', windows.length)
-        console.log('Window focus', windows[0].focused, 'visibility', windows[0].visibilityState)
         windows[0].focus()
     } else {
-        console.log('Opening new window', url)
         sw.clients.openWindow(url)
     }
 }
@@ -70,7 +63,6 @@ async function generateLocalNotification(
     let options: NotificationOptions | undefined
 
     if (isUserNotification(notification)) {
-        console.log('User notification', notification)
         if (notification.action === UserNotificationAction.PlayerJoined) {
             title = `Player joined!`
             options = {
@@ -111,7 +103,6 @@ async function generateLocalNotification(
 }
 
 async function findGameWindows(url: string) {
-    console.log('Finding windows for', url)
     const clients = await sw.clients.matchAll({ includeUncontrolled: true, type: 'window' })
     return Array.from(clients).filter((client) => client.url.includes(url))
 }

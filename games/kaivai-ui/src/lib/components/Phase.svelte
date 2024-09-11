@@ -1,6 +1,5 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import { Button } from 'flowbite-svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { MachineState, PhaseName } from '@tabletop/kaivai'
     let gameSession = getContext('gameSession') as KaivaiGameSession
@@ -13,7 +12,7 @@
                 return 'Placing Initial Huts'
 
             case PhaseName.MoveGod:
-                return 'Moving the Fisherman God'
+                return 'Moving the God'
 
             case PhaseName.TakingActions:
                 return 'Taking Actions'
@@ -53,6 +52,10 @@
         gameSession.resetAction()
         const response = await gameSession.undo()
     }
+
+    const playersByScore = $derived.by(() => {
+        return gameSession.gameState.players.sort((a, b) => a.score - b.score)
+    })
 </script>
 
 <div
@@ -84,11 +87,29 @@
             >
         </div>
     </div>
-    {#if gameSession.undoableAction}
-        <button
-            onclick={() => undo()}
-            class="px-2 uppercase bg-transparent border-2 border-white rounded-lg text-white kaivai-font"
-            >Undo</button
-        >
-    {/if}
+
+    <div class="flex">
+        <div class="flex flex-row justify-center items-center gap-1 max-lg:hidden">
+            <h1 class="uppercase text-2xl text-[#f5e397] kaivai-font me-2">Glory</h1>
+            {#each playersByScore as player}
+                <div
+                    class="px-2 flex flex-row justify-center items-center rounded-lg border border-gray-800 {gameSession.getPlayerTextColor(
+                        player.playerId
+                    )} {gameSession.getPlayerBgColor(player.playerId)}"
+                >
+                    <span class="uppercase text-2xl text-nowrap select-none kaivai-font"
+                        >{player.score}</span
+                    >
+                </div>
+            {/each}
+        </div>
+
+        {#if gameSession.undoableAction}
+            <button
+                onclick={() => undo()}
+                class="ms-2 px-2 uppercase bg-transparent border-2 border-white rounded-lg text-white kaivai-font"
+                >Undo</button
+            >
+        {/if}
+    </div>
 </div>

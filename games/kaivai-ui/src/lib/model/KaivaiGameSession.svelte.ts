@@ -231,7 +231,6 @@ export class KaivaiGameSession extends GameSession {
         for (const cell of this.gameState.board.getCelebratableCells()) {
             islandIds.add(cell.islandId)
         }
-        console.log('valid islands', islandIds)
 
         return islandIds
     })

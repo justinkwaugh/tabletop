@@ -358,7 +358,6 @@ export class HydratedGameBoard
                         Direction.South,
                         southLimit
                     )
-                    console.log('NW: East: ', eastCoords, 'South: ', southCoords)
 
                     for (const cornerCoords of [eastCoords, southCoords].filter(
                         (coords) => coords
@@ -375,7 +374,6 @@ export class HydratedGameBoard
                             Direction.West,
                             southLimit
                         )
-                        console.log('NW: ', eastLen, southLen)
                         if (eastLen >= xLen && southLen >= yLen) {
                             xLen = eastLen
                             yLen = southLen
@@ -396,7 +394,7 @@ export class HydratedGameBoard
                         Direction.South,
                         southLimit
                     )
-                    console.log('NE: West: ', westCoords, 'South: ', southCoords)
+
                     for (const cornerCoords of [westCoords, southCoords].filter(
                         (coords) => coords
                     )) {
@@ -412,7 +410,7 @@ export class HydratedGameBoard
                             Direction.East,
                             southLimit
                         )
-                        console.log('NE: ', westLen, southLen)
+
                         if (westLen >= xLen && southLen >= yLen) {
                             xLen = westLen
                             yLen = southLen
@@ -433,7 +431,7 @@ export class HydratedGameBoard
                         Direction.North,
                         northLimit
                     )
-                    console.log('SW: East: ', eastCoords, 'North: ', northCoords)
+
                     for (const cornerCoords of [eastCoords, northCoords].filter(
                         (coords) => coords
                     )) {
@@ -449,7 +447,7 @@ export class HydratedGameBoard
                             Direction.West,
                             northLimit
                         )
-                        console.log('SW: ', eastLen, northLen)
+
                         if (eastLen >= xLen && northLen >= yLen) {
                             xLen = eastLen
                             yLen = northLen
@@ -470,7 +468,7 @@ export class HydratedGameBoard
                         Direction.North,
                         northLimit
                     )
-                    console.log('SE: West: ', westCoords, 'North: ', northCoords)
+
                     for (const cornerCoords of [westCoords, northCoords].filter(
                         (coords) => coords
                     )) {
@@ -486,7 +484,7 @@ export class HydratedGameBoard
                             Direction.East,
                             northLimit
                         )
-                        console.log('SE: ', westLen, northLen)
+
                         if (westLen >= xLen && northLen >= yLen) {
                             xLen = westLen
                             yLen = northLen
