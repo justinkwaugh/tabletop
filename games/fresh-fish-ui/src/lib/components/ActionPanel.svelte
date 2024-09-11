@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Button, Range } from 'flowbite-svelte'
+    import { Button } from 'flowbite-svelte'
     import { getContext } from 'svelte'
     import { ActionType } from '@tabletop/fresh-fish'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
@@ -87,11 +87,7 @@
     class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row flex-wrap justify-center items-center"
 >
     {#if gameSession.chosenAction === ActionType.PlaceBid}
-        <StallTile
-            size={90}
-            playerColor={''}
-            goodsType={gameSession.hydratedState.getChosenStallType()}
-        />
+        <StallTile size={90} goodsType={gameSession.hydratedState.getChosenStallType()} />
     {/if}
     <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text-lg">{instructions}</h1>
@@ -129,7 +125,7 @@
             {#if gameSession.chosenAction === ActionType.PlaceStall}
                 <div class="my-2">
                     <StallTile
-                        playerColor={gameSession.getPlayerColor()}
+                        playerId={gameSession.myPlayer?.id}
                         goodsType={gameSession.hydratedState.getChosenStallType()}
                     />
                 </div>

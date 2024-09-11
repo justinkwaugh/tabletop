@@ -17,11 +17,7 @@ import firekeeper from '$lib/images/firekeeper.png'
 import priest from '$lib/images/priest.png'
 import yetiwhisperer from '$lib/images/yetiwhisperer.png'
 import astrologer from '$lib/images/astrologer.png'
-import {
-    GameSession,
-    getColorBlindBgColor,
-    getColorBlindColor
-} from '@tabletop/frontend-components'
+import { GameSession, getColorBlindBgColor } from '@tabletop/frontend-components'
 import { uiBgColorForPlayer } from '$lib/utils/playerColors'
 
 export class BridgesGameSession extends GameSession {

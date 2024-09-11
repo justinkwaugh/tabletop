@@ -7,18 +7,22 @@
     import fishStallDarkImg from '$lib/images/fish-stall-dark.png'
     import gelatoStallDarkImg from '$lib/images/gelato-stall-dark.png'
     import sodaStallDarkImg from '$lib/images/soda-stall-dark.png'
-    import { uiBgColorForPlayer } from '$lib/utils/playerColors'
     import { GoodsType } from '@tabletop/fresh-fish'
     import { PlayerColor } from '@tabletop/common'
+    import { getContext } from 'svelte'
+    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
 
     let {
         size = 100,
-        playerColor = '',
+        playerId,
         goodsType
-    }: { size?: number; playerColor: string; goodsType?: GoodsType } = $props()
+    }: { size?: number; playerId?: string; goodsType?: GoodsType } = $props()
+
+    let gameSession = getContext('gameSession') as FreshFishGameSession
 
     let sizePx = $derived(`${size}px`)
-    let stallBgColor = $derived(uiBgColorForPlayer(playerColor))
+    let stallBgColor = $derived(playerId ? gameSession.getPlayerBgColor(playerId) : 'bg-[#555555]')
+    let playerColor = $derived(gameSession.getPlayerColor(playerId))
     let stallImg = $derived.by(() => {
         switch (goodsType) {
             case GoodsType.Cheese:

@@ -7,8 +7,7 @@
         HydratedPlaceStall,
         HydratedPlaceDisk,
         HydratedPlaceMarket,
-        isDiskCell,
-        isStallCell
+        isDiskCell
     } from '@tabletop/fresh-fish'
     import emptyTileImg from '$lib/images/tile-empty.png'
     import roadImg from '$lib/images/tile-road.png'
@@ -48,14 +47,6 @@
                 return 'none'
         }
     })
-
-    let playerColor = $derived(
-        isStallCell(cell) ? gameSession.getPlayerColor(cell.playerId) : 'transparent'
-    )
-
-    let uiPlayerColor = $derived(
-        isDiskCell(cell) ? gameSession.getPlayerUiColor(cell.playerId) : 'transparent'
-    )
 
     let interacting = $derived(
         gameSession.isMyTurn &&
@@ -183,13 +174,19 @@
             viewBox="0 0 30 30"
             xmlns="http://www.w3.org/2000/svg"
         >
-            <circle fill={uiPlayerColor} stroke="#333333" stroke-width=".5" cx="15" cy="15" r="6"
+            <circle
+                fill={gameSession.getPlayerUiColor(cell.playerId)}
+                stroke="#333333"
+                stroke-width=".5"
+                cx="15"
+                cy="15"
+                r="6"
             ></circle>
         </svg>
     {:else if cell.type === CellType.Truck}
         <TruckTile goodsType={cell.goodsType} />
     {:else if cell.type === CellType.Stall}
-        <StallTile {playerColor} goodsType={cell.goodsType} />
+        <StallTile playerId={cell.playerId} goodsType={cell.goodsType} />
     {:else if cell.type === CellType.Market}
         <MarketTile />
     {/if}

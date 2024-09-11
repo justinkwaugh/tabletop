@@ -82,11 +82,11 @@
 
     let playerColor = $derived.by(() => {
         if (isBoatCell(cell) && cell.boat) {
-            return uiColorForPlayer(gameSession.getPlayerColor(cell.boat.owner))
+            return gameSession.getPlayerUiColor(cell.boat.owner)
         } else if (isFishingCell(cell)) {
-            return uiColorForPlayer(gameSession.getPlayerColor(cell.owner))
+            return gameSession.getPlayerUiColor(cell.owner)
         } else {
-            return uiColorForPlayer(gameSession.getPlayerColor(gameSession.myPlayer?.id))
+            return gameSession.getPlayerUiColor(gameSession.myPlayer?.id)
         }
     })
 

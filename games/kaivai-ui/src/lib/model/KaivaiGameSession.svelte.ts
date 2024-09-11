@@ -1,5 +1,9 @@
-import { GameSession } from '@tabletop/frontend-components'
-import { uiBgColorForPlayer } from '$lib/utils/playerColors'
+import {
+    GameSession,
+    getColorBlindBgColor,
+    getColorBlindColor
+} from '@tabletop/frontend-components'
+import { uiBgColorForPlayer, uiColorForPlayer } from '$lib/utils/playerColors'
 import yellowHut from '$lib/images/yellowhut.png'
 import yellowHut2 from '$lib/images/yellowhut2.png'
 import blueHut from '$lib/images/bluehut.png'
@@ -8,7 +12,14 @@ import greenHut from '$lib/images/greenhut.png'
 import greenHut2 from '$lib/images/greenhut2.png'
 import redHut from '$lib/images/redhut.png'
 import redHut2 from '$lib/images/redhut2.png'
-
+import yellowHutCb from '$lib/images/yellowhut-cb.png'
+import yellowHut2Cb from '$lib/images/yellowhut2-cb.png'
+import blueHutCb from '$lib/images/bluehut-cb.png'
+import blueHut2Cb from '$lib/images/bluehut2-cb.png'
+import greenHutCb from '$lib/images/greenhut-cb.png'
+import greenHut2Cb from '$lib/images/greenhut2-cb.png'
+import redHutCb from '$lib/images/redhut-cb.png'
+import redHut2Cb from '$lib/images/redhut2-cb.png'
 import {
     ActionType,
     HutType,
@@ -226,7 +237,13 @@ export class KaivaiGameSession extends GameSession {
     })
 
     getPlayerBgColor(playerId?: string) {
-        return uiBgColorForPlayer(this.getPlayerColor(playerId)) ?? 'bg-gray-500'
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorBlind ? getColorBlindBgColor(playerColor) : uiBgColorForPlayer(playerColor)
+    }
+
+    getPlayerUiColor(playerId?: string) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorBlind ? getColorBlindColor(playerColor) : uiColorForPlayer(playerColor)
     }
 
     getPlayerTextColor(playerId?: string) {
@@ -247,26 +264,26 @@ export class KaivaiGameSession extends GameSession {
             case HutType.Meeting:
                 switch (color) {
                     case PlayerColor.Yellow:
-                        return yellowHut2
+                        return this.colorBlind ? yellowHut2Cb : yellowHut2
                     case PlayerColor.Blue:
-                        return blueHut2
+                        return this.colorBlind ? blueHut2Cb : blueHut2
                     case PlayerColor.Green:
-                        return greenHut2
+                        return this.colorBlind ? greenHut2Cb : greenHut2
                     case PlayerColor.Red:
-                        return redHut2
+                        return this.colorBlind ? redHut2Cb : redHut2
                 }
                 break
             case HutType.BoatBuilding:
             case HutType.Fishing:
                 switch (color) {
                     case PlayerColor.Yellow:
-                        return yellowHut
+                        return this.colorBlind ? yellowHutCb : yellowHut
                     case PlayerColor.Blue:
-                        return blueHut
+                        return this.colorBlind ? blueHutCb : blueHut
                     case PlayerColor.Green:
-                        return greenHut
+                        return this.colorBlind ? greenHutCb : greenHut
                     case PlayerColor.Red:
-                        return redHut
+                        return this.colorBlind ? redHutCb : redHut
                 }
                 break
         }
