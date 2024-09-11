@@ -25,7 +25,11 @@
             : ''}"
     >
         <div class="flex flex-row justify-between items-center">
-            <h1 class={isTurn ? 'text-xl font-semibold' : 'text-lg font-medium'}>
+            <h1
+                class="text-ellipsis overflow-hidden text-nowrap {isTurn
+                    ? 'text-xl font-semibold'
+                    : 'text-lg font-medium'}"
+            >
                 {isTurn ? '\u276f' : ''}
                 {player.name}
             </h1>
