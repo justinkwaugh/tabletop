@@ -48,13 +48,14 @@
             height="24"
             fill="currentColor"
             viewBox="0 0 24 24"
-            transform="rotate(180)"
         >
-            <path
-                fill-rule="evenodd"
-                d="M8.6 5.2A1 1 0 0 0 7 6v12a1 1 0 0 0 1.6.8l8-6a1 1 0 0 0 0-1.6l-8-6Z"
-                clip-rule="evenodd"
-            ></path>
+            <g transform="translate(24,24) rotate(180)">
+                <path
+                    fill-rule="evenodd"
+                    d="M8.6 5.2A1 1 0 0 0 7 6v12a1 1 0 0 0 1.6.8l8-6a1 1 0 0 0 0-1.6l-8-6Z"
+                    clip-rule="evenodd"
+                ></path>
+            </g>
         </svg>
         <UserSolid size="lg" />
     </button>

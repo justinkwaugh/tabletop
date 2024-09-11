@@ -185,19 +185,15 @@
 {/snippet}
 
 <div class="flex flex-col justify-center items-center p-2">
-    <div class="relative w-full fit-content">
-        <div class="absolute top-[100px] left-0 w-full">
+    <div class="relative w-[1016px] h-[1247px]">
+        <div class="absolute top-[100px] left-0 w-full z-0">
             <img class="w-[1200px]" src={board} alt="board" />
         </div>
         <div
-            class="z-10"
+            class="absolute z-10"
             style="width:{grid.pixelWidth + 16 + 'px'};height:{grid.pixelHeight + 16 + 100 + 'px'};"
         >
-            <svg
-                transform="translate(6,-11) scale(1.007,.977)"
-                width={Math.ceil(grid.pixelWidth)}
-                height={Math.ceil(grid.pixelHeight) + 100}
-            >
+            <svg width={Math.ceil(grid.pixelWidth + 16)} height={Math.ceil(grid.pixelHeight) + 100}>
                 <defs>
                     <filter id="dropshadow" height="130%">
                         <feGaussianBlur in="SourceAlpha" stdDeviation="10 10"></feGaussianBlur>
@@ -216,24 +212,25 @@
                         <feOffset dx="3" dy="9"></feOffset>
                     </filter>
                 </defs>
-
-                {@render actionDisk(ActionType.Move, 5, 150)}
-                {@render actionDisk(ActionType.Build, 85, 5)}
-                {@render actionDisk(ActionType.Increase, 250, 5)}
-                {@render actionDisk(ActionType.Deliver, 845, 150)}
-                {@render actionDisk(ActionType.Fish, 765, 5)}
-                {@render actionDisk(ActionType.Celebrate, 600, 5)}
-                {#if gameSession.isMyTurn}
-                    {#if canSacrifice}
-                        {@render actionDisk(ActionType.Sacrifice, 460, 5, 40)}
-                    {:else}
-                        {@render actionDisk(ActionType.Pass, 460, 5, 40)}
+                <g transform="translate(8,1) scale(1,.980)">
+                    {@render actionDisk(ActionType.Move, 5, 150)}
+                    {@render actionDisk(ActionType.Build, 85, 5)}
+                    {@render actionDisk(ActionType.Increase, 250, 5)}
+                    {@render actionDisk(ActionType.Deliver, 845, 150)}
+                    {@render actionDisk(ActionType.Fish, 765, 5)}
+                    {@render actionDisk(ActionType.Celebrate, 600, 5)}
+                    {#if gameSession.isMyTurn}
+                        {#if canSacrifice}
+                            {@render actionDisk(ActionType.Sacrifice, 460, 5, 40)}
+                        {:else}
+                            {@render actionDisk(ActionType.Pass, 460, 5, 40)}
+                        {/if}
                     {/if}
-                {/if}
 
-                {#each grid as hex}
-                    <Cell {hex} {origin} />
-                {/each}
+                    {#each grid as hex}
+                        <Cell {hex} {origin} />
+                    {/each}
+                </g>
             </svg>
         </div>
     </div>
