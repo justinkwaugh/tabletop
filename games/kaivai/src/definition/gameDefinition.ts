@@ -13,7 +13,7 @@ export const KaivaiDefinition = <GameDefinition>{
         name: 'Kaivai',
         designer: 'Leo Colovini',
         year: '2003',
-        minPlayers: 2,
+        minPlayers: 3,
         maxPlayers: 4,
         defaultPlayerCount: 4,
         beta: true
