@@ -202,9 +202,9 @@
 
     {#if village.stone}
         <div
-            class="flex flex-col justify-center items-center w-[150px] h-[150px] absolute top-0 left-0 z-50"
+            class="flex flex-col justify-center items-center w-[150px] h-[150px] absolute top-[-55px] left-[-90px] z-50"
         >
-            <img class="w-[100px] drop-shadow-xl" src={stone} alt="stone" />
+            <img class="w-[75px] drop-shadow-xl" src={stone} alt="stone" />
         </div>
     {/if}
 

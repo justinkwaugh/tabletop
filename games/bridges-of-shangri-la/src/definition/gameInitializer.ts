@@ -46,7 +46,7 @@ export class BridgesGameInitializer extends BaseGameInitializer implements GameI
             machineState: MachineState.StartOfTurn,
             winningPlayerIds: [],
             board,
-            stones: numPlayers === 3 ? 11 : 12
+            stones: numPlayers === 3 ? 10 : 11
         })
 
         return state
