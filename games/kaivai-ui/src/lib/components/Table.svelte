@@ -90,6 +90,7 @@
             {:else if gameSession.mode === GameSessionMode.History}
                 <LastHistoryDescription />
             {:else if gameSession.mode === GameSessionMode.Play}
+                <LastHistoryDescription />
                 {#if gameSession.isMyTurn}
                     <ActionPanel />
                 {:else}

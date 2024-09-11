@@ -15,6 +15,6 @@
 >
     <h1 class="text-lg sm:text-xl uppercase kaivai-font">
         <PlayerName playerId={winner} />
-        wins with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')?.score}
+        won with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')?.score}
     </h1>
 </div>

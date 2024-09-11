@@ -68,7 +68,11 @@
     )
 
     async function chooseAction(action: ActionType) {
-        if (gameSession.validActionTypes.includes(action) && !gameSession.chosenAction) {
+        if (
+            gameSession.isMyTurn &&
+            gameSession.validActionTypes.includes(action) &&
+            (!gameSession.chosenAction || action === ActionType.Pass)
+        ) {
             if (action === ActionType.Increase) {
                 await increase()
             } else if (action === ActionType.Pass) {
@@ -100,10 +104,23 @@
     }
 
     function isEnabled(action: ActionType) {
+        if (!gameSession.isMyTurn) {
+            return true
+        }
+
+        if (
+            (gameSession.gameState.machineState === MachineState.Fishing ||
+                gameSession.gameState.machineState === MachineState.Building ||
+                gameSession.gameState.machineState === MachineState.Moving ||
+                gameSession.gameState.machineState === MachineState.Delivering) &&
+            action === ActionType.Pass
+        ) {
+            return true
+        }
+
         return (
-            !gameSession.isMyTurn ||
-            (gameSession.validActionTypes.includes(action) &&
-                (!gameSession.chosenAction || gameSession.chosenAction === action))
+            gameSession.validActionTypes.includes(action) &&
+            (!gameSession.chosenAction || gameSession.chosenAction === action)
         )
     }
 </script>

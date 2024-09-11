@@ -13,6 +13,11 @@ export type ActionResult = {
     indexOffset: number
 }
 
+export enum RunMode {
+    Single = 'single',
+    Multiple = 'multiple'
+}
+
 export class GameEngine {
     constructor(private readonly definition: GameDefinition) {}
 
@@ -61,7 +66,7 @@ export class GameEngine {
         return stateHandler.validActionsForPlayer(playerId, machineContext)
     }
 
-    run(action: GameAction, game: Game): ActionResult {
+    run(action: GameAction, game: Game, mode: RunMode = RunMode.Multiple): ActionResult {
         if (!game.state) {
             throw Error('Game has no state')
         }
@@ -89,7 +94,10 @@ export class GameEngine {
         }
 
         // this.definition.stateLogger?.logState(hydratedState)
-        while (machineContext.getPendingActions().length > 0) {
+        while (
+            machineContext.getPendingActions().length > 0 &&
+            (mode === RunMode.Multiple || processedActions.length === 0)
+        ) {
             const currentAction = machineContext.nextPendingAction()
             if (!currentAction) {
                 throw Error('Action to process was unexpectedly null')

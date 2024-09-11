@@ -14,7 +14,8 @@ import {
     calculateChecksum,
     GameUndoActionNotification,
     User,
-    PlayerColor
+    PlayerColor,
+    RunMode
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -568,8 +569,8 @@ export class GameSession {
         do {
             this.currentHistoryIndex += 1
             nextAction = $state.snapshot(this.actions[this.currentHistoryIndex]) as GameAction
-            const { processedActions, updatedState } = this.engine.run(nextAction, gameSnapshot)
-            this.currentHistoryIndex += processedActions.length - 1
+            console.log('nextAction', nextAction.type, nextAction.index)
+            const { updatedState } = this.engine.run(nextAction, gameSnapshot, RunMode.Single)
             gameSnapshot.state = updatedState
         } while (
             this.currentHistoryIndex < this.actions.length - 1 &&

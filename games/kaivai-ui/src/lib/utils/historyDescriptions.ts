@@ -13,10 +13,11 @@ import {
     isSacrifice,
     isChooseScoringIsland,
     isScoreHuts,
-    isScoreIsland
+    isScoreIsland,
+    isMove
 } from '@tabletop/kaivai'
 
-export function getHistoryDescriptionForAction(action?: GameAction) {
+export function getHistoryDescriptionForAction(action?: GameAction, self?: boolean) {
     if (!action) {
         return ''
     }
@@ -49,7 +50,7 @@ export function getHistoryDescriptionForAction(action?: GameAction) {
             return `went fishing and caught ${action.metadata?.numFish ?? 'some'} fish`
         }
         case isIncrease(action): {
-            return 'increased their movement bonus'
+            return `increased ${self ? 'your' : 'their'} movement bonus`
         }
         case isPass(action): {
             return 'passed'
@@ -61,7 +62,7 @@ export function getHistoryDescriptionForAction(action?: GameAction) {
             return 'moved the Fisherman God'
         }
         case isSacrifice(action): {
-            return 'sacrificed all of their actions to gain 2 influence'
+            return `sacrificed all of {self ? 'your':'their'} actions to gain 2 influence`
         }
         case isChooseScoringIsland(action): {
             if (action.playerId) {
@@ -75,6 +76,9 @@ export function getHistoryDescriptionForAction(action?: GameAction) {
         }
         case isScoreIsland(action): {
             return 'An island was scored'
+        }
+        case isMove(action): {
+            return 'moved a boat'
         }
         default:
             return action.type

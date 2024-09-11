@@ -72,8 +72,8 @@
         </div>
         <div class="mt-2">
             {#if action.metadata?.winners.length === 1}
-                <PlayerName playerId={action.metadata?.winners[0]} /> wins {action.metadata
-                    ?.award ?? 0} glory
+                <PlayerName playerId={action.metadata?.winners[0]} /> won {action.metadata?.award ??
+                    0} glory
             {:else}
                 No glory awarded
             {/if}

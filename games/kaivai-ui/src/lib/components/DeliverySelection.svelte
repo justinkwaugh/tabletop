@@ -3,6 +3,7 @@
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import fishtoken from '$lib/images/fishtoken.png'
     import { isDeliveryCell } from '@tabletop/kaivai'
+    import { sameCoordinates } from '@tabletop/common'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let maxValue = $derived.by(() => {
@@ -26,6 +27,22 @@
         return Math.min(3 - cell.fish, gameSession.myPlayerState.numFish() - scheduledDeliveries)
     })
 
+    let hasDelivery = $derived.by(() => {
+        if (!gameSession.myPlayerState) {
+            return false
+        }
+
+        if (!gameSession.currentDeliveryLocation) {
+            return false
+        }
+
+        return (
+            gameSession.chosenDeliveries.find((delivery) =>
+                sameCoordinates(delivery.coords, gameSession.currentDeliveryLocation)
+            ) !== undefined
+        )
+    })
+
     function setDeliveryAmount(amount: number) {
         gameSession.setDelivery(amount)
     }
@@ -43,6 +60,9 @@
 {/snippet}
 
 <div class="flex flex-row justify-center items-center space-x-2 p-2">
+    {#if hasDelivery}
+        {@render token(0)}
+    {/if}
     {#if maxValue > 0}
         {@render token(1)}
     {/if}

@@ -11,5 +11,5 @@
     class="rounded px-2 {gameSession.getPlayerBgColor(
         playerId
     )} font-medium {gameSession.getPlayerTextColor(playerId)}"
-    >{gameSession.getPlayerName(playerId)}</span
+    >{playerId === gameSession.myPlayer?.id ? 'You' : gameSession.getPlayerName(playerId)}</span
 >

@@ -8,6 +8,10 @@
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let bidValue = $state(0)
     let showCancel = $derived.by(() => {
+        if (isMultiBoatState() && !gameSession.chosenBoat) {
+            return false
+        }
+
         if (gameSession.chosenHutType || gameSession.chosenBoatLocation || gameSession.chosenBoat) {
             return true
         } else if (gameSession.chosenAction && gameSession.validActionTypes.length > 1) {
@@ -23,6 +27,15 @@
                 gameSession.chosenDeliveries.length > 0)
         )
     })
+
+    function isMultiBoatState() {
+        return (
+            gameSession.gameState.machineState === MachineState.Building ||
+            gameSession.gameState.machineState === MachineState.Delivering ||
+            gameSession.gameState.machineState === MachineState.Fishing ||
+            gameSession.gameState.machineState === MachineState.Moving
+        )
+    }
 
     async function chooseAction(action: string) {
         switch (action) {
@@ -42,7 +55,7 @@
     }
 
     const instructions = $derived.by(() => {
-        if (!gameSession.chosenAction) {
+        if (!gameSession.chosenBoat) {
             if (gameSession.gameState.machineState === MachineState.Building) {
                 return 'Build again with another boat?'
             } else if (gameSession.gameState.machineState === MachineState.Delivering) {
@@ -52,6 +65,9 @@
             } else if (gameSession.gameState.machineState === MachineState.Moving) {
                 return 'Move another boat?'
             }
+        }
+
+        if (!gameSession.chosenAction) {
             return 'Choose an action'
         }
 
@@ -133,6 +149,26 @@
             chooseAction(singleAction)
         } else if (gameSession.validActionTypes.length === 0) {
             gameSession.resetAction()
+        } else if (
+            gameSession.gameState.machineState === MachineState.Building &&
+            gameSession.validActionTypes.includes(ActionType.Build)
+        ) {
+            chooseAction(ActionType.Build)
+        } else if (
+            gameSession.gameState.machineState === MachineState.Moving &&
+            gameSession.validActionTypes.includes(ActionType.Move)
+        ) {
+            chooseAction(ActionType.Move)
+        } else if (
+            gameSession.gameState.machineState === MachineState.Delivering &&
+            gameSession.validActionTypes.includes(ActionType.Deliver)
+        ) {
+            chooseAction(ActionType.Deliver)
+        } else if (
+            gameSession.gameState.machineState === MachineState.Fishing &&
+            gameSession.validActionTypes.includes(ActionType.Fish)
+        ) {
+            chooseAction(ActionType.Fish)
         }
     })
 
@@ -210,7 +246,7 @@
                 <div
                     class="p-2 flex flex-col justify-center items-center rounded-lg border-2 border-[#634a11]"
                 >
-                    <h1 class="text-lg kaivai-font uppercase">Majorities</h1>
+                    <h1 class="text-lg kaivai-font uppercase">Majority</h1>
                     <div class="flex flex-col justify-center items-start">
                         {#each gameSession.gameState.players as player}
                             <div class="flex flex-row justify-between items-center w-full">

@@ -40,10 +40,9 @@ import {
 } from '@tabletop/common'
 
 export class KaivaiGameSession extends GameSession {
-    get gameState(): HydratedKaivaiGameState {
+    gameState = $derived.by(() => {
         return new HydratedKaivaiGameState(this.visibleGameState as KaivaiGameState)
-    }
-
+    })
     highlightedHexes: Set<number> = $state(new Set())
 
     chosenAction: string | undefined = $state(undefined)
@@ -297,6 +296,10 @@ export class KaivaiGameSession extends GameSession {
         this.chosenBoatLocation = undefined
         this.chosenDeliveries = []
         this.currentDeliveryLocation = undefined
+    }
+
+    setDeliveryLocation(coords: AxialCoordinates) {
+        this.currentDeliveryLocation = coords
     }
 
     setDelivery(amount: number) {

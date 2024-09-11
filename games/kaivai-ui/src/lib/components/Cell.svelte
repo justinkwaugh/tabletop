@@ -3,6 +3,7 @@
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { Direction, Hex, ring } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
+    import fishtoken from '$lib/images/fishtoken.png'
     import { axialCoordinatesToNumber, sameCoordinates, Point, Game } from '@tabletop/common'
     import {
         ActionType,
@@ -70,7 +71,14 @@
         const delivery = gameSession.chosenDeliveries.find((d) => sameCoordinates(d.coords, hex))
         return storedFish + (delivery?.amount ?? 0)
     })
-    let hasFishToken = $derived(numFish > 0)
+
+    let numDeliveredFish = $derived.by(() => {
+        const delivery = gameSession.chosenDeliveries.find((d) => sameCoordinates(d.coords, hex))
+        return delivery?.amount ?? 0
+    })
+
+    let hasFish = $derived(numFish > 0)
+    let hasFishToken = $derived(numDeliveredFish > 0)
 
     let playerColor = $derived.by(() => {
         if (isBoatCell(cell) && cell.boat) {
@@ -91,7 +99,7 @@
             case ActionType.Build: {
                 if (
                     gameSession.gameState.machineState === MachineState.InitialHuts &&
-                    gameSession.chosenHutType
+                    gameSession.chosenHutType !== undefined
                 ) {
                     return true
                 } else if (
@@ -595,10 +603,7 @@
         </svg>
     {/if}
 
-    {#if hasFishToken}
-        <!-- <image href={fishtoken} x={-25} y={-25} width="50px" height="50px"></image>
-        <circle cx="0" cy="0" r="25" fill="black" stroke="black" opacity=".1" stroke-width="2"
-        ></circle> -->
+    {#if hasFish}
         <text
             class="kaivai-font select-none"
             style="filter: url(#textshadow); fill: black"
@@ -655,6 +660,36 @@
         </g>
     {/if}
 
+    {#if hasFishToken}
+        <image href={fishtoken} x={-25} y={-25} width="50px" height="50px"></image>
+        <circle cx="0" cy="0" r="25" fill="black" stroke="black" opacity=".1" stroke-width="2"
+        ></circle>
+        <text
+            class="kaivai-font select-none"
+            style="filter: url(#textshadow); fill: black"
+            y="0"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="50"
+            font-weight="bold"
+            stroke-width="1"
+            stroke="#000000"
+            opacity=".5"
+            fill="black">{numDeliveredFish}</text
+        >
+        <text
+            class="kaivai-font select-none"
+            y="5"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="50"
+            font-weight="bold"
+            stroke-width="1"
+            stroke="#FFFFFF"
+            fill="white"
+            >{numDeliveredFish}
+        </text>
+    {/if}
     {#if disabled}
         <polygon
             points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5"

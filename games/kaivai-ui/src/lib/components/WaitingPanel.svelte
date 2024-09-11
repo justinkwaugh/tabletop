@@ -25,9 +25,11 @@
             return 'to place their initial huts...'
         } else if (gameSession.gameState.machineState === MachineState.MovingGod) {
             return 'to move the fisherman god...'
+        } else if (gameSession.gameState.machineState === MachineState.FinalScoring) {
+            return 'to choose an island to score...'
         }
 
-        return 'to take their turn...'
+        return 'to choose an action...'
     })
 
     let isScoring = $derived.by(() => {

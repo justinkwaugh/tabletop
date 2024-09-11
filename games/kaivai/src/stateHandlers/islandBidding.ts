@@ -39,7 +39,7 @@ export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPl
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedKaivaiGameState
         if (Object.keys(gameState.bids).length === 0) {
-            gameState.activePlayerIds = gameState.bidders
+            gameState.activePlayerIds = structuredClone(gameState.bidders)
         }
     }
 

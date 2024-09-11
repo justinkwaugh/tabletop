@@ -95,9 +95,12 @@
                             {#if action.playerId}
                                 <PlayerName playerId={action.playerId} />
                             {/if}
-                            {getHistoryDescriptionForAction(action)}
+                            {getHistoryDescriptionForAction(
+                                action,
+                                action.playerId === gameSession.myPlayer?.id
+                            )}
                             {#if isFish(action)}
-                                <FishingResults {action} />
+                                <FishingResults {action} justify={'left'} />
                             {/if}
                             {#if isScoreIsland(action)}
                                 <IslandScoringResults {action} />
