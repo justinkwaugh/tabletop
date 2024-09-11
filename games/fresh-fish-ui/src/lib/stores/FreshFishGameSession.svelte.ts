@@ -1,4 +1,8 @@
-import { GameSession } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    getColorBlindBgColor,
+    getColorBlindColor
+} from '@tabletop/frontend-components'
 import {
     ActionType,
     Coordinates,
@@ -34,11 +38,13 @@ export class FreshFishGameSession extends GameSession {
     highlightedCoords: Coordinates | undefined = $state()
 
     getPlayerBgColor(playerId?: string) {
-        return uiBgColorForPlayer(this.getPlayerColor(playerId)) ?? 'bg-gray-500'
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorBlind ? getColorBlindBgColor(playerColor) : uiBgColorForPlayer(playerColor)
     }
 
     getPlayerUiColor(playerId?: string) {
-        return uiColorForPlayer(this.getPlayerColor(playerId)) ?? 'bg-gray-500'
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorBlind ? getColorBlindColor(playerColor) : uiColorForPlayer(playerColor)
     }
 
     getPlayerTextColor(playerId?: string) {

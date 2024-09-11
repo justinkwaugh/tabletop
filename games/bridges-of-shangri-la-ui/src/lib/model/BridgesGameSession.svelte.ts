@@ -17,7 +17,11 @@ import firekeeper from '$lib/images/firekeeper.png'
 import priest from '$lib/images/priest.png'
 import yetiwhisperer from '$lib/images/yetiwhisperer.png'
 import astrologer from '$lib/images/astrologer.png'
-import { GameSession } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    getColorBlindBgColor,
+    getColorBlindColor
+} from '@tabletop/frontend-components'
 import { uiBgColorForPlayer } from '$lib/utils/playerColors'
 
 export class BridgesGameSession extends GameSession {
@@ -41,7 +45,8 @@ export class BridgesGameSession extends GameSession {
     })
 
     getPlayerBgColor(playerId?: string) {
-        return uiBgColorForPlayer(this.getPlayerColor(playerId)) ?? 'bg-gray-500'
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorBlind ? getColorBlindBgColor(playerColor) : uiBgColorForPlayer(playerColor)
     }
 
     getPlayerTextColor(playerId?: string) {

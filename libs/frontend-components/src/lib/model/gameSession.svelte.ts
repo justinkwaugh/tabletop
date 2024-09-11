@@ -76,6 +76,14 @@ export class GameSession {
     })
 
     actions: GameAction[] = $state([])
+    colorBlind: boolean = $derived.by(() => {
+        const sessionUser = this.authorizationService.getSessionUser()
+        if (!sessionUser || !sessionUser.preferences) {
+            return false
+        }
+
+        return sessionUser.preferences.colorBlindPalette === true
+    })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
         // No spectators, must have actions
