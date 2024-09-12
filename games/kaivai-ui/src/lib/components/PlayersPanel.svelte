@@ -4,6 +4,7 @@
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import { flip } from 'svelte/animate'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -42,7 +43,9 @@
 </script>
 
 <div class="rounded-lg space-y-2 text-center grow-0 shrink-0">
-    {#each playersAndStates as playerAndState}
-        <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+    {#each playersAndStates as playerAndState (playerAndState.player.id)}
+        <div animate:flip={{ duration: 500 }}>
+            <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+        </div>
     {/each}
 </div>

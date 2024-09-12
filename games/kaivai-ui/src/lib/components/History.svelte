@@ -5,6 +5,7 @@
     import {
         ActionType,
         isCelebrate,
+        isDeliver,
         isFish,
         isMove,
         isMoveGod,
@@ -108,12 +109,14 @@
                             {getHistoryDescriptionForAction(
                                 action,
                                 action.playerId === gameSession.myPlayer?.id
-                            )}
-                            {#if isMove(action) && action.metadata?.playerSunk}
-                                sinking <PlayerName
+                            )}{#if isMove(action) && action.metadata?.playerSunk}
+                                sunk <PlayerName
                                     playerId={action.metadata.playerSunk}
                                     possessive={true}
                                 /> boat for a loss of {action.metadata.gloryLost} glory
+                            {/if}{#if isDeliver(action) && (action.metadata?.numSold ?? 0) > 0},
+                                selling {action.metadata?.numSold} fish for {action.metadata
+                                    ?.earnings}
                             {/if}
                             {#if isFish(action)}
                                 <FishingResults {action} justify={'left'} />

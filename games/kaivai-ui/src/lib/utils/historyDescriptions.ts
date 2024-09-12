@@ -27,7 +27,7 @@ export function getHistoryDescriptionForAction(action?: GameAction, self?: boole
         }
         case isDeliver(action): {
             const numFish = action.deliveries.reduce((acc, delivery) => acc + delivery.amount, 0)
-            return `delivered ${numFish} fish` // Earning X shells
+            return `delivered ${numFish} fish`
         }
         case isBuild(action): {
             let message = ''
