@@ -69,7 +69,7 @@ export function getHistoryDescriptionForAction(action?: GameAction, self?: boole
             return 'moved the Fisherman God'
         }
         case isSacrifice(action): {
-            return `sacrificed all of {self ? 'your':'their'} actions to gain 2 influence`
+            return `sacrificed all of ${self ? 'your' : 'their'} actions to gain 2 influence`
         }
         case isChooseScoringIsland(action): {
             if (action.playerId) {
