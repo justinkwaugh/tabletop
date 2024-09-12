@@ -15,6 +15,15 @@ import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { MachineState } from '../definition/states.js'
 import { KaivaiGameConfig, Ruleset } from '../definition/gameConfig.js'
 
+export type FishMetadata = Static<typeof FishMetadata>
+export const FishMetadata = Type.Object({
+    originalCoords: Type.Optional(AxialCoordinates),
+    numFish: Type.Number(),
+    islandId: Type.String(),
+    hadGod: Type.Boolean(),
+    dieResults: Type.Array(Type.Boolean())
+})
+
 export type Fish = Static<typeof Fish>
 export const Fish = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
@@ -23,14 +32,7 @@ export const Fish = Type.Composite([
         playerId: Type.String(),
         boatId: Type.String(),
         boatCoords: AxialCoordinates,
-        metadata: Type.Optional(
-            Type.Object({
-                numFish: Type.Number(),
-                islandId: Type.String(),
-                hadGod: Type.Boolean(),
-                dieResults: Type.Array(Type.Boolean())
-            })
-        )
+        metadata: Type.Optional(FishMetadata)
     })
 ])
 
@@ -47,7 +49,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
     declare playerId: string
     declare boatId: string
     declare boatCoords: AxialCoordinates
-    declare metadata: { numFish: number; islandId: string; hadGod: boolean; dieResults: boolean[] }
+    declare metadata: FishMetadata
 
     constructor(data: Fish) {
         super(data, FishValidator)
@@ -81,12 +83,12 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         }
 
         // Move boat
-        const originalLocation = playerState.boatLocations[this.boatId]
-        if (!originalLocation) {
+        const originalCoords = playerState.boatLocations[this.boatId]
+        if (!originalCoords) {
             throw Error('Boat location not found')
         }
 
-        const boat = state.board.removeBoatFrom(originalLocation)
+        const boat = state.board.removeBoatFrom(originalCoords)
         if (!boat) {
             throw Error('Boat not found at original location')
         }
@@ -115,6 +117,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
             })
             numFish = bestIsland.numHuts + (bestIsland.hasGod ? 1 : 0)
             this.metadata = {
+                originalCoords,
                 numFish,
                 islandId: bestIsland.islandId,
                 hadGod: bestIsland.hasGod,
@@ -133,6 +136,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
 
             numFish = dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0)
             this.metadata = {
+                originalCoords,
                 numFish,
                 islandId: bestIsland.islandId,
                 hadGod: bestIsland.hasGod,
@@ -156,6 +160,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
                 dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0) +
                 (bestIsland.hasGod ? 1 : 0)
             this.metadata = {
+                originalCoords,
                 numFish,
                 islandId: bestIsland.islandId,
                 hadGod: bestIsland.hasGod,

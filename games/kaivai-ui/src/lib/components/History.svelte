@@ -2,7 +2,15 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { ActionType, isFish, isScoreHuts, isScoreIsland } from '@tabletop/kaivai'
+    import {
+        ActionType,
+        isCelebrate,
+        isFish,
+        isMove,
+        isMoveGod,
+        isScoreHuts,
+        isScoreIsland
+    } from '@tabletop/kaivai'
     import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
@@ -14,6 +22,8 @@
     import FishingResults from './FishingResults.svelte'
     import IslandScoringResults from './IslandScoringResults.svelte'
     import HutScoringResults from './HutScoringResults.svelte'
+    import CelebrateResults from './CelebrateResults.svelte'
+    import MoveGodResults from './MoveGodResults.svelte'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -99,6 +109,12 @@
                                 action,
                                 action.playerId === gameSession.myPlayer?.id
                             )}
+                            {#if isMove(action) && action.metadata?.playerSunk}
+                                sinking <PlayerName
+                                    playerId={action.metadata.playerSunk}
+                                    possessive={true}
+                                /> boat for a loss of {action.metadata.gloryLost} glory
+                            {/if}
                             {#if isFish(action)}
                                 <FishingResults {action} justify={'left'} />
                             {/if}
@@ -107,6 +123,12 @@
                             {/if}
                             {#if isScoreHuts(action)}
                                 <HutScoringResults {action} />
+                            {/if}
+                            {#if isCelebrate(action)}
+                                <CelebrateResults {action} justify={'left'} />
+                            {/if}
+                            {#if isMoveGod(action)}
+                                <MoveGodResults {action} justify={'left'} />
                             {/if}
                         </p>
                     </TimelineItem>

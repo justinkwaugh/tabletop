@@ -19,6 +19,14 @@ export const Delivery = Type.Object({
     amount: Type.Number()
 })
 
+export type DeliverMetadata = Static<typeof DeliverMetadata>
+export const DeliverMetadata = Type.Object({
+    originalCoords: AxialCoordinates,
+    numSold: Type.Number(),
+    earnings: Type.Number(),
+    numKept: Type.Number()
+})
+
 export type Deliver = Static<typeof Deliver>
 export const Deliver = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
@@ -27,7 +35,8 @@ export const Deliver = Type.Composite([
         playerId: Type.String(),
         boatId: Type.String(),
         boatCoords: AxialCoordinates,
-        deliveries: Type.Array(Delivery)
+        deliveries: Type.Array(Delivery),
+        metadata: Type.Optional(DeliverMetadata)
     })
 ])
 
@@ -43,6 +52,7 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
     declare boatId: string
     declare boatCoords: AxialCoordinates
     declare deliveries: Delivery[]
+    declare metadata?: DeliverMetadata
 
     constructor(data: Deliver) {
         super(data, DeliverValidator)
@@ -77,12 +87,12 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
         }
 
         // Move boat
-        const originalLocation = playerState.boatLocations[this.boatId]
-        if (!originalLocation) {
+        const originalCoords = playerState.boatLocations[this.boatId]
+        if (!originalCoords) {
             throw Error('Boat location not found')
         }
 
-        const boat = state.board.removeBoatFrom(originalLocation)
+        const boat = state.board.removeBoatFrom(originalCoords)
         if (!boat) {
             throw Error('Boat not found at original location')
         }
@@ -93,6 +103,8 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
         playerState.availableBoats = playerState.availableBoats.filter((id) => id !== this.boatId)
 
         // Deliver fish
+        let numSold = 0
+        const initialMoney = playerState.money()
         for (const delivery of this.deliveries) {
             const cell = state.board.getCellAt(delivery.coords)
             if (!isDeliverableCell(cell)) {
@@ -100,6 +112,7 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
             }
 
             if (cell.owner !== this.playerId) {
+                numSold += delivery.amount
                 let valueIndex = 4 - cell.fish
                 for (let i = 0; i < delivery.amount; i++) {
                     playerState.shells[valueIndex] += 1
@@ -110,6 +123,11 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
             cell.fish += delivery.amount
             playerState.removeFish(delivery.amount)
         }
+        const earnings = playerState.money() - initialMoney
+        const numKept =
+            this.deliveries.reduce((sum, delivery) => sum + delivery.amount, 0) - numSold
+
+        this.metadata = { originalCoords, numSold, earnings, numKept }
     }
 
     static areValidDeliveries({

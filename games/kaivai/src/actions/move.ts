@@ -6,6 +6,13 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { MachineState } from '../definition/states.js'
 
+export type MoveMetadata = Static<typeof MoveMetadata>
+export const MoveMetadata = Type.Object({
+    originalCoords: AxialCoordinates,
+    playerSunk: Type.Optional(Type.String()),
+    gloryLost: Type.Number()
+})
+
 export type Move = Static<typeof Move>
 export const Move = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
@@ -13,7 +20,8 @@ export const Move = Type.Composite([
         type: Type.Literal(ActionType.Move),
         playerId: Type.String(),
         boatId: Type.String(),
-        boatCoords: AxialCoordinates
+        boatCoords: AxialCoordinates,
+        metadata: Type.Optional(MoveMetadata)
     })
 ])
 
@@ -28,6 +36,7 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
     declare playerId: string
     declare boatId: string
     declare boatCoords: AxialCoordinates
+    declare metadata?: MoveMetadata
 
     constructor(data: Move) {
         super(data, MoveValidator)
@@ -62,21 +71,22 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
 
         // Sink opponents if needed
         const sunkBoat = state.board.removeBoatFrom(this.boatCoords)
+        let gloryLost = 0
         if (sunkBoat) {
-            const sinkCost = HydratedMove.sinkCost(state, sunkBoat.owner)
-            playerState.score -= sinkCost
+            gloryLost = HydratedMove.sinkCost(state, sunkBoat.owner)
+            playerState.score -= gloryLost
 
             const ownerState = state.getPlayerState(sunkBoat.owner)
             ownerState.returnBoat(sunkBoat)
         }
 
         // Move boat
-        const originalLocation = playerState.boatLocations[this.boatId]
-        if (!originalLocation) {
+        const originalCoords = playerState.boatLocations[this.boatId]
+        if (!originalCoords) {
             throw Error('Boat location not found')
         }
 
-        const boat = state.board.removeBoatFrom(originalLocation)
+        const boat = state.board.removeBoatFrom(originalCoords)
         if (!boat) {
             throw Error('Boat not found at original location')
         }
@@ -85,6 +95,12 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
 
         // Mark boat as used
         playerState.availableBoats = playerState.availableBoats.filter((id) => id !== this.boatId)
+
+        this.metadata = {
+            originalCoords,
+            playerSunk: sunkBoat?.owner,
+            gloryLost
+        }
     }
 
     static canBoatMove({

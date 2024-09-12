@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import bidding from '$lib/images/bidding.png'
-    import { uiBgColorForPlayer } from '$lib/utils/playerColors'
+    import { fadeScale } from '@tabletop/frontend-components'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     type BidData = {
@@ -93,7 +93,7 @@
                 }
             }}
             class="absolute z-10 cursor-pointer rounded-full {bid.playerId
-                ? `${uiBgColorForPlayer(gameSession.getPlayerColor(bid.playerId))}`
+                ? `${gameSession.getPlayerBgColor(bid.playerId)}`
                 : 'bg-transparent'} top-[30px] {bid.left} w-[60px] h-[60px] flex flex-col justify-center items-center"
         ></div>
     {/each}

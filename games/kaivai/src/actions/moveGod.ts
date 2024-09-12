@@ -5,13 +5,20 @@ import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { CellType, CultCell } from '../definition/cells.js'
 
+export type MoveGodMetadata = Static<typeof MoveGodMetadata>
+export const MoveGodMetadata = Type.Object({
+    originalCoords: Type.Optional(AxialCoordinates),
+    influenceGained: Type.Record(Type.String(), Type.Number())
+})
+
 export type MoveGod = Static<typeof MoveGod>
 export const MoveGod = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
     Type.Object({
         type: Type.Literal(ActionType.MoveGod),
         playerId: Type.String(),
-        coords: AxialCoordinates
+        coords: AxialCoordinates,
+        metadata: Type.Optional(MoveGodMetadata)
     })
 ])
 
@@ -25,6 +32,7 @@ export class HydratedMoveGod extends HydratableAction<typeof MoveGod> implements
     declare type: ActionType.MoveGod
     declare playerId: string
     declare coords: AxialCoordinates
+    declare metadata?: MoveGodMetadata
 
     constructor(data: MoveGod) {
         super(data, MoveGodValidator)
@@ -44,6 +52,9 @@ export class HydratedMoveGod extends HydratableAction<typeof MoveGod> implements
         }
         state.cultTiles--
         state.board.addCell(cultCell)
+
+        this.metadata = { originalCoords: state.godLocation?.coords, influenceGained: {} }
+
         state.godLocation = { coords: this.coords, islandId: cultCell.islandId }
 
         const island = state.board.islands[cultCell.islandId]
@@ -52,6 +63,8 @@ export class HydratedMoveGod extends HydratableAction<typeof MoveGod> implements
             if (cell.type === CellType.Meeting) {
                 const playerState = state.getPlayerState(cell.owner)
                 playerState.influence += 1
+                const gained = this.metadata.influenceGained[cell.owner] ?? 0
+                this.metadata.influenceGained[cell.owner] = gained + 1
             }
         }
     }

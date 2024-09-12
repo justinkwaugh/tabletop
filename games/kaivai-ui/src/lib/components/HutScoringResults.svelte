@@ -7,7 +7,7 @@
     let gameSession = getContext('gameSession') as KaivaiGameSession
 </script>
 
-<div class="flex flex-row justify-start items-center space-x-2 w-full mt-2">
+<div class="flex flex-row justify-start items-center space-x-2 w-full mt-2 text-md">
     <div class="flex flex-col justify-center items-center w-full">
         <div
             class="p-2 rounded-lg grid grid-cols-[min-content_30px_min-content_min-content] gap-x-2 gap-y-1 text-center border-2 border-[#634a11]"

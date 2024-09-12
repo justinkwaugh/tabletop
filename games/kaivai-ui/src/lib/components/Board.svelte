@@ -16,6 +16,7 @@
     import sacrificeImg from '$lib/images/sacrifice.png'
 
     import { ActionType, MachineState } from '@tabletop/kaivai'
+    import { fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -172,6 +173,8 @@
         {/if}
         {#if !isEnabled(actionType)}
             <circle
+                in:fade={{ duration: 150 }}
+                out:fade={{ duration: 150 }}
                 cx={x + radius}
                 cy={y + radius}
                 r={radius}

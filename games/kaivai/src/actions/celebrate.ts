@@ -6,6 +6,11 @@ import { ActionType } from '../definition/actions.js'
 import { isCelebratableCell } from '../definition/cells.js'
 import { MachineState } from '../definition/states.js'
 
+export type CelebrateMetadata = Static<typeof CelebrateMetadata>
+export const CelebrateMetadata = Type.Object({
+    scores: Type.Record(Type.String(), Type.Number())
+})
+
 export type Celebrate = Static<typeof Celebrate>
 export const Celebrate = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
@@ -13,11 +18,7 @@ export const Celebrate = Type.Composite([
         type: Type.Literal(ActionType.Celebrate),
         playerId: Type.String(),
         islandId: Type.String(),
-        metadata: Type.Optional(
-            Type.Object({
-                scores: Type.Record(Type.String(), Type.Number())
-            })
-        )
+        metadata: Type.Optional(CelebrateMetadata)
     })
 ])
 
@@ -31,6 +32,7 @@ export class HydratedCelebrate extends HydratableAction<typeof Celebrate> implem
     declare type: ActionType.Celebrate
     declare playerId: string
     declare islandId: string
+    declare metadata?: CelebrateMetadata
 
     constructor(data: Celebrate) {
         super(data, CelebrateValidator)
@@ -65,10 +67,10 @@ export class HydratedCelebrate extends HydratableAction<typeof Celebrate> implem
         const totalFish = celebratableCells.reduce((acc, cell) => acc + cell.fish, 0)
         const bonusFish = Math.floor(totalFish / 3)
 
-        const metadata: { scores: Record<string, number> } = { scores: {} }
+        this.metadata = { scores: {} }
         for (const cell of celebratableCells) {
             const ownerState = state.getPlayerState(cell.owner)
-            metadata.scores[cell.owner] = cell.fish
+            this.metadata.scores[cell.owner] = cell.fish
             ownerState.score += cell.fish
             cell.fish = 0
         }

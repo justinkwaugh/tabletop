@@ -30,18 +30,25 @@ export function getHistoryDescriptionForAction(action?: GameAction, self?: boole
             return `delivered ${numFish} fish` // Earning X shells
         }
         case isBuild(action): {
+            let message = ''
             switch (action.hutType) {
                 case HutType.BoatBuilding: {
-                    return 'built a boat building hut'
+                    message = 'built a boat building hut'
+                    break
                 }
                 case HutType.Fishing: {
-                    return 'built a fishing hut'
+                    message = 'built a fishing hut'
+                    break
                 }
                 case HutType.Meeting: {
-                    return 'built a meeting hut'
+                    message = 'built a meeting hut'
+                    break
                 }
             }
-            break
+            if (action.metadata?.cost) {
+                message += ` at a cost of ${action.metadata.cost}`
+            }
+            return message
         }
         case isCelebrate(action): {
             return 'celebrated' // earning X points
@@ -78,7 +85,7 @@ export function getHistoryDescriptionForAction(action?: GameAction, self?: boole
             return 'An island was scored'
         }
         case isMove(action): {
-            return 'moved a boat'
+            return action.metadata?.playerSunk ? '' : 'moved a boat'
         }
         default:
             return action.type

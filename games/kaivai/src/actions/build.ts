@@ -9,6 +9,12 @@ import { MachineState } from '../definition/states.js'
 import { PhaseName } from '../definition/phases.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 
+export type BuildMetadata = Static<typeof BuildMetadata>
+export const BuildMetadata = Type.Object({
+    originalCoords: Type.Optional(AxialCoordinates),
+    cost: Type.Number()
+})
+
 export type Build = Static<typeof Build>
 export const Build = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
@@ -18,7 +24,8 @@ export const Build = Type.Composite([
         playerId: Type.String(),
         hutType: Type.Enum(HutType),
         boatId: Type.Optional(Type.String()),
-        boatCoords: Type.Optional(AxialCoordinates)
+        boatCoords: Type.Optional(AxialCoordinates),
+        metadata: Type.Optional(BuildMetadata)
     })
 ])
 
@@ -35,6 +42,7 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
     declare hutType: HutType
     declare boatId?: string
     declare boatCoords?: AxialCoordinates
+    declare metadata?: BuildMetadata
 
     constructor(data: Build) {
         super(data, BuildValidator)
@@ -57,6 +65,9 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
 
         const islandId = neighboringIslandIds[0]
 
+        let cost = 0
+        let originalCoords: AxialCoordinates | undefined
+
         // Initial huts are free
         if (state.phases.currentPhase?.name !== PhaseName.InitialHuts) {
             if (state.machineState === MachineState.TakingActions) {
@@ -73,18 +84,18 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
                 }
             }
             // Pay for building
-            const cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
+            cost = playerState.buildingCost + state.board.islands[islandId].coordList.length
             playerState.pay(cost)
         }
 
         // Move boat
         if (this.boatId && this.boatCoords) {
-            const originalLocation = playerState.boatLocations[this.boatId]
-            if (!originalLocation) {
+            originalCoords = playerState.boatLocations[this.boatId]
+            if (!originalCoords) {
                 throw Error('Boat location not found')
             }
 
-            const boat = state.board.removeBoatFrom(originalLocation)
+            const boat = state.board.removeBoatFrom(originalCoords)
             if (!boat) {
                 throw Error('Boat not found at original location')
             }
@@ -140,6 +151,8 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             playerState.initialHutsPlaced += 1
         }
         playerState.tiles -= 1
+
+        this.metadata = { originalCoords, cost }
     }
 
     static isValidPlacement(
