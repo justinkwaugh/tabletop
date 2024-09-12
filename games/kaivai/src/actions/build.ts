@@ -166,7 +166,9 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             return { valid: false, reason: 'Hut must be placed on water' }
         }
 
-        if (board.getBoatAt(placement.coords)) {
+        const boat = board.getBoatAt(placement.coords)
+
+        if (boat && !placement.boatId) {
             return { valid: false, reason: 'Hut cannot be placed on a boat' }
         }
 

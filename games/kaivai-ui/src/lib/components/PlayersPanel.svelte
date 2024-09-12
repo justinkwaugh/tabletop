@@ -20,20 +20,21 @@
         const playersAndStatesById = new Map(
             playersAndStates.map((item) => [item.playerState.playerId, item])
         )
+
         const results = gameSession.gameState.turnManager.turnOrder.map(
             (playerId) => playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
 
-        const passed = []
-        for (const [index, result] of results.entries()) {
-            if (gameSession.gameState.passedPlayers.includes(result.player.id)) {
-                passed.push(result)
-                results.splice(index, 1)
-            }
-        }
-        results.push(...passed)
+        const active = results.filter(
+            (result) => !gameSession.gameState.passedPlayers.includes(result.player.id)
+        )
+        const passed = results.filter((result) =>
+            gameSession.gameState.passedPlayers.includes(result.player.id)
+        )
 
-        return results
+        active.push(...passed)
+
+        return active
     })
     function getPlayerForState(playerState: KaivaiPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)
