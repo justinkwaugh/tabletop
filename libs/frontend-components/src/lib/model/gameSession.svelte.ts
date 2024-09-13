@@ -88,7 +88,10 @@ export class GameSession {
 
     undoableAction: GameAction | undefined = $derived.by(() => {
         // No spectators, must have actions
-        if (!this.myPlayer || this.actions.length === 0) {
+        if (
+            (!this.authorizationService.actAsAdmin && !this.myPlayer) ||
+            this.actions.length === 0
+        ) {
             return undefined
         }
 
@@ -109,6 +112,11 @@ export class GameSession {
 
             if (this.authorizationService.actAsAdmin) {
                 undoableUserAction = action
+                break
+            }
+
+            // Must have player if not admin {
+            if (!this.myPlayer) {
                 break
             }
 
@@ -141,6 +149,19 @@ export class GameSession {
         }
 
         return undoableUserAction
+    })
+
+    chosenAdminPlayerId: string | undefined = $state()
+
+    adminPlayerId: string | undefined = $derived.by(() => {
+        if (this.chosenAdminPlayerId) {
+            return this.chosenAdminPlayerId
+        }
+
+        if (this.activePlayers.length === 1) {
+            return this.activePlayers[0].id
+        }
+        return undefined
     })
 
     private playerNamesById = $derived(
@@ -212,8 +233,8 @@ export class GameSession {
             return undefined
         }
 
-        if (this.authorizationService.actAsAdmin && this.activePlayers.length === 1) {
-            return this.game.players.find((player) => player.id === this.activePlayers[0].id)
+        if (this.authorizationService.actAsAdmin && this.adminPlayerId) {
+            return this.game.players.find((player) => player.id === this.adminPlayerId)
         }
 
         return this.game.players.find((player) => player.userId === sessionUser.id)

@@ -695,8 +695,11 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        let userPlayer: Player | undefined
 
-        const userPlayer = this.findValidPlayerForUser({ user, game })
+        if (!user.roles.includes(Role.Admin)) {
+            userPlayer = this.findValidPlayerForUser({ user, game })
+        }
 
         const gameState = game.state
         if (!gameState) {
@@ -708,7 +711,7 @@ export class GameService {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
 
-        if (actionToUndo.playerId !== userPlayer.id && !user.roles.includes(Role.Admin)) {
+        if (!user.roles.includes(Role.Admin) && actionToUndo.playerId !== userPlayer?.id) {
             throw new DisallowedUndoError({
                 gameId,
                 actionId,
@@ -743,45 +746,46 @@ export class GameService {
             })
         }
 
-        if (!user.roles.includes(Role.Admin) && actions.some((action) => action.revealsInfo)) {
-            throw new DisallowedUndoError({
-                gameId,
-                actionId,
-                reason: `Cannot undo action that reveals information`
-            })
-        }
-
-        if (
-            !user.roles.includes(Role.Admin) &&
-            actions.some(
-                (action) =>
-                    action.playerId &&
-                    action.playerId !== userPlayer.id &&
-                    !this.isSameSimultaneousGroup(action, actionToUndo)
-            )
-        ) {
-            throw new DisallowedUndoError({
-                gameId,
-                actionId,
-                reason: `Cannot undo another player's actions`
-            })
-        }
-
         const redoActions = []
-        for (const action of actions) {
+        if (!user.roles.includes(Role.Admin)) {
+            if (actions.some((action) => action.revealsInfo)) {
+                throw new DisallowedUndoError({
+                    gameId,
+                    actionId,
+                    reason: `Cannot undo action that reveals information`
+                })
+            }
+
             if (
-                action.playerId &&
-                action.playerId !== userPlayer.id &&
-                this.isSameSimultaneousGroup(action, actionToUndo)
+                actions.some(
+                    (action) =>
+                        action.playerId &&
+                        action.playerId !== userPlayer?.id &&
+                        !this.isSameSimultaneousGroup(action, actionToUndo)
+                )
             ) {
-                const redoAction = structuredClone(action)
-                // Actions should be immutable once stored so it becomes a new one but the new id
-                // needs to be deterministic so that the client can generate the same one
-                redoAction.id += `-REDO-${actionToUndo.id}`
-                // These fields will be re-assigned by the game engine
-                redoAction.index = undefined
-                redoAction.undoPatch = undefined
-                redoActions.push(redoAction)
+                throw new DisallowedUndoError({
+                    gameId,
+                    actionId,
+                    reason: `Cannot undo another player's actions`
+                })
+            }
+
+            for (const action of actions) {
+                if (
+                    action.playerId &&
+                    action.playerId !== userPlayer?.id &&
+                    this.isSameSimultaneousGroup(action, actionToUndo)
+                ) {
+                    const redoAction = structuredClone(action)
+                    // Actions should be immutable once stored so it becomes a new one but the new id
+                    // needs to be deterministic so that the client can generate the same one
+                    redoAction.id += `-REDO-${actionToUndo.id}`
+                    // These fields will be re-assigned by the game engine
+                    redoAction.index = undefined
+                    redoAction.undoPatch = undefined
+                    redoActions.push(redoAction)
+                }
             }
         }
 

@@ -554,7 +554,6 @@ export class FirestoreGameStore implements GameStore {
     private async getGameState(gameId: string): Promise<GameState | undefined> {
         const doc = this.getStateCollection(gameId).doc(gameId)
         const state = (await doc.get()).data() as GameState
-        console.log(state)
         return state
     }
 

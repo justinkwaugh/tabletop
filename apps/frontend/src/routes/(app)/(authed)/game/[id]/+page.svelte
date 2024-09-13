@@ -3,11 +3,14 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import { onMount } from 'svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
+    import AdminPanel from '$lib/components/AdminPanel.svelte'
 
     let { data }: { data: { gameSession: GameSession } } = $props()
     setContext('gameSession', data.gameSession)
 
-    let { gameService, notificationService } = getContext('appContext') as AppContext
+    let { gameService, notificationService, authorizationService } = getContext(
+        'appContext'
+    ) as AppContext
     let Table: Component | null = $state(null)
 
     onMount(() => {
@@ -30,6 +33,9 @@
     })
 </script>
 
-<div class="flex w-screen overflow-auto">
+<div class="flex flex-col w-screen overflow-auto">
+    {#if authorizationService.actAsAdmin}
+        <AdminPanel />
+    {/if}
     <Table />
 </div>
