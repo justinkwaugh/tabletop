@@ -238,7 +238,7 @@
     class="rounded-lg bg-transparent p-2 text-center flex flex-row flex-wrap justify-center items-center"
 >
     <div class="flex flex-col justify-center items-center mx-8">
-        <h1 class="text-xl uppercase text-[#372b0a] kaivai-font">
+        <h1 class="text-lg md:text-xl uppercase text-[#372b0a] kaivai-font">
             {instructions}
         </h1>
         {#if gameSession.chosenAction === ActionType.PlaceScoringBid}
@@ -246,7 +246,7 @@
                 <div
                     class="p-2 flex flex-col justify-center items-center rounded-lg border-2 border-[#634a11]"
                 >
-                    <h1 class="text-lg kaivai-font uppercase">Majority</h1>
+                    <h1 class="text-md md:text-lg kaivai-font uppercase">Majority</h1>
                     <div class="flex flex-col justify-center items-start">
                         {#each gameSession.gameState.players as player}
                             <div class="flex flex-row justify-between items-center w-full">

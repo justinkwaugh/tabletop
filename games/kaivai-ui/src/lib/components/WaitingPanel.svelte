@@ -40,7 +40,9 @@
 <div class="mb-2 p-2 text-center flex flex-row flex-wrap justify-center items-center">
     <div class="flex flex-col justify-center items-center mx-4">
         {#if isScoring}
-            <h1 class="text-xl kaivai-font uppercase">Collecting other players' bids...</h1>
+            <h1 class="text-lg md:text-xl kaivai-font uppercase">
+                Collecting other players' bids...
+            </h1>
             <div class="flex flex-row justify-center items-center">
                 {#each gameSession.gameState.activePlayerIds as playerId}
                     <div class="flex flex-col justify-center items-center mx-2">
@@ -51,7 +53,7 @@
                 {/each}
             </div>
         {:else}
-            <h1 class="text-xl kaivai-font uppercase">
+            <h1 class="text-lg md:text-xl kaivai-font uppercase">
                 Waiting for <PlayerName playerId={currentPlayerId} />
                 {waitingText}
             </h1>
