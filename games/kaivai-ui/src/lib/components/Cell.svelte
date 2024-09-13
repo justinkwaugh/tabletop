@@ -103,9 +103,7 @@
             gameSession.gameState.godLocation?.coords.r === hex.r
     )
     let numFish = $derived.by(() => {
-        const storedFish = isDeliveryCell(cell) ? cell.fish : 0
-        const delivery = gameSession.chosenDeliveries.find((d) => sameCoordinates(d.coords, hex))
-        return storedFish + (delivery?.amount ?? 0)
+        return isDeliveryCell(cell) ? cell.fish : 0
     })
 
     let numDeliveredFish = $derived.by(() => {
