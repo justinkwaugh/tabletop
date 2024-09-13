@@ -20,6 +20,7 @@
     import { quartIn } from 'svelte/easing'
     import { GameSessionMode, HistoryControls } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
+    import PlayerName from './PlayerName.svelte'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -110,13 +111,7 @@
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                             {#if action.playerId}
-                                <span
-                                    class="rounded px-2 {gameSession.getPlayerBgColor(
-                                        action.playerId
-                                    )} font-medium {gameSession.getPlayerTextColor(
-                                        action.playerId
-                                    )}">{gameSession.getPlayerName(action.playerId)}</span
-                                >
+                                <PlayerName playerId={action.playerId} />
                             {/if}
                             {getDescriptionForAction(action)}
                         </p>
@@ -127,32 +122,14 @@
                                 >
                                     {#each (action as EndAuction).metadata?.participants ?? [] as participant}
                                         <div>
-                                            <span
-                                                class="rounded px-2 {gameSession.getPlayerBgColor(
-                                                    participant.playerId
-                                                )} font-medium {gameSession.getPlayerTextColor(
-                                                    participant.playerId
-                                                )}"
-                                                >{gameSession.getPlayerName(
-                                                    participant.playerId
-                                                )}</span
-                                            >
+                                            <PlayerName playerId={participant.playerId} />
                                             bid ${participant.bid}
                                         </div>
                                     {/each}
                                 </div>
                             </div>
                             <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
-                                <span
-                                    class="rounded px-2 {gameSession.getPlayerBgColor(
-                                        (action as EndAuction).winnerId
-                                    )} font-medium {gameSession.getPlayerTextColor(
-                                        (action as EndAuction).winnerId
-                                    )}"
-                                    >{gameSession.getPlayerName(
-                                        (action as EndAuction).winnerId
-                                    )}</span
-                                >
+                                <PlayerName playerId={(action as EndAuction).winnerId} />
                                 won the auction with a bid of ${(action as EndAuction).highBid}
                             </p>
                         {/if}
