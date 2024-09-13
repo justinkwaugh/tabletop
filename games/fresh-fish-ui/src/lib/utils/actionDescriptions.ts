@@ -21,7 +21,7 @@ export function getDescriptionForAction(action: GameAction) {
         case isPlaceDisk(action):
             return 'placed a disk on the board'
         case isPlaceMarket(action):
-            return 'drew a market tile and placed it on the board'
+            return 'drew and placed a market tile'
         case isPlaceStall(action):
             if (action.coords) {
                 return `placed a ${getGoodsName(action.goodsType)} stall on the board`
