@@ -213,7 +213,15 @@
                                     class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
                                     >Debug</Toggle
                                 >
-                            </li>{/if}
+                            </li>
+                            <li>
+                                <Toggle
+                                    bind:checked={authorizationService.adminCapabilitiesEnabled}
+                                    class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                    >Admin</Toggle
+                                >
+                            </li>
+                        {/if}
                         <DropdownItem onclick={logout}>Sign out</DropdownItem>
                     </Dropdown>
                 {/if}

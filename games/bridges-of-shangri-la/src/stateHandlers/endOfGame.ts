@@ -18,18 +18,21 @@ export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction
         // Record the end of game data
         const gameState = context.gameState as HydratedBridgesGameState
         const highScore = Math.max(...gameState.players.map((player) => player.score))
-        const winningIds = gameState.players
+        let winningIds = gameState.players
             .filter((player) => player.score === highScore)
             .map((player) => player.playerId)
 
-        const tiedHighScore = Math.max(
-            ...gameState.players.map((player) =>
-                gameState.board.numVillagesOccupiedByPlayer(player.playerId)
+        // If there is a tie, the player with the most villages wins
+        if (winningIds.length > 1) {
+            const mostVillages = Math.max(
+                ...winningIds.map((playerId) =>
+                    gameState.board.numVillagesOccupiedByPlayer(playerId)
+                )
             )
-        )
-        winningIds.filter(
-            (playerId) => gameState.board.numVillagesOccupiedByPlayer(playerId) === tiedHighScore
-        )
+            winningIds = winningIds.filter(
+                (playerId) => gameState.board.numVillagesOccupiedByPlayer(playerId) === mostVillages
+            )
+        }
 
         context.gameState.result = winningIds.length > 1 ? GameResult.Draw : GameResult.Win
         context.gameState.winningPlayerIds = winningIds

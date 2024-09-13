@@ -708,7 +708,7 @@ export class GameService {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
 
-        if (actionToUndo.playerId !== userPlayer.id) {
+        if (actionToUndo.playerId !== userPlayer.id && !user.roles.includes(Role.Admin)) {
             throw new DisallowedUndoError({
                 gameId,
                 actionId,
@@ -743,7 +743,7 @@ export class GameService {
             })
         }
 
-        if (actions.some((action) => action.revealsInfo)) {
+        if (!user.roles.includes(Role.Admin) && actions.some((action) => action.revealsInfo)) {
             throw new DisallowedUndoError({
                 gameId,
                 actionId,
@@ -752,6 +752,7 @@ export class GameService {
         }
 
         if (
+            !user.roles.includes(Role.Admin) &&
             actions.some(
                 (action) =>
                     action.playerId &&
@@ -839,16 +840,6 @@ export class GameService {
                 }
 
                 gameUpdates.activePlayerIds = newState.activePlayerIds
-
-                // Need to get prior action too?
-
-                // const lastPlayerAction = findLast(
-                //     existingActions,
-                //     (a) => a.playerId != undefined
-                // )
-                // if (lastPlayerAction) {
-                //     gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
-                // }
                 return UpdateValidationResult.Proceed
             }
         })

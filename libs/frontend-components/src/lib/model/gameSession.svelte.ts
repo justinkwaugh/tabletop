@@ -98,13 +98,18 @@ export class GameSession {
             const action = this.actions[i]
 
             // Cannot undo beyond revealed info
-            if (action.revealsInfo) {
+            if (action.revealsInfo && !this.authorizationService.actAsAdmin) {
                 break
             }
 
             // Skip system actions
             if (action.source !== ActionSource.User) {
                 continue
+            }
+
+            if (this.authorizationService.actAsAdmin) {
+                undoableUserAction = action
+                break
             }
 
             // Other player actions can be skipped if we find a simultaneous group
@@ -206,10 +211,19 @@ export class GameSession {
         if (!sessionUser) {
             return undefined
         }
+
+        if (this.authorizationService.actAsAdmin && this.activePlayers.length === 1) {
+            return this.game.players.find((player) => player.id === this.activePlayers[0].id)
+        }
+
         return this.game.players.find((player) => player.userId === sessionUser.id)
     })
 
     isMyTurn: boolean = $derived.by(() => {
+        if (this.authorizationService.actAsAdmin) {
+            return true
+        }
+
         const myPlayer = this.myPlayer
         if (!myPlayer) {
             return false
