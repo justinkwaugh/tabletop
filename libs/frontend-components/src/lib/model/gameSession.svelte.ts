@@ -65,6 +65,7 @@ export class GameSession {
     currentHistoryIndex: number = $state(0)
     playingHistory: boolean = $state(false)
     playTimer: ReturnType<typeof setTimeout> | null = null
+    exitTimer: ReturnType<typeof setTimeout> | null = null
 
     // We swap between the real game and the history snapshot as needed
     visibleGameState: GameState = $derived.by(() => {
@@ -582,8 +583,7 @@ export class GameSession {
         this.historyGame.state = gameSnapshot.state
 
         if (this.currentHistoryIndex === this.actions.length - 1) {
-            this.exitHistoryMode()
-            this.stopHistoryPlayback()
+            this.delayedExitHistoryMode()
         }
 
         if (stopPlayback) {
@@ -680,12 +680,27 @@ export class GameSession {
     }
 
     private enterHistoryMode() {
+        if (this.exitTimer) {
+            clearTimeout(this.exitTimer)
+            this.exitTimer = null
+        }
+
         if (this.mode === GameSessionMode.History) {
             return
         }
         this.historyGame = $state.snapshot(this.game)
         this.mode = GameSessionMode.History
         this.currentHistoryIndex = this.actions.length - 1
+    }
+
+    private delayedExitHistoryMode() {
+        if (this.exitTimer) {
+            clearTimeout(this.exitTimer)
+            this.exitTimer = null
+        }
+        this.exitTimer = setTimeout(() => {
+            this.exitHistoryMode()
+        }, 750)
     }
 
     private exitHistoryMode() {
