@@ -2,6 +2,7 @@
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { MachineState, PhaseName } from '@tabletop/kaivai'
+    import { flip } from 'svelte/animate'
     let gameSession = getContext('gameSession') as KaivaiGameSession
     const phase = $derived.by(() => {
         switch (gameSession.gameState.phases.currentPhase?.name) {
@@ -91,8 +92,9 @@
     <div class="flex">
         <div class="flex flex-row justify-center items-center gap-1 max-lg:hidden">
             <h1 class="uppercase text-2xl text-[#f5e397] kaivai-font me-2">Glory</h1>
-            {#each playersByScore as player}
+            {#each playersByScore as player (player.playerId)}
                 <div
+                    animate:flip={{ duration: 200 }}
                     class="px-2 flex flex-row justify-center items-center rounded-lg border border-gray-800 {gameSession.getPlayerTextColor(
                         player.playerId
                     )} {gameSession.getPlayerBgColor(player.playerId)}"

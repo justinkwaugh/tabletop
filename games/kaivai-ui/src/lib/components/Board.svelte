@@ -17,6 +17,7 @@
 
     import { ActionType, MachineState } from '@tabletop/kaivai'
     import { fade } from 'svelte/transition'
+    import { fadeScale } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -147,19 +148,23 @@
             stroke-width="4"
         ></circle>
         {#if gameSession.gameState.influence[actionType] > 0}
-            <g class="pointer-events-none">
+            <g
+                transform="translate ({x}, {y})"
+                in:fade={{ duration: 200 }}
+                out:fade={{ duration: 200 }}
+                class="pointer-events-none"
+            >
                 <image
+                    transform="translate ({radius - 25}, {radius + 15})"
                     href={influenceImg}
-                    x={x + radius - 25}
-                    y={y + radius + 15}
                     width={50}
                     height={50}
                 >
                 </image>
                 <text
                     class="kaivai-font select-none"
-                    x={x + radius}
-                    y={y + radius + 43}
+                    x={radius}
+                    y={radius + 43}
                     text-anchor="middle"
                     dominant-baseline="middle"
                     font-size="40"

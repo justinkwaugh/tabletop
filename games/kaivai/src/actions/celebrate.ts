@@ -76,6 +76,8 @@ export class HydratedCelebrate extends HydratableAction<typeof Celebrate> implem
         }
 
         playerState.score += bonusFish
+        const score = this.metadata.scores[playerState.playerId] ?? 0
+        this.metadata.scores[playerState.playerId] = score + bonusFish
     }
 
     static isValidIsland(

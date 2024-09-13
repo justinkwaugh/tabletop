@@ -26,7 +26,7 @@
         isChooseScoringIsland
     } from '@tabletop/kaivai'
     import { fadeScale, GameSessionMode } from '@tabletop/frontend-components'
-    import { receive, send } from '$lib/utils/transition'
+    import { flipIn, flipInterest, flipKey, flipOut, saveFlipState } from '$lib/utils/transition'
     import { fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
@@ -69,6 +69,33 @@
             return cell.boat
         }
         return undefined
+    })
+
+    let boatNode: Element | undefined = $state()
+
+    // This is required to make the boatId live long enough to be used in the flip transitions
+    let boatId: string | undefined = $state()
+    $effect(() => {
+        const newBoatId = boat?.id
+        // On a boatId change we have to manually intiate parts of the flip because the in/out transitions
+        // will not be triggered
+        if (newBoatId && boatId && newBoatId !== boatId) {
+            if (boatNode) {
+                // To allow the corresponding in to be triggered (unsink the boat)
+                saveFlipState(boatNode, boatId)
+
+                // To flip the boat in (sink the boat)
+                flipInterest(newBoatId) // Make sure the out will store the flip state
+
+                // Flip after the out transition has a chance to store the state
+                setTimeout(() => {
+                    flipKey(newBoatId, { targets: boatNode, duration: 0.2 })
+                }, 0)
+            }
+            boatId = newBoatId
+        } else {
+            boatId = newBoatId
+        }
     })
 
     let hasGod = $derived(
@@ -576,8 +603,14 @@
             >
         </g>
     {/if}
-    {#if hasBoat}
-        <g class="z-40" in:receive={{ key: 'boat' }} out:send={{ key: 'boat' }}>
+    {#if hasBoat && boatId}
+        <g
+            class="z-40"
+            bind:this={boatNode}
+            in:flipIn={{ key: boatId, duration: 200 }}
+            out:flipOut={{ key: boatId }}
+            data-flip-id={boatId}
+        >
             <svg
                 version="1.1"
                 xmlns="http://www.w3.org/2000/svg"
@@ -602,7 +635,11 @@
     {/if}
 
     {#if hasGod}
-        <g in:receive={{ key: 'god' }} out:send={{ key: 'god' }}>
+        <g
+            in:flipIn={{ key: 'god', duration: 200 }}
+            out:flipOut={{ key: 'god' }}
+            data-flip-id="god"
+        >
             <svg
                 fill="#000000"
                 x={-30}
