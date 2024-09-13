@@ -4,6 +4,8 @@
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { MachineState } from '@tabletop/fresh-fish'
     import { Button } from 'flowbite-svelte'
+    import PlayerName from './PlayerName.svelte'
+    import { getGoodsName } from '$lib/utils/goodsNames.js'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
 
@@ -16,7 +18,7 @@
     let stallName = $derived.by(() => {
         const chosenTile = gameSession.gameState.chosenTile
         if (isStallTile(chosenTile)) {
-            return gameSession.getGoodsName(chosenTile.goodsType)
+            return getGoodsName(chosenTile.goodsType)
         }
         return ''
     })
@@ -38,55 +40,24 @@
                 {#each gameSession.gameState.activePlayerIds as playerId}
                     <div class="flex flex-col justify-center items-center mx-2">
                         <h1 class="text-lg">
-                            <span
-                                class="rounded px-2 {gameSession.getPlayerBgColor(
-                                    playerId
-                                )} font-medium {gameSession.getPlayerTextColor(playerId)}"
-                                >{gameSession.getPlayerName(playerId)}</span
-                            >
+                            <PlayerName {playerId} />
                         </h1>
                     </div>
                 {/each}
             </div>
         {:else if isMarketPlacement}
             <h1 class="text-lg">
-                Waiting for <span
-                    class="rounded px-2 {gameSession.getPlayerBgColor(
-                        currentPlayerId
-                    )} font-medium {gameSession.getPlayerTextColor(currentPlayerId)}"
-                    >{gameSession.getPlayerName(currentPlayerId)}</span
-                > to place their market tile...
+                Waiting for <PlayerName playerId={currentPlayerId} /> to place their market tile...
             </h1>
         {:else if isStallPlacement}
             <h1 class="text-lg">
-                Waiting for <span
-                    class="rounded px-2 {gameSession.getPlayerBgColor(
-                        currentPlayerId
-                    )} font-medium {gameSession.getPlayerTextColor(currentPlayerId)}"
-                    >{gameSession.getPlayerName(currentPlayerId)}</span
-                >
-                to place their {stallName} stall tile...
+                Waiting for <PlayerName playerId={currentPlayerId} /> to place their {stallName} stall
+                tile...
             </h1>
         {:else}
             <h1 class="text-lg">
-                Waiting for <span
-                    class="rounded px-2 {gameSession.getPlayerBgColor(
-                        currentPlayerId
-                    )} font-medium {gameSession.getPlayerTextColor(currentPlayerId)}"
-                    >{gameSession.getPlayerName(currentPlayerId)}</span
-                > to take their turn...
+                Waiting for <PlayerName playerId={currentPlayerId} /> to take their turn...
             </h1>
-        {/if}
-        {#if gameSession.undoableAction}
-            <Button
-                onclick={async () => {
-                    await gameSession.undo()
-                }}
-                size="xs"
-                class="mt-4"
-                color="light"
-                >Undo {gameSession.nameForActionType(gameSession.undoableAction.type)}</Button
-            >
         {/if}
     </div>
 </div>

@@ -13,6 +13,7 @@
     import { Button, ButtonGroup } from 'flowbite-svelte'
     import { generateBoard, Scorer } from '@tabletop/fresh-fish'
     import { generateSeed, getPrng, range } from '@tabletop/common'
+    import LastActionDescription from './LastActionDescription.svelte'
     let gameSession = getContext('gameSession') as FreshFishGameSession
 
     function generateABoard(size: number) {
@@ -50,7 +51,10 @@
         <div class="shrink-0">
             {#if gameSession.gameState.result}
                 <GameEndPanel />
+            {:else if gameSession.mode === GameSessionMode.History}
+                <LastActionDescription />
             {:else if gameSession.mode === GameSessionMode.Play}
+                <LastActionDescription />
                 {#if gameSession.isMyTurn}
                     <ActionPanel />
                 {:else}

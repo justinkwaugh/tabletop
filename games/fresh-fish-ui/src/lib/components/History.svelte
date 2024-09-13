@@ -19,6 +19,7 @@
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
     import { GameSessionMode, HistoryControls } from '@tabletop/frontend-components'
+    import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -49,44 +50,20 @@
         return reversed
     })
 
-    function getDescriptionForAction(action: GameAction) {
-        switch (true) {
-            case isDrawTile(action):
-                let tileDesc = action.metadata?.chosenTile
-                    ? gameSession.getTileName(action.metadata.chosenTile)
-                    : ''
-                return `drew a ${tileDesc} tile${isStallTile(action.metadata?.chosenTile) ? ' and put it up for auction' : ''}`
-            case isPlaceDisk(action):
-                return 'placed a disk on the board'
-            case isPlaceMarket(action):
-                return 'drew a market tile and placed it on the board'
-            case isPlaceStall(action):
-                if (action.coords) {
-                    return `placed a ${gameSession.getGoodsName(action.goodsType)} stall on the board`
-                } else {
-                    return `had to place a ${gameSession.getGoodsName(action.goodsType)} stall, but did not have a reserved location so the stall was discarded`
-                }
-            case isEndAuction(action):
-                return 'The auction has ended:'
-            default:
-                return action.type
-        }
-    }
-
     function highlight(action: GameAction) {
-        if (
-            (isPlaceDisk(action) || isPlaceMarket(action) || isPlaceStall(action)) &&
-            action.coords !== undefined
-        ) {
-            if (unhighlightTimeout) {
-                clearTimeout(unhighlightTimeout)
-            }
-
-            gameSession.highlightCoords(action.coords)
+        if (gameSession.mode === GameSessionMode.History) {
+            return
         }
+        if (unhighlightTimeout) {
+            clearTimeout(unhighlightTimeout)
+        }
+        gameSession.setHighlightedCoordsForAction(action)
     }
 
     function unhighlight() {
+        if (gameSession.mode === GameSessionMode.History) {
+            return
+        }
         if (unhighlightTimeout) {
             clearTimeout(unhighlightTimeout)
         }

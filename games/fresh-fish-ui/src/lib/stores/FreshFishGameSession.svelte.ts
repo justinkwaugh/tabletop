@@ -17,62 +17,39 @@ import {
     isDrawTile,
     isMarketTile,
     Expropriator,
-    Tile,
-    isStallTile
+    isPlaceDisk,
+    isPlaceMarket,
+    isPlaceStall
 } from '@tabletop/fresh-fish'
 import { type GameAction } from '@tabletop/common'
-import { uiBgColorForPlayer, uiColorForPlayer } from '$lib/utils/playerColors'
+import { uiBgColorForPlayer, uiColorForPlayer } from '$lib/utils/playerColors.js'
 
 export class FreshFishGameSession extends GameSession {
     chosenAction: string | undefined = $state(undefined)
 
-    hydratedState: HydratedFreshFishGameState = $derived.by(() => {
-        return new HydratedFreshFishGameState(this.gameState)
+    gameState = $derived.by(() => {
+        return new HydratedFreshFishGameState(this.visibleGameState as FreshFishGameState)
     })
-
-    get gameState(): FreshFishGameState {
-        return this.visibleGameState as FreshFishGameState
-    }
 
     previewExpropriateCoords: Coordinates[] = $state([])
     highlightedCoords: Coordinates | undefined = $state()
 
     getPlayerBgColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
-        return this.colorBlind ? getColorBlindBgColor(playerColor) : uiBgColorForPlayer(playerColor)
+        return this.colorBlind && !this.isActingAdmin
+            ? getColorBlindBgColor(playerColor)
+            : uiBgColorForPlayer(playerColor)
     }
 
     getPlayerUiColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
-        return this.colorBlind ? getColorBlindColor(playerColor) : uiColorForPlayer(playerColor)
+        return this.colorBlind && !this.isActingAdmin
+            ? getColorBlindColor(playerColor)
+            : uiColorForPlayer(playerColor)
     }
 
     getPlayerTextColor(playerId?: string) {
         return this.getPlayerColor(playerId) === 'yellow' ? 'text-black' : 'text-white'
-    }
-
-    getGoodsName(goodsType: string) {
-        switch (goodsType) {
-            case GoodsType.Cheese:
-                return 'cheese'
-            case GoodsType.Fish:
-                return 'fish'
-            case GoodsType.IceCream:
-                return 'gelato'
-            case GoodsType.Lemonade:
-                return 'soda'
-            default:
-                return ''
-        }
-    }
-
-    getTileName(tile: Tile) {
-        switch (true) {
-            case isMarketTile(tile):
-                return 'market'
-            case isStallTile(tile):
-                return `${this.getGoodsName(tile.goodsType)} stall`
-        }
     }
 
     nameForActionType(actionType: string) {
@@ -93,7 +70,7 @@ export class FreshFishGameSession extends GameSession {
     }
 
     previewExpropriation(coords: Coordinates) {
-        const expropriator = new Expropriator(this.hydratedState.board, coords)
+        const expropriator = new Expropriator(this.gameState.board, coords)
         const { expropriatedCoords } = expropriator.calculateExpropriation()
         this.previewExpropriateCoords = expropriatedCoords
     }
@@ -109,6 +86,28 @@ export class FreshFishGameSession extends GameSession {
             }
         }
         return false
+    }
+
+    setHighlightedCoordsForAction(action: GameAction) {
+        switch (true) {
+            case isPlaceDisk(action) || isPlaceMarket(action) || isPlaceStall(action):
+                this.highlightCoords((action as PlaceDisk).coords)
+                break
+            default:
+                this.clearHighlightedCoords()
+        }
+    }
+
+    override onHistoryAction(action?: GameAction) {
+        if (!action) {
+            this.clearHighlightedCoords()
+            return
+        }
+        this.setHighlightedCoordsForAction(action)
+    }
+
+    override onHistoryExit() {
+        this.clearHighlightedCoords()
     }
 
     highlightCoords(coords: Coordinates) {

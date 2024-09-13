@@ -4,6 +4,7 @@
     import { GameResult } from '@tabletop/common'
     import { fade } from 'svelte/transition'
     import { Scorer } from '@tabletop/fresh-fish'
+    import { getGoodsName } from '$lib/utils/goodsNames'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
 
@@ -31,9 +32,8 @@
                         )} font-medium {gameSession.getPlayerTextColor(winner)}"
                         >{gameSession.getPlayerName(winner)}</span
                     >
-                    wins with a score of {gameSession.hydratedState.getPlayerState(
-                        winner ?? 'anyone'
-                    )?.score}
+                    wins with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')
+                        ?.score}
                 </h1>
             {:else}
                 <h1 class="text-lg">
@@ -47,7 +47,7 @@
                             )} font-medium {gameSession.getPlayerTextColor(winner)}"
                             >{gameSession.getPlayerName(winner)}</span
                         >
-                    {/each} tied with a score of {gameSession.hydratedState.getPlayerState(
+                    {/each} tied with a score of {gameSession.gameState.getPlayerState(
                         gameSession.gameState.winningPlayerIds[0]
                     )?.score}
                 </h1>
@@ -70,7 +70,7 @@
                             {#each player.stalls as stall}
                                 <div class="flex flex-row justify-between items-center w-full">
                                     <div class="mr-8">
-                                        {gameSession.getGoodsName(stall.goodsType)}
+                                        {getGoodsName(stall.goodsType)}
                                     </div>
                                     <div>
                                         -{stall.distance

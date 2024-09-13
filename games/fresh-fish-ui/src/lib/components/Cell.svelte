@@ -59,19 +59,19 @@
         (interacting &&
             gameSession.chosenAction === ActionType.PlaceDisk &&
             HydratedPlaceDisk.isValidCellForPlacement(
-                gameSession.hydratedState,
+                gameSession.gameState,
                 coords,
                 gameSession.myPlayer?.id ?? ''
             )) ||
             (gameSession.chosenAction === ActionType.PlaceStall &&
                 HydratedPlaceStall.isValidCellForPlacement(
-                    gameSession.hydratedState,
+                    gameSession.gameState,
                     coords,
                     gameSession.myPlayer?.id ?? ''
                 )) ||
             (gameSession.chosenAction === ActionType.PlaceMarket &&
                 HydratedPlaceMarket.isValidCellForPlacement(
-                    gameSession.hydratedState,
+                    gameSession.gameState,
                     coords,
                     gameSession.myPlayer?.id ?? ''
                 ))
@@ -130,7 +130,7 @@
             gameSession.chosenAction = undefined
             showBorder = false
         } else if (gameSession.chosenAction === ActionType.PlaceStall) {
-            const goodsType = gameSession.hydratedState.getChosenStallType()
+            const goodsType = gameSession.gameState.getChosenStallType()
             if (!goodsType) {
                 return
             }
@@ -151,7 +151,6 @@
 
 <div
     role="button"
-    tabindex={tabIndex}
     onfocus={() => {}}
     onclick={() => handleClick()}
     onkeypress={() => handleClick()}

@@ -202,7 +202,7 @@ export class GameSession {
     })
 
     private getPreferredColor(user?: User): PlayerColor | undefined {
-        if (!user || !user.preferences) {
+        if (!user || !user.preferences || this.isActingAdmin) {
             return undefined
         }
 
@@ -266,6 +266,10 @@ export class GameSession {
     // For admin users
     showDebug: boolean = $derived.by(() => {
         return this.authorizationService.showDebug
+    })
+
+    isActingAdmin: boolean = $derived.by(() => {
+        return this.authorizationService.actAsAdmin
     })
 
     mode: GameSessionMode = $state(GameSessionMode.Play)
@@ -585,6 +589,9 @@ export class GameSession {
                 this.shouldAutoStepAction(this.actions[this.currentHistoryIndex]))
         )
         this.historyGame.state = gameSnapshot.state
+        this.onHistoryAction(
+            this.currentHistoryIndex >= 0 ? this.actions[this.currentHistoryIndex] : undefined
+        )
 
         if (stopPlayback) {
             this.stopHistoryPlayback()
@@ -616,6 +623,7 @@ export class GameSession {
                 this.shouldAutoStepAction(nextAction))
         )
         this.historyGame.state = gameSnapshot.state
+        this.onHistoryAction(this.actions[this.currentHistoryIndex])
 
         if (this.currentHistoryIndex === this.actions.length - 1) {
             this.delayedExitHistoryMode()
@@ -735,7 +743,7 @@ export class GameSession {
         }
         this.exitTimer = setTimeout(() => {
             this.exitHistoryMode()
-        }, 750)
+        }, 500)
     }
 
     private exitHistoryMode() {
@@ -745,6 +753,15 @@ export class GameSession {
         this.mode = GameSessionMode.Play
         this.historyGame = undefined
         this.currentHistoryIndex = 0
+        this.onHistoryExit()
+    }
+
+    onHistoryAction(_action?: GameAction) {
+        // this is a template method
+    }
+
+    onHistoryExit() {
+        // this is a template method
     }
 
     private rollbackActions(priorState: GameState) {

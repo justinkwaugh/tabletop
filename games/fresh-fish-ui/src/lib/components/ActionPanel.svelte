@@ -9,7 +9,7 @@
     let gameSession = getContext('gameSession') as FreshFishGameSession
     let bidValue = $state(0)
     let playerState = $derived.by(() =>
-        gameSession.hydratedState.players.find((p) => p.playerId === gameSession.myPlayer?.id)
+        gameSession.gameState.players.find((p) => p.playerId === gameSession.myPlayer?.id)
     )
 
     function chooseAction(action: string) {
@@ -87,7 +87,7 @@
     class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row flex-wrap justify-center items-center"
 >
     {#if gameSession.chosenAction === ActionType.PlaceBid}
-        <StallTile size={90} goodsType={gameSession.hydratedState.getChosenStallType()} />
+        <StallTile size={90} goodsType={gameSession.gameState.getChosenStallType()} />
     {/if}
     <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text-lg">{instructions}</h1>
@@ -126,7 +126,7 @@
                 <div class="my-2">
                     <StallTile
                         playerId={gameSession.myPlayer?.id}
-                        goodsType={gameSession.hydratedState.getChosenStallType()}
+                        goodsType={gameSession.gameState.getChosenStallType()}
                     />
                 </div>
             {/if}
