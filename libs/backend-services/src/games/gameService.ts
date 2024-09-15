@@ -594,8 +594,6 @@ export class GameService {
                     }
 
                     let newActionIndex = existingState.actionCount
-
-                    // Need to delete all the undone actions after this
                     actions.forEach((action) => {
                         action.index = newActionIndex
                         newActionIndex += 1

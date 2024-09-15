@@ -20,6 +20,7 @@ export enum GameSyncStatus {
 export type Game = Static<typeof Game>
 export const Game = Type.Object({
     id: Type.String(),
+    version: Type.Optional(Type.Number()),
     typeId: Type.String(),
     status: Type.Enum(GameStatus),
     isPublic: Type.Boolean(),

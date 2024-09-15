@@ -17,7 +17,12 @@ import {
     GameStatus,
     generateSeed
 } from '@tabletop/common'
-import { AlreadyExistsError, NotFoundError, UnknownStorageError } from '../stores/errors.js'
+import {
+    AlreadyExistsError,
+    MissingRequiredFieldError,
+    NotFoundError,
+    UnknownStorageError
+} from '../stores/errors.js'
 import { StoredAction } from '../model/storedAction.js'
 import { StoredGame } from '../model/storedGame.js'
 import { StoredState } from '../model/storedState.js'
@@ -26,6 +31,9 @@ import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { ActionUndoValidator, ActionUpdateValidator, GameStore } from '../stores/gameStore.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 import { nanoid } from 'nanoid'
+import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
+
+const ACTION_CHUNK_SIZE = 100
 
 export class FirestoreGameStore implements GameStore {
     readonly games: CollectionReference
@@ -225,6 +233,7 @@ export class FirestoreGameStore implements GameStore {
         priorState: GameState
     }> {
         const actionCollection = this.getActionCollection(gameId)
+        const actionChunkCollection = this.getActionChunkCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
 
         const transactionBody = async (
@@ -275,6 +284,14 @@ export class FirestoreGameStore implements GameStore {
                         }
                 }
             }
+
+            const existingChunks = await this.getChunksForActions(
+                storedActions,
+                actionChunkCollection,
+                transaction
+            )
+            this.addActionsToChunks(storedActions, existingChunks)
+
             const updatedGame = structuredClone(existingGame)
             gameUpdates.updatedAt = new Date()
             gameUpdates.lastActionAt = gameUpdates.updatedAt
@@ -302,6 +319,16 @@ export class FirestoreGameStore implements GameStore {
                 action.updatedAt = updateDate
             })
 
+            for (const chunk of existingChunks) {
+                chunk.updatedAt = updateDate
+                if (!chunk.createdAt) {
+                    chunk.createdAt = updateDate
+                    transaction.create(actionChunkCollection.doc(chunk.id), chunk)
+                } else {
+                    transaction.set(actionChunkCollection.doc(chunk.id), chunk)
+                }
+            }
+
             storedActions.forEach((action) => {
                 transaction.create(actionCollection.doc(action.id), action)
             })
@@ -327,6 +354,60 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    private chunkIdForActionIndex(index: number): string {
+        return `chunk-${Math.floor(index / ACTION_CHUNK_SIZE)}`
+    }
+
+    private async getChunksForActions(
+        actions: StoredAction[],
+        collection: CollectionReference,
+        transaction: Transaction
+    ): Promise<StoredActionChunk[]> {
+        const chunkIds = new Set<string>()
+        for (const action of actions) {
+            if (action.index === undefined) {
+                throw new MissingRequiredFieldError({
+                    type: 'GameAction',
+                    id: action.id,
+                    field: 'index'
+                })
+            }
+            const chunkId = this.chunkIdForActionIndex(action.index)
+            chunkIds.add(chunkId)
+        }
+
+        const chunkRefs = Array.from(chunkIds).map((chunkId) => collection.doc(chunkId))
+
+        return (await transaction.getAll(...chunkRefs))
+            .map((doc) => doc.data())
+            .filter((data) => data !== undefined) as StoredActionChunk[]
+    }
+
+    private addActionsToChunks(actions: StoredAction[], chunks: StoredActionChunk[]) {
+        const chunkMap = new Map<string, StoredActionChunk>()
+        chunks.forEach((chunk) => chunkMap.set(chunk.id, chunk))
+
+        for (const action of actions) {
+            const chunkId = this.chunkIdForActionIndex(action.index!)
+            const chunk = chunkMap.get(chunkId)
+
+            if (chunk) {
+                // Find and validate insertion index
+                // update end action index
+                chunk.actions.push(action)
+            } else {
+                const newChunk: StoredActionChunk = {
+                    id: chunkId,
+                    gameId: action.gameId,
+                    startIndex: action.index,
+                    endIndex: action.index + 1,
+                    actions: [action]
+                }
+                chunkMap.set(chunkId, newChunk)
+            }
+        }
+    }
+
     async undoActionsFromGame({
         gameId,
         actions,
@@ -346,6 +427,7 @@ export class FirestoreGameStore implements GameStore {
         priorState: GameState
     }> {
         const actionCollection = this.getActionCollection(gameId)
+        const actionChunkCollection = this.getActionChunkCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
 
         const transactionBody = async (
@@ -371,6 +453,8 @@ export class FirestoreGameStore implements GameStore {
             if (!existingState) {
                 throw new NotFoundError({ type: 'GameState', id: gameId })
             }
+
+            // Get the chunks which contain the actions
 
             const actionRefs = actions.map((action) => actionCollection.doc(action.id))
             const existingActions: StoredAction[] = (await transaction.getAll(...actionRefs))
@@ -417,6 +501,7 @@ export class FirestoreGameStore implements GameStore {
             Object.assign(updatedGame, gameUpdates)
             updatedGame.state = state
 
+            // Update chunks
             existingActions.forEach((action) => {
                 transaction.delete(actionCollection.doc(action.id))
             })
@@ -425,6 +510,7 @@ export class FirestoreGameStore implements GameStore {
                 // We keep the create/ update as the original
                 transaction.create(actionCollection.doc(action.id), action)
             })
+
             transaction.update(this.games.doc(gameId), gameUpdates)
             transaction.set(stateCollection.doc(gameId), state)
 
@@ -450,6 +536,7 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    // Needs game to know if chunks or not
     async findActionsForGame(gameId: string): Promise<GameAction[]> {
         const actionCollection = this.getActionCollection(gameId)
         try {
@@ -461,6 +548,7 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    // would need index
     async findActionById(game: Game, actionId: string): Promise<GameAction | undefined> {
         const actionCollection = this.getActionCollection(game.id)
         const doc = actionCollection.doc(actionId)
@@ -565,6 +653,14 @@ export class FirestoreGameStore implements GameStore {
             .withConverter(actionConverter)
     }
 
+    private getActionChunkCollection(gameId: string): CollectionReference {
+        return this.firestore
+            .collection('games')
+            .doc(gameId)
+            .collection('actionChunks')
+            .withConverter(actionChunkConverter)
+    }
+
     private getStateCollection(gameId: string): CollectionReference {
         return this.firestore
             .collection('games')
@@ -619,6 +715,10 @@ const gameConverter = {
             data.winningPlayerIds = []
         }
 
+        if (!data.version) {
+            data.version = 1
+        }
+
         // Convert back to dates
         data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
         data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
@@ -670,5 +770,24 @@ const actionConverter = {
         data.deletedAt = data.deletedAt ? (data.deletedAt as Timestamp).toDate() : undefined
 
         return data as GameAction
+    }
+}
+
+const actionChunkConverter = {
+    toFirestore(chunk: ActionChunk): PartialWithFieldValue<StoredActionChunk> {
+        const docData = structuredClone(chunk) as unknown as StoredActionChunk
+        docData.actionsData = JSON.stringify(chunk.actions)
+        delete docData.actions
+        return docData
+    },
+    fromFirestore(snapshot: QueryDocumentSnapshot): ActionChunk {
+        const data = snapshot.data() as StoredActionChunk
+        if (typeof data.actionsData == 'string') {
+            data.actions = JSON.parse(data.actionsData)
+        }
+        delete data.actionsData
+        data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
+        data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
+        return data as ActionChunk
     }
 }

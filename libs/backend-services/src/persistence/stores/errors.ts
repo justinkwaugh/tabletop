@@ -2,6 +2,7 @@ import { BaseError } from '@tabletop/common'
 
 enum StorageError {
     AlreadyExists = 'AlreadyExistsError',
+    MissingRequiredField = 'MissingRequiredFieldError',
     InvalidId = 'InvalidIDError',
     NotFound = 'NotFoundError',
     AuthenticationVerificationFailed = 'AuthenticationVerificationFailedError',
@@ -30,6 +31,26 @@ export class AlreadyExistsError extends BaseError {
     }
 }
 
+export class MissingRequiredFieldError extends BaseError {
+    constructor({
+        type,
+        id,
+        field,
+        cause
+    }: {
+        type: string
+        id: string
+        field: string
+        cause?: Error
+    }) {
+        super({
+            name: StorageError.MissingRequiredField,
+            message: `Object of type ${type} with id ${id} is missing data for field ${field}`,
+            metadata: { type, id, field },
+            cause
+        })
+    }
+}
 export class InvalidIdError extends BaseError {
     constructor({ type, id }: { type: string; id: string }) {
         super({
