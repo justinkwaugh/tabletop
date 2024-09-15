@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { GameSessionMode, ScalingWrapper, AdminPanel } from '@tabletop/frontend-components'
+    import {
+        GameSessionMode,
+        ScalingWrapper,
+        AdminPanel,
+        HistoryControls
+    } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import History from '$lib/components/History.svelte'
@@ -44,6 +49,9 @@
             <ScalingWrapper justify={'center'} controls={'top-left'}>
                 <Board />
             </ScalingWrapper>
+        </div>
+        <div class="sm:hidden shrink-0 mt-2 p-2 rounded-lg border-2 border-gray-700">
+            <HistoryControls />
         </div>
     </div>
     {#if gameSession.showDebug}

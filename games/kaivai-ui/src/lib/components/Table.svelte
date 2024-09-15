@@ -114,6 +114,11 @@
                     </div>
                 </ScalingWrapper>
             </div>
+            <div
+                class="mt-2 sm:hidden shrink-0 grow-0 p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]"
+            >
+                <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-[#cabb7a]" />
+            </div>
         </div>
         {#if gameSession.showDebug}
             <div class="flex flex-col space-y-2 shrink-0 grow-0 w-[400px]">
