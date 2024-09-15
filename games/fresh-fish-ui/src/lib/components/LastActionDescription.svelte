@@ -21,7 +21,7 @@
 
 {#if lastAction}
     <div
-        class="rounded-lg bg-transparent text-gray-200 p-2 text-center flex flex-row flex-wrap justify-center items-center mb-2"
+        class="rounded-lg bg-transparent text-gray-200 p-2 text-center flex flex-row justify-center items-center mb-2"
     >
         <div class="flex flex-col justify-center items-center mx-8">
             <h1 class="text-lg">
