@@ -46,16 +46,16 @@
                 {/each}
             </div>
         {:else if isMarketPlacement}
-            <h1 class="text-lg">
+            <h1 class="text-lg text-pretty">
                 Waiting for <PlayerName playerId={currentPlayerId} /> to place their market tile...
             </h1>
         {:else if isStallPlacement}
-            <h1 class="text-lg">
+            <h1 class="text-lg text-pretty">
                 Waiting for <PlayerName playerId={currentPlayerId} /> to place their {stallName} stall
                 tile...
             </h1>
         {:else}
-            <h1 class="text-lg">
+            <h1 class="text-lg text-pretty">
                 Waiting for <PlayerName playerId={currentPlayerId} /> to take their turn...
             </h1>
         {/if}

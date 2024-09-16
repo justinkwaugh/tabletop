@@ -24,7 +24,7 @@
         class="rounded-lg bg-transparent text-gray-200 p-2 text-center flex flex-row justify-center items-center mb-2"
     >
         <div class="flex flex-col justify-center items-center mx-8">
-            <h1 class="text-lg">
+            <h1 class="text-lg text-pretty">
                 {#if lastAction && lastAction.playerId}
                     <PlayerName playerId={lastAction.playerId} />
                 {/if}
