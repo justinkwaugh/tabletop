@@ -31,7 +31,22 @@
             gameService.currentGameSession = undefined
         }
     })
+
+    function onKeyDown(event: KeyboardEvent) {
+        event.preventDefault()
+        if (event.key === 'ArrowUp') {
+            data.gameSession.goToMyNextTurn()
+        } else if (event.key === 'ArrowDown') {
+            data.gameSession.goToMyPreviousTurn()
+        } else if (event.key === 'ArrowLeft') {
+            data.gameSession.stepBackward()
+        } else if (event.key === 'ArrowRight') {
+            data.gameSession.stepForward()
+        }
+    }
 </script>
+
+<svelte:window onkeydown={onKeyDown} />
 
 <div class="flex flex-col w-screen overflow-auto">
     {#if authorizationService.actAsAdmin}

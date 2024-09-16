@@ -147,10 +147,13 @@
             showBorder = false
         }
     }
+
+    // Note that tabindex has to be used or interactable is not evaluated... why?
 </script>
 
 <div
     role="button"
+    tabindex={tabIndex}
     onfocus={() => {}}
     onclick={() => handleClick()}
     onkeypress={() => handleClick()}

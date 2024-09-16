@@ -2,16 +2,7 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
-    import {
-        ActionType,
-        isDrawTile,
-        isEndAuction,
-        isMarketTile,
-        isPlaceDisk,
-        isPlaceMarket,
-        isPlaceStall,
-        isStallTile
-    } from '@tabletop/fresh-fish'
+    import { ActionType, isDrawTile, isMarketTile } from '@tabletop/fresh-fish'
     import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
     import { EndAuction } from '@tabletop/fresh-fish'
