@@ -98,8 +98,18 @@ Furthermore this project _is_ intended to be an example of how to implement and 
 
 Regarding game implementations, I have no desire to limit the category or scope of any game and am happy to host the games on [Board Together](https://boardtogether.games), however there has to be certain amount of pragmatism regarding copyright. It is very true that in the United States our copyright laws do not protect game rules and mechanisms, only specific texual and graphical assets, so it is possible to implement any game desired, but conversely we also do not prevent anyone from suing or taking legal action for any reason whether or not they will ultimately win.
 
-As such I will not require permission for a game to be implemented, however I will also not take a stand against publishers / designers if they take exception to any particular game. I _will_ have a discussion with them to see if any agreements can be reached. Your best bet is to reach out ahead of time and get permission and provide that documented permission to me (it can just be simple email from the publisher or designer) and I will add it to the project, and you **must get permission to use any published graphical assets or rulebook**.
+As such I will not require permission for a game to be implemented, however I will also not take a stand against publishers / designers if they take exception to any particular game. I _will_ have a discussion with them to see if any agreements can be reached. Your best bet is to reach out ahead of time and get permission and provide that documented permission to me (it can just be simple email from the publisher or designer) and I will add it to the project, and you **should get permission to use any published graphical assets or rulebook**.
 
 # License
 
-[MIT](https://github.com/justinkwaugh/tabletop/blob/main/LICENSE)
+The project is licensed under [MIT](https://github.com/justinkwaugh/tabletop/blob/main/LICENSE)
+
+Exceptions:
+Any copyrightable assets (including but not limited to images, videos, text, etc.) 
+in this repository that are owned and copyrighted by third parties (e.g. publishers 
+or designers) are not subject to this license and all rights remain with the 
+original owners.
+
+
+
+
