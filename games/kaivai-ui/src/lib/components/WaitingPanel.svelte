@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { MachineState } from '@tabletop/kaivai'
-    import PlayerName from './PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 

@@ -3,6 +3,7 @@
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
     import { MachineState } from '@tabletop/bridges-of-shangri-la'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as BridgesGameSession
 
@@ -26,12 +27,7 @@
 >
     <div class="flex flex-col justify-center items-center mx-4">
         <h1 class="text-lg">
-            Waiting for <span
-                class="rounded px-2 {gameSession.getPlayerBgColor(
-                    currentPlayerId
-                )} font-medium {gameSession.getPlayerTextColor(currentPlayerId)}"
-                >{gameSession.getPlayerName(currentPlayerId)}</span
-            >
+            Waiting for <PlayerName playerId={currentPlayerId} />
             {waitingText}
         </h1>
 

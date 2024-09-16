@@ -1,3 +1,4 @@
+import type { GameColorizer } from '$lib/definition/gameColorizer'
 import { PlayerColor } from '@tabletop/common'
 
 export enum ColorblindColor {
@@ -12,6 +13,20 @@ export enum ColorblindColor {
     Blue = '#0072B2',
     Vermilion = '#D55E00',
     ReddishPurple = '#CC79A7'
+}
+
+const colorBlindColorForColor = {
+    [PlayerColor.Red]: ColorblindColor.Vermilion,
+    [PlayerColor.Orange]: ColorblindColor.Orange,
+    [PlayerColor.Yellow]: ColorblindColor.Yellow,
+    [PlayerColor.Green]: ColorblindColor.BluishGreen,
+    [PlayerColor.Blue]: ColorblindColor.Blue,
+    [PlayerColor.Purple]: ColorblindColor.ReddishPurple,
+    [PlayerColor.Pink]: ColorblindColor.SkyBlue,
+    [PlayerColor.Brown]: ColorblindColor.Brown,
+    [PlayerColor.Gray]: ColorblindColor.Gray,
+    [PlayerColor.White]: ColorblindColor.White,
+    [PlayerColor.Black]: ColorblindColor.Black
 }
 
 // This is so tailwind can compile the definition
@@ -43,37 +58,17 @@ const borderColorForColor = {
     [ColorblindColor.ReddishPurple]: `border-[#CC79A7]`
 }
 
-export function getColorBlindColor(color?: PlayerColor) {
-    switch (color) {
-        case PlayerColor.Red:
-            return ColorblindColor.Vermilion
-        case PlayerColor.Orange:
-            return ColorblindColor.Orange
-        case PlayerColor.Yellow:
-            return ColorblindColor.Yellow
-        case PlayerColor.Green:
-            return ColorblindColor.BluishGreen
-        case PlayerColor.Blue:
-            return ColorblindColor.Blue
-        case PlayerColor.Purple:
-            return ColorblindColor.ReddishPurple
-        case PlayerColor.Pink:
-            return ColorblindColor.SkyBlue
-        case PlayerColor.Brown:
-            return ColorblindColor.Brown
-        case PlayerColor.Gray:
-            return ColorblindColor.Gray
-        case PlayerColor.White:
-            return ColorblindColor.White
-        default:
-            return ColorblindColor.Black
+export class ColorblindColorizer implements GameColorizer {
+    getUiColor(playerColor?: PlayerColor): string {
+        return colorBlindColorForColor[playerColor ?? PlayerColor.Black]
     }
-}
-
-export function getColorBlindBgColor(color?: PlayerColor) {
-    return bgColorForColor[getColorBlindColor(color)]
-}
-
-export function getColorBlindBorderColor(color?: PlayerColor) {
-    return borderColorForColor[getColorBlindColor(color)]
+    getBgColor(playerColor?: PlayerColor): string {
+        return bgColorForColor[colorBlindColorForColor[playerColor ?? PlayerColor.Black]]
+    }
+    getTextColor(playerColor: PlayerColor): string {
+        return playerColor === PlayerColor.Yellow ? 'text-black' : 'text-white'
+    }
+    getBorderColor(playerColor: PlayerColor): string {
+        return borderColorForColor[colorBlindColorForColor[playerColor ?? PlayerColor.Black]]
+    }
 }

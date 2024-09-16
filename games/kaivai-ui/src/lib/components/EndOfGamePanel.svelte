@@ -1,9 +1,8 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { GameResult } from '@tabletop/common'
     import { fade } from 'svelte/transition'
-    import PlayerName from '$lib/components/PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let winner = $derived(gameSession.gameState.winningPlayerIds[0])

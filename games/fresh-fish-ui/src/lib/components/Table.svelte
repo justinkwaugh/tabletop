@@ -17,7 +17,7 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { Button, ButtonGroup, Tabs, TabItem } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid } from 'flowbite-svelte-icons'
-    import { generateBoard, Scorer } from '@tabletop/fresh-fish'
+    import { generateBoard } from '@tabletop/fresh-fish'
     import { generateSeed, getPrng, range } from '@tabletop/common'
     import LastActionDescription from './LastActionDescription.svelte'
     let gameSession = getContext('gameSession') as FreshFishGameSession

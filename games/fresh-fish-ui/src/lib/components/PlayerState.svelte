@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayerColor, type Player } from '@tabletop/common'
+    import { type Player } from '@tabletop/common'
     import { FreshFishPlayerState, GoodsType } from '@tabletop/fresh-fish'
     import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'

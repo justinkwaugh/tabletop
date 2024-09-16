@@ -4,6 +4,7 @@ import type { AuthorizationService } from '$lib/services/authorizationService.sv
 import type { NotificationService } from '$lib/services/notificationService.svelte'
 import { Game, GameAction, type GameDefinition } from '@tabletop/common'
 import type { Component } from 'svelte'
+import type { GameColorizer } from './gameColorizer'
 
 export interface GameSessionConstructor {
     new ({
@@ -28,5 +29,6 @@ export interface GameSessionConstructor {
 export interface GameUiDefinition extends GameDefinition {
     getTableComponent: () => Promise<Component>
     sessionClass: GameSessionConstructor
+    colorizer: GameColorizer
     thumbnailUrl: string
 }

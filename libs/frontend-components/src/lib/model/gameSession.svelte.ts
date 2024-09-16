@@ -30,6 +30,8 @@ import {
     type NotificationService
 } from '$lib/services/notificationService.svelte'
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
+import { ColorblindColorizer } from '$lib/utils/colorblindPalette'
+import type { GameColorizer } from '$lib/definition/gameColorizer'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -84,6 +86,12 @@ export class GameSession {
         }
 
         return sessionUser.preferences.colorBlindPalette === true
+    })
+
+    colorizer: GameColorizer = $derived.by(() => {
+        return this.colorBlind && !this.isActingAdmin
+            ? new ColorblindColorizer()
+            : this.definition.colorizer
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
@@ -297,7 +305,6 @@ export class GameSession {
         this.definition = definition
         this.engine = new GameEngine(definition)
         this.game = game
-
         this.initializeActions(actions)
         this.debug = debug
     }
@@ -320,6 +327,26 @@ export class GameSession {
 
     getPlayerColor(playerId?: string): PlayerColor {
         return this.playerColorsById.get(playerId ?? 'unknown') ?? PlayerColor.Gray
+    }
+
+    getPlayerUiColor(playerId?: string) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorizer.getUiColor(playerColor)
+    }
+
+    getPlayerBgColor(playerId?: string) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorizer.getBgColor(playerColor)
+    }
+
+    getPlayerTextColor(playerId?: string) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorizer.getTextColor(playerColor)
+    }
+
+    getPlayerBorderColor(playerId?: string) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorizer.getBorderColor(playerColor)
     }
 
     listenToGame() {

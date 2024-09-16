@@ -3,7 +3,7 @@
     import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import DeliverySelection from './DeliverySelection.svelte'
-    import PlayerName from './PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let bidValue = $state(0)

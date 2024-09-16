@@ -1,7 +1,5 @@
 <script lang="ts">
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
-    import { getContext } from 'svelte'
-    import PlayerName from './PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     import type { EndAuction } from '@tabletop/fresh-fish'
     let { action }: { action: EndAuction } = $props()
 </script>

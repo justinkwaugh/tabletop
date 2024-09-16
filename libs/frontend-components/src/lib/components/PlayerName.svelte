@@ -1,10 +1,10 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+    import type { GameSession } from '$lib/model/gameSession.svelte.ts'
 
     let { playerId, possessive = false }: { playerId?: string; possessive?: boolean } = $props()
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getContext('gameSession') as GameSession
 
     let text = $derived.by(() => {
         if (playerId === gameSession.myPlayer?.id) {

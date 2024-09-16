@@ -1,8 +1,8 @@
 <script lang="ts">
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { Celebrate, MoveGod } from '@tabletop/kaivai'
+    import { MoveGod } from '@tabletop/kaivai'
     import { getContext } from 'svelte'
-    import PlayerName from './PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     let { action, justify = 'center' }: { action: MoveGod; justify: 'center' | 'left' } = $props()
     let gameSession = getContext('gameSession') as KaivaiGameSession
 

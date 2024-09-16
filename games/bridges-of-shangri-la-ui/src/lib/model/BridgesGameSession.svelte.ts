@@ -17,8 +17,7 @@ import firekeeper from '$lib/images/firekeeper.png'
 import priest from '$lib/images/priest.png'
 import yetiwhisperer from '$lib/images/yetiwhisperer.png'
 import astrologer from '$lib/images/astrologer.png'
-import { GameSession, getColorBlindBgColor } from '@tabletop/frontend-components'
-import { uiBgColorForPlayer } from '$lib/utils/playerColors'
+import { GameSession } from '@tabletop/frontend-components'
 
 export class BridgesGameSession extends GameSession {
     get gameState(): HydratedBridgesGameState {
@@ -39,15 +38,6 @@ export class BridgesGameSession extends GameSession {
         }
         return this.gameState.turnManager.turnCount(this.myPlayer.id)
     })
-
-    getPlayerBgColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.colorBlind ? getColorBlindBgColor(playerColor) : uiBgColorForPlayer(playerColor)
-    }
-
-    getPlayerTextColor(playerId?: string) {
-        return this.getPlayerColor(playerId) === 'yellow' ? 'text-black' : 'text-gray-100'
-    }
 
     nameForActionType(actionType: string) {
         switch (actionType) {

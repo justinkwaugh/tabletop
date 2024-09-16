@@ -3,6 +3,7 @@
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { GameResult } from '@tabletop/common'
     import { fade } from 'svelte/transition'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as BridgesGameSession
     let isWin = $derived(gameSession.gameState.result === GameResult.Win)
@@ -19,12 +20,7 @@
         <div class="flex flex-row justify-center items-center mb-2">
             {#if isWin}
                 <h1 class="text-md sm:text-lg">
-                    <span
-                        class="rounded px-2 {gameSession.getPlayerBgColor(
-                            winner
-                        )} font-medium {gameSession.getPlayerTextColor(winner)}"
-                        >{gameSession.getPlayerName(winner)}</span
-                    >
+                    <PlayerName playerId={winner} />
                     wins with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')
                         ?.score}
                 </h1>
@@ -34,12 +30,7 @@
                         {#if i > 0}
                             and
                         {/if}
-                        <span
-                            class="rounded px-2 {gameSession.getPlayerBgColor(
-                                winner
-                            )} font-medium {gameSession.getPlayerTextColor(winner)}"
-                            >{gameSession.getPlayerName(winner)}</span
-                        >
+                        <PlayerName playerId={winner} />
                     {/each} tied with a score of {gameSession.gameState.getPlayerState(
                         gameSession.gameState.winningPlayerIds[0]
                     )?.score}

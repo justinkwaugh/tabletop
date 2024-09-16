@@ -2,7 +2,6 @@
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import bidding from '$lib/images/bidding.png'
-    import { fadeScale } from '@tabletop/frontend-components'
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     type BidData = {

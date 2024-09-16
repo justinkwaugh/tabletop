@@ -1,9 +1,4 @@
-import {
-    GameSession,
-    getColorBlindBgColor,
-    getColorBlindColor
-} from '@tabletop/frontend-components'
-import { uiBgColorForPlayer, uiColorForPlayer } from '$lib/utils/playerColors'
+import { GameSession } from '@tabletop/frontend-components'
 import yellowHut from '$lib/images/yellowhut.png'
 import yellowHut2 from '$lib/images/yellowhut2.png'
 import blueHut from '$lib/images/bluehut.png'
@@ -234,24 +229,6 @@ export class KaivaiGameSession extends GameSession {
 
         return islandIds
     })
-
-    getPlayerBgColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.colorBlind ? getColorBlindBgColor(playerColor) : uiBgColorForPlayer(playerColor)
-    }
-
-    getPlayerUiColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.colorBlind ? getColorBlindColor(playerColor) : uiColorForPlayer(playerColor)
-    }
-
-    getPlayerTextColor(playerId?: string) {
-        return this.getPlayerColor(playerId) === 'yellow' ? 'text-black' : 'text-gray-100'
-    }
-
-    getPlayerBorderColor(playerId?: string) {
-        return this.getPlayerColor(playerId) === 'yellow' ? 'border-black' : 'border-gray-100'
-    }
 
     getPlayerSvgColor(playerId?: string) {
         return this.getPlayerColor(playerId) === 'yellow' ? 'black' : 'white'

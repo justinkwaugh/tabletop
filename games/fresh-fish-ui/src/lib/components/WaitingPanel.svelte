@@ -3,8 +3,7 @@
     import { isMarketTile, isStallTile } from '@tabletop/fresh-fish'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { MachineState } from '@tabletop/fresh-fish'
-    import { Button } from 'flowbite-svelte'
-    import PlayerName from './PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession

@@ -1,8 +1,4 @@
-import {
-    GameSession,
-    getColorBlindBgColor,
-    getColorBlindColor
-} from '@tabletop/frontend-components'
+import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
     Coordinates,
@@ -22,7 +18,6 @@ import {
     isPlaceStall
 } from '@tabletop/fresh-fish'
 import { type GameAction } from '@tabletop/common'
-import { uiBgColorForPlayer, uiColorForPlayer } from '$lib/utils/playerColors.js'
 
 export class FreshFishGameSession extends GameSession {
     chosenAction: string | undefined = $state(undefined)
@@ -33,24 +28,6 @@ export class FreshFishGameSession extends GameSession {
 
     previewExpropriateCoords: Coordinates[] = $state([])
     highlightedCoords: Coordinates | undefined = $state()
-
-    getPlayerBgColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.colorBlind && !this.isActingAdmin
-            ? getColorBlindBgColor(playerColor)
-            : uiBgColorForPlayer(playerColor)
-    }
-
-    getPlayerUiColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.colorBlind && !this.isActingAdmin
-            ? getColorBlindColor(playerColor)
-            : uiColorForPlayer(playerColor)
-    }
-
-    getPlayerTextColor(playerId?: string) {
-        return this.getPlayerColor(playerId) === 'yellow' ? 'text-black' : 'text-white'
-    }
 
     nameForActionType(actionType: string) {
         switch (actionType) {

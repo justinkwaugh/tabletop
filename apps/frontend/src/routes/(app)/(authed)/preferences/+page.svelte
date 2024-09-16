@@ -4,10 +4,12 @@
     import { flip } from 'svelte/animate'
     import { getContext } from 'svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
-    import { getColorBlindBgColor } from '@tabletop/frontend-components'
+    import { ColorblindColorizer, DefaultColorizer } from '@tabletop/frontend-components'
 
     let { authorizationService, api } = getContext('appContext') as AppContext
 
+    const colorblindColorizer = new ColorblindColorizer()
+    const defaultColorizer = new DefaultColorizer()
     let errors: Record<string, string[]> = $state({})
     let errorMessage: string | undefined = $state(undefined)
     let success = $state(false)
@@ -28,35 +30,10 @@
 
     let bgColorForColor = (color?: PlayerColor) => {
         if (preferences.colorBlindPalette) {
-            return getColorBlindBgColor(color)
+            return colorblindColorizer.getBgColor(color)
         }
 
-        switch (color) {
-            case PlayerColor.Red:
-                return 'bg-red-700'
-            case PlayerColor.Orange:
-                return 'bg-orange-500'
-            case PlayerColor.Yellow:
-                return 'bg-yellow-300'
-            case PlayerColor.Green:
-                return 'bg-green-600'
-            case PlayerColor.Blue:
-                return 'bg-blue-600'
-            case PlayerColor.Purple:
-                return 'bg-purple-600'
-            case PlayerColor.Pink:
-                return 'bg-pink-500'
-            case PlayerColor.Brown:
-                return 'bg-yellow-900'
-            case PlayerColor.Gray:
-                return 'bg-gray-500'
-            case PlayerColor.Black:
-                return 'bg-black'
-            case PlayerColor.White:
-                return 'bg-white'
-            default:
-                return 'bg-transparent'
-        }
+        return defaultColorizer.getBgColor(color)
     }
 
     async function submit(event: SubmitEvent) {

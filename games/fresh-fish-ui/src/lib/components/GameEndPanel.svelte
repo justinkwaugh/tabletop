@@ -5,7 +5,7 @@
     import { fade } from 'svelte/transition'
     import { Scorer } from '@tabletop/fresh-fish'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
-    import PlayerName from './PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
 

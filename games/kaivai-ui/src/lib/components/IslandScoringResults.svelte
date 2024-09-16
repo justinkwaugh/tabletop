@@ -2,7 +2,7 @@
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { ScoreIsland } from '@tabletop/kaivai'
     import { getContext } from 'svelte'
-    import PlayerName from './PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     import influenceImg from '$lib/images/influence.png'
     let { action }: { action: ScoreIsland } = $props()
     let gameSession = getContext('gameSession') as KaivaiGameSession

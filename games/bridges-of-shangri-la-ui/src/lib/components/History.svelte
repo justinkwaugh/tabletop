@@ -13,7 +13,7 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, HistoryControls } from '@tabletop/frontend-components'
+    import { GameSessionMode, HistoryControls, PlayerName } from '@tabletop/frontend-components'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -122,13 +122,7 @@
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                             {#if action.playerId}
-                                <span
-                                    class="rounded px-2 {gameSession.getPlayerBgColor(
-                                        action.playerId
-                                    )} font-medium {gameSession.getPlayerTextColor(
-                                        action.playerId
-                                    )}">{gameSession.getPlayerName(action.playerId)}</span
-                                >
+                                <PlayerName playerId={action.playerId} />
                             {/if}
                             {getDescriptionForAction(action)}
                         </p>

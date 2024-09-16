@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { Direction, Hex, ring } from 'honeycomb-grid'
+    import { Direction, Hex } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
     import fishtoken from '$lib/images/fishtoken.png'
     import { axialCoordinatesToNumber, sameCoordinates, Point, Game } from '@tabletop/common'

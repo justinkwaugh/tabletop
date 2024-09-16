@@ -2,7 +2,7 @@
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { ScoreHuts } from '@tabletop/kaivai'
     import { getContext } from 'svelte'
-    import PlayerName from './PlayerName.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     let { action }: { action: ScoreHuts } = $props()
     let gameSession = getContext('gameSession') as KaivaiGameSession
 </script>

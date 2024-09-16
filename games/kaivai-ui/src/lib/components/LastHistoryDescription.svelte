@@ -13,10 +13,9 @@
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
     import FishingResults from './FishingResults.svelte'
-    import PlayerName from './PlayerName.svelte'
     import IslandScoringResults from './IslandScoringResults.svelte'
     import HutScoringResults from './HutScoringResults.svelte'
-    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import CelebrateResults from './CelebrateResults.svelte'
     import MoveGodResults from './MoveGodResults.svelte'
 

@@ -8,9 +8,8 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
-    import PlayerName from './PlayerName.svelte'
     import AuctionResults from './AuctionResults.svelte'
 
     const timeAgo = new TimeAgo('en-US')

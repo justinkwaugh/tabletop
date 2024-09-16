@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { defineHex, Grid, ring, spiral, Orientation } from 'honeycomb-grid'
+    import { defineHex, Grid, spiral, Orientation } from 'honeycomb-grid'
     import board from '$lib/images/board.png'
     import Cell from './Cell.svelte'
     import buildImg from '$lib/images/build.png'
@@ -17,7 +17,6 @@
 
     import { ActionType, MachineState } from '@tabletop/kaivai'
     import { fade } from 'svelte/transition'
-    import { fadeScale } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
