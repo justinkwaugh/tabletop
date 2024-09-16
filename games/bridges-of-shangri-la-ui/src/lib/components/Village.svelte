@@ -48,9 +48,6 @@
                 gameSession.myPlayer?.id,
                 placement
             )
-            if (!valid) {
-                console.log('Invalid placement at village', index, reason)
-            }
             return valid
         } else if (
             gameSession.chosenAction === ActionType.RecruitStudents &&
@@ -65,9 +62,6 @@
                 gameSession.myPlayer?.id,
                 placement
             )
-            if (!valid) {
-                console.log('Invalid placement at village', index, reason)
-            }
             return valid
         } else if (gameSession.chosenAction === ActionType.BeginJourney) {
             if (gameSession.chosenVillage === undefined) {
