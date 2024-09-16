@@ -161,12 +161,8 @@ export class GameService {
         return await this.gameStore.findGameById(gameId, withState)
     }
 
-    async getActionsForGame(
-        gameId: string,
-        since?: number,
-        until: number = Number.MAX_SAFE_INTEGER
-    ): Promise<GameAction[]> {
-        if (since) {
+    async getActionsForGame(gameId: string, since?: number, until?: number): Promise<GameAction[]> {
+        if (since !== undefined && until !== undefined) {
             return await this.gameStore.findActionRangeForGame({
                 gameId,
                 startIndex: since + 1,
@@ -682,12 +678,14 @@ export class GameService {
         user,
         definition,
         gameId,
-        actionId
+        actionId,
+        actionIndex
     }: {
         user: User
         definition: GameDefinition
         gameId: string
         actionId: string
+        actionIndex: number
     }) {
         const game = await this.getGame({ gameId, withState: true })
         if (!game) {
@@ -704,7 +702,7 @@ export class GameService {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
         }
 
-        const actionToUndo = await this.gameStore.findActionById(game, actionId)
+        const actionToUndo = await this.gameStore.findActionById(game, actionId, actionIndex)
         if (!actionToUndo || actionToUndo.index === undefined) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }

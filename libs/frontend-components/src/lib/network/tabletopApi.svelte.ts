@@ -1,5 +1,4 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
-import QueryStringAddon from 'wretch/addons/queryString'
 import { Value } from '@sinclair/typebox/value'
 import { Game, GameAction, GameSyncStatus, User, UserPreferences } from '@tabletop/common'
 import type {
@@ -327,7 +326,8 @@ export class TabletopApi {
 
     async undoAction(
         game: Game,
-        actionId: string
+        actionId: string,
+        actionIndex: number
     ): Promise<{
         undoneActions: GameAction[]
         game: Game
@@ -335,7 +335,7 @@ export class TabletopApi {
         checksum: number
     }> {
         const response = await this.wretch
-            .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
+            .post({ gameId: game.id, actionId, actionIndex }, `/game/${game.typeId}/undo`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UndoActionResponse>()
@@ -354,25 +354,6 @@ export class TabletopApi {
             redoneActions,
             checksum: response.payload.checksum
         }
-    }
-
-    async getActions(gameId: string, since?: number): Promise<{ actions: GameAction[] }> {
-        let w = this.wretch.addon(QueryStringAddon)
-
-        if (since !== undefined) {
-            w = w.query({ since })
-        }
-
-        const response = await w
-            .get(`/game/actions/${gameId}`)
-            .unauthorized(this.on401)
-            .badRequest(this.handleError)
-            .json<GameWithActionsResponse>()
-
-        const actions = response.payload.actions.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
-        return { actions }
     }
 
     async checkSync(

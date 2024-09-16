@@ -5,8 +5,8 @@ export type ActionChunk = Static<typeof ActionChunk>
 export const ActionChunk = Type.Object({
     id: Type.String(),
     gameId: Type.String(),
-    createdAt: Type.Any(),
-    updatedAt: Type.Any(),
+    createdAt: Type.Optional(Type.Any()),
+    updatedAt: Type.Optional(Type.Any()),
     startIndex: Type.Number(),
     endIndex: Type.Number(),
     actions: Type.Array(GameAction)

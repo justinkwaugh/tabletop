@@ -5,7 +5,8 @@ import { GameDefinition } from '@tabletop/common'
 type UndoRequest = Static<typeof UndoRequest>
 const UndoRequest = Type.Object({
     gameId: Type.String(),
-    actionId: Type.String()
+    actionId: Type.String(),
+    actionIndex: Type.Number()
 })
 
 export default async function (definition: GameDefinition, fastify: FastifyInstance) {
@@ -20,13 +21,14 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
                 throw Error('No user found for create request')
             }
 
-            const { gameId, actionId } = request.body
+            const { gameId, actionId, actionIndex } = request.body
             const { undoneActions, updatedGame, redoneActions, checksum } =
                 await fastify.gameService.undoAction({
                     user: request.user,
                     definition,
                     gameId,
-                    actionId
+                    actionId,
+                    actionIndex
                 })
 
             return {

@@ -536,7 +536,8 @@ export class GameSession {
                 // Undo on the server
                 const { redoneActions, checksum } = await this.api.undoAction(
                     this.game,
-                    targetActionId
+                    targetActionId,
+                    targetAction.index ?? -1
                 )
 
                 if (checksum !== this.game.state?.actionChecksum) {

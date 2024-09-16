@@ -38,7 +38,10 @@ export default async function (fastify: FastifyInstance) {
             }
 
             void reply.header('ETag', etag)
-            const actions = await fastify.gameService.getActionsForGame(game.id)
+            const actions = await fastify.gameService.getActionsForGame(
+                game.id,
+                game.state?.actionCount ?? 0
+            )
 
             // For transitioning to undo
             if (game.state && game.state.actionChecksum === undefined) {
