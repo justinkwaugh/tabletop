@@ -5,6 +5,8 @@
     import { GameSessionMode } from '@tabletop/frontend-components'
     import PlayerName from './PlayerName.svelte'
     import { Button } from 'flowbite-svelte'
+    import AuctionResults from './AuctionResults.svelte'
+    import { isEndAuction } from '@tabletop/fresh-fish'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
 
@@ -30,11 +32,15 @@
                 {/if}
                 {getDescriptionForAction(lastAction)}
             </h1>
+            {#if isEndAuction(lastAction)}
+                <AuctionResults action={lastAction} />
+            {/if}
         </div>
 
         {#if gameSession.undoableAction && gameSession.mode !== GameSessionMode.History}
             <Button
                 onclick={async () => {
+                    gameSession.chosenAction = undefined
                     await gameSession.undo()
                 }}
                 size="xs"

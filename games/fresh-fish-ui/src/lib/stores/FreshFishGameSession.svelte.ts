@@ -110,6 +110,10 @@ export class FreshFishGameSession extends GameSession {
         this.clearHighlightedCoords()
     }
 
+    override willUpdateGameState(): void {
+        this.chosenAction = undefined
+    }
+
     highlightCoords(coords: Coordinates) {
         this.highlightedCoords = coords
     }

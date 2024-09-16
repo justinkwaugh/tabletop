@@ -132,7 +132,7 @@
             {/if}
             {#if gameSession.chosenAction === ActionType.PlaceMarket}
                 <div class="my-2">
-                    <MarketTile />
+                    <MarketTile animate={false} />
                 </div>
             {/if}
         </div>

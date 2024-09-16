@@ -449,7 +449,7 @@ export class GameSession {
         if (!this.undoableAction) {
             return
         }
-
+        this.willUndo()
         try {
             // Block server actions while we are processing
             this.processingActions = true
@@ -499,7 +499,7 @@ export class GameSession {
                     this.applyActionResults(results)
                 }
 
-                this.game.state = gameSnapshot.state
+                this.updateGameState(gameSnapshot.state)
 
                 // Undo on the server
                 const { redoneActions, checksum } = await this.api.undoAction(
@@ -756,17 +756,25 @@ export class GameSession {
         this.onHistoryExit()
     }
 
-    onHistoryAction(_action?: GameAction) {
-        // this is a template method
+    private updateGameState(gameState?: GameState) {
+        if (!gameState) {
+            return
+        }
+        this.willUpdateGameState()
+        this.game.state = gameState
     }
 
-    onHistoryExit() {
-        // this is a template method
-    }
+    willUndo() {}
+
+    willUpdateGameState() {}
+
+    onHistoryAction(_action?: GameAction) {}
+
+    onHistoryExit() {}
 
     private rollbackActions(priorState: GameState) {
         // Reset the state
-        this.game.state = priorState
+        this.updateGameState(priorState)
 
         // Remove the actions that were added
         const removed = this.actions.slice(priorState.actionCount) || []
@@ -782,7 +790,7 @@ export class GameSession {
         redoneActions: GameAction[]
     ) {
         // Reset the state
-        this.game.state = priorState
+        this.updateGameState(priorState)
 
         for (const action of redoneActions) {
             this.actionsById.delete(action.id)
@@ -803,7 +811,7 @@ export class GameSession {
     }
 
     private applyActionResults(actionResults: ActionResults) {
-        this.game.state = actionResults.updatedState
+        this.updateGameState(actionResults.updatedState)
         actionResults.processedActions.forEach((action) => {
             this.addAction(action)
         })
@@ -872,7 +880,7 @@ export class GameSession {
             matchedActionIndex >= 0 ? (serverActions[matchedActionIndex].index ?? -1) : -1
         const snapshot = $state.snapshot(this.game)
         this.undoToIndex(snapshot, rollbackIndex)
-        this.game.state = snapshot.state
+        this.updateGameState(snapshot.state)
 
         // Apply the actions from the server
         if (matchedActionIndex < serverActions.length - 1) {
@@ -947,7 +955,7 @@ export class GameSession {
 
         const gameSnapshot = $state.snapshot(this.game)
         this.undoToIndex(gameSnapshot, targetIndex)
-        this.game.state = gameSnapshot.state
+        this.updateGameState(gameSnapshot.state)
         this.applyServerActions(redoneActions)
     }
 
@@ -982,7 +990,7 @@ export class GameSession {
         console.log('DOING FULL RESYNC')
         try {
             const { game, actions } = await this.api.getGame(this.game.id)
-            this.game.state = game.state
+            this.updateGameState(game.state)
             this.initializeActions(actions)
         } catch (e) {
             console.log('Error during full resync', e)

@@ -2,16 +2,16 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
-    import { ActionType, isDrawTile, isMarketTile } from '@tabletop/fresh-fish'
+    import { ActionType, isDrawTile, isEndAuction, isMarketTile } from '@tabletop/fresh-fish'
     import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
-    import { EndAuction } from '@tabletop/fresh-fish'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, HistoryControls } from '@tabletop/frontend-components'
+    import { GameSessionMode } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import PlayerName from './PlayerName.svelte'
+    import AuctionResults from './AuctionResults.svelte'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -66,10 +66,8 @@
 </script>
 
 <div
-    class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-center items-left overflow-hidden min-h-[300px]"
+    class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden min-h-[300px]"
 >
-    <h1 class="text-xl font-light text-white pb-1">History</h1>
-    <HistoryControls />
     <div class="overflow-scroll h-full">
         <Timeline class="ms-1">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
@@ -106,23 +104,8 @@
                             {/if}
                             {getDescriptionForAction(action)}
                         </p>
-                        {#if action.type === ActionType.EndAuction}
-                            <div class="p-2 ms-4 text-sm">
-                                <div
-                                    class="text-xs text-white flex flex-col justify-center items-left space-y-1"
-                                >
-                                    {#each (action as EndAuction).metadata?.participants ?? [] as participant}
-                                        <div>
-                                            <PlayerName playerId={participant.playerId} />
-                                            bid ${participant.bid}
-                                        </div>
-                                    {/each}
-                                </div>
-                            </div>
-                            <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
-                                <PlayerName playerId={(action as EndAuction).winnerId} />
-                                won the auction with a bid of ${(action as EndAuction).highBid}
-                            </p>
+                        {#if isEndAuction(action)}
+                            <AuctionResults {action} />
                         {/if}
                     </TimelineItem>
                 </div>

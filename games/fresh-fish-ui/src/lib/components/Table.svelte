@@ -15,7 +15,8 @@
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import GameDataPanel from '$lib/components/GameDataPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import { Button, ButtonGroup } from 'flowbite-svelte'
+    import { Button, ButtonGroup, Tabs, TabItem } from 'flowbite-svelte'
+    import { UserCircleSolid, ClockSolid } from 'flowbite-svelte-icons'
     import { generateBoard, Scorer } from '@tabletop/fresh-fish'
     import { generateSeed, getPrng, range } from '@tabletop/common'
     import LastActionDescription from './LastActionDescription.svelte'
@@ -26,6 +27,11 @@
         const prng = getPrng(seed)
         generateBoard(size, prng)
     }
+
+    let activeTabClasses =
+        'py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900 box-border'
+    let inactiveTabClasses =
+        'text-gray-200 py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700 box-border'
 </script>
 
 <!-- Full Height and Width with 8px padding-->
@@ -44,10 +50,28 @@
                 </ButtonGroup>
             </div>
         {/if}
-        <div class="grow-0 shrink-0">
-            <PlayersPanel />
+        <div
+            class="shrink-0 grow-0 p-2 rounded-lg border-2 border-gray-700 bg-transparent h-[42px]"
+        >
+            <HistoryControls />
         </div>
-        <History />
+        <Tabs tabStyle="pill" contentClass="p-0 bg-transparent h-full overflow-scroll rounded-lg">
+            <TabItem open activeClasses={activeTabClasses} inactiveClasses={inactiveTabClasses}>
+                <div slot="title" class="flex items-center gap-2">
+                    <UserCircleSolid size="md" />
+                    Players
+                </div>
+
+                <PlayersPanel />
+            </TabItem>
+            <TabItem activeClasses={activeTabClasses} inactiveClasses={inactiveTabClasses}>
+                <div slot="title" class="flex items-center gap-2">
+                    <ClockSolid size="md" />
+                    History
+                </div>
+                <History />
+            </TabItem>
+        </Tabs>
     </div>
     <div
         class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] flex flex-col"
@@ -77,7 +101,9 @@
                 </div>
             </ScalingWrapper>
         </div>
-        <div class="sm:hidden shrink-0 mt-2 p-2 rounded-lg border-2 border-gray-700">
+        <div
+            class="sm:hidden shrink-0 mt-2 p-2 rounded-lg border-2 border-gray-700 mb-[calc(env(safe-area-inset-bottom) + 0px)]"
+        >
             <HistoryControls />
         </div>
     </div>

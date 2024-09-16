@@ -77,6 +77,8 @@
                 ))
     )
     let disabled = $derived.by(() => {
+        let isInteractable = interactable // need this to be evaluated... this feels like svelte bug
+
         if (cell.type === CellType.OffBoard) {
             return false
         }
@@ -90,9 +92,8 @@
                 return false
             }
         }
-        return interacting && !interactable
+        return interacting && !isInteractable
     })
-    let tabIndex = $derived(interactable ? 0 : -1)
     let showBorder = $state(false)
 
     let mayExpropriate = $derived(
@@ -153,7 +154,7 @@
 
 <div
     role="button"
-    tabindex={tabIndex}
+    tabindex="-1"
     onfocus={() => {}}
     onclick={() => handleClick()}
     onkeypress={() => handleClick()}
