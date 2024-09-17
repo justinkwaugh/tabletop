@@ -12,6 +12,8 @@
         gameSession.gameState.players.find((p) => p.playerId === gameSession.myPlayer?.id)
     )
 
+    let windowHeight: number | null | undefined = $state()
+
     function chooseAction(action: string) {
         switch (action) {
             case ActionType.DrawTile:
@@ -83,6 +85,8 @@
     })
 </script>
 
+<svelte:window bind:innerHeight={windowHeight} />
+
 <div
     class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row flex-wrap justify-center items-center"
 >
@@ -125,6 +129,7 @@
             {#if gameSession.chosenAction === ActionType.PlaceStall}
                 <div class="my-2">
                     <StallTile
+                        size={windowHeight && windowHeight > 700 ? 100 : 75}
                         playerId={gameSession.myPlayer?.id}
                         goodsType={gameSession.gameState.getChosenStallType()}
                     />

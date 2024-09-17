@@ -74,7 +74,7 @@
         </Tabs>
     </div>
     <div
-        class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] flex flex-col"
+        class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] flex flex-col overflow-auto"
     >
         <!--  Top part is not allowed to shrink -->
         <div class="shrink-0">
@@ -93,7 +93,7 @@
         </div>
         <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
-        <div class="grow-0 overflow-hidden" style="flex:1;">
+        <div class="grow-0 overflow-hidden min-h-[200px]" style="flex:1;">
             <ScalingWrapper justify={'center'} controls={'top-right'}>
                 <div class="w-fit h-fit">
                     <GameDataPanel />
