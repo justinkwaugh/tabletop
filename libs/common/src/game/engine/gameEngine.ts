@@ -87,7 +87,7 @@ export class GameEngine {
                 ? hydratedState.actionCount - action.index
                 : 0
 
-        if (indexOffset !== 0 && (!action.simultaneousGroupId || indexOffset < 0)) {
+        if (indexOffset !== 0 && !action.simultaneousGroupId) {
             throw Error(
                 `Action index is not valid, expected ${hydratedState.actionCount}, got ${action.index}`
             )

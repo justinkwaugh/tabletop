@@ -388,7 +388,7 @@ export class GameSession {
     async applyAction(action: GameAction) {
         // Preserve state in case we need to roll back
         const gameSnapshot = $state.snapshot(this.game)
-        const priorState = structuredClone(gameSnapshot.state) as GameState
+        let priorState = structuredClone(gameSnapshot.state) as GameState
 
         try {
             // Block server actions while we are processing
@@ -428,6 +428,26 @@ export class GameSession {
                 )
 
                 let applyServerActions = actionResults.revealing
+
+                // Check to see if our server assigned index is less than what we calculated
+                // If so, then that means our action was accepted but something was undone that we did
+                // not know about so we we need to undo to the correct point and re-apply
+                const serverAction = serverActions.find((a) => a.id === action.id)
+                if (
+                    serverAction &&
+                    serverAction.index !== undefined &&
+                    serverAction.index < (action.index ?? 0)
+                ) {
+                    // Rollback our local action and any deferred results
+                    this.rollbackActions(priorState)
+
+                    // Undo to the server's index
+                    this.undoToIndex(gameSnapshot, serverAction.index - 1)
+                    priorState = structuredClone(gameSnapshot.state) as GameState
+
+                    applyServerActions = true
+                }
+
                 // Check to see if the server told us we missed some actions
                 // If the server says so, that means our action was accepted, and these need to be processed
                 // prior to the action we sent
@@ -507,9 +527,6 @@ export class GameSession {
                         this.isSameSimultaneousGroup(targetAction, actionToUndo)
                     ) {
                         const redoAction = structuredClone(actionToUndo)
-                        // Actions should be immutable once stored so it becomes a new one but the new id
-                        // needs to be deterministic so that the server can generate the same one
-                        redoAction.id += `-REDO-${targetActionId}`
                         // These fields will be re-assigned by the game engine
                         redoAction.index = undefined
                         redoAction.undoPatch = undefined
@@ -536,8 +553,7 @@ export class GameSession {
                 // Undo on the server
                 const { redoneActions, checksum } = await this.api.undoAction(
                     this.game,
-                    targetActionId,
-                    targetAction.index ?? -1
+                    targetActionId
                 )
 
                 if (checksum !== this.game.state?.actionChecksum) {
@@ -806,6 +822,7 @@ export class GameSession {
     onHistoryExit() {}
 
     private rollbackActions(priorState: GameState) {
+        console.log('rolling back the actions')
         // Reset the state
         this.updateGameState(priorState)
 
@@ -936,7 +953,12 @@ export class GameSession {
     private verifyFullChecksum() {
         const checksum = calculateChecksum(0, this.actions)
         if (checksum !== this.game.state?.actionChecksum) {
-            throw new Error('Full checksum validation failed')
+            throw new Error(
+                'Full checksum validation failed, got ' +
+                    checksum +
+                    ' expected ' +
+                    this.game.state?.actionChecksum
+            )
         }
     }
 

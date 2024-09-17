@@ -34,7 +34,7 @@ import { nanoid } from 'nanoid'
 import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
 import { Value } from '@sinclair/typebox/value'
 
-const ACTION_CHUNK_SIZE = 10
+const ACTION_CHUNK_SIZE = 200
 
 export class FirestoreGameStore implements GameStore {
     readonly games: CollectionReference
@@ -685,11 +685,7 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
-    async findActionById(
-        game: Game,
-        actionId: string,
-        index: number
-    ): Promise<GameAction | undefined> {
+    async findActionById(game: Game, actionId: string): Promise<GameAction | undefined> {
         const storedGame = game as StoredGame
         if (storedGame.actionChunkSize === undefined) {
             throw new Error('Game does not have action chunks')

@@ -326,8 +326,7 @@ export class TabletopApi {
 
     async undoAction(
         game: Game,
-        actionId: string,
-        actionIndex: number
+        actionId: string
     ): Promise<{
         undoneActions: GameAction[]
         game: Game
@@ -335,7 +334,7 @@ export class TabletopApi {
         checksum: number
     }> {
         const response = await this.wretch
-            .post({ gameId: game.id, actionId, actionIndex }, `/game/${game.typeId}/undo`)
+            .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UndoActionResponse>()

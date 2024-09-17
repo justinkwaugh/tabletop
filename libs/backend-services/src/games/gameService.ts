@@ -669,14 +669,12 @@ export class GameService {
         user,
         definition,
         gameId,
-        actionId,
-        actionIndex
+        actionId
     }: {
         user: User
         definition: GameDefinition
         gameId: string
         actionId: string
-        actionIndex: number
     }) {
         const game = await this.getGame({ gameId, withState: true })
         if (!game) {
@@ -693,7 +691,7 @@ export class GameService {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
         }
 
-        const actionToUndo = await this.gameStore.findActionById(game, actionId, actionIndex)
+        const actionToUndo = await this.gameStore.findActionById(game, actionId)
         if (!actionToUndo || actionToUndo.index === undefined) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
@@ -762,9 +760,6 @@ export class GameService {
         for (const action of actions.slice(1)) {
             if (this.isSameSimultaneousGroup(action, actionToUndo)) {
                 const redoAction = structuredClone(action)
-                // Actions should be immutable once stored so it becomes a new one but the new id
-                // needs to be deterministic so that the client can generate the same one
-                redoAction.id += `-REDO-${actionToUndo.id}`
                 // These fields will be re-assigned by the game engine
                 redoAction.index = undefined
                 redoAction.undoPatch = undefined
