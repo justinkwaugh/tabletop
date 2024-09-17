@@ -17,6 +17,7 @@ export const StoredActionChunk = Type.Composite([
     Type.Omit(ActionChunk, ['actions']),
     Type.Object({
         actions: Type.Optional(Type.Array(GameAction)),
-        actionsData: Type.Optional(Type.String()) // JSON stringified array of GameAction
+        actionsData: Type.String(), // JSON stringified array of GameAction
+        actionIds: Type.Array(Type.String())
     })
 ])

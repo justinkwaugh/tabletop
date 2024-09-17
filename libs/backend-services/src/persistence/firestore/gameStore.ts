@@ -695,14 +695,24 @@ export class FirestoreGameStore implements GameStore {
             throw new Error('Game does not have action chunks')
         }
         if (storedGame.actionChunkSize) {
-            const chunkId = this.chunkIdForActionIndex(index, game.id, storedGame.actionChunkSize)
             const actionChunkCollection = this.getActionChunkCollection(game.id)
-            const chunkDoc = actionChunkCollection.doc(chunkId)
+
             try {
-                const chunk = (await chunkDoc.get()).data() as ActionChunk
-                let action = chunk.actions[index % storedGame.actionChunkSize]
-                if (action) {
-                    action = Value.Convert(GameAction, action) as GameAction
+                const querySnapshot = await actionChunkCollection
+                    .where('actionIds', 'array-contains', actionId)
+                    .get()
+
+                const results = querySnapshot.docs.map((doc) => doc.data()) as ActionChunk[]
+                if (results.length > 1) {
+                    throw Error('Invalid state')
+                }
+
+                let action = undefined
+                if (results.length === 1) {
+                    action = results[0].actions.find((action) => action.id === actionId)
+                    if (action) {
+                        action = Value.Convert(GameAction, action) as GameAction
+                    }
                 }
                 return action?.id === actionId ? action : undefined
             } catch (error) {
@@ -969,15 +979,19 @@ const actionChunkConverter = {
     toFirestore(chunk: ActionChunk): PartialWithFieldValue<StoredActionChunk> {
         const docData = structuredClone(chunk) as unknown as StoredActionChunk
         docData.actionsData = JSON.stringify(chunk.actions)
+        docData.actionIds = chunk.actions.map((action) => action.id)
+
         delete docData.actions
         return docData
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): ActionChunk {
-        const data = snapshot.data() as StoredActionChunk
+        const data = snapshot.data() as Partial<StoredActionChunk>
         if (typeof data.actionsData == 'string') {
             data.actions = JSON.parse(data.actionsData)
         }
         delete data.actionsData
+        delete data.actionIds
+
         data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
         data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
         return data as ActionChunk
