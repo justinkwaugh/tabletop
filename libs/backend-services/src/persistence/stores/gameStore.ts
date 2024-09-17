@@ -25,13 +25,13 @@ export interface GameStore {
     findGamesForUser(user: User): Promise<Game[]>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
     findActionById(game: Game, actionId: string, index: number): Promise<GameAction | undefined>
-    findActionsForGame(gameId: string): Promise<GameAction[]>
+    findActionsForGame(game: Game): Promise<GameAction[]>
     findActionRangeForGame({
-        gameId,
+        game,
         startIndex,
         endIndex
     }: {
-        gameId: string
+        game: Game
         startIndex: number
         endIndex: number
     }): Promise<GameAction[]>

@@ -161,16 +161,8 @@ export class GameService {
         return await this.gameStore.findGameById(gameId, withState)
     }
 
-    async getActionsForGame(gameId: string, since?: number, until?: number): Promise<GameAction[]> {
-        if (since !== undefined && until !== undefined) {
-            return await this.gameStore.findActionRangeForGame({
-                gameId,
-                startIndex: since + 1,
-                endIndex: until
-            })
-        } else {
-            return await this.gameStore.findActionsForGame(gameId)
-        }
+    async getGameActions(game: Game): Promise<GameAction[]> {
+        return await this.gameStore.findActionsForGame(game)
     }
 
     async getGamesForUser(user: User): Promise<Game[]> {
@@ -201,9 +193,8 @@ export class GameService {
         const state = game.state
 
         // Look up actions and verify the checksum
-        // const actions = await this.getActionsForGame(gameId, index)
         const actions = await this.gameStore.findActionRangeForGame({
-            gameId,
+            game,
             startIndex: index + 1,
             endIndex: game.state.actionCount
         })
@@ -218,7 +209,7 @@ export class GameService {
             // Add 10 actions in the past to help the client resync (this should cover most undo scenarios)
             const startIndex = Math.max(index - 10, 0)
             const extraActions = await this.gameStore.findActionRangeForGame({
-                gameId,
+                game,
                 startIndex,
                 endIndex: index + 1
             })
@@ -608,7 +599,7 @@ export class GameService {
                         const startIndex = initialIndex
                         const endIndex = initialIndex + indexOffset
                         missingActions = await this.gameStore.findActionRangeForGame({
-                            gameId: game.id,
+                            game: existingGame,
                             startIndex,
                             endIndex
                         })
@@ -725,7 +716,7 @@ export class GameService {
 
         const startActionIndex = actionToUndo.index
         const actions = await this.gameStore.findActionRangeForGame({
-            gameId,
+            game,
             startIndex: startActionIndex,
             endIndex: gameState.actionCount
         })
@@ -766,22 +757,18 @@ export class GameService {
                     reason: `Cannot undo another player's actions`
                 })
             }
+        }
 
-            for (const action of actions) {
-                if (
-                    action.playerId &&
-                    action.playerId !== userPlayer?.id &&
-                    this.isSameSimultaneousGroup(action, actionToUndo)
-                ) {
-                    const redoAction = structuredClone(action)
-                    // Actions should be immutable once stored so it becomes a new one but the new id
-                    // needs to be deterministic so that the client can generate the same one
-                    redoAction.id += `-REDO-${actionToUndo.id}`
-                    // These fields will be re-assigned by the game engine
-                    redoAction.index = undefined
-                    redoAction.undoPatch = undefined
-                    redoActions.push(redoAction)
-                }
+        for (const action of actions.slice(1)) {
+            if (this.isSameSimultaneousGroup(action, actionToUndo)) {
+                const redoAction = structuredClone(action)
+                // Actions should be immutable once stored so it becomes a new one but the new id
+                // needs to be deterministic so that the client can generate the same one
+                redoAction.id += `-REDO-${actionToUndo.id}`
+                // These fields will be re-assigned by the game engine
+                redoAction.index = undefined
+                redoAction.undoPatch = undefined
+                redoActions.push(redoAction)
             }
         }
 

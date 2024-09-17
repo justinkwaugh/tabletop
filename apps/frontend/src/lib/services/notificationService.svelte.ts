@@ -243,7 +243,7 @@ export class NotificationService {
 
             for (const listener of this.listeners) {
                 try {
-                    await listener(notificationEvent)
+                    // await listener(notificationEvent)
                 } catch (e) {
                     console.error('Error notifying listener', e)
                 }

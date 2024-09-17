@@ -11,6 +11,7 @@ export const StoredGame = Type.Composite([
         deletedAt: Type.Optional(Type.Any()),
         startedAt: Type.Optional(Type.Any()),
         finishedAt: Type.Optional(Type.Any()),
-        lastActionAt: Type.Optional(Type.Any())
+        lastActionAt: Type.Optional(Type.Any()),
+        actionChunkSize: Type.Number()
     })
 ])
