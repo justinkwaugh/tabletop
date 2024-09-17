@@ -70,7 +70,8 @@ export class HydratedCelebrate extends HydratableAction<typeof Celebrate> implem
         this.metadata = { scores: {} }
         for (const cell of celebratableCells) {
             const ownerState = state.getPlayerState(cell.owner)
-            this.metadata.scores[cell.owner] = cell.fish
+            const playerScore = this.metadata.scores[cell.owner] ?? 0
+            this.metadata.scores[cell.owner] = playerScore + cell.fish
             ownerState.score += cell.fish
             cell.fish = 0
         }
