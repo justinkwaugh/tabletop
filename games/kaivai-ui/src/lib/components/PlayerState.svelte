@@ -94,7 +94,7 @@
                     style="font-size:.7rem; line-height:.8rem"
                 ></div>
                 <div
-                    class="text-lg w-[40px] h-[25px] flex justify-center items-center border-e-2 {gameSession.getPlayerBorderColor(
+                    class="text-lg w-[40px] h-[25px] flex justify-center items-center border-e-2 {gameSession.getPlayerBorderContrastColor(
                         playerState.playerId
                     )}"
                 >
@@ -112,7 +112,7 @@
                     </svg>
                 </div>
                 <div
-                    class="text-lg w-[40px] h-[25px] flex justify-center items-center border-e-2 {gameSession.getPlayerBorderColor(
+                    class="text-lg w-[40px] h-[25px] flex justify-center items-center border-e-2 {gameSession.getPlayerBorderContrastColor(
                         playerState.playerId
                     )}"
                 >
@@ -144,14 +144,14 @@
                         {i + 1}
                     </div>
                     <div
-                        class="text-lg w-[40px] h-[25px] kaivai-font border-e-2 {gameSession.getPlayerBorderColor(
+                        class="text-lg w-[40px] h-[25px] kaivai-font border-e-2 {gameSession.getPlayerBorderContrastColor(
                             playerState.playerId
                         )}"
                     >
                         {playerState.shells[i] ? playerState.shells[i] : ''}
                     </div>
                     <div
-                        class="text-lg w-[40px] h-[25px] kaivai-font border-e-2 {gameSession.getPlayerBorderColor(
+                        class="text-lg w-[40px] h-[25px] kaivai-font border-e-2 {gameSession.getPlayerBorderContrastColor(
                             playerState.playerId
                         )}"
                     >

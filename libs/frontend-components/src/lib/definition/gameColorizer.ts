@@ -5,6 +5,7 @@ export interface GameColorizer {
     getBgColor(playerColor?: PlayerColor): string
     getTextColor(playerColor?: PlayerColor): string
     getBorderColor(playerColor?: PlayerColor): string
+    getBorderContrastColor(playerColor?: PlayerColor): string
 }
 const uiColorForPlayerColor = {
     [PlayerColor.Red]: 'red-700',
@@ -60,5 +61,8 @@ export class DefaultColorizer implements GameColorizer {
     }
     getBorderColor(playerColor?: PlayerColor): string {
         return borderColorForPlayerColor[playerColor ?? PlayerColor.Black] ?? 'border-color-black'
+    }
+    getBorderContrastColor(playerColor?: PlayerColor): string {
+        return playerColor === PlayerColor.Yellow ? 'border-black' : 'border-white'
     }
 }

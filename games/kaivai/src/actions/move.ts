@@ -182,6 +182,10 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
             return { valid: false, reason: 'Boat must be on water' }
         }
 
+        if (board.isTrappedWaterHex(boatCoords)) {
+            return { valid: false, reason: 'Boat cannot move to a trapped hex' }
+        }
+
         const boat = state.board.getBoatAt(boatCoords)
         if (boat) {
             if (boat?.owner === playerId) {

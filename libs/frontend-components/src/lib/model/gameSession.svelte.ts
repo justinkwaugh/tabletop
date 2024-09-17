@@ -349,6 +349,11 @@ export class GameSession {
         return this.colorizer.getBorderColor(playerColor)
     }
 
+    getPlayerBorderContrastColor(playerId?: string) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.colorizer.getBorderContrastColor(playerColor)
+    }
+
     listenToGame() {
         if (this.debug) {
             console.log(`listening to game ${this.game.id}`)

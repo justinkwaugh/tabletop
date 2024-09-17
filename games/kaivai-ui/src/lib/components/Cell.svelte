@@ -67,6 +67,8 @@
     let boat = $derived.by(() => {
         if (isBoatCell(cell) && cell.boat) {
             return cell.boat
+        } else if (sameCoordinates(gameSession.chosenBoatLocation, hex)) {
+            return { id: gameSession.chosenBoat, owner: gameSession.myPlayer?.id }
         }
         return undefined
     })

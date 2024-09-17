@@ -71,4 +71,7 @@ export class ColorblindColorizer implements GameColorizer {
     getBorderColor(playerColor: PlayerColor): string {
         return borderColorForColor[colorBlindColorForColor[playerColor ?? PlayerColor.Black]]
     }
+    getBorderContrastColor(playerColor: PlayerColor): string {
+        return playerColor === PlayerColor.Yellow ? 'border-black' : 'border-white'
+    }
 }

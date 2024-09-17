@@ -236,10 +236,18 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             if (!boatIslands.includes(neighboringIslands[0])) {
                 return { valid: false, reason: 'Boat and hut must be on the same island' }
             }
-        }
 
-        if (board.willSurroundAnyBoats(placement.coords)) {
-            return { valid: false, reason: 'Boats may not be surrounded by island' }
+            // Don't check where the boat was, check where it is going
+            if (
+                board.willSurroundAnyBoats(placement.coords, placement.boatId) ||
+                board.willSurroundBoat(placement.boatCoords, placement.coords)
+            ) {
+                return { valid: false, reason: 'Boats may not be surrounded by island' }
+            }
+        } else {
+            if (board.willSurroundAnyBoats(placement.coords)) {
+                return { valid: false, reason: 'Boats may not be surrounded by island' }
+            }
         }
 
         return { valid: true, reason: '' }

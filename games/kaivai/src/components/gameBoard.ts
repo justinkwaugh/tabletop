@@ -118,17 +118,17 @@ export class HydratedKaivaiGameBoard
         return distance({ offset: -1, orientation: Orientation.FLAT }, coords1, coords2) === 1
     }
 
-    getBoatCoordinates(playerId?: string) {
+    getAllBoatCoordinates(skipBoatId?: string) {
         return Object.values(this.cells).reduce((acc: AxialCoordinates[], cell) => {
-            if (isBoatCell(cell) && cell.boat && (!playerId || cell.boat.owner === playerId)) {
+            if (isBoatCell(cell) && cell.boat && (!skipBoatId || skipBoatId !== cell.boat.id)) {
                 acc.push(cell.coords)
             }
             return acc
         }, [])
     }
 
-    willSurroundAnyBoats(hutCoords: AxialCoordinates) {
-        const allBoatCoords = this.getBoatCoordinates()
+    willSurroundAnyBoats(hutCoords: AxialCoordinates, skipBoatId?: string) {
+        const allBoatCoords = this.getAllBoatCoordinates(skipBoatId)
         for (const boatCoords of allBoatCoords) {
             if (this.willSurroundBoat(boatCoords, hutCoords)) {
                 return true
@@ -138,6 +138,7 @@ export class HydratedKaivaiGameBoard
     }
 
     willSurroundBoat(boatCoords: AxialCoordinates, hutCoords: AxialCoordinates) {
+        console.log('Surround check', boatCoords, hutCoords)
         const ringTraverser = ring({ center: boatCoords, radius: 1 })
         const neighboringWaterHexes = this.grid
             .traverse(ringTraverser)
@@ -147,11 +148,26 @@ export class HydratedKaivaiGameBoard
                 return !cell || cell.type === CellType.Water // we don't store all water cells
             })
 
+        console.log('Neighboring water hexes', neighboringWaterHexes)
         return (
             neighboringWaterHexes.length === 1 &&
             neighboringWaterHexes[0].q === hutCoords.q &&
             neighboringWaterHexes[0].r === hutCoords.r
         )
+    }
+
+    isTrappedWaterHex(coords: AxialCoordinates) {
+        if (!this.isWaterCell(coords)) {
+            return false
+        }
+
+        const ringTraverser = ring({ center: coords, radius: 1 })
+        return !this.grid
+            .traverse(ringTraverser)
+            .toArray()
+            .some((hex) => {
+                return this.isWaterCell(hex)
+            })
     }
 
     getCoordinatesReachableByBoat(
