@@ -202,7 +202,7 @@ export class HydratedKaivaiGameBoard
         const waterHex = this.grid
             .toArray()
             .find((hex) => this.isWaterCell(hex) && !sameCoordinates(hex, blockedHex))
-        console.log('Checking if hex ', blockedHex, 'will trap boats, checking from ', waterHex)
+
         // This is impossible
         if (!waterHex) {
             return false
@@ -213,7 +213,6 @@ export class HydratedKaivaiGameBoard
 
         // Same reachability means graph is not split
         if (afterReachableHexes.length === beforeReachableHexes.length - 1) {
-            console.log('Same reachability... ok')
             return false
         }
 
@@ -223,24 +222,14 @@ export class HydratedKaivaiGameBoard
             (hex) =>
                 !afterSet.has(axialCoordinatesToNumber(hex)) && !sameCoordinates(hex, blockedHex)
         )
-        console.log(
-            'Discontinuity found, before: ',
-            beforeReachableHexes.length,
-            'after: ',
-            afterReachableHexes.length
-        )
+
         if (!disconnectedHex) {
             return false
         }
 
-        console.log('Disconnected hex: ', disconnectedHex)
         // Get the hexes in the disconnected section of water
         const disconnectedReachableHexes = this.getContiguousWaterHexes(disconnectedHex, blockedHex)
-        console.log(
-            'Section sizes: ',
-            disconnectedReachableHexes.length,
-            afterReachableHexes.length
-        )
+
         // Check the smaller section for boats
         const smallerSection =
             disconnectedReachableHexes.length < afterReachableHexes.length

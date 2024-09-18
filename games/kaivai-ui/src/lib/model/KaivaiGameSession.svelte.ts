@@ -34,7 +34,9 @@ import {
     Move,
     Pass,
     ChooseScoringIsland,
-    PlaceScoringBid
+    PlaceScoringBid,
+    isPass,
+    PassReason
 } from '@tabletop/kaivai'
 import {
     axialCoordinatesToNumber,
@@ -420,6 +422,9 @@ export class KaivaiGameSession extends GameSession {
     }
 
     override shouldAutoStepAction(action: GameAction) {
-        return action.type === ActionType.PlaceScoringBid
+        return (
+            action.type === ActionType.PlaceScoringBid ||
+            (isPass(action) && action.metadata?.reason !== PassReason.DoneActions)
+        )
     }
 }

@@ -214,6 +214,10 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
             return { valid: false, reason: 'Boat must be on water' }
         }
 
+        if (board.isTrappedWaterHex(boatCoords)) {
+            return { valid: false, reason: 'Boat cannot move to a trapped hex' }
+        }
+
         if (state.board.hasOtherBoat(boatCoords, boatId)) {
             return { valid: false, reason: 'Another boat is already at the specified location' }
         }

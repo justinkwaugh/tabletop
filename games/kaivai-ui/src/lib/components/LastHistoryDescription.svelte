@@ -7,8 +7,10 @@
         isFish,
         isMove,
         isMoveGod,
+        isPass,
         isScoreHuts,
-        isScoreIsland
+        isScoreIsland,
+        PassReason
     } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
@@ -22,11 +24,13 @@
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let lastAction = $derived.by(() => {
-        let action
+        let actionIndex = gameSession.actions.length - 1
         if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
-            action = gameSession.actions[gameSession.currentHistoryIndex]
-        } else if (gameSession.mode === GameSessionMode.Play) {
-            action = gameSession.actions[gameSession.actions.length - 1]
+            actionIndex = gameSession.currentHistoryIndex
+        }
+        let action = gameSession.actions[actionIndex]
+        if (isPass(action) && action.metadata?.reason !== PassReason.DoneActions) {
+            action = gameSession.actions[actionIndex - 1]
         }
         if (action && action.type !== ActionType.PlaceScoringBid) {
             return action

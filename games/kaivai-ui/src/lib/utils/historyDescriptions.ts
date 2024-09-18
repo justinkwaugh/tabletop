@@ -60,7 +60,7 @@ export function getHistoryDescriptionForAction(action?: GameAction, self?: boole
             return `increased ${self ? 'your' : 'their'} movement bonus`
         }
         case isPass(action): {
-            return 'passed'
+            return `passed, ending ${self ? 'your' : 'their'} actions for the round`
         }
         case isLoseValue(action): {
             return `Everyone's shells and fish lost value`

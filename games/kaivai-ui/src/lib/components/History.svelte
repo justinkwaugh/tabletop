@@ -9,8 +9,10 @@
         isFish,
         isMove,
         isMoveGod,
+        isPass,
         isScoreHuts,
-        isScoreIsland
+        isScoreIsland,
+        PassReason
     } from '@tabletop/kaivai'
     import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
@@ -40,7 +42,11 @@
         }
 
         const reversed = actions
-            .filter((action) => action.type !== ActionType.PlaceScoringBid)
+            .filter(
+                (action) =>
+                    action.type !== ActionType.PlaceScoringBid &&
+                    (!isPass(action) || action.metadata?.reason === PassReason.DoneActions)
+            )
             .toReversed()
             .toSorted(
                 (a, b) =>
