@@ -10,53 +10,62 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
-    import { getContext } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     let gameSession = getContext('gameSession') as BridgesGameSession
+    let table: HTMLDivElement
+
+    onMount(() => {
+        table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
+    })
 </script>
 
+<div
+    class="sm:hidden shrink-0 grow-0 p-2 h-[42px] flex flex-col justify-center items-center border-gray-700 border-b-2"
+>
+    <HistoryControls />
+</div>
 <!-- Full Height and Width with 8px padding-->
-<div class="p-2 w-full h-full flex flex-row justify-between items-start">
-    <!--  Panels have screen minus the height of navbar plus padding -->
-    <div
-        class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)]"
-    >
-        <div class="grow-0 shrink-0">
-            <PlayersPanel />
+<div bind:this={table} class="flex w-screen overflow-auto max-sm:h-[calc(100vh-142px)]">
+    <div class="p-2 w-full h-full flex flex-row justify-between items-start">
+        <!--  Panels have screen minus the height of navbar plus padding -->
+        <div
+            class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-158px)]"
+        >
+            <div class="grow-0 shrink-0">
+                <PlayersPanel />
+            </div>
+            <History />
         </div>
-        <History />
-    </div>
-    <div
-        class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] flex flex-col"
-    >
-        <!--  Top part is not allowed to shrink -->
-        <div class="shrink-0">
-            {#if gameSession.gameState.result}
-                <GameEndPanel />
-            {:else if gameSession.mode === GameSessionMode.Play}
-                {#if gameSession.isMyTurn}
-                    <ActionPanel />
-                {:else}
-                    <WaitingPanel />
+        <div
+            class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100dvh-84px)] h-[calc(100dvh-158px)] flex flex-col"
+        >
+            <!--  Top part is not allowed to shrink -->
+            <div class="shrink-0">
+                {#if gameSession.gameState.result}
+                    <GameEndPanel />
+                {:else if gameSession.mode === GameSessionMode.Play}
+                    {#if gameSession.isMyTurn}
+                        <ActionPanel />
+                    {:else}
+                        <WaitingPanel />
+                    {/if}
                 {/if}
-            {/if}
-        </div>
-        <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
+            </div>
+            <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
-        <div class="grow-0 overflow-hidden" style="flex:1;">
-            <ScalingWrapper justify={'center'} controls={'top-left'}>
-                <Board />
-            </ScalingWrapper>
+            <div class="grow-0 overflow-hidden" style="flex:1;">
+                <ScalingWrapper justify={'center'} controls={'top-left'}>
+                    <Board />
+                </ScalingWrapper>
+            </div>
         </div>
-        <div class="sm:hidden shrink-0 mt-2 p-2 rounded-lg border-2 border-gray-700">
-            <HistoryControls />
-        </div>
+        {#if gameSession.showDebug}
+            <div class="flex flex-col space-y-2 shrink-0 grow-0 w-[400px]">
+                <AdminPanel />
+            </div>
+        {/if}
     </div>
-    {#if gameSession.showDebug}
-        <div class="flex flex-col space-y-2 shrink-0 grow-0 w-[400px]">
-            <AdminPanel />
-        </div>
-    {/if}
 </div>

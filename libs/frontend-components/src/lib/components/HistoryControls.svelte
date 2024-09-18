@@ -32,7 +32,7 @@
     )
 </script>
 
-<div class="flex flex-row justify-between items-center">
+<div class="w-full flex flex-row justify-between items-center">
     <button
         onclick={() => gameSession.goToMyPreviousTurn()}
         class="flex flex-row justify-center items-center {hasPreviousAction

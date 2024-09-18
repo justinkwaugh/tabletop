@@ -6,7 +6,7 @@
         HistoryControls
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    import { getContext } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
@@ -39,17 +39,29 @@
 
         return false
     })
+    let table: HTMLDivElement
+    onMount(() => {
+        table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
+    })
 </script>
 
-<div class="flex w-screen overflow-auto bg-[#f5e397]">
+<div
+    class="sm:hidden shrink-0 grow-0 p-2 h-[42px] bg-[#f5e397] flex flex-col justify-center items-center border-[#634a11] border-b-2"
+>
+    <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-[#cabb7a]" />
+</div>
+<div
+    bind:this={table}
+    class="flex w-screen overflow-auto bg-[#f5e397] max-sm:h-[calc(100vh-142px)]"
+>
     <!-- Full Height and Width with 8px padding-->
     <div class="p-2 w-full h-full flex flex-row justify-between items-start">
         <!--  Panels have screen minus the height of navbar plus padding -->
         <div
-            class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)]"
+            class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] max-sm:h-[calc(100vh-158px)]"
         >
             <div
-                class="shrink-0 grow-0 p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]"
+                class="max-sm:hidden shrink-0 grow-0 p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]"
             >
                 <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-[#cabb7a]" />
             </div>
@@ -84,7 +96,7 @@
             </Tabs>
         </div>
         <div
-            class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100vh-84px)] h-[calc(100vh-116px)] flex flex-col"
+            class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100vh-84px)] max-sm:h-[calc(100vh-158px)] flex flex-col"
         >
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
@@ -113,11 +125,6 @@
                         <Board />
                     </div>
                 </ScalingWrapper>
-            </div>
-            <div
-                class="mt-2 sm:hidden shrink-0 grow-0 p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]"
-            >
-                <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-[#cabb7a]" />
             </div>
         </div>
         {#if gameSession.showDebug}
