@@ -6,5 +6,5 @@ This means that while you may use any code or non-copyrighted assets from this p
 found in this project without express permission from the rights holder.
 
 ### Kaivai
-Permission granted by Helge Osterberg to Justin Waugh on 2024-09-11 for non-commercial use of the name Kaivai and its graphical assets for this project only as hosted on https://boardtogether.games
+Permission granted by Helge Osterberg to Justin Waugh on 2024-09-11 for non-commercial use of the name Kaivai and its graphical assets for this project only when hosted on https://boardtogether.games
 
