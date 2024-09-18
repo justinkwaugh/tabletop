@@ -1,6 +1,12 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { AxialCoordinates, axialCoordinatesToNumber, flood, Hydratable } from '@tabletop/common'
+import {
+    AxialCoordinates,
+    axialCoordinatesToNumber,
+    flood,
+    Hydratable,
+    sameCoordinates
+} from '@tabletop/common'
 import { Island } from './island.js'
 import {
     BoatBuildingCell,
@@ -127,33 +133,18 @@ export class HydratedKaivaiGameBoard
         }, [])
     }
 
-    willSurroundAnyBoats(hutCoords: AxialCoordinates, skipBoatId?: string) {
-        const allBoatCoords = this.getAllBoatCoordinates(skipBoatId)
-        for (const boatCoords of allBoatCoords) {
-            if (this.willSurroundBoat(boatCoords, hutCoords)) {
-                return true
+    getContiguousWaterHexes(coords: AxialCoordinates, blockedHex?: AxialCoordinates) {
+        const floodTraverser = flood({
+            start: coords,
+            canTraverse: (hex) => {
+                return (
+                    this.grid.hasHex(hex) &&
+                    this.isWaterCell(hex) &&
+                    !sameCoordinates(hex, blockedHex)
+                )
             }
-        }
-        return false
-    }
-
-    willSurroundBoat(boatCoords: AxialCoordinates, hutCoords: AxialCoordinates) {
-        console.log('Surround check', boatCoords, hutCoords)
-        const ringTraverser = ring({ center: boatCoords, radius: 1 })
-        const neighboringWaterHexes = this.grid
-            .traverse(ringTraverser)
-            .toArray()
-            .filter((hex) => {
-                const cell = this.getCellAt(hex)
-                return !cell || cell.type === CellType.Water // we don't store all water cells
-            })
-
-        console.log('Neighboring water hexes', neighboringWaterHexes)
-        return (
-            neighboringWaterHexes.length === 1 &&
-            neighboringWaterHexes[0].q === hutCoords.q &&
-            neighboringWaterHexes[0].r === hutCoords.r
-        )
+        })
+        return this.grid.traverse(floodTraverser).toArray()
     }
 
     isTrappedWaterHex(coords: AxialCoordinates) {
@@ -161,13 +152,29 @@ export class HydratedKaivaiGameBoard
             return false
         }
 
-        const ringTraverser = ring({ center: coords, radius: 1 })
-        return !this.grid
-            .traverse(ringTraverser)
-            .toArray()
-            .some((hex) => {
-                return this.isWaterCell(hex)
+        const water = this.getContiguousWaterHexes(coords)
+
+        const checked = new Set<number>()
+        let islandId: string | undefined
+        return water.every((hex) => {
+            return this.getNeighbors(hex).every((neighbor) => {
+                const numId = axialCoordinatesToNumber(neighbor)
+                if (checked.has(numId)) {
+                    return true
+                }
+
+                const cell = this.getCellAt(neighbor)
+                if (isIslandCell(cell)) {
+                    if (!islandId) {
+                        islandId = cell.islandId
+                    }
+
+                    return islandId === cell.islandId
+                }
+
+                return !this.grid.hasHex(neighbor) || this.isWaterCell(neighbor)
             })
+        })
     }
 
     getCoordinatesReachableByBoat(
@@ -179,13 +186,77 @@ export class HydratedKaivaiGameBoard
             start: boatCoords,
             range: movement,
             canTraverse: (hex) => {
-                const cell = this.getCellAt(hex)
-                return !cell || cell.type === CellType.Water
+                return this.grid.hasHex(hex) && this.isWaterCell(hex)
             }
         })
 
         const reachableHexes = this.grid.traverse(floodTraverser).toArray()
         return reachableHexes
+    }
+
+    willTrapBoats(
+        blockedHex: AxialCoordinates,
+        movedBoat?: { from: AxialCoordinates; to: AxialCoordinates }
+    ): boolean {
+        // Find a water hex to start from
+        const waterHex = this.grid
+            .toArray()
+            .find((hex) => this.isWaterCell(hex) && !sameCoordinates(hex, blockedHex))
+        console.log('Checking if hex ', blockedHex, 'will trap boats, checking from ', waterHex)
+        // This is impossible
+        if (!waterHex) {
+            return false
+        }
+
+        const beforeReachableHexes = this.getContiguousWaterHexes(waterHex)
+        const afterReachableHexes = this.getContiguousWaterHexes(waterHex, blockedHex)
+
+        // Same reachability means graph is not split
+        if (afterReachableHexes.length === beforeReachableHexes.length - 1) {
+            console.log('Same reachability... ok')
+            return false
+        }
+
+        // Find a hex in the disconnected set
+        const afterSet = new Set(afterReachableHexes.map(axialCoordinatesToNumber))
+        const disconnectedHex = beforeReachableHexes.find(
+            (hex) =>
+                !afterSet.has(axialCoordinatesToNumber(hex)) && !sameCoordinates(hex, blockedHex)
+        )
+        console.log(
+            'Discontinuity found, before: ',
+            beforeReachableHexes.length,
+            'after: ',
+            afterReachableHexes.length
+        )
+        if (!disconnectedHex) {
+            return false
+        }
+
+        console.log('Disconnected hex: ', disconnectedHex)
+        // Get the hexes in the disconnected section of water
+        const disconnectedReachableHexes = this.getContiguousWaterHexes(disconnectedHex, blockedHex)
+        console.log(
+            'Section sizes: ',
+            disconnectedReachableHexes.length,
+            afterReachableHexes.length
+        )
+        // Check the smaller section for boats
+        const smallerSection =
+            disconnectedReachableHexes.length < afterReachableHexes.length
+                ? disconnectedReachableHexes
+                : afterReachableHexes
+        return smallerSection.some((hex) => {
+            if (movedBoat && !sameCoordinates(movedBoat.from, movedBoat.to)) {
+                if (sameCoordinates(hex, movedBoat.from)) {
+                    return false
+                } else if (sameCoordinates(hex, movedBoat.to)) {
+                    return true
+                }
+            }
+
+            return this.getBoatAt(hex)
+        })
     }
 
     getNeighbors(coords: AxialCoordinates) {

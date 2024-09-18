@@ -23,7 +23,6 @@ import {
     PlaceBid,
     Build,
     HydratedBuild,
-    MachineState,
     HydratedFish,
     Fish,
     HydratedDeliver,
@@ -159,37 +158,39 @@ export class KaivaiGameSession extends GameSession {
     // Why is this slower combined with the cell interactable check?
     // This method takes only 5 ms to run.
 
-    validBuildLocationIds: number[] = $derived.by(() => {
-        if (this.chosenAction !== ActionType.Build || !this.chosenBoatLocation) {
-            return []
-        }
+    // validBuildLocationIds: Set<number> = $derived.by(() => {
+    //     if (this.chosenAction !== ActionType.Build || !this.chosenBoatLocation) {
+    //         return new Set()
+    //     }
 
-        const playerState = this.myPlayerState
-        if (!playerState) {
-            return []
-        }
+    //     const playerState = this.myPlayerState
+    //     if (!playerState) {
+    //         return new Set()
+    //     }
 
-        if (
-            this.chosenAction === ActionType.Build &&
-            this.gameState.machineState === MachineState.TakingActions &&
-            this.chosenHutType
-        ) {
-            const neighbors = this.gameState.board.getNeighbors(this.chosenBoatLocation)
-            return neighbors
-                .filter((coords) => {
-                    const { valid } = HydratedBuild.isValidPlacement(this.gameState, {
-                        playerId: playerState.playerId,
-                        hutType: this.chosenHutType!,
-                        coords,
-                        boatCoords: this.chosenBoatLocation
-                    })
-                    return valid
-                })
-                .map((coords) => axialCoordinatesToNumber(coords))
-        }
+    //     if (
+    //         this.chosenAction === ActionType.Build &&
+    //         this.gameState.machineState === MachineState.TakingActions &&
+    //         this.chosenHutType
+    //     ) {
+    //         const neighbors = this.gameState.board.getNeighbors(this.chosenBoatLocation)
+    //         return new Set(
+    //             neighbors
+    //                 .filter((coords) => {
+    //                     const { valid } = HydratedBuild.isValidPlacement(this.gameState, {
+    //                         playerId: playerState.playerId,
+    //                         hutType: this.chosenHutType!,
+    //                         coords,
+    //                         boatCoords: this.chosenBoatLocation
+    //                     })
+    //                     return valid
+    //                 })
+    //                 .map((coords) => axialCoordinatesToNumber(coords))
+    //         )
+    //     }
 
-        return []
-    })
+    //     return new Set()
+    // })
 
     validDeliveryLocationIds: number[] = $derived.by(() => {
         if (this.chosenAction !== ActionType.Deliver || !this.chosenBoatLocation) {

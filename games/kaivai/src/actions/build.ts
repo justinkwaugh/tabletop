@@ -219,11 +219,8 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             return { valid: false, reason: 'Player cannot afford to build' }
         }
 
-        if (placement.boatCoords) {
-            if (
-                placement.boatId &&
-                state.board.hasOtherBoat(placement.boatCoords, placement.boatId)
-            ) {
+        if (placement.boatCoords && placement.boatId) {
+            if (state.board.hasOtherBoat(placement.boatCoords, placement.boatId)) {
                 return { valid: false, reason: 'Another boat is already at the specified location' }
             }
 
@@ -238,14 +235,16 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             }
 
             // Don't check where the boat was, check where it is going
-            if (
-                board.willSurroundAnyBoats(placement.coords, placement.boatId) ||
-                board.willSurroundBoat(placement.boatCoords, placement.coords)
-            ) {
+            const fromCoords = playerState.boatLocations[placement.boatId]
+            const boatMoved = {
+                from: fromCoords,
+                to: placement.boatCoords
+            }
+            if (board.willTrapBoats(placement.coords, boatMoved)) {
                 return { valid: false, reason: 'Boats may not be surrounded by island' }
             }
         } else {
-            if (board.willSurroundAnyBoats(placement.coords)) {
+            if (board.willTrapBoats(placement.coords)) {
                 return { valid: false, reason: 'Boats may not be surrounded by island' }
             }
         }
@@ -310,6 +309,7 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
                         playerId: playerState.playerId,
                         hutType: HutType.Meeting,
                         coords: buildHex,
+                        boatId,
                         boatCoords: hex
                     })
                     return valid

@@ -205,10 +205,11 @@
                 playerId: gameSession.myPlayer!.id,
                 hutType: gameSession.chosenHutType!,
                 coords: hex,
+                boatId: gameSession.chosenBoat,
                 boatCoords: gameSession.chosenBoatLocation
             })
             return valid
-            // return gameSession.validBuildLocationIds.includes(axialCoordinatesToNumber(hex))
+            // return gameSession.validBuildLocationIds.has(axialCoordinatesToNumber(hex))
         }
         return false
     }
@@ -576,9 +577,6 @@
         </g>
     {/if}
 
-    <!-- <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="30" fill="yellow">
-        {hex.q}, {hex.r}
-    </text> -->
     {#if hasFisherman}
         <g
             in:fadeScale={{ baseScale: 0.1, duration: 100 }}
@@ -756,6 +754,9 @@
             opacity="0.5"
         ></polygon>
     {/if}
+    <!-- <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="30" fill="yellow">
+        {hex.q}, {hex.r}
+    </text> -->
 
     {#if showIslandBorders}
         {#each visibleBorders as border}

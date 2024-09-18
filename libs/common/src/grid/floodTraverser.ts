@@ -12,7 +12,7 @@ export function flood<T extends Hex>(options: FloodOptions): Traverser<T> {
         const queue: T[] = [startHex]
         visitedHexes.set(axialCoordinatesToNumber(startHex), startHex)
 
-        while (queue.length > 0 && depth < options.range) {
+        while (queue.length > 0 && (options.range === undefined || depth < options.range)) {
             const numAtCurrentDepth = queue.length
             for (let i = 0; i < numAtCurrentDepth; i++) {
                 const currentHex = queue.shift()!
@@ -39,7 +39,7 @@ export function flood<T extends Hex>(options: FloodOptions): Traverser<T> {
  */
 export interface FloodOptions {
     start: HexCoordinates
-    range: number
+    range?: number
     canTraverse?: (hex: Hex) => boolean
 }
 

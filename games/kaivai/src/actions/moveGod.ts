@@ -92,7 +92,7 @@ export class HydratedMoveGod extends HydratableAction<typeof MoveGod> implements
             return { valid: false, reason: 'New cult site must be adjacent to an island' }
         }
 
-        if (board.willSurroundAnyBoats(coords)) {
+        if (board.willTrapBoats(coords)) {
             return { valid: false, reason: 'Boats may not be surrounded by island' }
         }
 
