@@ -110,6 +110,10 @@ in this repository that are owned and copyrighted by third parties (e.g. publish
 or designers) are not subject to this license and all rights remain with the 
 original owners.
 
+While permission may have been given to allow use of such copyrighted assets, that permission
+may vary in scope and does not necessarily permit use outside of this project.  Please see the
+[Permissions](https://github.com/justinkwaugh/tabletop/blob/main/PERMISSIONS.md) file for more detail.
+
 
 
 
