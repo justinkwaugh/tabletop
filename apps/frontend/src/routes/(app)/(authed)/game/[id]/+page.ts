@@ -23,6 +23,8 @@ export async function load({ params, url }) {
             return
         }
 
+        await appContext.chatService.setGameId(game.id)
+
         const definition = appContext.libraryService.getTitle(game.typeId)
         if (!definition) {
             onceMounted(() => {

@@ -1,10 +1,11 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import { Value } from '@sinclair/typebox/value'
-import { Game, GameAction, GameSyncStatus, User, UserPreferences } from '@tabletop/common'
+import { Game, GameAction, GameChat, GameSyncStatus, User, UserPreferences } from '@tabletop/common'
 import type {
     AblyTokenResponse,
     ApplyActionResponse,
     CheckSyncResponse,
+    GameChatResponse,
     GameResponse,
     GamesResponse,
     GameWithActionsResponse,
@@ -371,6 +372,17 @@ export class TabletopApi {
         ) as GameAction[]
 
         return { status: response.payload.status, actions, checksum: response.payload.checksum }
+    }
+
+    async getGameChat(gameId: string): Promise<GameChat> {
+        const response = await this.wretch
+            .get(`/chat/game/${gameId}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameChatResponse>()
+
+        const chat = Value.Convert(GameChat, response.payload.chat) as GameChat
+        return chat
     }
 
     async getSseToken(): Promise<string> {

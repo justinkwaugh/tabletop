@@ -23,7 +23,9 @@ import {
     NullPubSubService,
     // RedisPubSubService,
     RedisCacheService,
-    RedisService
+    RedisService,
+    ChatService,
+    FirestoreChatStore
 } from '@tabletop/backend-services'
 
 import { FastifyInstance } from 'fastify'
@@ -41,6 +43,7 @@ declare module 'fastify' {
         pubSubService: PubSubService
         discordService: DiscordService
         ablyService: AblyService
+        chatService: ChatService
     }
 }
 
@@ -98,6 +101,8 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const ablyService = await AblyService.createAblyService(secretsService)
 
+    const chatService = new ChatService(new FirestoreChatStore(fastify.firestore))
+
     fastify.decorate('taskService', taskService)
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('userService', userService)
@@ -108,4 +113,5 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)
     fastify.decorate('ablyService', ablyService)
+    fastify.decorate('chatService', chatService)
 })

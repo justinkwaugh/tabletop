@@ -6,6 +6,7 @@ import { GameService } from '$lib/services/gameService.svelte'
 import { LibraryService } from '$lib/services/libraryService'
 import { VisibilityService } from '$lib/services/visibilityService.svelte'
 import { AblyConnection } from '$lib/network/ablyConnection.svelte'
+import { ChatService } from '$lib/services/chatService.svelte'
 
 export type AppContext = {
     libraryService: LibraryService
@@ -13,6 +14,7 @@ export type AppContext = {
     notificationService: NotificationService
     gameService: GameService
     visibilityService: VisibilityService
+    chatService: ChatService
     api: TabletopApi
 }
 
@@ -35,6 +37,7 @@ const appContext: AppContext = {
     authorizationService,
     notificationService,
     gameService: new GameService(authorizationService, notificationService, api),
+    chatService: new ChatService(authorizationService, notificationService, api),
     visibilityService,
     api
 }

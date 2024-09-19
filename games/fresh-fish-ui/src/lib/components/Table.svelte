@@ -16,7 +16,7 @@
     import GameDataPanel from '$lib/components/GameDataPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { Button, ButtonGroup, Tabs, TabItem } from 'flowbite-svelte'
-    import { UserCircleSolid, ClockSolid } from 'flowbite-svelte-icons'
+    import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
     import { generateBoard } from '@tabletop/fresh-fish'
     import { generateSeed, getPrng, range } from '@tabletop/common'
     import LastActionDescription from './LastActionDescription.svelte'
@@ -84,6 +84,12 @@
                         History
                     </div>
                     <History />
+                </TabItem>
+                <TabItem activeClasses={activeTabClasses} inactiveClasses={inactiveTabClasses}>
+                    <div slot="title" class="flex items-center gap-2">
+                        <AnnotationSolid size="md" />
+                        Chat
+                    </div>
                 </TabItem>
             </Tabs>
         </div>
