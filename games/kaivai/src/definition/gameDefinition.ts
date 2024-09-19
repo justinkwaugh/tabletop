@@ -16,7 +16,7 @@ export const KaivaiDefinition = <GameDefinition>{
         minPlayers: 3,
         maxPlayers: 4,
         defaultPlayerCount: 4,
-        beta: true
+        beta: false
     },
 
     initializer: new KaivaiGameInitializer(),
