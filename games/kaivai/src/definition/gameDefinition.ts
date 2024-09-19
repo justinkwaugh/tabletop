@@ -12,7 +12,7 @@ export const KaivaiDefinition = <GameDefinition>{
     metadata: {
         name: 'Kaivai',
         designer: 'Anselm and Helge Ostertag',
-        year: '2003',
+        year: '2005',
         minPlayers: 3,
         maxPlayers: 4,
         defaultPlayerCount: 4,
