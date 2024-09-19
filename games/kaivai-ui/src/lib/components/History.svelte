@@ -127,10 +127,10 @@
                                 <FishingResults {action} justify={'left'} />
                             {/if}
                             {#if isScoreIsland(action)}
-                                <IslandScoringResults {action} />
+                                <IslandScoringResults {action} history={true} />
                             {/if}
                             {#if isScoreHuts(action)}
-                                <HutScoringResults {action} />
+                                <HutScoringResults {action} justify={'left'} />
                             {/if}
                             {#if isCelebrate(action)}
                                 <CelebrateResults {action} justify={'left'} />

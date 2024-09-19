@@ -66,7 +66,7 @@
                 <IslandScoringResults action={lastAction} />
             {/if}
             {#if isScoreHuts(lastAction)}
-                <HutScoringResults action={lastAction} />
+                <HutScoringResults action={lastAction} justify={'center'} />
             {/if}
             {#if isCelebrate(lastAction)}
                 <CelebrateResults action={lastAction} justify={'center'} />

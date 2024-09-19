@@ -4,7 +4,7 @@
     import { getContext } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import influenceImg from '$lib/images/influence.png'
-    let { action }: { action: ScoreIsland } = $props()
+    let { action, history = false }: { action: ScoreIsland; history?: boolean } = $props()
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     function totalForPlayer(playerId: string) {
@@ -15,10 +15,16 @@
     }
 </script>
 
-<div class="flex flex-row justify-start items-center space-x-2 w-full mt-2 text-md">
-    <div class="flex flex-col justify-center items-center w-full">
+<div class="flex flex-row justify-start items-center space-x-2 w-full mt-2">
+    <div
+        class="flex flex-col justify-center {history
+            ? 'items-start text-xs'
+            : 'items-center text-md'} w-full"
+    >
         <div
-            class="p-2 rounded-lg grid grid-cols-[min-content_30px_30px_30px_min-content_30px] gap-x-2 gap-y-1 text-center border-2 border-[#634a11]"
+            class="p-2 rounded-lg grid grid-cols-[min-content_30px_30px_30px_min-content_30px] {history
+                ? ''
+                : 'gap-x-2'} gap-y-1 text-center border-2 border-[#634a11]"
         >
             <div></div>
             <div class="m-auto">
@@ -70,7 +76,7 @@
                 </div>
             {/each}
         </div>
-        <div class="mt-2">
+        <div class="mt-2 text-md">
             {#if action.metadata?.winners.length === 1}
                 <PlayerName playerId={action.metadata?.winners[0]} /> won {action.metadata?.award ??
                     0} glory
