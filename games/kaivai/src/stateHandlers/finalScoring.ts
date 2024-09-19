@@ -94,7 +94,11 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
                     return MachineState.EndOfGame
                 }
 
-                if (gameState.islandsToScore.length === 1) {
+                const playersHaveInfluence = gameState.players.some(
+                    (player) => player.influence > 0
+                )
+
+                if (gameState.islandsToScore.length === 1 || !playersHaveInfluence) {
                     const chooseScoringIslandAction: ChooseScoringIsland = {
                         type: ActionType.ChooseScoringIsland,
                         id: nanoid(),

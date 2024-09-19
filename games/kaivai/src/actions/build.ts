@@ -179,12 +179,6 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
             return { valid: false, reason: 'Hut must be placed on water' }
         }
 
-        const boat = board.getBoatAt(placement.coords)
-
-        if (boat && !placement.boatId) {
-            return { valid: false, reason: 'Hut cannot be placed on a boat' }
-        }
-
         if (state.machineState !== MachineState.InitialHuts && !placement.boatCoords) {
             return { valid: false, reason: 'Boat coordinates required' }
         }
@@ -226,6 +220,11 @@ export class HydratedBuild extends HydratableAction<typeof Build> implements Bui
 
             if (!board.areNeighbors(placement.coords, placement.boatCoords)) {
                 return { valid: false, reason: 'Hut must be placed next to the specified boat' }
+            }
+
+            const boat = board.getBoatAt(placement.coords)
+            if (boat && boat.id !== placement.boatId) {
+                return { valid: false, reason: 'Hut cannot be placed on a boat' }
             }
 
             // Make sure they share the same island (this also incidentally checks boat / cult site adjacency)
