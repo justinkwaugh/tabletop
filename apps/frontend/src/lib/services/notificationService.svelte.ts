@@ -29,12 +29,12 @@ export class NotificationService {
     private currentSessionUserId: string | undefined = $state(undefined)
 
     private shouldConnectRealtime: boolean = $derived.by(() => {
-        return this.currentSessionUserId !== undefined && this.visbililtyService.visible
+        return this.currentSessionUserId !== undefined && this.visibilityService.visible
     })
 
     constructor(
         private readonly realtimeConnection: RealtimeConnection,
-        private readonly visbililtyService: VisibilityService,
+        private readonly visibilityService: VisibilityService,
         private readonly authorizationService: AuthorizationService,
         private readonly api: TabletopApi
     ) {

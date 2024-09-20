@@ -101,7 +101,10 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const ablyService = await AblyService.createAblyService(secretsService)
 
-    const chatService = new ChatService(new FirestoreChatStore(fastify.firestore))
+    const chatService = new ChatService(
+        gameService,
+        new FirestoreChatStore(redisCacheService, fastify.firestore)
+    )
 
     fastify.decorate('taskService', taskService)
     fastify.decorate('tokenService', tokenService)

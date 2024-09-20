@@ -33,6 +33,7 @@ export default async function (fastify: FastifyInstance) {
             const chat = await fastify.chatService.getGameChat(gameId)
 
             if (!chat) {
+                console.log('Chat not found')
                 await reply.code(404).send()
                 return
             }

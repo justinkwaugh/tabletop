@@ -31,13 +31,14 @@ const notificationService = new NotificationService(
     authorizationService,
     api
 )
+const chatService = new ChatService(authorizationService, notificationService, api)
 
 const appContext: AppContext = {
     libraryService,
     authorizationService,
     notificationService,
     gameService: new GameService(authorizationService, notificationService, api),
-    chatService: new ChatService(authorizationService, notificationService, api),
+    chatService: chatService,
     visibilityService,
     api
 }

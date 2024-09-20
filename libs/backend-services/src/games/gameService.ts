@@ -894,7 +894,7 @@ export class GameService {
         }
     }
 
-    private findValidPlayerForUser({ user, game }: { user: User; game: Game }): Player {
+    findValidPlayerForUser({ user, game }: { user: User; game: Game }): Player {
         const player = game.players.find((p) => p.userId === user.id)
         if (!player) {
             throw new UserIsNotAllowedPlayerError({ user, gameId: game.id })
@@ -945,7 +945,7 @@ export class GameService {
         return user
     }
 
-    private async notifyGameInstance(
+    async notifyGameInstance(
         action: GameNotificationAction,
         data: GameNotificationData
     ): Promise<void> {

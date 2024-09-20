@@ -32,6 +32,7 @@ import {
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
 import { ColorblindColorizer } from '$lib/utils/colorblindPalette'
 import type { GameColorizer } from '$lib/definition/gameColorizer'
+import type { ChatService } from '$lib/services/chatService'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -50,6 +51,7 @@ export class GameSession {
     private debug? = false
     private authorizationService: AuthorizationService
     private notificationService: NotificationService
+
     private engine: GameEngine
     private api: TabletopApi
     private actionsById: Map<string, GameAction> = new Map([])
@@ -57,6 +59,8 @@ export class GameSession {
     private actionsToProcess: GameAction[] = []
 
     private processingActions = false
+
+    chatService: ChatService
 
     // This is very much cheating, but there is no way to tell the compiler
     // that this will be initialized in the constructor
@@ -285,6 +289,7 @@ export class GameSession {
     constructor({
         authorizationService,
         notificationService,
+        chatService,
         api,
         definition,
         game,
@@ -293,6 +298,7 @@ export class GameSession {
     }: {
         authorizationService: AuthorizationService
         notificationService: NotificationService
+        chatService: ChatService
         api: TabletopApi
         definition: GameUiDefinition
         game: Game
@@ -301,12 +307,14 @@ export class GameSession {
     }) {
         this.authorizationService = authorizationService
         this.notificationService = notificationService
+        this.chatService = chatService
         this.api = api
         this.definition = definition
         this.engine = new GameEngine(definition)
         this.game = game
-        this.initializeActions(actions)
         this.debug = debug
+        this.chatService.setGameId(game.id)
+        this.initializeActions(actions)
     }
 
     private initializeActions(actions: GameAction[]) {

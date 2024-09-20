@@ -23,8 +23,6 @@ export async function load({ params, url }) {
             return
         }
 
-        await appContext.chatService.setGameId(game.id)
-
         const definition = appContext.libraryService.getTitle(game.typeId)
         if (!definition) {
             onceMounted(() => {
@@ -38,6 +36,7 @@ export async function load({ params, url }) {
             gameSession: new definition.sessionClass({
                 authorizationService: appContext.authorizationService,
                 notificationService: appContext.notificationService,
+                chatService: appContext.chatService,
                 api: appContext.api,
                 definition,
                 game,

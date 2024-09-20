@@ -1,5 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { Game, GameAction, GameChat, GameSyncStatus, User } from '@tabletop/common'
+import { Game, GameAction, GameChat, GameChatMessage, GameSyncStatus, User } from '@tabletop/common'
 
 export const Response = Type.Object({
     status: Type.String(),
@@ -64,6 +64,18 @@ export const GameChatResponse = Type.Composite([
     Type.Omit(Response, ['payload']),
     Type.Object({
         payload: Type.Object({ chat: GameChat })
+    })
+])
+
+export type GameChatMessageResponse = Static<typeof GameChatMessageResponse>
+export const GameChatMessageResponse = Type.Composite([
+    Type.Omit(Response, ['payload']),
+    Type.Object({
+        payload: Type.Object({
+            message: GameChatMessage,
+            checksum: Type.Number(),
+            missedMessages: Type.Array(GameChatMessage)
+        })
     })
 ])
 

@@ -8,7 +8,7 @@
     let { data }: { data: { gameSession: GameSession } } = $props()
     setContext('gameSession', data.gameSession)
 
-    let { gameService, notificationService, authorizationService } = getContext(
+    let { gameService, notificationService, authorizationService, chatService } = getContext(
         'appContext'
     ) as AppContext
     let Table: Component | null = $state(null)
@@ -29,6 +29,8 @@
         return () => {
             gameSession.stopListeningToGame()
             gameService.currentGameSession = undefined
+            setContext('gameSession', undefined)
+            chatService.clear()
         }
     })
 

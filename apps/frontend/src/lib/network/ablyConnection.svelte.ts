@@ -59,6 +59,7 @@ export class AblyConnection implements RealtimeConnection {
 
         const channelName = identifier.channelName
         const ablyChannel = this.ably.channels.get(channelName)
+        console.log('adding attache listener')
         ablyChannel.on('attached', () => {
             const realtimeEvent: RealtimeEvent = {
                 type: RealtimeEventType.Discontinuity,
@@ -103,6 +104,7 @@ export class AblyConnection implements RealtimeConnection {
             return
         }
 
+        channelData.ablyChannel.off()
         channelData.ablyChannel.unsubscribe()
         try {
             await channelData.ablyChannel.detach()

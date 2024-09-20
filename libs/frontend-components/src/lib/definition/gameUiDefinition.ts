@@ -5,11 +5,13 @@ import type { NotificationService } from '$lib/services/notificationService.svel
 import { Game, GameAction, type GameDefinition } from '@tabletop/common'
 import type { Component } from 'svelte'
 import type { GameColorizer } from './gameColorizer'
+import type { ChatService } from '$lib/services/chatService'
 
 export interface GameSessionConstructor {
     new ({
         authorizationService,
         notificationService,
+        chatService,
         api,
         definition,
         game,
@@ -18,6 +20,7 @@ export interface GameSessionConstructor {
     }: {
         authorizationService: AuthorizationService
         notificationService: NotificationService
+        chatService: ChatService
         api: TabletopApi
         definition: GameUiDefinition
         game: Game

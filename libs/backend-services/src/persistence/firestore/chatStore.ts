@@ -3,16 +3,22 @@ import {
     Firestore,
     PartialWithFieldValue,
     QueryDocumentSnapshot,
-    Timestamp
+    Timestamp,
+    Transaction
 } from '@google-cloud/firestore'
 
-import { AlreadyExistsError, InvalidIdError, UnknownStorageError } from '../stores/errors.js'
-import { BaseError, GameChat, GameChatMessage } from '@tabletop/common'
+import { AlreadyExistsError, UnknownStorageError } from '../stores/errors.js'
+import { addToChecksum, BaseError, GameChat, GameChatMessage } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { ChatStore } from '../stores/chatStore.js'
+import { RedisCacheService } from 'src/cache/cacheService.js'
+import { StoredGameChat } from '../model/storedGameChat.js'
 
 export class FirestoreChatStore implements ChatStore {
-    constructor(private readonly firestore: Firestore) {}
+    constructor(
+        private readonly cacheService: RedisCacheService,
+        private readonly firestore: Firestore
+    ) {}
 
     async findGameChat(gameId: string): Promise<GameChat | undefined> {
         const collection = this.getGameChatCollection(gameId)
@@ -26,16 +32,47 @@ export class FirestoreChatStore implements ChatStore {
     }
 
     async addGameChatMessage(message: GameChatMessage, gameId: string): Promise<GameChat> {
-        throw new Error('Method not implemented.')
+        const chats = this.getGameChatCollection(gameId)
+        const transactionBody = async (
+            transaction: Transaction
+        ): Promise<{ updatedGameChat: GameChat }> => {
+            const existingChat: GameChat | undefined = (
+                await transaction.get(chats.doc(gameId))
+            ).data() as GameChat | undefined
+
+            const chatToUpdate = existingChat ?? { id: gameId, gameId, messages: [], checksum: 0 }
+
+            chatToUpdate.messages.push(message)
+            chatToUpdate.checksum = addToChecksum(chatToUpdate.checksum, [message.id])
+
+            transaction.set(chats.doc(gameId), chatToUpdate)
+
+            return { updatedGameChat: chatToUpdate }
+        }
+
+        const checksumCacheKey = `csum-${gameId}-chat`
+        const chatRevisionCacheKey = `etag-${gameId}-chat`
+
+        try {
+            const { updatedGameChat } = await this.cacheService.lockWhileWriting(
+                [checksumCacheKey, chatRevisionCacheKey],
+                async () => chats.firestore.runTransaction(transactionBody)
+            )
+
+            return updatedGameChat
+        } catch (error) {
+            console.log(error)
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
     }
 
     private getGameChatCollection(gameId: string): CollectionReference {
-        return this.firestore.collection('games').doc(gameId).collection('chats')
-        // .withConverter(chatConverter)
-    }
-
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
+        return this.firestore
+            .collection('games')
+            .doc(gameId)
+            .collection('chats')
+            .withConverter(gameChatConverter)
     }
 
     private handleError(error: unknown, id: string) {
@@ -61,19 +98,17 @@ export class FirestoreChatStore implements ChatStore {
     }
 }
 
-// const tokenConverter = {
-//     toFirestore(dataToken: DataToken): PartialWithFieldValue<DataToken> {
-//         dataToken.data = JSON.stringify(dataToken.data)
-//         return dataToken
-//     },
-//     fromFirestore(snapshot: QueryDocumentSnapshot): DataToken {
-//         const data = snapshot.data() as StoredDataToken
-//         data.data = JSON.parse(data.data)
+const gameChatConverter = {
+    toFirestore(gameChat: GameChat): PartialWithFieldValue<GameChat> {
+        return gameChat
+    },
+    fromFirestore(snapshot: QueryDocumentSnapshot): GameChat {
+        const data = snapshot.data() as StoredGameChat
 
-//         // Convert back to dates
-//         data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
-//         data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
-//         data.expiration = (data.expiration as Timestamp).toDate()
-//         return data
-//     }
-// }
+        for (const message of data.messages) {
+            message.timestamp = (message.timestamp as Timestamp).toDate()
+        }
+
+        return data
+    }
+}

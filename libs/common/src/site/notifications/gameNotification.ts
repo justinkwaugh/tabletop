@@ -2,12 +2,14 @@ import { Type, type Static } from '@sinclair/typebox'
 import { Notification, NotificationCategory } from './notification.js'
 import { Game } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
+import { GameChatMessage } from '../chat/gameChatMessage.js'
 
 export enum GameNotificationAction {
     Create = 'create',
     Update = 'update',
     AddActions = 'addActions',
-    UndoAction = 'undoAction'
+    UndoAction = 'undoAction',
+    Chat = 'chat'
 }
 
 export type GameNotificationUpdateData = Static<typeof GameNotificationUpdateData>
@@ -31,6 +33,13 @@ export const GameNotificationUndoActionData = Type.Object({
     game: Game,
     action: GameAction,
     redoneActions: Type.Array(GameAction)
+})
+
+export type GameNotificationChatData = Static<typeof GameNotificationChatData>
+export const GameNotificationChatData = Type.Object({
+    game: Game,
+    message: GameChatMessage,
+    checksum: Type.Number()
 })
 
 export type GameCreateNotification = Static<typeof GameCreateNotification>
@@ -70,6 +79,16 @@ export const GameUndoActionNotification = Type.Composite([
         type: Type.Literal(NotificationCategory.Game),
         action: Type.Literal(GameNotificationAction.UndoAction),
         data: GameNotificationUndoActionData
+    })
+])
+
+export type GameChatNotification = Static<typeof GameChatNotification>
+export const GameChatNotification = Type.Composite([
+    Type.Omit(Notification, ['type', 'action', 'data']),
+    Type.Object({
+        type: Type.Literal(NotificationCategory.Game),
+        action: Type.Literal(GameNotificationAction.Chat),
+        data: GameNotificationChatData
     })
 ])
 

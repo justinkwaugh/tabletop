@@ -11,7 +11,9 @@ import {
     NotificationCategory,
     GameChat,
     GameChatMessage,
-    Chat
+    addToChecksum,
+    GameChatNotification,
+    GameNotificationAction
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import { NotificationService } from './notificationService.svelte'
@@ -40,14 +42,16 @@ export class ChatService {
         return this.loading
     }
 
-    async setGameId(gameId: string) {
+    setGameId(gameId: string) {
         if (gameId === this.currentGameId) {
             return
         }
 
         this.clear()
         this.currentGameId = gameId
-        await this.loadGameChat()
+        this.loadGameChat().catch((error) => {
+            console.error('Failed to load game chat', error)
+        })
     }
 
     clear() {
@@ -62,43 +66,110 @@ export class ChatService {
         if (!this.currentGameId || this.loaded) {
             return
         }
-        if (!this.loadingPromise) {
-            this.loading = true
-            this.loadingPromise = this.api.getGameChat(this.currentGameId).then((chat) => {
-                if (chat.gameId !== this.currentGameId) {
-                    return
-                }
-                this.currentGameChat = chat
-                this.loading = false
-                this.loaded = true
-                this.loadingPromise = null
-            })
+        this.loading = true
+        const gameChat = await this.api.getGameChat(this.currentGameId)
+        if (gameChat.gameId !== this.currentGameId) {
+            return
         }
-        return this.loadingPromise
+        this.currentGameChat = gameChat
+        this.loading = false
+        this.loaded = true
     }
 
-    async sendMessage(gameChatMessage: GameChatMessage, chat: Chat): Promise<void> {}
+    private async reloadGameChat() {
+        this.loaded = false
+        await this.loadGameChat()
+    }
+
+    async sendGameChatMessage(gameChatMessage: GameChatMessage, gameId: string): Promise<void> {
+        if (!this.currentGameChat) {
+            return
+        }
+
+        this.currentGameChat.messages.push(gameChatMessage)
+        const originalChecksum = this.currentGameChat.checksum
+        try {
+            const { message, checksum, missedMessages } = await this.api.sendGameChatMessage(
+                gameChatMessage,
+                gameId,
+                originalChecksum
+            )
+            const messageIndex = this.currentGameChat.messages.findIndex(
+                (message) => message.id === gameChatMessage.id
+            )
+
+            this.currentGameChat.messages.push(...missedMessages)
+            this.currentGameChat.messages[messageIndex] = message
+            this.currentGameChat.messages.sort(
+                (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+            )
+
+            const expectedChecksum = addToChecksum(
+                originalChecksum,
+                [...missedMessages, message].map((m) => m.id)
+            )
+            if (checksum !== expectedChecksum) {
+                console.error('Chat checksum mismatch... fetching full chat', {
+                    checksum,
+                    expectedChecksum
+                })
+                this.reloadGameChat().catch((error) => {
+                    console.error('Failed to reload game chat', error)
+                })
+            } else {
+                this.currentGameChat.checksum = checksum
+            }
+        } catch (error) {
+            console.error('Failed to send game chat message', error)
+            const messageIndex = this.currentGameChat.messages.findIndex(
+                (message) => message.id === gameChatMessage.id
+            )
+            this.currentGameChat.messages.splice(messageIndex, 1)
+        }
+    }
 
     private NotificationListener = async (event: NotificationEvent) => {
-        // if (isDataEvent(event)) {
-        //     const notification = event.notification
-        //     if (!this.isGameNotification(notification)) {
-        //         return
-        //     }
-        //     const game = Value.Convert(Game, notification.data.game) as Game
-        //     if (
-        //         notification.action === GameNotificationAction.Create ||
-        //         notification.action === GameNotificationAction.Update
-        //     ) {
-        //         this.gamesById.set(game.id, game)
-        //     }
-        // } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
-        //     this.loaded = false
-        //     await this.loadGames()
-        // }
+        if (!this.currentGameChat) {
+            return
+        }
+
+        if (isDataEvent(event)) {
+            const notification = event.notification
+            if (!this.isGameChatNotification(notification)) {
+                return
+            }
+
+            const newMessage = Value.Convert(
+                GameChatMessage,
+                notification.data.message
+            ) as GameChatMessage
+
+            if (this.currentGameChat.messages.find((m) => m.id === newMessage.id)) {
+                return
+            }
+
+            this.currentGameChat?.messages.push(newMessage)
+            const expectedChecksum = addToChecksum(this.currentGameChat?.checksum, [newMessage.id])
+            if (expectedChecksum !== notification.data.checksum) {
+                console.error('Chat checksum mismatch... fetching full chat', {
+                    expectedChecksum,
+                    checksum: notification.data.checksum
+                })
+                await this.reloadGameChat()
+            } else {
+                this.currentGameChat.checksum = notification.data.checksum
+            }
+        } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
+            await this.reloadGameChat()
+        }
     }
 
-    // private isGameNotification(notification: Notification): notification is GameNotification {
-    //     return notification.type === NotificationCategory.Game
-    // }
+    private isGameChatNotification(
+        notification: Notification
+    ): notification is GameChatNotification {
+        return (
+            notification.type === NotificationCategory.Game &&
+            notification.action === GameNotificationAction.Chat
+        )
+    }
 }
