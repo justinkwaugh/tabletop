@@ -5,7 +5,7 @@ import { GameState } from '../model/gameState.js'
 import { MachineContext } from './machineContext.js'
 import { MachineStateHandler } from './machineStateHandler.js'
 import { GameDefinition } from '../definition/gameDefinition.js'
-import { calculateChecksum } from '../../util/checksum.js'
+import { calculateActionChecksum } from '../../util/checksum.js'
 
 export type ActionResult = {
     processedActions: GameAction[]
@@ -158,7 +158,7 @@ export class GameEngine {
         if (state.actionChecksum === initialChecksum) {
             console.log('Undoing an old action, calculating checksum manually')
             // This is only for games created when undo was not a thing
-            state.actionChecksum = calculateChecksum(state.actionChecksum, [action])
+            state.actionChecksum = calculateActionChecksum(state.actionChecksum, [action])
         }
         return state
     }

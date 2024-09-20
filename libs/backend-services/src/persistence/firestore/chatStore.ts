@@ -7,26 +7,26 @@ import {
 } from '@google-cloud/firestore'
 
 import { AlreadyExistsError, InvalidIdError, UnknownStorageError } from '../stores/errors.js'
-import { BaseError, Chat, ChatMessage } from '@tabletop/common'
+import { BaseError, GameChat, GameChatMessage } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { ChatStore } from '../stores/chatStore.js'
 
 export class FirestoreChatStore implements ChatStore {
     constructor(private readonly firestore: Firestore) {}
 
-    async findGameChat(gameId: string): Promise<Chat | undefined> {
+    async findGameChat(gameId: string): Promise<GameChat | undefined> {
         const collection = this.getGameChatCollection(gameId)
         const doc = collection.doc(gameId)
         try {
-            return (await doc.get()).data() as Chat
+            return (await doc.get()).data() as GameChat
         } catch (error) {
             this.handleError(error, gameId)
             throw Error('unreachable')
         }
     }
 
-    async addMessage(message: ChatMessage, chat: Chat): Promise<Chat> {
-        return chat
+    async addGameChatMessage(message: GameChatMessage, gameId: string): Promise<GameChat> {
+        throw new Error('Method not implemented.')
     }
 
     private getGameChatCollection(gameId: string): CollectionReference {

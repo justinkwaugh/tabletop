@@ -11,7 +11,7 @@ import {
     GameState,
     GameSyncStatus,
     findLastIndex,
-    calculateChecksum,
+    calculateActionChecksum,
     GameUndoActionNotification,
     User,
     PlayerColor,
@@ -951,7 +951,7 @@ export class GameSession {
     }
 
     private verifyFullChecksum() {
-        const checksum = calculateChecksum(0, this.actions)
+        const checksum = calculateActionChecksum(0, this.actions)
         if (checksum !== this.game.state?.actionChecksum) {
             throw new Error(
                 'Full checksum validation failed, got ' +

@@ -33,14 +33,17 @@
     })
 
     function onKeyDown(event: KeyboardEvent) {
-        event.preventDefault()
         if (event.key === 'ArrowUp') {
+            event.preventDefault()
             data.gameSession.goToMyNextTurn()
         } else if (event.key === 'ArrowDown') {
+            event.preventDefault()
             data.gameSession.goToMyPreviousTurn()
         } else if (event.key === 'ArrowLeft') {
+            event.preventDefault()
             data.gameSession.stepBackward()
         } else if (event.key === 'ArrowRight') {
+            event.preventDefault()
             data.gameSession.stepForward()
         }
     }

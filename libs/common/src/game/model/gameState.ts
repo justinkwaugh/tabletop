@@ -1,7 +1,7 @@
 import { TSchema, Type, type Static } from '@sinclair/typebox'
 import { TurnManager } from '../components/turnManager.js'
 import { Hydratable } from '../../util/hydration.js'
-import { calculateChecksum } from '../../util/checksum.js'
+import { calculateActionChecksum } from '../../util/checksum.js'
 import { GameAction } from '../engine/gameAction.js'
 import { PlayerState } from './playerState.js'
 import { PrngState } from '../components/prng.js'
@@ -52,7 +52,7 @@ export abstract class HydratableGameState<T extends TSchema>
     recordAction(action: GameAction): void {
         action.index = this.actionCount
         this.actionCount += 1
-        this.actionChecksum = calculateChecksum(this.actionChecksum, [action])
+        this.actionChecksum = calculateActionChecksum(this.actionChecksum, [action])
     }
 
     isActivePlayer(playerId: string): boolean {

@@ -1,6 +1,6 @@
 import {
     ActionSource,
-    calculateChecksum,
+    calculateActionChecksum,
     findLast,
     Game,
     GameAction,
@@ -199,7 +199,7 @@ export class GameService {
             endIndex: game.state.actionCount
         })
 
-        const calculatedChecksum = calculateChecksum(checksum, actions)
+        const calculatedChecksum = calculateActionChecksum(checksum, actions)
 
         let syncStatus = GameSyncStatus.InSync
         // If we are not in sync, we need to say so and return enough actions to hopefully allow the client to resync
@@ -802,14 +802,14 @@ export class GameService {
                 // Because our hash merge is XOR based, we can just run the exact same function but with the reversed actions
                 existingActions.sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
                 // Checksum the undone actions
-                let undoneChecksum = calculateChecksum(
+                let undoneChecksum = calculateActionChecksum(
                     existingState.actionChecksum,
                     existingActions
                 )
 
                 // Also checksum the redone actions
                 if (redoneActions.length > 0) {
-                    undoneChecksum = calculateChecksum(undoneChecksum, redoneActions)
+                    undoneChecksum = calculateActionChecksum(undoneChecksum, redoneActions)
                 }
 
                 if (undoneChecksum !== newState.actionChecksum) {
@@ -844,7 +844,7 @@ export class GameService {
     }
 
     async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {
-        const checksum = calculateChecksum(0, actions)
+        const checksum = calculateActionChecksum(0, actions)
         state.actionChecksum = checksum
         return await this.gameStore.setChecksum({ gameId: state.gameId, checksum })
     }

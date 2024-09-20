@@ -1,6 +1,6 @@
-import { Chat, ChatMessage } from '@tabletop/common'
+import { GameChat, GameChatMessage } from '@tabletop/common'
 
 export interface ChatStore {
-    findGameChat(gameId: string): Promise<Chat | undefined>
-    addMessage(message: ChatMessage, chat: Chat): Promise<Chat>
+    findGameChat(gameId: string): Promise<GameChat | undefined>
+    addGameChatMessage(message: GameChatMessage, gameId: string): Promise<GameChat>
 }

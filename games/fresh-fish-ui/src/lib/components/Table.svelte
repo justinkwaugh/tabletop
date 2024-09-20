@@ -3,7 +3,8 @@
         GameSessionMode,
         ScalingWrapper,
         AdminPanel,
-        HistoryControls
+        HistoryControls,
+        GameChat
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
@@ -90,6 +91,7 @@
                         <AnnotationSolid size="md" />
                         Chat
                     </div>
+                    <GameChat />
                 </TabItem>
             </Tabs>
         </div>
