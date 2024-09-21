@@ -34,6 +34,13 @@
     })
 
     function onKeyDown(event: KeyboardEvent) {
+        if (
+            event.target instanceof HTMLInputElement ||
+            event.target instanceof HTMLTextAreaElement
+        ) {
+            return
+        }
+
         if (event.key === 'ArrowUp') {
             event.preventDefault()
             data.gameSession.goToMyNextTurn()

@@ -53,6 +53,10 @@
     }
 
     function sendMessage() {
+        if (text.trim() === '') {
+            return
+        }
+
         const message: GameChatMessage = {
             id: nanoid(),
             playerId: gameSession.myPlayer?.id,
@@ -71,15 +75,19 @@
     function handleKeyDown(event: KeyboardEvent) {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault()
-            if (text.trim() === '') {
-                return
-            }
             sendMessage()
         }
     }
 
     function textSplit(text: string) {
-        return text.split('\n')
+        const splitText = text.trim().split('\n')
+        for (let i = 0; i < splitText.length; i++) {
+            if (splitText[i].length === 0) {
+                splitText[i] = '\u00A0'
+            }
+        }
+
+        return splitText
     }
 
     async function chatListener(event: ChatEvent) {
@@ -120,7 +128,7 @@
 {/snippet}
 
 {#snippet chatMessage(message: GameChatMessage)}
-    <div class="flex flex-row justify-start items-start gap-x-2">
+    <div class="flex flex-row justify-start items-start gap-x-2 hover:bg-gray-800 py-2">
         <div
             class="shrink-0 grow-0 flex justify-center items-center rounded-full {gameSession.getPlayerBgColor(
                 message.playerId
@@ -153,7 +161,7 @@
         class="w-full fit-content overflow-auto flex flex-col-reverse"
         style="overflow-anchor:auto"
     >
-        <div class="flex flex-col-reverse justify-end items-start text-white w-full gap-y-4">
+        <div class="flex flex-col-reverse justify-end items-start text-white w-full">
             {#each messages as message (message.id)}
                 <div
                     in:fade={{ duration: 200, easing: quartIn }}
@@ -177,7 +185,7 @@
                 dark:border-gray-600 focus:border-primary-500 dark:focus:ring-primary-500
                 dark:focus:border-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
                 oninput={sizeInput}
-                onkeyup={(event) => handleKeyDown(event)}
+                onkeydown={(event) => handleKeyDown(event)}
                 rows="1"
                 name="message"
                 placeholder=""
