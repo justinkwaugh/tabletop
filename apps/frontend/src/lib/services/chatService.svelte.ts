@@ -4,7 +4,8 @@ import {
     type NotificationEvent,
     isDataEvent,
     isDiscontinuityEvent,
-    NotificationChannel
+    NotificationChannel,
+    type ChatListener
 } from '@tabletop/frontend-components'
 import {
     Notification,
@@ -21,7 +22,7 @@ import { NotificationService } from './notificationService.svelte'
 export class ChatService {
     private loading = $state(false)
     private loaded = false
-    private loadingPromise: Promise<void> | null = null
+    private listeners: Set<ChatListener> = new Set()
 
     private currentGameId: string | undefined = $state(undefined)
     currentGameChat: GameChat | undefined = $state(undefined)
@@ -59,7 +60,17 @@ export class ChatService {
         this.currentGameChat = undefined
         this.loaded = false
         this.loading = false
-        this.loadingPromise = null
+    }
+
+    addListener(listener: ChatListener) {
+        if (this.listeners.has(listener)) {
+            return
+        }
+        this.listeners.add(listener)
+    }
+
+    removeListener(listener: ChatListener) {
+        this.listeners.delete(listener)
     }
 
     private async loadGameChat() {
@@ -158,6 +169,12 @@ export class ChatService {
                 await this.reloadGameChat()
             } else {
                 this.currentGameChat.checksum = notification.data.checksum
+            }
+
+            for (const listener of this.listeners) {
+                listener(newMessage).catch(() => {
+                    console.error('Failed to notify chat listener')
+                })
             }
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
             await this.reloadGameChat()

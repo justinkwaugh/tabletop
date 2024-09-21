@@ -97,9 +97,11 @@ export type GameNotificationData =
     | GameNotificationUpdateData
     | GameNotificationAddActionsData
     | GameNotificationUndoActionData
+    | GameNotificationChatData
 
 export type GameNotification =
     | GameCreateNotification
     | GameUpdateNotification
     | GameAddActionsNotification
     | GameUndoActionNotification
+    | GameChatNotification

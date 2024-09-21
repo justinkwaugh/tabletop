@@ -4,8 +4,12 @@
     import { Input, Button, Textarea } from 'flowbite-svelte'
     import { FaceGrinSolid } from 'flowbite-svelte-icons'
     import { nanoid } from 'nanoid'
-    import { getContext } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import TimeAgo from 'javascript-time-ago'
+    import { flip } from 'svelte/animate'
+    import { fade } from 'svelte/transition'
+    import { quartIn } from 'svelte/easing'
+    import type { ChatEvent } from '$lib/services/chatService'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -13,9 +17,13 @@
     let chatService = gameSession.chatService
     let text: string = $state('')
     let input: HTMLTextAreaElement
+    let messagePanel: HTMLDivElement
+    let showNewMessageIndicator: boolean = $state(false)
 
     let messages: GameChatMessage[] = $derived.by(() => {
-        return chatService.currentGameChat?.messages ?? []
+        return (chatService.currentGameChat?.messages ?? []).toSorted(
+            (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+        )
     })
 
     let playerInitials: Record<string, string> = $derived.by(() => {
@@ -63,10 +71,53 @@
     function handleKeyDown(event: KeyboardEvent) {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault()
+            if (text.trim() === '') {
+                return
+            }
             sendMessage()
         }
     }
+
+    function textSplit(text: string) {
+        return text.split('\n')
+    }
+
+    async function chatListener(event: ChatEvent) {
+        if (messagePanel.scrollTop !== 0) {
+            showNewMessageIndicator = true
+        }
+    }
+
+    onMount(() => {
+        chatService.addListener(chatListener)
+
+        return () => {
+            chatService.removeListener(chatListener)
+        }
+    })
+
+    function scrollToBottom() {
+        showNewMessageIndicator = false
+        messagePanel.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    function onScroll(event: Event) {
+        if ((event.target as HTMLDivElement).scrollTop === 0) {
+            showNewMessageIndicator = false
+        }
+    }
 </script>
+
+{#snippet newMessageIndicator()}
+    <button
+        in:fade={{ duration: 200 }}
+        out:fade={{ duration: 21 }}
+        onclick={() => scrollToBottom()}
+        class="rounded-full bg-blue-700 text-gray-200 px-3 py-2 text-xs"
+    >
+        New Messages
+    </button>
+{/snippet}
 
 {#snippet chatMessage(message: GameChatMessage)}
     <div class="flex flex-row justify-start items-start gap-x-2">
@@ -81,18 +132,37 @@
         </div>
         <div class="flex flex-col justify-center items-start">
             <p class="text-xs text-gray-600">{timeAgo.format(message.timestamp)}</p>
-            <p class="text-gray-200 leading-[1.1rem]">{message.text}</p>
+            {#each textSplit(message.text) as text}
+                <p class="text-gray-200 leading-[1.1rem]">{text}</p>
+            {/each}
         </div>
     </div>
 {/snippet}
 
 <div
-    class="flex flex-col justify-end items-center w-full p-2 rounded-lg border-gray-700 border-2 gap-y-4 h-full text-sm sm:h-[calc(100dvh-174px)] h-[calc(100dvh-198px)] overflow-hidden"
+    class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg border-gray-700 border-2 gap-y-4 h-full text-sm sm:h-[calc(100dvh-174px)] h-[calc(100dvh-198px)] overflow-hidden"
 >
-    <div class="w-full fit-content overflow-scroll">
-        <div class="flex flex-col justify-end items-start text-white w-full gap-y-4">
+    {#if showNewMessageIndicator}
+        <div class="absolute top-4 left-0 w-full z-10 flex justify-center">
+            {@render newMessageIndicator()}
+        </div>
+    {/if}
+    <div
+        bind:this={messagePanel}
+        onscroll={onScroll}
+        class="w-full fit-content overflow-auto flex flex-col-reverse"
+        style="overflow-anchor:auto"
+    >
+        <div class="flex flex-col-reverse justify-end items-start text-white w-full gap-y-4">
             {#each messages as message (message.id)}
-                {@render chatMessage(message)}
+                <div
+                    in:fade={{ duration: 200, easing: quartIn }}
+                    animate:flip={{ duration: 100 }}
+                    class="w-full"
+                    style="transform: translateZ(0);"
+                >
+                    {@render chatMessage(message)}
+                </div>
             {/each}
         </div>
     </div>
@@ -113,6 +183,7 @@
                 placeholder=""
             ></textarea>
         </div>
+
         <Button onclick={() => sendMessage()} size="sm" class="w-[60px]" type="submit">Send</Button>
     </div>
 </div>

@@ -16,7 +16,7 @@
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import GameDataPanel from '$lib/components/GameDataPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import { Button, ButtonGroup, Tabs, TabItem } from 'flowbite-svelte'
+    import { Button, ButtonGroup, Tabs, TabItem, Indicator } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
     import { generateBoard } from '@tabletop/fresh-fish'
     import { generateSeed, getPrng, range } from '@tabletop/common'
@@ -30,9 +30,9 @@
     }
 
     let activeTabClasses =
-        'py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900 box-border'
+        'relative py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900 box-border'
     let inactiveTabClasses =
-        'text-gray-200 py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700 box-border'
+        'relative text-gray-200 py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700 box-border'
 
     let table: HTMLDivElement
     onMount(() => {
@@ -90,7 +90,15 @@
                     <div slot="title" class="flex items-center gap-2">
                         <AnnotationSolid size="md" />
                         Chat
+                        <Indicator
+                            color="red"
+                            border
+                            size="lg"
+                            placement="top-right"
+                            class="text-xs font-bold text-white w-4 h-4"
+                        ></Indicator>
                     </div>
+
                     <GameChat />
                 </TabItem>
             </Tabs>
