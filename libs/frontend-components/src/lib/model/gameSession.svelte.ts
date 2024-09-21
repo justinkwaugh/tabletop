@@ -214,7 +214,12 @@ export class GameSession {
     })
 
     private getPreferredColor(user?: User): PlayerColor | undefined {
-        if (!user || !user.preferences || this.isActingAdmin) {
+        if (
+            !user ||
+            !user.preferences ||
+            !user.preferences.preferredColorsEnabled ||
+            this.isActingAdmin
+        ) {
             return undefined
         }
 

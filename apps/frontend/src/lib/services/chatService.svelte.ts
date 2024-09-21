@@ -5,7 +5,9 @@ import {
     isDataEvent,
     isDiscontinuityEvent,
     NotificationChannel,
-    type ChatListener
+    type ChatListener,
+    type NewGameChatMessageEvent,
+    ChatEventType
 } from '@tabletop/frontend-components'
 import {
     Notification,
@@ -171,8 +173,12 @@ export class ChatService {
                 this.currentGameChat.checksum = notification.data.checksum
             }
 
+            const chatEvent: NewGameChatMessageEvent = {
+                eventType: ChatEventType.NewGameChatMessage,
+                message: newMessage
+            }
             for (const listener of this.listeners) {
-                listener(newMessage).catch(() => {
+                listener(chatEvent).catch(() => {
                     console.error('Failed to notify chat listener')
                 })
             }

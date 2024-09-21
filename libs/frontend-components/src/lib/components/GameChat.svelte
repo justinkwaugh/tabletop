@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { GameSession } from '$lib/model/gameSession.svelte'
     import { GameChatMessage } from '@tabletop/common'
-    import { Input, Button, Textarea } from 'flowbite-svelte'
+    import { Button } from 'flowbite-svelte'
     import { FaceGrinSolid } from 'flowbite-svelte-icons'
     import { nanoid } from 'nanoid'
     import { getContext, onMount } from 'svelte'
@@ -115,7 +115,7 @@
         onclick={() => scrollToBottom()}
         class="rounded-full bg-blue-700 text-gray-200 px-3 py-2 text-xs"
     >
-        New Messages
+        New Messages {'\u2193'}
     </button>
 {/snippet}
 

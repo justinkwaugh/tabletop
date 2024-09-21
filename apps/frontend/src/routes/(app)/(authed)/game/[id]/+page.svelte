@@ -1,6 +1,6 @@
 <script lang="ts">
     import { setContext, getContext, type Component } from 'svelte'
-    import type { GameSession } from '@tabletop/frontend-components'
+    import { GameSession } from '@tabletop/frontend-components'
     import { onMount } from 'svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import AdminPanel from '$lib/components/AdminPanel.svelte'
@@ -24,8 +24,7 @@
             notificationService.showPrompt()
         }, 2000)
 
-        data.gameSession.listenToGame()
-
+        gameSession.listenToGame()
         return () => {
             gameSession.stopListeningToGame()
             gameService.currentGameSession = undefined

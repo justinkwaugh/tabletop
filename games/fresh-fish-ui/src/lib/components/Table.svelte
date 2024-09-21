@@ -4,7 +4,10 @@
         ScalingWrapper,
         AdminPanel,
         HistoryControls,
-        GameChat
+        GameChat,
+        GamesResponse,
+        type ChatEvent,
+        ChatEventType
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
@@ -21,7 +24,13 @@
     import { generateBoard } from '@tabletop/fresh-fish'
     import { generateSeed, getPrng, range } from '@tabletop/common'
     import LastActionDescription from './LastActionDescription.svelte'
+    import { toast } from 'svelte-sonner'
+    import { ChatToast } from '@tabletop/frontend-components'
+
     let gameSession = getContext('gameSession') as FreshFishGameSession
+
+    let chatActive: boolean = $state(false)
+    let showNewMessageIndicator: boolean = $state(false)
 
     function generateABoard(size: number) {
         const seed = generateSeed()
@@ -37,6 +46,42 @@
     let table: HTMLDivElement
     onMount(() => {
         table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
+    })
+
+    function onChatClick() {
+        chatActive = true
+        showNewMessageIndicator = false
+    }
+
+    function onNonChatClick() {
+        chatActive = false
+    }
+
+    async function chatListener(event: ChatEvent) {
+        console.log('Show new message indicator?', event)
+
+        if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
+            showNewMessageIndicator = true
+            toast.custom(ChatToast, {
+                duration: 3000,
+                position: 'bottom-left',
+                componentProps: {
+                    message: event.message,
+                    playerName: gameSession.getPlayerName(event.message.playerId),
+                    playerBgColor: gameSession.getPlayerBgColor(event.message.playerId),
+                    playerTextColor: gameSession.getPlayerTextColor(event.message.playerId)
+                }
+            })
+        }
+    }
+
+    onMount(() => {
+        const chatService = gameSession.chatService
+        chatService.addListener(chatListener)
+
+        return () => {
+            chatService.removeListener(chatListener)
+        }
     })
 </script>
 
@@ -71,7 +116,12 @@
                 tabStyle="pill"
                 contentClass="p-0 bg-transparent h-full overflow-scroll rounded-lg"
             >
-                <TabItem open activeClasses={activeTabClasses} inactiveClasses={inactiveTabClasses}>
+                <TabItem
+                    open
+                    onclick={onNonChatClick}
+                    activeClasses={activeTabClasses}
+                    inactiveClasses={inactiveTabClasses}
+                >
                     <div slot="title" class="flex items-center gap-2">
                         <UserCircleSolid size="md" />
                         Players
@@ -79,24 +129,33 @@
 
                     <PlayersPanel />
                 </TabItem>
-                <TabItem activeClasses={activeTabClasses} inactiveClasses={inactiveTabClasses}>
+                <TabItem
+                    onclick={onNonChatClick}
+                    activeClasses={activeTabClasses}
+                    inactiveClasses={inactiveTabClasses}
+                >
                     <div slot="title" class="flex items-center gap-2">
                         <ClockSolid size="md" />
                         History
                     </div>
                     <History />
                 </TabItem>
-                <TabItem activeClasses={activeTabClasses} inactiveClasses={inactiveTabClasses}>
+                <TabItem
+                    onclick={onChatClick}
+                    activeClasses={activeTabClasses}
+                    inactiveClasses={inactiveTabClasses}
+                >
                     <div slot="title" class="flex items-center gap-2">
                         <AnnotationSolid size="md" />
                         Chat
-                        <Indicator
-                            color="red"
-                            border
-                            size="lg"
-                            placement="top-right"
-                            class="text-xs font-bold text-white w-4 h-4"
-                        ></Indicator>
+                        {#if showNewMessageIndicator}
+                            <Indicator
+                                color="red"
+                                size="lg"
+                                placement="top-right"
+                                class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
+                            ></Indicator>
+                        {/if}
                     </div>
 
                     <GameChat />
