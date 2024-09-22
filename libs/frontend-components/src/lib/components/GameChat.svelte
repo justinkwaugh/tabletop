@@ -53,7 +53,9 @@
     }
 
     function sendMessage() {
-        if (text.trim() === '') {
+        text = text.trim()
+
+        if (text === '') {
             return
         }
 
@@ -65,7 +67,9 @@
         }
         try {
             chatService.sendGameChatMessage(message, gameSession.game.id)
+
             input.value = ''
+            text = ''
             setHiddenValue('')
         } catch (error) {
             console.error(error)
