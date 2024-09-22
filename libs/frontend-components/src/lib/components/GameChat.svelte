@@ -2,7 +2,7 @@
     import type { GameSession } from '$lib/model/gameSession.svelte'
     import { GameChatMessage } from '@tabletop/common'
     import { Button } from 'flowbite-svelte'
-    import { FaceGrinSolid } from 'flowbite-svelte-icons'
+    import { PaperPlaneSolid } from 'flowbite-svelte-icons'
     import { nanoid } from 'nanoid'
     import { getContext, onMount } from 'svelte'
     import TimeAgo from 'javascript-time-ago'
@@ -10,6 +10,8 @@
     import { fade } from 'svelte/transition'
     import { quartIn } from 'svelte/easing'
     import type { ChatEvent } from '$lib/services/chatService'
+    import EmojiPicker from './EmojiPicker.svelte'
+    import emojiRegex from 'emoji-regex'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -19,6 +21,7 @@
     let input: HTMLTextAreaElement
     let messagePanel: HTMLDivElement
     let showNewMessageIndicator: boolean = $state(false)
+    let lastCursorPosition: number = -1
 
     let messages: GameChatMessage[] = $derived.by(() => {
         return (chatService.currentGameChat?.messages ?? []).toSorted(
@@ -118,6 +121,47 @@
             showNewMessageIndicator = false
         }
     }
+
+    function onEmojiPick(selection: any) {
+        lastCursorPosition = input.selectionStart
+        const textBefore = text.slice(0, lastCursorPosition)
+        const textAfter = text.slice(lastCursorPosition)
+        text = textBefore + selection.emoji + textAfter
+    }
+
+    function onEmojiHide() {
+        if (input) {
+            input.focus()
+            if (lastCursorPosition < 0) {
+                return
+            }
+            input.setSelectionRange(lastCursorPosition + 1, lastCursorPosition + 1)
+        }
+        lastCursorPosition = -1
+    }
+
+    function getSpansForText(text: string) {
+        const spans: [string, boolean][] = []
+        const matches = text.matchAll(emojiRegex())
+        let lastMatchIndex = 0
+        for (const match of matches) {
+            const emoji = match[0]
+            const index = match.index
+            const before = text.slice(lastMatchIndex, index)
+            if (before.length > 0) {
+                spans.push([before, false])
+            }
+            spans.push([emoji, true])
+            lastMatchIndex = index + emoji.length
+        }
+
+        const after = text.slice(lastMatchIndex)
+        if (after.length > 0) {
+            spans.push([after, false])
+        }
+
+        return spans
+    }
 </script>
 
 {#snippet newMessageIndicator()}
@@ -145,7 +189,15 @@
         <div class="flex flex-col justify-center items-start">
             <p class="text-xs text-gray-600">{timeAgo.format(message.timestamp)}</p>
             {#each textSplit(message.text) as text}
-                <p class="text-gray-200 leading-[1.1rem]">{text}</p>
+                <p class="text-gray-200">
+                    {#each getSpansForText(text) as span}
+                        {#if span[1]}
+                            <span class="text-2xl leading-none align-middle">{span[0]}</span>
+                        {:else}
+                            {span[0]}
+                        {/if}
+                    {/each}
+                </p>
             {/each}
         </div>
     </div>
@@ -178,8 +230,11 @@
             {/each}
         </div>
     </div>
-    <div class="grow-0 flex flex-row justify-between items-center w-full gap-x-2 text-sm">
-        <div class="grow-wrap w-full">
+    <div
+        class="grow-0 flex flex-row justify-between items-center w-full gap-x-2 text-sm text-gray-200"
+    >
+        <EmojiPicker onPick={onEmojiPick} onHidden={onEmojiHide} />
+        <div class="grow-wrap w-full text-gray-200">
             <textarea
                 bind:this={input}
                 bind:value={text}
@@ -196,7 +251,25 @@
             ></textarea>
         </div>
 
-        <Button onclick={() => sendMessage()} size="sm" class="w-[60px]" type="submit">Send</Button>
+        <Button onclick={() => sendMessage()} size="sm" class="px-2 w-[50px]" type="submit"
+            ><svg
+                class="w-6 h-6 text-gray-800 dark:text-white"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <g transform="translate(24, 0) rotate(90)">
+                    <path
+                        fill-rule="evenodd"
+                        d="M12 2a1 1 0 0 1 .932.638l7 18a1 1 0 0 1-1.326 1.281L13 19.517V13a1 1 0 1 0-2 0v6.517l-5.606 2.402a1 1 0 0 1-1.326-1.281l7-18A1 1 0 0 1 12 2Z"
+                        clip-rule="evenodd"
+                    ></path>
+                </g>
+            </svg>
+        </Button>
     </div>
 </div>
 

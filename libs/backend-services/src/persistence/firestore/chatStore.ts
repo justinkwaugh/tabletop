@@ -11,7 +11,7 @@ import { AlreadyExistsError, UnknownStorageError } from '../stores/errors.js'
 import { addToChecksum, BaseError, GameChat, GameChatMessage } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { ChatStore } from '../stores/chatStore.js'
-import { RedisCacheService } from 'src/cache/cacheService.js'
+import { RedisCacheService } from '../../cache/cacheService.js'
 import { StoredGameChat } from '../model/storedGameChat.js'
 
 export class FirestoreChatStore implements ChatStore {

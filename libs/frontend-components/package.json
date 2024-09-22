@@ -33,10 +33,12 @@
         "svelte": "^5.0.0-next.1"
     },
     "dependencies": {
+        "@joeattardi/emoji-button": "^4.6.4",
         "@sinclair/typebox": "^0.32.32",
         "@sveltejs/package": "^2.3.2",
         "@tabletop/common": "*",
         "compare-versions": "^6.1.1",
+        "emoji-regex": "^10.4.0",
         "nanoid": "^3.3.7",
         "svelte-json-tree": "^2.2.0",
         "svelte-sonner": "^0.3.27",
