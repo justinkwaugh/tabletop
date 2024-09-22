@@ -13,6 +13,7 @@ import { isFirestoreError } from './errors.js'
 import { ChatStore } from '../stores/chatStore.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 import { StoredGameChat } from '../model/storedGameChat.js'
+import { nanoid } from 'nanoid'
 
 export class FirestoreChatStore implements ChatStore {
     constructor(
@@ -65,6 +66,16 @@ export class FirestoreChatStore implements ChatStore {
             this.handleError(error, gameId)
             throw Error('unreachable')
         }
+    }
+
+    async getGameChatEtag(gameId: string): Promise<string | undefined> {
+        const cacheKey = `etag-${gameId}-chat`
+
+        const generateEtag = async (): Promise<string> => {
+            return nanoid()
+        }
+
+        return await this.cacheService.getThenCacheIfMissing(cacheKey, generateEtag)
     }
 
     private getGameChatCollection(gameId: string): CollectionReference {

@@ -55,4 +55,8 @@ export class ChatService {
 
         return chat
     }
+
+    async getGameChatEtag(gameId: string): Promise<string | undefined> {
+        return await this.chatStore.getGameChatEtag(gameId)
+    }
 }

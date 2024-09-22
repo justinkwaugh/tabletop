@@ -20,15 +20,13 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const { gameId } = request.params
-            // const etagData = await fastify.gameService.getGameEtag(gameId)
-            // const etag = etagData ? `W/"${etagData}"` : undefined
-            // const ifNoneMatch = request.headers['if-none-match']
-            // console.log('etag', etag)
-            // console.log('if-none-match', ifNoneMatch)
-            // if (ifNoneMatch === etag) {
-            //     await reply.code(304).send()
-            //     return
-            // }
+            const etagData = await fastify.chatService.getGameChatEtag(gameId)
+            const etag = etagData ? `W/"${etagData}"` : undefined
+            const ifNoneMatch = request.headers['if-none-match']
+            if (ifNoneMatch === etag) {
+                await reply.code(304).send()
+                return
+            }
 
             const chat = await fastify.chatService.getGameChat(gameId)
 
@@ -38,7 +36,7 @@ export default async function (fastify: FastifyInstance) {
                 return
             }
 
-            // void reply.header('ETag', etag)
+            void reply.header('ETag', etag)
 
             return { status: 'ok', payload: { chat } }
         }
