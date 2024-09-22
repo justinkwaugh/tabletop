@@ -182,7 +182,7 @@
                 message.playerId
             )} {gameSession.getPlayerTextColor(
                 message.playerId
-            )} w-[32px] h-[32px] text-xl font-bold"
+            )} w-[36px] h-[36px] text-xl font-bold"
         >
             {playerInitials[message.playerId ?? 'unknown'] ?? ''}
         </div>
@@ -204,7 +204,7 @@
 {/snippet}
 
 <div
-    class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg border-gray-700 border-2 gap-y-4 h-full text-sm sm:h-[calc(100dvh-174px)] h-[calc(100dvh-198px)] overflow-hidden"
+    class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg border-gray-700 border-2 gap-y-2 h-full text-sm sm:h-[calc(100dvh-174px)] h-[calc(100dvh-198px)] overflow-hidden"
 >
     {#if showNewMessageIndicator}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">

@@ -39,6 +39,14 @@ export interface AppOptions {
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(fastifyPrintRoutes)
 
+    fastify.addHook('onSend', async (request, reply, payload) => {
+        if (typeof payload !== 'string' && !(payload instanceof String)) {
+            return payload
+        }
+        const newPayload = payload.replace('<', '\\u003c')
+        return newPayload
+    })
+
     await fastify.register(fastifyRateLimit, {
         global: true,
         max: (request: FastifyRequest, key: string) => {
