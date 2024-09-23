@@ -258,7 +258,7 @@
                 bind:this={input}
                 bind:value={text}
                 maxlength="500"
-                class="w-full rounded-lg {inputBgColor} p-2 text-sm
+                class="w-full rounded-lg {inputBgColor} p-2
                 text-gray-900 dark:placeholder-gray-400 dark:text-white border
                 {inputBorderColor} focus:border-primary-500 dark:focus:ring-primary-500
                 dark:focus:border-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
@@ -316,6 +316,7 @@
         /* You could leave this, but after a user resizes, then it ruins the auto sizing */
         resize: none;
         font: inherit;
+        font-size: 16px;
         /* Firefox shows scrollbar on growth, you can hide like this. */
         overflow: hidden;
     }
