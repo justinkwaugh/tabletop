@@ -31,7 +31,7 @@
     let chatService = gameSession.chatService
     let text: string = $state('')
     let input: HTMLTextAreaElement
-    let messagePanel: HTMLDivElement
+    let messagePanel: HTMLDivElement | undefined = $state()
     let lastCursorPosition: number = -1
 
     let messages: GameChatMessage[] = $derived.by(() => {
@@ -113,7 +113,7 @@
     }
 
     async function chatListener(event: ChatEvent) {
-        if (messagePanel.scrollTop === 0) {
+        if (messagePanel?.scrollTop === 0) {
             chatService.setGameChatBookmark(event.message.timestamp)
         }
     }
@@ -128,7 +128,7 @@
     })
 
     function scrollToBottom() {
-        messagePanel.scrollTo({ top: 0, behavior: 'smooth' })
+        messagePanel?.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     function onScroll(event: Event) {

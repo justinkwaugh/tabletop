@@ -10,7 +10,7 @@ import {
 import { ChatStore } from '../persistence/stores/chatStore.js'
 import { GameService } from '../games/gameService.js'
 import { AddMessageError, InvalidChatMemberError } from './errors.js'
-import { GameNotFoundError } from '../games/errors.js'
+import { GameNotFoundError, UserIsNotAllowedPlayerError } from '../games/errors.js'
 
 export class ChatService {
     constructor(
@@ -76,8 +76,15 @@ export class ChatService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
-        const player = this.gameService.findValidPlayerForUser({ user, game })
-        return await this.chatStore.getGameChatBookmark(gameId, player.id)
+        try {
+            const player = this.gameService.findValidPlayerForUser({ user, game })
+            return await this.chatStore.getGameChatBookmark(gameId, player.id)
+        } catch (error) {
+            if (error instanceof UserIsNotAllowedPlayerError) {
+                return { id: '', lastReadTimestamp: new Date(0) }
+            }
+            throw error
+        }
     }
 
     async setGameChatBookmark(user: User, gameId: string, timestamp: Date): Promise<void> {
@@ -85,17 +92,24 @@ export class ChatService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
-        const player = this.gameService.findValidPlayerForUser({ user, game })
-        const bookmark: Bookmark = { id: player.id, lastReadTimestamp: timestamp }
+        try {
+            const player = this.gameService.findValidPlayerForUser({ user, game })
+            const bookmark: Bookmark = { id: player.id, lastReadTimestamp: timestamp }
 
-        const existingBookmark = await this.chatStore.getGameChatBookmark(gameId, player.id)
-        if (
-            existingBookmark &&
-            existingBookmark.lastReadTimestamp.getTime() >= timestamp.getTime()
-        ) {
-            return
+            const existingBookmark = await this.chatStore.getGameChatBookmark(gameId, player.id)
+            if (
+                existingBookmark &&
+                existingBookmark.lastReadTimestamp.getTime() >= timestamp.getTime()
+            ) {
+                return
+            }
+
+            await this.chatStore.setGameChatBookmark(gameId, bookmark)
+        } catch (error) {
+            if (error instanceof UserIsNotAllowedPlayerError) {
+                return
+            }
+            throw error
         }
-
-        await this.chatStore.setGameChatBookmark(gameId, bookmark)
     }
 }

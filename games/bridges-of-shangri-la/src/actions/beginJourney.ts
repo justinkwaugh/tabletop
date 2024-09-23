@@ -89,18 +89,26 @@ export class HydratedBeginJourney
             space.student = false
 
             const displacedSpace = destVillage.spaces[space.masterType]
+            let hasStudent = false
             if (displacedSpace !== undefined) {
                 const displacedPlayer = state.getPlayerState(displacedSpace.playerId)
-                displacedPlayer.addPiece(space.masterType)
-                if (displacedSpace.student) {
+                if (this.playerId !== displacedSpace.playerId) {
                     displacedPlayer.addPiece(space.masterType)
+                    if (displacedSpace.student) {
+                        displacedPlayer.addPiece(space.masterType)
+                    }
+                } else {
+                    if (displacedSpace.student) {
+                        displacedPlayer.addPiece(space.masterType)
+                    }
+                    hasStudent = true
                 }
             }
 
             destVillage.spaces[space.masterType] = {
                 masterType: space.masterType,
                 playerId: space.playerId,
-                student: false
+                student: hasStudent
             }
         }
     }
