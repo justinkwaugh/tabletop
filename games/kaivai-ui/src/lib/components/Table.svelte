@@ -3,7 +3,11 @@
         GameSessionMode,
         ScalingWrapper,
         AdminPanel,
-        HistoryControls
+        HistoryControls,
+        type ChatEvent,
+        ChatEventType,
+        ChatToast,
+        GameChat
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import { getContext, onMount } from 'svelte'
@@ -13,13 +17,17 @@
     import Phase from '$lib/components/Phase.svelte'
     import BidBoard from '$lib/components/BidBoard.svelte'
     import { ActionType, MachineState } from '@tabletop/kaivai'
-    import { TabItem, Tabs } from 'flowbite-svelte'
-    import { UserCircleSolid, ClockSolid } from 'flowbite-svelte-icons'
+    import { TabItem, Tabs, Indicator } from 'flowbite-svelte'
+    import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
     import History from '$lib/components/History.svelte'
     import LastHistoryDescription from '$lib/components/LastHistoryDescription.svelte'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import EndOfGamePanel from './EndOfGamePanel.svelte'
+    import { toast } from 'svelte-sonner'
+
     let gameSession = getContext('gameSession') as KaivaiGameSession
+    let chatActive: boolean = $state(false)
+    let showNewMessageIndicator: boolean = $state(false)
 
     let activeTabClasses =
         'py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border'
@@ -42,6 +50,42 @@
     let table: HTMLDivElement
     onMount(() => {
         table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
+    })
+
+    function onChatClick() {
+        chatActive = true
+        showNewMessageIndicator = false
+    }
+
+    function onNonChatClick() {
+        chatActive = false
+    }
+
+    async function chatListener(event: ChatEvent) {
+        console.log('Show new message indicator?', event)
+
+        if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
+            showNewMessageIndicator = true
+            toast.custom(ChatToast, {
+                duration: 3000,
+                position: 'bottom-left',
+                componentProps: {
+                    message: event.message,
+                    playerName: gameSession.getPlayerName(event.message.playerId),
+                    playerBgColor: gameSession.getPlayerBgColor(event.message.playerId),
+                    playerTextColor: gameSession.getPlayerTextColor(event.message.playerId)
+                }
+            })
+        }
+    }
+
+    onMount(() => {
+        const chatService = gameSession.chatService
+        chatService.addListener(chatListener)
+
+        return () => {
+            chatService.removeListener(chatListener)
+        }
     })
 </script>
 
@@ -67,10 +111,12 @@
             </div>
             <Tabs
                 tabStyle="pill"
+                defaultClass="flex flex-wrap space-x-1 rtl:space-x-reverse"
                 contentClass="p-0 bg-transparent h-full overflow-scroll rounded-lg"
             >
                 <TabItem
                     open
+                    onclick={onNonChatClick}
                     defaultClass="uppercase kaivai-font"
                     activeClasses={activeTabClasses}
                     inactiveClasses={inactiveTabClasses}
@@ -83,6 +129,7 @@
                     <PlayersPanel />
                 </TabItem>
                 <TabItem
+                    onclick={onNonChatClick}
                     defaultClass="uppercase kaivai-font"
                     activeClasses={activeTabClasses}
                     inactiveClasses={inactiveTabClasses}
@@ -92,6 +139,33 @@
                         History
                     </div>
                     <History />
+                </TabItem>
+                <TabItem
+                    onclick={onChatClick}
+                    defaultClass="uppercase kaivai-font"
+                    activeClasses={activeTabClasses}
+                    inactiveClasses={inactiveTabClasses}
+                >
+                    <div slot="title" class="flex items-center gap-2">
+                        <AnnotationSolid size="md" />
+                        Chat
+                        {#if showNewMessageIndicator}
+                            <Indicator
+                                color="red"
+                                size="lg"
+                                placement="top-right"
+                                class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
+                            ></Indicator>
+                        {/if}
+                    </div>
+
+                    <GameChat
+                        height={'h-[calc(100dvh-202px)] sm:h-[calc(100dvh-178px)]'}
+                        timeColor={'text-[#8d794d]'}
+                        bgColor={'bg-[#302408]'}
+                        inputBgColor={'bg-[#634a11]'}
+                        inputBorderColor={'border-[#302408]'}
+                    />
                 </TabItem>
             </Tabs>
         </div>

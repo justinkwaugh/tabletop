@@ -86,10 +86,8 @@
 </script>
 
 <div
-    class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-center items-left overflow-hidden min-h-[300px]"
+    class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px]"
 >
-    <h1 class="text-xl font-light text-white pb-1">History</h1>
-    <HistoryControls />
     <div class="overflow-scroll h-full">
         <Timeline class="ms-1">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}

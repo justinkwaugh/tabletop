@@ -5,7 +5,6 @@
         AdminPanel,
         HistoryControls,
         GameChat,
-        GamesResponse,
         type ChatEvent,
         ChatEventType
     } from '@tabletop/frontend-components'

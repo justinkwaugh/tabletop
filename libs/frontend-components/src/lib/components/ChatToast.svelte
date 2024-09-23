@@ -18,14 +18,14 @@
     }
 </script>
 
-<div class="rounded-lg bg-blue-900 border border-black text-gray-200 p-4">
+<div class="rounded-lg bg-gray-200 border border-black text-gray-900 p-4">
     <div class="flex flex-row justify-start items-center gap-x-4 text-md">
         <span class="text-nowrap rounded px-2 {playerBgColor} font-medium {playerTextColor}"
             >{playerName}</span
         >
         <div class="flex flex-col justify-center items-start">
             {#each textSplit(message.text) as text}
-                <p class="text-gray-200 leading-[1.1rem]">{text}</p>
+                <p class="text-gray-900 leading-[1.1rem]">{text}</p>
             {/each}
         </div>
     </div>

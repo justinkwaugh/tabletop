@@ -15,6 +15,8 @@ import { RedisCacheService } from '../../cache/cacheService.js'
 import { StoredGameChat } from '../model/storedGameChat.js'
 import { nanoid } from 'nanoid'
 
+const GAME_CHAT_MESSAGE_LIMIT = 2000
+
 export class FirestoreChatStore implements ChatStore {
     constructor(
         private readonly cacheService: RedisCacheService,
@@ -42,6 +44,10 @@ export class FirestoreChatStore implements ChatStore {
             ).data() as GameChat | undefined
 
             const chatToUpdate = existingChat ?? { id: gameId, gameId, messages: [], checksum: 0 }
+
+            if (chatToUpdate.messages.length >= GAME_CHAT_MESSAGE_LIMIT) {
+                throw new Error('Chat message limit reached')
+            }
 
             chatToUpdate.messages.push(message)
             chatToUpdate.checksum = addToChecksum(chatToUpdate.checksum, [message.id])

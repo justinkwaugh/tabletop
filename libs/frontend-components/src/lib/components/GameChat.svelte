@@ -2,7 +2,6 @@
     import type { GameSession } from '$lib/model/gameSession.svelte'
     import { GameChatMessage } from '@tabletop/common'
     import { Button } from 'flowbite-svelte'
-    import { PaperPlaneSolid } from 'flowbite-svelte-icons'
     import { nanoid } from 'nanoid'
     import { getContext, onMount } from 'svelte'
     import TimeAgo from 'javascript-time-ago'
@@ -13,6 +12,19 @@
     import EmojiPicker from './EmojiPicker.svelte'
     import emojiRegex from 'emoji-regex'
 
+    let {
+        height = 'h-[calc(100dvh-198px)] sm:h-[calc(100dvh-174px)]',
+        timeColor = 'text-gray-600',
+        bgColor = 'bg-transparent',
+        inputBgColor = 'bg-gray-700',
+        inputBorderColor = 'border-gray-500'
+    }: {
+        height?: string
+        timeColor?: string
+        bgColor?: string
+        inputBgColor?: string
+        inputBorderColor?: string
+    } = $props()
     const timeAgo = new TimeAgo('en-US')
 
     let gameSession = getContext('gameSession') as GameSession
@@ -191,7 +203,7 @@
             {playerInitials[message.playerId ?? 'unknown'] ?? ''}
         </div>
         <div class="flex flex-col justify-center items-start">
-            <p class="text-xs text-gray-600">{timeAgo.format(message.timestamp)}</p>
+            <p class="text-xs {timeColor}">{timeAgo.format(message.timestamp)}</p>
             {#each textSplit(message.text) as text}
                 <p class="text-gray-200">
                     {#each getSpansForText(text) as span}
@@ -208,7 +220,7 @@
 {/snippet}
 
 <div
-    class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg border-gray-700 border-2 gap-y-2 h-full text-sm sm:h-[calc(100dvh-174px)] h-[calc(100dvh-198px)] overflow-hidden"
+    class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg border-gray-700 border-2 gap-y-2 text-sm {bgColor} {height} overflow-hidden"
 >
     {#if showNewMessageIndicator}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">
@@ -245,9 +257,9 @@
                 bind:this={input}
                 bind:value={text}
                 maxlength="500"
-                class="w-full rounded-lg bg-gray-50 dark:bg-gray-700
+                class="w-full rounded-lg {inputBgColor} p-2 text-sm
                 text-gray-900 dark:placeholder-gray-400 dark:text-white border
-                dark:border-gray-600 focus:border-primary-500 dark:focus:ring-primary-500
+                {inputBorderColor} focus:border-primary-500 dark:focus:ring-primary-500
                 dark:focus:border-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
                 oninput={sizeInput}
                 onkeydown={(event) => handleKeyDown(event)}

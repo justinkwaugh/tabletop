@@ -29,11 +29,12 @@ export default async function (fastify: FastifyInstance) {
             if (!user) {
                 throw Error('No user found for create request')
             }
-            console.log(request.body.message.timestamp)
+
             const message = Value.Convert(GameChatMessage, request.body.message) as GameChatMessage
-            console.log(message.timestamp)
             message.userId = user.id
 
+            // Trim message to 500 characters
+            message.text = message.text.trim().slice(0, 500)
             const chat = await fastify.chatService.addGameChatMessage(
                 user,
                 message,
