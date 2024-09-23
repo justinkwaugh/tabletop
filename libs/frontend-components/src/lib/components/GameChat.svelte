@@ -56,6 +56,10 @@
     }
 
     function sendMessage() {
+        if (!gameSession.myPlayer) {
+            return
+        }
+
         text = text.trim()
 
         if (text === '') {
@@ -233,7 +237,9 @@
     <div
         class="grow-0 flex flex-row justify-between items-center w-full gap-x-2 text-sm text-gray-200"
     >
-        <EmojiPicker onPick={onEmojiPick} onHidden={onEmojiHide} />
+        {#if gameSession.myPlayer !== undefined}
+            <EmojiPicker onPick={onEmojiPick} onHidden={onEmojiHide} />
+        {/if}
         <div class="grow-wrap w-full text-gray-200">
             <textarea
                 bind:this={input}
@@ -248,10 +254,15 @@
                 rows="1"
                 name="message"
                 placeholder=""
+                disabled={gameSession.myPlayer === undefined}
             ></textarea>
         </div>
 
-        <Button onclick={() => sendMessage()} size="sm" class="px-2 w-[50px]" type="submit"
+        <Button
+            onclick={() => sendMessage()}
+            size="sm"
+            class="px-2 w-[50px]"
+            disabled={gameSession.myPlayer === undefined}
             ><svg
                 class="w-6 h-6 text-gray-800 dark:text-white"
                 aria-hidden="true"
