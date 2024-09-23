@@ -19,8 +19,11 @@ export type ChatListener = (event: ChatEvent) => Promise<void>
 
 export type ChatService = {
     currentGameChat: GameChat | undefined
+    hasUnreadMessages: boolean
     setGameId(gameId: string): void
     sendGameChatMessage(gameChatMessage: GameChatMessage, gameId: string): Promise<void>
+    setGameChatBookmark(lastReadTimestamp: Date): Promise<void>
+    markLatestRead(): Promise<void>
     addListener(listener: ChatListener): void
     removeListener(listener: ChatListener): void
 }

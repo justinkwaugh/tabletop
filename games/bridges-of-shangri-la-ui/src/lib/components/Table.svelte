@@ -24,7 +24,11 @@
 
     let gameSession = getContext('gameSession') as BridgesGameSession
     let chatActive: boolean = $state(false)
-    let showNewMessageIndicator: boolean = $state(false)
+    let showNewMessageIndicator: boolean = $derived(
+        gameSession.myPlayer !== undefined &&
+            gameSession.chatService.hasUnreadMessages &&
+            !chatActive
+    )
 
     let activeTabClasses =
         'relative py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900 box-border'
@@ -35,7 +39,6 @@
 
     function onChatClick() {
         chatActive = true
-        showNewMessageIndicator = false
     }
 
     function onNonChatClick() {
@@ -43,10 +46,7 @@
     }
 
     async function chatListener(event: ChatEvent) {
-        console.log('Show new message indicator?', event)
-
         if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            showNewMessageIndicator = true
             toast.custom(ChatToast, {
                 duration: 3000,
                 position: 'bottom-left',

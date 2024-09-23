@@ -29,7 +29,11 @@
     let gameSession = getContext('gameSession') as FreshFishGameSession
 
     let chatActive: boolean = $state(false)
-    let showNewMessageIndicator: boolean = $state(false)
+    let showNewMessageIndicator: boolean = $derived(
+        gameSession.myPlayer !== undefined &&
+            gameSession.chatService.hasUnreadMessages &&
+            !chatActive
+    )
 
     function generateABoard(size: number) {
         const seed = generateSeed()
@@ -49,7 +53,6 @@
 
     function onChatClick() {
         chatActive = true
-        showNewMessageIndicator = false
     }
 
     function onNonChatClick() {
@@ -57,10 +60,7 @@
     }
 
     async function chatListener(event: ChatEvent) {
-        console.log('Show new message indicator?', event)
-
         if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            showNewMessageIndicator = true
             toast.custom(ChatToast, {
                 duration: 3000,
                 position: 'bottom-left',

@@ -1,6 +1,7 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import { Value } from '@sinclair/typebox/value'
 import {
+    Bookmark,
     Game,
     GameAction,
     GameChat,
@@ -12,6 +13,7 @@ import {
 import type {
     AblyTokenResponse,
     ApplyActionResponse,
+    BookmarkResponse,
     CheckSyncResponse,
     GameChatMessageResponse,
     GameChatResponse,
@@ -414,6 +416,26 @@ export class TabletopApi {
                 (message) => Value.Convert(GameChatMessage, message) as GameChatMessage
             )
         }
+    }
+
+    async getGameChatBookmark(gameId: string): Promise<Bookmark> {
+        const response = await this.wretch
+            .get(`/chat/bookmark/${gameId}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<BookmarkResponse>()
+
+        const bookmark = Value.Convert(Bookmark, response.payload.bookmark) as Bookmark
+
+        return bookmark
+    }
+
+    async setGameChatBookmark(lastReadTimestamp: Date, gameId: string): Promise<void> {
+        await this.wretch
+            .post({ gameId, lastReadTimestamp }, '/chat/bookmark')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
     }
 
     async getSseToken(): Promise<string> {

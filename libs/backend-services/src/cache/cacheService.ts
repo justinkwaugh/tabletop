@@ -51,7 +51,8 @@ export class RedisCacheService {
         }
         // console.log('try to cache', key, newValue)
         // Try to set the new value
-        const cacheValue = newValue === undefined ? NONE_PREFIX : VALUE_PREFIX + newValue
+        const valueForCache = this.valueForCache(newValue)
+        const cacheValue = valueForCache === undefined ? NONE_PREFIX : VALUE_PREFIX + valueForCache
         await this.trySetValue(key, lockValue, cacheValue)
         // console.log('done caching', key)
         return newValue
@@ -232,5 +233,12 @@ export class RedisCacheService {
             return undefined
         }
         return value.slice(VALUE_PREFIX.length)
+    }
+
+    private valueForCache(value: unknown): string | undefined {
+        if (value === undefined || typeof value === 'string' || value instanceof String) {
+            return value as string | undefined
+        }
+        return JSON.stringify(value)
     }
 }

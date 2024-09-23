@@ -28,9 +28,21 @@ export class ChatService {
 
     private currentGameId: string | undefined = $state(undefined)
     currentGameChat: GameChat | undefined = $state(undefined)
+    lastReadTimestamp: Date | undefined = $state(undefined)
 
     sessionUserId: string | undefined = $derived.by(() => {
         return this.authorizationService.getSessionUser()?.id
+    })
+
+    hasUnreadMessages: boolean = $derived.by(() => {
+        const messages = this.currentGameChat?.messages ?? []
+        if (messages.length === 0) {
+            return false
+        }
+        return (
+            this.lastReadTimestamp === undefined ||
+            messages.some((message) => message.timestamp > (this.lastReadTimestamp ?? new Date(0)))
+        )
     })
 
     constructor(
@@ -84,6 +96,9 @@ export class ChatService {
         if (gameChat.gameId !== this.currentGameId) {
             return
         }
+        const bookmark = await this.api.getGameChatBookmark(this.currentGameId)
+        this.lastReadTimestamp = bookmark.lastReadTimestamp
+
         this.currentGameChat = gameChat
         this.loading = false
         this.loaded = true
@@ -101,7 +116,9 @@ export class ChatService {
 
         this.currentGameChat.messages.push(gameChatMessage)
         const originalChecksum = this.currentGameChat.checksum
+        const originalBookmark = this.lastReadTimestamp
         try {
+            this.lastReadTimestamp = gameChatMessage.timestamp
             const { message, checksum, missedMessages } = await this.api.sendGameChatMessage(
                 gameChatMessage,
                 gameId,
@@ -138,7 +155,38 @@ export class ChatService {
                 (message) => message.id === gameChatMessage.id
             )
             this.currentGameChat.messages.splice(messageIndex, 1)
+            this.lastReadTimestamp = originalBookmark
         }
+    }
+
+    async setGameChatBookmark(lastReadTimestamp: Date): Promise<void> {
+        if (!this.currentGameChat) {
+            return
+        }
+
+        if (
+            this.lastReadTimestamp &&
+            lastReadTimestamp.getTime() <= this.lastReadTimestamp.getTime()
+        ) {
+            return
+        }
+
+        try {
+            await this.api.setGameChatBookmark(lastReadTimestamp, this.currentGameChat.gameId)
+            this.lastReadTimestamp = lastReadTimestamp
+        } catch (error) {
+            console.error('Failed to set game chat bookmark', error)
+        }
+    }
+
+    async markLatestRead(): Promise<void> {
+        if (!this.currentGameChat || this.currentGameChat.messages.length === 0) {
+            return
+        }
+
+        await this.setGameChatBookmark(
+            this.currentGameChat.messages[this.currentGameChat.messages.length - 1].timestamp
+        )
     }
 
     private NotificationListener = async (event: NotificationEvent) => {
@@ -161,6 +209,16 @@ export class ChatService {
                 return
             }
 
+            const chatEvent: NewGameChatMessageEvent = {
+                eventType: ChatEventType.NewGameChatMessage,
+                message: newMessage
+            }
+            for (const listener of this.listeners) {
+                listener(chatEvent).catch(() => {
+                    console.error('Failed to notify chat listener')
+                })
+            }
+
             this.currentGameChat?.messages.push(newMessage)
             const expectedChecksum = addToChecksum(this.currentGameChat?.checksum, [newMessage.id])
             if (expectedChecksum !== notification.data.checksum) {
@@ -171,16 +229,6 @@ export class ChatService {
                 await this.reloadGameChat()
             } else {
                 this.currentGameChat.checksum = notification.data.checksum
-            }
-
-            const chatEvent: NewGameChatMessageEvent = {
-                eventType: ChatEventType.NewGameChatMessage,
-                message: newMessage
-            }
-            for (const listener of this.listeners) {
-                listener(chatEvent).catch(() => {
-                    console.error('Failed to notify chat listener')
-                })
             }
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
             await this.reloadGameChat()

@@ -32,7 +32,6 @@
     let text: string = $state('')
     let input: HTMLTextAreaElement
     let messagePanel: HTMLDivElement
-    let showNewMessageIndicator: boolean = $state(false)
     let lastCursorPosition: number = -1
 
     let messages: GameChatMessage[] = $derived.by(() => {
@@ -114,13 +113,14 @@
     }
 
     async function chatListener(event: ChatEvent) {
-        if (messagePanel.scrollTop !== 0) {
-            showNewMessageIndicator = true
+        if (messagePanel.scrollTop === 0) {
+            chatService.setGameChatBookmark(event.message.timestamp)
         }
     }
 
     onMount(() => {
         chatService.addListener(chatListener)
+        chatService.markLatestRead()
 
         return () => {
             chatService.removeListener(chatListener)
@@ -128,13 +128,14 @@
     })
 
     function scrollToBottom() {
-        showNewMessageIndicator = false
         messagePanel.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     function onScroll(event: Event) {
         if ((event.target as HTMLDivElement).scrollTop === 0) {
-            showNewMessageIndicator = false
+            if (messages.length > 0) {
+                chatService.setGameChatBookmark(messages[0]?.timestamp)
+            }
         }
     }
 
@@ -222,7 +223,7 @@
 <div
     class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg border-gray-700 border-2 gap-y-2 text-sm {bgColor} {height} overflow-hidden"
 >
-    {#if showNewMessageIndicator}
+    {#if chatService.hasUnreadMessages && messagePanel && messagePanel.scrollTop !== 0}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">
             {@render newMessageIndicator()}
         </div>

@@ -27,7 +27,11 @@
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let chatActive: boolean = $state(false)
-    let showNewMessageIndicator: boolean = $state(false)
+    let showNewMessageIndicator: boolean = $derived(
+        gameSession.myPlayer !== undefined &&
+            gameSession.chatService.hasUnreadMessages &&
+            !chatActive
+    )
 
     let activeTabClasses =
         'py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border'
@@ -54,7 +58,6 @@
 
     function onChatClick() {
         chatActive = true
-        showNewMessageIndicator = false
     }
 
     function onNonChatClick() {
@@ -62,10 +65,7 @@
     }
 
     async function chatListener(event: ChatEvent) {
-        console.log('Show new message indicator?', event)
-
         if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            showNewMessageIndicator = true
             toast.custom(ChatToast, {
                 duration: 3000,
                 position: 'bottom-left',

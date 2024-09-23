@@ -39,6 +39,7 @@ export * from './site/chat/chat.js'
 export * from './site/chat/chatMessage.js'
 export * from './site/chat/gameChat.js'
 export * from './site/chat/gameChatMessage.js'
+export * from './site/chat/bookmark.js'
 export * from './site/user.js'
 
 export * from './util/shuffle.js'

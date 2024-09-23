@@ -1,4 +1,5 @@
 import {
+    Bookmark,
     GameChat,
     GameChatMessage,
     GameNotificationAction,
@@ -43,6 +44,14 @@ export class ChatService {
         if (!updatedMessage) {
             throw new AddMessageError({ gameId })
         }
+
+        if (message.playerId) {
+            await this.chatStore.setGameChatBookmark(gameId, {
+                id: message.playerId,
+                lastReadTimestamp: message.timestamp
+            })
+        }
+
         const notificationData: GameNotificationChatData = {
             game,
             message: updatedMessage,
@@ -60,5 +69,33 @@ export class ChatService {
 
     async getGameChatEtag(gameId: string): Promise<string | undefined> {
         return await this.chatStore.getGameChatEtag(gameId)
+    }
+
+    async getGameChatBookmark(user: User, gameId: string): Promise<Bookmark> {
+        const game = await this.gameService.getGame({ gameId })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+        const player = this.gameService.findValidPlayerForUser({ user, game })
+        return await this.chatStore.getGameChatBookmark(gameId, player.id)
+    }
+
+    async setGameChatBookmark(user: User, gameId: string, timestamp: Date): Promise<void> {
+        const game = await this.gameService.getGame({ gameId })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+        const player = this.gameService.findValidPlayerForUser({ user, game })
+        const bookmark: Bookmark = { id: player.id, lastReadTimestamp: timestamp }
+
+        const existingBookmark = await this.chatStore.getGameChatBookmark(gameId, player.id)
+        if (
+            existingBookmark &&
+            existingBookmark.lastReadTimestamp.getTime() >= timestamp.getTime()
+        ) {
+            return
+        }
+
+        await this.chatStore.setGameChatBookmark(gameId, bookmark)
     }
 }

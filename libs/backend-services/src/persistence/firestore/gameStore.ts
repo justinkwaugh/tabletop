@@ -159,13 +159,14 @@ export class FirestoreGameStore implements GameStore {
             return { updatedGame, updatedFields, existingGame }
         }
 
+        const gameCacheKey = `game-${gameId}`
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
 
         try {
             const { updatedGame, updatedFields, existingGame } =
                 await this.cacheService.lockWhileWriting(
-                    [checksumCacheKey, gameRevisionCacheKey],
+                    [gameCacheKey, checksumCacheKey, gameRevisionCacheKey],
                     async () => this.games.firestore.runTransaction(transactionBody)
                 )
 
@@ -188,11 +189,32 @@ export class FirestoreGameStore implements GameStore {
     }
 
     async findGameById(gameId: string, includeState: boolean = false): Promise<Game | undefined> {
-        const doc = this.games.doc(gameId)
-        try {
-            const game = (await doc.get()).data() as Game
+        const cacheKey = `game-${gameId}`
 
-            if (game && includeState) {
+        const getGame = async () => {
+            const doc = this.games.doc(gameId)
+            try {
+                console.log('GETTING GAME FROM DB')
+                const game = (await doc.get()).data() as Game
+                if (game) {
+                    return JSON.stringify(game)
+                }
+                return undefined
+            } catch (error) {
+                this.handleError(error, gameId)
+                throw Error('unreachable')
+            }
+        }
+
+        const cachedGame = await this.cacheService.getThenCacheIfMissing(cacheKey, getGame)
+        if (!cachedGame) {
+            return undefined
+        }
+
+        const game = Value.Convert(Game, JSON.parse(cachedGame)) as Game
+
+        if (game && includeState) {
+            try {
                 const stateCollection = this.getStateCollection(gameId)
                 const stateDoc = stateCollection.doc(game.id)
 
@@ -200,12 +222,12 @@ export class FirestoreGameStore implements GameStore {
                 if (stateRecord) {
                     game.state = stateRecord
                 }
+            } catch (error) {
+                this.handleError(error, gameId)
+                throw Error('unreachable')
             }
-            return game
-        } catch (error) {
-            this.handleError(error, gameId)
-            throw Error('unreachable')
         }
+        return game
     }
 
     async findGamesForUser(user: User): Promise<Game[]> {
@@ -348,12 +370,13 @@ export class FirestoreGameStore implements GameStore {
             return { storedActions, updatedGame, relatedActions, priorState: existingState }
         }
 
+        const gameCacheKey = `game-${gameId}`
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
 
         try {
             return this.cacheService.lockWhileWriting(
-                [checksumCacheKey, gameRevisionCacheKey],
+                [gameCacheKey, checksumCacheKey, gameRevisionCacheKey],
                 async () => this.games.firestore.runTransaction(transactionBody)
             )
         } catch (error) {
@@ -639,12 +662,13 @@ export class FirestoreGameStore implements GameStore {
             }
         }
 
+        const gameCacheKey = `game-${gameId}`
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
 
         try {
             return this.cacheService.lockWhileWriting(
-                [checksumCacheKey, gameRevisionCacheKey],
+                [gameCacheKey, checksumCacheKey, gameRevisionCacheKey],
                 async () => this.games.firestore.runTransaction(transactionBody)
             )
         } catch (error) {

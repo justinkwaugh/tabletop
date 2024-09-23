@@ -8,12 +8,14 @@ import {
 } from '@google-cloud/firestore'
 
 import { AlreadyExistsError, UnknownStorageError } from '../stores/errors.js'
-import { addToChecksum, BaseError, GameChat, GameChatMessage } from '@tabletop/common'
+import { addToChecksum, BaseError, Bookmark, GameChat, GameChatMessage } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { ChatStore } from '../stores/chatStore.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 import { StoredGameChat } from '../model/storedGameChat.js'
 import { nanoid } from 'nanoid'
+import { StoredBookmark } from '../model/storedBookmark.js'
+import { Value } from '@sinclair/typebox/value'
 
 const GAME_CHAT_MESSAGE_LIMIT = 2000
 
@@ -84,12 +86,67 @@ export class FirestoreChatStore implements ChatStore {
         return await this.cacheService.getThenCacheIfMissing(cacheKey, generateEtag)
     }
 
+    async getGameChatBookmark(gameId: string, playerId: string): Promise<Bookmark> {
+        const cacheKey = `bookmark-${gameId}-${playerId}`
+
+        const getBookmark = async (): Promise<string> => {
+            const collection = this.getGameChatBookmarkCollection(gameId)
+            const doc = collection.doc(playerId)
+            try {
+                const bookmark = ((await doc.get()).data() as Bookmark) ?? {
+                    id: playerId,
+                    lastReadTimestamp: new Date(0)
+                }
+                return JSON.stringify(bookmark)
+            } catch (error) {
+                this.handleError(error, gameId)
+                throw Error('unreachable')
+            }
+        }
+
+        const cachedBookmark = await this.cacheService.getThenCacheIfMissing(cacheKey, getBookmark)
+        if (!cachedBookmark) {
+            throw new Error('Bookmark not found')
+        }
+        return Value.Convert(Bookmark, JSON.parse(cachedBookmark)) as Bookmark
+    }
+
+    async setGameChatBookmark(gameId: string, bookmark: Bookmark): Promise<void> {
+        const bookmarks = this.getGameChatBookmarkCollection(gameId)
+        const transactionBody = async (transaction: Transaction): Promise<void> => {
+            const bookmarkToSet = structuredClone(bookmark)
+            transaction.set(bookmarks.doc(bookmark.id), bookmarkToSet)
+        }
+
+        const cacheKey = `bookmark-${gameId}-${bookmark.id}`
+
+        try {
+            await this.cacheService.lockWhileWriting([cacheKey], async () =>
+                bookmarks.firestore.runTransaction(transactionBody)
+            )
+        } catch (error) {
+            console.log(error)
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
     private getGameChatCollection(gameId: string): CollectionReference {
         return this.firestore
             .collection('games')
             .doc(gameId)
             .collection('chats')
             .withConverter(gameChatConverter)
+    }
+
+    private getGameChatBookmarkCollection(gameId: string): CollectionReference {
+        return this.firestore
+            .collection('games')
+            .doc(gameId)
+            .collection('chats')
+            .doc(gameId)
+            .collection('bookmarks')
+            .withConverter(bookmarkConverter)
     }
 
     private handleError(error: unknown, id: string) {
@@ -126,6 +183,17 @@ const gameChatConverter = {
             message.timestamp = (message.timestamp as Timestamp).toDate()
         }
 
+        return data
+    }
+}
+
+const bookmarkConverter = {
+    toFirestore(bookmark: Bookmark): PartialWithFieldValue<Bookmark> {
+        return bookmark
+    },
+    fromFirestore(snapshot: QueryDocumentSnapshot): Bookmark {
+        const data = snapshot.data() as StoredBookmark
+        data.lastReadTimestamp = (data.lastReadTimestamp as Timestamp).toDate()
         return data
     }
 }

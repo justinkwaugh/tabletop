@@ -1,5 +1,13 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { Game, GameAction, GameChat, GameChatMessage, GameSyncStatus, User } from '@tabletop/common'
+import {
+    Bookmark,
+    Game,
+    GameAction,
+    GameChat,
+    GameChatMessage,
+    GameSyncStatus,
+    User
+} from '@tabletop/common'
 
 export const Response = Type.Object({
     status: Type.String(),
@@ -76,6 +84,14 @@ export const GameChatMessageResponse = Type.Composite([
             checksum: Type.Number(),
             missedMessages: Type.Array(GameChatMessage)
         })
+    })
+])
+
+export type BookmarkResponse = Static<typeof BookmarkResponse>
+export const BookmarkResponse = Type.Composite([
+    Type.Omit(Response, ['payload']),
+    Type.Object({
+        payload: Type.Object({ bookmark: Bookmark })
     })
 ])
 
