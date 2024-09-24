@@ -83,13 +83,13 @@ export class FirestoreChatStore implements ChatStore {
             return nanoid()
         }
 
-        return await this.cacheService.getThenCacheIfMissing(cacheKey, generateEtag)
+        return await this.cacheService.cachingGet(cacheKey, generateEtag)
     }
 
     async getGameChatBookmark(gameId: string, playerId: string): Promise<Bookmark> {
         const cacheKey = `bookmark-${gameId}-${playerId}`
 
-        const getBookmark = async (): Promise<string> => {
+        const getBookmark = async (): Promise<unknown> => {
             const collection = this.getGameChatBookmarkCollection(gameId)
             const doc = collection.doc(playerId)
             try {
@@ -97,18 +97,18 @@ export class FirestoreChatStore implements ChatStore {
                     id: playerId,
                     lastReadTimestamp: new Date(0)
                 }
-                return JSON.stringify(bookmark)
+                return bookmark
             } catch (error) {
                 this.handleError(error, gameId)
                 throw Error('unreachable')
             }
         }
 
-        const cachedBookmark = await this.cacheService.getThenCacheIfMissing(cacheKey, getBookmark)
+        const cachedBookmark = await this.cacheService.cachingGet(cacheKey, getBookmark)
         if (!cachedBookmark) {
             throw new Error('Bookmark not found')
         }
-        return Value.Convert(Bookmark, JSON.parse(cachedBookmark)) as Bookmark
+        return Value.Convert(Bookmark, cachedBookmark) as Bookmark
     }
 
     async setGameChatBookmark(gameId: string, bookmark: Bookmark): Promise<void> {

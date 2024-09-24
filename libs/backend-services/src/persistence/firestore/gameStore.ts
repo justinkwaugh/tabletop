@@ -29,7 +29,7 @@ import { StoredState } from '../model/storedState.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { ActionUndoValidator, ActionUpdateValidator, GameStore } from '../stores/gameStore.js'
-import { RedisCacheService } from '../../cache/cacheService.js'
+import { CacheResult, RedisCacheService } from '../../cache/cacheService.js'
 import { nanoid } from 'nanoid'
 import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
 import { Value } from '@sinclair/typebox/value'
@@ -57,10 +57,11 @@ export class FirestoreGameStore implements GameStore {
 
         const checksumCacheKey = `csum-${game.id}`
         const gameRevisionCacheKey = `etag-${game.id}`
+        const userCacheKeys = storedGame.players.map((player) => `games-${player.userId}`)
 
         try {
             await this.cacheService.lockWhileWriting(
-                [checksumCacheKey, gameRevisionCacheKey],
+                [checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
                 async () =>
                     this.games.firestore.runTransaction(
                         async () =>
@@ -76,14 +77,16 @@ export class FirestoreGameStore implements GameStore {
     }
 
     async updateGame({
-        gameId,
+        game,
         fields,
         validator
     }: {
-        gameId: string
+        game: Game
         fields: Partial<Game>
         validator?: UpdateValidator<Game>
     }): Promise<[Game, string[], Game]> {
+        const gameId = game.id
+
         const stateCollection = this.getStateCollection(gameId)
         const transactionBody = async (
             transaction: Transaction
@@ -94,6 +97,8 @@ export class FirestoreGameStore implements GameStore {
             const existingGame = (
                 await transaction.get(this.games.doc(gameId))
             ).data() as StoredGame
+
+            this.recordRead('game')
 
             if (!existingGame) {
                 throw new NotFoundError({ type: 'Game', id: gameId })
@@ -163,10 +168,16 @@ export class FirestoreGameStore implements GameStore {
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
 
+        // Only matters if players change
+        const userCacheKeys =
+            fields.players !== undefined
+                ? game.players.map((player) => `games-${player.userId}`)
+                : []
+
         try {
             const { updatedGame, updatedFields, existingGame } =
                 await this.cacheService.lockWhileWriting(
-                    [gameCacheKey, checksumCacheKey, gameRevisionCacheKey],
+                    [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
                     async () => this.games.firestore.runTransaction(transactionBody)
                 )
 
@@ -185,7 +196,7 @@ export class FirestoreGameStore implements GameStore {
             return nanoid()
         }
 
-        return await this.cacheService.getThenCacheIfMissing(cacheKey, generateEtag)
+        return await this.cacheService.cachingGet(cacheKey, generateEtag)
     }
 
     async findGameById(gameId: string, includeState: boolean = false): Promise<Game | undefined> {
@@ -194,31 +205,28 @@ export class FirestoreGameStore implements GameStore {
         const getGame = async () => {
             const doc = this.games.doc(gameId)
             try {
-                console.log('GETTING GAME FROM DB')
                 const game = (await doc.get()).data() as Game
-                if (game) {
-                    return JSON.stringify(game)
-                }
-                return undefined
+                this.recordRead('game')
+                return game
             } catch (error) {
                 this.handleError(error, gameId)
                 throw Error('unreachable')
             }
         }
 
-        const cachedGame = await this.cacheService.getThenCacheIfMissing(cacheKey, getGame)
+        const cachedGame = await this.cacheService.cachingGet(cacheKey, getGame)
         if (!cachedGame) {
             return undefined
         }
 
-        const game = Value.Convert(Game, JSON.parse(cachedGame)) as Game
-
+        const game = Value.Convert(Game, cachedGame) as Game
         if (game && includeState) {
             try {
                 const stateCollection = this.getStateCollection(gameId)
                 const stateDoc = stateCollection.doc(game.id)
 
                 const stateRecord = (await stateDoc.get()).data() as GameState
+                this.recordRead('state')
                 if (stateRecord) {
                     game.state = stateRecord
                 }
@@ -230,11 +238,58 @@ export class FirestoreGameStore implements GameStore {
         return game
     }
 
+    async findGamesById(ids: string[]): Promise<Game[]> {
+        const cacheKeys = ids.map((id) => `game-${id}`)
+
+        // Store the key -> id relationship for later use
+        const idsForKeys = new Map<string, string>()
+        ids.forEach((id, index) => {
+            idsForKeys.set(cacheKeys[index], id)
+        })
+
+        const getGames = async (cacheKeys: string[]): Promise<Game[]> => {
+            try {
+                const docIds = cacheKeys.map((key) => this.games.doc(idsForKeys.get(key)!))
+                const querySnapshot = await this.firestore.getAll(...docIds)
+                this.recordRead('game', querySnapshot.length)
+
+                return querySnapshot.map((doc) => doc.data()) as Game[]
+            } catch (error) {
+                this.handleError(error, ids.join(','))
+                throw Error('unreachable')
+            }
+        }
+
+        const games = await this.cacheService.cachingGetMulti(cacheKeys, getGames)
+
+        return games.map((game) => Value.Convert(Game, game) as Game)
+    }
+
+    // It would be nice to make the caching a little less manual here
     async findGamesForUser(user: User): Promise<Game[]> {
+        const cacheKey = `games-${user.id}`
+        const { value, cached } = await this.cacheService.cacheGet(cacheKey)
+        if (cached) {
+            return this.findGamesById(value as string[])
+        }
+
+        const lockValue = await this.cacheService.acquireReadLock({
+            key: cacheKey,
+            value: value
+        })
+
         const query = this.games.where('userIds', 'array-contains', user.id)
         try {
             const querySnapshot = await query.get()
-            return querySnapshot.docs.map((doc) => doc.data()) as Game[]
+            const games = querySnapshot.docs.map((doc) => doc.data()) as Game[]
+            this.recordRead('game', games.length)
+
+            const ids = games.map((game) => game.id)
+            this.cacheService.cacheSet(cacheKey, ids, lockValue).catch((error) => {
+                console.error('Failed to update cache', error)
+            })
+
+            return games
         } catch (error) {
             this.handleError(error, user.id)
             throw Error('unreachable')
@@ -242,12 +297,12 @@ export class FirestoreGameStore implements GameStore {
     }
 
     async addActionsToGame({
-        gameId,
+        game,
         actions,
         state,
         validator
     }: {
-        gameId: string
+        game: Game
         actions: GameAction[]
         state: GameState
         validator: ActionUpdateValidator
@@ -257,6 +312,8 @@ export class FirestoreGameStore implements GameStore {
         relatedActions: GameAction[]
         priorState: GameState
     }> {
+        const gameId = game.id
+
         const actionCollection = this.getActionCollection(gameId)
         const actionChunkCollection = this.getActionChunkCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
@@ -274,11 +331,11 @@ export class FirestoreGameStore implements GameStore {
             const existingState = (
                 await transaction.get(stateCollection.doc(gameId))
             ).data() as GameState
-
+            this.recordRead('state')
             const existingGame = (
                 await transaction.get(this.games.doc(gameId))
             ).data() as StoredGame
-
+            this.recordRead('game')
             if (!existingGame) {
                 throw new NotFoundError({ type: 'Game', id: gameId })
             }
@@ -428,7 +485,7 @@ export class FirestoreGameStore implements GameStore {
         }
 
         const chunkRefs = Array.from(chunkIds).map((chunkId) => collection.doc(chunkId))
-
+        this.recordRead('actionChunk', chunkRefs.length)
         return (await transaction.getAll(...chunkRefs))
             .map((doc) => doc.data())
             .filter((data) => data !== undefined) as ActionChunk[]
@@ -548,7 +605,7 @@ export class FirestoreGameStore implements GameStore {
             const existingGame = (
                 await transaction.get(this.games.doc(gameId))
             ).data() as StoredGame
-
+            this.recordRead('game')
             if (!existingGame) {
                 throw new NotFoundError({ type: 'Game', id: gameId })
             }
@@ -556,7 +613,7 @@ export class FirestoreGameStore implements GameStore {
             const existingState = (
                 await transaction.get(stateCollection.doc(gameId))
             ).data() as GameState
-
+            this.recordRead('state')
             if (!existingState) {
                 throw new NotFoundError({ type: 'GameState', id: gameId })
             }
@@ -581,6 +638,7 @@ export class FirestoreGameStore implements GameStore {
                 existingActions = (await transaction.getAll(...actionRefs))
                     .map((doc) => doc.data())
                     .filter((data) => data !== undefined) as StoredAction[]
+                this.recordRead('action', actionRefs.length)
             }
 
             if (!existingActions || existingActions.length !== storedActions.length) {
@@ -688,6 +746,7 @@ export class FirestoreGameStore implements GameStore {
             try {
                 const querySnapshot = await actionChunkCollection.get()
                 const results = querySnapshot.docs.map((doc) => doc.data()) as ActionChunk[]
+                this.recordRead('actionChunk', results.length)
                 const actions = results
                     .flatMap((chunk) => chunk.actions)
                     .map((action) => Value.Convert(GameAction, action) as GameAction)
@@ -701,6 +760,7 @@ export class FirestoreGameStore implements GameStore {
             const actionCollection = this.getActionCollection(game.id)
             try {
                 const querySnapshot = await actionCollection.get()
+                this.recordRead('action', querySnapshot.size)
                 return querySnapshot.docs.map((doc) => doc.data()) as GameAction[]
             } catch (error) {
                 this.handleError(error, game.id)
@@ -721,7 +781,7 @@ export class FirestoreGameStore implements GameStore {
                 const querySnapshot = await actionChunkCollection
                     .where('actionIds', 'array-contains', actionId)
                     .get()
-
+                this.recordRead('actionChunk', querySnapshot.size)
                 const results = querySnapshot.docs.map((doc) => doc.data()) as ActionChunk[]
                 if (results.length > 1) {
                     throw Error('Invalid state')
@@ -743,6 +803,7 @@ export class FirestoreGameStore implements GameStore {
             const actionCollection = this.getActionCollection(game.id)
             const doc = actionCollection.doc(actionId)
             try {
+                this.recordRead('action')
                 return (await doc.get()).data() as GameAction
             } catch (error) {
                 this.handleError(error, game.id)
@@ -778,6 +839,7 @@ export class FirestoreGameStore implements GameStore {
                 const chunks = (await this.firestore.getAll(...chunkRefs))
                     .map((doc) => doc.data())
                     .filter((data) => data !== undefined) as ActionChunk[]
+                this.recordRead('actionChunk', chunks.length)
                 const actions = chunks
                     .flatMap((chunk) => chunk.actions)
                     .map((action) => Value.Convert(GameAction, action) as GameAction)
@@ -800,6 +862,7 @@ export class FirestoreGameStore implements GameStore {
                         )
                     )
                     .get()
+                this.recordRead('action', querySnapshot.size)
                 const results = querySnapshot.docs.map((doc) => doc.data()) as GameAction[]
                 return results
             } catch (error) {
@@ -814,20 +877,10 @@ export class FirestoreGameStore implements GameStore {
 
         const lookupChecksum = async () => {
             const gameState = await this.getGameState(gameId)
-            const checksum = gameState?.actionChecksum
-            return checksum !== undefined ? String(checksum) : undefined
+            return gameState?.actionChecksum
         }
 
-        const cachedValue = await this.cacheService.getThenCacheIfMissing(cacheKey, lookupChecksum)
-        if (cachedValue === undefined) {
-            return undefined
-        }
-
-        try {
-            return parseInt(cachedValue)
-        } catch (error) {
-            return undefined
-        }
+        return await this.cacheService.cachingGet(cacheKey, lookupChecksum)
     }
 
     async setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number> {
@@ -841,7 +894,7 @@ export class FirestoreGameStore implements GameStore {
                         const existingState = (
                             await transaction.get(stateCollection.doc(gameId))
                         ).data() as GameState
-
+                        this.recordRead('state')
                         if (!existingState) {
                             throw new NotFoundError({ type: 'GameState', id: gameId })
                         }
@@ -864,6 +917,7 @@ export class FirestoreGameStore implements GameStore {
     private async getGameState(gameId: string): Promise<GameState | undefined> {
         const doc = this.getStateCollection(gameId).doc(gameId)
         const state = (await doc.get()).data() as GameState
+        this.recordRead('state')
         return state
     }
 
@@ -910,6 +964,16 @@ export class FirestoreGameStore implements GameStore {
                 id,
                 cause: error instanceof Error ? error : undefined
             })
+        }
+    }
+
+    private recordRead(collection: string, amount: number = 1) {
+        try {
+            this.cacheService.incrementValue(`db-read-${collection}`, amount).catch((error) => {
+                console.error('Failed to increment reads', error)
+            })
+        } catch (error) {
+            console.error('Failed to increment reads', error)
         }
     }
 }

@@ -20,6 +20,7 @@ import {
 import { UserStore } from '../stores/userStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
+import { RedisCacheService } from '../../cache/cacheService.js'
 
 export class FirestoreUserStore implements UserStore {
     readonly users: CollectionReference
@@ -27,7 +28,10 @@ export class FirestoreUserStore implements UserStore {
     readonly userExternalIds: CollectionReference
     readonly userEmails: CollectionReference
 
-    constructor(private firestore: Firestore) {
+    constructor(
+        private cacheService: RedisCacheService,
+        private firestore: Firestore
+    ) {
         this.users = firestore.collection('users').withConverter<StoredUser>(userConverter)
         this.userUsernames = firestore.collection('userUsernames')
         this.userExternalIds = firestore.collection('userExternalIds')
@@ -38,6 +42,7 @@ export class FirestoreUserStore implements UserStore {
         try {
             const cleanUsername = this.trimLowerString(username)
             const user = await this.findByUsernameIncludingPasswordHash(cleanUsername)
+            this.recordRead()
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, username)
@@ -50,6 +55,7 @@ export class FirestoreUserStore implements UserStore {
         try {
             const userDocs = await this.users.where('email', '==', cleanEmail).get()
             const user = this.onlyOne<StoredUser>(userDocs.docs, 'email')
+            this.recordRead()
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, email)
@@ -67,6 +73,7 @@ export class FirestoreUserStore implements UserStore {
                 .where('externalIds', 'array-contains', compositeId)
                 .get()
             const user = this.onlyOne<StoredUser>(userDocs.docs, 'email')
+            this.recordRead()
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, externalId)
@@ -78,6 +85,7 @@ export class FirestoreUserStore implements UserStore {
         try {
             const doc = this.users.doc(id)
             const user = (await doc.get()).data() as StoredUser
+            this.recordRead()
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, id)
@@ -224,6 +232,7 @@ export class FirestoreUserStore implements UserStore {
                     const existingUser = (
                         await transaction.get(this.users.doc(userId))
                     ).data() as StoredUser
+                    this.recordRead()
                     if (!existingUser) {
                         throw new NotFoundError({ type: 'User', id: userId })
                     }
@@ -360,6 +369,7 @@ export class FirestoreUserStore implements UserStore {
                 const userToUpdate = (
                     await transaction.get(this.users.doc(userId))
                 ).data() as StoredUser
+                this.recordRead()
                 if (!userToUpdate) {
                     throw new NotFoundError({ type: 'User', id: userId })
                 }
@@ -392,6 +402,7 @@ export class FirestoreUserStore implements UserStore {
                 const userToUpdate = (
                     await transaction.get(this.users.doc(userId))
                 ).data() as StoredUser
+                this.recordRead()
                 if (!userToUpdate) {
                     throw new NotFoundError({ type: 'User', id: userId })
                 }
@@ -416,6 +427,7 @@ export class FirestoreUserStore implements UserStore {
     ): Promise<StoredUser | undefined> {
         try {
             const userDocs = await this.users.where('cleanUsername', '==', username).get()
+            this.recordRead()
             return this.onlyOne(userDocs.docs, 'username')
         } catch (error) {
             this.handleError(error, username)
@@ -500,6 +512,16 @@ export class FirestoreUserStore implements UserStore {
 
     private trimLowerString(value: string): string {
         return value.trim().toLowerCase()
+    }
+
+    private recordRead() {
+        try {
+            this.cacheService.incrementValue('db-read-user').catch((error) => {
+                console.error('Failed to increment user reads', error)
+            })
+        } catch (error) {
+            console.error('Failed to increment user reads', error)
+        }
     }
 }
 

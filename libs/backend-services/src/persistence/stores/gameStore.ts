@@ -37,12 +37,12 @@ export interface GameStore {
     }): Promise<GameAction[]>
 
     addActionsToGame({
-        gameId,
+        game,
         actions,
         state,
         validator
     }: {
-        gameId: string
+        game: Game
         actions: GameAction[]
         state: GameState
         validator?: ActionUpdateValidator
@@ -73,11 +73,11 @@ export interface GameStore {
     }>
 
     updateGame({
-        gameId,
+        game,
         fields,
         validator
     }: {
-        gameId: string
+        game: Game
         fields: Partial<Game>
         validator?: UpdateValidator<Game>
     }): Promise<[Game, string[], Game]>

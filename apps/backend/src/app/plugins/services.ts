@@ -51,26 +51,27 @@ const service: string = process.env['K_SERVICE'] ?? 'local'
 const TASKS_HOST = process.env['TASKS_HOST'] ?? ''
 
 export default fp(async (fastify: FastifyInstance) => {
+    const secretsService = new EnvSecretsService()
+    const emailService = await EmailService.createEmailService(secretsService)
+    const redisService = await RedisService.createRedisService(secretsService)
+    const redisCacheService = new RedisCacheService(redisService)
+
     const taskService: TaskService =
         service === 'local'
             ? new LocalTaskService(TASKS_HOST)
             : new CloudTasksTaskService(TASKS_HOST)
     const tokenService = new TokenService(new FirestoreTokenStore(fastify.firestore))
     const userService = new UserService(
-        new FirestoreUserStore(fastify.firestore),
+        new FirestoreUserStore(redisCacheService, fastify.firestore),
         tokenService,
         taskService
     )
 
-    const secretsService = new EnvSecretsService()
-    const emailService = await EmailService.createEmailService(secretsService)
-    const redisService = await RedisService.createRedisService(secretsService)
-    const redisCacheService = new RedisCacheService(redisService)
     // const pubSubService = await RedisPubSubService.createRedisPubSubService(secretsService)
     const pubSubService = new NullPubSubService() // While using Ably we do not need a pub sub service
 
     const notificationService = await DefaultNotificationService.createNotificationService(
-        new FirestoreNotificationStore(fastify.firestore),
+        new FirestoreNotificationStore(redisCacheService, fastify.firestore),
         pubSubService
     )
 

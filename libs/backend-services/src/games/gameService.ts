@@ -291,7 +291,7 @@ export class GameService {
         }
 
         const [updatedGame, updatedFields, originalGame] = await this.gameStore.updateGame({
-            gameId,
+            game,
             fields,
             validator: (existingGame, fieldsToUpdate) => {
                 // Only waiting games can be updated by the user
@@ -389,7 +389,7 @@ export class GameService {
         player.status = PlayerStatus.Joined
 
         const [updatedGame] = await this.gameStore.updateGame({
-            gameId,
+            game,
             fields: { players: game.players },
             validator: (existingGame) => {
                 if (existingGame.status != GameStatus.WaitingForPlayers) {
@@ -419,7 +419,7 @@ export class GameService {
         player.status = PlayerStatus.Declined
 
         const [updatedGame] = await this.gameStore.updateGame({
-            gameId,
+            game,
             fields: { players: game.players },
             validator: (existingGame) => {
                 if (
@@ -491,7 +491,7 @@ export class GameService {
         const startedGame = new GameEngine(definition).startGame(game)
 
         const [updatedGame] = await this.gameStore.updateGame({
-            gameId: gameId,
+            game,
             fields: { startedAt: new Date(), status: GameStatus.Started, state: startedGame.state },
             validator: (existingGame, fieldsToUpdate) => {
                 if (existingGame.status !== GameStatus.WaitingToStart) {
@@ -561,7 +561,7 @@ export class GameService {
         // write the action and the updated state
         const { storedActions, updatedGame, relatedActions, priorState } =
             await this.gameStore.addActionsToGame({
-                gameId: game.id,
+                game: game,
                 actions: processedActions,
                 state: updatedState,
                 validator: async (

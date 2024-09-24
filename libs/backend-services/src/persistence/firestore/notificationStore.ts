@@ -5,7 +5,6 @@ import {
     QueryDocumentSnapshot,
     Timestamp
 } from '@google-cloud/firestore'
-import crypto from 'crypto'
 
 import { AlreadyExistsError, UnknownStorageError } from '../stores/errors.js'
 import { BaseError } from '@tabletop/common'
@@ -17,12 +16,16 @@ import { PushTopic } from '../../notifications/pushTopic.js'
 import { NotificationSubscription } from '../../notifications/subscriptions/notificationSubscription.js'
 import { StoredSubscription } from '../model/storedSubscription.js'
 import { NotificationSubscriptionIdentifier } from '../../notifications/subscriptions/notificationSubscriptionIdentifier.js'
+import { RedisCacheService } from '../../cache/cacheService.js'
 
 export class FirestoreNotificationStore implements NotificationStore {
     readonly notificationSubscriptions: CollectionReference
     readonly pushTopics: CollectionReference
 
-    constructor(private firestore: Firestore) {
+    constructor(
+        private cacheService: RedisCacheService,
+        private firestore: Firestore
+    ) {
         this.notificationSubscriptions = firestore
             .collection('notificationSubscriptions')
             .withConverter(notificationSubscriptionConverter)
@@ -40,6 +43,8 @@ export class FirestoreNotificationStore implements NotificationStore {
                 return this.notificationSubscriptions.doc(client.id).get()
             })
         )
+
+        this.recordRead('notificationSubscriptions', clients.length)
 
         return documents
             .map((subscription) => subscription.data() as StoredSubscription)
@@ -63,6 +68,7 @@ export class FirestoreNotificationStore implements NotificationStore {
                 let existingTopic: StoredPushTopic = (
                     await transaction.get(this.pushTopics.doc(topic))
                 ).data() as StoredPushTopic
+                this.recordRead('pushTopics')
 
                 let topicToUpdate: StoredPushTopic | undefined
                 if (!existingTopic) {
@@ -93,7 +99,7 @@ export class FirestoreNotificationStore implements NotificationStore {
                 const existingSubscription: StoredSubscription = (
                     await transaction.get(this.notificationSubscriptions.doc(subscriptionId))
                 ).data() as StoredSubscription
-
+                this.recordRead('notificationSubscriptions')
                 let subscriptionToUpsert: StoredSubscription = existingSubscription
                 if (!subscriptionToUpsert) {
                     // We could be very clean and remove the id and transport from the subscription
@@ -138,7 +144,7 @@ export class FirestoreNotificationStore implements NotificationStore {
                 const existingSubscription: StoredSubscription = (
                     await transaction.get(this.notificationSubscriptions.doc(subscriptionId))
                 ).data() as StoredSubscription
-
+                this.recordRead('notificationSubscriptions')
                 if (!existingSubscription) {
                     return
                 }
@@ -149,7 +155,7 @@ export class FirestoreNotificationStore implements NotificationStore {
                     const existingTopic: StoredPushTopic = (
                         await transaction.get(this.pushTopics.doc(topic))
                     ).data() as StoredPushTopic
-
+                    this.recordRead('pushTopics')
                     if (existingTopic) {
                         existingTopic.clients = existingTopic.clients.filter(
                             (client) => client.id !== subscriptionId
@@ -178,6 +184,7 @@ export class FirestoreNotificationStore implements NotificationStore {
     private async findClientsForTopic(topic: string): Promise<PushClient[]> {
         try {
             const storedTopic = (await this.pushTopics.doc(topic).get()).data() as StoredPushTopic
+            this.recordRead('pushTopics')
             if (!storedTopic) {
                 return []
             }
@@ -186,16 +193,6 @@ export class FirestoreNotificationStore implements NotificationStore {
             this.handleError(error, topic, 'PushTopic')
             throw Error('unreachable')
         }
-    }
-
-    private hashString(data: string): string {
-        const hash = crypto.createHash('sha256')
-        hash.update(data)
-        return hash.digest('hex')
-    }
-
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
     }
 
     private handleError(error: unknown, id: string, type: string) {
@@ -217,6 +214,16 @@ export class FirestoreNotificationStore implements NotificationStore {
                 id,
                 cause: error instanceof Error ? error : undefined
             })
+        }
+    }
+
+    private recordRead(collection: string, amount: number = 1) {
+        try {
+            this.cacheService.incrementValue(`db-read-${collection}`, amount).catch((error) => {
+                console.error('Failed to increment reads', error)
+            })
+        } catch (error) {
+            console.error('Failed to increment reads', error)
         }
     }
 }
