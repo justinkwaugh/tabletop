@@ -29,7 +29,7 @@ import { StoredState } from '../model/storedState.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { ActionUndoValidator, ActionUpdateValidator, GameStore } from '../stores/gameStore.js'
-import { CacheResult, RedisCacheService } from '../../cache/cacheService.js'
+import { RedisCacheService } from '../../cache/cacheService.js'
 import { nanoid } from 'nanoid'
 import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
 import { Value } from '@sinclair/typebox/value'
@@ -55,13 +55,14 @@ export class FirestoreGameStore implements GameStore {
         storedGame.createdAt = date
         storedGame.updatedAt = date
 
+        const gameCacheKey = this.makeGameCacheKey(game.id)
         const checksumCacheKey = `csum-${game.id}`
         const gameRevisionCacheKey = `etag-${game.id}`
         const userCacheKeys = storedGame.players.map((player) => `games-${player.userId}`)
 
         try {
             await this.cacheService.lockWhileWriting(
-                [checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
+                [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
                 async () =>
                     this.games.firestore.runTransaction(
                         async () =>
@@ -164,7 +165,7 @@ export class FirestoreGameStore implements GameStore {
             return { updatedGame, updatedFields, existingGame }
         }
 
-        const gameCacheKey = `game-${gameId}`
+        const gameCacheKey = this.makeGameCacheKey(gameId)
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
 
@@ -200,7 +201,7 @@ export class FirestoreGameStore implements GameStore {
     }
 
     async findGameById(gameId: string, includeState: boolean = false): Promise<Game | undefined> {
-        const cacheKey = `game-${gameId}`
+        const cacheKey = this.makeGameCacheKey(gameId)
 
         const getGame = async () => {
             const doc = this.games.doc(gameId)
@@ -239,7 +240,7 @@ export class FirestoreGameStore implements GameStore {
     }
 
     async findGamesById(ids: string[]): Promise<Game[]> {
-        const cacheKeys = ids.map((id) => `game-${id}`)
+        const cacheKeys = ids.map((id) => this.makeGameCacheKey(id))
 
         // Store the key -> id relationship for later use
         const idsForKeys = new Map<string, string>()
@@ -427,7 +428,7 @@ export class FirestoreGameStore implements GameStore {
             return { storedActions, updatedGame, relatedActions, priorState: existingState }
         }
 
-        const gameCacheKey = `game-${gameId}`
+        const gameCacheKey = this.makeGameCacheKey(gameId)
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
 
@@ -720,7 +721,7 @@ export class FirestoreGameStore implements GameStore {
             }
         }
 
-        const gameCacheKey = `game-${gameId}`
+        const gameCacheKey = this.makeGameCacheKey(gameId)
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
 
@@ -975,6 +976,10 @@ export class FirestoreGameStore implements GameStore {
         } catch (error) {
             console.error('Failed to increment reads', error)
         }
+    }
+
+    private makeGameCacheKey(gameId: string): string {
+        return `game-${gameId}`
     }
 }
 

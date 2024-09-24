@@ -523,6 +523,10 @@ export class FirestoreUserStore implements UserStore {
             console.error('Failed to increment user reads', error)
         }
     }
+
+    private makeUserCacheKey(userId: string) {
+        return `user-${userId}`
+    }
 }
 
 const userConverter = {
