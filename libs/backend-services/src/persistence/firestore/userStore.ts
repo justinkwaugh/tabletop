@@ -122,6 +122,7 @@ export class FirestoreUserStore implements UserStore {
 
         // Clean username
         if (newStoredUser.username) {
+            console.log('Trimming username')
             newStoredUser.username = newStoredUser.username?.trim()
             newStoredUser.cleanUsername = this.trimLowerString(newStoredUser.username)
         }
@@ -152,7 +153,7 @@ export class FirestoreUserStore implements UserStore {
 
         const transactionBody = async (
             transaction: FirebaseFirestore.Transaction
-        ): Promise<User> => {
+        ): Promise<StoredUser> => {
             // Unique fields
             if (newStoredUser.cleanUsername) {
                 transaction.create(this.userUsernames.doc(newStoredUser.cleanUsername!), {})
@@ -165,17 +166,18 @@ export class FirestoreUserStore implements UserStore {
             newStoredUser.externalIds.forEach((externalId: string) => {
                 transaction.create(this.userExternalIds.doc(externalId), {})
             })
-
+            console.log('creating: ', newStoredUser)
             transaction.create(this.users.doc(newStoredUser.id), newStoredUser)
-            return this.sanitize(newStoredUser) as User
+            return newStoredUser
         }
 
         const userCacheKey = this.makeUserCacheKey(user.id)
 
         try {
-            return await this.cacheService.lockWhileWriting([userCacheKey], async () =>
+            const user = await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
+            return this.sanitize(user) as User
         } catch (error) {
             this.handleError(error, user.id)
             throw Error('unreachable')
@@ -238,7 +240,7 @@ export class FirestoreUserStore implements UserStore {
 
         const transactionBody = async (
             transaction: FirebaseFirestore.Transaction
-        ): Promise<[User, string[], User]> => {
+        ): Promise<[StoredUser, string[], StoredUser]> => {
             const fieldsToUpdate = structuredClone(updateFields)
             const updatedFields: string[] = []
             const existingUser = (
@@ -341,19 +343,22 @@ export class FirestoreUserStore implements UserStore {
                 transaction.update(this.users.doc(updatedUser.id), fieldsToUpdate)
             }
 
-            return [
-                this.sanitize(updatedUser) as User,
-                updatedFields,
-                this.sanitize(existingUser) as User
-            ]
+            return [updatedUser, updatedFields, existingUser]
         }
 
         const userCacheKey = this.makeUserCacheKey(userId)
 
         try {
-            return await this.cacheService.lockWhileWriting([userCacheKey], async () =>
-                this.users.firestore.runTransaction(transactionBody)
-            )
+            const [updatedUser, updatedFields, existingUser] =
+                await this.cacheService.lockWhileWriting([userCacheKey], async () =>
+                    this.users.firestore.runTransaction(transactionBody)
+                )
+
+            return [
+                this.sanitize(updatedUser) as User,
+                updatedFields,
+                this.sanitize(existingUser) as User
+            ]
         } catch (error) {
             this.handleError(error, userId)
             throw Error('unreachable')
@@ -398,15 +403,16 @@ export class FirestoreUserStore implements UserStore {
             transaction.update(doc, { externalIds: storedUser.externalIds })
 
             transaction.create(this.userExternalIds.doc(compositeId), {})
-            return this.sanitize(storedUser) as StoredUser
+            return storedUser
         }
 
         const userCacheKey = this.makeUserCacheKey(userId)
 
         try {
-            return await this.cacheService.lockWhileWriting([userCacheKey], async () =>
+            const user = await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
+            return this.sanitize(user) as User
         } catch (error) {
             this.handleError(error, userId)
             throw Error('unreachable')
@@ -431,15 +437,16 @@ export class FirestoreUserStore implements UserStore {
             const doc = this.users.doc(storedUser.id)
             transaction.update(doc, { externalIds: storedUser.externalIds })
             transaction.delete(this.userExternalIds.doc(externalId), {})
-            return this.sanitize(storedUser) as StoredUser
+            return storedUser
         }
 
         const userCacheKey = this.makeUserCacheKey(userId)
 
         try {
-            return await this.cacheService.lockWhileWriting([userCacheKey], async () =>
+            const user = await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
+            return this.sanitize(user) as User
         } catch (error) {
             this.handleError(error, userId)
             throw Error('unreachable')
