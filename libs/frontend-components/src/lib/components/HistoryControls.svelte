@@ -164,7 +164,7 @@
                 ></path>
             </svg>
         </button>
-        <button onclick={() => gameSession.gotoAction(gameSession.actions.length - 1)}>
+        <button onclick={() => gameSession.gotoCurrent()}>
             <svg
                 class="w-[25px] h-[25px] {gameSession.mode !== GameSessionMode.History
                     ? disabledColor

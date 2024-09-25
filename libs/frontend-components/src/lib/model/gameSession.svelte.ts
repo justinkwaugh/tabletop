@@ -71,7 +71,6 @@ export class GameSession {
     currentHistoryIndex: number = $state(0)
     playingHistory: boolean = $state(false)
     playTimer: ReturnType<typeof setTimeout> | null = null
-    exitTimer: ReturnType<typeof setTimeout> | null = null
 
     // We swap between the real game and the history snapshot as needed
     visibleGameState: GameState = $derived.by(() => {
@@ -665,6 +664,14 @@ export class GameSession {
         stopPlayback = true
     }: { toActionIndex?: number; stopPlayback?: boolean } = {}) {
         if (
+            this.mode === GameSessionMode.History &&
+            this.currentHistoryIndex === this.actions.length - 1
+        ) {
+            this.stopHistoryPlayback()
+            this.exitHistoryMode()
+        }
+
+        if (
             this.mode !== GameSessionMode.History ||
             !this.historyGame ||
             this.currentHistoryIndex >= this.actions.length - 1
@@ -687,10 +694,6 @@ export class GameSession {
         this.historyGame.state = gameSnapshot.state
         this.onHistoryAction(this.actions[this.currentHistoryIndex])
 
-        if (this.currentHistoryIndex === this.actions.length - 1) {
-            this.delayedExitHistoryMode()
-        }
-
         if (stopPlayback) {
             this.stopHistoryPlayback()
         }
@@ -712,6 +715,11 @@ export class GameSession {
         } else if (actionIndex > this.currentHistoryIndex) {
             this.stepForward({ toActionIndex: actionIndex })
         }
+    }
+
+    public gotoCurrent() {
+        this.gotoAction(this.actions.length - 1)
+        this.exitHistoryMode()
     }
 
     public playHistory() {
@@ -785,27 +793,12 @@ export class GameSession {
     }
 
     private enterHistoryMode() {
-        if (this.exitTimer) {
-            clearTimeout(this.exitTimer)
-            this.exitTimer = null
-        }
-
         if (this.mode === GameSessionMode.History) {
             return
         }
         this.historyGame = $state.snapshot(this.game)
         this.mode = GameSessionMode.History
         this.currentHistoryIndex = this.actions.length - 1
-    }
-
-    private delayedExitHistoryMode() {
-        if (this.exitTimer) {
-            clearTimeout(this.exitTimer)
-            this.exitTimer = null
-        }
-        this.exitTimer = setTimeout(() => {
-            this.exitHistoryMode()
-        }, 500)
     }
 
     private exitHistoryMode() {
