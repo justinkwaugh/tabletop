@@ -8,6 +8,8 @@
 
     let { authorizationService, api } = getContext('appContext') as AppContext
 
+    let unexpectedError = $state(false)
+    let errors: Record<string, string[]> = $state({})
     let username: string | undefined = $state(undefined)
     let email: string | undefined = $state(undefined)
     let verificationToken: string | undefined = $state(undefined)
@@ -26,14 +28,28 @@
             email
         }
 
-        let updatedUser = await api.updateUser(payload)
-        authorizationService.setSessionUser(updatedUser)
+        try {
+            let updatedUser = await api.updateUser(payload)
+            authorizationService.setSessionUser(updatedUser)
 
-        username = ''
-        email = ''
+            username = ''
+            email = ''
 
-        if (updatedUser.status === UserStatus.Active) {
-            goto('/dashboard')
+            if (updatedUser.status === UserStatus.Active) {
+                goto('/dashboard')
+            }
+        } catch (e) {
+            if (e instanceof Error && e.name === 'AlreadyExistsError') {
+                if (e.message.includes('username')) {
+                    errors.username = ['Username already exists']
+                } else if (e.message.includes('email')) {
+                    errors.email = ['Email already exists']
+                } else {
+                    unexpectedError = true
+                }
+            } else {
+                unexpectedError = true
+            }
         }
     }
 
@@ -80,6 +96,13 @@
                 Verify your email...
             </h1>
             <Hr hrClass="my-4" />
+            {#if unexpectedError}
+                <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+                    <span class="font-bold text-lg">Oops...</span><br />
+                    An unexpected error occurred. Please try again and hopefully it will be better next
+                    time.
+                </Alert>
+            {/if}
             {#if verificationError}
                 <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
                     <span class="font-bold text-lg">Verification Failed</span><br />
@@ -120,6 +143,13 @@
             <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">
                 Complete your profile...
             </h1>
+            {#if unexpectedError}
+                <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+                    <span class="font-bold text-lg">Oops...</span><br />
+                    An unexpected error occurred. Please try again and hopefully it will be better next
+                    time.
+                </Alert>
+            {/if}
             <form class="flex flex-col space-y-6" action="/" onsubmit={updateUser}>
                 {#if user && !user.username}
                     <Label class="space-y-2">
@@ -132,6 +162,13 @@
                             placeholder="choose a username"
                             required
                         />
+                        {#if errors?.username}
+                            {#each errors.username as error}
+                                <Helper class="mb-2" color="red"
+                                    ><span class="font-medium">{error}</span></Helper
+                                >
+                            {/each}
+                        {/if}
                     </Label>
                 {/if}
                 {#if user && !user.email}
@@ -145,6 +182,13 @@
                             placeholder="name@company.com"
                             required
                         />
+                        {#if errors?.email}
+                            {#each errors.email as error}
+                                <Helper class="mb-2" color="red"
+                                    ><span class="font-medium">{error}</span></Helper
+                                >
+                            {/each}
+                        {/if}
                     </Label>
                     <Helper class="text-sm mt-2">
                         We’ll never share your email publicly. It is only used for account recovery

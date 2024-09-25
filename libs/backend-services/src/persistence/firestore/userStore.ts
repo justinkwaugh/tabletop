@@ -173,11 +173,10 @@ export class FirestoreUserStore implements UserStore {
         const userCacheKey = this.makeUserCacheKey(user.id)
 
         try {
-            return this.cacheService.lockWhileWriting([userCacheKey], async () =>
+            return await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
         } catch (error) {
-            console.log(error)
             this.handleError(error, user.id)
             throw Error('unreachable')
         }
@@ -352,11 +351,10 @@ export class FirestoreUserStore implements UserStore {
         const userCacheKey = this.makeUserCacheKey(userId)
 
         try {
-            return this.cacheService.lockWhileWriting([userCacheKey], async () =>
+            return await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
         } catch (error) {
-            console.log(error)
             this.handleError(error, userId)
             throw Error('unreachable')
         }
@@ -406,11 +404,10 @@ export class FirestoreUserStore implements UserStore {
         const userCacheKey = this.makeUserCacheKey(userId)
 
         try {
-            return this.cacheService.lockWhileWriting([userCacheKey], async () =>
+            return await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
         } catch (error) {
-            console.log(error)
             this.handleError(error, userId)
             throw Error('unreachable')
         }
@@ -440,11 +437,10 @@ export class FirestoreUserStore implements UserStore {
         const userCacheKey = this.makeUserCacheKey(userId)
 
         try {
-            return this.cacheService.lockWhileWriting([userCacheKey], async () =>
+            return await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
         } catch (error) {
-            console.log(error)
             this.handleError(error, userId)
             throw Error('unreachable')
         }

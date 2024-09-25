@@ -130,6 +130,10 @@ export class RedisCacheService {
     // Get multiple values from the cache returning either the actual cached values or whatever
     // locks might be present for the keys
     public async cacheGetMulti(keys: string[]): Promise<CacheResult[]> {
+        if (keys.length === 0) {
+            return []
+        }
+
         const values = await this.client.mGet(keys)
 
         return values.map((value) => {
@@ -187,11 +191,7 @@ export class RedisCacheService {
         let lockId
         try {
             lockId = await this.tryLockWrite(keys)
-
             return await writer()
-        } catch (error) {
-            console.log(error)
-            throw error
         } finally {
             if (lockId) {
                 await this.unlockWrite(keys, lockId)
@@ -212,6 +212,9 @@ export class RedisCacheService {
     // to ensure atomic and exclusive access.  Write locks can overwrite the read
     // lock values.
     private async tryLockReads(keys: string[]): Promise<(string | undefined)[]> {
+        if (keys.length === 0) {
+            return []
+        }
         try {
             return await this.client.executeIsolated(async (isolatedClient) => {
                 const lockValues = []
@@ -243,6 +246,10 @@ export class RedisCacheService {
     }
 
     private async tryLockWrite(keys: string[]): Promise<string | undefined> {
+        if (keys.length === 0) {
+            return undefined
+        }
+
         // We treat write locks somewhat like a semaphore... multiple writers could lock, and it will only unlock
         // when all writers have finished and unlocked.  Note that writers are not locking to write to the cache, they
         // are locking *while* they are writing to a separate store, and preventing readers from writing to the cache

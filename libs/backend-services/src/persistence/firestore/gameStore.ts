@@ -433,7 +433,7 @@ export class FirestoreGameStore implements GameStore {
         const gameRevisionCacheKey = `etag-${gameId}`
 
         try {
-            return this.cacheService.lockWhileWriting(
+            return await this.cacheService.lockWhileWriting(
                 [gameCacheKey, checksumCacheKey, gameRevisionCacheKey],
                 async () => this.games.firestore.runTransaction(transactionBody)
             )
@@ -726,7 +726,7 @@ export class FirestoreGameStore implements GameStore {
         const gameRevisionCacheKey = `etag-${gameId}`
 
         try {
-            return this.cacheService.lockWhileWriting(
+            return await this.cacheService.lockWhileWriting(
                 [gameCacheKey, checksumCacheKey, gameRevisionCacheKey],
                 async () => this.games.firestore.runTransaction(transactionBody)
             )
@@ -888,7 +888,7 @@ export class FirestoreGameStore implements GameStore {
         const stateCollection = this.getStateCollection(gameId)
         try {
             const checksumCacheKey = `csum-${gameId}`
-            return this.cacheService.lockWhileWriting(
+            return await this.cacheService.lockWhileWriting(
                 [checksumCacheKey],
                 async () =>
                     await this.games.firestore.runTransaction(async (transaction) => {
