@@ -95,7 +95,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 }),
                 availableBoats: [],
                 boatLocations: {},
-                fishermen: 6,
+                fishermen: 5,
                 movementModiferPosition: 0,
                 shells: [0, 0, 0, 0, 3], // 3 five-value shells
                 fish: config.ruleset === Ruleset.FirstEdition ? [0, 0, 0, 0, 3] : [0, 0, 0, 3, 0],
