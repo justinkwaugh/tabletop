@@ -170,7 +170,6 @@ export class RedisCacheService {
     // Sets values into the cache using locks for consistency.
     public async cacheSetMulti(cacheRequests: CacheRequest[]): Promise<void> {
         const validRequests = cacheRequests.filter((request) => request.lockValue !== undefined)
-        console.log('validRequests', validRequests)
 
         // Create the appropriate actual values for the cache
         const setRequests: SetValueRequest[] = validRequests.map((request) => {

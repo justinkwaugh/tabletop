@@ -82,15 +82,21 @@ export class FirestoreUserStore implements UserStore {
     }
 
     async findById(id: string): Promise<User | undefined> {
-        try {
-            const doc = this.users.doc(id)
-            const user = (await doc.get()).data() as StoredUser
-            this.recordRead()
-            return this.sanitize(user)
-        } catch (error) {
-            this.handleError(error, id)
-            throw Error('unreachable')
+        const cacheKey = this.makeUserCacheKey(id)
+
+        const getUser = async () => {
+            try {
+                const doc = this.users.doc(id)
+                const user = (await doc.get()).data() as StoredUser
+                this.recordRead()
+                return this.sanitize(user)
+            } catch (error) {
+                this.handleError(error, id)
+                throw Error('unreachable')
+            }
         }
+
+        return await this.cacheService.cachingGet(cacheKey, getUser)
     }
 
     async findByUsernameAndPassword(username: string, password: string): Promise<User | undefined> {
@@ -144,28 +150,35 @@ export class FirestoreUserStore implements UserStore {
             newStoredUser.passwordHash = await this.hashPassword(password)
         }
 
-        try {
-            await this.users.firestore.runTransaction(async (transaction) => {
-                // Unique fields
-                if (newStoredUser.cleanUsername) {
-                    transaction.create(this.userUsernames.doc(newStoredUser.cleanUsername!), {})
-                }
+        const transactionBody = async (
+            transaction: FirebaseFirestore.Transaction
+        ): Promise<User> => {
+            // Unique fields
+            if (newStoredUser.cleanUsername) {
+                transaction.create(this.userUsernames.doc(newStoredUser.cleanUsername!), {})
+            }
 
-                if (newStoredUser.email) {
-                    transaction.create(this.userEmails.doc(newStoredUser.email!), {})
-                }
+            if (newStoredUser.email) {
+                transaction.create(this.userEmails.doc(newStoredUser.email!), {})
+            }
 
-                newStoredUser.externalIds.forEach((externalId: string) => {
-                    transaction.create(this.userExternalIds.doc(externalId), {})
-                })
-
-                transaction.create(this.users.doc(newStoredUser.id), newStoredUser)
-                return newStoredUser
+            newStoredUser.externalIds.forEach((externalId: string) => {
+                transaction.create(this.userExternalIds.doc(externalId), {})
             })
 
+            transaction.create(this.users.doc(newStoredUser.id), newStoredUser)
             return this.sanitize(newStoredUser) as User
+        }
+
+        const userCacheKey = this.makeUserCacheKey(user.id)
+
+        try {
+            return this.cacheService.lockWhileWriting([userCacheKey], async () =>
+                this.users.firestore.runTransaction(transactionBody)
+            )
         } catch (error) {
-            this.handleError(error, newStoredUser.id)
+            console.log(error)
+            this.handleError(error, user.id)
             throw Error('unreachable')
         }
     }
@@ -224,127 +237,126 @@ export class FirestoreUserStore implements UserStore {
             updateFields.passwordHash = await this.hashPassword(password)
         }
 
-        try {
-            const [updatedUser, updatedFields, originalUser] =
-                await this.users.firestore.runTransaction(async (transaction) => {
-                    const fieldsToUpdate = structuredClone(updateFields)
-                    const updatedFields: string[] = []
-                    const existingUser = (
-                        await transaction.get(this.users.doc(userId))
-                    ).data() as StoredUser
-                    this.recordRead()
-                    if (!existingUser) {
-                        throw new NotFoundError({ type: 'User', id: userId })
-                    }
+        const transactionBody = async (
+            transaction: FirebaseFirestore.Transaction
+        ): Promise<[User, string[], User]> => {
+            const fieldsToUpdate = structuredClone(updateFields)
+            const updatedFields: string[] = []
+            const existingUser = (
+                await transaction.get(this.users.doc(userId))
+            ).data() as StoredUser
+            this.recordRead()
+            if (!existingUser) {
+                throw new NotFoundError({ type: 'User', id: userId })
+            }
 
-                    if (validator) {
-                        switch (validator(existingUser, fieldsToUpdate)) {
-                            case UpdateValidationResult.Cancel:
-                                return [existingUser, [], existingUser]
-                        }
-                    }
+            if (validator) {
+                switch (validator(existingUser, fieldsToUpdate)) {
+                    case UpdateValidationResult.Cancel:
+                        return [existingUser, [], existingUser]
+                }
+            }
 
-                    // If a current password was provided, check it
-                    if (
-                        currentPassword &&
-                        !(await this.validatePassword(currentPassword, existingUser.passwordHash))
-                    ) {
-                        throw new AuthenticationVerificationFailedError({
-                            type: 'User',
-                            id: userId
-                        })
-                    }
-
-                    const updatedUser = structuredClone(existingUser)
-
-                    if (
-                        fieldsToUpdate.username &&
-                        existingUser.username !== fieldsToUpdate.username
-                    ) {
-                        if (existingUser.cleanUsername !== fieldsToUpdate.cleanUsername) {
-                            if (existingUser.cleanUsername) {
-                                transaction.delete(
-                                    this.userUsernames.doc(existingUser.cleanUsername!)
-                                )
-                            }
-                            transaction.create(
-                                this.userUsernames.doc(fieldsToUpdate.cleanUsername!),
-                                {}
-                            )
-                        }
-                        updatedUser.username = fieldsToUpdate.username
-                        updatedUser.cleanUsername = fieldsToUpdate.cleanUsername
-                        updatedFields.push('username')
-                    }
-
-                    if (fieldsToUpdate.email && existingUser.email !== fieldsToUpdate.email) {
-                        if (existingUser.email) {
-                            transaction.delete(this.userEmails.doc(existingUser.email!))
-                        }
-                        transaction.create(this.userEmails.doc(fieldsToUpdate.email!), {})
-                        updatedUser.email = fieldsToUpdate.email
-                        fieldsToUpdate.emailVerified = false
-
-                        updatedFields.push('email')
-                    }
-
-                    if (fieldsToUpdate.preferences) {
-                        updatedUser.preferences = fieldsToUpdate.preferences
-                        updatedFields.push('preferences')
-                    }
-
-                    if (
-                        fieldsToUpdate.emailVerified !== undefined &&
-                        existingUser.emailVerified !== fieldsToUpdate.emailVerified
-                    ) {
-                        updatedUser.emailVerified = fieldsToUpdate.emailVerified
-                        updatedFields.push('emailVerified')
-                    }
-
-                    if (fieldsToUpdate.externalIds) {
-                        // update for services using prefix, which is pretty annoying...
-                    }
-
-                    if (
-                        fieldsToUpdate.passwordHash &&
-                        existingUser.passwordHash !== fieldsToUpdate.passwordHash
-                    ) {
-                        updatedUser.passwordHash = fieldsToUpdate.passwordHash
-                        updatedFields.push('password')
-                    }
-
-                    if (
-                        updatedUser.cleanUsername &&
-                        updatedUser.email &&
-                        updatedUser.emailVerified === true
-                    ) {
-                        if (updatedUser.status !== UserStatus.Active) {
-                            fieldsToUpdate.status = UserStatus.Active
-                            updatedUser.status = fieldsToUpdate.status
-                            updatedFields.push('status')
-                        }
-                    } else if (updatedUser.status !== UserStatus.Incomplete) {
-                        fieldsToUpdate.status = UserStatus.Incomplete
-                        updatedUser.status = fieldsToUpdate.status
-                        updatedFields.push('status')
-                    }
-
-                    if (updatedFields.length > 0) {
-                        fieldsToUpdate.updatedAt = new Date()
-                        updatedUser.updatedAt = fieldsToUpdate.updatedAt
-                        updatedFields.push('updatedAt')
-
-                        transaction.update(this.users.doc(updatedUser.id), fieldsToUpdate)
-                    }
-
-                    return [updatedUser, updatedFields, existingUser]
+            // If a current password was provided, check it
+            if (
+                currentPassword &&
+                !(await this.validatePassword(currentPassword, existingUser.passwordHash))
+            ) {
+                throw new AuthenticationVerificationFailedError({
+                    type: 'User',
+                    id: userId
                 })
+            }
+
+            const updatedUser = structuredClone(existingUser)
+
+            if (fieldsToUpdate.username && existingUser.username !== fieldsToUpdate.username) {
+                if (existingUser.cleanUsername !== fieldsToUpdate.cleanUsername) {
+                    if (existingUser.cleanUsername) {
+                        transaction.delete(this.userUsernames.doc(existingUser.cleanUsername!))
+                    }
+                    transaction.create(this.userUsernames.doc(fieldsToUpdate.cleanUsername!), {})
+                }
+                updatedUser.username = fieldsToUpdate.username
+                updatedUser.cleanUsername = fieldsToUpdate.cleanUsername
+                updatedFields.push('username')
+            }
+
+            if (fieldsToUpdate.email && existingUser.email !== fieldsToUpdate.email) {
+                if (existingUser.email) {
+                    transaction.delete(this.userEmails.doc(existingUser.email!))
+                }
+                transaction.create(this.userEmails.doc(fieldsToUpdate.email!), {})
+                updatedUser.email = fieldsToUpdate.email
+                fieldsToUpdate.emailVerified = false
+
+                updatedFields.push('email')
+            }
+
+            if (fieldsToUpdate.preferences) {
+                updatedUser.preferences = fieldsToUpdate.preferences
+                updatedFields.push('preferences')
+            }
+
+            if (
+                fieldsToUpdate.emailVerified !== undefined &&
+                existingUser.emailVerified !== fieldsToUpdate.emailVerified
+            ) {
+                updatedUser.emailVerified = fieldsToUpdate.emailVerified
+                updatedFields.push('emailVerified')
+            }
+
+            if (fieldsToUpdate.externalIds) {
+                // update for services using prefix, which is pretty annoying...
+            }
+
+            if (
+                fieldsToUpdate.passwordHash &&
+                existingUser.passwordHash !== fieldsToUpdate.passwordHash
+            ) {
+                updatedUser.passwordHash = fieldsToUpdate.passwordHash
+                updatedFields.push('password')
+            }
+
+            if (
+                updatedUser.cleanUsername &&
+                updatedUser.email &&
+                updatedUser.emailVerified === true
+            ) {
+                if (updatedUser.status !== UserStatus.Active) {
+                    fieldsToUpdate.status = UserStatus.Active
+                    updatedUser.status = fieldsToUpdate.status
+                    updatedFields.push('status')
+                }
+            } else if (updatedUser.status !== UserStatus.Incomplete) {
+                fieldsToUpdate.status = UserStatus.Incomplete
+                updatedUser.status = fieldsToUpdate.status
+                updatedFields.push('status')
+            }
+
+            if (updatedFields.length > 0) {
+                fieldsToUpdate.updatedAt = new Date()
+                updatedUser.updatedAt = fieldsToUpdate.updatedAt
+                updatedFields.push('updatedAt')
+
+                transaction.update(this.users.doc(updatedUser.id), fieldsToUpdate)
+            }
+
             return [
                 this.sanitize(updatedUser) as User,
                 updatedFields,
-                this.sanitize(originalUser) as User
+                this.sanitize(existingUser) as User
             ]
+        }
+
+        const userCacheKey = this.makeUserCacheKey(userId)
+
+        try {
+            return this.cacheService.lockWhileWriting([userCacheKey], async () =>
+                this.users.firestore.runTransaction(transactionBody)
+            )
         } catch (error) {
+            console.log(error)
             this.handleError(error, userId)
             throw Error('unreachable')
         }
@@ -363,60 +375,76 @@ export class FirestoreUserStore implements UserStore {
             throw new InvalidIdError({ type: 'externalId', id: externalId })
         }
 
+        const compositeId = `${service}:${externalId}`
+        const transactionBody = async (
+            transaction: FirebaseFirestore.Transaction
+        ): Promise<StoredUser> => {
+            const userToUpdate = (
+                await transaction.get(this.users.doc(userId))
+            ).data() as StoredUser
+            this.recordRead()
+            if (!userToUpdate) {
+                throw new NotFoundError({ type: 'User', id: userId })
+            }
+
+            if (userToUpdate.externalIds.includes(compositeId)) {
+                throw Error(
+                    `User with id ${userId} already is linked to ${service} account ${externalId}`
+                )
+            }
+
+            const storedUser = userToUpdate
+            storedUser.externalIds.push(compositeId)
+
+            const doc = this.users.doc(storedUser.id)
+            transaction.update(doc, { externalIds: storedUser.externalIds })
+
+            transaction.create(this.userExternalIds.doc(compositeId), {})
+            return this.sanitize(storedUser) as StoredUser
+        }
+
+        const userCacheKey = this.makeUserCacheKey(userId)
+
         try {
-            const compositeId = `${service}:${externalId}`
-            const updatedUser = await this.users.firestore.runTransaction(async (transaction) => {
-                const userToUpdate = (
-                    await transaction.get(this.users.doc(userId))
-                ).data() as StoredUser
-                this.recordRead()
-                if (!userToUpdate) {
-                    throw new NotFoundError({ type: 'User', id: userId })
-                }
-
-                if (userToUpdate.externalIds.includes(compositeId)) {
-                    throw Error(
-                        `User with id ${userId} already is linked to ${service} account ${externalId}`
-                    )
-                }
-
-                const storedUser = userToUpdate
-                storedUser.externalIds.push(compositeId)
-
-                const doc = this.users.doc(storedUser.id)
-                transaction.update(doc, { externalIds: storedUser.externalIds })
-
-                transaction.create(this.userExternalIds.doc(compositeId), {})
-                return storedUser
-            })
-            return this.sanitize(updatedUser) as StoredUser
+            return this.cacheService.lockWhileWriting([userCacheKey], async () =>
+                this.users.firestore.runTransaction(transactionBody)
+            )
         } catch (error) {
+            console.log(error)
             this.handleError(error, userId)
             throw Error('unreachable')
         }
     }
 
     async removeExternalId(userId: string, externalId: string): Promise<User> {
+        const transactionBody = async (
+            transaction: FirebaseFirestore.Transaction
+        ): Promise<StoredUser> => {
+            const userToUpdate = (
+                await transaction.get(this.users.doc(userId))
+            ).data() as StoredUser
+            this.recordRead()
+            if (!userToUpdate) {
+                throw new NotFoundError({ type: 'User', id: userId })
+            }
+
+            const storedUser = structuredClone(userToUpdate)
+            storedUser.externalIds = storedUser.externalIds.filter((id) => id !== externalId)
+
+            const doc = this.users.doc(storedUser.id)
+            transaction.update(doc, { externalIds: storedUser.externalIds })
+            transaction.delete(this.userExternalIds.doc(externalId), {})
+            return this.sanitize(storedUser) as StoredUser
+        }
+
+        const userCacheKey = this.makeUserCacheKey(userId)
+
         try {
-            const updatedUser = await this.users.firestore.runTransaction(async (transaction) => {
-                const userToUpdate = (
-                    await transaction.get(this.users.doc(userId))
-                ).data() as StoredUser
-                this.recordRead()
-                if (!userToUpdate) {
-                    throw new NotFoundError({ type: 'User', id: userId })
-                }
-
-                const storedUser = structuredClone(userToUpdate)
-                storedUser.externalIds = storedUser.externalIds.filter((id) => id !== externalId)
-
-                const doc = this.users.doc(storedUser.id)
-                transaction.update(doc, { externalIds: storedUser.externalIds })
-                transaction.delete(this.userExternalIds.doc(externalId), {})
-                return storedUser
-            })
-            return this.sanitize(updatedUser) as StoredUser
+            return this.cacheService.lockWhileWriting([userCacheKey], async () =>
+                this.users.firestore.runTransaction(transactionBody)
+            )
         } catch (error) {
+            console.log(error)
             this.handleError(error, userId)
             throw Error('unreachable')
         }
