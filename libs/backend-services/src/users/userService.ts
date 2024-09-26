@@ -380,7 +380,6 @@ export class UserService {
 
     async searchUsernames(query: string): Promise<string[]> {
         await this.initializeUsernames()
-        console.log('Searchingg ', this.usernames, 'for', query)
         const [indexes, info, order] = this.uFuzzy.search(this.usernames, query.trim())
         if (info && order) {
             return order.map((index) => this.usernames[info.idx[index]]).slice(0, 10)
