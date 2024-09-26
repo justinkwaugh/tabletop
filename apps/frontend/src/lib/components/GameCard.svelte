@@ -466,7 +466,7 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         stroke-width="2"
-                        d="m16 14-4-4-4 4"
+                        d="m13 14-4-4-4 4"
                     ></path>
                 </svg>
             {/if}
