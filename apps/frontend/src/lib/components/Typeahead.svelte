@@ -6,14 +6,16 @@
     import { getContext, type Snippet } from 'svelte'
 
     let {
-        id = 'abc',
+        id = nanoid(),
         text = $bindable(),
+        exclude = [],
         oninput = () => {},
         children,
         ...others
     }: {
         id: string
         text: string
+        exclude: string[]
         oninput: (event: InputEvent) => void
         children: Snippet
     } = $props()
@@ -26,6 +28,7 @@
     let open: boolean = $state(false)
     let lastRequestId: string | undefined = $state(undefined)
     let items: string[] = $state([])
+    let highlightIndex: number = $state(-1)
 
     let delay = 100
     let inputDelayTimeout: ReturnType<typeof setTimeout>
@@ -60,8 +63,9 @@
     }
 
     function closeDropdown() {
+        highlightIndex = -1
         open = false
-        items = []
+        // items = []
     }
 
     async function search() {
@@ -77,7 +81,7 @@
             return false
         }
 
-        items = results
+        items = results.filter((item) => !exclude.includes(item))
 
         return items.length > 0
     }
@@ -88,18 +92,59 @@
             text = value
         }
         closeDropdown()
+        items = []
+    }
+
+    function up() {
+        if (highlightIndex > 0) {
+            highlightIndex--
+        }
+    }
+
+    function down() {
+        if (!open && items.length > 0) {
+            openDropdown()
+            return
+        }
+
+        if (highlightIndex < items.length - 1) {
+            highlightIndex++
+        }
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+        switch (event.key) {
+            case 'ArrowUp':
+                up()
+                break
+            case 'ArrowDown':
+                down()
+                break
+            case 'Enter':
+                if (highlightIndex >= 0 && highlightIndex < items.length) {
+                    event.preventDefault()
+                    text = items[highlightIndex]
+                    closeDropdown()
+                    items = []
+                }
+                break
+            case 'Escape':
+                closeDropdown()
+                break
+        }
     }
 
     $effect(() => {
         if (text.length < 2) {
             closeDropdown()
+            items = []
         }
     })
 </script>
 
 <div class="relative">
     <div id={hiddenTriggerId} class="hidden"></div>
-    <Input id={inputId} bind:value={text} oninput={onInput} {...others}>
+    <Input id={inputId} bind:value={text} oninput={onInput} onkeydown={onKeyDown} {...others}>
         <div slot="right">{@render children()}</div>
     </Input>
     <Dropdown
@@ -110,8 +155,13 @@
         color="dropdown"
         classContainer="w-full border-2 dark:border-gray-700 dark:bg-gray-800"
     >
-        {#each items as item}
-            <DropdownItem onclick={onItemClick}>{item}</DropdownItem>
+        {#each items as item, i}
+            <DropdownItem
+                onclick={onItemClick}
+                defaultClass="font-medium py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600
+                {highlightIndex === i ? 'dark:bg-gray-600' : ''} "
+                >{item}
+            </DropdownItem>
         {/each}
     </Dropdown>
 </div>

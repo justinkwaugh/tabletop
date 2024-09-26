@@ -306,6 +306,7 @@
                     id={player.id}
                     oninput={(event: InputEvent) => handleNameInput(player, event)}
                     bind:text={player.name}
+                    exclude={players.map((p) => p.name)}
                     size="sm"
                     type="text"
                     name={player.id}
@@ -325,6 +326,7 @@
                         {:else}
                             {#if player.status === PlayerStatus.Declined}
                                 <button
+                                    aria-label="reinvite"
                                     type="button"
                                     onclick={(event: Event) => {
                                         event.stopPropagation()
