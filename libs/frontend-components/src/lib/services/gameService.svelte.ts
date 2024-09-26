@@ -8,6 +8,7 @@ export type GameService = {
 
     createGame(game: Partial<Game>): Promise<Game>
     updateGame(game: Partial<Game>): Promise<Game>
+    deleteGame(gameId: string): Promise<void>
     startGame(game: Game): Promise<Game>
     joinGame(gameId: string): Promise<Game>
     declineGame(gameId: string): Promise<Game>

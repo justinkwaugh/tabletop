@@ -7,6 +7,7 @@
     import { goto } from '$app/navigation'
     import TimeAgo from 'javascript-time-ago'
     import { fade, slide } from 'svelte/transition'
+    import DeleteModal from './DeleteModal.svelte'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -16,6 +17,7 @@
         ondecline,
         onstart,
         onjoin,
+        ondelete,
         expanded = false
     }: {
         game: Game
@@ -23,6 +25,7 @@
         onjoin?: (game: Game) => void
         onstart?: (game: Game) => void
         onedit?: (game: Game) => void
+        ondelete?: (game: Game) => void
         expanded?: boolean | 'always'
     } = $props()
 
@@ -62,6 +65,9 @@
     let canPlay = $derived(isMine && game.status === GameStatus.Started)
     let canWatch = $derived(!isMine && game.status === GameStatus.Started)
     let canRevisit = $derived(game.status === GameStatus.Finished)
+    let canDelete = $derived(isOwnedByMe)
+
+    let confirmDelete = $state(false)
 
     let waitingToStart = $derived(
         (game.status === GameStatus.WaitingForPlayers ||
@@ -91,42 +97,45 @@
     async function joinGame(event: Event) {
         event.stopPropagation()
         game = await gameService.joinGame(game.id)
-        if (onjoin) {
-            onjoin(game)
-        }
+        onjoin?.(game)
     }
 
     async function declineGame(event: Event) {
         event.stopPropagation()
         game = await gameService.declineGame(game.id)
-        if (ondecline) {
-            ondecline(game)
-        }
+        ondecline?.(game)
     }
 
     async function startGame(event: Event) {
         event.stopPropagation()
         game = await gameService.startGame(game)
         await goto(`/game/${game.id}`)
-        if (onstart) {
-            onstart(game)
-        }
+        onstart?.(game)
     }
 
     function editGame(event: Event) {
         event.stopPropagation()
-        if (onedit) {
-            onedit(game)
-        }
+        onedit?.(game)
+    }
+
+    async function deleteGame(event: Event) {
+        event.stopPropagation()
+        confirmDelete = true
+    }
+
+    function onDeleteCancel() {
+        confirmDelete = false
+    }
+
+    async function onDeleteConfirm() {
+        confirmDelete = false
+        await gameService.deleteGame(game.id)
+        ondelete?.(game)
     }
 
     async function playGame(event: Event) {
         event.stopPropagation()
         await goto(`/game/${game.id}`)
-    }
-
-    function deleteGame(event: Event) {
-        event.stopPropagation()
     }
 
     function isActive(playerId: string) {
@@ -365,7 +374,7 @@
                         {/each}
                     </div>
 
-                    {#if canJoin || canStart || canEdit || canDecline || canPlay || canWatch || canRevisit}
+                    {#if canJoin || canStart || canEdit || canDecline || canPlay || canWatch || canRevisit || canDelete}
                         <Hr hrClass="mt-2 mb-0" />
                         <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
                             {#if canDecline}
@@ -403,6 +412,11 @@
                                     color="light"
                                     class="mx-2 dark:text-gray-200"
                                     onclick={playGame}>Revisit</Button
+                                >
+                            {/if}
+                            {#if canDelete}
+                                <Button size="xs" color="red" class="mx-2" onclick={deleteGame}
+                                    >Delete</Button
                                 >
                             {/if}
                         </div>
@@ -459,3 +473,6 @@
         </div>
     </div></Card
 >
+{#if confirmDelete}
+    <DeleteModal bind:open={confirmDelete} oncancel={onDeleteCancel} onconfirm={onDeleteConfirm} />
+{/if}

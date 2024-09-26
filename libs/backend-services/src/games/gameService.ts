@@ -147,6 +147,21 @@ export class GameService {
         return createdGame
     }
 
+    async deleteGame(user: User, gameId: string): Promise<void> {
+        console.log('gameid in deleteGame', gameId)
+        const game = await this.getGame({ gameId })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+
+        if (game.ownerId !== user.id && !user.roles.includes(Role.Admin)) {
+            throw new UnauthorizedAccessError({ user, gameId })
+        }
+
+        await this.gameStore.deleteGame(game)
+        await this.notifyGamePlayers(GameNotificationAction.Delete, { game })
+    }
+
     async getGameEtag(gameId: string): Promise<string | undefined> {
         return await this.gameStore.getGameEtag(gameId)
     }

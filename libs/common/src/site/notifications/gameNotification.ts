@@ -7,6 +7,7 @@ import { GameChatMessage } from '../chat/gameChatMessage.js'
 export enum GameNotificationAction {
     Create = 'create',
     Update = 'update',
+    Delete = 'delete',
     AddActions = 'addActions',
     UndoAction = 'undoAction',
     Chat = 'chat'
@@ -19,6 +20,11 @@ export const GameNotificationUpdateData = Type.Object({
 
 export type GameNotificationCreateData = Static<typeof GameNotificationCreateData>
 export const GameNotificationCreateData = Type.Object({
+    game: Game
+})
+
+export type GameNotificationDeleteData = Static<typeof GameNotificationDeleteData>
+export const GameNotificationDeleteData = Type.Object({
     game: Game
 })
 
@@ -49,6 +55,16 @@ export const GameCreateNotification = Type.Composite([
         type: Type.Literal(NotificationCategory.Game),
         action: Type.Literal(GameNotificationAction.Create),
         data: GameNotificationCreateData
+    })
+])
+
+export type GameDeleteNotification = Static<typeof GameDeleteNotification>
+export const GameDeleteNotification = Type.Composite([
+    Type.Omit(Notification, ['type', 'action', 'data']),
+    Type.Object({
+        type: Type.Literal(NotificationCategory.Game),
+        action: Type.Literal(GameNotificationAction.Delete),
+        data: GameNotificationDeleteData
     })
 ])
 
@@ -95,6 +111,7 @@ export const GameChatNotification = Type.Composite([
 export type GameNotificationData =
     | GameNotificationCreateData
     | GameNotificationUpdateData
+    | GameNotificationDeleteData
     | GameNotificationAddActionsData
     | GameNotificationUndoActionData
     | GameNotificationChatData
@@ -102,6 +119,7 @@ export type GameNotificationData =
 export type GameNotification =
     | GameCreateNotification
     | GameUpdateNotification
+    | GameDeleteNotification
     | GameAddActionsNotification
     | GameUndoActionNotification
     | GameChatNotification

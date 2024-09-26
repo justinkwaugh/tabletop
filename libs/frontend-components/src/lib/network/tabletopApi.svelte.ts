@@ -271,6 +271,14 @@ export class TabletopApi {
         return Value.Convert(Game, response.payload.game) as Game
     }
 
+    async deleteGame(gameId: string): Promise<void> {
+        await this.wretch
+            .post({ gameId }, '/game/delete')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
+    }
+
     async checkInvitation(token: string): Promise<Game> {
         const response = await this.wretch
             .get(`/invitation/token/${token}`)

@@ -77,6 +77,28 @@ export class FirestoreGameStore implements GameStore {
         return storedGame
     }
 
+    async deleteGame(game: Game): Promise<void> {
+        const gameId = game.id
+
+        const gameCacheKey = this.makeGameCacheKey(gameId)
+        const checksumCacheKey = `csum-${gameId}`
+        const gameRevisionCacheKey = `etag-${gameId}`
+        const userCacheKeys = game.players.map((player) => `games-${player.userId}`)
+
+        try {
+            await this.cacheService.lockWhileWriting(
+                [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
+                async () => await this.games.firestore.recursiveDelete(this.games.doc(gameId))
+                // this.games.firestore.runTransaction(
+                //     async () => await this.games.doc(game.id).recursiveDelete()
+                // )
+            )
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
     async updateGame({
         game,
         fields,

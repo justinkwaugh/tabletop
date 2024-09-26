@@ -15,7 +15,8 @@ import {
     GameUndoActionNotification,
     User,
     PlayerColor,
-    RunMode
+    RunMode,
+    GameDeleteNotification
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -33,6 +34,7 @@ import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
 import { ColorblindColorizer } from '$lib/utils/colorblindPalette'
 import type { GameColorizer } from '$lib/definition/gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
+import { goto } from '$app/navigation'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -976,6 +978,8 @@ export class GameSession {
                     await this.handleAddActionsNotification(notification)
                 } else if (this.isGameUndoActionNotification(notification)) {
                     await this.handleUndoNotification(notification)
+                } else if (this.isGameDeleteNotification(notification)) {
+                    await this.handleDeleteNotification(notification)
                 }
             } catch (e) {
                 console.log('Error handling notification', e)
@@ -1018,6 +1022,14 @@ export class GameSession {
         this.undoToIndex(gameSnapshot, targetIndex)
         this.updateGameState(gameSnapshot.state)
         this.applyServerActions(redoneActions)
+    }
+
+    private async handleDeleteNotification(notification: GameDeleteNotification) {
+        if (notification.data.game.id === this.game.id) {
+            toast.error('The game has been deleted')
+            this.stopListeningToGame()
+            await goto('/dashboard')
+        }
     }
 
     private async checkSync() {
@@ -1117,6 +1129,15 @@ export class GameSession {
         return (
             notification.type === NotificationCategory.Game &&
             notification.action === GameNotificationAction.UndoAction
+        )
+    }
+
+    private isGameDeleteNotification(
+        notification: Notification
+    ): notification is GameDeleteNotification {
+        return (
+            notification.type === NotificationCategory.Game &&
+            notification.action === GameNotificationAction.Delete
         )
     }
 }

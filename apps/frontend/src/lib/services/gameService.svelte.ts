@@ -102,6 +102,11 @@ export class GameService {
         return updatedGame
     }
 
+    async deleteGame(gameId: string): Promise<void> {
+        await this.api.deleteGame(gameId)
+        this.gamesById.delete(gameId)
+    }
+
     async startGame(game: Game): Promise<Game> {
         const startedGame = await this.api.startGame(game)
         this.gamesById.set(startedGame.id, startedGame)
@@ -168,6 +173,8 @@ export class GameService {
                 notification.action === GameNotificationAction.Update
             ) {
                 this.gamesById.set(game.id, game)
+            } else if (notification.action === GameNotificationAction.Delete) {
+                this.gamesById.delete(game.id)
             }
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
             this.loaded = false
