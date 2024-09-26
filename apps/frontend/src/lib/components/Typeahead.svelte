@@ -65,7 +65,6 @@
     function closeDropdown() {
         highlightIndex = -1
         open = false
-        // items = []
     }
 
     async function search() {
@@ -98,6 +97,8 @@
     function up() {
         if (highlightIndex > 0) {
             highlightIndex--
+        } else {
+            highlightIndex = items.length - 1
         }
     }
 
@@ -109,6 +110,8 @@
 
         if (highlightIndex < items.length - 1) {
             highlightIndex++
+        } else {
+            highlightIndex = 0
         }
     }
 

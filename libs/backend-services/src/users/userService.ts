@@ -383,9 +383,9 @@ export class UserService {
         console.log('Searchingg ', this.usernames, 'for', query)
         const [indexes, info, order] = this.uFuzzy.search(this.usernames, query.trim())
         if (info && order) {
-            return order.map((index) => this.usernames[info.idx[index]])
+            return order.map((index) => this.usernames[info.idx[index]]).slice(0, 10)
         } else {
-            return indexes?.map((index) => this.usernames[index]) ?? []
+            return indexes?.map((index) => this.usernames[index]).slice(0, 10) ?? []
         }
     }
 
