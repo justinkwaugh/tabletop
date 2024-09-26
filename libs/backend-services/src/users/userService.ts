@@ -1,5 +1,12 @@
 import { UserStore } from '../persistence/stores/userStore.js'
-import { ExternalAuthService, Role, User, UserPreferences, UserStatus } from '@tabletop/common'
+import {
+    ExternalAuthService,
+    remove,
+    Role,
+    User,
+    UserPreferences,
+    UserStatus
+} from '@tabletop/common'
 import { TokenType, TokenService } from '../tokens/tokenService.js'
 import { TaskService } from '../tasks/taskService.js'
 import {
@@ -24,7 +31,51 @@ export class UserService {
         private readonly tokenService: TokenService,
         private readonly taskService: TaskService
     ) {
-        this.uFuzzy = new uFuzzy({})
+        const cmp = new Intl.Collator('en').compare
+        const typeAheadSort = (info: uFuzzy.Info, haystack: string[]) => {
+            const {
+                idx,
+                start,
+                terms,
+                interLft1,
+                interLft2,
+                interRgt1,
+                interRgt2,
+                interIns,
+                intraIns
+            } = info
+
+            return idx
+                .map((v, i) => i)
+                .sort(
+                    (ia, ib) =>
+                        // least char intra-fuzz (most contiguous)
+                        intraIns[ia] - intraIns[ib] ||
+                        // earliest start of match
+                        start[ia] - start[ib] ||
+                        // shortest match first
+                        haystack[idx[ia]].length - haystack[idx[ib]].length ||
+                        // most prefix/suffix bounds, boosted by full term matches
+                        terms[ib] +
+                            interLft2[ib] +
+                            0.5 * interLft1[ib] +
+                            interRgt2[ib] +
+                            0.5 * interRgt1[ib] -
+                            (terms[ia] +
+                                interLft2[ia] +
+                                0.5 * interLft1[ia] +
+                                interRgt2[ia] +
+                                0.5 * interRgt1[ia]) ||
+                        // highest density of match (least span)
+                        //	span[ia] - span[ib] ||
+                        // highest density of match (least term inter-fuzz)
+                        interIns[ia] - interIns[ib] ||
+                        // alphabetic
+                        cmp(haystack[idx[ia]], haystack[idx[ib]])
+                )
+        }
+
+        this.uFuzzy = new uFuzzy({ sort: typeAheadSort })
     }
 
     async getUser(userId: string): Promise<User | undefined> {
@@ -64,7 +115,9 @@ export class UserService {
         if (createdUser.email && !createdUser.emailVerified) {
             await this.sendVerificationEmail(createdUser)
         }
-
+        if (createdUser.username) {
+            this.usernames.push(createdUser.username)
+        }
         return createdUser
     }
 
@@ -150,6 +203,13 @@ export class UserService {
                 changeType: AccountChangeType.Password,
                 timestamp: updateTimestamp
             })
+        }
+
+        if (updatedFields.includes('username')) {
+            remove(this.usernames, originalUser.username)
+            if (updatedUser.username) {
+                this.usernames.push(updatedUser.username)
+            }
         }
 
         return updatedUser

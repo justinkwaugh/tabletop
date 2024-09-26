@@ -134,6 +134,10 @@
         }
     }
 
+    function highlight(index: number) {
+        highlightIndex = index
+    }
+
     $effect(() => {
         if (text.length < 2) {
             closeDropdown()
@@ -158,6 +162,7 @@
         {#each items as item, i}
             <DropdownItem
                 onclick={onItemClick}
+                onmouseenter={() => highlight(i)}
                 defaultClass="font-medium py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600
                 {highlightIndex === i ? 'dark:bg-gray-600' : ''} "
                 >{item}
