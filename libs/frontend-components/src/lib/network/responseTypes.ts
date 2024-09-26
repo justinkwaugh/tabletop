@@ -23,6 +23,14 @@ export const UserResponse = Type.Composite([
     })
 ])
 
+export type UsernameSearchResponse = Static<typeof UsernameSearchResponse>
+export const UsernameSearchResponse = Type.Composite([
+    Type.Omit(Response, ['payload']),
+    Type.Object({
+        payload: Type.Object({ usernames: Type.Array(Type.String()) })
+    })
+])
+
 export type GameResponse = Static<typeof GameResponse>
 export const GameResponse = Type.Composite([
     Type.Omit(Response, ['payload']),

@@ -113,6 +113,16 @@ export class FirestoreUserStore implements UserStore {
         return undefined
     }
 
+    async findAllUsernames(): Promise<string[]> {
+        try {
+            const usernames = await this.userUsernames.listDocuments()
+            return usernames.map((doc) => doc.id)
+        } catch (error) {
+            this.handleError(error, 'all')
+            throw Error('unreachable')
+        }
+    }
+
     async createUser(user: User, password?: string): Promise<User> {
         const newStoredUser = structuredClone(user) as StoredUser
 

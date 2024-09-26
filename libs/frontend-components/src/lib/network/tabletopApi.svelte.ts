@@ -22,6 +22,7 @@ import type {
     GameWithActionsResponse,
     TokenResponse,
     UndoActionResponse,
+    UsernameSearchResponse,
     UserResponse
 } from './responseTypes.js'
 import { APIError } from './errors.js'
@@ -133,6 +134,16 @@ export class TabletopApi {
 
     async logout() {
         await this.wretch.get('/auth/logout').json()
+    }
+
+    async searchUsernames(query: string): Promise<string[]> {
+        const response = await this.wretch
+            .post({ query: query.trim() }, `/user/usernameSearch`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UsernameSearchResponse>()
+
+        return response.payload.usernames
     }
 
     async createUser(user: Partial<User>): Promise<User> {

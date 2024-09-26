@@ -29,6 +29,7 @@
     import { TrashBinSolid } from 'flowbite-svelte-icons'
     import { APIError } from '@tabletop/frontend-components'
     import type { AppContext } from '$lib/stores/appContext.svelte'
+    import Typeahead from './Typeahead.svelte'
 
     type EditableGame = Pick<
         Game,
@@ -301,9 +302,10 @@
         <Label>Players</Label>
         {#each players as player, i (player.id)}
             <Label class="space-y-2">
-                <Input
+                <Typeahead
+                    id={player.id}
                     oninput={(event: InputEvent) => handleNameInput(player, event)}
-                    bind:value={player.name}
+                    bind:text={player.name}
                     size="sm"
                     type="text"
                     name={player.id}
@@ -317,7 +319,7 @@
                     disabled={isOwner(player)}
                     required={!isPublic}
                 >
-                    <div class="flex flex-row justify-center align-center" slot="right">
+                    <div class="flex flex-row justify-center align-center">
                         {#if isOwner(player)}
                             <div class="text-xs">HOST</div>
                         {:else}
@@ -362,7 +364,7 @@
                             {/if}
                         {/if}
                     </div>
-                </Input>
+                </Typeahead>
                 {#if isJoinedNonOwner(player)}
                     <Helper color="green">This player has accepted the invitation</Helper>
                 {/if}

@@ -12,13 +12,20 @@ import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
 import { AuthenticationTokenData, VerificationTokenData } from '../tokens/tokenData.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
+import uFuzzy from '@leeoniya/ufuzzy'
 
 export class UserService {
+    private readonly uFuzzy: uFuzzy
+    private usernamesInitialized = false
+    private usernames: string[] = []
+
     constructor(
         private readonly userStore: UserStore,
         private readonly tokenService: TokenService,
         private readonly taskService: TaskService
-    ) {}
+    ) {
+        this.uFuzzy = new uFuzzy({})
+    }
 
     async getUser(userId: string): Promise<User | undefined> {
         return this.userStore.findById(userId)
@@ -311,11 +318,30 @@ export class UserService {
         await this.taskService.sendAuthVerificationEmail({ userId, token })
     }
 
+    async searchUsernames(query: string): Promise<string[]> {
+        await this.initializeUsernames()
+        console.log('Searchingg ', this.usernames, 'for', query)
+        const [indexes, info, order] = this.uFuzzy.search(this.usernames, query.trim())
+        if (info && order) {
+            return order.map((index) => this.usernames[info.idx[index]])
+        } else {
+            return indexes?.map((index) => this.usernames[index]) ?? []
+        }
+    }
+
     extractExternalId(user: User, service: ExternalAuthService): string | undefined {
         const externalId = user.externalIds?.find((id) => id.startsWith(`${service}:`))
         if (!externalId) {
             return undefined
         }
         return externalId.split(':')[1]
+    }
+
+    private async initializeUsernames(): Promise<void> {
+        if (this.usernamesInitialized) {
+            return
+        }
+        this.usernames = await this.userStore.findAllUsernames()
+        this.usernamesInitialized = true
     }
 }
