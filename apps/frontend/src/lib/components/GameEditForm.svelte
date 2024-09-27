@@ -27,7 +27,7 @@
     import { getContext } from 'svelte'
     import { playerSortValue } from '$lib/utils/player'
     import { TrashBinSolid } from 'flowbite-svelte-icons'
-    import { APIError } from '@tabletop/frontend-components'
+    import { APIError, type GameUiDefinition } from '@tabletop/frontend-components'
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import Typeahead from './Typeahead.svelte'
 
@@ -42,9 +42,15 @@
 
     let {
         game,
+        title,
         oncancel,
         onsave
-    }: { game?: Game; oncancel: () => void; onsave: (game: Game) => void } = $props()
+    }: {
+        game?: Game
+        title?: GameUiDefinition
+        oncancel: () => void
+        onsave: (game: Game) => void
+    } = $props()
 
     let { libraryService, authorizationService, gameService } = getContext(
         'appContext'
@@ -84,13 +90,20 @@
     let numPlayers = $state(editedGame.players.length)
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
-    let title = $state(editedGame.typeId ? libraryService.getTitle(editedGame.typeId) : undefined)
-    let minPlayers = $derived<number>(title?.metadata.minPlayers ?? 1)
-    let maxPlayers = $derived<number>(title?.metadata.maxPlayers ?? 1)
+
+    let selectedTitle = $state(libraryService.getTitle(game?.typeId ?? editedGame.typeId) ?? title)
+
+    if (selectedTitle) {
+        numPlayers = selectedTitle.metadata.defaultPlayerCount
+    }
+
+    // let selectedTitle = $state(editedGame.typeId ? libraryService.getTitle(editedGame.typeId) : undefined)
+    let minPlayers = $derived<number>(selectedTitle?.metadata.minPlayers ?? 1)
+    let maxPlayers = $derived<number>(selectedTitle?.metadata.maxPlayers ?? 1)
 
     function generateDefaultOptions() {
         const defaultConfig: GameConfig = {}
-        for (const option of title?.configOptions ?? []) {
+        for (const option of selectedTitle?.configOptions ?? []) {
             defaultConfig[option.id] = option.default
         }
         return defaultConfig
@@ -136,7 +149,7 @@
     })
 
     function onTitleChosen() {
-        numPlayers = title?.metadata.defaultPlayerCount ?? 1
+        numPlayers = selectedTitle?.metadata.defaultPlayerCount ?? 1
     }
 
     async function submit(event: SubmitEvent) {
@@ -168,7 +181,7 @@
         }
 
         if (mode === EditMode.Create) {
-            gameData.typeId = title?.id
+            gameData.typeId = selectedTitle?.id
         }
 
         try {
@@ -244,11 +257,11 @@
     </Label>
 {/snippet}
 
-<h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">
-    {#if mode === EditMode.Create}
+<h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200 mb-4">
+    {#if mode === EditMode.Create && !selectedTitle}
         Create a game...
     {:else}
-        {title?.metadata.name}
+        {selectedTitle?.metadata.name}
     {/if}
 </h1>
 {#if unexpectedError}
@@ -258,20 +271,20 @@
     </Alert>
 {/if}
 <form class="flex flex-col space-y-4 text-left" action="/" onsubmit={submit}>
-    {#if mode === EditMode.Create}
+    {#if mode === EditMode.Create && !title}
         <Label class="space-y-2">
             <span>Title</span>
             <Select
-                id="title"
+                id="selectedTitle"
                 onchange={onTitleChosen}
-                bind:value={title}
+                bind:value={selectedTitle}
                 items={availableTitles}
                 placeholder="choose a game..."
                 required
             />
         </Label>
     {/if}
-    {#if title}
+    {#if selectedTitle}
         <Label class="space-y-2">
             <span>Name</span>
             <Input
@@ -383,11 +396,11 @@
             </Label>
         {/each}
         <!-- <Toggle bind:checked={isPublic}>Public</Toggle> -->
-        {#if title.configOptions.length > 0}
+        {#if selectedTitle.configOptions.length > 0}
             <div
                 class="p-4 border-2 border-gray-700 rounded-lg flex flex-col space-y-4 justify-center items-start"
             >
-                {#each title.configOptions as option (option.id)}
+                {#each selectedTitle.configOptions as option (option.id)}
                     {#if isBooleanConfigOption(option)}
                         {@render booleanOption(option)}
                     {:else if isListConfigOption(option)}

@@ -1,9 +1,44 @@
 <script lang="ts">
     import type { GameUiDefinition } from '@tabletop/frontend-components'
-    import { Card } from 'flowbite-svelte'
+    import { Card, Button, Modal } from 'flowbite-svelte'
+    import GameEditForm from './GameEditForm.svelte'
+    import { goto } from '$app/navigation'
 
     let { title }: { title: GameUiDefinition } = $props()
+
+    let showCreateModal = $state(false)
+    function createGame() {
+        showCreateModal = true
+    }
+
+    async function closeCreateModal() {
+        showCreateModal = false
+    }
+
+    async function onGameCreate() {
+        await closeCreateModal()
+        goto('/dashboard')
+        // notificationService.showPrompt()
+    }
 </script>
+
+{#if showCreateModal}
+    <Modal
+        bind:open={showCreateModal}
+        size="xs"
+        autoclose={false}
+        class="w-full"
+        outsideclose
+        dismissable={false}
+        onclick={(e) => e.stopPropagation()}
+    >
+        <GameEditForm
+            {title}
+            oncancel={() => closeCreateModal()}
+            onsave={(game) => onGameCreate()}
+        />
+    </Modal>
+{/if}
 
 <Card
     class="overflow-hidden flex-row p-0 pe-0 sm:p-0 sm:pe-2 mb-4 sm:min-w-[650px] max-w-[90vw] sm:max-w-[840px] max-sm:w-[90vw] sm:w-full"
@@ -20,9 +55,12 @@
         <div
             class="flex flex-col items-start justify-between p-2 shrink min-w-[290px] max-w-[500px]"
         >
-            <div class="flex flex-col items-start">
-                <div class="text-3xl text-pretty leading-none mt-2">{title.metadata.name}</div>
-                <div class="text-md text-gray-400">{title.metadata.year}</div>
+            <div class="flex flex-row justify-between items-start w-full">
+                <div class="flex flex-col items-start">
+                    <div class="text-3xl text-pretty leading-none mt-2">{title.metadata.name}</div>
+                    <div class="text-md text-gray-400">{title.metadata.year}</div>
+                </div>
+                <Button onclick={createGame} size="xs" class="mt-2">Play</Button>
             </div>
 
             <div class="flex flex-col items-start">

@@ -2,10 +2,13 @@
     import type { GameUiDefinition } from '@tabletop/frontend-components'
     import { Card } from 'flowbite-svelte'
 
-    let { title }: { title: GameUiDefinition } = $props()
+    let { title, onclick }: { title: GameUiDefinition; onclick?: (event: Event) => void } = $props()
 </script>
 
-<Card class="p-0 pe-2 sm:p-0 sm:pe-2 overflow-hidden">
+<Card
+    onclick={(event) => onclick?.(event)}
+    class="cursor-pointer  p-0 pe-2 sm:p-0 sm:pe-2 overflow-hidden"
+>
     <div class="flex gap-x-4 text-gray-200">
         <img src={title.thumbnailUrl} alt={title.metadata.name} class="h-[150px]" />
         <div class="flex flex-col items-start justify-between w-full">

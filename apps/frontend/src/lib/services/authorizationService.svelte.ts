@@ -108,7 +108,7 @@ export class AuthorizationService {
             await goto(this.continueUrl)
             this.continueUrl = undefined
         } else {
-            await goto('/dashboard')
+            await goto('/library')
         }
     }
 

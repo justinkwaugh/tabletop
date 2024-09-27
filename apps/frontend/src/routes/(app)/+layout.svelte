@@ -76,7 +76,6 @@
 
     async function closeCreateModal() {
         showCreateGameModel = false
-        await gotoDashboard()
     }
 
     async function onGameCreate() {
