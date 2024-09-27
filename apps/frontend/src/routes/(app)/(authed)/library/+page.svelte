@@ -4,17 +4,20 @@
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import LibraryGameCard from '$lib/components/LibraryGameCard.svelte'
     import LargeLibraryGameCard from '$lib/components/LargeLibraryGameCard.svelte'
-    import { Button, Modal } from 'flowbite-svelte'
+    import { Button, Heading } from 'flowbite-svelte'
     import { type GameUiDefinition } from '@tabletop/frontend-components'
     import GameEditForm from '$lib/components/GameEditForm.svelte'
     import { fade, fly, slide } from 'svelte/transition'
+    import { quartIn, quartInOut, quartOut } from 'svelte/easing'
 
     let { libraryService, notificationService } = getContext('appContext') as AppContext
 
     let selectedTitle: GameUiDefinition | undefined = $state()
 
     function selectTitle(title: GameUiDefinition) {
-        selectedTitle = title
+        if (title.id !== selectedTitle?.id) {
+            selectedTitle = title
+        }
     }
 </script>
 
@@ -23,20 +26,30 @@
         class="flex justify-start items-start gap-x-2 sm:gap-x-4 overflow-scroll m-auto max-w-[1200px]"
     >
         <div
-            class="flex flex-col justify-center items-center {selectedTitle && false
-                ? 'sm:max-w-[776px]'
+            class="m-auto flex flex-col justify-center items-center {selectedTitle
+                ? 'sm:max-md:max-w-[780px] md:w-[780px]'
                 : ''}"
         >
-            {#if selectedTitle}
-                <div transition:slide={{ duration: 300 }} class="sm:pt-2">
-                    <LargeLibraryGameCard title={selectedTitle} />
-                </div>
-            {/if}
-            {#if !selectedTitle}
-                <div class="shrink-0 grow-0 dark:text-gray-200 text-2xl mx-2 mb-2">
-                    Choose a game...
-                </div>
-            {/if}
+            <div class="bigcard grid justify-center items-center">
+                {#if selectedTitle}
+                    {#key selectedTitle}
+                        <div
+                            in:fade={{ duration: 300, delay: 100 }}
+                            out:fade={{ duration: 100 }}
+                            class="sm:pt-2"
+                        >
+                            <LargeLibraryGameCard title={selectedTitle} />
+                        </div>
+                    {/key}
+                {:else}
+                    <div
+                        class="flex flex-col justify-center items-center text-center text-gray-300"
+                    >
+                        <Heading class="pt-4 pb-8 dark:text-gray-200">Care to play a game?</Heading>
+                    </div>
+                {/if}
+            </div>
+
             <div class="flex justify-center gap-x-2 gap-y-2 flex-wrap sm:p-0">
                 {#each libraryService.getTitles() as title (title.id)}
                     <LibraryGameCard onclick={() => selectTitle(title)} {title} />
@@ -66,3 +79,9 @@
         {/if}
     </div>
 </div>
+
+<style>
+    .bigcard > * {
+        grid-area: 1 / 1;
+    }
+</style>
