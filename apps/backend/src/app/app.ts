@@ -115,8 +115,8 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         cookie: {
             path: '/',
             httpOnly: true,
-            secure: true,
-            sameSite: true,
+            secure: service === 'local' ? false : true,
+            sameSite: service === 'local' ? false : true,
             maxAge: 24 * 60 * 60 * 7
         }
     })

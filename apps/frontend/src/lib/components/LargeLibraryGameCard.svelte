@@ -52,7 +52,7 @@
             <img
                 src={title.thumbnailUrl}
                 alt={title.metadata.name}
-                class="w-full w-auto sm:h-[340px]"
+                class="w-full sm:w-auto sm:h-[340px]"
             />
         </div>
 
