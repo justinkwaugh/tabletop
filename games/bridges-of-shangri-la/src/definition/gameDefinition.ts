@@ -9,8 +9,10 @@ export const BridgesDefinition = <GameDefinition>{
     id: 'bridges',
 
     metadata: {
-        name: 'Bridges of Shangri-La',
+        name: 'The Bridges of Shangri-La',
         designer: 'Leo Colovini',
+        description:
+            'The Bridges of Shangri-La is a simple yet highly interactive strategy game in which players send their intellectual and spiritual masters and students to the villages high in the mountains. As the game progresses, the students make journeys from village to village spreading their influence, but every journey is a one way trip.  The connecting bridges collapse upon use, leaving the villages ultimately isolated.',
         year: '2003',
         minPlayers: 3,
         maxPlayers: 4,

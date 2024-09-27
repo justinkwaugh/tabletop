@@ -6,11 +6,9 @@
     import LargeLibraryGameCard from '$lib/components/LargeLibraryGameCard.svelte'
     import { Button, Heading } from 'flowbite-svelte'
     import { type GameUiDefinition } from '@tabletop/frontend-components'
-    import GameEditForm from '$lib/components/GameEditForm.svelte'
-    import { fade, fly, slide } from 'svelte/transition'
-    import { quartIn, quartInOut, quartOut } from 'svelte/easing'
+    import { fade } from 'svelte/transition'
 
-    let { libraryService, notificationService } = getContext('appContext') as AppContext
+    let { libraryService } = getContext('appContext') as AppContext
 
     let selectedTitle: GameUiDefinition | undefined = $state()
 
@@ -45,7 +43,9 @@
                     <div
                         class="flex flex-col justify-center items-center text-center text-gray-300"
                     >
-                        <Heading class="pt-4 pb-8 dark:text-gray-200">Care to play a game?</Heading>
+                        <Heading class="px-4 pt-4 pb-8 dark:text-gray-200"
+                            >Care to play a game?</Heading
+                        >
                     </div>
                 {/if}
             </div>

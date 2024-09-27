@@ -185,8 +185,8 @@
                 </NavUl>
                 {#if sessionUser}
                     {#if sessionUser.status === UserStatus.Active}
-                        <Button size="xs" color="blue" class="me-4 h-[30px]" onclick={createGame}
-                            >New Game</Button
+                        <Button size="xs" color="blue" class="me-4 h-[30px]" onclick={gotoDashboard}
+                            >My Games</Button
                         >
                     {/if}
 
@@ -197,9 +197,6 @@
                                 >{sessionUser.username || 'username not assigned'}</span
                             >
                         </DropdownHeader>
-                        {#if sessionUser.status === UserStatus.Active}
-                            <DropdownItem onclick={gotoDashboard}>Dashboard</DropdownItem>
-                        {/if}
                         <DropdownItem onclick={gotoProfile}>Profile</DropdownItem>
                         <DropdownItem onclick={gotoPreferences}>Preferences</DropdownItem>
                         <DropdownDivider />
