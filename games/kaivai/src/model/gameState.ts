@@ -50,7 +50,7 @@ type HydratedProperties = {
 }
 
 export class HydratedKaivaiGameState
-    extends HydratableGameState<typeof KaivaiGameState>
+    extends HydratableGameState<typeof KaivaiGameState, HydratedKaivaiPlayerState>
     implements KaivaiGameState
 {
     declare id: string
@@ -86,14 +86,6 @@ export class HydratedKaivaiGameState
             board: new HydratedKaivaiGameBoard(data.board)
         }
         super(data, KaivaiGameStateValidator, hydratedProperties)
-    }
-
-    getPlayerState(playerId: string): HydratedKaivaiPlayerState {
-        const player = this.players.find((player) => player.playerId === playerId)
-        if (!player) {
-            throw Error(`State for player ${playerId} not found`)
-        }
-        return player
     }
 
     playersOrderedByAscendingWealth(): string[] {

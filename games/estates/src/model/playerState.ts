@@ -10,6 +10,7 @@ export const EstatesPlayerState = Type.Composite([
     Type.Object({
         certificates: Type.Array(Type.Enum(Company)),
         money: Type.Number(),
+        stolen: Type.Number(),
         score: Type.Number()
     })
 ])
@@ -24,6 +25,7 @@ export class HydratedEstatesPlayerState
     declare color: PlayerColor
     declare certificates: Company[]
     declare money: number
+    declare stolen: number
     declare score: number
 
     constructor(data: EstatesPlayerState) {

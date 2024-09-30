@@ -44,7 +44,7 @@ type HydratedProperties = {
 }
 
 export class HydratedFreshFishGameState
-    extends HydratableGameState<typeof FreshFishGameState>
+    extends HydratableGameState<typeof FreshFishGameState, HydratedFreshFishPlayerState>
     implements FreshFishGameState
 {
     declare id: string
@@ -75,14 +75,6 @@ export class HydratedFreshFishGameState
             hydratedProperties.currentAuction = new HydratedSimultaneousAuction(data.currentAuction)
         }
         super(data, FreshFishGameStateValidator, hydratedProperties)
-    }
-
-    getPlayerState(playerId: string): HydratedFreshFishPlayerState {
-        const player = this.players.find((player) => player.playerId === playerId)
-        if (!player) {
-            throw Error(`State for player ${playerId} not found`)
-        }
-        return player
     }
 
     getAuctionGoodsType(): GoodsType | undefined {

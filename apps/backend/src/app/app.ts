@@ -11,6 +11,11 @@ import fastifyStatic from '@fastify/static'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { BaseError, ErrorCategory } from '@tabletop/common'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
+import AuthorizationPlugin from './plugins/authorization'
+import FirestorePlugin from './plugins/firestore'
+import SensiblePlugin from './plugins/sensible'
+import ServicesPlugin from './plugins/services'
+import GamesPlugin from './plugins/games'
 
 const __dirname = import.meta.dirname
 
@@ -128,11 +133,17 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(FastifySSEPlugin)
 
     // This loads support plugins
-    console.log('Registering fastify plugins')
-    await fastify.register(AutoLoad, {
-        dir: path.join(__dirname, 'plugins'),
-        options: { ...opts, prefix: API_PREFIX }
-    })
+    // console.log('Registering fastify plugins')
+    // await fastify.register(AutoLoad, {
+    //     dir: path.join(__dirname, 'plugins'),
+    //     options: { ...opts, prefix: API_PREFIX }
+    // })
+
+    await fastify.register(AuthorizationPlugin)
+    await fastify.register(SensiblePlugin)
+    await fastify.register(FirestorePlugin)
+    await fastify.register(ServicesPlugin)
+    await fastify.register(GamesPlugin, { prefix: API_PREFIX })
 
     // This sets up the service to handle the API and frontend
     if (service === 'local' || service === 'backend') {

@@ -33,13 +33,13 @@ export interface HydratedGameState extends GameState {
     dehydrate(): GameState
 }
 
-export abstract class HydratableGameState<T extends TSchema>
+export abstract class HydratableGameState<T extends TSchema, U extends PlayerState>
     extends Hydratable<T>
     implements HydratedGameState
 {
     declare id: string
     declare gameId: string
-    declare players: PlayerState[]
+    declare players: U[]
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number
@@ -48,6 +48,14 @@ export abstract class HydratableGameState<T extends TSchema>
     declare turnManager: TurnManager
     declare result?: GameResult
     declare winningPlayerIds: string[]
+
+    getPlayerState(playerId: string): U {
+        const player = this.players.find((player) => player.playerId === playerId)
+        if (!player) {
+            throw Error(`State for player ${playerId} not found`)
+        }
+        return player
+    }
 
     recordAction(action: GameAction): void {
         action.index = this.actionCount

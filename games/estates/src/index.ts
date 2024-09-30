@@ -1,1 +1,6 @@
+export * from './definition/gameDefinition.js'
+export * from './model/gameState.js'
+export * from './components/gameBoard.js'
+export * from './model/playerState.js'
 export * from './definition/actions.js'
+export * from './definition/states.js'

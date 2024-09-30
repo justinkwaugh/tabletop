@@ -33,6 +33,7 @@
         "@tabletop/bridges-of-shangri-la": "*",
         "@tabletop/common": "*",
         "@tabletop/email": "*",
+        "@tabletop/estates": "*",
         "@tabletop/fresh-fish": "*",
         "@tabletop/kaivai": "*",
         "bcrypt": "^5.1.1",

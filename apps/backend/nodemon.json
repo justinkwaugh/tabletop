@@ -9,6 +9,11 @@
         "../../node_modules/@tabletop/fresh-fish-ui",
         "../../node_modules/@tabletop/bridges-of-shangri-la-ui",
         "../../node_modules/@tabletop/kaivai-ui",
+        "../../node_modules/@tabletop/estates-ui",
+        "../../node_modules/@tabletop/fresh-fish",
+        "../../node_modules/@tabletop/bridges-of-shangri-la",
+        "../../node_modules/@tabletop/kaivai",
+        "../../node_modules/@tabletop/estates",
         "src/**/*.spec.ts",
         "src/tests/**/*"
     ],

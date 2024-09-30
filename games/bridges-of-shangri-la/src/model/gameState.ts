@@ -31,7 +31,7 @@ type HydratedProperties = {
 }
 
 export class HydratedBridgesGameState
-    extends HydratableGameState<typeof BridgesGameState>
+    extends HydratableGameState<typeof BridgesGameState, HydratedBridgesPlayerState>
     implements BridgesGameState
 {
     declare id: string
@@ -55,14 +55,6 @@ export class HydratedBridgesGameState
             board: new HydratedBridgesGameBoard(data.board)
         }
         super(data, BridgesGameStateValidator, hydratedProperties)
-    }
-
-    getPlayerState(playerId: string): HydratedBridgesPlayerState {
-        const player = this.players.find((player) => player.playerId === playerId)
-        if (!player) {
-            throw Error(`State for player ${playerId} not found`)
-        }
-        return player
     }
 
     hasStones() {
