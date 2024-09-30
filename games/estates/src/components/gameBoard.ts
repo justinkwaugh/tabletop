@@ -1,8 +1,8 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Hydratable } from '@tabletop/common'
-import { Cube } from './cube'
-import { Roof } from './roof'
+import { Cube } from './cube.js'
+import { Roof } from './roof.js'
 
 export type Site = Static<typeof Site>
 export const Site = Type.Object({

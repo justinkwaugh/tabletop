@@ -9,7 +9,7 @@
         ChatToast,
         GameChat
     } from '@tabletop/frontend-components'
-    // import Board from '$lib/components/Board.svelte'
+    import Board from '$lib/components/Board.svelte'
     import { getContext, onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     // import PlayersPanel from '$lib/components/PlayersPanel.svelte'
@@ -169,7 +169,7 @@
             <div class="grow-0 overflow-hidden" style="flex:1;">
                 <ScalingWrapper justify={'center'} controls={'bottom-left'}>
                     <div class="w-fit h-fit">
-                        <!-- <Board /> -->
+                        <Board />
                     </div>
                 </ScalingWrapper>
             </div>

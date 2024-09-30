@@ -37,6 +37,9 @@
         "@tabletop/common": "*",
         "@tabletop/estates": "*",
         "@tabletop/frontend-components": "*",
+        "@threlte/core": "^8.0.0-next.17",
+        "@threlte/extras": "^9.0.0-next.23",
+        "@types/three": "^0.169.0",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^3.3.7",
         "three": "^0.169.0"
