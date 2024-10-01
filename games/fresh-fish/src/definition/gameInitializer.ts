@@ -19,7 +19,7 @@ import { MachineState } from './states.js'
 import { StallTile, TileType } from '../components/tiles.js'
 import { Value } from '@sinclair/typebox/value'
 import { generateBoard } from '../util/boardGenerator.js'
-import { FreshFishPlayerColors } from './colors.js'
+import { FreshFishColors } from './colors.js'
 
 export class FreshFishGameInitializer implements GameInitializer {
     initializeGame(game: Partial<Game>): Game {
@@ -90,7 +90,7 @@ export class FreshFishGameInitializer implements GameInitializer {
     }
 
     private initializePlayers(game: Game, random: RandomFunction): FreshFishPlayerState[] {
-        const colors = structuredClone(FreshFishPlayerColors)
+        const colors = structuredClone(FreshFishColors)
 
         shuffle(colors, random)
 

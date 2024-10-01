@@ -1,6 +1,6 @@
 import { GameSession } from '@tabletop/frontend-components'
-import { HydratedEstatesGameState, EstatesGameState } from '@tabletop/estates'
-import { GameAction } from '@tabletop/common'
+import { HydratedEstatesGameState, EstatesGameState, Company } from '@tabletop/estates'
+import { Color, GameAction } from '@tabletop/common'
 
 export class EstatesGameSession extends GameSession {
     gameState = $derived.by(() => {
@@ -18,8 +18,23 @@ export class EstatesGameSession extends GameSession {
         return this.gameState.turnManager.turnCount(this.myPlayer.id)
     })
 
-    getPlayerSvgColor(playerId?: string) {
-        return this.getPlayerColor(playerId) === 'yellow' ? 'black' : 'white'
+    getCompanyColor(company: Company): Color {
+        switch (company) {
+            case Company.Skyline:
+                return Color.Blue
+            case Company.Sienna:
+                return Color.Red
+            case Company.Golden:
+                return Color.Yellow
+            case Company.Emerald:
+                return Color.Green
+            case Company.Heather:
+                return Color.Purple
+            case Company.Collar:
+                return Color.Gray
+            default:
+                return Color.Black
+        }
     }
 
     cancel() {}

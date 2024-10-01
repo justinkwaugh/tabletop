@@ -3,7 +3,7 @@ import { KaivaiHydrator } from './hydrator.js'
 import { KaivaiGameInitializer } from './gameInitializer.js'
 import { KaivaiApiActions } from './apiActions.js'
 import { KaivaiStateHandlers } from './stateHandlers.js'
-import { KaivaiPlayerColors } from './colors.js'
+import { KaivaiColors } from './colors.js'
 import { KaivaiGameConfigOptions } from './gameConfig.js'
 
 export const KaivaiDefinition = <GameDefinition>{
@@ -26,7 +26,7 @@ export const KaivaiDefinition = <GameDefinition>{
 
     stateHandlers: KaivaiStateHandlers,
     apiActions: KaivaiApiActions,
-    playerColors: KaivaiPlayerColors,
+    playerColors: KaivaiColors,
 
     configOptions: KaivaiGameConfigOptions,
     stateLogger: new DefaultStateLogger()

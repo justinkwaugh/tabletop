@@ -1,7 +1,7 @@
 import { AxialCoordinates, Hydratable, PlayerState } from '@tabletop/common'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 import { Boat } from '../components/boat.js'
 
 export type PlayerTile = Static<typeof PlayerTile>
@@ -36,7 +36,7 @@ export class HydratedKaivaiPlayerState
     implements KaivaiPlayerState
 {
     declare playerId: string
-    declare color: PlayerColor
+    declare color: Color
     declare score: number
     declare movementModiferPosition: number
     declare boats: Boat[]

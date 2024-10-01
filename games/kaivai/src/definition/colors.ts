@@ -1,8 +1,3 @@
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 
-export const KaivaiPlayerColors = [
-    PlayerColor.Red,
-    PlayerColor.Blue,
-    PlayerColor.Yellow,
-    PlayerColor.Green
-]
+export const KaivaiColors = [Color.Red, Color.Blue, Color.Yellow, Color.Green]

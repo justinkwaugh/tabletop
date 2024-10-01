@@ -1,68 +1,69 @@
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 
 export interface GameColorizer {
-    getUiColor(playerColor?: PlayerColor): string
-    getBgColor(playerColor?: PlayerColor): string
-    getTextColor(playerColor?: PlayerColor): string
-    getBorderColor(playerColor?: PlayerColor): string
-    getBorderContrastColor(playerColor?: PlayerColor): string
-}
-const uiColorForPlayerColor = {
-    [PlayerColor.Red]: 'red-700',
-    [PlayerColor.Orange]: 'orange-500',
-    [PlayerColor.Yellow]: 'yellow-300',
-    [PlayerColor.Green]: 'green-600',
-    [PlayerColor.Blue]: 'blue-600',
-    [PlayerColor.Purple]: 'purple-600',
-    [PlayerColor.Pink]: 'pink-500',
-    [PlayerColor.Brown]: 'yellow-900',
-    [PlayerColor.Gray]: 'gray-500',
-    [PlayerColor.Black]: 'black',
-    [PlayerColor.White]: 'white'
+    getUiColor(color?: Color): string
+    getBgColor(color?: Color): string
+    getTextColor(color?: Color): string
+    getBorderColor(color?: Color): string
+    getBorderContrastColor(color?: Color): string
 }
 
-const bgColorForPlayerColor = {
-    [PlayerColor.Red]: 'bg-red-700',
-    [PlayerColor.Orange]: 'bg-orange-500',
-    [PlayerColor.Yellow]: 'bg-yellow-300',
-    [PlayerColor.Green]: 'bg-green-600',
-    [PlayerColor.Blue]: 'bg-blue-600',
-    [PlayerColor.Purple]: 'bg-purple-600',
-    [PlayerColor.Pink]: 'bg-pink-500',
-    [PlayerColor.Brown]: 'bg-yellow-900',
-    [PlayerColor.Gray]: 'bg-gray-500',
-    [PlayerColor.Black]: 'bg-black',
-    [PlayerColor.White]: 'bg-white'
+const uiColorForColor = {
+    [Color.Red]: 'red-700',
+    [Color.Orange]: 'orange-500',
+    [Color.Yellow]: 'yellow-300',
+    [Color.Green]: 'green-600',
+    [Color.Blue]: 'blue-600',
+    [Color.Purple]: 'purple-600',
+    [Color.Pink]: 'pink-500',
+    [Color.Brown]: 'yellow-900',
+    [Color.Gray]: 'gray-500',
+    [Color.Black]: 'black',
+    [Color.White]: 'white'
 }
 
-const borderColorForPlayerColor = {
-    [PlayerColor.Red]: 'bg-red-700',
-    [PlayerColor.Orange]: 'bg-orange-500',
-    [PlayerColor.Yellow]: 'bg-yellow-300',
-    [PlayerColor.Green]: 'bg-green-600',
-    [PlayerColor.Blue]: 'bg-blue-600',
-    [PlayerColor.Purple]: 'bg-purple-600',
-    [PlayerColor.Pink]: 'bg-pink-500',
-    [PlayerColor.Brown]: 'bg-yellow-900',
-    [PlayerColor.Gray]: 'bg-gray-500',
-    [PlayerColor.Black]: 'bg-black',
-    [PlayerColor.White]: 'bg-white'
+const bgColorForColor = {
+    [Color.Red]: 'bg-red-700',
+    [Color.Orange]: 'bg-orange-500',
+    [Color.Yellow]: 'bg-yellow-300',
+    [Color.Green]: 'bg-green-600',
+    [Color.Blue]: 'bg-blue-600',
+    [Color.Purple]: 'bg-purple-600',
+    [Color.Pink]: 'bg-pink-500',
+    [Color.Brown]: 'bg-yellow-900',
+    [Color.Gray]: 'bg-gray-500',
+    [Color.Black]: 'bg-black',
+    [Color.White]: 'bg-white'
+}
+
+const borderColorForColor = {
+    [Color.Red]: 'bg-red-700',
+    [Color.Orange]: 'bg-orange-500',
+    [Color.Yellow]: 'bg-yellow-300',
+    [Color.Green]: 'bg-green-600',
+    [Color.Blue]: 'bg-blue-600',
+    [Color.Purple]: 'bg-purple-600',
+    [Color.Pink]: 'bg-pink-500',
+    [Color.Brown]: 'bg-yellow-900',
+    [Color.Gray]: 'bg-gray-500',
+    [Color.Black]: 'bg-black',
+    [Color.White]: 'bg-white'
 }
 
 export class DefaultColorizer implements GameColorizer {
-    getUiColor(playerColor?: PlayerColor): string {
-        return uiColorForPlayerColor[playerColor ?? PlayerColor.Black]
+    getUiColor(color?: Color): string {
+        return uiColorForColor[color ?? Color.Black]
     }
-    getBgColor(playerColor?: PlayerColor): string {
-        return bgColorForPlayerColor[playerColor ?? PlayerColor.Black]
+    getBgColor(color?: Color): string {
+        return bgColorForColor[color ?? Color.Black]
     }
-    getTextColor(playerColor?: PlayerColor): string {
-        return playerColor === PlayerColor.Yellow ? 'text-black' : 'text-white'
+    getTextColor(color?: Color): string {
+        return color === Color.Yellow ? 'text-black' : 'text-white'
     }
-    getBorderColor(playerColor?: PlayerColor): string {
-        return borderColorForPlayerColor[playerColor ?? PlayerColor.Black] ?? 'border-color-black'
+    getBorderColor(color?: Color): string {
+        return borderColorForColor[color ?? Color.Black] ?? 'border-color-black'
     }
-    getBorderContrastColor(playerColor?: PlayerColor): string {
-        return playerColor === PlayerColor.Yellow ? 'border-black' : 'border-white'
+    getBorderContrastColor(color?: Color): string {
+        return color === Color.Yellow ? 'border-black' : 'border-white'
     }
 }

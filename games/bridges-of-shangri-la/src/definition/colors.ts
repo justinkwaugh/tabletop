@@ -1,8 +1,3 @@
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 
-export const BridgesPlayerColors = [
-    PlayerColor.Red,
-    PlayerColor.Blue,
-    PlayerColor.Yellow,
-    PlayerColor.Purple
-]
+export const BridgesColors = [Color.Red, Color.Blue, Color.Yellow, Color.Purple]

@@ -27,7 +27,7 @@ export * from './game/model/actionGroup.js'
 export * from './game/model/turn.js'
 export * from './game/model/round.js'
 export * from './game/model/phase.js'
-export * from './game/model/playerColors.js'
+export * from './game/model/colors.js'
 
 export * from './grid/coordinates.js'
 export * from './grid/floodTraverser.js'

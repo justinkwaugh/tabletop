@@ -14,7 +14,7 @@ import {
     calculateActionChecksum,
     GameUndoActionNotification,
     User,
-    PlayerColor,
+    Color,
     RunMode,
     GameDeleteNotification
 } from '@tabletop/common'
@@ -214,7 +214,7 @@ export class GameSession {
         )
     })
 
-    private getPreferredColor(user?: User): PlayerColor | undefined {
+    private getPreferredColor(user?: User): Color | undefined {
         if (
             !user ||
             !user.preferences ||
@@ -225,7 +225,7 @@ export class GameSession {
         }
 
         const preferredColors = user.preferences.preferredColors
-        let preferredColor: PlayerColor | undefined
+        let preferredColor: Color | undefined
         let bestRank = 999
         for (const color of this.definition.playerColors) {
             const rank = preferredColors.indexOf(color)
@@ -339,33 +339,53 @@ export class GameSession {
         return this.playerNamesById.get(playerId) ?? 'Someone'
     }
 
-    getPlayerColor(playerId?: string): PlayerColor {
-        return this.playerColorsById.get(playerId ?? 'unknown') ?? PlayerColor.Gray
+    getPlayerColor(playerId?: string): Color {
+        return this.playerColorsById.get(playerId ?? 'unknown') ?? Color.Gray
+    }
+
+    getUiColor(color: Color): string {
+        return this.colorizer.getUiColor(color)
     }
 
     getPlayerUiColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
-        return this.colorizer.getUiColor(playerColor)
+        return this.getUiColor(playerColor)
+    }
+
+    getBgColor(color: Color): string {
+        return this.colorizer.getBgColor(color)
     }
 
     getPlayerBgColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
-        return this.colorizer.getBgColor(playerColor)
+        return this.getBgColor(playerColor)
+    }
+
+    getTextColor(color: Color): string {
+        return this.colorizer.getTextColor(color)
     }
 
     getPlayerTextColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
-        return this.colorizer.getTextColor(playerColor)
+        return this.getTextColor(playerColor)
+    }
+
+    getBorderColor(color: Color): string {
+        return this.colorizer.getBorderColor(color)
     }
 
     getPlayerBorderColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
-        return this.colorizer.getBorderColor(playerColor)
+        return this.getBorderColor(playerColor)
+    }
+
+    getBorderContrastColor(color: Color): string {
+        return this.colorizer.getBorderContrastColor(color)
     }
 
     getPlayerBorderContrastColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
-        return this.colorizer.getBorderContrastColor(playerColor)
+        return this.getBorderContrastColor(playerColor)
     }
 
     listenToGame() {

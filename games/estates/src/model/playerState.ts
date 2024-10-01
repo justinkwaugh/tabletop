@@ -1,7 +1,7 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 import { Company } from '../definition/companies.js'
 
 export type EstatesPlayerState = Static<typeof EstatesPlayerState>
@@ -22,7 +22,7 @@ export class HydratedEstatesPlayerState
     implements EstatesPlayerState
 {
     declare playerId: string
-    declare color: PlayerColor
+    declare color: Color
     declare certificates: Company[]
     declare money: number
     declare stolen: number

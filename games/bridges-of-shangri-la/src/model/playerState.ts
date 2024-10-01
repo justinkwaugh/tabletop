@@ -2,7 +2,7 @@ import { Hydratable, PlayerState } from '@tabletop/common'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { MasterType } from '../definition/masterType.js'
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 
 export type PlayerTile = Static<typeof PlayerTile>
 export const PlayerTile = Type.Object({})
@@ -23,7 +23,7 @@ export class HydratedBridgesPlayerState
     implements BridgesPlayerState
 {
     declare playerId: string
-    declare color: PlayerColor
+    declare color: Color
     declare pieces: Record<MasterType, number>
     declare score: number
 

@@ -1,5 +1,5 @@
 import type { GameColorizer } from '$lib/definition/gameColorizer'
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 
 export enum ColorblindColor {
     Black = '#000000',
@@ -16,17 +16,17 @@ export enum ColorblindColor {
 }
 
 const colorBlindColorForColor = {
-    [PlayerColor.Red]: ColorblindColor.Vermilion,
-    [PlayerColor.Orange]: ColorblindColor.Orange,
-    [PlayerColor.Yellow]: ColorblindColor.Yellow,
-    [PlayerColor.Green]: ColorblindColor.BluishGreen,
-    [PlayerColor.Blue]: ColorblindColor.Blue,
-    [PlayerColor.Purple]: ColorblindColor.ReddishPurple,
-    [PlayerColor.Pink]: ColorblindColor.SkyBlue,
-    [PlayerColor.Brown]: ColorblindColor.Brown,
-    [PlayerColor.Gray]: ColorblindColor.Gray,
-    [PlayerColor.White]: ColorblindColor.White,
-    [PlayerColor.Black]: ColorblindColor.Black
+    [Color.Red]: ColorblindColor.Vermilion,
+    [Color.Orange]: ColorblindColor.Orange,
+    [Color.Yellow]: ColorblindColor.Yellow,
+    [Color.Green]: ColorblindColor.BluishGreen,
+    [Color.Blue]: ColorblindColor.Blue,
+    [Color.Purple]: ColorblindColor.ReddishPurple,
+    [Color.Pink]: ColorblindColor.SkyBlue,
+    [Color.Brown]: ColorblindColor.Brown,
+    [Color.Gray]: ColorblindColor.Gray,
+    [Color.White]: ColorblindColor.White,
+    [Color.Black]: ColorblindColor.Black
 }
 
 // This is so tailwind can compile the definition
@@ -59,19 +59,19 @@ const borderColorForColor = {
 }
 
 export class ColorblindColorizer implements GameColorizer {
-    getUiColor(playerColor?: PlayerColor): string {
-        return colorBlindColorForColor[playerColor ?? PlayerColor.Black]
+    getUiColor(color?: Color): string {
+        return colorBlindColorForColor[color ?? Color.Black]
     }
-    getBgColor(playerColor?: PlayerColor): string {
-        return bgColorForColor[colorBlindColorForColor[playerColor ?? PlayerColor.Black]]
+    getBgColor(color?: Color): string {
+        return bgColorForColor[colorBlindColorForColor[color ?? Color.Black]]
     }
-    getTextColor(playerColor: PlayerColor): string {
-        return playerColor === PlayerColor.Yellow ? 'text-black' : 'text-white'
+    getTextColor(color: Color): string {
+        return color === Color.Yellow ? 'text-black' : 'text-white'
     }
-    getBorderColor(playerColor: PlayerColor): string {
-        return borderColorForColor[colorBlindColorForColor[playerColor ?? PlayerColor.Black]]
+    getBorderColor(color: Color): string {
+        return borderColorForColor[colorBlindColorForColor[color ?? Color.Black]]
     }
-    getBorderContrastColor(playerColor: PlayerColor): string {
-        return playerColor === PlayerColor.Yellow ? 'border-black' : 'border-white'
+    getBorderContrastColor(color: Color): string {
+        return color === Color.Yellow ? 'border-black' : 'border-white'
     }
 }

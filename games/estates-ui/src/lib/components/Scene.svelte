@@ -1,14 +1,33 @@
-<script>
-    import { T, useTask } from '@threlte/core'
-    import { interactivity } from '@threlte/extras'
-    import { spring } from 'svelte/motion'
+<script lang="ts">
+    import { T } from '@threlte/core'
+    import { interactivity, OrbitControls, TrackballControls } from '@threlte/extras'
+    import Map from './Map.svelte'
+    import Cube from './Cube.svelte'
+    import Roof from './Roof.svelte'
+    import { Company, PieceType } from '@tabletop/estates'
+    import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
+    import { Site as SiteData } from '@tabletop/estates'
+    import Site from './Site.svelte'
     interactivity()
-    const scale = spring(1)
 
-    let rotation = 0
-    useTask((delta) => {
-        rotation += delta
-    })
+    const siteOne: SiteData = {
+        single: false,
+        cubes: [
+            { pieceType: PieceType.Cube, company: Company.Heather, value: 4 },
+            { pieceType: PieceType.Cube, company: Company.Emerald, value: 2 },
+            { pieceType: PieceType.Cube, company: Company.Heather, value: 1 }
+        ],
+        roof: { pieceType: PieceType.Roof, value: 5 }
+    }
+
+    const siteTwo: SiteData = {
+        single: false,
+        cubes: [
+            { pieceType: PieceType.Cube, company: Company.Sienna, value: 2 },
+            { pieceType: PieceType.Cube, company: Company.Collar, value: 1 }
+        ],
+        roof: { pieceType: PieceType.Roof, value: 3 }
+    }
 </script>
 
 <T.PerspectiveCamera
@@ -16,22 +35,23 @@
     position={[10, 10, 10]}
     oncreate={(ref) => {
         ref.lookAt(0, 1, 0)
-    }}
-/>
-<T.DirectionalLight position={[0, 10, 10]} castShadow />
-<T.Mesh
-    rotation.y={rotation}
-    position.y={1}
-    scale={$scale}
-    onpointerenter={() => scale.set(1.5)}
-    onpointerleave={() => scale.set(1)}
-    castShadow
+    }}><OrbitControls /></T.PerspectiveCamera
 >
-    <T.BoxGeometry args={[1, 2, 1]} />
-    <T.MeshStandardMaterial color="hotpink" />
-</T.Mesh>
+<T.AmbientLight intensity={1.5} />
+<T.DirectionalLight position={[5, 5, 10]} castShadow />
 
-<T.Mesh rotation.x={-Math.PI / 2} receiveShadow>
-    <T.CircleGeometry args={[4, 40]} />
-    <T.MeshStandardMaterial color="white" />
-</T.Mesh>
+<Map />
+<Site site={siteOne} x={ColumnOffsets[6]} z={RowOffsets[2]} />
+<Site site={siteTwo} x={ColumnOffsets[6]} z={RowOffsets[0]} />
+<Cube
+    cube={{ pieceType: PieceType.Cube, company: Company.Collar, value: 4 }}
+    x={ColumnOffsets[9]}
+    z={RowOffsets[2]}
+/>
+<Cube cube={{ pieceType: PieceType.Cube, company: Company.Skyline, value: 5 }} x={3.5} />
+<Cube cube={{ pieceType: PieceType.Cube, company: Company.Heather, value: 4 }} x={3.45} z={2.5} />
+<Roof x={3.45} z={2.5} y={0.75} />
+<Cube cube={{ pieceType: PieceType.Cube, company: Company.Emerald, value: 2 }} x={3.5} y={1} />
+<Cube cube={{ pieceType: PieceType.Cube, company: Company.Heather, value: 1 }} x={3.5} y={2} />
+<Cube cube={{ pieceType: PieceType.Cube, company: Company.Golden, value: 6 }} x={5.4} />
+<Cube cube={{ pieceType: PieceType.Cube, company: Company.Sienna, value: 4 }} x={5.4} y={1} />

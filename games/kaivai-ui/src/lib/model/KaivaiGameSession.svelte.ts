@@ -41,7 +41,7 @@ import {
 import {
     axialCoordinatesToNumber,
     GameAction,
-    PlayerColor,
+    Color,
     sameCoordinates,
     type AxialCoordinates
 } from '@tabletop/common'
@@ -242,26 +242,26 @@ export class KaivaiGameSession extends GameSession {
         switch (hutType) {
             case HutType.Meeting:
                 switch (color) {
-                    case PlayerColor.Yellow:
+                    case Color.Yellow:
                         return this.colorBlind ? yellowHut2Cb : yellowHut2
-                    case PlayerColor.Blue:
+                    case Color.Blue:
                         return this.colorBlind ? blueHut2Cb : blueHut2
-                    case PlayerColor.Green:
+                    case Color.Green:
                         return this.colorBlind ? greenHut2Cb : greenHut2
-                    case PlayerColor.Red:
+                    case Color.Red:
                         return this.colorBlind ? redHut2Cb : redHut2
                 }
                 break
             case HutType.BoatBuilding:
             case HutType.Fishing:
                 switch (color) {
-                    case PlayerColor.Yellow:
+                    case Color.Yellow:
                         return this.colorBlind ? yellowHutCb : yellowHut
-                    case PlayerColor.Blue:
+                    case Color.Blue:
                         return this.colorBlind ? blueHutCb : blueHut
-                    case PlayerColor.Green:
+                    case Color.Green:
                         return this.colorBlind ? greenHutCb : greenHut
-                    case PlayerColor.Red:
+                    case Color.Red:
                         return this.colorBlind ? redHutCb : redHut
                 }
                 break

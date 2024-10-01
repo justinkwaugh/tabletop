@@ -25,7 +25,7 @@ import { KaivaiPlayerState } from '../model/playerState.js'
 import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { KaivaiGameBoard } from '../components/gameBoard.js'
-import { KaivaiPlayerColors } from './colors.js'
+import { KaivaiColors } from './colors.js'
 import { Cell, CellType, CultCell } from './cells.js'
 import { defineHex, Grid, Hex, ring, spiral } from 'honeycomb-grid'
 import { Island } from '../components/island.js'
@@ -77,7 +77,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
     }
 
     private initializePlayers(game: Game, random: RandomFunction): KaivaiPlayerState[] {
-        const colors = structuredClone(KaivaiPlayerColors)
+        const colors = structuredClone(KaivaiColors)
 
         shuffle(colors, random)
 

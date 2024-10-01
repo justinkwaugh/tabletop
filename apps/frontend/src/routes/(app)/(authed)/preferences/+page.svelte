@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Card, Label, Button, Alert, Helper, Toggle } from 'flowbite-svelte'
-    import { PlayerColor, UserPreferences } from '@tabletop/common'
+    import { Color, UserPreferences } from '@tabletop/common'
     import { flip } from 'svelte/animate'
     import { getContext } from 'svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
@@ -19,7 +19,7 @@
     let preferences: UserPreferences = $state(
         sessionUser?.preferences ?? {
             preventWebNotificationPrompt: false,
-            preferredColors: Object.values(PlayerColor),
+            preferredColors: Object.values(Color),
             preferredColorsEnabled: false
         }
     )
@@ -28,7 +28,7 @@
         return authorizationService.getSessionUser()
     })
 
-    let bgColorForColor = (color?: PlayerColor) => {
+    let bgColorForColor = (color?: Color) => {
         if (preferences.colorBlindPalette) {
             return colorblindColorizer.getBgColor(color)
         }
@@ -56,10 +56,10 @@
         errors = {}
     }
 
-    let draggedColor: PlayerColor | undefined = $state(undefined)
+    let draggedColor: Color | undefined = $state(undefined)
     let draggedIndex: number | undefined = $state(undefined)
 
-    function dragStart(event: DragEvent, source: string, index: number, color?: PlayerColor) {
+    function dragStart(event: DragEvent, source: string, index: number, color?: Color) {
         draggedColor = color
         draggedIndex = index
     }

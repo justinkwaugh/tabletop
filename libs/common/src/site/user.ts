@@ -1,5 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { PlayerColor } from '../game/model/playerColors.js'
+import { Color } from '../game/model/colors.js'
 
 export enum Role {
     User = 'user',
@@ -25,7 +25,7 @@ export type UserPreferences = Static<typeof UserPreferences>
 export const UserPreferences = Type.Object({
     preventWebNotificationPrompt: Type.Boolean(),
     preferredColorsEnabled: Type.Boolean(),
-    preferredColors: Type.Array(Type.Enum(PlayerColor)),
+    preferredColors: Type.Array(Type.Enum(Color)),
     colorBlindPalette: Type.Optional(Type.Boolean())
 })
 

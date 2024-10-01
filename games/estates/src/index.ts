@@ -4,6 +4,7 @@ export * from './components/gameBoard.js'
 export * from './model/playerState.js'
 export * from './definition/actions.js'
 export * from './definition/states.js'
+export * from './definition/companies.js'
 
 export * from './components/cube.js'
 export * from './components/barrier.js'

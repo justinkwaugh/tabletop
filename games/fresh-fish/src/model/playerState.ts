@@ -4,7 +4,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Coordinates } from '../components/gameBoard.js'
 import { ScoringInfo } from '../util/scoring.js'
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 
 export type PlayerStall = Static<typeof PlayerStall>
 export const PlayerStall = Type.Object({
@@ -33,7 +33,7 @@ export class HydratedFreshFishPlayerState
     implements FreshFishPlayerState
 {
     playerId!: string
-    color!: PlayerColor
+    color!: Color
     money!: number
     score!: number
     stalls!: PlayerStall[]

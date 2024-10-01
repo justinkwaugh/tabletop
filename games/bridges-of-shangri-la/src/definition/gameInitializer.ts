@@ -21,7 +21,7 @@ import { MachineState } from './states.js'
 import { BridgesGameBoard } from '../components/gameBoard.js'
 import { MasterType } from './masterType.js'
 import { Village } from '../components/village.js'
-import { BridgesPlayerColors } from './colors.js'
+import { BridgesColors } from './colors.js'
 
 export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeGameState(game: Game, seed?: number): HydratedGameState {
@@ -53,7 +53,7 @@ export class BridgesGameInitializer extends BaseGameInitializer implements GameI
     }
 
     private initializePlayers(game: Game, random: RandomFunction): BridgesPlayerState[] {
-        const colors = structuredClone(BridgesPlayerColors)
+        const colors = structuredClone(BridgesColors)
 
         shuffle(colors, random)
 

@@ -5,7 +5,7 @@ import {
     BaseGameInitializer,
     PrngState,
     Prng,
-    PlayerColor
+    Color
 } from '@tabletop/common'
 import {
     Game,
@@ -74,7 +74,7 @@ export class EstatesGameInitializer extends BaseGameInitializer implements GameI
         const players: EstatesPlayerState[] = game.players.map((player: Player) => {
             return {
                 playerId: player.id,
-                color: PlayerColor.White,
+                color: Color.White,
                 certificates: [],
                 money: 12,
                 stolen: 0,

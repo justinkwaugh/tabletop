@@ -1,31 +1,31 @@
-import { PlayerColor } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 import { DefaultColorizer } from '@tabletop/frontend-components'
 
 export class BridgesGameColorizer extends DefaultColorizer {
-    override getUiColor(playerColor: PlayerColor): string {
-        switch (playerColor) {
-            case PlayerColor.Blue:
+    override getUiColor(color: Color): string {
+        switch (color) {
+            case Color.Blue:
                 return '#0d56ad'
-            case PlayerColor.Red:
+            case Color.Red:
                 return '#ad0207'
-            case PlayerColor.Yellow:
+            case Color.Yellow:
                 return '#fae54b'
-            case PlayerColor.Purple:
+            case Color.Purple:
                 return '#9a0ee6'
             default:
                 return '#555555'
         }
     }
 
-    override getBgColor(playerColor: PlayerColor): string {
-        switch (playerColor) {
-            case PlayerColor.Blue:
+    override getBgColor(color: Color): string {
+        switch (color) {
+            case Color.Blue:
                 return 'bg-[#0d56ad]'
-            case PlayerColor.Red:
+            case Color.Red:
                 return 'bg-[#ad0207]'
-            case PlayerColor.Yellow:
+            case Color.Yellow:
                 return 'bg-[#fae54b]'
-            case PlayerColor.Purple:
+            case Color.Purple:
                 return 'bg-[#9a0ee6]'
             default:
                 return 'bg-[#555555]'

@@ -8,7 +8,7 @@
     import gelatoStallDarkImg from '$lib/images/gelato-stall-dark.png'
     import sodaStallDarkImg from '$lib/images/soda-stall-dark.png'
     import { GoodsType } from '@tabletop/fresh-fish'
-    import { PlayerColor } from '@tabletop/common'
+    import { Color } from '@tabletop/common'
     import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
 
@@ -26,13 +26,13 @@
     let stallImg = $derived.by(() => {
         switch (goodsType) {
             case GoodsType.Cheese:
-                return playerColor === PlayerColor.Yellow ? cheeseStallDarkImg : cheeseStallImg
+                return playerColor === Color.Yellow ? cheeseStallDarkImg : cheeseStallImg
             case GoodsType.Fish:
-                return playerColor === PlayerColor.Yellow ? fishStallDarkImg : fishStallImg
+                return playerColor === Color.Yellow ? fishStallDarkImg : fishStallImg
             case GoodsType.IceCream:
-                return playerColor === PlayerColor.Yellow ? gelatoStallDarkImg : gelatoStallImg
+                return playerColor === Color.Yellow ? gelatoStallDarkImg : gelatoStallImg
             case GoodsType.Lemonade:
-                return playerColor === PlayerColor.Yellow ? sodaStallDarkImg : sodaStallImg
+                return playerColor === Color.Yellow ? sodaStallDarkImg : sodaStallImg
             default:
                 return undefined
         }
