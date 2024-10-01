@@ -1,5 +1,8 @@
 export enum ActionType {
     DrawRoof = 'drawRoof',
+    StartAuction = 'startAuction',
+    EndAuction = 'endAuction',
+    ChooseRecipient = 'chooseRecipient',
     PlaceRoof = 'placeRoof',
     PlaceCube = 'placeCube',
     PlaceMayor = 'placeMayor',

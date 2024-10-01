@@ -34,9 +34,10 @@
     )
 
     let activeTabClasses =
-        'py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border'
+        'relative py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900 box-border'
     let inactiveTabClasses =
-        'text-[#634a11] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#634a11] box-border'
+        'relative text-gray-200 py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700 box-border'
+
     let table: HTMLDivElement
     onMount(() => {
         table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
@@ -88,7 +89,7 @@
             class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] max-sm:h-[calc(100vh-158px)]"
         >
             <div
-                class="max-sm:hidden shrink-0 grow-0 p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]"
+                class="shrink-0 grow-0 p-2 rounded-lg border-2 border-gray-700 bg-transparent h-[42px] max-sm:hidden"
             >
                 <HistoryControls />
             </div>
@@ -100,7 +101,6 @@
                 <TabItem
                     open
                     onclick={onNonChatClick}
-                    defaultClass="uppercase "
                     activeClasses={activeTabClasses}
                     inactiveClasses={inactiveTabClasses}
                 >
@@ -113,7 +113,6 @@
                 </TabItem>
                 <TabItem
                     onclick={onNonChatClick}
-                    defaultClass="uppercase "
                     activeClasses={activeTabClasses}
                     inactiveClasses={inactiveTabClasses}
                 >
@@ -125,7 +124,6 @@
                 </TabItem>
                 <TabItem
                     onclick={onChatClick}
-                    defaultClass="uppercase "
                     activeClasses={activeTabClasses}
                     inactiveClasses={inactiveTabClasses}
                 >

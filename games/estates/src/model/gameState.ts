@@ -4,6 +4,7 @@ import {
     HydratableGameState,
     HydratedOnceAroundAuction,
     HydratedSimpleTurnManager,
+    OffsetCoordinates,
     OnceAroundAuction,
     PrngState
 } from '@tabletop/common'
@@ -33,7 +34,8 @@ export const EstatesGameState = Type.Composite([
         barrierThree: Type.Boolean(),
         cancelCube: Type.Boolean(),
         chosenPiece: Type.Optional(Piece),
-        auction: Type.Optional(OnceAroundAuction)
+        auction: Type.Optional(OnceAroundAuction),
+        recipient: Type.Optional(Type.String())
     })
 ])
 
@@ -73,6 +75,7 @@ export class HydratedEstatesGameState
     declare cancelCube: boolean
     declare chosenPiece?: Piece
     declare auction?: HydratedOnceAroundAuction
+    declare recipient?: string
 
     constructor(data: EstatesGameState) {
         const hydratedProperties: HydratedProperties = {
@@ -83,5 +86,20 @@ export class HydratedEstatesGameState
             auction: data.auction ? new HydratedOnceAroundAuction(data.auction) : undefined
         }
         super(data, EstatesGameStateValidator, hydratedProperties)
+    }
+
+    placeableCubes(): OffsetCoordinates[] {
+        const offerCoords: OffsetCoordinates[] = []
+        for (let rowIndex = 0; rowIndex < this.cubes.length; rowIndex++) {
+            const row = this.cubes[rowIndex]
+            if (this.board.validCubeLocations(row[0]).length > 0) {
+                offerCoords.push({ row: rowIndex, col: 0 })
+            }
+            if (this.board.validCubeLocations(row[row.length - 1]).length > 0) {
+                offerCoords.push({ row: rowIndex, col: 1 })
+            }
+        }
+
+        return offerCoords
     }
 }

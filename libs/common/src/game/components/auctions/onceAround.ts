@@ -27,4 +27,32 @@ export class HydratedOnceAroundAuction
             throw Error(`Player ${participant.playerId} may not bid twice`)
         }
     }
+
+    override placeBid(playerId: string, amount: number): void {
+        super.placeBid(playerId, amount)
+
+        if (amount > (this.highBid ?? 0)) {
+            this.highBid = amount
+        }
+
+        if (this.isAuctionComplete() && this.highBid !== undefined) {
+            const winner = this.participants.find((participant) => participant.bid === this.highBid)
+            if (winner === undefined) {
+                throw Error('Cannot find winner')
+            }
+            this.winnerId = winner.playerId
+        }
+    }
+
+    isAuctionComplete() {
+        return this.participants.every(
+            (participant) => participant.bid !== undefined || participant.passed
+        )
+    }
+
+    nextBidder(): string | undefined {
+        return this.participants.find(
+            (participant) => participant.bid === undefined && !participant.passed
+        )?.playerId
+    }
 }

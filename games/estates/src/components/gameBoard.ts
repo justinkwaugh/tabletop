@@ -1,6 +1,6 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { Hydratable } from '@tabletop/common'
+import { Hydratable, OffsetCoordinates } from '@tabletop/common'
 import { Cube } from './cube.js'
 import { Roof } from './roof.js'
 
@@ -32,5 +32,80 @@ export class HydratedEstatesGameBoard
 
     constructor(data: EstatesGameBoard) {
         super(data, EstatesGameBoardValidator)
+    }
+
+    canPlaceCubeAtSite(cube: Cube, coords: OffsetCoordinates): boolean {
+        if (coords.row < 0 || coords.row >= this.rows.length) {
+            return false
+        }
+
+        const boardRow = this.rows[coords.row]
+        if (coords.col < 0 || coords.col >= boardRow.sites.length) {
+            return false
+        }
+
+        const site = boardRow.sites[coords.col]
+
+        if (site.roof) {
+            return false
+        }
+
+        if (site.single && site.cubes.length > 0) {
+            return false
+        }
+
+        return site.cubes.length === 0 || site.cubes[site.cubes.length - 1].value < cube.value
+    }
+
+    placeCubeAtSite(cube: Cube, coords: OffsetCoordinates) {
+        const boardRow = this.rows[coords.row]
+        const site = boardRow.sites[coords.col]
+        site.cubes.push(cube)
+    }
+
+    canPlaceRoofAtSite(coords: OffsetCoordinates): boolean {
+        if (coords.row < 0 || coords.row >= this.rows.length) {
+            return false
+        }
+
+        const boardRow = this.rows[coords.row]
+        if (coords.col < 0 || coords.col >= boardRow.sites.length) {
+            return false
+        }
+
+        const site = boardRow.sites[coords.col]
+        return site.cubes.length > 0 && !site.roof
+    }
+
+    placeRoofAtSite(roof: Roof, coords: OffsetCoordinates) {
+        const boardRow = this.rows[coords.row]
+        const site = boardRow.sites[coords.col]
+        site.roof = roof
+    }
+
+    validRoofLocations(): OffsetCoordinates[] {
+        const validLocations: OffsetCoordinates[] = []
+        for (let row = 0; row < this.rows.length; row++) {
+            const boardRow = this.rows[row]
+            for (let col = 0; col < boardRow.sites.length; col++) {
+                if (this.canPlaceRoofAtSite({ row, col })) {
+                    validLocations.push({ row, col })
+                }
+            }
+        }
+        return validLocations
+    }
+
+    validCubeLocations(cube: Cube): OffsetCoordinates[] {
+        const validLocations: OffsetCoordinates[] = []
+        for (let row = 0; row < this.rows.length; row++) {
+            const boardRow = this.rows[row]
+            for (let col = 0; col < boardRow.sites.length; col++) {
+                if (this.canPlaceCubeAtSite(cube, { row, col })) {
+                    validLocations.push({ row, col })
+                }
+            }
+        }
+        return validLocations
     }
 }
