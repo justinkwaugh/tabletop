@@ -8,7 +8,7 @@
     let table: HTMLDivElement
 </script>
 
-<div class="relative w-[1280px] h-[1280px]">
+<div class="relative w-full h-full">
     <Canvas>
         <Scene />
     </Canvas>

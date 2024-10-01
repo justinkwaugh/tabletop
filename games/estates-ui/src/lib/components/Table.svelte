@@ -23,6 +23,7 @@
     // import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     // import EndOfGamePanel from './EndOfGamePanel.svelte'
     import { toast } from 'svelte-sonner'
+    import Offer from './Offer.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let chatActive: boolean = $state(false)
@@ -150,6 +151,7 @@
         >
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
+                <Offer />
                 <!-- <Phase />
                 {#if gameSession.gameState.result}
                     <EndOfGamePanel />
@@ -167,11 +169,7 @@
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper justify={'center'} controls={'bottom-left'}>
-                    <div class="w-fit h-fit">
-                        <Board />
-                    </div>
-                </ScalingWrapper>
+                <Board />
             </div>
         </div>
         {#if gameSession.showDebug}

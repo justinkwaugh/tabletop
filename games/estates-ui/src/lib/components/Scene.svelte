@@ -8,6 +8,11 @@
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import { Site as SiteData } from '@tabletop/estates'
     import Site from './Site.svelte'
+    import { getContext } from 'svelte'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+
+    let gameSession = getContext('gameSession') as EstatesGameSession
+
     interactivity()
 
     const siteOne: SiteData = {
@@ -28,21 +33,28 @@
         ],
         roof: { pieceType: PieceType.Roof, value: 3 }
     }
+    const emptySite: SiteData = { single: false, cubes: [], roof: undefined }
 </script>
 
 <T.PerspectiveCamera
     makeDefault
-    position={[10, 10, 10]}
+    position={[0, 10, 10]}
     oncreate={(ref) => {
-        ref.lookAt(0, 1, 0)
-    }}><OrbitControls /></T.PerspectiveCamera
+        ref.lookAt(0, 0, 0)
+    }}><OrbitControls maxPolarAngle={1.25} enablePan={false} /></T.PerspectiveCamera
 >
 <T.AmbientLight intensity={1.5} />
 <T.DirectionalLight position={[5, 5, 10]} castShadow />
 
 <Map />
-<Site site={siteOne} x={ColumnOffsets[6]} z={RowOffsets[2]} />
+{#each gameSession.gameState.board.rows as row, i}
+    {#each row.sites as site, j}
+        <Site {site} x={ColumnOffsets[j]} z={RowOffsets[i]} />
+    {/each}
+{/each}
+<!-- <Site site={siteOne} x={ColumnOffsets[6]} z={RowOffsets[2]} />
 <Site site={siteTwo} x={ColumnOffsets[6]} z={RowOffsets[0]} />
+<Site site={emptySite} x={ColumnOffsets[9]} z={RowOffsets[0]} />
 <Cube
     cube={{ pieceType: PieceType.Cube, company: Company.Collar, value: 4 }}
     x={ColumnOffsets[9]}
@@ -54,4 +66,4 @@
 <Cube cube={{ pieceType: PieceType.Cube, company: Company.Emerald, value: 2 }} x={3.5} y={1} />
 <Cube cube={{ pieceType: PieceType.Cube, company: Company.Heather, value: 1 }} x={3.5} y={2} />
 <Cube cube={{ pieceType: PieceType.Cube, company: Company.Golden, value: 6 }} x={5.4} />
-<Cube cube={{ pieceType: PieceType.Cube, company: Company.Sienna, value: 4 }} x={5.4} y={1} />
+<Cube cube={{ pieceType: PieceType.Cube, company: Company.Sienna, value: 4 }} x={5.4} y={1} /> -->

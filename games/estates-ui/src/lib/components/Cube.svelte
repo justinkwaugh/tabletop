@@ -8,15 +8,31 @@
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
-    let { cube, x = 0, y = 0, z = 0 }: { cube: Cube; x?: number; y?: number; z?: number } = $props()
+    let {
+        cube,
+        x = 0,
+        y = 0,
+        z = 0,
+        scale = 1,
+        opacity = 1
+    }: {
+        cube: Cube
+        x?: number
+        y?: number
+        z?: number
+        scale?: number
+        opacity?: number
+    } = $props()
 
     const material = new THREE.MeshBasicMaterial({ toneMapped: false })
 </script>
 
-<T.Group position.y={y} position.x={x} position.z={z}>
-    <T.Mesh scale={1} castShadow>
+<T.Group position.y={y} position.x={x} position.z={z} {scale}>
+    <T.Mesh castShadow>
         <RoundedBoxGeometry args={[1, 1, 1]} />
         <T.MeshPhysicalMaterial
+            transparent={opacity !== 1}
+            {opacity}
             color={gameSession.getUiColor(gameSession.getCompanyColor(cube.company))}
             clearcoat={1}
             clearcoatRoughness={0.33}
