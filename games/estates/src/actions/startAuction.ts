@@ -9,13 +9,15 @@ import {
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { ActionType } from '../definition/actions.js'
+import { isCube, Piece } from '../components/pieces.js'
 
 export type StartAuction = Static<typeof StartAuction>
 export const StartAuction = Type.Composite([
     Type.Omit(GameAction, ['playerId', 'type']),
     Type.Object({
         type: Type.Literal(ActionType.StartAuction),
-        playerId: Type.String()
+        playerId: Type.String(),
+        piece: Piece
     })
 ])
 
@@ -31,20 +33,19 @@ export class HydratedStartAuction
 {
     declare type: ActionType.StartAuction
     declare playerId: string
+    declare piece: Piece
 
     constructor(data: StartAuction) {
         super(data, StartAuctionValidator)
     }
 
     apply(state: HydratedEstatesGameState) {
-        if (!state.chosenPiece) {
-            throw Error('Cannot start auction without a chosen piece')
-        }
-
+        state.chosenPiece = this.piece
         const bidOrder = HydratedOnceAroundAuction.generateBidOrder(
             state.turnManager.turnOrder,
             this.playerId
         )
+        console.log('bidOrder', bidOrder)
         const validBidders = bidOrder.filter((playerId) => state.getPlayerState(playerId).money > 0)
         const participants = validBidders.map((playerId) => ({ playerId: playerId, passed: false }))
 
@@ -54,5 +55,9 @@ export class HydratedStartAuction
             participants: participants,
             auctioneerId: this.playerId
         })
+
+        if (isCube(state.chosenPiece)) {
+            state.removeCubeFromOffer(state.chosenPiece)
+        }
     }
 }

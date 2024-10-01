@@ -48,6 +48,6 @@ export class HydratedPlaceCube extends HydratableAction<typeof PlaceCube> implem
         coords: OffsetCoordinates,
         cube: Cube
     ): boolean {
-        return state.board.canPlaceCubeAtSite(cube, coords)
+        return state.board.canPlaceCubeAtCoords(cube, coords)
     }
 }

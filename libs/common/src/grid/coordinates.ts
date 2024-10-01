@@ -1,5 +1,6 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { szudzikPairSigned } from '../util/pairing.js'
+import { isAxial, isOffset } from 'honeycomb-grid'
 
 export type Point = Static<typeof Point>
 export const Point = Type.Object({
@@ -61,6 +62,19 @@ export function axialCoordinatesToNumber(axial: AxialCoordinates): number {
     return szudzikPairSigned(axial.q, axial.r)
 }
 
-export function sameCoordinates(a?: AxialCoordinates, b?: AxialCoordinates): boolean {
-    return a !== undefined && b !== undefined && a.q === b.q && a.r === b.r
+export function sameCoordinates(a?: OffsetCoordinates, b?: OffsetCoordinates): boolean
+export function sameCoordinates(a?: AxialCoordinates, b?: AxialCoordinates): boolean
+export function sameCoordinates(a?: unknown, b?: unknown): boolean {
+    if (a === undefined || b === undefined) {
+        return false
+    }
+
+    if (isAxial(a) && isAxial(b)) {
+        return a.q === b.q && a.r === b.r
+    }
+    if (isOffset(a) && isOffset(b)) {
+        return a.col === b.col && a.row === b.row
+    }
+
+    return false
 }

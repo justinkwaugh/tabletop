@@ -34,7 +34,7 @@ export class HydratedEstatesGameBoard
         super(data, EstatesGameBoardValidator)
     }
 
-    canPlaceCubeAtSite(cube: Cube, coords: OffsetCoordinates): boolean {
+    canPlaceCubeAtCoords(cube: Cube, coords: OffsetCoordinates): boolean {
         if (coords.row < 0 || coords.row >= this.rows.length) {
             return false
         }
@@ -46,6 +46,10 @@ export class HydratedEstatesGameBoard
 
         const site = boardRow.sites[coords.col]
 
+        return this.canPlaceCubeAtSite(cube, site)
+    }
+
+    canPlaceCubeAtSite(cube: Cube, site: Site): boolean {
         if (site.roof) {
             return false
         }
@@ -96,12 +100,15 @@ export class HydratedEstatesGameBoard
         return validLocations
     }
 
-    validCubeLocations(cube: Cube): OffsetCoordinates[] {
+    validCubeLocations(cube?: Cube | null): OffsetCoordinates[] {
+        if (!cube) {
+            return []
+        }
         const validLocations: OffsetCoordinates[] = []
         for (let row = 0; row < this.rows.length; row++) {
             const boardRow = this.rows[row]
             for (let col = 0; col < boardRow.sites.length; col++) {
-                if (this.canPlaceCubeAtSite(cube, { row, col })) {
+                if (this.canPlaceCubeAtCoords(cube, { row, col })) {
                     validLocations.push({ row, col })
                 }
             }

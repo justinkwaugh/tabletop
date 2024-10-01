@@ -1,9 +1,9 @@
-import { DrawRoof } from '../actions/drawRoof'
-import { ActionType } from './actions'
-import { StartAuction } from '../actions/startAuction'
-import { PlaceBid } from '../actions/placeBid'
-import { ChooseRecipient } from '../actions/chooseRecipient'
-import { PlaceCube } from '../actions/placeCube'
+import { DrawRoof } from '../actions/drawRoof.js'
+import { ActionType } from './actions.js'
+import { StartAuction } from '../actions/startAuction.js'
+import { PlaceBid } from '../actions/placeBid.js'
+import { ChooseRecipient } from '../actions/chooseRecipient.js'
+import { PlaceCube } from '../actions/placeCube.js'
 
 export const EstatesApiActions = {
     [ActionType.DrawRoof]: DrawRoof,

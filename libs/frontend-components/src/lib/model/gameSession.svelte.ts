@@ -421,6 +421,7 @@ export class GameSession {
 
     async applyAction(action: GameAction) {
         // Preserve state in case we need to roll back
+        action = $state.snapshot(action)
         const gameSnapshot = $state.snapshot(this.game)
         let priorState = structuredClone(gameSnapshot.state) as GameState
 

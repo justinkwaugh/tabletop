@@ -1,16 +1,35 @@
 <script lang="ts">
     import { T } from '@threlte/core'
-    import { Company, Piece, Site } from '@tabletop/estates'
-    import Cube from './Cube.svelte'
-    import { Cube as CubeData } from '@tabletop/estates'
+    import { ActionType, Company, isCube, isRoof, Piece, Site } from '@tabletop/estates'
+    import Cube3d from './Cube3d.svelte'
+    import { Cube } from '@tabletop/estates'
     import Roof from './Roof.svelte'
     import { spring } from 'svelte/motion'
+    import { getContext } from 'svelte'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { OffsetCoordinates } from '@tabletop/common'
 
-    let { site, x = 0, y = 0, z = 0 }: { site: Site; x?: number; y?: number; z?: number } = $props()
+    let gameSession = getContext('gameSession') as EstatesGameSession
+
+    let {
+        site,
+        coords,
+        x = 0,
+        y = 0,
+        z = 0
+    }: { site: Site; coords: OffsetCoordinates; x?: number; y?: number; z?: number } = $props()
     let scale = spring(0.1)
-    let hoverCube: CubeData | undefined = $state()
+
+    let hoverCube: Cube | undefined = $state()
     function onPointerEnter(event: PointerEvent) {
-        hoverCube = { pieceType: Piece.Cube, company: Company.Heather, value: 3 }
+        if (!canPreview) {
+            return
+        }
+
+        if (isCube(gameSession.gameState.chosenPiece)) {
+            hoverCube = gameSession.gameState.chosenPiece as Cube
+        }
+
         event.stopPropagation()
         scale.set(1)
     }
@@ -20,8 +39,45 @@
         scale.set(0.1)
     }
 
+    async function onClick(event: MouseEvent) {
+        if (!canPreview) {
+            return
+        }
+
+        if (isCube(gameSession.gameState.chosenPiece)) {
+            hoverCube = undefined
+            await gameSession.placeCube(gameSession.gameState.chosenPiece, coords)
+        } else if (isRoof(gameSession.gameState.chosenPiece)) {
+            // gameSession.applyAction(gameSession.createPlaceRoofAction(site))
+        }
+    }
     let height = $derived(site.cubes.length + (site.roof !== undefined ? 0.5 : 0))
     let dims = $derived(site.cubes.length === 0 ? 1.6 : 1)
+
+    let canPreview = $derived.by(() => {
+        if (!gameSession.isMyTurn) {
+            return false
+        }
+        if (
+            gameSession.chosenAction !== ActionType.PlaceRoof &&
+            gameSession.chosenAction !== ActionType.PlaceCube
+        ) {
+            return false
+        }
+        const chosenPiece = gameSession.gameState.chosenPiece
+        if (!chosenPiece || (!isCube(chosenPiece) && !isRoof(chosenPiece))) {
+            return false
+        }
+
+        if (
+            isCube(chosenPiece) &&
+            !gameSession.gameState.board.canPlaceCubeAtSite(chosenPiece, site)
+        ) {
+            return false
+        }
+
+        return true
+    })
 </script>
 
 <T.Group position.x={x} position.y={y} position.z={z} scale={1}>
@@ -30,15 +86,16 @@
         position.y={height / 2 - 0.5}
         onpointerenter={onPointerEnter}
         onpointerleave={onPointerLeave}
+        onclick={onClick}
     >
         <T.BoxGeometry args={[dims, height, dims]} />
         <T.MeshBasicMaterial color={'white'} transparent={true} opacity={0} />
     </T.Mesh>
     {#each site.cubes as cube, i}
-        <Cube {cube} x={0} z={0} y={i} />
+        <Cube3d {cube} x={0} z={0} y={i} />
     {/each}
     {#if hoverCube}
-        <Cube opacity={0.6} cube={hoverCube} x={0} z={0} y={site.cubes.length} scale={$scale} />
+        <Cube3d opacity={0.6} cube={hoverCube} x={0} z={0} y={site.cubes.length} scale={$scale} />
     {/if}
     {#if site.roof}
         <Roof x={0} z={0} y={site.cubes.length - 0.25} />

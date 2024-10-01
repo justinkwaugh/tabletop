@@ -1,24 +1,46 @@
 <script lang="ts">
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { Cube } from '@tabletop/estates'
+    import { sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
+    import { Cube, MachineState } from '@tabletop/estates'
 
     import { getContext } from 'svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
+
+    let canPlace = $derived(
+        gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
+    )
+
+    let placeableCubes = $derived(gameSession.gameState.placeableCubes())
+
+    function chooseCube(cube: Cube | null | undefined, coords: OffsetCoordinates) {
+        if (!cube || !canPlace || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
+            return
+        }
+
+        const action = gameSession.createStartAuctionAction(cube)
+        gameSession.applyAction(action)
+        gameSession.resetAction()
+    }
 </script>
 
 <div class="p-2 flex justify-center">
     <div class="flex flex-col justify-center items-center gap-y-1">
-        {#each gameSession.gameState.cubes as row}
+        {#each gameSession.gameState.cubes as cubeRow, row}
             <div class="flex items-center gap-x-1">
-                {#each row as cube}
-                    <div
-                        class="flex justify-center items-center text-[#DDDDDD] w-8 h-8 font-bold text-2xl {gameSession.getBgColor(
-                            gameSession.getCompanyColor(cube.company)
-                        )}"
+                {#each cubeRow as cube, col}
+                    <button
+                        tabindex="-1"
+                        onclick={() => chooseCube(cube, { row, col })}
+                        class="flex justify-center items-center text-[#DDDDDD] w-8 h-8 font-bold text-2xl {cube
+                            ? gameSession.getBgColor(gameSession.getCompanyColor(cube.company))
+                            : 'bg-transparent'} {canPlace &&
+                        !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
+                            ? 'opacity-30 cursor-default'
+                            : 'cursor-pointer'}"
                     >
-                        {cube.value}
-                    </div>
+                        {cube?.value ?? ''}
+                    </button>
                 {/each}
             </div>
         {/each}

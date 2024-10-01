@@ -13,7 +13,7 @@
     import { getContext, onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     // import PlayersPanel from '$lib/components/PlayersPanel.svelte'
-    // import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import ActionPanel from '$lib/components/ActionPanel.svelte'
     // import Phase from '$lib/components/Phase.svelte'
     // import BidBoard from '$lib/components/BidBoard.svelte'
     import { TabItem, Tabs, Indicator } from 'flowbite-svelte'
@@ -149,24 +149,24 @@
         >
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
-                <Offer />
                 <!-- <Phase />
                 {#if gameSession.gameState.result}
                     <EndOfGamePanel />
                 {:else if gameSession.mode === GameSessionMode.History}
                     <LastHistoryDescription />
                 {:else if gameSession.mode === GameSessionMode.Play}
-                    <LastHistoryDescription />
-                    {#if gameSession.isMyTurn}
-                        <ActionPanel />
-                    {:else}
-                        <WaitingPanel />
-                    {/if}
-                {/if} -->
+                    <LastHistoryDescription /> -->
+                {#if gameSession.isMyTurn}
+                    <ActionPanel />
+                    <!-- {:else}
+                        <WaitingPanel /> -->
+                {/if}
+                <!-- {/if} -->
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="grow-0 overflow-hidden" style="flex:1;">
+                <Offer />
                 <Board />
             </div>
         </div>

@@ -1,5 +1,6 @@
 import { Type, type Static, type TSchema } from '@sinclair/typebox'
 import { Hydratable } from '../../../util/hydration.js'
+import { range } from '../../../util/range.js'
 
 export enum AuctionType {
     Simple = 'simple',
@@ -59,8 +60,11 @@ export abstract class HydratedAuction<T extends TSchema> extends Hydratable<T> i
     }
 
     static generateBidOrder(turnOrder: string[], auctioneer: string): string[] {
+        console.log('turnOrder', turnOrder, 'auctioneer', auctioneer)
         const doubledTurnOrder = turnOrder.concat(turnOrder) // So we don't have to worry about wrap
         const leftOfAuctioneerIndex = turnOrder.findIndex((playerId) => playerId === auctioneer) + 1
-        return doubledTurnOrder.slice(leftOfAuctioneerIndex, turnOrder.length)
+        return range(leftOfAuctioneerIndex, turnOrder.length).map(
+            (index) => doubledTurnOrder[index]
+        )
     }
 }

@@ -19,7 +19,7 @@ type AuctioningAction = HydratedPlaceBid | HydratedEndAuction
 
 export class AuctioningStateHandler implements MachineStateHandler<AuctioningAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is AuctioningAction {
-        if (!action.playerId) return false
+        if (!action.playerId && !isEndAuction(action)) return false
         return isPlaceBid(action) || isEndAuction(action)
     }
 
