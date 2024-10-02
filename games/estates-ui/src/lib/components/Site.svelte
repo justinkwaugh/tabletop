@@ -71,7 +71,7 @@
 
         if (
             isCube(chosenPiece) &&
-            !gameSession.gameState.board.canPlaceCubeAtSite(chosenPiece, site)
+            !gameSession.gameState.board.canPlaceCubeAtCoords(chosenPiece, coords)
         ) {
             return false
         }

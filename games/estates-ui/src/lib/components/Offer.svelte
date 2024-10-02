@@ -32,7 +32,7 @@
                     <button
                         tabindex="-1"
                         onclick={() => chooseCube(cube, { row, col })}
-                        class="flex justify-center items-center text-[#DDDDDD] w-8 h-8 font-bold text-2xl {cube
+                        class="flex justify-center items-center text-[#DDDDDD] w-8 h-8 font-bold text-2xl select-none {cube
                             ? gameSession.getBgColor(gameSession.getCompanyColor(cube.company))
                             : 'bg-transparent'} {canPlace &&
                         !placeableCubes.find((c) => sameCoordinates(c, { row, col }))

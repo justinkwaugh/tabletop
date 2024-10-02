@@ -19,7 +19,7 @@ import { EstatesPlayerState } from '../model/playerState.js'
 
 import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
-import { BoardRow, EstatesGameBoard } from '../components/gameBoard.js'
+import { BoardRow, EstatesGameBoard, Site } from '../components/gameBoard.js'
 import { Company } from './companies.js'
 import { HydratedRoofBag } from '../components/roofBag.js'
 import { Cube } from '../components/cube.js'
@@ -86,38 +86,49 @@ export class EstatesGameInitializer extends BaseGameInitializer implements GameI
     }
 
     private initializeBoard(): EstatesGameBoard {
+        const site: Site = {
+            single: false,
+            cubes: [],
+            roof: undefined
+        }
+
         const rowOne: BoardRow = {
             mayor: false,
-            sites: new Array(10).fill({
-                single: false,
-                cubes: [],
-                roof: undefined
-            })
+            sites: [],
+            length: 4
         }
-        rowOne.sites[0].single = true
-        rowOne.sites[6].single = true
+        for (let i = 0; i < 10; i++) {
+            rowOne.sites.push(structuredClone(site))
+            if (i === 0 || i === 6) {
+                rowOne.sites[i].single = true
+            }
+        }
 
         const rowTwo: BoardRow = {
             mayor: false,
-            sites: new Array(10).fill({
-                single: false,
-                cubes: [],
-                roof: undefined
-            })
+            sites: [],
+            length: 4
         }
-        rowTwo.sites[2].single = true
-        rowTwo.sites[4].single = true
+
+        for (let i = 0; i < 10; i++) {
+            rowTwo.sites.push(structuredClone(site))
+            if (i === 2 || i === 4) {
+                rowTwo.sites[i].single = true
+            }
+        }
 
         const rowThree: BoardRow = {
             mayor: false,
-            sites: new Array(10).fill({
-                single: false,
-                cubes: [],
-                roof: undefined
-            })
+            sites: [],
+            length: 4
         }
-        rowThree.sites[1].single = true
-        rowThree.sites[6].single = true
+
+        for (let i = 0; i < 10; i++) {
+            rowThree.sites.push(structuredClone(site))
+            if (i === 1 || i === 6) {
+                rowThree.sites[i].single = true
+            }
+        }
 
         const board: EstatesGameBoard = {
             rows: [rowOne, rowTwo, rowThree]

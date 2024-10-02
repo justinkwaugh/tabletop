@@ -14,7 +14,8 @@ export const Site = Type.Object({
 export type BoardRow = Static<typeof BoardRow>
 export const BoardRow = Type.Object({
     mayor: Type.Boolean(),
-    sites: Type.Array(Site)
+    sites: Type.Array(Site),
+    length: Type.Number()
 })
 
 export type EstatesGameBoard = Static<typeof EstatesGameBoard>
@@ -44,6 +45,10 @@ export class HydratedEstatesGameBoard
             return false
         }
 
+        if (coords.col >= boardRow.length) {
+            return false
+        }
+
         const site = boardRow.sites[coords.col]
 
         return this.canPlaceCubeAtSite(cube, site)
@@ -58,7 +63,7 @@ export class HydratedEstatesGameBoard
             return false
         }
 
-        return site.cubes.length === 0 || site.cubes[site.cubes.length - 1].value < cube.value
+        return site.cubes.length === 0 || site.cubes[site.cubes.length - 1].value > cube.value
     }
 
     placeCubeAtSite(cube: Cube, coords: OffsetCoordinates) {

@@ -24,6 +24,7 @@
     // import EndOfGamePanel from './EndOfGamePanel.svelte'
     import { toast } from 'svelte-sonner'
     import Offer from './Offer.svelte'
+    import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let chatActive: boolean = $state(false)
@@ -156,17 +157,25 @@
                     <LastHistoryDescription />
                 {:else if gameSession.mode === GameSessionMode.Play}
                     <LastHistoryDescription /> -->
-                {#if gameSession.isMyTurn}
-                    <ActionPanel />
-                    <!-- {:else}
+                <!-- {#if gameSession.isMyTurn}
+                    <ActionPanel /> -->
+                <!-- {:else}
                         <WaitingPanel /> -->
-                {/if}
+                <!-- {/if} -->
                 <!-- {/if} -->
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
-            <div class="grow-0 overflow-hidden" style="flex:1;">
-                <Offer />
+            <div class="relative grow-0 overflow-hidden" style="flex:1;">
+                <div class="absolute top-0 left-0 w-full z-10">
+                    {#if gameSession.mode === GameSessionMode.History || gameSession.mode === GameSessionMode.Play}
+                        <LastActionDescription />
+                    {/if}
+                    {#if gameSession.mode === GameSessionMode.Play && gameSession.isMyTurn}
+                        <ActionPanel />
+                    {/if}
+                    <Offer />
+                </div>
                 <Board />
             </div>
         </div>
