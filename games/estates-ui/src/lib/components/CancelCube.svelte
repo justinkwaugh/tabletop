@@ -9,15 +9,9 @@
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     let {
-        cube,
-        transparent = false,
-        castShadow = true,
         opacity = 1,
         ...others
     }: {
-        cube: Cube
-        castShadow?: boolean
-        transparent?: boolean
         opacity?: number
     } = $props()
 
@@ -25,38 +19,25 @@
 </script>
 
 <T.Group {...others}>
-    <T.Mesh {castShadow}>
-        <RoundedBoxGeometry args={[1, 1, 1]} />
+    <T.Mesh castShadow>
+        <RoundedBoxGeometry args={[1, 1, 0.3]} />
         <T.MeshPhysicalMaterial
-            color={gameSession.getUiColor(gameSession.getCompanyColor(cube.company))}
-            {transparent}
+            transparent={opacity !== 1}
             {opacity}
+            color={'#888888'}
             clearcoat={1}
             clearcoatRoughness={0.33}
         />
     </T.Mesh>
     <Text
         color="#CCCCCC"
-        position.z={0.5}
+        position.z={0.15}
         depthOffset={-1}
-        fontSize={0.8}
+        fontSize={1}
         fontWeight="bold"
         anchorX="50%"
         anchorY="50%"
-        text={cube.value.toString()}
-        characters="123456HELO"
-        {material}
-    />
-    <Text
-        color="#CCCCCC"
-        rotation.y={Math.PI}
-        position.z={-0.5}
-        depthOffset={-1}
-        fontSize={0.8}
-        fontWeight="bold"
-        anchorX="50%"
-        anchorY="50%"
-        text={cube.value.toString()}
+        text="X"
         characters="123456HELO"
         {material}
     />

@@ -174,7 +174,7 @@
                     {#if gameSession.mode === GameSessionMode.Play && gameSession.isMyTurn}
                         <ActionPanel />
                     {/if}
-                    <Offer />
+                    <!-- <Offer /> -->
                 </div>
                 <Board />
             </div>

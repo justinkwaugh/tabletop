@@ -92,10 +92,17 @@
         <T.MeshBasicMaterial color={'white'} transparent={true} opacity={0} />
     </T.Mesh>
     {#each site.cubes as cube, i}
-        <Cube3d {cube} x={0} z={0} y={i} />
+        <Cube3d {cube} position.x={0} position.z={0} position.y={i} />
     {/each}
     {#if hoverCube}
-        <Cube3d opacity={0.6} cube={hoverCube} x={0} z={0} y={site.cubes.length} scale={$scale} />
+        <Cube3d
+            opacity={0.6}
+            cube={hoverCube}
+            position.x={0}
+            position.z={0}
+            position.y={site.cubes.length}
+            scale={$scale}
+        />
     {/if}
     {#if site.roof}
         <Roof x={0} z={0} y={site.cubes.length - 0.25} />
