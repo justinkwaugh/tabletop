@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { T, useTask } from '@threlte/core'
+    import { T } from '@threlte/core'
     import { interactivity, OrbitControls } from '@threlte/extras'
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
@@ -8,53 +8,31 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Offer3d from './Offer3d.svelte'
-    import Cube3d from './Cube3d.svelte'
-    import { Company, Cube, PieceType } from '@tabletop/estates'
-    import { gsap } from 'gsap'
-    import * as THREE from 'three'
+    import AuctionPreview from './AuctionPreview.svelte'
+    import HighBid from './HighBid.svelte'
+    import BidControls from './BidControls.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     interactivity()
-
-    let rotation = $state(0)
-    useTask((delta) => {
-        rotation -= delta
-    })
-
-    let auctionPiece = $state()
-
-    function flyUp(object: THREE.Object3D) {
-        console.log('fly up?')
-        gsap.to(object.position, { y: 1.3, duration: 0.5 })
-    }
 </script>
 
 <T.PerspectiveCamera
     makeDefault
-    position={[0, 10, 15]}
+    position={[0, 10, 25]}
     oncreate={(ref) => {
-        ref.lookAt(0, 0, 0)
+        ref.lookAt(0, 1, 0)
     }}
     ><OrbitControls
-        maxPolarAngle={1.25}
+        maxPolarAngle={1.15}
         maxAzimuthAngle={Math.PI / 3}
         minAzimuthAngle={-(Math.PI / 3)}
         enablePan={true}
         zoomToCursor={false}
     />
-    {#if gameSession.gameState.chosenPiece}
-        <Cube3d
-            bind:this={auctionPiece}
-            rotation.y={rotation}
-            rotation.x={0.2}
-            oncreate={(ref) => {
-                flyUp(ref)
-            }}
-            cube={{ pieceType: PieceType.Cube, value: 1, company: Company.Emerald }}
-            position={[0, -20, -7]}
-        />
-    {/if}
+    <HighBid />
+    <AuctionPreview />
+    <BidControls />
 </T.PerspectiveCamera>
 <T.AmbientLight intensity={1.5} />
 <T.DirectionalLight position={[5, 5, 10]} castShadow />

@@ -3,6 +3,10 @@
     import { useTexture } from '@threlte/extras'
     import boardImg from '$lib/images/board.jpg'
 
+    import { useViewport } from '@threlte/extras'
+
+    const viewport = useViewport()
+
     const map = useTexture(boardImg)
     const height = 10
     const width = height * 2.75

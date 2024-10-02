@@ -3,9 +3,6 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { Canvas } from '@threlte/core'
     import Scene from './Scene.svelte'
-    let gameSession = getContext('gameSession') as EstatesGameSession
-
-    let table: HTMLDivElement
 </script>
 
 <div class="relative w-full h-full">

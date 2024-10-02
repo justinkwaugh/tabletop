@@ -96,6 +96,7 @@
     {/each}
     {#if hoverCube}
         <Cube3d
+            transparent={true}
             opacity={0.6}
             cube={hoverCube}
             position.x={0}

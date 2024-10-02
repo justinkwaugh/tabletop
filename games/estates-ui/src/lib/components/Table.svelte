@@ -25,6 +25,8 @@
     import { toast } from 'svelte-sonner'
     import Offer from './Offer.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
+    import BidControls from './BidControls.svelte'
+    import HighBid from './HighBid.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let chatActive: boolean = $state(false)
@@ -164,15 +166,15 @@
                 <!-- {/if} -->
                 <!-- {/if} -->
             </div>
+            {#if gameSession.mode === GameSessionMode.History || gameSession.mode === GameSessionMode.Play}
+                <LastActionDescription />
+            {/if}
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="relative grow-0 overflow-hidden" style="flex:1;">
                 <div class="absolute top-0 left-0 w-full z-10">
-                    {#if gameSession.mode === GameSessionMode.History || gameSession.mode === GameSessionMode.Play}
-                        <LastActionDescription />
-                    {/if}
                     {#if gameSession.mode === GameSessionMode.Play && gameSession.isMyTurn}
-                        <ActionPanel />
+                        <!-- <ActionPanel /> -->
                     {/if}
                     <!-- <Offer /> -->
                 </div>
