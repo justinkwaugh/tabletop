@@ -1,6 +1,6 @@
 <script lang="ts">
     import { T } from '@threlte/core'
-    import { interactivity, OrbitControls } from '@threlte/extras'
+    import { interactivity, OrbitControls, HUD } from '@threlte/extras'
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
@@ -11,6 +11,7 @@
     import AuctionPreview from './AuctionPreview.svelte'
     import HighBid from './HighBid.svelte'
     import BidControls from './BidControls.svelte'
+    import HudScene from './HudScene.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -23,19 +24,21 @@
     oncreate={(ref) => {
         ref.lookAt(0, 1, 0)
     }}
-    ><OrbitControls
+>
+    <OrbitControls
         maxPolarAngle={1.15}
         maxAzimuthAngle={Math.PI / 3}
         minAzimuthAngle={-(Math.PI / 3)}
         enablePan={true}
         zoomToCursor={false}
     />
-    <HighBid />
-    <AuctionPreview />
-    <BidControls />
 </T.PerspectiveCamera>
 <T.AmbientLight intensity={1.5} />
 <T.DirectionalLight position={[5, 5, 10]} castShadow />
+
+<HUD>
+    <HudScene />
+</HUD>
 
 <Map />
 {#each gameSession.gameState.board.rows as row, i}

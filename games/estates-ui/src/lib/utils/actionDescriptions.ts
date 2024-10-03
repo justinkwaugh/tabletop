@@ -8,7 +8,7 @@ export function getDescriptionForAction(action: GameAction) {
         case isPlaceBid(action):
             return 'placed a bid of $' + action.amount
         case isStartAuction(action):
-            return 'started an auction for a thing'
+            return 'started an auction'
         case isPlaceCube(action):
             return 'placed a cube on the board'
         default:
