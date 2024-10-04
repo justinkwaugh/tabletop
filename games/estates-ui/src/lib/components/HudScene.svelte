@@ -14,17 +14,11 @@
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     const viewport = useViewport()
-    let ready = $state(false)
-
-    function onFlyDone() {
-        ready = true
-        console.log('fly done')
-    }
 </script>
 
 <T.OrthographicCamera makeDefault zoom={80} position={[0, 0, 10]} />
-<T.AmbientLight intensity={Math.PI / 2} />
-<T.PointLight position={[10, 10, 10]} decay={0} intensity={Math.PI * 1.5} />
+<T.AmbientLight intensity={1.5} />
+<T.PointLight position={[10, 10, 10]} decay={0} intensity={1.5} />
 
 {#if gameSession.gameState.machineState === MachineState.Auctioning}
     <AuctioningHud />

@@ -9,7 +9,7 @@ import {
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { ActionType } from '../definition/actions.js'
-import { isCube, Piece } from '../components/pieces.js'
+import { isBarrier, isCancelCube, isCube, isMayor, Piece } from '../components/pieces.js'
 
 export type StartAuction = Static<typeof StartAuction>
 export const StartAuction = Type.Composite([
@@ -45,7 +45,7 @@ export class HydratedStartAuction
             state.turnManager.turnOrder,
             this.playerId
         )
-        console.log('bidOrder', bidOrder)
+
         const validBidders = bidOrder.filter((playerId) => state.getPlayerState(playerId).money > 0)
         const participants = validBidders.map((playerId) => ({ playerId: playerId, passed: false }))
 
@@ -58,6 +58,18 @@ export class HydratedStartAuction
 
         if (isCube(state.chosenPiece)) {
             state.removeCubeFromOffer(state.chosenPiece)
+        } else if (isMayor(state.chosenPiece)) {
+            state.mayor = false
+        } else if (isCancelCube(state.chosenPiece)) {
+            state.cancelCube = false
+        } else if (isBarrier(state.chosenPiece)) {
+            if (state.chosenPiece.value === 1) {
+                state.barrierOne = false
+            } else if (state.chosenPiece.value === 2) {
+                state.barrierTwo = false
+            } else if (state.chosenPiece.value === 3) {
+                state.barrierThree = false
+            }
         }
     }
 }

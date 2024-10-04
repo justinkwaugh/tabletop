@@ -5,6 +5,7 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
     import { gsap } from 'gsap'
+    import { fade } from 'svelte/transition'
 
     let { position, ready, ...others }: { position: [number, number, number]; ready: boolean } =
         $props()

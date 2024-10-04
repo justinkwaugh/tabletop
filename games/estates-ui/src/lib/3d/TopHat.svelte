@@ -11,8 +11,9 @@ Title: Top Hat
     import type * as THREE from 'three'
     import { Group } from 'three'
     import { T } from '@threlte/core'
-    import { useGltf } from '@threlte/extras'
+    import { useGltf, Outlines } from '@threlte/extras'
 
+    export let outline = false
     export const ref = new Group()
 
     type GLTFResult = {
@@ -38,7 +39,11 @@ Title: Top Hat
                 geometry={gltf.nodes.Object_4.geometry}
                 material={gltf.materials.hat1}
                 castShadow
-            />
+            >
+                {#if outline}
+                    <Outlines color="white" thickness={0.1} />
+                {/if}
+            </T.Mesh>
             <T.Mesh
                 geometry={gltf.nodes.Object_5.geometry}
                 material={gltf.materials.hat2}

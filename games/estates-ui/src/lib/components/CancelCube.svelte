@@ -1,6 +1,6 @@
 <script lang="ts">
     import { T } from '@threlte/core'
-    import { Text, RoundedBoxGeometry } from '@threlte/extras'
+    import { Text, RoundedBoxGeometry, Outlines } from '@threlte/extras'
     import { Cube } from '@tabletop/estates'
     import * as THREE from 'three'
     import { getContext } from 'svelte'
@@ -10,9 +10,11 @@
 
     let {
         opacity = 1,
+        outline = false,
         ...others
     }: {
         opacity?: number
+        outline?: boolean
     } = $props()
 
     const material = new THREE.MeshBasicMaterial({ toneMapped: false })
@@ -28,6 +30,9 @@
             clearcoat={1}
             clearcoatRoughness={0.33}
         />
+        {#if outline}
+            <Outlines color="white" thickness={0.05} />
+        {/if}
     </T.Mesh>
     <Text
         color="#CCCCCC"

@@ -4,11 +4,12 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
 -->
 
 <script lang="ts">
-    import type * as THREE from 'three'
+    import * as THREE from 'three'
     import { Group } from 'three'
     import { T } from '@threlte/core'
-    import { useGltf } from '@threlte/extras'
+    import { useGltf, Outlines } from '@threlte/extras'
 
+    export let outline = false
     export const ref = new Group()
 
     type GLTFResult = {
@@ -27,7 +28,20 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
     {#await gltf}
         <slot name="fallback" />
     {:then gltf}
-        <T.Mesh geometry={gltf.nodes.Node1.geometry} material={gltf.materials['01 - Default']} />
+        <T.Mesh
+            rotation.x={-Math.PI / 2}
+            rotation.z={Math.PI / 2}
+            geometry={gltf.nodes.Node1.geometry}
+            material={new THREE.MeshStandardMaterial({
+                color: '#999999',
+                transparent: true,
+                opacity: 1
+            })}
+        >
+            {#if outline}
+                <Outlines color="white" thickness={0.1} />
+            {/if}</T.Mesh
+        >
     {:catch error}
         <slot name="error" {error} />
     {/await}

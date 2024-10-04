@@ -1,0 +1,151 @@
+{
+    "accessors": [
+        {
+            "bufferView": 2,
+            "componentType": 5126,
+            "count": 9167,
+            "max": [100.0, 9.410873413085938, 100.0],
+            "min": [-100.0, -9.410873413085938, -100.0],
+            "type": "VEC3"
+        },
+        {
+            "bufferView": 2,
+            "byteOffset": 110004,
+            "componentType": 5126,
+            "count": 9167,
+            "max": [0.9987954497337341, 1.0, 0.9987955689430237],
+            "min": [-0.9987954497337341, -1.0, -0.9987954497337341],
+            "type": "VEC3"
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5126,
+            "count": 9167,
+            "max": [1.0, 1.0],
+            "min": [0.0, 0.013978613540530205],
+            "type": "VEC2"
+        },
+        {
+            "bufferView": 0,
+            "componentType": 5125,
+            "count": 10740,
+            "type": "SCALAR"
+        }
+    ],
+    "asset": {
+        "extras": {
+            "author": "KuoChing.Hsiao (https://sketchfab.com/KuoChing.Hsiao)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/poker-chips-db6c53be86b84b28ba40c485477888e6",
+            "title": "Poker Chips"
+        },
+        "generator": "Sketchfab-14.39.1",
+        "version": "2.0"
+    },
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteLength": 42960,
+            "name": "floatBufferViews",
+            "target": 34963
+        },
+        {
+            "buffer": 0,
+            "byteLength": 73336,
+            "byteOffset": 42960,
+            "byteStride": 8,
+            "name": "floatBufferViews",
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteLength": 220008,
+            "byteOffset": 116296,
+            "byteStride": 12,
+            "name": "floatBufferViews",
+            "target": 34962
+        }
+    ],
+    "buffers": [
+        {
+            "byteLength": 336304,
+            "uri": "PokerChip.bin"
+        }
+    ],
+    "images": [
+        {
+            "uri": "textures/default_baseColor.png"
+        }
+    ],
+    "materials": [
+        {
+            "doubleSided": true,
+            "emissiveTexture": {
+                "index": 0
+            },
+            "name": "default",
+            "pbrMetallicRoughness": {
+                "baseColorTexture": {
+                    "index": 0
+                },
+                "metallicFactor": 0.0
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "Object_0",
+            "primitives": [
+                {
+                    "attributes": {
+                        "NORMAL": 1,
+                        "POSITION": 0,
+                        "TEXCOORD_0": 2
+                    },
+                    "indices": 3,
+                    "material": 0,
+                    "mode": 4
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "children": [1],
+            "matrix": [
+                1.0, 0.0, 0.0, 0.0, 0.0, 2.220446049250313e-16, -1.0, 0.0, 0.0, 1.0,
+                2.220446049250313e-16, 0.0, 0.0, 0.0, 0.0, 1.0
+            ],
+            "name": "Sketchfab_model"
+        },
+        {
+            "children": [2],
+            "name": "chips.obj.cleaner.materialmerger.gles"
+        },
+        {
+            "mesh": 0,
+            "name": "Object_2"
+        }
+    ],
+    "samplers": [
+        {
+            "magFilter": 9729,
+            "minFilter": 9987,
+            "wrapS": 10497,
+            "wrapT": 10497
+        }
+    ],
+    "scene": 0,
+    "scenes": [
+        {
+            "name": "Sketchfab_Scene",
+            "nodes": [0]
+        }
+    ],
+    "textures": [
+        {
+            "sampler": 0,
+            "source": 0
+        }
+    ]
+}

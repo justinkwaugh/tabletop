@@ -62,6 +62,7 @@ export class EstatesGameSession extends GameSession {
     }
 
     createStartAuctionAction(piece: Piece): StartAuction {
+        console.log('create auctino fo rpiece', piece)
         return {
             ...(this.createBaseAction(ActionType.StartAuction) as StartAuction),
             piece

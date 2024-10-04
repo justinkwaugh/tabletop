@@ -1,7 +1,7 @@
 <script lang="ts">
     import { T } from '@threlte/core'
     import { Text, RoundedBoxGeometry } from '@threlte/extras'
-    import { Cube, isCube, MachineState } from '@tabletop/estates'
+    import { Cube, isCube, MachineState, PieceType } from '@tabletop/estates'
     import * as THREE from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
@@ -23,6 +23,12 @@
     let placeableCubes = $derived(gameSession.gameState.placeableCubes())
     let yPos = spring(-0.7)
     let opacity = spring(0)
+
+    let hoverMayor: boolean = $state(false)
+    let hoverBarrierOne: boolean = $state(false)
+    let hoverBarrierTwo: boolean = $state(false)
+    let hoverBarrierThree: boolean = $state(false)
+    let hoverCancelCube: boolean = $state(false)
 
     function onPointerEnter(event: PointerEvent) {
         if (!canPlace) {
@@ -57,6 +63,80 @@
             gameSession.applyAction(action)
             gameSession.resetAction()
         })
+    }
+
+    function onMayorClick(event: any) {
+        event.stopPropagation()
+        chooseMayor(event.object.parent)
+    }
+
+    function chooseMayor(obj: THREE.Object3D) {
+        if (!canPlace) {
+            return
+        }
+        hoverMayor = false
+        setTimeout(() => {
+            fadeUp(obj, () => {
+                const action = gameSession.createStartAuctionAction({ pieceType: PieceType.Mayor })
+                gameSession.applyAction(action)
+                gameSession.resetAction()
+            })
+        }, 1)
+    }
+
+    function onCancelCubeClick(event: any) {
+        event.stopPropagation()
+        chooseCancelCube(event.object.parent)
+    }
+
+    function chooseCancelCube(obj: THREE.Object3D) {
+        if (!canPlace) {
+            return
+        }
+        hoverCancelCube = false
+        setTimeout(() => {
+            fadeUp(obj, () => {
+                const action = gameSession.createStartAuctionAction({
+                    pieceType: PieceType.CancelCube
+                })
+                gameSession.applyAction(action)
+                gameSession.resetAction()
+            })
+        }, 1)
+    }
+
+    function onBarrierClick(event: any, value: number) {
+        event.stopPropagation()
+        chooseBarrier(event.object, value)
+    }
+
+    function chooseBarrier(obj: THREE.Object3D, value: number) {
+        if (!canPlace) {
+            return
+        }
+
+        switch (value) {
+            case 1:
+                hoverBarrierOne = false
+                break
+            case 2:
+                hoverBarrierTwo = false
+                break
+            case 3:
+                hoverBarrierThree = false
+                break
+        }
+
+        setTimeout(() => {
+            fadeUp(obj, () => {
+                const action = gameSession.createStartAuctionAction({
+                    pieceType: PieceType.Barrier,
+                    value
+                })
+                gameSession.applyAction(action)
+                gameSession.resetAction()
+            })
+        }, 1)
     }
 
     $effect(() => {
@@ -122,7 +202,7 @@
                     <Cube3d
                         {cube}
                         castShadow={false}
-                        onclick={(event) => onCubeClick(event, cube, { row, col })}
+                        onclick={(event: any) => onCubeClick(event, cube, { row, col })}
                         rotation.x={-Math.PI / 2}
                         position.x={col * 1}
                         position.y={!canPlace ||
@@ -135,34 +215,99 @@
             {/each}
         </div>
     {/each}
-    <TopHat
-        scale={0.5}
-        position.y={0.35}
-        position.x={12.15}
-        position.z={0.6}
-        transparent={true}
-        opacity={$opacity}
-    />
-    <Barrier
-        position.x={9.5}
-        rotation.z={-Math.PI / 2}
-        rotation.x={-Math.PI / 2}
-        position.y={-0.5}
-        position.z={0.25}
-    />
-    <Barrier
-        position.x={9.5}
-        rotation.z={-Math.PI / 2}
-        rotation.x={-Math.PI / 2}
-        position.y={-0.5}
-        position.z={1.45}
-    />
-    <Barrier
-        position.x={9.5}
-        rotation.z={-Math.PI / 2}
-        rotation.x={-Math.PI / 2}
-        position.y={-0.3}
-        position.z={2.65}
-    />
-    <CancelCube position.x={12.0} position.y={-0.5} position.z={2.4} rotation.x={-Math.PI / 2} />
+    {#if gameSession.gameState.mayor}
+        <TopHat
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                hoverMayor = true
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                hoverMayor = false
+            }}
+            outline={hoverMayor}
+            onclick={onMayorClick}
+            scale={0.5}
+            position.y={0.35}
+            position.x={12.15}
+            position.z={0.6}
+            transparent={true}
+            opacity={$opacity}
+        />
+    {/if}
+    {#if gameSession.gameState.barrierOne}
+        <Barrier
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                hoverBarrierOne = true
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                hoverBarrierOne = false
+            }}
+            onclick={(event: any) => {
+                onBarrierClick(event, 1)
+            }}
+            outline={hoverBarrierOne}
+            position.x={9.5}
+            position.y={-0.3}
+            position.z={0.25}
+        />
+    {/if}
+    {#if gameSession.gameState.barrierTwo}
+        <Barrier
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                hoverBarrierTwo = true
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                hoverBarrierTwo = false
+            }}
+            onclick={(event: any) => {
+                onBarrierClick(event, 2)
+            }}
+            outline={hoverBarrierTwo}
+            position.x={9.5}
+            position.y={-0.3}
+            position.z={1.45}
+        />
+    {/if}
+    {#if gameSession.gameState.barrierThree}
+        <Barrier
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                hoverBarrierThree = true
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                hoverBarrierThree = false
+            }}
+            onclick={(event: any) => {
+                onBarrierClick(event, 3)
+            }}
+            outline={hoverBarrierThree}
+            position.x={9.5}
+            position.y={-0.3}
+            position.z={2.65}
+        />
+    {/if}
+    {#if gameSession.gameState.cancelCube}
+        <CancelCube
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                hoverCancelCube = true
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                hoverCancelCube = false
+            }}
+            outline={hoverCancelCube}
+            onclick={onCancelCubeClick}
+            position.x={12.0}
+            position.y={-0.25}
+            position.z={2.4}
+            rotation.x={-Math.PI / 2}
+        />
+    {/if}
 </T.Group>
