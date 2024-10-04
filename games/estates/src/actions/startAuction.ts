@@ -46,7 +46,9 @@ export class HydratedStartAuction
             this.playerId
         )
 
-        const validBidders = bidOrder.filter((playerId) => state.getPlayerState(playerId).money > 0)
+        const validBidders = bidOrder.filter(
+            (playerId) => state.getPlayerState(playerId).money > 0 && playerId !== this.playerId
+        )
         const participants = validBidders.map((playerId) => ({ playerId: playerId, passed: false }))
 
         state.auction = new HydratedOnceAroundAuction({

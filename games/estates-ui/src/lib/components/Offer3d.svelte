@@ -1,7 +1,6 @@
 <script lang="ts">
     import { T } from '@threlte/core'
-    import { Text, RoundedBoxGeometry } from '@threlte/extras'
-    import { Cube, isCube, MachineState, PieceType } from '@tabletop/estates'
+    import { Cube, MachineState, PieceType } from '@tabletop/estates'
     import * as THREE from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'

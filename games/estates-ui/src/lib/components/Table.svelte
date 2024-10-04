@@ -174,7 +174,7 @@
             <div class="relative grow-0 overflow-hidden" style="flex:1;">
                 <div class="absolute top-0 left-0 w-full z-10">
                     {#if gameSession.mode === GameSessionMode.Play && gameSession.isMyTurn}
-                        <!-- <ActionPanel /> -->
+                        <ActionPanel />
                     {/if}
                     <!-- <Offer /> -->
                 </div>

@@ -4,7 +4,7 @@
 
     let { width, height, ...others }: { width: number; height: number } = $props()
 
-    function RoundedRectangle(w, h, r, s) {
+    function RoundedRectangle(w: number, h: number, r: number, s: number) {
         // width, height, radius corner, smoothness
 
         // helper const's
@@ -89,13 +89,12 @@
 
         return geometry
     }
-    const geometry = RoundedRectangle(width, height, 0.5, 10)
+    const geometry = RoundedRectangle(width, height, 0.3, 10)
     geometry.computeVertexNormals()
 </script>
 
 <T.Mesh {...others}>
     <T is={geometry} />
-    <!-- <T.PlaneGeometry args={[width, height]} /> -->
     <T.MeshPhysicalMaterial
         roughness={0.7}
         transmission={1}

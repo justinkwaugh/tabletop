@@ -10,7 +10,8 @@ import {
     AuctionRecipient,
     ChooseRecipient,
     PlaceCube,
-    Cube
+    Cube,
+    PlaceMayor
 } from '@tabletop/estates'
 import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
 
@@ -105,6 +106,18 @@ export class EstatesGameSession extends GameSession {
             ...(this.createBaseAction(ActionType.PlaceCube) as PlaceCube),
             cube,
             coords
+        }
+        try {
+            await this.applyAction(action)
+        } finally {
+            this.resetAction()
+        }
+    }
+
+    async placeMayor(row: number) {
+        const action: PlaceMayor = {
+            ...(this.createBaseAction(ActionType.PlaceMayor) as PlaceMayor),
+            row
         }
         try {
             await this.applyAction(action)

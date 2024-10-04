@@ -3,7 +3,8 @@ import { HydratedEstatesGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceCube, isPlaceCube } from '../actions/placeCube.js'
-import { isCube } from '../components/pieces.js'
+import { isCube, isMayor } from '../components/pieces.js'
+import { isPlaceMayor } from '../actions/placeMayor.js'
 
 // Transition from PlacingPiece(PlaceRoof) -> StartOfTurn | EndofGame
 //                 PlacingPiece(PlaceCube) -> StartOfTurn | EndofGame
@@ -17,7 +18,7 @@ type PlacingPieceAction = HydratedPlaceCube
 export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPieceAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is PlacingPieceAction {
         if (!action.playerId) return false
-        return isPlaceCube(action)
+        return isPlaceCube(action) || isPlaceMayor(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
@@ -27,6 +28,10 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
         switch (true) {
             case isCube(gameState.chosenPiece): {
                 validActions.push(ActionType.PlaceCube)
+                break
+            }
+            case isMayor(gameState.chosenPiece): {
+                validActions.push(ActionType.PlaceMayor)
                 break
             }
         }
@@ -44,16 +49,13 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
 
     onAction(action: PlacingPieceAction, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedEstatesGameState
-        switch (true) {
-            case isPlaceCube(action): {
-                gameState.chosenPiece = undefined
-                gameState.recipient = undefined
-                gameState.turnManager.endTurn(gameState.actionCount)
-                return MachineState.StartOfTurn
-            }
-            default: {
-                throw Error('Invalid action type')
-            }
+        if (!isPlaceCube(action) && !isPlaceMayor(action)) {
+            throw Error('Invalid action type')
         }
+
+        gameState.chosenPiece = undefined
+        gameState.recipient = undefined
+        gameState.turnManager.endTurn(gameState.actionCount)
+        return MachineState.StartOfTurn
     }
 }

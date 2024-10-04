@@ -60,7 +60,6 @@ export abstract class HydratedAuction<T extends TSchema> extends Hydratable<T> i
     }
 
     static generateBidOrder(turnOrder: string[], auctioneer: string): string[] {
-        console.log('turnOrder', turnOrder, 'auctioneer', auctioneer)
         const doubledTurnOrder = turnOrder.concat(turnOrder) // So we don't have to worry about wrap
         const leftOfAuctioneerIndex = turnOrder.findIndex((playerId) => playerId === auctioneer) + 1
         return range(leftOfAuctioneerIndex, turnOrder.length).map(

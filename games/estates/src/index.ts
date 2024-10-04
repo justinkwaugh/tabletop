@@ -12,6 +12,7 @@ export * from './actions/placeCube.js'
 export * from './actions/chooseRecipient.js'
 export * from './actions/placeBid.js'
 export * from './actions/endAuction.js'
+export * from './actions/placeMayor.js'
 
 export * from './components/cube.js'
 export * from './components/barrier.js'

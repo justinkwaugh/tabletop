@@ -5,6 +5,8 @@
     import * as THREE from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { SelectiveBloomEffect } from 'postprocessing'
+    import { bloom } from 'three/webgpu'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 

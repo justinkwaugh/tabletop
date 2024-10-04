@@ -92,6 +92,11 @@ export class HydratedEstatesGameBoard
         site.roof = roof
     }
 
+    placeMayorAtRow(row: number) {
+        const boardRow = this.rows[row]
+        boardRow.mayor = true
+    }
+
     validRoofLocations(): OffsetCoordinates[] {
         const validLocations: OffsetCoordinates[] = []
         for (let row = 0; row < this.rows.length; row++) {

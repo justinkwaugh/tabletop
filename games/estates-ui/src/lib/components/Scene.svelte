@@ -1,14 +1,6 @@
 <script lang="ts">
     import { T, useTask } from '@threlte/core'
-    import {
-        interactivity,
-        OrbitControls,
-        HUD,
-        Text3DGeometry,
-        Float,
-        Text,
-        HTML
-    } from '@threlte/extras'
+    import { interactivity, OrbitControls, HUD, Outlines } from '@threlte/extras'
     import * as THREE from 'three'
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
@@ -18,15 +10,17 @@
     import TopHat from '$lib/3d/TopHat.svelte'
     import Offer3d from './Offer3d.svelte'
     import HudScene from './HudScene.svelte'
-    import PlaceCard from './PlaceCard.svelte'
-    import PokerChip from '$lib/3d/PokerChip.svelte'
     import { Vector3 } from 'three'
-    import PlayerInfo from './PlayerInfo.svelte'
     import Cert3d from './Cert3d.svelte'
-    import { Company } from '@tabletop/estates'
-    import GlassPanel from './GlassPanel.svelte'
+    import PlayerPanel3d from './PlayerPanel3d.svelte'
+    import type { Effects } from '$lib/model/Effects.svelte'
+    import GlowingCircle from './GlowingCircle.svelte'
+    import { gsap } from 'gsap'
+    import { ActionType } from '@tabletop/estates'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
+    let effects = getContext('effects') as Effects
+    let ghostHat: number | undefined = $state()
 
     interactivity()
 
@@ -50,11 +44,32 @@
         [10, -0.5, 7.5],
         [10, -0.5, 8.8]
     ]
+
+    function fadeIn(ref: THREE.Object3D) {
+        ref.traverse((ref) => {
+            if ((ref as THREE.Mesh).material as THREE.MeshStandardMaterial) {
+                const material = (ref as THREE.Mesh).material as THREE.MeshStandardMaterial
+                material.transparent = true
+                material.opacity = 0
+                material.needsUpdate = true
+                gsap.to(material, {
+                    duration: 0.5,
+                    opacity: 0.5
+                })
+            }
+        })
+    }
+
+    async function placeMayor(row: number) {
+        ghostHat = undefined
+        await gameSession.placeMayor(row)
+    }
 </script>
 
+<!-- <Stars /> -->
 <T.PerspectiveCamera
     makeDefault
-    position={[0, 13, 23]}
+    position={[0, 16, 20]}
     oncreate={(ref) => {
         camera = ref
         ref.lookAt(0, 2, 0)
@@ -62,7 +77,7 @@
 >
     <OrbitControls
         target={[0, 2, 0]}
-        maxPolarAngle={1.15}
+        maxPolarAngle={1}
         maxAzimuthAngle={Math.PI / 3}
         minAzimuthAngle={-(Math.PI / 3)}
         enablePan={true}
@@ -93,63 +108,64 @@
     {/if}
 {/each}
 
-<!-- <PlaceCard position.x={-8} position.z={-9.2} />
-<PlaceCard position.x={-4} position.z={-9.2} /> -->
-<!-- <PokerChip rotation.x={Math.PI / 10} position.x={0} position.y={-0.5} position.z={-7} />
-
-<Text
+<PlayerPanel3d
+    position={[0, 5, -6]}
     oncreate={(ref) => {
+        let size = new THREE.Box3().setFromObject(ref).getSize(new THREE.Vector3())
+        console.log(size)
+        ref.position.x = -(size.x / 2) + 2.5
         billboards.push(ref)
     }}
-    position.x={0}
-    position.y={1}
-    position.z={-8}
-    depthOffset={-1}
-    fontSize={0.8}
-    anchorX="50%"
-    anchorY="50%"
-    text={'justintheonly'}
->
-    <T.MeshStandardMaterial color="#EEEEEE" toneMapped={false} />
-</Text>
+/>
 
-<Text
-    oncreate={(ref) => {
-        billboards.push(ref)
-    }}
-    position.x={5}
-    position.y={1}
-    position.z={-8}
-    depthOffset={-1}
-    fontSize={0.8}
-    anchorX="50%"
-    anchorY="50%"
-    text={'hrafnkelredbe'}
->
-    <T.MeshStandardMaterial color="#EEEEEE" toneMapped={false} />
-</Text> -->
-
-{#each gameSession.game.players as player, i}
-    <HTML
-        oncreate={(ref) => {
-            billboards.push(ref)
+{#if gameSession.isMyTurn && gameSession.chosenAction === ActionType.PlaceMayor}
+    <GlowingCircle
+        onpointerenter={() => {
+            ghostHat = 0
         }}
-        position.x={-10 + i * 6}
-        position.y={5}
-        position.z={-6}
-        distanceFactor={15}
-        transform
-    >
-        <PlayerInfo playerId={player.id} />
-    </HTML>
-    <GlassPanel
-        oncreate={(ref) => {
-            billboards.push(ref)
+        onpointerleave={() => {
+            ghostHat = undefined
         }}
-        width={5}
-        height={2.5}
-        position.x={-10 + i * 6}
-        position.z={-6.2}
-        position.y={5}
+        onclick={() => {
+            placeMayor(0)
+        }}
+        position={[10.1, -0.49, RowOffsets[0]]}
+        rotation.x={-Math.PI / 2}
     />
-{/each}
+    <GlowingCircle
+        onpointerenter={() => {
+            ghostHat = 1
+        }}
+        onpointerleave={() => {
+            ghostHat = undefined
+        }}
+        onclick={() => {
+            placeMayor(1)
+        }}
+        position={[10.1, -0.49, RowOffsets[1]]}
+        rotation.x={-Math.PI / 2}
+    />
+    <GlowingCircle
+        onpointerenter={() => {
+            ghostHat = 2
+        }}
+        onpointerleave={() => {
+            ghostHat = undefined
+        }}
+        onclick={() => {
+            placeMayor(2)
+        }}
+        position={[10.1, -0.49, RowOffsets[2]]}
+        rotation.x={-Math.PI / 2}
+    />
+
+    {#if ghostHat !== undefined}
+        <TopHat
+            oncreate={fadeIn}
+            scale={0.45}
+            position.y={0.35}
+            position.x={10.2}
+            position.z={RowOffsets[ghostHat]}
+        />
+    {/if}
+{/if}

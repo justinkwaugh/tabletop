@@ -1,9 +1,10 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction, HydratableAction, remove } from '@tabletop/common'
 
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { ActionType } from '../definition/actions.js'
+import { isCube } from '../components/pieces.js'
 
 export enum AuctionRecipient {
     Auctioneer = 'auctioneer',
@@ -48,26 +49,39 @@ export class HydratedChooseRecipient
             throw Error('Only the auctioneer can choose the recipient')
         }
 
+        const winningPlayer = state.auction.winnerId
+            ? state.getPlayerState(state.auction.winnerId)
+            : undefined
+
         if (this.recipient === AuctionRecipient.Auctioneer) {
             if (playerState.money < (state.auction.highBid ?? 0)) {
                 throw Error('Auctioneer must have enough money to pay the highest bid')
             }
             playerState.money -= state.auction.highBid ?? 0
+            if (winningPlayer) {
+                winningPlayer.money += state.auction.highBid ?? 0
+            }
             state.recipient = this.playerId
         } else {
-            if (!state.auction.winnerId) {
+            if (!winningPlayer) {
                 throw Error(
                     'There must be a high bidder for the recipient to be the highest bidder'
                 )
             }
 
-            const winningPlayer = state.getPlayerState(state.auction.winnerId)
             if (winningPlayer.money < (state.auction.highBid ?? 0)) {
                 throw Error('Highest bidder must have enough money to pay the highest bid')
             }
             winningPlayer.money -= state.auction.highBid ?? 0
             playerState.money += state.auction.highBid ?? 0
             state.recipient = state.auction.winnerId
+        }
+
+        // Check for certificate assignment
+        if (isCube(state.chosenPiece) && state.certificates.includes(state.chosenPiece.company)) {
+            remove(state.certificates, state.chosenPiece.company)
+            const recipientState = state.getPlayerState(state.recipient!)
+            recipientState.certificates.push(state.chosenPiece.company)
         }
         state.auction = undefined
     }

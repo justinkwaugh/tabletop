@@ -1,8 +1,10 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
-    import { EstatesPlayerState } from '@tabletop/estates'
+    import { Company, EstatesPlayerState } from '@tabletop/estates'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import { CaretSortSolid } from 'flowbite-svelte-icons'
+    import Cert2d from './Cert2d.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let { playerId }: { playerId: String } = $props()
@@ -17,18 +19,23 @@
 
 <div class="relative">
     <div
-        class="rounded-lg bg-transparent py-[3px] px-4 text-center {textColor} font-medium flex flex-col justify-between w-[150px] select-none"
+        class="bg-transparent py-0 px-3 text-center {textColor} font-medium flex flex-col justify-between w-[140px] select-none"
     >
-        <h1 class="text-lg font-mediummb-2">
-            {player?.name}
-        </h1>
-        <div class="flex flex-row justify-between items-start">
+        <div class="flex flex-row justify-between items-center">
+            <h1 class="text-lg">
+                {playerId === gameSession.myPlayer?.id ? 'You' : player?.name}
+            </h1>
             <div class="flex flex-row justify-start items-center space-x-4">
                 <div class="flex flex-col justify-center items-center">
                     <div class="text-2xl">${playerState?.money}</div>
                 </div>
             </div>
-            <div class="flex flex-col justify-center items-center"></div>
+        </div>
+        <div class="flex flex-row justify-center items-center gap-x-1 mt-1">
+            <!-- <div class="rounded-md p-1 text-xs">No certs</div> -->
+            {#each playerState?.certificates ?? [] as company}
+                <Cert2d {company} class="w-[35px]" />
+            {/each}
         </div>
         {#if gameSession.showDebug}
             <div class="text-xs mt-2">id: {playerId}</div>
