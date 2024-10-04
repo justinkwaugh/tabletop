@@ -17,6 +17,7 @@
     import GlowingCircle from './GlowingCircle.svelte'
     import { gsap } from 'gsap'
     import { ActionType } from '@tabletop/estates'
+    import Roof from './Roof.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let effects = getContext('effects') as Effects
@@ -169,3 +170,5 @@
         />
     {/if}
 {/if}
+
+<Roof position={[0, 0, 0]} rotation.y={Math.PI / 2} />

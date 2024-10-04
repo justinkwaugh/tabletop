@@ -1,0 +1,93 @@
+{
+    "asset": {
+        "generator": "Khronos glTF Blender I/O v4.2.69",
+        "version": "2.0"
+    },
+    "scene": 0,
+    "scenes": [
+        {
+            "name": "Scene",
+            "nodes": [0]
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "name": "roof"
+        }
+    ],
+    "materials": [
+        {
+            "doubleSided": true,
+            "name": "Material.004",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.6038233637809753, 0.6038278341293335, 0.6038275361061096, 1],
+                "metallicFactor": 0,
+                "roughnessFactor": 0.5
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "roof",
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0,
+                        "NORMAL": 1
+                    },
+                    "indices": 2,
+                    "material": 0
+                }
+            ]
+        }
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "componentType": 5126,
+            "count": 36,
+            "max": [20, 10.199999809265137, 0],
+            "min": [-2.6574157883600257e-16, -1.144237750204521e-16, -20],
+            "type": "VEC3"
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5126,
+            "count": 36,
+            "type": "VEC3"
+        },
+        {
+            "bufferView": 2,
+            "componentType": 5123,
+            "count": 60,
+            "type": "SCALAR"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteLength": 432,
+            "byteOffset": 0,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteLength": 432,
+            "byteOffset": 432,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteLength": 120,
+            "byteOffset": 864,
+            "target": 34963
+        }
+    ],
+    "buffers": [
+        {
+            "byteLength": 984,
+            "uri": "roof.bin"
+        }
+    ]
+}

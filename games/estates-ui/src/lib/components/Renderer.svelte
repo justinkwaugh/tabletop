@@ -24,7 +24,7 @@
         composer.removeAllPasses()
         composer.addPass(new RenderPass(scene, camera))
         const bloomEffect = new SelectiveBloomEffect(scene, camera, {
-            intensity: 7,
+            intensity: 5,
             mipmapBlur: true,
             luminanceThreshold: 0,
             luminanceSmoothing: 0.2,
@@ -35,14 +35,14 @@
 
         const outlineEffect = new OutlineEffect(scene, camera, {
             multisampling: Math.min(4, renderer.capabilities.maxSamples),
-            edgeStrength: 8,
-            pulseSpeed: 0.4,
+            edgeStrength: 6,
+            pulseSpeed: 0.35,
             visibleEdgeColor: 0xffffff,
             hiddenEdgeColor: 0x22090a,
             height: 480,
             blur: true,
             xRay: false,
-            kernelSize: KernelSize.MEDIUM
+            kernelSize: KernelSize.SMALL
         })
 
         composer.addPass(new EffectPass(camera, outlineEffect))

@@ -12,6 +12,10 @@
     oncreate={(ref) => {
         effects.bloom?.selection.add(ref)
         effects.outline?.selection.add(ref)
+        return () => {
+            effects.bloom?.selection.delete(ref)
+            effects.outline?.selection.delete(ref)
+        }
     }}
     {...others}
 >
