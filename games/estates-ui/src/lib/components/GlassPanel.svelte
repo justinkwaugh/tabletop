@@ -96,7 +96,7 @@
 <T.Mesh {...others}>
     <T is={geometry} />
     <T.MeshPhysicalMaterial
-        roughness={0.7}
+        roughness={0.8}
         transmission={1}
         thickness={0.5}
         color={'#cccccc'}

@@ -28,5 +28,17 @@
             position.x={i * (gameSession.game.players.length === 5 ? 5.5 : 6)}
             position.z={-0.05}
         />
+        <T.Mesh
+            position.x={i * (gameSession.game.players.length === 5 ? 5.5 : 6)}
+            position.z={-0.1}
+        >
+            <T.PlaneGeometry args={[5, 2.5]} />
+            <T.MeshPhysicalMaterial
+                roughness={0.7}
+                color={'#222222'}
+                clearcoat={1}
+                clearcoatRoughness={0.33}
+            />
+        </T.Mesh>
     {/each}
 </T.Group>

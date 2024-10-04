@@ -5,7 +5,7 @@
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
-    import { getContext } from 'svelte'
+    import { getContext, untrack } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Offer3d from './Offer3d.svelte'
@@ -22,6 +22,9 @@
     let gameSession = getContext('gameSession') as EstatesGameSession
     let effects = getContext('effects') as Effects
     let ghostHat: number | undefined = $state()
+    let showMayorHighlights = $derived(
+        gameSession.isMyTurn && gameSession.chosenAction === ActionType.PlaceMayor
+    )
 
     interactivity()
 
@@ -119,7 +122,7 @@
     }}
 />
 
-{#if gameSession.isMyTurn && gameSession.chosenAction === ActionType.PlaceMayor}
+{#if showMayorHighlights}
     <GlowingCircle
         onpointerenter={() => {
             ghostHat = 0
@@ -171,4 +174,4 @@
     {/if}
 {/if}
 
-<Roof position={[0, 0, 0]} rotation.y={Math.PI / 2} />
+<Roof position={[0, 0, 0]} />

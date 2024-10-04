@@ -55,6 +55,7 @@ export class EstatesGameSession extends GameSession {
     cancel() {}
 
     resetAction() {
+        console.log('reset action')
         this.chosenAction = undefined
     }
 
@@ -84,7 +85,8 @@ export class EstatesGameSession extends GameSession {
         }
         try {
             await this.applyAction(action)
-        } finally {
+        } catch (e) {
+            console.error('Error placing bid', e)
             this.resetAction()
         }
     }
@@ -94,9 +96,11 @@ export class EstatesGameSession extends GameSession {
             ...(this.createBaseAction(ActionType.ChooseRecipient) as ChooseRecipient),
             recipient
         }
+
         try {
             await this.applyAction(action)
-        } finally {
+        } catch (e) {
+            console.error('Error choosing recipient', e)
             this.resetAction()
         }
     }
@@ -109,7 +113,8 @@ export class EstatesGameSession extends GameSession {
         }
         try {
             await this.applyAction(action)
-        } finally {
+        } catch (e) {
+            console.error('Error placing cube', e)
             this.resetAction()
         }
     }
@@ -119,9 +124,11 @@ export class EstatesGameSession extends GameSession {
             ...(this.createBaseAction(ActionType.PlaceMayor) as PlaceMayor),
             row
         }
+
         try {
             await this.applyAction(action)
-        } finally {
+        } catch (e) {
+            console.error('Error placing mayor', e)
             this.resetAction()
         }
     }
