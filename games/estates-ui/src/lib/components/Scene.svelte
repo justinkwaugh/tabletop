@@ -1,7 +1,7 @@
 <script lang="ts">
     import { T, useTask } from '@threlte/core'
     import { interactivity, OrbitControls, HUD, Outlines } from '@threlte/extras'
-    import * as THREE from 'three'
+    import { Group, Object3D, Mesh, MeshStandardMaterial, Box3, Vector3 } from 'three'
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
@@ -10,7 +10,6 @@
     import TopHat from '$lib/3d/TopHat.svelte'
     import Offer3d from './Offer3d.svelte'
     import HudScene from './HudScene.svelte'
-    import { Vector3 } from 'three'
     import Cert3d from './Cert3d.svelte'
     import PlayerPanel3d from './PlayerPanel3d.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
@@ -40,7 +39,7 @@
         }
     })
 
-    const certPositions = [
+    const certPositions: [number, number, number][] = [
         [7.8, -0.5, 6.2],
         [7.8, -0.5, 7.5],
         [7.8, -0.5, 8.8],
@@ -49,10 +48,10 @@
         [10, -0.5, 8.8]
     ]
 
-    function fadeIn(ref: THREE.Object3D) {
+    function fadeIn(ref: Object3D) {
         ref.traverse((ref) => {
-            if ((ref as THREE.Mesh).material as THREE.MeshStandardMaterial) {
-                const material = (ref as THREE.Mesh).material as THREE.MeshStandardMaterial
+            if ((ref as Mesh).material as MeshStandardMaterial) {
+                const material = (ref as Mesh).material as MeshStandardMaterial
                 material.transparent = true
                 material.opacity = 0
                 material.needsUpdate = true
@@ -114,8 +113,8 @@
 
 <PlayerPanel3d
     position={[0, 5, -6]}
-    oncreate={(ref) => {
-        let size = new THREE.Box3().setFromObject(ref).getSize(new THREE.Vector3())
+    oncreate={(ref: Group) => {
+        let size = new Box3().setFromObject(ref).getSize(new Vector3())
         console.log(size)
         ref.position.x = -(size.x / 2) + 2.5
         billboards.push(ref)

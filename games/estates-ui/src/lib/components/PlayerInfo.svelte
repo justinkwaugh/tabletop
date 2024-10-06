@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { type Player } from '@tabletop/common'
-    import { Company, EstatesPlayerState } from '@tabletop/estates'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { CaretSortSolid } from 'flowbite-svelte-icons'
@@ -17,28 +15,27 @@
     let textColor = $derived(gameSession.getPlayerTextColor(player?.id))
 </script>
 
-<div class="relative">
-    <div
-        class="bg-transparent py-0 px-3 text-center {textColor} font-medium flex flex-col justify-between w-[140px] select-none"
-    >
-        <div class="flex flex-row justify-between items-center">
-            <h1 class="text-lg">
-                {playerId === gameSession.myPlayer?.id ? 'You' : player?.name}
-            </h1>
-            <div class="flex flex-row justify-start items-center space-x-4">
-                <div class="flex flex-col justify-center items-center">
-                    <div class="text-2xl">${playerState?.money}</div>
-                </div>
-            </div>
+<div
+    class="bg-transparent py-0 px-3 text-center {textColor} font-medium flex flex-col justify-between w-[140px] h-[55px] select-none"
+>
+    <div class="flex flex-row justify-between items-start">
+        <h1 class="text-md">
+            {playerId === gameSession.myPlayer?.id ? 'You ' : player?.name}
+        </h1>
+
+        <div class="flex flex-col justify-center items-center">
+            <div class="text-2xl">${playerState?.money}</div>
         </div>
-        <div class="flex flex-row justify-center items-center gap-x-1 mt-1">
-            <!-- <div class="rounded-md p-1 text-xs">No certs</div> -->
-            {#each playerState?.certificates ?? [] as company}
-                <Cert2d {company} class="w-[35px]" />
-            {/each}
-        </div>
-        {#if gameSession.showDebug}
-            <div class="text-xs mt-2">id: {playerId}</div>
-        {/if}
     </div>
+    <div class="flex flex-row justify-center items-center gap-x-1 mt-1">
+        {#if (playerState?.certificates.length ?? 0) === 0}
+            <h1 class="text-xs text-gray-500">NO CERTIFICATES</h1>
+        {/if}
+        {#each playerState?.certificates ?? [] as company}
+            <Cert2d {company} class="w-[35px]" />
+        {/each}
+    </div>
+    {#if gameSession.showDebug}
+        <div class="text-xs mt-2">id: {playerId}</div>
+    {/if}
 </div>

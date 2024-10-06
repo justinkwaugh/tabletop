@@ -1,14 +1,9 @@
 <script lang="ts">
-    import { T } from '@threlte/core'
+    import { T, type Props } from '@threlte/core'
     import { Text, RoundedBoxGeometry, Outlines } from '@threlte/extras'
-    import { Cube } from '@tabletop/estates'
-    import * as THREE from 'three'
+    import { Group, MeshBasicMaterial } from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import type { SelectiveBloomEffect } from 'postprocessing'
-    import { bloom } from 'three/webgpu'
-
-    let gameSession = getContext('gameSession') as EstatesGameSession
 
     let {
         opacity = 1,
@@ -17,9 +12,9 @@
     }: {
         opacity?: number
         outline?: boolean
-    } = $props()
+    } & Props<typeof Group> = $props()
 
-    const material = new THREE.MeshBasicMaterial({ toneMapped: false })
+    const material = new MeshBasicMaterial({ toneMapped: false })
 </script>
 
 <T.Group {...others}>

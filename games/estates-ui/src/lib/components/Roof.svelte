@@ -13,7 +13,7 @@
     <Text
         color="#CCCCCC"
         rotation.x={-Math.PI / 2}
-        position.y={0.35}
+        position.y={0.305}
         depthOffset={-1}
         fontSize={0.8}
         fontWeight="bold"

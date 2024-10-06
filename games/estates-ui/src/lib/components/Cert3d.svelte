@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { T } from '@threlte/core'
+    import { T, type Props } from '@threlte/core'
+    import { Mesh } from 'three'
     import { useTexture } from '@threlte/extras'
     import collarImg from '$lib/images/collar.jpg'
     import emeraldImg from '$lib/images/emerald.jpg'
@@ -9,7 +10,7 @@
     import heatherImg from '$lib/images/heather.jpg'
     import { Company } from '@tabletop/estates'
 
-    let { company, ...others }: { company: Company } = $props()
+    let { company, ...others }: { company: Company } & Props<typeof Mesh> = $props()
     const texture = useTexture(
         company === Company.Collar
             ? collarImg

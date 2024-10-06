@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { T } from '@threlte/core'
+    import { T, type Props } from '@threlte/core'
     import { Cube, MachineState, PieceType } from '@tabletop/estates'
-    import * as THREE from 'three'
+    import { Mesh, Object3D, MeshStandardMaterial, Group } from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
@@ -13,7 +13,7 @@
     import { gsap } from 'gsap'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
-    let { ...others }: {} = $props()
+    let { ...others }: Props<typeof Group> = $props()
 
     let canPlace = $derived(
         gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
@@ -48,15 +48,16 @@
         chooseCube(event.object, cube, coords)
     }
 
-    function chooseCube(
-        obj: THREE.Object3D,
-        cube: Cube | null | undefined,
-        coords: OffsetCoordinates
-    ) {
+    function chooseCube(obj: Object3D, cube: Cube | null | undefined, coords: OffsetCoordinates) {
         if (!cube || !canPlace || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
             return
         }
         yPos.set(-0.7)
+
+        if (!obj.parent) {
+            return
+        }
+
         fadeUp(obj.parent, () => {
             const action = gameSession.createStartAuctionAction(cube)
             gameSession.applyAction(action)
@@ -69,7 +70,7 @@
         chooseMayor(event.object.parent)
     }
 
-    function chooseMayor(obj: THREE.Object3D) {
+    function chooseMayor(obj: Object3D) {
         if (!canPlace) {
             return
         }
@@ -88,7 +89,7 @@
         chooseCancelCube(event.object.parent)
     }
 
-    function chooseCancelCube(obj: THREE.Object3D) {
+    function chooseCancelCube(obj: Object3D) {
         if (!canPlace) {
             return
         }
@@ -109,7 +110,7 @@
         chooseBarrier(event.object, value)
     }
 
-    function chooseBarrier(obj: THREE.Object3D, value: number) {
+    function chooseBarrier(obj: Object3D, value: number) {
         if (!canPlace) {
             return
         }
@@ -151,7 +152,7 @@
         }
     })
 
-    function fadeUp(object: THREE.Object3D, onComplete: () => void) {
+    function fadeUp(object: Object3D, onComplete: () => void) {
         const timeline = gsap.timeline({
             onComplete
         })
@@ -161,8 +162,8 @@
         })
 
         object.traverse((object) => {
-            if ((object as THREE.Mesh).material as THREE.MeshStandardMaterial) {
-                const material = (object as THREE.Mesh).material as THREE.MeshStandardMaterial
+            if ((object as Mesh).material as MeshStandardMaterial) {
+                const material = (object as Mesh).material as MeshStandardMaterial
                 material.transparent = true
                 material.needsUpdate = true
                 timeline.to(

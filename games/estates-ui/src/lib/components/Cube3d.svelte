@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { T } from '@threlte/core'
+    import { T, type Props } from '@threlte/core'
     import { Text, RoundedBoxGeometry } from '@threlte/extras'
     import { Cube } from '@tabletop/estates'
-    import * as THREE from 'three'
+    import { Group, MeshBasicMaterial } from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
 
@@ -19,9 +19,9 @@
         castShadow?: boolean
         transparent?: boolean
         opacity?: number
-    } = $props()
+    } & Props<typeof Group> = $props()
 
-    const material = new THREE.MeshBasicMaterial({ toneMapped: false })
+    const material = new MeshBasicMaterial({ toneMapped: false })
 </script>
 
 <T.Group {...others}>

@@ -1,8 +1,9 @@
 <script lang="ts">
-    import { T } from '@threlte/core'
-    import * as THREE from 'three'
+    import { T, type Props } from '@threlte/core'
+    import { Mesh, BufferAttribute, BufferGeometry } from 'three'
 
-    let { width, height, ...others }: { width: number; height: number } = $props()
+    let { width, height, ...others }: { width: number; height: number } & Props<typeof Mesh> =
+        $props()
 
     function RoundedRectangle(w: number, h: number, r: number, s: number) {
         // width, height, radius corner, smoothness
@@ -82,10 +83,10 @@
             }
         }
 
-        const geometry = new THREE.BufferGeometry()
-        geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1))
-        geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
-        geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2))
+        const geometry = new BufferGeometry()
+        geometry.setIndex(new BufferAttribute(new Uint32Array(indices), 1))
+        geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
+        geometry.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2))
 
         return geometry
     }
