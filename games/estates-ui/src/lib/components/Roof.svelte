@@ -1,15 +1,16 @@
 <script lang="ts">
-    import { T } from '@threlte/core'
+    import { T, type Props } from '@threlte/core'
     import { Text } from '@threlte/extras'
-    import Roof from '$lib/3d/Roof.svelte'
-    import * as THREE from 'three'
-    const material = new THREE.MeshBasicMaterial({ toneMapped: false })
+    import RoofModel from '$lib/3d/Roof.svelte'
+    import { Group, MeshBasicMaterial } from 'three'
+    import type { Roof } from '@tabletop/estates'
+    const material = new MeshBasicMaterial({ toneMapped: false })
 
-    let { ...others }: {} = $props()
+    let { roof, ...others }: { roof: Roof } & Props<typeof Group> = $props()
 </script>
 
-<T.Group {...others}>
-    <Roof />
+<T.Group name="roof" {...others}>
+    <RoofModel />
     <Text
         color="#CCCCCC"
         rotation.x={-Math.PI / 2}
@@ -19,8 +20,8 @@
         fontWeight="bold"
         anchorX="50%"
         anchorY="50%"
-        text="6"
-        characters="123456HELO"
+        text={roof.value?.toString() ?? '-1'}
+        characters="123456?"
         {material}
     />
 </T.Group>

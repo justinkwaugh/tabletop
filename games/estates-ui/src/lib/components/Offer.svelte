@@ -18,9 +18,7 @@
             return
         }
 
-        const action = gameSession.createStartAuctionAction(cube)
-        gameSession.applyAction(action)
-        gameSession.resetAction()
+        gameSession.startAuction(cube)
     }
 </script>
 

@@ -4,7 +4,7 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
 -->
 
 <script lang="ts">
-    import * as THREE from 'three'
+    import { Mesh, MeshStandardMaterial } from 'three'
     import { Group } from 'three'
     import { T } from '@threlte/core'
     import { useGltf, Outlines } from '@threlte/extras'
@@ -14,10 +14,10 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
 
     type GLTFResult = {
         nodes: {
-            Node1: THREE.Mesh
+            Node1: Mesh
         }
         materials: {
-            ['01 - Default']: THREE.MeshStandardMaterial
+            ['01 - Default']: MeshStandardMaterial
         }
     }
 
@@ -32,7 +32,7 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
             rotation.x={-Math.PI / 2}
             rotation.z={Math.PI / 2}
             geometry={gltf.nodes.Node1.geometry}
-            material={new THREE.MeshStandardMaterial({
+            material={new MeshStandardMaterial({
                 color: '#999999',
                 transparent: true,
                 opacity: 1

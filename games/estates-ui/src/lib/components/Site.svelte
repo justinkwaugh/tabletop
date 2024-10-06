@@ -106,6 +106,6 @@
         />
     {/if}
     {#if site.roof}
-        <Roof x={0} z={0} y={site.cubes.length - 0.25} />
+        <Roof roof={site.roof} x={0} z={0} y={site.cubes.length - 0.25} />
     {/if}
 </T.Group>

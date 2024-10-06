@@ -15,7 +15,7 @@
         PieceType
     } from '@tabletop/estates'
     import { gsap } from 'gsap'
-    import * as THREE from 'three'
+    import { Object3D, Mesh, MeshStandardMaterial } from 'three'
     import TopHat from '$lib/3d/TopHat.svelte'
     import CancelCube from './CancelCube.svelte'
     import Barrier from '$lib/3d/Barrier.svelte'
@@ -33,7 +33,7 @@
         rotation += delta
     })
 
-    function flyUp(object: THREE.Object3D, yOffset: number = 0.5) {
+    function flyUp(object: Object3D, yOffset: number = 0.5) {
         setTimeout(() => {
             const timeline = gsap.timeline({
                 onComplete: flyDone
@@ -44,8 +44,8 @@
             })
 
             object.traverse((object) => {
-                if ((object as THREE.Mesh).material as THREE.MeshStandardMaterial) {
-                    const material = (object as THREE.Mesh).material as THREE.MeshStandardMaterial
+                if ((object as Mesh).material as MeshStandardMaterial) {
+                    const material = (object as Mesh).material as MeshStandardMaterial
                     material.transparent = true
                     material.needsUpdate = true
                     timeline.to(
@@ -63,11 +63,11 @@
         }, 1)
     }
 
-    function hide(object: THREE.Object3D) {
+    function hide(object: Object3D) {
         object.traverse((object) => {
-            if ((object as THREE.Mesh).material as THREE.MeshStandardMaterial) {
+            if ((object as Mesh).material as MeshStandardMaterial) {
                 console.log('Hiding object')
-                const material = (object as THREE.Mesh).material as THREE.MeshStandardMaterial
+                const material = (object as Mesh).material as MeshStandardMaterial
                 material.transparent = true
                 material.opacity = 0
                 material.needsUpdate = true
@@ -82,7 +82,7 @@
             position={[0, $viewport.height / 2 - 0.5, 0]}
             opacity={0}
             rotation.y={rotation}
-            oncreate={(ref: THREE.Object3D) => {
+            oncreate={(ref: Object3D) => {
                 hide(ref)
                 ref.position.y = $viewport.height / 2 - 3
                 flyUp(ref)
@@ -92,7 +92,7 @@
         />
     {:else if isMayor(gameSession.gameState.chosenPiece)}
         <TopHat
-            oncreate={(ref: THREE.Object3D) => {
+            oncreate={(ref: Object3D) => {
                 hide(ref)
                 ref.position.y = $viewport.height / 2 - 3
                 flyUp(ref, 0.25)
@@ -104,7 +104,7 @@
         />
     {:else if isCancelCube(gameSession.gameState.chosenPiece)}
         <CancelCube
-            oncreate={(ref: THREE.Object3D) => {
+            oncreate={(ref: Object3D) => {
                 hide(ref)
                 ref.position.y = $viewport.height / 2 - 3
                 flyUp(ref)
@@ -115,7 +115,7 @@
         />
     {:else if isBarrier(gameSession.gameState.chosenPiece)}
         <Barrier
-            oncreate={(ref: THREE.Object3D) => {
+            oncreate={(ref: Object3D) => {
                 hide(ref)
                 ref.position.y = $viewport.height / 2 - 3
                 flyUp(ref, 0.95)

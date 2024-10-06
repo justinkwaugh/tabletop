@@ -36,20 +36,35 @@
         const outlineEffect = new OutlineEffect(scene, camera, {
             multisampling: Math.min(4, renderer.capabilities.maxSamples),
             edgeStrength: 6,
+            pulseSpeed: 0,
+            visibleEdgeColor: 0xffffff,
+            hiddenEdgeColor: 0x888888,
+            height: 480,
+            blur: false,
+            xRay: true,
+            kernelSize: KernelSize.SMALL
+        })
+
+        composer.addPass(new EffectPass(camera, outlineEffect))
+
+        const pulseOutlineEffect = new OutlineEffect(scene, camera, {
+            multisampling: Math.min(4, renderer.capabilities.maxSamples),
+            edgeStrength: 6,
             pulseSpeed: 0.35,
             visibleEdgeColor: 0xffffff,
-            hiddenEdgeColor: 0x22090a,
+            hiddenEdgeColor: 0x888888,
             height: 480,
             blur: true,
             xRay: false,
             kernelSize: KernelSize.SMALL
         })
 
-        composer.addPass(new EffectPass(camera, outlineEffect))
+        composer.addPass(new EffectPass(camera, pulseOutlineEffect))
 
         const effects = getContext('effects') as Effects
         effects.bloom = bloomEffect
         effects.outline = outlineEffect
+        effects.pulseOutline = pulseOutlineEffect
     }
     // We need to set up the passes according to the camera in use
     $effect(() => {

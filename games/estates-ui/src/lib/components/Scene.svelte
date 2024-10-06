@@ -16,7 +16,6 @@
     import GlowingCircle from './GlowingCircle.svelte'
     import { gsap } from 'gsap'
     import { ActionType } from '@tabletop/estates'
-    import Roof from './Roof.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let effects = getContext('effects') as Effects
@@ -40,12 +39,12 @@
     })
 
     const certPositions: [number, number, number][] = [
-        [7.8, -0.5, 6.2],
-        [7.8, -0.5, 7.5],
-        [7.8, -0.5, 8.8],
-        [10, -0.5, 6.2],
-        [10, -0.5, 7.5],
-        [10, -0.5, 8.8]
+        [9, -0.5, 6.2],
+        [9, -0.5, 7.5],
+        [9, -0.5, 8.8],
+        [11.2, -0.5, 6.2],
+        [11.2, -0.5, 7.5],
+        [11.2, -0.5, 8.8]
     ]
 
     function fadeIn(ref: Object3D) {
@@ -103,7 +102,7 @@
         <TopHat scale={0.5} position.y={0.35} position.x={10.2} position.z={RowOffsets[i]} />
     {/if}
 {/each}
-<Offer3d position.x={-8} position.z={6} />
+<Offer3d position={[-2, -0.6, 7.5]} />
 
 {#each gameSession.gameState.certificates as company, i}
     {#if company}
@@ -172,5 +171,3 @@
         />
     {/if}
 {/if}
-
-<Roof position={[0, 0, 0]} />

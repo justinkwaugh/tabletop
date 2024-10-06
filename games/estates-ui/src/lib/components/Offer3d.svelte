@@ -11,16 +11,21 @@
     import { spring } from 'svelte/motion'
     import CancelCube from './CancelCube.svelte'
     import { gsap } from 'gsap'
+    import Roof from './Roof.svelte'
+    import type { Effects } from '$lib/model/Effects.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
+
     let { ...others }: Props<typeof Group> = $props()
+
+    const effects = getContext('effects') as Effects
 
     let canPlace = $derived(
         gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
     )
 
     let placeableCubes = $derived(gameSession.gameState.placeableCubes())
-    let yPos = spring(-0.7)
+    let yPos = spring(0)
     let opacity = spring(0)
 
     let hoverMayor: boolean = $state(false)
@@ -29,18 +34,22 @@
     let hoverBarrierThree: boolean = $state(false)
     let hoverCancelCube: boolean = $state(false)
 
+    let allowHover = $state(true)
+
+    let canHover: boolean = $derived(canPlace && allowHover)
+
     function onPointerEnter(event: PointerEvent) {
         if (!canPlace) {
             return
         }
 
         event.stopPropagation()
-        yPos.set(-0.3)
+        yPos.set(0.5)
     }
 
     function onPointerLeave(event: PointerEvent) {
         event.stopPropagation()
-        yPos.set(-0.7)
+        yPos.set(0)
     }
 
     function onCubeClick(event: any, cube: Cube, coords: OffsetCoordinates) {
@@ -52,16 +61,14 @@
         if (!cube || !canPlace || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
             return
         }
-        yPos.set(-0.7)
+        yPos.set(0)
 
         if (!obj.parent) {
             return
         }
 
         fadeUp(obj.parent, () => {
-            const action = gameSession.createStartAuctionAction(cube)
-            gameSession.applyAction(action)
-            gameSession.resetAction()
+            gameSession.startAuction(cube)
         })
     }
 
@@ -77,9 +84,7 @@
         hoverMayor = false
         setTimeout(() => {
             fadeUp(obj, () => {
-                const action = gameSession.createStartAuctionAction({ pieceType: PieceType.Mayor })
-                gameSession.applyAction(action)
-                gameSession.resetAction()
+                gameSession.startAuction({ pieceType: PieceType.Mayor })
             })
         }, 1)
     }
@@ -96,11 +101,9 @@
         hoverCancelCube = false
         setTimeout(() => {
             fadeUp(obj, () => {
-                const action = gameSession.createStartAuctionAction({
+                gameSession.startAuction({
                     pieceType: PieceType.CancelCube
                 })
-                gameSession.applyAction(action)
-                gameSession.resetAction()
             })
         }, 1)
     }
@@ -129,12 +132,34 @@
 
         setTimeout(() => {
             fadeUp(obj, () => {
-                const action = gameSession.createStartAuctionAction({
+                gameSession.startAuction({
                     pieceType: PieceType.Barrier,
                     value
                 })
-                gameSession.applyAction(action)
-                gameSession.resetAction()
+            })
+        }, 1)
+    }
+
+    function onRoofClick(event: any, value: number) {
+        event.stopPropagation()
+        const roof = findParentByName(event.object, 'roof')
+        if (roof) {
+            chooseRoof(roof, value)
+        }
+    }
+
+    function chooseRoof(obj: Object3D, value: number) {
+        allowHover = false
+        const mesh = obj.getObjectByName('roofMesh')
+        if (mesh) {
+            effects.outline?.selection.delete(mesh)
+        }
+        setTimeout(() => {
+            flipAndFadeUp(obj, () => {
+                gameSession.startAuction({
+                    pieceType: PieceType.Roof
+                })
+                allowHover = true
             })
         }, 1)
     }
@@ -178,22 +203,100 @@
         })
         timeline.play()
     }
+
+    function flipAndFadeUp(object: Object3D, onComplete: () => void) {
+        const timeline = gsap.timeline({
+            onComplete
+        })
+        timeline.to(object.rotation, {
+            duration: 0.2,
+            z: 0
+        })
+        timeline.to(
+            object.position,
+            {
+                duration: 0.5,
+                y: 2
+            },
+            0
+        )
+
+        object.traverse((object) => {
+            if ((object as Mesh).material as MeshStandardMaterial) {
+                const material = (object as Mesh).material as MeshStandardMaterial
+                material.transparent = true
+                material.needsUpdate = true
+                timeline.to(
+                    material,
+                    {
+                        duration: 0.2,
+                        opacity: 0
+                    },
+                    0.3
+                )
+            }
+        })
+        timeline.play()
+    }
+
+    function findParentByName(obj: Object3D, name: string) {
+        if (obj.name === name) {
+            console.log(obj)
+            return obj
+        }
+        while (obj.parent) {
+            if (obj.parent.name === name) {
+                console.log(obj.parent)
+                return obj.parent
+            }
+            obj = obj.parent
+        }
+        return undefined
+    }
 </script>
 
 <T.Group {...others}>
     <T.Mesh
+        oncreate={(ref) => {
+            ref.geometry.center()
+        }}
         onpointerenter={onPointerEnter}
         onpointerleave={onPointerLeave}
-        position.x={6.1}
-        position.y={-0.6}
-        position.z={1.5}
-        rotation.x={-Math.PI / 2}
-        rotation.z={Math.PI}
         receiveShadow
     >
-        <T.BoxGeometry args={[14.7, 4.3, 0.2]} />
+        <T.BoxGeometry args={[19, 0.2, 4.5]} />
         <T.MeshStandardMaterial color="#444444" />
     </T.Mesh>
+
+    {#each gameSession.gameState.roofs.items as roof, i}
+        <Roof
+            {roof}
+            onpointerenter={(event: any) => {
+                if (!canHover) {
+                    return
+                }
+                const roof = findParentByName(event.object, 'roof')
+                const mesh = roof?.getObjectByName('roofMesh')
+                if (mesh) {
+                    event.stopPropagation()
+                    effects.outline?.selection.add(mesh)
+                }
+            }}
+            onpointerleave={(event: any) => {
+                const roof = findParentByName(event.object, 'roof')
+                const mesh = roof?.getObjectByName('roofMesh')
+                if (mesh) {
+                    event.stopPropagation()
+                    effects.outline?.selection.delete(mesh)
+                }
+            }}
+            onclick={(event: any) => {
+                onRoofClick(event, 1)
+            }}
+            rotation.z={Math.PI}
+            position={[-8 + (i % 4) * 1.2, 0.31, -1.2 + Math.floor(i / 4) * 1.2]}
+        />
+    {/each}
 
     {#each gameSession.gameState.cubes as cubeRow, row}
         <div class="flex items-center gap-x-1">
@@ -201,40 +304,21 @@
                 {#if cube}
                     <Cube3d
                         {cube}
-                        castShadow={false}
+                        castShadow={true}
                         onclick={(event: any) => onCubeClick(event, cube, { row, col })}
                         rotation.x={-Math.PI / 2}
-                        position.x={col * 1}
+                        position.x={-3.5 + col}
                         position.y={!canPlace ||
                         !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
-                            ? -0.7
+                            ? 0
                             : $yPos}
-                        position.z={0.5 + row * 1}
+                        position.z={-1 + row}
                     />
                 {/if}
             {/each}
         </div>
     {/each}
-    {#if gameSession.gameState.mayor}
-        <TopHat
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                hoverMayor = true
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                hoverMayor = false
-            }}
-            outline={hoverMayor}
-            onclick={onMayorClick}
-            scale={0.5}
-            position.y={0.35}
-            position.x={12.15}
-            position.z={0.6}
-            transparent={true}
-            opacity={$opacity}
-        />
-    {/if}
+
     {#if gameSession.gameState.barrierOne}
         <Barrier
             onpointerenter={(event: any) => {
@@ -249,9 +333,9 @@
                 onBarrierClick(event, 1)
             }}
             outline={hoverBarrierOne}
-            position.x={9.5}
-            position.y={-0.3}
-            position.z={0.25}
+            position.x={5.5}
+            position.y={0.3}
+            position.z={-1}
         />
     {/if}
     {#if gameSession.gameState.barrierTwo}
@@ -268,9 +352,9 @@
                 onBarrierClick(event, 2)
             }}
             outline={hoverBarrierTwo}
-            position.x={9.5}
-            position.y={-0.3}
-            position.z={1.45}
+            position.x={5.5}
+            position.y={0.3}
+            position.z={0}
         />
     {/if}
     {#if gameSession.gameState.barrierThree}
@@ -287,9 +371,29 @@
                 onBarrierClick(event, 3)
             }}
             outline={hoverBarrierThree}
-            position.x={9.5}
-            position.y={-0.3}
-            position.z={2.65}
+            position.x={5.5}
+            position.y={0.3}
+            position.z={1}
+        />
+    {/if}
+    {#if gameSession.gameState.mayor}
+        <TopHat
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                hoverMayor = true
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                hoverMayor = false
+            }}
+            outline={hoverMayor}
+            onclick={onMayorClick}
+            scale={0.5}
+            position.x={8}
+            position.y={1}
+            position.z={-1}
+            transparent={true}
+            opacity={$opacity}
         />
     {/if}
     {#if gameSession.gameState.cancelCube}
@@ -304,9 +408,9 @@
             }}
             outline={hoverCancelCube}
             onclick={onCancelCubeClick}
-            position.x={12.0}
-            position.y={-0.25}
-            position.z={2.4}
+            position.x={8}
+            position.y={0.3}
+            position.z={1}
             rotation.x={-Math.PI / 2}
         />
     {/if}

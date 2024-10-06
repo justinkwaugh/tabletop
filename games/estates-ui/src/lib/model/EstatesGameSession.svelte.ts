@@ -63,18 +63,23 @@ export class EstatesGameSession extends GameSession {
         return false
     }
 
-    createStartAuctionAction(piece: Piece): StartAuction {
-        console.log('create auctino fo rpiece', piece)
-        return {
-            ...(this.createBaseAction(ActionType.StartAuction) as StartAuction),
-            piece
-        }
-    }
-
     createPlaceBidAction(amount: number): PlaceBid {
         return {
             ...(this.createBaseAction(ActionType.PlaceBid) as PlaceBid),
             amount
+        }
+    }
+
+    async startAuction(piece: Piece) {
+        const action = {
+            ...(this.createBaseAction(ActionType.StartAuction) as StartAuction),
+            piece
+        }
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.error('Error starting auction', e)
+            this.resetAction()
         }
     }
 
