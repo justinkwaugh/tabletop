@@ -109,7 +109,6 @@ export class HydratedEstatesGameBoard
         const negativeBarrierIndex = boardRow.length - barrier.value
 
         if (coords.col !== positiveBarrierIndex && coords.col !== negativeBarrierIndex) {
-            console.log('h')
             return false
         }
 
@@ -133,6 +132,48 @@ export class HydratedEstatesGameBoard
         chosenSite.barriers.push(...movedBarriers)
         chosenSite.barriers.push(barrier)
         boardRow.length = coords.col
+    }
+
+    canRemoveBarrierFromSite(barrier: Barrier, coords: OffsetCoordinates): boolean {
+        const site = this.getSiteAtCoords(coords)
+        if (!site) {
+            return false
+        }
+
+        const barrierIndex = site.barriers.findIndex((b) => b.value === barrier.value)
+        if (barrierIndex < 0) {
+            return false
+        }
+
+        const barrierToRemove = site.barriers[barrierIndex]
+        if (barrierToRemove.direction === BarrierDirection.Lengthen) {
+            const boardRow = this.rows[coords.row]
+            const newLength = boardRow.length - barrierToRemove.value
+            const newBarrierSite = boardRow.sites[newLength]
+            if (newBarrierSite.cubes.length > 0) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    removeBarrierFromSite(barrier: Barrier, coords: OffsetCoordinates) {
+        const boardRow = this.rows[coords.row]
+        const chosenSite = boardRow.sites[coords.col]
+
+        const barrierIndex = chosenSite.barriers.findIndex((b) => b.value === barrier.value)
+        const removedBarrier = chosenSite.barriers[barrierIndex]
+        chosenSite.barriers.splice(barrierIndex, 1)
+
+        const newLength =
+            removedBarrier.direction === BarrierDirection.Lengthen
+                ? boardRow.length - removedBarrier.value
+                : boardRow.length + removedBarrier.value
+
+        const destSite = boardRow.sites[newLength]
+        destSite.barriers.push(...chosenSite.barriers)
+        chosenSite.barriers = []
     }
 
     validRoofLocations(): OffsetCoordinates[] {
@@ -175,5 +216,15 @@ export class HydratedEstatesGameBoard
         }
 
         return boardRow.sites[coords.col]
+    }
+
+    getBarriers(): Barrier[] {
+        const barriers: Barrier[] = []
+        for (const row of this.rows) {
+            for (const site of row.sites) {
+                barriers.push(...site.barriers)
+            }
+        }
+        return barriers
     }
 }

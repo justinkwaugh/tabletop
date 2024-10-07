@@ -3,10 +3,11 @@ import { HydratedEstatesGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceCube, isPlaceCube } from '../actions/placeCube.js'
-import { isBarrier, isCube, isMayor, isRoof } from '../components/pieces.js'
+import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '../components/pieces.js'
 import { isPlaceMayor } from '../actions/placeMayor.js'
 import { isPlaceRoof } from '../actions/placeRoof.js'
 import { isPlaceBarrier } from '../actions/placeBarrier.js'
+import { isRemoveBarrier } from '../actions/removeBarrier.js'
 
 // Transition from PlacingPiece(PlaceRoof) -> StartOfTurn | EndofGame
 //                 PlacingPiece(PlaceCube) -> StartOfTurn | EndofGame
@@ -24,7 +25,8 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
             isPlaceCube(action) ||
             isPlaceMayor(action) ||
             isPlaceRoof(action) ||
-            isPlaceBarrier(action)
+            isPlaceBarrier(action) ||
+            isRemoveBarrier(action)
         )
     }
 
@@ -49,6 +51,10 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
                 validActions.push(ActionType.PlaceBarrier)
                 break
             }
+            case isCancelCube(gameState.chosenPiece): {
+                validActions.push(ActionType.RemoveBarrier)
+                break
+            }
         }
 
         return validActions
@@ -68,7 +74,8 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
             !isPlaceCube(action) &&
             !isPlaceMayor(action) &&
             !isPlaceRoof(action) &&
-            !isPlaceBarrier(action)
+            !isPlaceBarrier(action) &&
+            !isRemoveBarrier(action)
         ) {
             throw Error('Invalid action type')
         }

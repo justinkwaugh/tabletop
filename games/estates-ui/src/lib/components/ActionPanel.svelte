@@ -33,6 +33,8 @@
                 return 'Place your roof on the board'
             case ActionType.PlaceBarrier:
                 return 'Place your barrier on the board'
+            case ActionType.RemoveBarrier:
+                return 'Choose a barrier to remove'
             default:
                 return ''
         }

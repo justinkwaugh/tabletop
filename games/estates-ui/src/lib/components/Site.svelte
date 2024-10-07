@@ -18,8 +18,10 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import type { OffsetCoordinates } from '@tabletop/common'
     import Barrier3d from '$lib/3d/Barrier.svelte'
+    import type { Effects } from '$lib/model/Effects.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
+    const effects = getContext('effects') as Effects
 
     let {
         site,
@@ -33,6 +35,21 @@
     let hoverCube: Cube | undefined = $state()
     let hoverRoof: Roof | undefined = $state()
     let hoverBarrier: Barrier | undefined = $state()
+
+    let canSelectBarrier = $derived.by(() => {
+        if (!gameSession.isMyTurn) {
+            return false
+        }
+        if (gameSession.chosenAction !== ActionType.RemoveBarrier) {
+            return false
+        }
+
+        if (site.barriers.length === 0) {
+            return false
+        }
+
+        return true
+    })
 
     function onPointerEnter(event: PointerEvent) {
         if (!canPreview) {
@@ -120,6 +137,47 @@
 
         return true
     })
+
+    function enterBarrier(event: any, barrier: Barrier) {
+        if (
+            !canSelectBarrier ||
+            !gameSession.gameState.board.canRemoveBarrierFromSite(barrier, coords)
+        ) {
+            return
+        }
+
+        event.stopPropagation()
+        const mesh = event.object?.getObjectByName('outlineMesh')
+        if (mesh) {
+            event.stopPropagation()
+            effects.outline?.selection.add(mesh)
+        }
+    }
+
+    function leavePiece(event: any) {
+        const mesh = event.object?.getObjectByName('outlineMesh')
+        if (mesh) {
+            event.stopPropagation()
+            effects.outline?.selection.delete(mesh)
+        }
+    }
+
+    function onBarrierClick(event: any, barrier: Barrier) {
+        if (
+            !canSelectBarrier ||
+            !gameSession.gameState.board.canRemoveBarrierFromSite(barrier, coords)
+        ) {
+            return
+        }
+
+        const mesh = event.object?.getObjectByName('outlineMesh')
+        if (mesh) {
+            event.stopPropagation()
+            effects.outline?.selection.delete(mesh)
+        }
+
+        gameSession.removeBarrier(barrier, coords)
+    }
 </script>
 
 <T.Group position.x={x} position.y={y} position.z={z} scale={1}>
@@ -147,6 +205,9 @@
     {#each site.barriers as barrier, i}
         <Barrier3d
             {barrier}
+            onpointerenter={(event: any) => enterBarrier(event, barrier)}
+            onpointerleave={leavePiece}
+            onclick={(event: any) => onBarrierClick(event, barrier)}
             position.x={-0.5 + i * 0.5}
             z={0}
             position.y={0}

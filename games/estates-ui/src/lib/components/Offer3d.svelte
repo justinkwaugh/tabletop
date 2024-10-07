@@ -36,13 +36,9 @@
     let opacity = spring(0)
 
     let hoverMayor: boolean = $state(false)
-    let hoverBarrierOne: boolean = $state(false)
-    let hoverBarrierTwo: boolean = $state(false)
-    let hoverBarrierThree: boolean = $state(false)
     let hoverCancelCube: boolean = $state(false)
 
     let allowRoofInteraction = $state(true)
-
     let canHoverRoof: boolean = $derived(canPlace && allowRoofInteraction)
 
     function onPointerEnter(event: PointerEvent) {
@@ -97,15 +93,18 @@
     }
 
     function onCancelCubeClick(event: any) {
+        if (!canPlace) {
+            return
+        }
         event.stopPropagation()
         chooseCancelCube(event.object.parent)
     }
 
     function chooseCancelCube(obj: Object3D) {
-        if (!canPlace) {
-            return
+        const mesh = obj.getObjectByName('outlineMesh')
+        if (mesh) {
+            effects.outline?.selection.delete(mesh)
         }
-        hoverCancelCube = false
         setTimeout(() => {
             fadeUp(obj, () => {
                 gameSession.startAuction({
@@ -116,15 +115,15 @@
     }
 
     function onBarrierClick(event: any, value: number) {
-        event.stopPropagation()
         if (!canPlace) {
             return
         }
+        event.stopPropagation()
         chooseBarrier(event.object, value)
     }
 
     function chooseBarrier(obj: Object3D, value: number) {
-        const mesh = obj.getObjectByName('barrierMesh')
+        const mesh = obj.getObjectByName('outlinerMesh')
         if (mesh) {
             effects.outline?.selection.delete(mesh)
         }
@@ -300,21 +299,21 @@
         }
     }
 
-    function enterBarrier(event: any) {
+    function enterPiece(event: any) {
         if (!canPlace) {
             return
         }
 
         event.stopPropagation()
-        const mesh = event.object?.getObjectByName('barrierMesh')
+        const mesh = event.object?.getObjectByName('outlineMesh')
         if (mesh) {
             event.stopPropagation()
             effects.outline?.selection.add(mesh)
         }
     }
 
-    function leaveBarrier(event: any) {
-        const mesh = event.object?.getObjectByName('barrierMesh')
+    function leavePiece(event: any) {
+        const mesh = event.object?.getObjectByName('outlineMesh')
         if (mesh) {
             event.stopPropagation()
             effects.outline?.selection.delete(mesh)
@@ -373,8 +372,8 @@
 
     {#if gameSession.gameState.barrierOne}
         <Barrier
-            onpointerenter={enterBarrier}
-            onpointerleave={leaveBarrier}
+            onpointerenter={enterPiece}
+            onpointerleave={leavePiece}
             onclick={(event: any) => {
                 onBarrierClick(event, 1)
             }}
@@ -385,8 +384,8 @@
     {/if}
     {#if gameSession.gameState.barrierTwo}
         <Barrier
-            onpointerenter={enterBarrier}
-            onpointerleave={leaveBarrier}
+            onpointerenter={enterPiece}
+            onpointerleave={leavePiece}
             onclick={(event: any) => {
                 onBarrierClick(event, 2)
             }}
@@ -397,8 +396,8 @@
     {/if}
     {#if gameSession.gameState.barrierThree}
         <Barrier
-            onpointerenter={enterBarrier}
-            onpointerleave={leaveBarrier}
+            onpointerenter={enterPiece}
+            onpointerleave={leavePiece}
             onclick={(event: any) => {
                 onBarrierClick(event, 3)
             }}
@@ -409,15 +408,8 @@
     {/if}
     {#if gameSession.gameState.mayor}
         <TopHat
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                hoverMayor = true
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                hoverMayor = false
-            }}
-            outline={hoverMayor}
+            onpointerenter={enterPiece}
+            onpointerleave={leavePiece}
             onclick={onMayorClick}
             scale={0.5}
             position.x={8}
@@ -429,15 +421,8 @@
     {/if}
     {#if gameSession.gameState.cancelCube}
         <CancelCube
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                hoverCancelCube = true
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                hoverCancelCube = false
-            }}
-            outline={hoverCancelCube}
+            onpointerenter={enterPiece}
+            onpointerleave={leavePiece}
             onclick={onCancelCubeClick}
             position.x={8}
             position.y={0.3}

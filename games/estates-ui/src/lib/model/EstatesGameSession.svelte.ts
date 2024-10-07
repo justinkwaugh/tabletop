@@ -169,6 +169,20 @@ export class EstatesGameSession extends GameSession {
         }
     }
 
+    async removeBarrier(barrier: Barrier, coords: OffsetCoordinates) {
+        const action = {
+            ...this.createBaseAction(ActionType.RemoveBarrier),
+            barrier,
+            coords
+        }
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.error('Error placing roof', e)
+            this.resetAction()
+        }
+    }
+
     async placeMayor(row: number) {
         const action: PlaceMayor = {
             ...(this.createBaseAction(ActionType.PlaceMayor) as PlaceMayor),

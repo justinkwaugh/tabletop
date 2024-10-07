@@ -7,6 +7,7 @@ import { PlaceCube } from '../actions/placeCube.js'
 import { PlaceMayor } from '../actions/placeMayor.js'
 import { PlaceRoof } from '../actions/placeRoof.js'
 import { PlaceBarrier } from '../actions/placeBarrier.js'
+import { RemoveBarrier } from '../actions/removeBarrier.js'
 
 export const EstatesApiActions = {
     [ActionType.DrawRoof]: DrawRoof,
@@ -16,5 +17,6 @@ export const EstatesApiActions = {
     [ActionType.PlaceCube]: PlaceCube,
     [ActionType.PlaceMayor]: PlaceMayor,
     [ActionType.PlaceRoof]: PlaceRoof,
-    [ActionType.PlaceBarrier]: PlaceBarrier
+    [ActionType.PlaceBarrier]: PlaceBarrier,
+    [ActionType.RemoveBarrier]: RemoveBarrier
 }

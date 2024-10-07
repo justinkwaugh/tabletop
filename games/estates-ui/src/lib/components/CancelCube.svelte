@@ -7,7 +7,6 @@
 
     let {
         opacity = 1,
-        outline = false,
         ...others
     }: {
         opacity?: number
@@ -18,7 +17,7 @@
 </script>
 
 <T.Group {...others}>
-    <T.Mesh castShadow>
+    <T.Mesh name="outlineMesh" castShadow>
         <RoundedBoxGeometry args={[1, 1, 0.3]} />
         <T.MeshPhysicalMaterial
             transparent={opacity !== 1}
@@ -27,9 +26,6 @@
             clearcoat={1}
             clearcoatRoughness={0.33}
         />
-        {#if outline}
-            <Outlines color="white" thickness={0.05} />
-        {/if}
     </T.Mesh>
     <Text
         color="#CCCCCC"

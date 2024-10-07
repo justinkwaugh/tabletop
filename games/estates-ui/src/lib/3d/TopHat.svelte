@@ -36,14 +36,11 @@ Title: Top Hat
     {:then gltf}
         <T.Group position={[-0.33, -0.52, 0.15]}>
             <T.Mesh
+                name="outlineMesh"
                 geometry={gltf.nodes.Object_4.geometry}
                 material={gltf.materials.hat1}
                 castShadow
-            >
-                {#if outline}
-                    <Outlines color="white" thickness={0.1} />
-                {/if}
-            </T.Mesh>
+            ></T.Mesh>
             <T.Mesh
                 geometry={gltf.nodes.Object_5.geometry}
                 material={gltf.materials.hat2}

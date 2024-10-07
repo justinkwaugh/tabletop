@@ -28,7 +28,7 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
         <slot name="fallback" />
     {:then gltf}
         <T.Mesh
-            name="barrierMesh"
+            name="outlineMesh"
             rotation.x={-Math.PI / 2}
             rotation.z={Math.PI / 2}
             geometry={gltf.nodes.Node1.geometry}
