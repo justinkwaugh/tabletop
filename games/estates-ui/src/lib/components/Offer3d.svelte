@@ -20,6 +20,11 @@
     import { gsap } from 'gsap'
     import Roof from './Roof3d.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
+    import woodImg from '$lib/images/wood.jpg'
+    import { useTexture } from '@threlte/extras'
+    import Map from './Map.svelte'
+
+    const wood = useTexture(woodImg)
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -34,9 +39,6 @@
     let placeableCubes = $derived(gameSession.gameState.placeableCubes())
     let yPos = spring(0)
     let opacity = spring(0)
-
-    let hoverMayor: boolean = $state(false)
-    let hoverCancelCube: boolean = $state(false)
 
     let allowRoofInteraction = $state(true)
     let canChooseRoof: boolean = $derived(
@@ -59,23 +61,23 @@
     }
 
     function onCubeClick(event: any, cube: Cube, coords: OffsetCoordinates) {
+        if (!canChoose || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
+            return
+        }
         event.stopPropagation()
-        chooseCube(event.object, cube, coords)
+        const cubeModel = findParentByName(event.object, 'cube')
+        if (cubeModel) {
+            chooseCube(cubeModel, cube, coords)
+        }
     }
 
-    function chooseCube(obj: Object3D, cube: Cube | null | undefined, coords: OffsetCoordinates) {
-        if (!cube || !canChoose || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
-            return
-        }
+    function chooseCube(obj: Object3D, cube: Cube, coords: OffsetCoordinates) {
         yPos.set(0)
-
-        if (!obj.parent) {
-            return
-        }
-
-        fadeUp(obj.parent, () => {
-            gameSession.startAuction(cube)
-        })
+        setTimeout(() => {
+            fadeUp(obj, () => {
+                gameSession.startAuction(cube)
+            })
+        }, 1)
     }
 
     function onMayorClick(event: any) {
@@ -87,7 +89,12 @@
         if (!canChoose) {
             return
         }
-        hoverMayor = false
+
+        const mesh = obj.getObjectByName('outlineMesh')
+        if (mesh) {
+            effects.outline?.selection.delete(mesh)
+        }
+
         setTimeout(() => {
             fadeUp(obj, () => {
                 gameSession.startAuction({ pieceType: PieceType.Mayor })
@@ -326,125 +333,125 @@
     }
 </script>
 
-<T.Group {...others}>
-    <T.Mesh
-        oncreate={(ref) => {
-            ref.geometry.center()
-        }}
-        onpointerenter={onPointerEnter}
-        onpointerleave={onPointerLeave}
-        receiveShadow
-    >
-        <T.BoxGeometry args={[19, 0.2, 4.5]} />
-        <T.MeshPhysicalMaterial
-            roughness={0.8}
-            transmission={1}
-            thickness={0.5}
-            color={'#cccccc'}
-            transparent={true}
-            opacity={0.3}
-            clearcoat={1}
-            clearcoatRoughness={0.33}
-        />
-    </T.Mesh>
-    <T.Mesh position.y={-0.1} rotation.x={-Math.PI / 2}>
-        <T.PlaneGeometry args={[19, 4.5]} />
-        <T.MeshStandardMaterial color={'green'} />
-    </T.Mesh>
-    {#each gameSession.gameState.roofs.items as _, i}
-        {#if gameSession.gameState.visibleRoofs[i]}
-            <Roof
-                roof={{ pieceType: PieceType.Roof, value: -1 }}
-                onpointerenter={enterRoof}
-                onpointerleave={leaveRoof}
+{#await wood then woodValue}
+    <T.Group {...others}>
+        <T.Mesh
+            oncreate={(ref) => {
+                ref.geometry.center()
+            }}
+            onpointerenter={onPointerEnter}
+            onpointerleave={onPointerLeave}
+            receiveShadow
+        >
+            <T.BoxGeometry args={[19, 0.2, 4.5]} />
+            <T.MeshPhysicalMaterial
+                map={woodValue}
+                roughness={0.3}
+                color={'#cccccc'}
+                transparent={true}
+                opacity={1}
+                clearcoat={1}
+                clearcoatRoughness={0.33}
+            />
+        </T.Mesh>
+        <!-- <T.Mesh position.y={-0.1} rotation.x={-Math.PI / 2}>
+            <T.PlaneGeometry args={[19, 4.5]} />
+            <T.MeshStandardMaterial map={woodValue} />
+        </T.Mesh> -->
+        {#each gameSession.gameState.roofs.items as _, i}
+            {#if gameSession.gameState.visibleRoofs[i]}
+                <Roof
+                    roof={{ pieceType: PieceType.Roof, value: -1 }}
+                    onpointerenter={enterRoof}
+                    onpointerleave={leaveRoof}
+                    onclick={(event: any) => {
+                        onRoofClick(event, i)
+                    }}
+                    rotation.z={Math.PI}
+                    position={[-8.5 + (i % 4) * 1.2, 0.31, -1.2 + Math.floor(i / 4) * 1.2]}
+                />
+            {/if}
+        {/each}
+
+        {#each gameSession.gameState.cubes as cubeRow, row}
+            <div class="flex items-center gap-x-1">
+                {#each cubeRow as cube, col}
+                    {#if cube}
+                        <Cube3d
+                            {cube}
+                            onclick={(event: any) => onCubeClick(event, cube, { row, col })}
+                            rotation.x={-Math.PI / 2}
+                            position.x={-3.5 + col}
+                            position.y={!canChoose ||
+                            !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
+                                ? 0
+                                : $yPos}
+                            position.z={-1 + row}
+                        />
+                    {/if}
+                {/each}
+            </div>
+        {/each}
+
+        {#if gameSession.gameState.barrierOne}
+            <Barrier
+                onpointerenter={enterPiece}
+                onpointerleave={leavePiece}
                 onclick={(event: any) => {
-                    onRoofClick(event, i)
+                    onBarrierClick(event, 1)
                 }}
-                rotation.z={Math.PI}
-                position={[-8.5 + (i % 4) * 1.2, 0.31, -1.2 + Math.floor(i / 4) * 1.2]}
+                position.x={5.5}
+                position.y={0.3}
+                position.z={-1}
             />
         {/if}
-    {/each}
-
-    {#each gameSession.gameState.cubes as cubeRow, row}
-        <div class="flex items-center gap-x-1">
-            {#each cubeRow as cube, col}
-                {#if cube}
-                    <Cube3d
-                        {cube}
-                        castShadow={true}
-                        onclick={(event: any) => onCubeClick(event, cube, { row, col })}
-                        rotation.x={-Math.PI / 2}
-                        position.x={-3.5 + col}
-                        position.y={!canChoose ||
-                        !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
-                            ? 0
-                            : $yPos}
-                        position.z={-1 + row}
-                    />
-                {/if}
-            {/each}
-        </div>
-    {/each}
-
-    {#if gameSession.gameState.barrierOne}
-        <Barrier
-            onpointerenter={enterPiece}
-            onpointerleave={leavePiece}
-            onclick={(event: any) => {
-                onBarrierClick(event, 1)
-            }}
-            position.x={5.5}
-            position.y={0.3}
-            position.z={-1}
-        />
-    {/if}
-    {#if gameSession.gameState.barrierTwo}
-        <Barrier
-            onpointerenter={enterPiece}
-            onpointerleave={leavePiece}
-            onclick={(event: any) => {
-                onBarrierClick(event, 2)
-            }}
-            position.x={5.5}
-            position.y={0.3}
-            position.z={0}
-        />
-    {/if}
-    {#if gameSession.gameState.barrierThree}
-        <Barrier
-            onpointerenter={enterPiece}
-            onpointerleave={leavePiece}
-            onclick={(event: any) => {
-                onBarrierClick(event, 3)
-            }}
-            position.x={5.5}
-            position.y={0.3}
-            position.z={1}
-        />
-    {/if}
-    {#if gameSession.gameState.mayor}
-        <TopHat
-            onpointerenter={(event: any) => enterPiece(event, 'topHat')}
-            onpointerleave={leavePiece}
-            onclick={onMayorClick}
-            scale={0.5}
-            position.x={8}
-            position.y={1}
-            position.z={-1}
-            transparent={true}
-            opacity={$opacity}
-        />
-    {/if}
-    {#if gameSession.gameState.cancelCube}
-        <CancelCube
-            onpointerenter={enterPiece}
-            onpointerleave={leavePiece}
-            onclick={onCancelCubeClick}
-            position.x={8}
-            position.y={0.3}
-            position.z={1}
-            rotation.x={-Math.PI / 2}
-        />
-    {/if}
-</T.Group>
+        {#if gameSession.gameState.barrierTwo}
+            <Barrier
+                onpointerenter={enterPiece}
+                onpointerleave={leavePiece}
+                onclick={(event: any) => {
+                    onBarrierClick(event, 2)
+                }}
+                position.x={5.5}
+                position.y={0.3}
+                position.z={0}
+            />
+        {/if}
+        {#if gameSession.gameState.barrierThree}
+            <Barrier
+                onpointerenter={enterPiece}
+                onpointerleave={leavePiece}
+                onclick={(event: any) => {
+                    onBarrierClick(event, 3)
+                }}
+                position.x={5.5}
+                position.y={0.3}
+                position.z={1}
+            />
+        {/if}
+        {#if gameSession.gameState.mayor}
+            <TopHat
+                onpointerenter={(event: any) => enterPiece(event, 'topHat')}
+                onpointerleave={leavePiece}
+                onclick={onMayorClick}
+                scale={0.5}
+                position.x={8}
+                position.y={1}
+                position.z={-1}
+                transparent={true}
+                opacity={$opacity}
+            />
+        {/if}
+        {#if gameSession.gameState.cancelCube}
+            <CancelCube
+                onpointerenter={enterPiece}
+                onpointerleave={leavePiece}
+                onclick={onCancelCubeClick}
+                position.x={8}
+                position.y={0.3}
+                position.z={1}
+                rotation.x={-Math.PI / 2}
+            />
+        {/if}
+    </T.Group>
+{/await}

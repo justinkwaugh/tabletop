@@ -24,8 +24,8 @@
     const material = new MeshBasicMaterial({ toneMapped: false })
 </script>
 
-<T.Group {...others}>
-    <T.Mesh {castShadow}>
+<T.Group {...others} name="cube">
+    <T.Mesh {castShadow} name="outlineMesh">
         <RoundedBoxGeometry args={[1, 1, 1]} />
         <T.MeshPhysicalMaterial
             color={gameSession.getUiColor(gameSession.getCompanyColor(cube.company))}

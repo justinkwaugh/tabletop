@@ -85,7 +85,9 @@
     />
 </T.PerspectiveCamera>
 <T.AmbientLight intensity={1.5} />
-<T.DirectionalLight position={[5, 5, 10]} castShadow />
+<T.DirectionalLight intensity={0.5} position={[5, 5, 10]} />
+<T.DirectionalLight intensity={0.05} position={[0, 20, -5]} />
+<T.DirectionalLight intensity={0.5} position={[-5, 5, 10]} />
 
 <HUD>
     <HudScene />
