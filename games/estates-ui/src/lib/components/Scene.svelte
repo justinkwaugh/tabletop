@@ -18,7 +18,6 @@
     import { ActionType } from '@tabletop/estates'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
-    let effects = getContext('effects') as Effects
     let ghostHat: number | undefined = $state()
     let showMayorHighlights = $derived(
         gameSession.isMyTurn && gameSession.chosenAction === ActionType.PlaceMayor

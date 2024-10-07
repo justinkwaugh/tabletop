@@ -7,9 +7,8 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
     import { Mesh, MeshStandardMaterial } from 'three'
     import { Group } from 'three'
     import { T } from '@threlte/core'
-    import { useGltf, Outlines } from '@threlte/extras'
+    import { useGltf } from '@threlte/extras'
 
-    export let outline = false
     export const ref = new Group()
 
     type GLTFResult = {
@@ -29,6 +28,7 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
         <slot name="fallback" />
     {:then gltf}
         <T.Mesh
+            name="barrierMesh"
             rotation.x={-Math.PI / 2}
             rotation.z={Math.PI / 2}
             geometry={gltf.nodes.Node1.geometry}
@@ -37,11 +37,7 @@ Command: npx @threlte/gltf@2.0.3 public/barrier.gltf --types --debug
                 transparent: true,
                 opacity: 1
             })}
-        >
-            {#if outline}
-                <Outlines color="white" thickness={0.1} />
-            {/if}</T.Mesh
-        >
+        ></T.Mesh>
     {:catch error}
         <slot name="error" {error} />
     {/await}

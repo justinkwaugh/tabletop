@@ -3,12 +3,14 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Hydratable, OffsetCoordinates } from '@tabletop/common'
 import { Cube } from './cube.js'
 import { Roof } from './roof.js'
+import { Barrier } from './barrier.js'
 
 export type Site = Static<typeof Site>
 export const Site = Type.Object({
     single: Type.Boolean(),
     cubes: Type.Array(Cube),
-    roof: Type.Optional(Roof)
+    roof: Type.Optional(Roof),
+    barrier: Type.Optional(Barrier)
 })
 
 export type BoardRow = Static<typeof BoardRow>
@@ -36,15 +38,12 @@ export class HydratedEstatesGameBoard
     }
 
     canPlaceCubeAtCoords(cube: Cube, coords: OffsetCoordinates): boolean {
-        if (coords.row < 0 || coords.row >= this.rows.length) {
+        const site = this.getSiteAtCoords(coords)
+        if (!site) {
             return false
         }
 
         const boardRow = this.rows[coords.row]
-        if (coords.col < 0 || coords.col >= boardRow.sites.length) {
-            return false
-        }
-
         if (coords.col >= boardRow.length) {
             return false
         }
@@ -53,7 +52,6 @@ export class HydratedEstatesGameBoard
         if (coords.col > emptySiteIndex) {
             return false
         }
-        const site = boardRow.sites[coords.col]
 
         return this.canPlaceCubeAtSite(cube, site)
     }
@@ -77,16 +75,10 @@ export class HydratedEstatesGameBoard
     }
 
     canPlaceRoofAtSite(coords: OffsetCoordinates): boolean {
-        if (coords.row < 0 || coords.row >= this.rows.length) {
+        const site = this.getSiteAtCoords(coords)
+        if (!site) {
             return false
         }
-
-        const boardRow = this.rows[coords.row]
-        if (coords.col < 0 || coords.col >= boardRow.sites.length) {
-            return false
-        }
-
-        const site = boardRow.sites[coords.col]
         return site.cubes.length > 0 && !site.roof
     }
 
@@ -99,6 +91,36 @@ export class HydratedEstatesGameBoard
     placeMayorAtRow(row: number) {
         const boardRow = this.rows[row]
         boardRow.mayor = true
+    }
+
+    canPlaceBarrierAtSite(barrier: Barrier, coords: OffsetCoordinates): boolean {
+        const site = this.getSiteAtCoords(coords)
+        if (!site) {
+            return false
+        }
+
+        if (site.cubes.length > 0) {
+            return false
+        }
+
+        const boardRow = this.rows[coords.row]
+
+        const positiveBarrierIndex = boardRow.length + barrier.value
+        const negativeBarrierIndex = boardRow.length - barrier.value
+
+        if (coords.col !== positiveBarrierIndex && coords.col !== negativeBarrierIndex) {
+            console.log('h')
+            return false
+        }
+
+        return true
+    }
+
+    placeBarrierAtSite(barrier: Barrier, coords: OffsetCoordinates) {
+        const boardRow = this.rows[coords.row]
+        const site = boardRow.sites[coords.col]
+        site.barrier = barrier
+        boardRow.length = coords.col
     }
 
     validRoofLocations(): OffsetCoordinates[] {
@@ -128,5 +150,18 @@ export class HydratedEstatesGameBoard
             }
         }
         return validLocations
+    }
+
+    getSiteAtCoords(coords: OffsetCoordinates): Site | undefined {
+        if (coords.row < 0 || coords.row >= this.rows.length) {
+            return undefined
+        }
+
+        const boardRow = this.rows[coords.row]
+        if (coords.col < 0 || coords.col >= boardRow.sites.length) {
+            return undefined
+        }
+
+        return boardRow.sites[coords.col]
     }
 }

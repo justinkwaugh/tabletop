@@ -11,7 +11,7 @@
     import { spring } from 'svelte/motion'
     import CancelCube from './CancelCube.svelte'
     import { gsap } from 'gsap'
-    import Roof from './Roof.svelte'
+    import Roof from './Roof3d.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
@@ -110,24 +110,16 @@
 
     function onBarrierClick(event: any, value: number) {
         event.stopPropagation()
+        if (!canPlace) {
+            return
+        }
         chooseBarrier(event.object, value)
     }
 
     function chooseBarrier(obj: Object3D, value: number) {
-        if (!canPlace) {
-            return
-        }
-
-        switch (value) {
-            case 1:
-                hoverBarrierOne = false
-                break
-            case 2:
-                hoverBarrierTwo = false
-                break
-            case 3:
-                hoverBarrierThree = false
-                break
+        const mesh = obj.getObjectByName('barrierMesh')
+        if (mesh) {
+            effects.outline?.selection.delete(mesh)
         }
 
         setTimeout(() => {
@@ -278,6 +270,48 @@
         }
         return undefined
     }
+
+    function enterRoof(event: any) {
+        if (!canHoverRoof) {
+            return
+        }
+        const roof = findParentByName(event.object, 'roof')
+        const mesh = roof?.getObjectByName('roofMesh')
+        if (mesh) {
+            event.stopPropagation()
+            effects.outline?.selection.add(mesh)
+        }
+    }
+
+    function leaveRoof(event: any) {
+        const roof = findParentByName(event.object, 'roof')
+        const mesh = roof?.getObjectByName('roofMesh')
+        if (mesh) {
+            event.stopPropagation()
+            effects.outline?.selection.delete(mesh)
+        }
+    }
+
+    function enterBarrier(event: any) {
+        if (!canPlace) {
+            return
+        }
+
+        event.stopPropagation()
+        const mesh = event.object?.getObjectByName('barrierMesh')
+        if (mesh) {
+            event.stopPropagation()
+            effects.outline?.selection.add(mesh)
+        }
+    }
+
+    function leaveBarrier(event: any) {
+        const mesh = event.object?.getObjectByName('barrierMesh')
+        if (mesh) {
+            event.stopPropagation()
+            effects.outline?.selection.delete(mesh)
+        }
+    }
 </script>
 
 <T.Group {...others}>
@@ -297,25 +331,8 @@
         {#if gameSession.gameState.visibleRoofs[i]}
             <Roof
                 roof={{ pieceType: PieceType.Roof, value: -1 }}
-                onpointerenter={(event: any) => {
-                    if (!canHoverRoof) {
-                        return
-                    }
-                    const roof = findParentByName(event.object, 'roof')
-                    const mesh = roof?.getObjectByName('roofMesh')
-                    if (mesh) {
-                        event.stopPropagation()
-                        effects.outline?.selection.add(mesh)
-                    }
-                }}
-                onpointerleave={(event: any) => {
-                    const roof = findParentByName(event.object, 'roof')
-                    const mesh = roof?.getObjectByName('roofMesh')
-                    if (mesh) {
-                        event.stopPropagation()
-                        effects.outline?.selection.delete(mesh)
-                    }
-                }}
+                onpointerenter={enterRoof}
+                onpointerleave={leaveRoof}
                 onclick={(event: any) => {
                     onRoofClick(event, i)
                 }}
@@ -348,18 +365,11 @@
 
     {#if gameSession.gameState.barrierOne}
         <Barrier
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                hoverBarrierOne = true
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                hoverBarrierOne = false
-            }}
+            onpointerenter={enterBarrier}
+            onpointerleave={leaveBarrier}
             onclick={(event: any) => {
                 onBarrierClick(event, 1)
             }}
-            outline={hoverBarrierOne}
             position.x={5.5}
             position.y={0.3}
             position.z={-1}
@@ -367,18 +377,11 @@
     {/if}
     {#if gameSession.gameState.barrierTwo}
         <Barrier
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                hoverBarrierTwo = true
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                hoverBarrierTwo = false
-            }}
+            onpointerenter={enterBarrier}
+            onpointerleave={leaveBarrier}
             onclick={(event: any) => {
                 onBarrierClick(event, 2)
             }}
-            outline={hoverBarrierTwo}
             position.x={5.5}
             position.y={0.3}
             position.z={0}
@@ -386,18 +389,11 @@
     {/if}
     {#if gameSession.gameState.barrierThree}
         <Barrier
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                hoverBarrierThree = true
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                hoverBarrierThree = false
-            }}
+            onpointerenter={enterBarrier}
+            onpointerleave={leaveBarrier}
             onclick={(event: any) => {
                 onBarrierClick(event, 3)
             }}
-            outline={hoverBarrierThree}
             position.x={5.5}
             position.y={0.3}
             position.z={1}

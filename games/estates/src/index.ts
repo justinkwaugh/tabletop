@@ -13,6 +13,8 @@ export * from './actions/chooseRecipient.js'
 export * from './actions/placeBid.js'
 export * from './actions/endAuction.js'
 export * from './actions/placeMayor.js'
+export * from './actions/placeRoof.js'
+export * from './actions/placeBarrier.js'
 
 export * from './components/cube.js'
 export * from './components/barrier.js'

@@ -6,7 +6,6 @@
     import { Button } from 'flowbite-svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
-    let bidValue = $state(0)
 
     async function chooseAction(action: string) {
         switch (action) {
@@ -30,6 +29,10 @@
                 return 'Place your cube on the board'
             case ActionType.PlaceMayor:
                 return 'Place the mayor'
+            case ActionType.PlaceRoof:
+                return 'Place your roof on the board'
+            case ActionType.PlaceBarrier:
+                return 'Place your barrier on the board'
             default:
                 return ''
         }
@@ -43,18 +46,6 @@
             gameSession.resetAction()
         }
     })
-
-    function incrementBid() {
-        bidValue = Math.min(bidValue + 1, gameSession.myPlayerState?.money ?? 0)
-    }
-
-    function decrementBid() {
-        bidValue = Math.max(bidValue - 1, gameSession.gameState.auction?.highBid ?? 0 + 1)
-    }
-
-    async function placeBid() {
-        await gameSession.placeBid(bidValue)
-    }
 
     async function chooseRecipient(recipient: AuctionRecipient) {
         await gameSession.chooseRecipient(recipient)

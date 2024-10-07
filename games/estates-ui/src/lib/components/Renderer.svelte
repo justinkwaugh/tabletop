@@ -40,9 +40,9 @@
             visibleEdgeColor: 0xffffff,
             hiddenEdgeColor: 0xffffff,
             height: 480,
-            blur: false,
+            blur: true,
             xRay: true,
-            kernelSize: KernelSize.SMALL
+            kernelSize: KernelSize.VERY_SMALL
         })
 
         composer.addPass(new EffectPass(camera, outlineEffect))

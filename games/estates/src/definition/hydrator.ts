@@ -13,6 +13,8 @@ import { HydratedEndAuction, isEndAuction } from '../actions/endAuction.js'
 import { HydratedChooseRecipient, isChooseRecipient } from '../actions/chooseRecipient.js'
 import { HydratedPlaceCube, isPlaceCube } from '../actions/placeCube.js'
 import { HydratedPlaceMayor, isPlaceMayor } from '../actions/placeMayor.js'
+import { HydratedPlaceRoof, isPlaceRoof } from '../actions/placeRoof.js'
+import { HydratedPlaceBarrier, isPlaceBarrier } from '../actions/placeBarrier.js'
 
 export class EstatesHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -37,6 +39,12 @@ export class EstatesHydrator implements GameHydrator {
             }
             case isPlaceMayor(data): {
                 return new HydratedPlaceMayor(data)
+            }
+            case isPlaceRoof(data): {
+                return new HydratedPlaceRoof(data)
+            }
+            case isPlaceBarrier(data): {
+                return new HydratedPlaceBarrier(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

@@ -11,7 +11,9 @@ import {
     ChooseRecipient,
     PlaceCube,
     Cube,
-    PlaceMayor
+    PlaceMayor,
+    Roof,
+    Barrier
 } from '@tabletop/estates'
 import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
 
@@ -135,6 +137,34 @@ export class EstatesGameSession extends GameSession {
             await this.applyAction(action)
         } catch (e) {
             console.error('Error placing cube', e)
+            this.resetAction()
+        }
+    }
+
+    async placeRoof(roof: Roof, coords: OffsetCoordinates) {
+        const action = {
+            ...this.createBaseAction(ActionType.PlaceRoof),
+            roof,
+            coords
+        }
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.error('Error placing roof', e)
+            this.resetAction()
+        }
+    }
+
+    async placeBarrier(barrier: Barrier, coords: OffsetCoordinates) {
+        const action = {
+            ...this.createBaseAction(ActionType.PlaceBarrier),
+            barrier,
+            coords
+        }
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.error('Error placing roof', e)
             this.resetAction()
         }
     }
