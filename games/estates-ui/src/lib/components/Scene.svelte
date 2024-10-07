@@ -1,6 +1,6 @@
 <script lang="ts">
     import { T, useTask } from '@threlte/core'
-    import { interactivity, OrbitControls, HUD, Outlines } from '@threlte/extras'
+    import { interactivity, OrbitControls, HUD } from '@threlte/extras'
     import { Group, Object3D, Mesh, MeshStandardMaterial, Box3, Vector3 } from 'three'
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
@@ -12,7 +12,6 @@
     import HudScene from './HudScene.svelte'
     import Cert3d from './Cert3d.svelte'
     import PlayerPanel3d from './PlayerPanel3d.svelte'
-    import type { Effects } from '$lib/model/Effects.svelte'
     import GlowingCircle from './GlowingCircle.svelte'
     import { gsap } from 'gsap'
     import { ActionType, Company } from '@tabletop/estates'

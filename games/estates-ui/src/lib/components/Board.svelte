@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Canvas } from '@threlte/core'
+    import { Canvas, useThrelte } from '@threlte/core'
     import Scene from './Scene.svelte'
     import Renderer from './Renderer.svelte'
     import { setContext } from 'svelte'

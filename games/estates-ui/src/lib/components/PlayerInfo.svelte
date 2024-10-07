@@ -1,7 +1,6 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { CaretSortSolid } from 'flowbite-svelte-icons'
     import Cert2d from './Cert2d.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession

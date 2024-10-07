@@ -26,6 +26,7 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
         <slot name="fallback" />
     {:then gltf}
         <T.Mesh
+            castShadow
             oncreate={(ref) => {
                 ref.geometry.center()
             }}

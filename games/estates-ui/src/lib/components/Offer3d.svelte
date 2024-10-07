@@ -336,9 +336,21 @@
         receiveShadow
     >
         <T.BoxGeometry args={[19, 0.2, 4.5]} />
-        <T.MeshStandardMaterial color="#444444" />
+        <T.MeshPhysicalMaterial
+            roughness={0.8}
+            transmission={1}
+            thickness={0.5}
+            color={'#cccccc'}
+            transparent={true}
+            opacity={0.3}
+            clearcoat={1}
+            clearcoatRoughness={0.33}
+        />
     </T.Mesh>
-
+    <T.Mesh position.y={-0.1} rotation.x={-Math.PI / 2}>
+        <T.PlaneGeometry args={[19, 4.5]} />
+        <T.MeshStandardMaterial color={'green'} />
+    </T.Mesh>
     {#each gameSession.gameState.roofs.items as _, i}
         {#if gameSession.gameState.visibleRoofs[i]}
             <Roof
