@@ -13,7 +13,6 @@ Title: Top Hat
     import { T } from '@threlte/core'
     import { useGltf, Outlines } from '@threlte/extras'
 
-    export let outline = false
     export const ref = new Group()
 
     type GLTFResult = {
@@ -36,6 +35,9 @@ Title: Top Hat
     {:then gltf}
         <T.Group position={[-0.33, -0.52, 0.15]}>
             <T.Mesh
+                oncreate={(ref) => {
+                    ref.geometry.center()
+                }}
                 name="outlineMesh"
                 geometry={gltf.nodes.Object_4.geometry}
                 material={gltf.materials.hat1}

@@ -5,8 +5,10 @@
         Barrier,
         Company,
         isBarrier,
+        isCancelCube,
         isCube,
         isRoof,
+        MachineState,
         Piece,
         Site
     } from '@tabletop/estates'
@@ -17,7 +19,7 @@
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import type { OffsetCoordinates } from '@tabletop/common'
-    import Barrier3d from '$lib/3d/Barrier.svelte'
+    import Barrier3d from '$lib/3d/BarrierOne.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
@@ -40,7 +42,10 @@
         if (!gameSession.isMyTurn) {
             return false
         }
-        if (gameSession.chosenAction !== ActionType.RemoveBarrier) {
+        if (
+            gameSession.gameState.machineState !== MachineState.PlacingPiece ||
+            !isCancelCube(gameSession.gameState.chosenPiece)
+        ) {
             return false
         }
 
@@ -102,11 +107,7 @@
         if (!gameSession.isMyTurn) {
             return false
         }
-        if (
-            gameSession.chosenAction !== ActionType.PlaceRoof &&
-            gameSession.chosenAction !== ActionType.PlaceCube &&
-            gameSession.chosenAction !== ActionType.PlaceBarrier
-        ) {
+        if (gameSession.gameState.machineState !== MachineState.PlacingPiece) {
             return false
         }
         const chosenPiece = gameSession.gameState.chosenPiece
@@ -178,6 +179,25 @@
 
         gameSession.removeBarrier(barrier, coords)
     }
+
+    let barrierStart = $derived.by(() => {
+        if (site.barriers.length === 2) {
+            return -0.4
+        } else if (site.barriers.length === 3) {
+            return -0.4
+        }
+
+        return 0
+    })
+
+    let barrierOffset = $derived.by(() => {
+        if (site.barriers.length === 2) {
+            return 0.7
+        } else if (site.barriers.length === 3) {
+            return 0.4
+        }
+        return 0
+    })
 </script>
 
 <T.Group position.x={x} position.y={y} position.z={z} scale={1}>
@@ -204,14 +224,13 @@
     {/if}
     {#each site.barriers as barrier, i}
         <Barrier3d
-            {barrier}
+            stripes={barrier.value}
             onpointerenter={(event: any) => enterBarrier(event, barrier)}
             onpointerleave={leavePiece}
             onclick={(event: any) => onBarrierClick(event, barrier)}
-            position.x={-0.5 + i * 0.5}
+            position.x={barrierStart + i * barrierOffset}
             z={0}
             position.y={0}
-            rotation.y={Math.PI / 2}
         />
     {/each}
     {#if hoverCube}
@@ -244,7 +263,6 @@
             position.x={0}
             position.z={0}
             position.y={0}
-            rotation.y={Math.PI / 2}
             scale={$scale}
         />
     {/if}

@@ -22,7 +22,7 @@
     import type { Effects } from '$lib/model/Effects.svelte'
     import woodImg from '$lib/images/wood.jpg'
     import { useTexture } from '@threlte/extras'
-    import Map from './Map.svelte'
+    import BarrierOne from '$lib/3d/BarrierOne.svelte'
 
     const wood = useTexture(woodImg)
 
@@ -74,7 +74,7 @@
     function chooseCube(obj: Object3D, cube: Cube, coords: OffsetCoordinates) {
         yPos.set(0)
         setTimeout(() => {
-            fadeUp(obj, () => {
+            fadeUp(obj, 0.7, () => {
                 gameSession.startAuction(cube)
             })
         }, 1)
@@ -96,7 +96,7 @@
         }
 
         setTimeout(() => {
-            fadeUp(obj, () => {
+            fadeUp(obj, 2, () => {
                 gameSession.startAuction({ pieceType: PieceType.Mayor })
             })
         }, 1)
@@ -116,7 +116,7 @@
             effects.outline?.selection.delete(mesh)
         }
         setTimeout(() => {
-            fadeUp(obj, () => {
+            fadeUp(obj, 2, () => {
                 gameSession.startAuction({
                     pieceType: PieceType.CancelCube
                 })
@@ -129,17 +129,20 @@
             return
         }
         event.stopPropagation()
-        chooseBarrier(event.object, value)
+        const barrier = findParentByName(event.object, 'barrier')
+        if (barrier) {
+            chooseBarrier(barrier, value)
+        }
     }
 
     function chooseBarrier(obj: Object3D, value: number) {
-        const mesh = obj.getObjectByName('outlinerMesh')
+        const mesh = obj.getObjectByName('outlineMesh')
         if (mesh) {
             effects.outline?.selection.delete(mesh)
         }
 
         setTimeout(() => {
-            fadeUp(obj, () => {
+            fadeUp(obj, 2, () => {
                 gameSession.startAuction({
                     pieceType: PieceType.Barrier,
                     value,
@@ -167,7 +170,7 @@
     // allow the state to be updated so that we don't overlap animations.
     async function chooseRoof(obj: Object3D, index: number) {
         allowRoofInteraction = false
-        const mesh = obj.getObjectByName('roofMesh')
+        const mesh = obj.getObjectByName('outlineMesh')
         if (mesh) {
             effects.outline?.selection.delete(mesh)
         }
@@ -213,30 +216,16 @@
         }
     })
 
-    function fadeUp(object: Object3D, onComplete: () => void) {
+    function fadeUp(object: Object3D, height: number, onComplete: () => void) {
         const timeline = gsap.timeline({
             onComplete
         })
         timeline.to(object.position, {
             duration: 0.2,
-            y: 0.7
+            y: height
         })
 
-        object.traverse((object) => {
-            if ((object as Mesh).material as MeshStandardMaterial) {
-                const material = (object as Mesh).material as MeshStandardMaterial
-                material.transparent = true
-                material.needsUpdate = true
-                timeline.to(
-                    material,
-                    {
-                        duration: 0.2,
-                        opacity: 0
-                    },
-                    0
-                )
-            }
-        })
+        fade(object, 0.2, 0, 0, timeline)
         timeline.play()
     }
 
@@ -257,6 +246,17 @@
             0
         )
 
+        fade(object, 0.2, 0, 0.3, timeline)
+        timeline.play()
+    }
+
+    function fade(
+        object: Object3D,
+        duration: number,
+        opacity: number,
+        start: number,
+        timeline: gsap.core.Timeline
+    ) {
         object.traverse((object) => {
             if ((object as Mesh).material as MeshStandardMaterial) {
                 const material = (object as Mesh).material as MeshStandardMaterial
@@ -265,14 +265,13 @@
                 timeline.to(
                     material,
                     {
-                        duration: 0.2,
-                        opacity: 0
+                        duration,
+                        opacity
                     },
-                    0.3
+                    start
                 )
             }
         })
-        timeline.play()
     }
 
     function findParentByName(obj: Object3D, name: string) {
@@ -288,25 +287,17 @@
         return undefined
     }
 
-    function enterRoof(event: any) {
-        if (!canHoverRoof) {
-            return
+    function findParent(obj: Object3D, parent: Object3D) {
+        if (obj === parent) {
+            return obj
         }
-        const roof = findParentByName(event.object, 'roof')
-        const mesh = roof?.getObjectByName('roofMesh')
-        if (mesh) {
-            event.stopPropagation()
-            effects.outline?.selection.add(mesh)
+        while (obj.parent) {
+            if (obj.parent === parent) {
+                return obj.parent
+            }
+            obj = obj.parent
         }
-    }
-
-    function leaveRoof(event: any) {
-        const roof = findParentByName(event.object, 'roof')
-        const mesh = roof?.getObjectByName('roofMesh')
-        if (mesh) {
-            event.stopPropagation()
-            effects.outline?.selection.delete(mesh)
-        }
+        return undefined
     }
 
     function enterPiece(event: any, parentName?: string) {
@@ -324,12 +315,20 @@
         }
     }
 
-    function leavePiece(event: any) {
-        const mesh = event.object?.getObjectByName('outlineMesh')
-        if (mesh) {
+    function leavePiece(event: any, parentName?: string) {
+        let obj = parentName ? findParentByName(event.object, parentName) : event.object
+        const mesh = obj.getObjectByName('outlineMesh')
+        if (mesh && !event.intersections.find((i: any) => findParent(i.object, obj))) {
             event.stopPropagation()
             effects.outline?.selection.delete(mesh)
         }
+    }
+
+    function enterRoof(event: any, parentName?: string) {
+        if (!canHoverRoof) {
+            return
+        }
+        enterPiece(event, parentName)
     }
 </script>
 
@@ -343,7 +342,7 @@
             onpointerleave={onPointerLeave}
             receiveShadow
         >
-            <T.BoxGeometry args={[19, 0.2, 4.5]} />
+            <T.BoxGeometry args={[19.5, 0.2, 4.5]} />
             <T.MeshPhysicalMaterial
                 map={woodValue}
                 roughness={0.3}
@@ -362,13 +361,13 @@
             {#if gameSession.gameState.visibleRoofs[i]}
                 <Roof
                     roof={{ pieceType: PieceType.Roof, value: -1 }}
-                    onpointerenter={enterRoof}
-                    onpointerleave={leaveRoof}
+                    onpointerenter={(event: any) => enterRoof(event, 'roof')}
+                    onpointerleave={(event: any) => leavePiece(event, 'roof')}
                     onclick={(event: any) => {
                         onRoofClick(event, i)
                     }}
                     rotation.z={Math.PI}
-                    position={[-8.5 + (i % 4) * 1.2, 0.31, -1.2 + Math.floor(i / 4) * 1.2]}
+                    position={[-8.25 + (i % 4) * 1.2, 0.31, -1.2 + Math.floor(i / 4) * 1.2]}
                 />
             {/if}
         {/each}
@@ -381,7 +380,7 @@
                             {cube}
                             onclick={(event: any) => onCubeClick(event, cube, { row, col })}
                             rotation.x={-Math.PI / 2}
-                            position.x={-3.5 + col}
+                            position.x={-2.75 + col}
                             position.y={!canChoose ||
                             !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
                                 ? 0
@@ -394,60 +393,66 @@
         {/each}
 
         {#if gameSession.gameState.barrierOne}
-            <Barrier
-                onpointerenter={enterPiece}
-                onpointerleave={leavePiece}
+            <BarrierOne
+                onpointerenter={(event: any) => enterPiece(event, 'barrier')}
+                onpointerleave={(event: any) => leavePiece(event, 'barrier')}
                 onclick={(event: any) => {
                     onBarrierClick(event, 1)
                 }}
-                position.x={5.5}
-                position.y={0.3}
-                position.z={-1}
+                stripes={1}
+                position.x={6.25}
+                position.y={0.5}
+                position.z={1}
+                rotation.y={Math.PI / 2}
             />
         {/if}
         {#if gameSession.gameState.barrierTwo}
-            <Barrier
-                onpointerenter={enterPiece}
-                onpointerleave={leavePiece}
+            <BarrierOne
+                onpointerenter={(event: any) => enterPiece(event, 'barrier')}
+                onpointerleave={(event: any) => leavePiece(event, 'barrier')}
                 onclick={(event: any) => {
                     onBarrierClick(event, 2)
                 }}
-                position.x={5.5}
-                position.y={0.3}
+                stripes={2}
+                position.x={6.25}
+                position.y={0.5}
                 position.z={0}
+                rotation.y={Math.PI / 2}
             />
         {/if}
         {#if gameSession.gameState.barrierThree}
-            <Barrier
-                onpointerenter={enterPiece}
-                onpointerleave={leavePiece}
+            <BarrierOne
+                onpointerenter={(event: any) => enterPiece(event, 'barrier')}
+                onpointerleave={(event: any) => leavePiece(event, 'barrier')}
                 onclick={(event: any) => {
                     onBarrierClick(event, 3)
                 }}
-                position.x={5.5}
-                position.y={0.3}
-                position.z={1}
+                stripes={3}
+                position.x={6.25}
+                position.y={0.5}
+                position.z={-1}
+                rotation.y={Math.PI / 2}
             />
         {/if}
         {#if gameSession.gameState.mayor}
             <TopHat
                 onpointerenter={(event: any) => enterPiece(event, 'topHat')}
-                onpointerleave={leavePiece}
+                onpointerleave={(event: any) => leavePiece(event, 'topHat')}
                 onclick={onMayorClick}
                 scale={0.5}
-                position.x={8}
+                position.x={8.25}
                 position.y={1}
-                position.z={-1}
+                position.z={-0.8}
                 transparent={true}
                 opacity={$opacity}
             />
         {/if}
         {#if gameSession.gameState.cancelCube}
             <CancelCube
-                onpointerenter={enterPiece}
-                onpointerleave={leavePiece}
+                onpointerenter={(event: any) => enterPiece(event, 'cancelCube')}
+                onpointerleave={(event: any) => leavePiece(event, 'cancelCube')}
                 onclick={onCancelCubeClick}
-                position.x={8}
+                position.x={8.05}
                 position.y={0.3}
                 position.z={1}
                 rotation.x={-Math.PI / 2}

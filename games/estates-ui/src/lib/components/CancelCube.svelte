@@ -1,9 +1,7 @@
 <script lang="ts">
     import { T, type Props } from '@threlte/core'
-    import { Text, RoundedBoxGeometry, Outlines } from '@threlte/extras'
+    import { Text, RoundedBoxGeometry } from '@threlte/extras'
     import { Group, MeshBasicMaterial } from 'three'
-    import { getContext } from 'svelte'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
 
     let {
         opacity = 1,
@@ -16,7 +14,7 @@
     const material = new MeshBasicMaterial({ toneMapped: false })
 </script>
 
-<T.Group {...others}>
+<T.Group name="cancelCube" {...others}>
     <T.Mesh name="outlineMesh" castShadow>
         <RoundedBoxGeometry args={[1, 1, 0.3]} />
         <T.MeshPhysicalMaterial

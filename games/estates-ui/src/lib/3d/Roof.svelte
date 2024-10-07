@@ -30,7 +30,7 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
             oncreate={(ref) => {
                 ref.geometry.center()
             }}
-            name="roofMesh"
+            name="outlineMesh"
             scale={0.05}
             geometry={gltf.nodes.roof.geometry}
         >

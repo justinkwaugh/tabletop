@@ -21,6 +21,7 @@
     import CancelCube from './CancelCube.svelte'
     import Barrier from '$lib/3d/Barrier.svelte'
     import Roof from './Roof3d.svelte'
+    import BarrierOne from '$lib/3d/BarrierOne.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const viewport = useViewport()
@@ -115,13 +116,14 @@
             {...others}
         />
     {:else if isBarrier(gameSession.gameState.chosenPiece)}
-        <Barrier
+        <BarrierOne
             oncreate={(ref: Object3D) => {
                 hide(ref)
                 ref.position.y = $viewport.height / 2 - 3
-                flyUp(ref, 0.95)
+                flyUp(ref)
             }}
-            scale={1.1}
+            stripes={gameSession.gameState.chosenPiece.value}
+            scale={1}
             rotation.y={rotation}
             position={[0, $viewport.height / 2, 0]}
             {...others}

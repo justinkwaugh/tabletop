@@ -5,7 +5,7 @@
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
-    import { getContext, untrack } from 'svelte'
+    import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Offer3d from './Offer3d.svelte'

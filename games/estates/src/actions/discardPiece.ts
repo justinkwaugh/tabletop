@@ -36,7 +36,7 @@ export class HydratedDiscardPiece
 
     apply(state: HydratedEstatesGameState) {
         if (!HydratedDiscardPiece.isValidDiscard(this.piece)) {
-            throw Error(`Piece: ${this.piece.value} cannot be discarded`)
+            throw Error(`Piece: ${this.piece} cannot be discarded`)
         }
         state.chosenPiece = undefined
     }
