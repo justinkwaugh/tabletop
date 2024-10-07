@@ -137,11 +137,22 @@
         <Cube3d {cube} position.x={0} position.z={0} position.y={i} />
     {/each}
     {#if site.roof}
-        <Roof3d roof={site.roof} x={0} z={0} position.y={site.cubes.length - 0.305} />
+        <Roof3d
+            roof={site.roof}
+            position.x={0}
+            position.z={0}
+            position.y={site.cubes.length - 0.305}
+        />
     {/if}
-    {#if site.barrier}
-        <Barrier3d barrier={site.barrier} x={0} z={0} position.y={0} rotation.y={Math.PI / 2} />
-    {/if}
+    {#each site.barriers as barrier, i}
+        <Barrier3d
+            {barrier}
+            position.x={-0.5 + i * 0.5}
+            z={0}
+            position.y={0}
+            rotation.y={Math.PI / 2}
+        />
+    {/each}
     {#if hoverCube}
         <Cube3d
             transparent={true}

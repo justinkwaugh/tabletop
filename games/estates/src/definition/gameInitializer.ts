@@ -90,7 +90,8 @@ export class EstatesGameInitializer extends BaseGameInitializer implements GameI
         const site: Site = {
             single: false,
             cubes: [],
-            roof: undefined
+            roof: undefined,
+            barriers: []
         }
 
         const rowOne: BoardRow = {

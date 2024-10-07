@@ -3,14 +3,14 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Hydratable, OffsetCoordinates } from '@tabletop/common'
 import { Cube } from './cube.js'
 import { Roof } from './roof.js'
-import { Barrier } from './barrier.js'
+import { Barrier, BarrierDirection } from './barrier.js'
 
 export type Site = Static<typeof Site>
 export const Site = Type.Object({
     single: Type.Boolean(),
     cubes: Type.Array(Cube),
     roof: Type.Optional(Roof),
-    barrier: Type.Optional(Barrier)
+    barriers: Type.Array(Barrier)
 })
 
 export type BoardRow = Static<typeof BoardRow>
@@ -118,8 +118,20 @@ export class HydratedEstatesGameBoard
 
     placeBarrierAtSite(barrier: Barrier, coords: OffsetCoordinates) {
         const boardRow = this.rows[coords.row]
-        const site = boardRow.sites[coords.col]
-        site.barrier = barrier
+        const chosenSite = boardRow.sites[coords.col]
+
+        barrier.direction =
+            coords.col > boardRow.length ? BarrierDirection.Lengthen : BarrierDirection.Shorten
+
+        const movedBarriers = []
+        for (const site of boardRow.sites) {
+            if (site.barriers.length > 0) {
+                movedBarriers.push(...site.barriers)
+                site.barriers = []
+            }
+        }
+        chosenSite.barriers.push(...movedBarriers)
+        chosenSite.barriers.push(barrier)
         boardRow.length = coords.col
     }
 

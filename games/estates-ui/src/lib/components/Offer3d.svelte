@@ -1,6 +1,13 @@
 <script lang="ts">
     import { T, type Props } from '@threlte/core'
-    import { Cube, EstatesGameState, isRoof, MachineState, PieceType } from '@tabletop/estates'
+    import {
+        BarrierDirection,
+        Cube,
+        EstatesGameState,
+        isRoof,
+        MachineState,
+        PieceType
+    } from '@tabletop/estates'
     import { Mesh, Object3D, MeshStandardMaterial, Group } from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
@@ -126,7 +133,8 @@
             fadeUp(obj, () => {
                 gameSession.startAuction({
                     pieceType: PieceType.Barrier,
-                    value
+                    value,
+                    direction: BarrierDirection.Unplaced
                 })
             })
         }, 1)
