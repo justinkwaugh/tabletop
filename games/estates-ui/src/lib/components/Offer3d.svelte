@@ -12,7 +12,6 @@
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
-    import Barrier from '$lib/3d/Barrier.svelte'
     import Cube3d from './Cube3d.svelte'
     import { OffsetCoordinates, sameCoordinates } from '@tabletop/common'
     import { spring } from 'svelte/motion'
@@ -45,6 +44,8 @@
         canChoose && gameSession.gameState.board.validRoofLocations().length > 0
     )
     let canHoverRoof: boolean = $derived(canChooseRoof && allowRoofInteraction)
+
+    let unHighlightTimers = new Map<unknown, ReturnType<typeof setTimeout>>()
 
     function onPointerEnter(event: PointerEvent) {
         if (!canChoose) {
@@ -287,19 +288,6 @@
         return undefined
     }
 
-    function findParent(obj: Object3D, parent: Object3D) {
-        if (obj === parent) {
-            return obj
-        }
-        while (obj.parent) {
-            if (obj.parent === parent) {
-                return obj.parent
-            }
-            obj = obj.parent
-        }
-        return undefined
-    }
-
     function enterPiece(event: any, parentName?: string) {
         if (!canChoose) {
             return
@@ -310,6 +298,10 @@
         let obj = parentName ? findParentByName(event.object, parentName) : event.object
         const mesh = obj?.getObjectByName('outlineMesh')
         if (mesh) {
+            if (unHighlightTimers.has(obj)) {
+                clearTimeout(unHighlightTimers.get(obj))
+                unHighlightTimers.delete(obj)
+            }
             event.stopPropagation()
             effects.outline?.selection.add(mesh)
         }
@@ -317,10 +309,20 @@
 
     function leavePiece(event: any, parentName?: string) {
         let obj = parentName ? findParentByName(event.object, parentName) : event.object
+
         const mesh = obj.getObjectByName('outlineMesh')
-        if (mesh && !event.intersections.find((i: any) => findParent(i.object, obj))) {
-            event.stopPropagation()
-            effects.outline?.selection.delete(mesh)
+        if (mesh) {
+            unHighlightTimers.set(
+                obj,
+                setTimeout(() => {
+                    try {
+                        event.stopPropagation()
+                        effects.outline?.selection.delete(mesh)
+                    } finally {
+                        unHighlightTimers.delete(obj)
+                    }
+                }, 50)
+            )
         }
     }
 
@@ -401,7 +403,7 @@
                 }}
                 stripes={1}
                 position.x={6.25}
-                position.y={0.5}
+                position.y={0.7}
                 position.z={1}
                 rotation.y={Math.PI / 2}
             />
@@ -415,7 +417,7 @@
                 }}
                 stripes={2}
                 position.x={6.25}
-                position.y={0.5}
+                position.y={0.7}
                 position.z={0}
                 rotation.y={Math.PI / 2}
             />
@@ -429,7 +431,7 @@
                 }}
                 stripes={3}
                 position.x={6.25}
-                position.y={0.5}
+                position.y={0.7}
                 position.z={-1}
                 rotation.y={Math.PI / 2}
             />
