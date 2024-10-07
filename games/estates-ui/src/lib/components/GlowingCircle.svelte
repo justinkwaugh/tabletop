@@ -11,10 +11,10 @@
 <T.Mesh
     oncreate={(ref) => {
         effects.bloom?.selection.add(ref)
-        effects.outline?.selection.add(ref)
+        effects.pulseOutline?.selection.add(ref)
         return () => {
             effects.bloom?.selection.delete(ref)
-            effects.outline?.selection.delete(ref)
+            effects.pulseOutline?.selection.delete(ref)
         }
     }}
     {...others}

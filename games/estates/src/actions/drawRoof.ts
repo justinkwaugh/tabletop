@@ -10,6 +10,7 @@ export const DrawRoof = Type.Composite([
     Type.Omit(GameAction, ['type']),
     Type.Object({
         type: Type.Literal(ActionType.DrawRoof),
+        visibleIndex: Type.Number(),
         revealsInfo: Type.Literal(true),
         metadata: Type.Optional(
             Type.Object({
@@ -27,6 +28,7 @@ export function isDrawRoof(action: GameAction): action is DrawRoof {
 
 export class HydratedDrawRoof extends HydratableAction<typeof DrawRoof> implements DrawRoof {
     declare type: ActionType.DrawRoof
+    declare visibleIndex: number
     declare revealsInfo: true
     declare metadata: { chosenRoof: Roof }
 
@@ -37,6 +39,7 @@ export class HydratedDrawRoof extends HydratableAction<typeof DrawRoof> implemen
     apply(state: HydratedEstatesGameState) {
         const drawnRoof = state.roofs.draw()
         state.chosenPiece = drawnRoof
+        state.visibleRoofs[this.visibleIndex] = false
         this.metadata = { chosenRoof: drawnRoof }
     }
 }

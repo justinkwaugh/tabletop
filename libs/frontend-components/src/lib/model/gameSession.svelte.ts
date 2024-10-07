@@ -48,6 +48,8 @@ type ActionResults = {
     revealing: boolean
 }
 
+export type GameStateChangeListener = (from: GameState, to: GameState) => Promise<void>
+
 export class GameSession {
     public definition: GameUiDefinition
     private debug? = false
@@ -61,6 +63,7 @@ export class GameSession {
     private actionsToProcess: GameAction[] = []
 
     private processingActions = false
+    private gameStateChangeListeners: Set<GameStateChangeListener> = new Set()
 
     chatService: ChatService
 
@@ -440,7 +443,7 @@ export class GameSession {
             // This is because the server may reject the action due to undo or any other reason and we
             // do not want to show the player the revealed info.
             if (!actionResults.revealing) {
-                this.applyActionResults(actionResults)
+                await this.applyActionResults(actionResults)
             }
 
             // Our processed action has the updated index so grab it
@@ -474,7 +477,7 @@ export class GameSession {
                     serverAction.index < (action.index ?? 0)
                 ) {
                     // Rollback our local action and any deferred results
-                    this.rollbackActions(priorState)
+                    await this.rollbackActions(priorState)
 
                     // Undo to the server's index
                     this.undoToIndex(gameSnapshot, serverAction.index - 1)
@@ -492,7 +495,7 @@ export class GameSession {
                     missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
 
                     // Rollback our local action and any deferred results
-                    this.rollbackActions(priorState)
+                    await this.rollbackActions(priorState)
 
                     // Prepend the missing actions
                     serverActions.unshift(...missingActions)
@@ -506,7 +509,7 @@ export class GameSession {
                         if (action.source === ActionSource.User) {
                             const actionResults = this.applyActionToGame(action, gameSnapshot)
                             gameSnapshot.state = actionResults.updatedState
-                            this.applyActionResults(actionResults)
+                            await this.applyActionResults(actionResults)
                         }
                     }
                 }
@@ -524,11 +527,11 @@ export class GameSession {
             }
         } catch (e) {
             console.log(e)
-            this.rollbackActions(priorState)
+            await this.rollbackActions(priorState)
             await this.checkSync()
         } finally {
             this.processingActions = false
-            this.applyQueuedActions()
+            await this.applyQueuedActions()
         }
     }
 
@@ -580,10 +583,10 @@ export class GameSession {
                     const results = this.applyActionToGame(action, gameSnapshot)
                     localRedoneActions.push(...results.processedActions)
                     gameSnapshot.state = results.updatedState
-                    this.applyActionResults(results)
+                    await this.applyActionResults(results)
                 }
 
-                this.updateGameState(gameSnapshot.state)
+                await this.updateGameState(gameSnapshot.state)
 
                 // Undo on the server
                 const { redoneActions, checksum } = await this.api.undoAction(
@@ -595,13 +598,13 @@ export class GameSession {
                     // We must not have known about something, but we did succeed so let's see if we can align
                     // by removing our redos and adding the backend's instead
                     localRedoneActions.splice(0, localRedoneActions.length)
-                    this.rollbackActions(preRedoState)
+                    await this.rollbackActions(preRedoState)
 
                     for (const action of redoneActions) {
                         const results = this.applyActionToGame(action, gameSnapshot)
                         localRedoneActions.push(...results.processedActions)
                         gameSnapshot.state = results.updatedState
-                        this.applyActionResults(results)
+                        await this.applyActionResults(results)
                     }
                 }
 
@@ -614,14 +617,22 @@ export class GameSession {
             } catch (e) {
                 console.log(e)
                 toast.error('An error occurred while undoing an action')
-                this.rollbackUndo(priorState, localUndoneActions, localRedoneActions)
+                await this.rollbackUndo(priorState, localUndoneActions, localRedoneActions)
                 await this.checkSync()
                 return
             }
         } finally {
             this.processingActions = false
-            this.applyQueuedActions()
+            await this.applyQueuedActions()
         }
+    }
+
+    addGameStateChangeListener(listener: GameStateChangeListener) {
+        this.gameStateChangeListeners.add(listener)
+    }
+
+    removeGameStateChangeListener(listener: GameStateChangeListener) {
+        this.gameStateChangeListeners.delete(listener)
     }
 
     private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {
@@ -632,10 +643,10 @@ export class GameSession {
         )
     }
 
-    private applyQueuedActions() {
+    private async applyQueuedActions() {
         const queuedActions = this.actionsToProcess
         this.actionsToProcess = []
-        this.applyServerActions(queuedActions)
+        await this.applyServerActions(queuedActions)
     }
 
     public shouldAutoStepAction(action: GameAction) {
@@ -834,26 +845,26 @@ export class GameSession {
         this.onHistoryExit()
     }
 
-    private updateGameState(gameState?: GameState) {
-        if (!gameState) {
+    private async updateGameState(gameState?: GameState) {
+        if (!this.game.state || !gameState) {
             return
         }
-        this.willUpdateGameState()
+        for (const listener of this.gameStateChangeListeners) {
+            await listener(this.game.state, gameState)
+        }
         this.game.state = gameState
     }
 
     willUndo() {}
 
-    willUpdateGameState() {}
-
     onHistoryAction(_action?: GameAction) {}
 
     onHistoryExit() {}
 
-    private rollbackActions(priorState: GameState) {
+    private async rollbackActions(priorState: GameState) {
         console.log('rolling back the actions')
         // Reset the state
-        this.updateGameState(priorState)
+        await this.updateGameState(priorState)
 
         // Remove the actions that were added
         const removed = this.actions.slice(priorState.actionCount) || []
@@ -863,13 +874,13 @@ export class GameSession {
         this.actions = this.actions.slice(0, priorState.actionCount)
     }
 
-    private rollbackUndo(
+    private async rollbackUndo(
         priorState: GameState,
         undoneActions: GameAction[],
         redoneActions: GameAction[]
     ) {
         // Reset the state
-        this.updateGameState(priorState)
+        await this.updateGameState(priorState)
 
         for (const action of redoneActions) {
             this.actionsById.delete(action.id)
@@ -889,8 +900,8 @@ export class GameSession {
         return { processedActions, updatedState, revealing }
     }
 
-    private applyActionResults(actionResults: ActionResults) {
-        this.updateGameState(actionResults.updatedState)
+    private async applyActionResults(actionResults: ActionResults) {
+        await this.updateGameState(actionResults.updatedState)
         actionResults.processedActions.forEach((action) => {
             this.addAction(action)
         })
@@ -936,7 +947,7 @@ export class GameSession {
         return { undoneActions }
     }
 
-    private tryToResync(serverActions: GameAction[], checksum: number): boolean {
+    private async tryToResync(serverActions: GameAction[], checksum: number): Promise<boolean> {
         // Find the latest action that matches
         const matchedActionIndex = findLastIndex(serverActions, (action) => {
             if (
@@ -959,7 +970,7 @@ export class GameSession {
             matchedActionIndex >= 0 ? (serverActions[matchedActionIndex].index ?? -1) : -1
         const snapshot = $state.snapshot(this.game)
         this.undoToIndex(snapshot, rollbackIndex)
-        this.updateGameState(snapshot.state)
+        await this.updateGameState(snapshot.state)
 
         // Apply the actions from the server
         if (matchedActionIndex < serverActions.length - 1) {
@@ -967,7 +978,7 @@ export class GameSession {
             for (const action of actionsToApply) {
                 const actionResults = this.applyActionToGame(action, snapshot)
                 snapshot.state = actionResults.updatedState
-                this.applyActionResults(actionResults)
+                await this.applyActionResults(actionResults)
             }
         }
 
@@ -1023,7 +1034,7 @@ export class GameSession {
             Value.Convert(GameAction, action)
         ) as GameAction[]
 
-        this.applyServerActions(actions)
+        await this.applyServerActions(actions)
     }
 
     private async handleUndoNotification(notification: GameUndoActionNotification) {
@@ -1041,8 +1052,8 @@ export class GameSession {
 
         const gameSnapshot = $state.snapshot(this.game)
         this.undoToIndex(gameSnapshot, targetIndex)
-        this.updateGameState(gameSnapshot.state)
-        this.applyServerActions(redoneActions)
+        await this.updateGameState(gameSnapshot.state)
+        await this.applyServerActions(redoneActions)
     }
 
     private async handleDeleteNotification(notification: GameDeleteNotification) {
@@ -1063,7 +1074,7 @@ export class GameSession {
         let resyncNeeded = false
         if (status === GameSyncStatus.InSync) {
             if (actions.length > 0) {
-                this.applyServerActions(actions)
+                await this.applyServerActions(actions)
                 if (this.game.state?.actionChecksum !== checksum) {
                     console.log('Checksums do not match after applying actions from sync')
                     resyncNeeded = true
@@ -1084,7 +1095,7 @@ export class GameSession {
         console.log('DOING FULL RESYNC')
         try {
             const { game, actions } = await this.api.getGame(this.game.id)
-            this.updateGameState(game.state)
+            await this.updateGameState(game.state)
             this.initializeActions(actions)
         } catch (e) {
             console.log('Error during full resync', e)
@@ -1092,7 +1103,7 @@ export class GameSession {
         }
     }
 
-    private applyServerActions(actions: GameAction[]) {
+    private async applyServerActions(actions: GameAction[]) {
         if (actions.length === 0) {
             return
         }
@@ -1132,7 +1143,7 @@ export class GameSession {
         }
 
         // Once all the actions are processed, update the game state
-        this.applyActionResults(allActionResults)
+        await this.applyActionResults(allActionResults)
     }
 
     private isGameAddActionsNotification(

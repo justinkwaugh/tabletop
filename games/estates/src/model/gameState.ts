@@ -31,6 +31,7 @@ export const EstatesGameState = Type.Composite([
         certificates: Type.Array(Type.Enum(Company)),
         cubes: Type.Array(Type.Array(OptionalCube)), // 3x8 array of cubes
         roofs: RoofBag,
+        visibleRoofs: Type.Array(Type.Boolean()),
         mayor: Type.Boolean(),
         barrierOne: Type.Boolean(),
         barrierTwo: Type.Boolean(),
@@ -71,6 +72,7 @@ export class HydratedEstatesGameState
     declare certificates: Company[]
     declare cubes: OptionalCube[][]
     declare roofs: HydratedRoofBag
+    declare visibleRoofs: boolean[]
     declare mayor: boolean
     declare barrierOne: boolean
     declare barrierTwo: boolean

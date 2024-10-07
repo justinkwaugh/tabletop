@@ -49,6 +49,10 @@ export class HydratedEstatesGameBoard
             return false
         }
 
+        const emptySiteIndex = boardRow.sites.findIndex((site) => site.cubes.length === 0)
+        if (coords.col > emptySiteIndex) {
+            return false
+        }
         const site = boardRow.sites[coords.col]
 
         return this.canPlaceCubeAtSite(cube, site)

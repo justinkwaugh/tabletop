@@ -1,6 +1,6 @@
 <script lang="ts">
     import { T, type Props } from '@threlte/core'
-    import { Cube, MachineState, PieceType } from '@tabletop/estates'
+    import { Cube, EstatesGameState, isRoof, MachineState, PieceType } from '@tabletop/estates'
     import { Mesh, Object3D, MeshStandardMaterial, Group } from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
@@ -34,9 +34,9 @@
     let hoverBarrierThree: boolean = $state(false)
     let hoverCancelCube: boolean = $state(false)
 
-    let allowHover = $state(true)
+    let allowRoofInteraction = $state(true)
 
-    let canHover: boolean = $derived(canPlace && allowHover)
+    let canHoverRoof: boolean = $derived(canPlace && allowRoofInteraction)
 
     function onPointerEnter(event: PointerEvent) {
         if (!canPlace) {
@@ -140,28 +140,55 @@
         }, 1)
     }
 
-    function onRoofClick(event: any, value: number) {
+    function onRoofClick(event: any, index: number) {
         event.stopPropagation()
+        if (!canPlace || !allowRoofInteraction) {
+            return
+        }
         const roof = findParentByName(event.object, 'roof')
         if (roof) {
-            chooseRoof(roof, value)
+            chooseRoof(roof, index)
         }
     }
 
-    function chooseRoof(obj: Object3D, value: number) {
-        allowHover = false
+    // This method is the most complicated of the bunch because it deals with hidden info.
+    // The actual roof value is not determined until the server has been called, so we need to
+    // wait for the server response, and the state to be ready for update before we trigger the animation
+    // which will reveal the roof value.  We also need to wait until the animation is done before we
+    // allow the state to be updated so that we don't overlap animations.
+    async function chooseRoof(obj: Object3D, index: number) {
+        allowRoofInteraction = false
         const mesh = obj.getObjectByName('roofMesh')
         if (mesh) {
             effects.outline?.selection.delete(mesh)
         }
-        setTimeout(() => {
-            flipAndFadeUp(obj, () => {
-                gameSession.startAuction({
-                    pieceType: PieceType.Roof
+
+        // Make a listener for the game state update
+        const listener = async (from: EstatesGameState, to: EstatesGameState) => {
+            gameSession.removeGameStateChangeListener(listener)
+
+            if (to.machineState === MachineState.Auctioning && isRoof(to.chosenPiece)) {
+                // set the roof text to the chosen value
+                const textObj = obj.getObjectByName('roofText') as any
+                if (textObj) {
+                    textObj.text = to.chosenPiece.value
+                }
+
+                // Wait for the animation to finish before allowing the state to update
+                await new Promise<void>((resolve) => {
+                    setTimeout(() => {
+                        flipAndFadeUp(obj, () => {
+                            allowRoofInteraction = true
+                            resolve()
+                        })
+                    })
                 })
-                allowHover = true
-            })
-        }, 1)
+            }
+        }
+        gameSession.addGameStateChangeListener(listener)
+
+        // Kick off the action
+        await gameSession.drawRoof(index)
     }
 
     $effect(() => {
@@ -241,12 +268,10 @@
 
     function findParentByName(obj: Object3D, name: string) {
         if (obj.name === name) {
-            console.log(obj)
             return obj
         }
         while (obj.parent) {
             if (obj.parent.name === name) {
-                console.log(obj.parent)
                 return obj.parent
             }
             obj = obj.parent
@@ -268,34 +293,36 @@
         <T.MeshStandardMaterial color="#444444" />
     </T.Mesh>
 
-    {#each gameSession.gameState.roofs.items as roof, i}
-        <Roof
-            {roof}
-            onpointerenter={(event: any) => {
-                if (!canHover) {
-                    return
-                }
-                const roof = findParentByName(event.object, 'roof')
-                const mesh = roof?.getObjectByName('roofMesh')
-                if (mesh) {
-                    event.stopPropagation()
-                    effects.outline?.selection.add(mesh)
-                }
-            }}
-            onpointerleave={(event: any) => {
-                const roof = findParentByName(event.object, 'roof')
-                const mesh = roof?.getObjectByName('roofMesh')
-                if (mesh) {
-                    event.stopPropagation()
-                    effects.outline?.selection.delete(mesh)
-                }
-            }}
-            onclick={(event: any) => {
-                onRoofClick(event, 1)
-            }}
-            rotation.z={Math.PI}
-            position={[-8 + (i % 4) * 1.2, 0.31, -1.2 + Math.floor(i / 4) * 1.2]}
-        />
+    {#each gameSession.gameState.roofs.items as _, i}
+        {#if gameSession.gameState.visibleRoofs[i]}
+            <Roof
+                roof={{ pieceType: PieceType.Roof, value: -1 }}
+                onpointerenter={(event: any) => {
+                    if (!canHoverRoof) {
+                        return
+                    }
+                    const roof = findParentByName(event.object, 'roof')
+                    const mesh = roof?.getObjectByName('roofMesh')
+                    if (mesh) {
+                        event.stopPropagation()
+                        effects.outline?.selection.add(mesh)
+                    }
+                }}
+                onpointerleave={(event: any) => {
+                    const roof = findParentByName(event.object, 'roof')
+                    const mesh = roof?.getObjectByName('roofMesh')
+                    if (mesh) {
+                        event.stopPropagation()
+                        effects.outline?.selection.delete(mesh)
+                    }
+                }}
+                onclick={(event: any) => {
+                    onRoofClick(event, i)
+                }}
+                rotation.z={Math.PI}
+                position={[-8.5 + (i % 4) * 1.2, 0.31, -1.2 + Math.floor(i / 4) * 1.2]}
+            />
+        {/if}
     {/each}
 
     {#each gameSession.gameState.cubes as cubeRow, row}

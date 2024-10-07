@@ -17,7 +17,6 @@
 
     function onFlyDone() {
         ready = true
-        console.log('fly done')
     }
 </script>
 

@@ -58,6 +58,7 @@ export class EstatesGameInitializer extends BaseGameInitializer implements GameI
             ],
             cubes: this.intializeCubes(prng.random),
             roofs: HydratedRoofBag.create(prng.random),
+            visibleRoofs: new Array(12).fill(true),
             mayor: true,
             barrierOne: true,
             barrierTwo: true,

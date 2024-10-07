@@ -70,6 +70,21 @@ export class EstatesGameSession extends GameSession {
         }
     }
 
+    async drawRoof(index: number) {
+        const action = {
+            ...this.createBaseAction(ActionType.DrawRoof),
+            visibleIndex: index,
+            revealsInfo: true
+        }
+
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.error('Error drawing roof', e)
+            this.resetAction()
+        }
+    }
+
     async startAuction(piece: Piece) {
         const action = {
             ...(this.createBaseAction(ActionType.StartAuction) as StartAuction),

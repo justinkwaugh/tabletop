@@ -11,6 +11,7 @@
         isCancelCube,
         isCube,
         isMayor,
+        isRoof,
         MachineState,
         PieceType
     } from '@tabletop/estates'
@@ -19,6 +20,7 @@
     import TopHat from '$lib/3d/TopHat.svelte'
     import CancelCube from './CancelCube.svelte'
     import Barrier from '$lib/3d/Barrier.svelte'
+    import Roof from './Roof.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const viewport = useViewport()
@@ -66,7 +68,6 @@
     function hide(object: Object3D) {
         object.traverse((object) => {
             if ((object as Mesh).material as MeshStandardMaterial) {
-                console.log('Hiding object')
                 const material = (object as Mesh).material as MeshStandardMaterial
                 material.transparent = true
                 material.opacity = 0
@@ -122,6 +123,19 @@
             }}
             scale={1.1}
             rotation.y={rotation}
+            position={[0, $viewport.height / 2, 0]}
+            {...others}
+        />
+    {:else if isRoof(gameSession.gameState.chosenPiece)}
+        <Roof
+            roof={gameSession.gameState.chosenPiece}
+            oncreate={(ref: Object3D) => {
+                hide(ref)
+                ref.position.y = $viewport.height / 2 - 3
+                flyUp(ref)
+            }}
+            rotation.x={Math.PI / 2}
+            rotation.z={-rotation}
             position={[0, $viewport.height / 2, 0]}
             {...others}
         />

@@ -38,7 +38,7 @@
             edgeStrength: 6,
             pulseSpeed: 0,
             visibleEdgeColor: 0xffffff,
-            hiddenEdgeColor: 0x888888,
+            hiddenEdgeColor: 0xffffff,
             height: 480,
             blur: false,
             xRay: true,
