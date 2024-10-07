@@ -39,7 +39,6 @@ export class HydratedPlaceMayor extends HydratableAction<typeof PlaceMayor> impl
         if (this.row !== undefined) {
             board.placeMayorAtRow(this.row)
         }
-        state.mayor = false
         delete state.chosenPiece
     }
 }

@@ -15,7 +15,7 @@
     import type { Effects } from '$lib/model/Effects.svelte'
     import GlowingCircle from './GlowingCircle.svelte'
     import { gsap } from 'gsap'
-    import { ActionType } from '@tabletop/estates'
+    import { ActionType, Company } from '@tabletop/estates'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let ghostHat: number | undefined = $state()
@@ -103,8 +103,8 @@
 {/each}
 <Offer3d position={[-2, -0.6, 7.5]} />
 
-{#each gameSession.gameState.certificates as company, i}
-    {#if company}
+{#each Object.values(Company) as company, i (company)}
+    {#if gameSession.gameState.certificates.includes(company)}
         <Cert3d {company} scale={1.2} position={certPositions[i]} />
     {/if}
 {/each}

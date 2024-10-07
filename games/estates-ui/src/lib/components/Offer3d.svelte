@@ -27,7 +27,7 @@
 
     const effects = getContext('effects') as Effects
 
-    let canPlace = $derived(
+    let canChoose = $derived(
         gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
     )
 
@@ -39,10 +39,13 @@
     let hoverCancelCube: boolean = $state(false)
 
     let allowRoofInteraction = $state(true)
-    let canHoverRoof: boolean = $derived(canPlace && allowRoofInteraction)
+    let canChooseRoof: boolean = $derived(
+        canChoose && gameSession.gameState.board.validRoofLocations().length > 0
+    )
+    let canHoverRoof: boolean = $derived(canChooseRoof && allowRoofInteraction)
 
     function onPointerEnter(event: PointerEvent) {
-        if (!canPlace) {
+        if (!canChoose) {
             return
         }
 
@@ -61,7 +64,7 @@
     }
 
     function chooseCube(obj: Object3D, cube: Cube | null | undefined, coords: OffsetCoordinates) {
-        if (!cube || !canPlace || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
+        if (!cube || !canChoose || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
             return
         }
         yPos.set(0)
@@ -81,7 +84,7 @@
     }
 
     function chooseMayor(obj: Object3D) {
-        if (!canPlace) {
+        if (!canChoose) {
             return
         }
         hoverMayor = false
@@ -93,7 +96,7 @@
     }
 
     function onCancelCubeClick(event: any) {
-        if (!canPlace) {
+        if (!canChoose) {
             return
         }
         event.stopPropagation()
@@ -115,7 +118,7 @@
     }
 
     function onBarrierClick(event: any, value: number) {
-        if (!canPlace) {
+        if (!canChoose) {
             return
         }
         event.stopPropagation()
@@ -141,7 +144,7 @@
 
     function onRoofClick(event: any, index: number) {
         event.stopPropagation()
-        if (!canPlace || !allowRoofInteraction) {
+        if (!canChoose || !allowRoofInteraction) {
             return
         }
         const roof = findParentByName(event.object, 'roof')
@@ -299,13 +302,15 @@
         }
     }
 
-    function enterPiece(event: any) {
-        if (!canPlace) {
+    function enterPiece(event: any, parentName?: string) {
+        if (!canChoose) {
             return
         }
 
         event.stopPropagation()
-        const mesh = event.object?.getObjectByName('outlineMesh')
+
+        let obj = parentName ? findParentByName(event.object, parentName) : event.object
+        const mesh = obj?.getObjectByName('outlineMesh')
         if (mesh) {
             event.stopPropagation()
             effects.outline?.selection.add(mesh)
@@ -359,7 +364,7 @@
                         onclick={(event: any) => onCubeClick(event, cube, { row, col })}
                         rotation.x={-Math.PI / 2}
                         position.x={-3.5 + col}
-                        position.y={!canPlace ||
+                        position.y={!canChoose ||
                         !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
                             ? 0
                             : $yPos}
@@ -408,7 +413,7 @@
     {/if}
     {#if gameSession.gameState.mayor}
         <TopHat
-            onpointerenter={enterPiece}
+            onpointerenter={(event: any) => enterPiece(event, 'topHat')}
             onpointerleave={leavePiece}
             onclick={onMayorClick}
             scale={0.5}

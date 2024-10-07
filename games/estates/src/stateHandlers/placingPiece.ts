@@ -8,6 +8,7 @@ import { isPlaceMayor } from '../actions/placeMayor.js'
 import { isPlaceRoof } from '../actions/placeRoof.js'
 import { isPlaceBarrier } from '../actions/placeBarrier.js'
 import { isRemoveBarrier } from '../actions/removeBarrier.js'
+import { isDiscardPiece } from '../actions/discardPiece.js'
 
 // Transition from PlacingPiece(PlaceRoof) -> StartOfTurn | EndofGame
 //                 PlacingPiece(PlaceCube) -> StartOfTurn | EndofGame
@@ -26,7 +27,8 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
             isPlaceMayor(action) ||
             isPlaceRoof(action) ||
             isPlaceBarrier(action) ||
-            isRemoveBarrier(action)
+            isRemoveBarrier(action) ||
+            isDiscardPiece(action)
         )
     }
 
@@ -41,6 +43,7 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
             }
             case isMayor(gameState.chosenPiece): {
                 validActions.push(ActionType.PlaceMayor)
+                validActions.push(ActionType.DiscardPiece)
                 break
             }
             case isRoof(gameState.chosenPiece): {
@@ -49,10 +52,14 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
             }
             case isBarrier(gameState.chosenPiece): {
                 validActions.push(ActionType.PlaceBarrier)
+                validActions.push(ActionType.DiscardPiece)
                 break
             }
             case isCancelCube(gameState.chosenPiece): {
-                validActions.push(ActionType.RemoveBarrier)
+                if (gameState.board.getBarriers().length > 0) {
+                    validActions.push(ActionType.RemoveBarrier)
+                }
+                validActions.push(ActionType.DiscardPiece)
                 break
             }
         }
@@ -75,7 +82,8 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
             !isPlaceMayor(action) &&
             !isPlaceRoof(action) &&
             !isPlaceBarrier(action) &&
-            !isRemoveBarrier(action)
+            !isRemoveBarrier(action) &&
+            !isDiscardPiece(action)
         ) {
             throw Error('Invalid action type')
         }

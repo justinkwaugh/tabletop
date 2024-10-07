@@ -30,7 +30,7 @@ Title: Top Hat
     const gltf = useGltf<GLTFResult>('/TopHat.gltf')
 </script>
 
-<T is={ref} dispose={false} {...$$restProps}>
+<T is={ref} dispose={false} {...$$restProps} name="topHat">
     {#await gltf}
         <slot name="fallback" />
     {:then gltf}

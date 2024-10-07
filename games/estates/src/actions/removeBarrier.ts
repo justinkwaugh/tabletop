@@ -16,7 +16,7 @@ export const RemoveBarrier = Type.Composite([
     })
 ])
 
-export const PlaceBarrierValidator = TypeCompiler.Compile(RemoveBarrier)
+export const RemoveBarrierValidator = TypeCompiler.Compile(RemoveBarrier)
 
 export function isRemoveBarrier(action: GameAction): action is RemoveBarrier {
     return action.type === ActionType.RemoveBarrier
@@ -32,7 +32,7 @@ export class HydratedRemoveBarrier
     declare coords: OffsetCoordinates
 
     constructor(data: RemoveBarrier) {
-        super(data, PlaceBarrierValidator)
+        super(data, RemoveBarrierValidator)
     }
 
     apply(state: HydratedEstatesGameState) {

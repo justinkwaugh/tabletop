@@ -9,5 +9,6 @@ export enum ActionType {
     PlaceBarrier = 'placeBarrier',
     RemoveBarrier = 'removeBarrier',
     PlaceBid = 'placeBid',
+    DiscardPiece = 'discardPiece',
     Pass = 'pass'
 }
