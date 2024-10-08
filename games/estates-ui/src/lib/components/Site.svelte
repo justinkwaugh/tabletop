@@ -257,6 +257,7 @@
     {/if}
     {#if hoverBarrier}
         <Barrier3d
+            stripes={hoverBarrier.value}
             transparent={true}
             opacity={0.6}
             barrier={hoverBarrier}

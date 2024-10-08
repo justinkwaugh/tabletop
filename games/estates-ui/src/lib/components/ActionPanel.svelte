@@ -55,7 +55,7 @@
     }
 </script>
 
-{#if gameSession.gameState.machineState !== MachineState.Auctioning && gameSession.gameState.machineState !== MachineState.PlacingPiece}
+{#if gameSession.gameState.machineState !== MachineState.StartOfTurn && gameSession.gameState.machineState !== MachineState.Auctioning && gameSession.gameState.machineState !== MachineState.PlacingPiece}
     <div
         in:slide={{ duration: 300 }}
         out:slide={{ duration: 300 }}

@@ -4,7 +4,7 @@ import { Hydratable, OffsetCoordinates } from '@tabletop/common'
 import { Cube } from './cube.js'
 import { Roof } from './roof.js'
 import { Barrier, BarrierDirection } from './barrier.js'
-import { EstatesPlayerState } from 'src/model/playerState.js'
+import { EstatesPlayerState } from '../model/playerState.js'
 
 export type Site = Static<typeof Site>
 export const Site = Type.Object({

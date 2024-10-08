@@ -75,7 +75,7 @@
     function chooseCube(obj: Object3D, cube: Cube, coords: OffsetCoordinates) {
         yPos.set(0)
         setTimeout(() => {
-            fadeUp(obj, 0.7, () => {
+            fadeUp(obj, 2, () => {
                 gameSession.startAuction(cube)
             })
         }, 1)
@@ -263,11 +263,15 @@
                 const material = (object as Mesh).material as MeshStandardMaterial
                 material.transparent = true
                 material.needsUpdate = true
+                material.depthWrite = false
                 timeline.to(
                     material,
                     {
                         duration,
-                        opacity
+                        opacity,
+                        onComplete: () => {
+                            material.depthWrite = true
+                        }
                     },
                     start
                 )
@@ -349,16 +353,10 @@
                 map={woodValue}
                 roughness={0.3}
                 color={'#cccccc'}
-                transparent={true}
-                opacity={1}
                 clearcoat={1}
                 clearcoatRoughness={0.33}
             />
         </T.Mesh>
-        <!-- <T.Mesh position.y={-0.1} rotation.x={-Math.PI / 2}>
-            <T.PlaneGeometry args={[19, 4.5]} />
-            <T.MeshStandardMaterial map={woodValue} />
-        </T.Mesh> -->
         {#each gameSession.gameState.roofs.items as _, i}
             {#if gameSession.gameState.visibleRoofs[i]}
                 <Roof

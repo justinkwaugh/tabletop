@@ -124,7 +124,19 @@
     }}
 ></T.PerspectiveCamera>
 <T.AmbientLight intensity={1.5} />
-<T.DirectionalLight intensity={0.5} position={[5, 5, 10]} />
+<T.DirectionalLight
+    oncreate={(ref) => {
+        ref.shadow.camera.top = 20
+        ref.shadow.camera.bottom = -20
+        ref.shadow.camera.left = -20
+        ref.shadow.camera.right = 20
+        ref.shadow.camera.near = 0
+        ref.shadow.camera.far = 20
+    }}
+    intensity={0.5}
+    position={[5, 5, 10]}
+    castShadow
+/>
 <T.DirectionalLight intensity={0.05} position={[0, 20, -5]} />
 <T.DirectionalLight intensity={0.5} position={[-5, 5, 10]} />
 

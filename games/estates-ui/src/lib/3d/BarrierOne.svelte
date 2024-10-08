@@ -37,6 +37,8 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
             name="outlineMesh"
             geometry={gltf.nodes.blankblockerv2.geometry}
             material={gltf.materials['Material.001']}
+            castShadow
+            receiveShadow
         >
             <T.MeshPhysicalMaterial
                 color={'#AAAAAA'}
