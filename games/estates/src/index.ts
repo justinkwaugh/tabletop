@@ -17,6 +17,7 @@ export * from './actions/placeRoof.js'
 export * from './actions/placeBarrier.js'
 export * from './actions/removeBarrier.js'
 export * from './actions/discardPiece.js'
+export * from './actions/embezzle.js'
 
 export * from './components/cube.js'
 export * from './components/barrier.js'

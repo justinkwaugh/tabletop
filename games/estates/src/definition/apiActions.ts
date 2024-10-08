@@ -9,6 +9,7 @@ import { PlaceRoof } from '../actions/placeRoof.js'
 import { PlaceBarrier } from '../actions/placeBarrier.js'
 import { RemoveBarrier } from '../actions/removeBarrier.js'
 import { DiscardPiece } from '../actions/discardPiece.js'
+import { Embezzle } from '../actions/embezzle.js'
 
 export const EstatesApiActions = {
     [ActionType.DrawRoof]: DrawRoof,
@@ -20,5 +21,6 @@ export const EstatesApiActions = {
     [ActionType.PlaceRoof]: PlaceRoof,
     [ActionType.PlaceBarrier]: PlaceBarrier,
     [ActionType.RemoveBarrier]: RemoveBarrier,
-    [ActionType.DiscardPiece]: DiscardPiece
+    [ActionType.DiscardPiece]: DiscardPiece,
+    [ActionType.Embezzle]: Embezzle
 }

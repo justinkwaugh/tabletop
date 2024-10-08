@@ -19,7 +19,11 @@ type StartOfTurnAction = HydratedDrawRoof | HydratedStartAuction
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is StartOfTurnAction {
         if (!action.playerId) return false
-        return action.type === ActionType.DrawRoof || action.type === ActionType.StartAuction
+        return (
+            action.type === ActionType.DrawRoof ||
+            action.type === ActionType.StartAuction ||
+            action.type === ActionType.Embezzle
+        )
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {

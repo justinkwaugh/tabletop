@@ -1,4 +1,5 @@
 export enum ActionType {
+    Embezzle = 'embezzle',
     DrawRoof = 'drawRoof',
     StartAuction = 'startAuction',
     EndAuction = 'endAuction',
@@ -9,6 +10,5 @@ export enum ActionType {
     PlaceBarrier = 'placeBarrier',
     RemoveBarrier = 'removeBarrier',
     PlaceBid = 'placeBid',
-    DiscardPiece = 'discardPiece',
-    Pass = 'pass'
+    DiscardPiece = 'discardPiece'
 }
