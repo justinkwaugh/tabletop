@@ -92,7 +92,7 @@ export class HydratedBeginJourney
             let hasStudent = false
             if (displacedSpace !== undefined) {
                 const displacedPlayer = state.getPlayerState(displacedSpace.playerId)
-                if (this.playerId !== displacedSpace.playerId) {
+                if (space.playerId !== displacedSpace.playerId) {
                     displacedPlayer.addPiece(space.masterType)
                     if (displacedSpace.student) {
                         displacedPlayer.addPiece(space.masterType)
