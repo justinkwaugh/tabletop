@@ -4,6 +4,7 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { AuctionRecipient, MachineState } from '@tabletop/estates'
     import { Button } from 'flowbite-svelte'
+    import { slide, fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -54,8 +55,10 @@
     }
 </script>
 
-{#if gameSession.gameState.machineState !== MachineState.Auctioning}
+{#if gameSession.gameState.machineState !== MachineState.Auctioning && gameSession.gameState.machineState !== MachineState.PlacingPiece}
     <div
+        in:slide={{ duration: 300 }}
+        out:slide={{ duration: 300 }}
         class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row flex-wrap justify-center items-center"
     >
         <div class="flex flex-col justify-center items-center mx-8">

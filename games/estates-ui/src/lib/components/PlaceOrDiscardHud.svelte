@@ -1,13 +1,14 @@
 <script lang="ts">
-    import { useViewport } from '@threlte/extras'
+    import { T, useTask } from '@threlte/core'
+    import { interactivity, useCursor, useViewport } from '@threlte/extras'
+    import Cube3d from './Cube3d.svelte'
+    import { Company, MachineState, PieceType } from '@tabletop/estates'
     import AuctionPreview from './AuctionPreview.svelte'
     import HighBid from './HighBid.svelte'
     import BidControls from './BidControls.svelte'
     import BidButtons from './BidButtons.svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { getContext } from 'svelte'
-    import { MachineState } from '@tabletop/estates'
-    import PlaceButtons from './PlaceButtons.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -19,16 +20,9 @@
     }
 </script>
 
-{#if gameSession.gameState.machineState === MachineState.Auctioning}
-    <HighBid {ready} position={[-1.5, $viewport.height / 2 - 0.5, 0]} />
-{/if}
+<AuctionPreview position={[0, $viewport.height / 2 - 0.5, 0]} />
 
-<AuctionPreview flyDone={onFlyDone} position={[0, $viewport.height / 2 - 0.5, 0]} />
-
-{#if gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.Auctioning}
+<!-- {#if gameSession.isMyTurn}
     <BidControls {ready} position={[1.5, $viewport.height / 2 - 0.5, 0]} />
     <BidButtons {ready} position={[0, $viewport.height / 2 - 1.5, 0]} />
-{/if}
-{#if gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.PlacingPiece}
-    <PlaceButtons position={[0, $viewport.height / 2 - 1.5, 0]} />
-{/if}
+{/if} -->

@@ -78,7 +78,7 @@
     }
 </script>
 
-{#if gameSession.gameState.chosenPiece && gameSession.gameState.machineState !== MachineState.PlacingPiece}
+{#if gameSession.gameState.chosenPiece}
     {#if isCube(gameSession.gameState.chosenPiece)}
         <Cube3d
             position={[0, $viewport.height / 2 - 0.5, 0]}

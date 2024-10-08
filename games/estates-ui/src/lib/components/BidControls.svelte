@@ -35,11 +35,27 @@
             <div class="flex flex-row justify-between items-center text-center text-gray-200">
                 <button
                     class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px]"
+                    onmouseenter={(event: any) => {
+                        event.stopPropagation()
+                        gameSession.enableOrbitControls = false
+                    }}
+                    onmouseleave={(event: any) => {
+                        event.stopPropagation()
+                        gameSession.enableOrbitControls = true
+                    }}
                     onclick={decrementBid}><h1 class="text-2xl">-</h1></button
                 >
                 <h1 class="w-[50px] text-4xl">${bidValue}</h1>
                 <button
                     class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px]"
+                    onmouseenter={(event: any) => {
+                        event.stopPropagation()
+                        gameSession.enableOrbitControls = false
+                    }}
+                    onmouseleave={(event: any) => {
+                        event.stopPropagation()
+                        gameSession.enableOrbitControls = true
+                    }}
                     onclick={incrementBid}><h1 class="text-2xl">+</h1></button
                 >
             </div>

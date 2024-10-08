@@ -173,11 +173,11 @@
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="relative grow-0 overflow-hidden" style="flex:1;">
                 <div class="absolute top-0 left-0 w-full z-10">
-                    {#if gameSession.mode === GameSessionMode.Play && gameSession.isMyTurn}
-                        <ActionPanel />
-                    {/if}
                     <!-- <Offer /> -->
                 </div>
+                {#if gameSession.mode === GameSessionMode.Play && gameSession.isMyTurn}
+                    <ActionPanel />
+                {/if}
                 <Board />
             </div>
         </div>

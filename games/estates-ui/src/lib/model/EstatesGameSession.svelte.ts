@@ -22,6 +22,8 @@ export class EstatesGameSession extends GameSession {
         return new HydratedEstatesGameState(this.visibleGameState as EstatesGameState)
     })
 
+    enableOrbitControls = $state(true)
+
     chosenAction: string | undefined = $state(undefined)
 
     myPlayerState = $derived.by(() =>
@@ -187,6 +189,24 @@ export class EstatesGameSession extends GameSession {
         const action: PlaceMayor = {
             ...(this.createBaseAction(ActionType.PlaceMayor) as PlaceMayor),
             row
+        }
+
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.error('Error placing mayor', e)
+            this.resetAction()
+        }
+    }
+
+    async discardPiece() {
+        if (!this.gameState.chosenPiece) {
+            return
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.DiscardPiece),
+            piece: this.gameState.chosenPiece
         }
 
         try {

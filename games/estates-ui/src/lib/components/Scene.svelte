@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { T, useTask } from '@threlte/core'
-    import { interactivity, OrbitControls, HUD } from '@threlte/extras'
+    import { T, useTask, useThrelte } from '@threlte/core'
+    import { interactivity, HUD, useViewport } from '@threlte/extras'
+    import * as THREE from 'three'
     import { Group, Object3D, Mesh, MeshStandardMaterial, Box3, Vector3 } from 'three'
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
@@ -15,6 +16,9 @@
     import GlowingCircle from './GlowingCircle.svelte'
     import { gsap } from 'gsap'
     import { ActionType, Company } from '@tabletop/estates'
+    import CameraControls from 'camera-controls'
+
+    CameraControls.install({ THREE: THREE })
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let ghostHat: number | undefined = $state()
@@ -24,15 +28,26 @@
 
     interactivity()
 
-    let camera: any
+    const { scene, renderer, camera, size } = useThrelte()
+
+    let cameraControls: CameraControls | undefined
 
     let billboards: any[] = []
-    useTask(async () => {
-        if (camera) {
+
+    useTask(async (delta) => {
+        if (camera.current) {
             for (const obj of billboards) {
-                const vector = new Vector3(obj.position.x, camera.position.y, camera.position.z)
+                const vector = new Vector3(
+                    obj.position.x,
+                    camera.current.position.y,
+                    camera.current.position.z
+                )
                 obj.lookAt(vector)
             }
+        }
+
+        if (cameraControls) {
+            cameraControls.update(delta)
         }
     })
 
@@ -64,26 +79,50 @@
         ghostHat = undefined
         await gameSession.placeMayor(row)
     }
+
+    function moveCameraToFit() {
+        if (!cameraControls) return
+        cameraControls.maxDistance = Infinity
+        cameraControls.stop()
+        cameraControls.rotateAzimuthTo(0, false)
+        cameraControls.rotatePolarTo(0, false)
+        cameraControls
+            .fitToBox(new Box3().setFromObject(scene), true, {
+                paddingTop: 0,
+                paddingLeft: 0,
+                paddingBottom: 0,
+                paddingRight: 0
+            })
+            .then(() => {
+                if (!cameraControls) return
+                cameraControls.maxDistance = cameraControls.distance
+                cameraControls.minDistance = cameraControls.distance - 10
+                cameraControls.rotateTo(0, 1, true)
+            })
+            .then()
+    }
+
+    function onWindowResize(event: Event) {
+        moveCameraToFit()
+    }
 </script>
+
+<svelte:window onresize={onWindowResize} />
 
 <!-- <Stars /> -->
 <T.PerspectiveCamera
     makeDefault
     position={[0, 16, 20]}
     oncreate={(ref) => {
-        camera = ref
         ref.lookAt(0, 2, 0)
+        cameraControls = new CameraControls(ref, renderer.domElement)
+        cameraControls.maxPolarAngle = 1
+        cameraControls.maxAzimuthAngle = Math.PI / 3
+        cameraControls.minAzimuthAngle = -(Math.PI / 3)
+        cameraControls.smoothTime = 0.2
+        setTimeout(moveCameraToFit, 250)
     }}
->
-    <OrbitControls
-        target={[0, 2, 0]}
-        maxPolarAngle={1}
-        maxAzimuthAngle={Math.PI / 3}
-        minAzimuthAngle={-(Math.PI / 3)}
-        enablePan={true}
-        zoomToCursor={false}
-    />
-</T.PerspectiveCamera>
+></T.PerspectiveCamera>
 <T.AmbientLight intensity={1.5} />
 <T.DirectionalLight intensity={0.5} position={[5, 5, 10]} />
 <T.DirectionalLight intensity={0.05} position={[0, 20, -5]} />
