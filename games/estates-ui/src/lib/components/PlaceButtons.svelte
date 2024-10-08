@@ -11,7 +11,6 @@
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     async function discardPiece(event: any) {
-        gameSession.enableOrbitControls = true
         event.stopPropagation()
         await gameSession.discardPiece()
     }
@@ -24,18 +23,8 @@
 {#if gameSession.gameState.machineState === MachineState.PlacingPiece && !isCube(gameSession.gameState.chosenPiece) && !isRoof(gameSession.gameState.chosenPiece)}
     <HTML {position} distanceFactor={5} transform>
         <div use:fadeIn class="flex flex-row justify-center items-center gap-x-2 z-30 opacity-0">
-            <Button
-                onmouseenter={(event: any) => {
-                    event.stopPropagation()
-                    gameSession.enableOrbitControls = false
-                }}
-                onmouseleave={(event: any) => {
-                    event.stopPropagation()
-                    gameSession.enableOrbitControls = true
-                }}
-                onclick={(event: any) => discardPiece(event)}
-                size="xs"
-                color="light">Discard</Button
+            <Button onclick={(event: any) => discardPiece(event)} size="xs" color="light"
+                >Discard</Button
             >
         </div>
     </HTML>

@@ -130,4 +130,12 @@ export class HydratedEstatesGameState
             }
         }
     }
+
+    isEndOfGame(): boolean {
+        return this.roofs.isEmpty() || this.board.areTwoRowsComplete()
+    }
+
+    calculatePlayerScore(playerState: HydratedEstatesPlayerState): number {
+        return this.board.playerScore(playerState) + playerState.stolen
+    }
 }

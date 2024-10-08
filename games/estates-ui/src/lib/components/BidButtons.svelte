@@ -14,13 +14,11 @@
     let bidValue = $state(gameSession.gameState.auction?.highBid ?? 0 + 1)
 
     async function pass(event: any) {
-        gameSession.enableOrbitControls = true
         event.stopPropagation()
         await gameSession.placeBid(0)
     }
 
     async function placeBid(event: any) {
-        gameSession.enableOrbitControls = true
         event.stopPropagation()
         await gameSession.placeBid(bidValue)
     }
@@ -33,31 +31,8 @@
 {#if ready && gameSession.gameState.machineState === MachineState.Auctioning}
     <HTML {position} distanceFactor={5} transform>
         <div use:fadeIn class="flex flex-row justify-center items-center gap-x-2 z-30 opacity-0">
-            <Button
-                onmouseenter={(event: any) => {
-                    event.stopPropagation()
-                    gameSession.enableOrbitControls = false
-                }}
-                onmouseleave={(event: any) => {
-                    event.stopPropagation()
-                    gameSession.enableOrbitControls = true
-                }}
-                onclick={(event: any) => pass(event)}
-                size="xs"
-                color="light">Pass</Button
-            >
-            <Button
-                onmouseenter={(event: any) => {
-                    event.stopPropagation()
-                    gameSession.enableOrbitControls = false
-                }}
-                onmouseleave={(event: any) => {
-                    event.stopPropagation()
-                    gameSession.enableOrbitControls = true
-                }}
-                onclick={(event: any) => placeBid(event)}
-                size="xs">Bid</Button
-            >
+            <Button onclick={(event: any) => pass(event)} size="xs" color="light">Pass</Button>
+            <Button onclick={(event: any) => placeBid(event)} size="xs">Bid</Button>
         </div>
     </HTML>
 {/if}

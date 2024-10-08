@@ -91,6 +91,15 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
         gameState.chosenPiece = undefined
         gameState.recipient = undefined
         gameState.turnManager.endTurn(gameState.actionCount)
-        return MachineState.StartOfTurn
+
+        for (const player of gameState.players) {
+            player.score = gameState.calculatePlayerScore(player)
+        }
+
+        if (gameState.isEndOfGame()) {
+            return MachineState.EndOfGame
+        } else {
+            return MachineState.StartOfTurn
+        }
     }
 }

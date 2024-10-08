@@ -4,6 +4,7 @@ import { Hydratable, OffsetCoordinates } from '@tabletop/common'
 import { Cube } from './cube.js'
 import { Roof } from './roof.js'
 import { Barrier, BarrierDirection } from './barrier.js'
+import { EstatesPlayerState } from 'src/model/playerState.js'
 
 export type Site = Static<typeof Site>
 export const Site = Type.Object({
@@ -226,5 +227,58 @@ export class HydratedEstatesGameBoard
             }
         }
         return barriers
+    }
+
+    isRowComplete(row: BoardRow): boolean {
+        for (let i = 0; i < row.length; i++) {
+            if (!row.sites[i].roof) {
+                return false
+            }
+        }
+        return true
+    }
+
+    areTwoRowsComplete(): boolean {
+        let numComplete = 0
+        for (const row of this.rows) {
+            if (this.isRowComplete(row)) {
+                numComplete++
+                if (numComplete > 1) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    calculateSiteValue(site: Site, row: BoardRow): number {
+        return (
+            site.cubes.reduce((acc, cube) => acc + cube.value, 0) +
+            (site.roof?.value ?? 0) * (row.mayor ? 2 : 1)
+        )
+    }
+
+    playerScore(playerState: EstatesPlayerState): number {
+        let score = 0
+        for (const row of this.rows) {
+            const rowComplete = this.isRowComplete(row)
+            for (const site of row.sites) {
+                if (site.cubes.length === 0) {
+                    continue
+                }
+                const buildingCompany = site.cubes[site.cubes.length - 1].company
+                if (!playerState.certificates.includes(buildingCompany)) {
+                    continue
+                }
+
+                const buildingValue = this.calculateSiteValue(site, row)
+                if (rowComplete) {
+                    score += buildingValue
+                } else {
+                    score -= buildingValue
+                }
+            }
+        }
+        return score
     }
 }

@@ -80,26 +80,26 @@
         await gameSession.placeMayor(row)
     }
 
-    function moveCameraToFit() {
+    async function moveCameraToFit() {
         if (!cameraControls) return
         cameraControls.maxDistance = Infinity
+        cameraControls.minDistance = 0
         cameraControls.stop()
-        cameraControls.rotateAzimuthTo(0, false)
-        cameraControls.rotatePolarTo(0, false)
-        cameraControls
-            .fitToBox(new Box3().setFromObject(scene), true, {
-                paddingTop: 0,
-                paddingLeft: 0,
-                paddingBottom: 0,
-                paddingRight: 0
-            })
-            .then(() => {
-                if (!cameraControls) return
-                cameraControls.maxDistance = cameraControls.distance
-                cameraControls.minDistance = cameraControls.distance - 10
-                cameraControls.rotateTo(0, 1, true)
-            })
-            .then()
+        cameraControls.saveState()
+        await cameraControls.rotateAzimuthTo(0, false)
+        await cameraControls.rotatePolarTo(0, false)
+
+        await cameraControls.fitToBox(new Box3().setFromObject(scene), false, {
+            paddingTop: 0,
+            paddingLeft: 0,
+            paddingBottom: 0,
+            paddingRight: 0
+        })
+
+        cameraControls.maxDistance = cameraControls.distance
+        cameraControls.minDistance = cameraControls.distance - 10
+        await cameraControls.rotateTo(0, 1, false)
+        cameraControls.saveState()
     }
 
     function onWindowResize(event: Event) {

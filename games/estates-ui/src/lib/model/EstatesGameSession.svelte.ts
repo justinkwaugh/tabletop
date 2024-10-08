@@ -18,8 +18,6 @@ import {
 import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
 
 export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEstatesGameState> {
-    enableOrbitControls = $state(true)
-
     chosenAction: string | undefined = $state(undefined)
 
     myPlayerState = $derived.by(() =>
