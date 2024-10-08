@@ -7,7 +7,7 @@
     import heatherImg from '$lib/images/heather.jpg'
     import { Company } from '@tabletop/estates'
 
-    let { company, ...others }: { company: Company } = $props()
+    let { company, ...others }: { company: Company } & Record<string, unknown> = $props()
     const companyImg =
         company === Company.Collar
             ? collarImg

@@ -16,7 +16,8 @@ import {
     User,
     Color,
     RunMode,
-    GameDeleteNotification
+    GameDeleteNotification,
+    type HydratedGameState
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -48,9 +49,9 @@ type ActionResults = {
     revealing: boolean
 }
 
-export type GameStateChangeListener = (from: GameState, to: GameState) => Promise<void>
+export type GameStateChangeListener<T extends GameState> = (from: T, to: T) => Promise<void>
 
-export class GameSession {
+export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     public definition: GameUiDefinition
     private debug? = false
     private authorizationService: AuthorizationService
@@ -63,7 +64,7 @@ export class GameSession {
     private actionsToProcess: GameAction[] = []
 
     private processingActions = false
-    private gameStateChangeListeners: Set<GameStateChangeListener> = new Set()
+    private gameStateChangeListeners: Set<GameStateChangeListener<T>> = new Set()
 
     chatService: ChatService
 
@@ -77,12 +78,16 @@ export class GameSession {
     playingHistory: boolean = $state(false)
     playTimer: ReturnType<typeof setTimeout> | null = null
 
+    gameState: U = $derived.by(() => {
+        return this.definition.hydrator.hydrateState(this.visibleGameState) as U
+    })
+
     // We swap between the real game and the history snapshot as needed
-    visibleGameState: GameState = $derived.by(() => {
+    visibleGameState: T = $derived.by(() => {
         if (this.historyGame && this.historyGame.state) {
-            return this.historyGame.state
+            return this.historyGame.state as T
         } else {
-            return this.game.state!
+            return this.game.state! as T
         }
     })
 
@@ -627,11 +632,11 @@ export class GameSession {
         }
     }
 
-    addGameStateChangeListener(listener: GameStateChangeListener) {
+    addGameStateChangeListener(listener: GameStateChangeListener<T>) {
         this.gameStateChangeListeners.add(listener)
     }
 
-    removeGameStateChangeListener(listener: GameStateChangeListener) {
+    removeGameStateChangeListener(listener: GameStateChangeListener<T>) {
         this.gameStateChangeListeners.delete(listener)
     }
 
@@ -850,7 +855,7 @@ export class GameSession {
             return
         }
         for (const listener of this.gameStateChangeListeners) {
-            await listener(this.game.state, gameState)
+            await listener(this.game.state as T, gameState as T)
         }
         this.game.state = gameState
     }

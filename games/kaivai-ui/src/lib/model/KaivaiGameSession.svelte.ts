@@ -18,7 +18,6 @@ import redHut2Cb from '$lib/images/redhut2-cb.png'
 import {
     ActionType,
     HutType,
-    HydratedKaivaiGameState,
     KaivaiGameState,
     PlaceBid,
     Build,
@@ -36,7 +35,8 @@ import {
     ChooseScoringIsland,
     PlaceScoringBid,
     isPass,
-    PassReason
+    PassReason,
+    HydratedKaivaiGameState
 } from '@tabletop/kaivai'
 import {
     axialCoordinatesToNumber,
@@ -46,10 +46,7 @@ import {
     type AxialCoordinates
 } from '@tabletop/common'
 
-export class KaivaiGameSession extends GameSession {
-    gameState = $derived.by(() => {
-        return new HydratedKaivaiGameState(this.visibleGameState as KaivaiGameState)
-    })
+export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaivaiGameState> {
     highlightedHexes: Set<number> = $state(new Set())
 
     chosenAction: string | undefined = $state(undefined)

@@ -19,13 +19,11 @@ import {
 } from '@tabletop/fresh-fish'
 import { type GameAction } from '@tabletop/common'
 
-export class FreshFishGameSession extends GameSession {
+export class FreshFishGameSession extends GameSession<
+    FreshFishGameState,
+    HydratedFreshFishGameState
+> {
     chosenAction: string | undefined = $state(undefined)
-
-    gameState = $derived.by(() => {
-        return new HydratedFreshFishGameState(this.visibleGameState as FreshFishGameState)
-    })
-
     previewExpropriateCoords: Coordinates[] = $state([])
     highlightedCoords: Coordinates | undefined = $state()
 
@@ -85,10 +83,6 @@ export class FreshFishGameSession extends GameSession {
 
     override onHistoryExit() {
         this.clearHighlightedCoords()
-    }
-
-    override willUpdateGameState(): void {
-        this.chosenAction = undefined
     }
 
     highlightCoords(coords: Coordinates) {

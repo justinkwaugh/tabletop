@@ -17,11 +17,7 @@ import {
 } from '@tabletop/estates'
 import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
 
-export class EstatesGameSession extends GameSession {
-    gameState = $derived.by(() => {
-        return new HydratedEstatesGameState(this.visibleGameState as EstatesGameState)
-    })
-
+export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEstatesGameState> {
     enableOrbitControls = $state(true)
 
     chosenAction: string | undefined = $state(undefined)
@@ -29,13 +25,6 @@ export class EstatesGameSession extends GameSession {
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
     )
-
-    myTurnCount = $derived.by(() => {
-        if (!this.myPlayer?.id) {
-            return 0
-        }
-        return this.gameState.turnManager.turnCount(this.myPlayer.id)
-    })
 
     getCompanyColor(company: Company): Color {
         switch (company) {

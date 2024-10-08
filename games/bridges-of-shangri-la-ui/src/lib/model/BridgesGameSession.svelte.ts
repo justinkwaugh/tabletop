@@ -19,11 +19,7 @@ import yetiwhisperer from '$lib/images/yetiwhisperer.png'
 import astrologer from '$lib/images/astrologer.png'
 import { GameSession } from '@tabletop/frontend-components'
 
-export class BridgesGameSession extends GameSession {
-    get gameState(): HydratedBridgesGameState {
-        return new HydratedBridgesGameState(this.visibleGameState as BridgesGameState)
-    }
-
+export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBridgesGameState> {
     chosenAction: string | undefined = $state(undefined)
     chosenMasterType: MasterType | undefined = $state(undefined)
     chosenVillage: number | undefined = $state(undefined)
