@@ -22,6 +22,7 @@
     import woodImg from '$lib/images/wood.jpg'
     import { useTexture } from '@threlte/extras'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
+    import { Outliner } from '$lib/utils/outliner'
 
     const wood = useTexture(woodImg)
 
@@ -30,6 +31,7 @@
     let { ...others }: Props<typeof Group> = $props()
 
     const effects = getContext('effects') as Effects
+    const outliner = new Outliner(effects)
 
     let canChoose = $derived(
         gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
@@ -37,15 +39,12 @@
 
     let placeableCubes = $derived(gameSession.gameState.placeableCubes())
     let yPos = spring(0)
-    let opacity = spring(0)
 
     let allowRoofInteraction = $state(true)
     let canChooseRoof: boolean = $derived(
         canChoose && gameSession.gameState.board.validRoofLocations().length > 0
     )
     let canHoverRoof: boolean = $derived(canChooseRoof && allowRoofInteraction)
-
-    let unHighlightTimers = new Map<unknown, ReturnType<typeof setTimeout>>()
 
     function onPointerEnter(event: PointerEvent) {
         if (!canChoose) {
@@ -91,10 +90,7 @@
             return
         }
 
-        const mesh = obj.getObjectByName('outlineMesh')
-        if (mesh) {
-            effects.outline?.selection.delete(mesh)
-        }
+        outliner.removeOutline(obj)
 
         setTimeout(() => {
             fadeUp(obj, 2, () => {
@@ -112,10 +108,7 @@
     }
 
     function chooseCancelCube(obj: Object3D) {
-        const mesh = obj.getObjectByName('outlineMesh')
-        if (mesh) {
-            effects.outline?.selection.delete(mesh)
-        }
+        outliner.removeOutline(obj)
         setTimeout(() => {
             fadeUp(obj, 2, () => {
                 gameSession.startAuction({
@@ -137,10 +130,7 @@
     }
 
     function chooseBarrier(obj: Object3D, value: number) {
-        const mesh = obj.getObjectByName('outlineMesh')
-        if (mesh) {
-            effects.outline?.selection.delete(mesh)
-        }
+        outliner.removeOutline(obj)
 
         setTimeout(() => {
             fadeUp(obj, 2, () => {
@@ -171,13 +161,10 @@
     // allow the state to be updated so that we don't overlap animations.
     async function chooseRoof(obj: Object3D, index: number) {
         allowRoofInteraction = false
-        const mesh = obj.getObjectByName('outlineMesh')
-        if (mesh) {
-            effects.outline?.selection.delete(mesh)
-        }
+        outliner.removeOutline(obj)
 
         // Make a listener for the game state update
-        const listener = async (from: EstatesGameState, to: EstatesGameState) => {
+        const listener = async (to: EstatesGameState) => {
             gameSession.removeGameStateChangeListener(listener)
 
             if (to.machineState === MachineState.Auctioning && isRoof(to.chosenPiece)) {
@@ -203,19 +190,6 @@
         // Kick off the action
         await gameSession.drawRoof(index)
     }
-
-    $effect(() => {
-        if (
-            gameSession.isMyTurn &&
-            gameSession.gameState.machineState === MachineState.StartOfTurn
-        ) {
-            console.log('Changing opacity to full')
-            opacity.set(1)
-        } else {
-            console.log('Changing opacity to none')
-            opacity.set(0)
-        }
-    })
 
     function fadeUp(object: Object3D, height: number, onComplete: () => void) {
         const timeline = gsap.timeline({
@@ -298,36 +272,11 @@
         }
 
         event.stopPropagation()
-
-        let obj = parentName ? findParentByName(event.object, parentName) : event.object
-        const mesh = obj?.getObjectByName('outlineMesh')
-        if (mesh) {
-            if (unHighlightTimers.has(obj)) {
-                clearTimeout(unHighlightTimers.get(obj))
-                unHighlightTimers.delete(obj)
-            }
-            event.stopPropagation()
-            effects.outline?.selection.add(mesh)
-        }
+        outliner.findAndOutline(event.object, parentName)
     }
 
     function leavePiece(event: any, parentName?: string) {
-        let obj = parentName ? findParentByName(event.object, parentName) : event.object
-
-        const mesh = obj.getObjectByName('outlineMesh')
-        if (mesh) {
-            unHighlightTimers.set(
-                obj,
-                setTimeout(() => {
-                    try {
-                        event.stopPropagation()
-                        effects.outline?.selection.delete(mesh)
-                    } finally {
-                        unHighlightTimers.delete(obj)
-                    }
-                }, 50)
-            )
-        }
+        outliner.removeOutline(event.object, parentName)
     }
 
     function enterRoof(event: any, parentName?: string) {
@@ -443,8 +392,6 @@
                 position.x={8.25}
                 position.y={1}
                 position.z={-0.8}
-                transparent={true}
-                opacity={$opacity}
             />
         {/if}
         {#if gameSession.gameState.cancelCube}

@@ -21,9 +21,11 @@
     import type { OffsetCoordinates } from '@tabletop/common'
     import Barrier3d from '$lib/3d/BarrierOne.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
+    import { Outliner } from '$lib/utils/outliner'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const effects = getContext('effects') as Effects
+    const outliner = new Outliner(effects)
 
     let {
         site,
@@ -148,19 +150,11 @@
         }
 
         event.stopPropagation()
-        const mesh = event.object?.getObjectByName('outlineMesh')
-        if (mesh) {
-            event.stopPropagation()
-            effects.outline?.selection.add(mesh)
-        }
+        outliner.findAndOutline(event.object, 'barrier')
     }
 
     function leavePiece(event: any) {
-        const mesh = event.object?.getObjectByName('outlineMesh')
-        if (mesh) {
-            event.stopPropagation()
-            effects.outline?.selection.delete(mesh)
-        }
+        outliner.removeOutline(event.object, 'barrier')
     }
 
     function onBarrierClick(event: any, barrier: Barrier) {
@@ -171,11 +165,7 @@
             return
         }
 
-        const mesh = event.object?.getObjectByName('outlineMesh')
-        if (mesh) {
-            event.stopPropagation()
-            effects.outline?.selection.delete(mesh)
-        }
+        outliner.removeOutline(event.object, 'barrier')
 
         gameSession.removeBarrier(barrier, coords)
     }

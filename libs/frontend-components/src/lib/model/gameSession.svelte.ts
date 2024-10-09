@@ -49,7 +49,7 @@ type ActionResults = {
     revealing: boolean
 }
 
-export type GameStateChangeListener<T extends GameState> = (from: T, to: T) => Promise<void>
+export type GameStateChangeListener<T extends GameState> = (to: T, from?: T) => Promise<void>
 
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     public definition: GameUiDefinition
@@ -851,11 +851,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     private async updateGameState(gameState?: GameState) {
-        if (!this.game.state || !gameState) {
+        if (!gameState) {
             return
         }
         for (const listener of this.gameStateChangeListeners) {
-            await listener(this.game.state as T, gameState as T)
+            await listener(gameState as T, this.game.state as T)
         }
         this.game.state = gameState
     }

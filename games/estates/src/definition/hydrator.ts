@@ -17,6 +17,7 @@ import { HydratedPlaceRoof, isPlaceRoof } from '../actions/placeRoof.js'
 import { HydratedPlaceBarrier, isPlaceBarrier } from '../actions/placeBarrier.js'
 import { HydratedRemoveBarrier, isRemoveBarrier } from '../actions/removeBarrier.js'
 import { HydratedDiscardPiece, isDiscardPiece } from '../actions/discardPiece.js'
+import { HydratedEmbezzle, isEmbezzle } from '../actions/embezzle.js'
 
 export class EstatesHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -53,6 +54,9 @@ export class EstatesHydrator implements GameHydrator {
             }
             case isDiscardPiece(data): {
                 return new HydratedDiscardPiece(data)
+            }
+            case isEmbezzle(data): {
+                return new HydratedEmbezzle(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

@@ -167,12 +167,12 @@ export class HydratedEstatesGameBoard
         const removedBarrier = chosenSite.barriers[barrierIndex]
         chosenSite.barriers.splice(barrierIndex, 1)
 
-        const newLength =
+        boardRow.length =
             removedBarrier.direction === BarrierDirection.Lengthen
                 ? boardRow.length - removedBarrier.value
                 : boardRow.length + removedBarrier.value
 
-        const destSite = boardRow.sites[newLength]
+        const destSite = boardRow.sites[boardRow.length]
         destSite.barriers.push(...chosenSite.barriers)
         chosenSite.barriers = []
     }
@@ -253,8 +253,8 @@ export class HydratedEstatesGameBoard
 
     calculateSiteValue(site: Site, row: BoardRow): number {
         return (
-            site.cubes.reduce((acc, cube) => acc + cube.value, 0) +
-            (site.roof?.value ?? 0) * (row.mayor ? 2 : 1)
+            (site.cubes.reduce((acc, cube) => acc + cube.value, 0) + (site.roof?.value ?? 0)) *
+            (row.mayor ? 2 : 1)
         )
     }
 
@@ -280,5 +280,11 @@ export class HydratedEstatesGameBoard
             }
         }
         return score
+    }
+
+    maxRowHeight(row: number): number {
+        return Math.max(
+            ...this.rows[row].sites.map((site) => site.cubes.length + (site.roof ? 1 : 0))
+        )
     }
 }

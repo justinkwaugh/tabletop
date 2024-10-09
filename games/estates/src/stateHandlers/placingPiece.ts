@@ -90,6 +90,7 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
 
         gameState.chosenPiece = undefined
         gameState.recipient = undefined
+        gameState.embezzled = false
         gameState.turnManager.endTurn(gameState.actionCount)
 
         for (const player of gameState.players) {

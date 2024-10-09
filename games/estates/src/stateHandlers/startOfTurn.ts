@@ -10,6 +10,7 @@ import { nanoid } from 'nanoid'
 import { ActionType } from '../definition/actions.js'
 import { HydratedStartAuction, isStartAuction, StartAuction } from '../actions/startAuction.js'
 import { HydratedDrawRoof, isDrawRoof } from '../actions/drawRoof.js'
+import { HydratedEmbezzle, isEmbezzle } from '../actions/embezzle.js'
 
 type StartOfTurnAction = HydratedDrawRoof | HydratedStartAuction
 
@@ -36,6 +37,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
         if (gameState.placeableCubes().length > 0) {
             validActions.push(ActionType.StartAuction)
+        }
+
+        if (HydratedEmbezzle.canEmbezzle(playerId, gameState)) {
+            validActions.push(ActionType.Embezzle)
         }
 
         return validActions
@@ -68,6 +73,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             }
             case isStartAuction(action): {
                 return MachineState.Auctioning
+            }
+            case isEmbezzle(action): {
+                return MachineState.StartOfTurn
             }
             default: {
                 throw Error('Invalid action type')

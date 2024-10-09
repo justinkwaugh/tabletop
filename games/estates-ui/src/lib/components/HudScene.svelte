@@ -1,10 +1,10 @@
 <script lang="ts">
     import { T } from '@threlte/core'
     import { useViewport } from '@threlte/extras'
-    import { MachineState } from '@tabletop/estates'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { getContext } from 'svelte'
-    import AuctioningHud from './AuctioningHud.svelte'
+    import Hud from './Hud.svelte'
+    import { GameSessionMode } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -15,6 +15,6 @@
 <T.AmbientLight intensity={1.5} />
 <T.PointLight position={[10, 10, 10]} decay={0} intensity={1.5} />
 
-{#if gameSession.gameState.machineState === MachineState.Auctioning || gameSession.gameState.machineState === MachineState.PlacingPiece}
-    <AuctioningHud />
+{#if gameSession.mode === GameSessionMode.Play}
+    <Hud />
 {/if}

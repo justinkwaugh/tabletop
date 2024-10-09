@@ -1,7 +1,6 @@
 <script lang="ts">
     import {
         GameSessionMode,
-        ScalingWrapper,
         AdminPanel,
         HistoryControls,
         type ChatEvent,
@@ -12,21 +11,11 @@
     import Board from '$lib/components/Board.svelte'
     import { getContext, onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    // import PlayersPanel from '$lib/components/PlayersPanel.svelte'
-    import ActionPanel from '$lib/components/ActionPanel.svelte'
-    // import Phase from '$lib/components/Phase.svelte'
-    // import BidBoard from '$lib/components/BidBoard.svelte'
     import { TabItem, Tabs, Indicator } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
-    // import History from '$lib/components/History.svelte'
-    // import LastHistoryDescription from '$lib/components/LastHistoryDescription.svelte'
-    // import WaitingPanel from '$lib/components/WaitingPanel.svelte'
-    // import EndOfGamePanel from './EndOfGamePanel.svelte'
+    import History from '$lib/components/History.svelte'
     import { toast } from 'svelte-sonner'
-    import Offer from './Offer.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
-    import BidControls from './BidControls.svelte'
-    import HighBid from './HighBid.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let chatActive: boolean = $state(false)
@@ -101,7 +90,7 @@
                 defaultClass="flex flex-wrap space-x-1 rtl:space-x-reverse"
                 contentClass="p-0 bg-transparent h-full overflow-scroll rounded-lg"
             >
-                <TabItem
+                <!-- <TabItem
                     open
                     onclick={onNonChatClick}
                     activeClasses={activeTabClasses}
@@ -111,10 +100,9 @@
                         <UserCircleSolid size="md" />
                         Players
                     </div>
-
-                    <!-- <PlayersPanel /> -->
-                </TabItem>
+                </TabItem> -->
                 <TabItem
+                    open
                     onclick={onNonChatClick}
                     activeClasses={activeTabClasses}
                     inactiveClasses={inactiveTabClasses}
@@ -123,7 +111,7 @@
                         <ClockSolid size="md" />
                         History
                     </div>
-                    <!-- <History /> -->
+                    <History />
                 </TabItem>
                 <TabItem
                     onclick={onChatClick}
@@ -152,19 +140,9 @@
         >
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
-                <!-- <Phase />
-                {#if gameSession.gameState.result}
+                <!-- {#if gameSession.gameState.result}
                     <EndOfGamePanel />
-                {:else if gameSession.mode === GameSessionMode.History}
-                    <LastHistoryDescription />
-                {:else if gameSession.mode === GameSessionMode.Play}
-                    <LastHistoryDescription /> -->
-                <!-- {#if gameSession.isMyTurn}
-                    <ActionPanel /> -->
-                <!-- {:else}
-                        <WaitingPanel /> -->
-                <!-- {/if} -->
-                <!-- {/if} -->
+                {/if} -->
             </div>
             {#if gameSession.mode === GameSessionMode.History || gameSession.mode === GameSessionMode.Play}
                 <LastActionDescription />
@@ -172,12 +150,6 @@
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="relative grow-0 overflow-hidden" style="flex:1;">
-                <div class="absolute top-0 left-0 w-full z-10">
-                    <!-- <Offer /> -->
-                </div>
-                {#if gameSession.mode === GameSessionMode.Play && gameSession.isMyTurn}
-                    <ActionPanel />
-                {/if}
                 <Board />
             </div>
         </div>

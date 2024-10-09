@@ -4,7 +4,6 @@
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
-    import { isEndAuction } from '@tabletop/estates'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -21,7 +20,7 @@
 
 {#if lastAction}
     <div
-        class="rounded-lg bg-transparent text-gray-200 p-2 text-center flex flex-row justify-center items-center mb-2"
+        class="rounded-lg bg-gray-300 text-[#111111] py-1 px-2 text-center flex flex-row justify-center items-center mb-2 h-[42px]"
     >
         <div class="flex flex-col justify-center items-center mx-8">
             <h1 class="text-lg text-pretty">
@@ -30,9 +29,6 @@
                 {/if}
                 {getDescriptionForAction(lastAction)}
             </h1>
-            <!-- {#if isEndAuction(lastAction)}
-                <AuctionResults action={lastAction} />
-            {/if} -->
         </div>
 
         {#if gameSession.undoableAction && gameSession.mode !== GameSessionMode.History}

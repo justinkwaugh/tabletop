@@ -36,7 +36,7 @@
         rotation += delta
     })
 
-    function flyUp(object: Object3D, yOffset: number = 0.5) {
+    function flyUp(object: Object3D, yOffset: number = 0.6) {
         setTimeout(() => {
             const timeline = gsap.timeline({
                 onComplete: flyDone
@@ -81,7 +81,7 @@
 {#if gameSession.gameState.chosenPiece}
     {#if isCube(gameSession.gameState.chosenPiece)}
         <Cube3d
-            position={[0, $viewport.height / 2 - 0.5, 0]}
+            position={[0, $viewport.height / 2 - 0.6, 0]}
             opacity={0}
             rotation.y={rotation}
             oncreate={(ref: Object3D) => {
@@ -97,11 +97,11 @@
             oncreate={(ref: Object3D) => {
                 hide(ref)
                 ref.position.y = $viewport.height / 2 - 3
-                flyUp(ref, 0.25)
+                flyUp(ref, 0.35)
             }}
             rotation.y={rotation}
             scale={0.46}
-            position={[0, $viewport.height / 2 - 0.25, 0]}
+            position={[0, $viewport.height / 2 - 0.35, 0]}
             {...others}
         />
     {:else if isCancelCube(gameSession.gameState.chosenPiece)}
@@ -112,7 +112,7 @@
                 flyUp(ref)
             }}
             rotation.y={rotation}
-            position={[0, $viewport.height / 2, 0]}
+            position={[0, $viewport.height / 2 - 0.6, 0]}
             {...others}
         />
     {:else if isBarrier(gameSession.gameState.chosenPiece)}
@@ -125,7 +125,7 @@
             stripes={gameSession.gameState.chosenPiece.value}
             scale={1}
             rotation.y={rotation}
-            position={[0, $viewport.height / 2, 0]}
+            position={[0, $viewport.height / 2 - 0.6, 0]}
             {...others}
         />
     {:else if isRoof(gameSession.gameState.chosenPiece)}
@@ -138,7 +138,7 @@
             }}
             rotation.x={Math.PI / 2}
             rotation.z={-rotation}
-            position={[0, $viewport.height / 2, 0]}
+            position={[0, $viewport.height / 2 - 0.6, 0]}
             {...others}
         />
     {/if}

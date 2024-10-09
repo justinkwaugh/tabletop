@@ -39,7 +39,8 @@ export const EstatesGameState = Type.Composite([
         cancelCube: Type.Boolean(),
         chosenPiece: Type.Optional(Piece),
         auction: Type.Optional(OnceAroundAuction),
-        recipient: Type.Optional(Type.String())
+        recipient: Type.Optional(Type.String()),
+        embezzled: Type.Optional(Type.Boolean())
     })
 ])
 
@@ -81,6 +82,7 @@ export class HydratedEstatesGameState
     declare chosenPiece?: Piece
     declare auction?: HydratedOnceAroundAuction
     declare recipient?: string
+    declare embezzled?: boolean
 
     constructor(data: EstatesGameState) {
         const hydratedProperties: HydratedProperties = {

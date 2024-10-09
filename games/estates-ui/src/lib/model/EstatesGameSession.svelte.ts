@@ -203,4 +203,21 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             this.resetAction()
         }
     }
+
+    async embezzle() {
+        if (this.gameState.chosenPiece) {
+            return
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Embezzle)
+        }
+
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.error('Error embezzling', e)
+            this.resetAction()
+        }
+    }
 }

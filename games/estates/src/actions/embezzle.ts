@@ -35,9 +35,10 @@ export class HydratedEmbezzle extends HydratableAction<typeof Embezzle> implemen
         }
         playerState.money--
         playerState.stolen++
+        state.embezzled = true
     }
 
     static canEmbezzle(playerId: string, state: HydratedEstatesGameState): boolean {
-        return state.getPlayerState(playerId).money > 0
+        return !state.embezzled && state.getPlayerState(playerId).money > 0
     }
 }

@@ -15,7 +15,13 @@
     import PlayerPanel3d from './PlayerPanel3d.svelte'
     import GlowingCircle from './GlowingCircle.svelte'
     import { gsap } from 'gsap'
-    import { ActionType, Company } from '@tabletop/estates'
+    import {
+        Company,
+        EstatesGameState,
+        HydratedEstatesGameState,
+        isMayor,
+        MachineState
+    } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
 
     CameraControls.install({ THREE: THREE })
@@ -23,7 +29,9 @@
     let gameSession = getContext('gameSession') as EstatesGameSession
     let ghostHat: number | undefined = $state()
     let showMayorHighlights = $derived(
-        gameSession.isMyTurn && gameSession.chosenAction === ActionType.PlaceMayor
+        gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.PlacingPiece &&
+            isMayor(gameSession.gameState.chosenPiece)
     )
 
     interactivity()
@@ -31,6 +39,27 @@
     const { scene, renderer, camera, size } = useThrelte()
 
     let cameraControls: CameraControls | undefined
+
+    let playerPanelPos = $state({
+        y: 2
+    })
+
+    async function onGameStateChange(to: EstatesGameState, from?: EstatesGameState) {
+        const state = new HydratedEstatesGameState(to)
+        const heightForBackRow = state.board.maxRowHeight(0) - 0.8
+        const heightForMiddleRow = state.board.maxRowHeight(1) - 1.5
+        const heightForFrontRow = state.board.maxRowHeight(2) - 3
+
+        const maxHeight = Math.max(2, heightForBackRow, heightForMiddleRow, heightForFrontRow)
+
+        gsap.to(playerPanelPos, {
+            duration: 0.5,
+            y: maxHeight + 0.5
+        })
+    }
+
+    gameSession.addGameStateChangeListener(onGameStateChange)
+    onGameStateChange(gameSession.gameState)
 
     let billboards: any[] = []
 
@@ -162,10 +191,11 @@
 {/each}
 
 <PlayerPanel3d
-    position={[0, 5, -6]}
+    position.x={0}
+    position.y={playerPanelPos.y}
+    position.z={-6}
     oncreate={(ref: Group) => {
         let size = new Box3().setFromObject(ref).getSize(new Vector3())
-        console.log(size)
         ref.position.x = -(size.x / 2) + 2.5
         billboards.push(ref)
     }}
