@@ -11,11 +11,11 @@ import fastifyStatic from '@fastify/static'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { BaseError, ErrorCategory } from '@tabletop/common'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
-import AuthorizationPlugin from './plugins/authorization'
-import FirestorePlugin from './plugins/firestore'
-import SensiblePlugin from './plugins/sensible'
-import ServicesPlugin from './plugins/services'
-import GamesPlugin from './plugins/games'
+import AuthorizationPlugin from './plugins/authorization.js'
+import FirestorePlugin from './plugins/firestore.js'
+import SensiblePlugin from './plugins/sensible.js'
+import ServicesPlugin from './plugins/services.js'
+import GamesPlugin from './plugins/games.js'
 
 const __dirname = import.meta.dirname
 
