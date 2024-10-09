@@ -23,6 +23,7 @@ COPY libs/email backend/node_modules/@tabletop/email
 COPY games/fresh-fish backend/node_modules/@tabletop/fresh-fish
 COPY games/bridges-of-shangri-la backend/node_modules/@tabletop/bridges-of-shangri-la
 COPY games/kaivai backend/node_modules/@tabletop/kaivai
+COPY games/estates backend/node_modules/@tabletop/estates
 
 COPY apps/backend/.env.prod backend/.env
 COPY apps/backend/dist backend

@@ -6,7 +6,7 @@
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
-    import { getContext } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Offer3d from './Offer3d.svelte'
@@ -149,7 +149,6 @@
         cameraControls.maxAzimuthAngle = Math.PI / 3
         cameraControls.minAzimuthAngle = -(Math.PI / 3)
         cameraControls.smoothTime = 0.2
-        setTimeout(moveCameraToFit, 250)
     }}
 ></T.PerspectiveCamera>
 <T.AmbientLight intensity={1.5} />
@@ -173,33 +172,39 @@
     <HudScene />
 </HUD>
 
-<Map />
-{#each gameSession.gameState.board.rows as row, i}
-    {#each row.sites as site, j}
-        <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
-    {/each}
-    {#if row.mayor}
-        <TopHat scale={0.5} position.y={0.35} position.x={10.2} position.z={RowOffsets[i]} />
-    {/if}
-{/each}
-<Offer3d position={[-2, -0.6, 7.5]} />
-
-{#each Object.values(Company) as company, i (company)}
-    {#if gameSession.gameState.certificates.includes(company)}
-        <Cert3d {company} scale={1.2} position={certPositions[i]} />
-    {/if}
-{/each}
-
-<PlayerPanel3d
-    position.x={0}
-    position.y={playerPanelPos.y}
-    position.z={-6}
-    oncreate={(ref: Group) => {
-        let size = new Box3().setFromObject(ref).getSize(new Vector3())
-        ref.position.x = -(size.x / 2) + 2.5
-        billboards.push(ref)
+<T.Group
+    oncreate={() => {
+        setTimeout(moveCameraToFit, 500)
     }}
-/>
+>
+    <Map />
+    {#each gameSession.gameState.board.rows as row, i}
+        {#each row.sites as site, j}
+            <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
+        {/each}
+        {#if row.mayor}
+            <TopHat scale={0.5} position.y={0.35} position.x={10.2} position.z={RowOffsets[i]} />
+        {/if}
+    {/each}
+    <Offer3d position={[-2, -0.6, 7.5]} />
+
+    {#each Object.values(Company) as company, i (company)}
+        {#if gameSession.gameState.certificates.includes(company)}
+            <Cert3d {company} scale={1.2} position={certPositions[i]} />
+        {/if}
+    {/each}
+
+    <PlayerPanel3d
+        position.x={0}
+        position.y={playerPanelPos.y}
+        position.z={-6}
+        oncreate={(ref: Group) => {
+            let size = new Box3().setFromObject(ref).getSize(new Vector3())
+            ref.position.x = -(size.x / 2) + 2.5
+            billboards.push(ref)
+        }}
+    />
+</T.Group>
 
 {#if showMayorHighlights}
     <GlowingCircle
