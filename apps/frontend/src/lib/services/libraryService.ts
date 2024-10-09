@@ -18,16 +18,14 @@ export class LibraryService {
 
     getTitles(): GameUiDefinition[] {
         const user = this.authorizationService.getSessionUser()
-        return (
-            Array.from(this.titles.values())
-                // .filter(
-                //     (title) =>
-                //         !title.metadata.beta ||
-                //         (user &&
-                //             (user.roles.includes(Role.Admin) || user.roles.includes(Role.BetaTester)))
-                // )
-                .sort((a, b) => a.metadata.name.localeCompare(b.metadata.name))
-        )
+        return Array.from(this.titles.values())
+            .filter(
+                (title) =>
+                    !title.metadata.beta ||
+                    (user &&
+                        (user.roles.includes(Role.Admin) || user.roles.includes(Role.BetaTester)))
+            )
+            .sort((a, b) => a.metadata.name.localeCompare(b.metadata.name))
     }
 
     getTitle(id: string): GameUiDefinition | undefined {

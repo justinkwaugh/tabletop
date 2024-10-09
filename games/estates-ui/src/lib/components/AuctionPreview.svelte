@@ -19,7 +19,6 @@
     import { Object3D, Mesh, MeshStandardMaterial } from 'three'
     import TopHat from '$lib/3d/TopHat.svelte'
     import CancelCube from './CancelCube.svelte'
-    import Barrier from '$lib/3d/Barrier.svelte'
     import Roof from './Roof3d.svelte'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
 
