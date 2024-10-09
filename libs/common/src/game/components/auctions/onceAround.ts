@@ -35,13 +35,13 @@ export class HydratedOnceAroundAuction
             this.highBid = amount
         }
 
-        if (this.isAuctionComplete() && this.highBid !== undefined) {
-            const winner = this.participants.find((participant) => participant.bid === this.highBid)
-            if (winner === undefined) {
-                throw Error('Cannot find winner')
-            }
-            this.winnerId = winner.playerId
-        }
+        this.checkAuctionComplete()
+    }
+
+    override pass(playerId: string): void {
+        super.pass(playerId)
+
+        this.checkAuctionComplete()
     }
 
     isAuctionComplete() {
@@ -54,5 +54,15 @@ export class HydratedOnceAroundAuction
         return this.participants.find(
             (participant) => participant.bid === undefined && !participant.passed
         )?.playerId
+    }
+
+    private checkAuctionComplete() {
+        if (this.isAuctionComplete() && this.highBid !== undefined) {
+            const winner = this.participants.find((participant) => participant.bid === this.highBid)
+            if (winner === undefined) {
+                throw Error('Cannot find winner')
+            }
+            this.winnerId = winner.playerId
+        }
     }
 }

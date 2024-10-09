@@ -3,6 +3,7 @@ import {
     AuctionRecipient,
     isChooseRecipient,
     isDiscardPiece,
+    isEmbezzle,
     isEndAuction,
     isPlaceBarrier,
     isPlaceBid,
@@ -18,7 +19,7 @@ export function getDescriptionForAction(action: GameAction) {
         case isEndAuction(action):
             return 'The auction has ended'
         case isPlaceBid(action):
-            return 'placed a bid of $' + action.amount
+            return action.amount > 0 ? 'placed a bid of $' + action.amount : 'passed'
         case isStartAuction(action):
             return 'started an auction'
         case isPlaceCube(action):
@@ -33,6 +34,8 @@ export function getDescriptionForAction(action: GameAction) {
             return 'removed a barrier from the board'
         case isDiscardPiece(action):
             return 'discarded their piece'
+        case isEmbezzle(action):
+            return 'stole $1'
         case isChooseRecipient(action):
             if (action.recipient === AuctionRecipient.Auctioneer) {
                 return 'chose to buy out the winner'

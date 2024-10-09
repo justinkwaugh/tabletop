@@ -127,7 +127,7 @@ export class EstatesGameInitializer extends BaseGameInitializer implements GameI
 
         for (let i = 0; i < 10; i++) {
             rowThree.sites.push(structuredClone(site))
-            if (i === 10 || i === 6) {
+            if (i === 0 || i === 6) {
                 rowThree.sites[i].single = true
             }
         }

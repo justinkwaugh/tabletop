@@ -3,21 +3,28 @@
     import { MachineState } from '@tabletop/estates'
     import { HTML } from '@threlte/extras'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { Button } from 'flowbite-svelte'
+
     import { gsap } from 'gsap'
 
     let { position, ready, ...others }: { position: [number, number, number]; ready: boolean } =
         $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
 
-    let bidValue = $state(gameSession.gameState.auction?.highBid ?? 0 + 1)
-
     function incrementBid() {
-        bidValue = Math.min(bidValue + 1, gameSession.myPlayerState?.money ?? 0)
+        if (gameSession.currentBid < gameSession.validBid) {
+            gameSession.currentBid = gameSession.validBid
+        }
+        gameSession.currentBid = Math.min(
+            gameSession.currentBid + 1,
+            gameSession.myPlayerState?.money ?? 0
+        )
     }
 
     function decrementBid() {
-        bidValue = Math.max(bidValue - 1, gameSession.gameState.auction?.highBid ?? 0 + 1)
+        gameSession.currentBid = Math.max(
+            gameSession.currentBid - 1,
+            (gameSession.gameState.auction?.highBid ?? 0) + 1
+        )
     }
 
     function fadeIn(div: HTMLDivElement) {
@@ -37,7 +44,7 @@
                     class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px]"
                     onclick={decrementBid}><h1 class="text-2xl">-</h1></button
                 >
-                <h1 class="w-[50px] text-4xl">${bidValue}</h1>
+                <h1 class="w-[50px] text-4xl">${gameSession.validBid}</h1>
                 <button
                     class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px]"
                     onclick={incrementBid}><h1 class="text-2xl">+</h1></button

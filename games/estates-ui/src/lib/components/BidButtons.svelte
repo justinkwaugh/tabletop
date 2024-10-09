@@ -1,17 +1,14 @@
 <script lang="ts">
-    import { getContext, onMount } from 'svelte'
-    import { ActionType, MachineState } from '@tabletop/estates'
-    import { HTML, OrbitControls } from '@threlte/extras'
+    import { getContext } from 'svelte'
+    import { MachineState } from '@tabletop/estates'
+    import { HTML } from '@threlte/extras'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
     import { gsap } from 'gsap'
-    import { fade } from 'svelte/transition'
 
     let { position, ready, ...others }: { position: [number, number, number]; ready: boolean } =
         $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
-
-    let bidValue = $state(gameSession.gameState.auction?.highBid ?? 0 + 1)
 
     async function pass(event: any) {
         event.stopPropagation()
@@ -20,7 +17,8 @@
 
     async function placeBid(event: any) {
         event.stopPropagation()
-        await gameSession.placeBid(bidValue)
+        await gameSession.placeBid(Math.max(gameSession.currentBid, gameSession.validBid))
+        gameSession.currentBid = 0
     }
 
     function fadeIn(div: HTMLDivElement) {

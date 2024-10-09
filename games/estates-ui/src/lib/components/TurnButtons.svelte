@@ -16,8 +16,10 @@
         transition:fade={{ duration: 200 }}
         class="flex flex-row justify-center items-center gap-x-2 z-30"
     >
-        <Button onclick={(event: any) => embezzle(event)} size="xs" color="light"
-            >Steal $1 First</Button
-        >
+        {#if gameSession.myPlayerState?.money ?? 0 > 0}
+            <Button onclick={(event: any) => embezzle(event)} size="xs" color="light"
+                >Steal $1 First</Button
+            >
+        {/if}
     </div>
 {/if}

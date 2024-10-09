@@ -17,7 +17,7 @@
         if (gameSession.gameState.machineState === MachineState.StartOfTurn) {
             return 'Choose a piece to auction'
         } else if (gameSession.gameState.machineState === MachineState.AuctionEnded) {
-            return 'Buy out the winner?'
+            return `Buy out the winner for $${gameSession.gameState.auction?.highBid ?? 0}?`
         } else if (gameSession.gameState.machineState === MachineState.PlacingPiece) {
             switch (true) {
                 case isCube(gameSession.gameState.chosenPiece):

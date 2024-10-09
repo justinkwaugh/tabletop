@@ -145,7 +145,7 @@
 
     function onRoofClick(event: any, index: number) {
         event.stopPropagation()
-        if (!canChoose || !allowRoofInteraction) {
+        if (!canChooseRoof || !allowRoofInteraction) {
             return
         }
         const roof = findParentByName(event.object, 'roof')

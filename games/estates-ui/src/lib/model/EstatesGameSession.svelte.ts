@@ -24,6 +24,9 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
     )
 
+    currentBid = $state(1)
+    validBid = $derived(Math.max(this.currentBid, (this.gameState.auction?.highBid ?? 0) + 1))
+
     getCompanyColor(company: Company): Color {
         switch (company) {
             case Company.Skyline:
