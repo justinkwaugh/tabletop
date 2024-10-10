@@ -202,7 +202,13 @@
         <T.MeshBasicMaterial color={'white'} transparent={true} opacity={0} />
     </T.Mesh>
     {#each site.cubes as cube, i}
-        <Cube3d {cube} position.x={0} position.z={0} position.y={i} />
+        <Cube3d
+            {cube}
+            position.x={0}
+            position.z={0}
+            position.y={i}
+            rotation.z={gameSession.mobileView ? -Math.PI / 2 : 0}
+        />
     {/each}
     {#if site.roof}
         <Roof3d
@@ -210,6 +216,7 @@
             position.x={0}
             position.z={0}
             position.y={site.cubes.length - 0.305}
+            rotation.y={gameSession.mobileView ? -Math.PI / 2 : 0}
         />
     {/if}
     {#each site.barriers as barrier, i}
@@ -226,11 +233,12 @@
     {#if hoverCube}
         <Cube3d
             transparent={true}
-            opacity={0.6}
+            opacity={0.7}
             cube={hoverCube}
             position.x={0}
             position.z={0}
             position.y={site.cubes.length}
+            rotation.z={gameSession.mobileView ? -Math.PI / 2 : 0}
             scale={$scale}
         />
     {/if}
@@ -242,6 +250,7 @@
             position.x={0}
             position.z={0}
             position.y={site.cubes.length - 0.305}
+            rotation.y={gameSession.mobileView ? -Math.PI / 2 : 0}
             scale={$scale}
         />
     {/if}

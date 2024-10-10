@@ -60,4 +60,30 @@
         characters="123456HELO"
         {material}
     />
+    <Text
+        color="#CCCCCC"
+        rotation.y={-Math.PI / 2}
+        position.x={-0.5}
+        depthOffset={-1}
+        fontSize={0.8}
+        fontWeight="bold"
+        anchorX="50%"
+        anchorY="50%"
+        text={cube.value.toString()}
+        characters="123456HELO"
+        {material}
+    />
+    <Text
+        color="#CCCCCC"
+        rotation.y={Math.PI / 2}
+        position.x={0.5}
+        depthOffset={-1}
+        fontSize={0.8}
+        fontWeight="bold"
+        anchorX="50%"
+        anchorY="50%"
+        text={cube.value.toString()}
+        characters="123456HELO"
+        {material}
+    />
 </T.Group>

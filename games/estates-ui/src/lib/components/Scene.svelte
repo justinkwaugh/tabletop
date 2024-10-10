@@ -23,6 +23,7 @@
         MachineState
     } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
+    import { MediaQuery } from 'runed'
 
     CameraControls.install({ THREE: THREE })
 
@@ -33,6 +34,8 @@
             gameSession.gameState.machineState === MachineState.PlacingPiece &&
             isMayor(gameSession.gameState.chosenPiece)
     )
+
+    const screen = new MediaQuery('(min-width: 640px)')
 
     interactivity()
 
@@ -109,14 +112,27 @@
         await gameSession.placeMayor(row)
     }
 
-    async function moveCameraToFit() {
+    async function resetCameraRestrictions() {
         if (!cameraControls) return
+        cameraControls.maxPolarAngle = Math.PI
+        cameraControls.minPolarAngle = 0
+        cameraControls.maxAzimuthAngle = Infinity
+        cameraControls.minAzimuthAngle = -Infinity
         cameraControls.maxDistance = Infinity
         cameraControls.minDistance = 0
+    }
+
+    async function moveCameraToFit() {
+        if (!cameraControls) return
         cameraControls.stop()
-        cameraControls.saveState()
-        await cameraControls.rotateAzimuthTo(0, false)
-        await cameraControls.rotatePolarTo(0, false)
+
+        resetCameraRestrictions()
+
+        camera.current.up = new THREE.Vector3(0, 1, 0)
+        cameraControls.updateCameraUp()
+
+        await cameraControls.setLookAt(0, 16, 20, 0, 2, 0, false)
+        await cameraControls.rotateTo(0, 0, false)
 
         await cameraControls.fitToBox(new Box3().setFromObject(scene), false, {
             paddingTop: 0,
@@ -127,13 +143,63 @@
 
         cameraControls.maxDistance = cameraControls.distance
         cameraControls.minDistance = cameraControls.distance - 10
+        cameraControls.maxPolarAngle = 1
+        cameraControls.minPolarAngle = 0
+        cameraControls.maxAzimuthAngle = Math.PI / 3
+        cameraControls.minAzimuthAngle = -(Math.PI / 3)
+
         await cameraControls.rotateTo(0, 1, false)
         cameraControls.saveState()
     }
 
-    function onWindowResize(event: Event) {
-        moveCameraToFit()
+    async function moveCameraToOverhead() {
+        if (!cameraControls) return
+        cameraControls.stop()
+        resetCameraRestrictions()
+
+        camera.current.up = new THREE.Vector3(1, 0, 0)
+        cameraControls.updateCameraUp()
+
+        await cameraControls.setLookAt(0, 10, 0, 0, 0, 0, false)
+        await cameraControls.rotateTo(-Math.PI / 2, 1, false)
+
+        await cameraControls.fitToBox(new Box3().setFromObject(scene), false, {
+            paddingTop: 0,
+            paddingLeft: 0,
+            paddingBottom: 0,
+            paddingRight: 0
+        })
+
+        cameraControls.maxDistance = cameraControls.distance
+        cameraControls.minDistance = cameraControls.distance - 10
+        cameraControls.maxPolarAngle = Math.PI / 2
+        cameraControls.minPolarAngle = Math.PI / 2
+        cameraControls.maxAzimuthAngle = -Math.PI / 4
+        cameraControls.minAzimuthAngle = -(Math.PI / 4) * 3
+        cameraControls.saveState()
     }
+
+    let lastWidth = $state(window.innerWidth)
+
+    function onWindowResize() {
+        if (window.innerWidth < 640) {
+            if (lastWidth > 640 || gameSession.mobileView === undefined) {
+                gameSession.mobileView = true
+            }
+            moveCameraToOverhead()
+        } else if (window.innerWidth >= 640) {
+            if (lastWidth <= 640 || gameSession.mobileView === undefined) {
+                gameSession.mobileView = false
+            }
+            moveCameraToFit()
+        }
+        lastWidth = window.innerWidth
+    }
+
+    onMount(() => {
+        console.log(window.innerWidth)
+        onWindowResize()
+    })
 </script>
 
 <svelte:window onresize={onWindowResize} />
@@ -174,7 +240,7 @@
 
 <T.Group
     oncreate={() => {
-        setTimeout(moveCameraToFit, 500)
+        setTimeout(onWindowResize, 500)
     }}
 >
     <Map />
@@ -186,24 +252,27 @@
             <TopHat scale={0.5} position.y={0.35} position.x={10.2} position.z={RowOffsets[i]} />
         {/if}
     {/each}
-    <Offer3d position={[-2, -0.6, 7.5]} />
 
-    {#each Object.values(Company) as company, i (company)}
-        {#if gameSession.gameState.certificates.includes(company)}
-            <Cert3d {company} scale={1.2} position={certPositions[i]} />
-        {/if}
-    {/each}
+    {#if screen.matches}
+        <Offer3d position={[-2, -0.6, 7.5]} />
 
-    <PlayerPanel3d
-        position.x={0}
-        position.y={playerPanelPos.y}
-        position.z={-6}
-        oncreate={(ref: Group) => {
-            let size = new Box3().setFromObject(ref).getSize(new Vector3())
-            ref.position.x = -(size.x / 2) + 2.5
-            billboards.push(ref)
-        }}
-    />
+        {#each Object.values(Company) as company, i (company)}
+            {#if gameSession.gameState.certificates.includes(company)}
+                <Cert3d {company} scale={1.2} position={certPositions[i]} />
+            {/if}
+        {/each}
+
+        <PlayerPanel3d
+            position.x={0}
+            position.y={playerPanelPos.y}
+            position.z={-6}
+            oncreate={(ref: Group) => {
+                let size = new Box3().setFromObject(ref).getSize(new Vector3())
+                ref.position.x = -(size.x / 2) + 2.5
+                billboards.push(ref)
+            }}
+        />
+    {/if}
 </T.Group>
 
 {#if showMayorHighlights}

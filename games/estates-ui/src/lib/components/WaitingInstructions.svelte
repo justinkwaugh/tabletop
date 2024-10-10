@@ -5,11 +5,9 @@
     import { MachineState } from '@tabletop/estates'
 
     import { fade } from 'svelte/transition'
-    import { HTML } from '@threlte/extras'
 
     import { PlayerName } from '@tabletop/frontend-components'
 
-    let { position, ...others }: { position: [number, number, number] } = $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
     let activePlayerId: string | undefined = $derived.by(() => {
         if (gameSession.gameState.activePlayerIds.length === 1) {
@@ -19,9 +17,9 @@
     })
     const instructions = $derived.by(() => {
         if (gameSession.gameState.machineState === MachineState.StartOfTurn) {
-            return 'to choose a piece to auction'
+            return 'to start an auction'
         } else if (gameSession.gameState.machineState === MachineState.Auctioning) {
-            return 'to place a bid'
+            return 'to bid'
         } else if (gameSession.gameState.machineState === MachineState.AuctionEnded) {
             return 'to decide about buying out the winner'
         } else if (gameSession.gameState.machineState === MachineState.PlacingPiece) {
@@ -43,14 +41,13 @@
     })
 </script>
 
-<HTML {position} {...others} distanceFactor={5} transform>
-    <div
-        transition:fade={{ duration: 300 }}
-        class="py-2 px-8 bg-transparent rounded-lg flex flex-col justify-center items-center gap-y-2 text-center"
-    >
-        <h1 class="text-lg text-gray-200">
-            Waiting for <PlayerName playerId={activePlayerId} />
-            {instructions}
-        </h1>
-    </div>
-</HTML>
+<div
+    transition:fade={{ duration: 300 }}
+    class="py-2 px-4 bg-gray-900
+             rounded-lg gap-y-2 text-center border-2 border-gray-700"
+>
+    <h1 class="text-lg text-gray-200">
+        Waiting for <PlayerName playerId={activePlayerId} />
+        {instructions}
+    </h1>
+</div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { useViewport } from '@threlte/extras'
+    import { useViewport, HTML } from '@threlte/extras'
     import AuctionPreview from './AuctionPreview.svelte'
     import HighBid from './HighBid.svelte'
     import BidControls from './BidControls.svelte'
@@ -10,6 +10,8 @@
     import Instructions from './Instructions.svelte'
     import WaitingInstructions from './WaitingInstructions.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
+    import Offer from './Offer.svelte'
+    import { gsap } from 'gsap'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -31,22 +33,48 @@
             return $viewport.height / 2 - 0.6
         }
     })
+    function fadeIn(div: HTMLDivElement) {
+        gsap.to(div, { opacity: 1, duration: 0.5 })
+    }
 </script>
 
-{#if gameSession.gameState.machineState === MachineState.Auctioning}
-    <HighBid {ready} position={[-1.5, $viewport.height / 2 - 0.6, 0]} />
+{#if ready && gameSession.gameState.machineState === MachineState.Auctioning}
+    <HTML position.y={$viewport.height / 2 - 0.6} center>
+        <div use:fadeIn class="flex flex-col justify-start items-center gap-y-4 opacity-0">
+            <div class="w-[340px] flex flex-row justify-between items-center">
+                <HighBid />
+
+                {#if gameSession.isMyTurn}
+                    <BidControls />
+                {/if}
+            </div>
+        </div>
+    </HTML>
+    <HTML position.y={$viewport.height / 2 - 1.6} center>
+        {#if gameSession.isMyTurn}
+            <BidButtons />
+        {/if}
+    </HTML>
+{/if}
+
+{#if gameSession.isMyTurn}
+    {#if gameSession.gameState.machineState !== MachineState.Auctioning}
+        <HTML position.y={instructionY} center>
+            <Instructions />
+        </HTML>
+    {/if}
+{:else if gameSession.gameState.result}
+    <HTML position.y={$viewport.height / 2 - 1} distanceFactor={5} center transform>
+        <GameEndPanel />
+    </HTML>
+{:else}
+    <HTML position.y={instructionY} distanceFactor={5} center transform>
+        <WaitingInstructions />
+    </HTML>
 {/if}
 
 <AuctionPreview flyDone={onFlyDone} position={[0, $viewport.height / 2 - 0.6, 0]} />
 
-{#if gameSession.isMyTurn}
-    <Instructions position={[0, instructionY, 0]} />
-    {#if gameSession.gameState.machineState === MachineState.Auctioning}
-        <BidControls {ready} position={[1.5, $viewport.height / 2 - 0.6, 0]} />
-        <BidButtons {ready} position={[0, $viewport.height / 2 - 1.6, 0]} />
-    {/if}
-{:else if gameSession.gameState.result}
-    <GameEndPanel position={[0, $viewport.height / 2 - 1, 0]} />
-{:else}
-    <WaitingInstructions position={[0, instructionY, 0]} />
+{#if gameSession.mobileView}
+    <HTML position={[0, -$viewport.height / 2 + 0.6, 0]} center={true}><Offer /></HTML>
 {/if}

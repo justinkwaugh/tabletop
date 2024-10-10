@@ -5,12 +5,10 @@
     import { MachineState } from '@tabletop/estates'
 
     import { fade } from 'svelte/transition'
-    import { HTML } from '@threlte/extras'
     import TurnButtons from './TurnButtons.svelte'
     import PlaceButtons from './PlaceButtons.svelte'
     import BuyOutButtons from './BuyOutButtons.svelte'
 
-    let { position, ...others }: { position: [number, number, number] } = $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     const instructions = $derived.by(() => {
@@ -37,20 +35,18 @@
     })
 </script>
 
-<HTML {position} {...others} distanceFactor={5} transform>
-    <div
-        transition:fade={{ duration: 300 }}
-        class="py-2 px-8 bg-transparent rounded-lg flex flex-col justify-center items-center gap-y-2 text-center"
-    >
-        <h1 class="text-lg text-gray-200">{instructions}</h1>
-        {#if gameSession.gameState.machineState === MachineState.StartOfTurn}
-            <TurnButtons />
-        {/if}
-        {#if gameSession.gameState.machineState === MachineState.PlacingPiece}
-            <PlaceButtons />
-        {/if}
-        {#if gameSession.gameState.machineState === MachineState.AuctionEnded}
-            <BuyOutButtons />
-        {/if}
-    </div>
-</HTML>
+<div
+    transition:fade={{ duration: 300 }}
+    class="py-2 px-8 rounded-lg flex flex-col justify-center items-center gap-y-2 text-center text-nowrap bg-gray-900 border-2 border-gray-700"
+>
+    <h1 class="text-lg text-gray-200">{instructions}</h1>
+    {#if gameSession.gameState.machineState === MachineState.StartOfTurn}
+        <TurnButtons />
+    {/if}
+    {#if gameSession.gameState.machineState === MachineState.PlacingPiece}
+        <PlaceButtons />
+    {/if}
+    {#if gameSession.gameState.machineState === MachineState.AuctionEnded}
+        <BuyOutButtons />
+    {/if}
+</div>

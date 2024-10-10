@@ -1,13 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import { MachineState } from '@tabletop/estates'
-    import { HTML } from '@threlte/extras'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
 
-    import { gsap } from 'gsap'
-
-    let { position, ready, ...others }: { position: [number, number, number]; ready: boolean } =
-        $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     function incrementBid() {
@@ -26,30 +20,21 @@
             (gameSession.gameState.auction?.highBid ?? 0) + 1
         )
     }
-
-    function fadeIn(div: HTMLDivElement) {
-        gsap.to(div, { opacity: 1, duration: 0.5 })
-    }
 </script>
 
-{#if ready && gameSession.gameState.machineState === MachineState.Auctioning}
-    <HTML {position} distanceFactor={5} transform>
-        <div
-            use:fadeIn
-            class="flex flex-col justify-center items-center rounded-lg p-2 gap-y-2 fit-content text-gray-200 select-none opacity-0"
+<div
+    class="flex flex-col justify-center items-center rounded-lg p-2 fit-content text-gray-200 select-none w-[120px]"
+>
+    <div class="flex flex-row justify-center items-center text-lg text-nowrap">Your Bid</div>
+    <div class="flex flex-row justify-center items-center text-center text-gray-200 gap-x-2">
+        <button
+            class="flex flex-col justify-center items-center rounded-full w-[30px] h-[30px] border border-gray-700 bg-gray-900"
+            onclick={decrementBid}><h1 class="text-2xl leading-none pb-1">-</h1></button
         >
-            <div class="flex flex-row justify-center items-center text-xl">Your Bid</div>
-            <div class="flex flex-row justify-between items-center text-center text-gray-200">
-                <button
-                    class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px]"
-                    onclick={decrementBid}><h1 class="text-2xl">-</h1></button
-                >
-                <h1 class="w-[50px] text-4xl">${gameSession.validBid}</h1>
-                <button
-                    class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px]"
-                    onclick={incrementBid}><h1 class="text-2xl">+</h1></button
-                >
-            </div>
-        </div>
-    </HTML>
-{/if}
+        <h1 class="text-4xl leading-none">{gameSession.validBid}</h1>
+        <button
+            class="flex flex-col justify-center items-center rounded-full w-[30px] h-[30px] border border-gray-700 bg-gray-900"
+            onclick={incrementBid}><h1 class="text-2xl leading-none pb-1">+</h1></button
+        >
+    </div>
+</div>

@@ -78,67 +78,40 @@
 </script>
 
 {#if gameSession.gameState.chosenPiece}
-    {#if isCube(gameSession.gameState.chosenPiece)}
-        <Cube3d
-            position={[0, $viewport.height / 2 - 0.6, 0]}
-            opacity={0}
-            rotation.y={rotation}
-            oncreate={(ref: Object3D) => {
-                hide(ref)
-                ref.position.y = $viewport.height / 2 - 3
-                flyUp(ref)
-            }}
-            cube={gameSession.gameState.chosenPiece}
-            {...others}
-        />
-    {:else if isMayor(gameSession.gameState.chosenPiece)}
-        <TopHat
-            oncreate={(ref: Object3D) => {
-                hide(ref)
-                ref.position.y = $viewport.height / 2 - 3
-                flyUp(ref, 0.35)
-            }}
-            rotation.y={rotation}
-            scale={0.46}
-            position={[0, $viewport.height / 2 - 0.35, 0]}
-            {...others}
-        />
-    {:else if isCancelCube(gameSession.gameState.chosenPiece)}
-        <CancelCube
-            oncreate={(ref: Object3D) => {
-                hide(ref)
-                ref.position.y = $viewport.height / 2 - 3
-                flyUp(ref)
-            }}
-            rotation.y={rotation}
-            position={[0, $viewport.height / 2 - 0.6, 0]}
-            {...others}
-        />
-    {:else if isBarrier(gameSession.gameState.chosenPiece)}
-        <BarrierOne
-            oncreate={(ref: Object3D) => {
-                hide(ref)
-                ref.position.y = $viewport.height / 2 - 3
-                flyUp(ref)
-            }}
-            stripes={gameSession.gameState.chosenPiece.value}
-            scale={1}
-            rotation.y={rotation}
-            position={[0, $viewport.height / 2 - 0.6, 0]}
-            {...others}
-        />
-    {:else if isRoof(gameSession.gameState.chosenPiece)}
-        <Roof
-            roof={gameSession.gameState.chosenPiece}
-            oncreate={(ref: Object3D) => {
-                hide(ref)
-                ref.position.y = $viewport.height / 2 - 3
-                flyUp(ref)
-            }}
-            rotation.x={Math.PI / 2}
-            rotation.z={-rotation}
-            position={[0, $viewport.height / 2 - 0.6, 0]}
-            {...others}
-        />
-    {/if}
+    <T.Group
+        scale={gameSession.mobileView ? 0.7 : 0.8}
+        oncreate={(ref: Object3D) => {
+            hide(ref)
+            ref.position.y = $viewport.height / 2 - 3
+            flyUp(ref)
+        }}
+    >
+        {#if isCube(gameSession.gameState.chosenPiece)}
+            <Cube3d
+                position={[0, 0, 0]}
+                opacity={0}
+                rotation.y={rotation}
+                cube={gameSession.gameState.chosenPiece}
+                {...others}
+            />
+        {:else if isMayor(gameSession.gameState.chosenPiece)}
+            <TopHat rotation.y={rotation} position.y={0.15} scale={0.46} {...others} />
+        {:else if isCancelCube(gameSession.gameState.chosenPiece)}
+            <CancelCube rotation.y={rotation} {...others} />
+        {:else if isBarrier(gameSession.gameState.chosenPiece)}
+            <BarrierOne
+                stripes={gameSession.gameState.chosenPiece.value}
+                scale={1}
+                rotation.y={rotation}
+                {...others}
+            />
+        {:else if isRoof(gameSession.gameState.chosenPiece)}
+            <Roof
+                roof={gameSession.gameState.chosenPiece}
+                rotation.x={Math.PI / 2}
+                rotation.z={-rotation}
+                {...others}
+            />
+        {/if}
+    </T.Group>
 {/if}
