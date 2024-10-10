@@ -11,6 +11,8 @@
     let gameSession = getContext('gameSession') as EstatesGameSession
     let isWin = $derived(gameSession.gameState.result === GameResult.Win)
     let winner = $derived(isWin ? gameSession.gameState.winningPlayerIds[0] : undefined)
+
+    let winnerIsMe = $derived(winner === gameSession.myPlayer?.id)
 </script>
 
 <HTML {position} {...others} distanceFactor={5} transform>
@@ -25,7 +27,7 @@
                 {#if isWin}
                     <h1 class="text-md sm:text-lg">
                         <PlayerName playerId={winner} />
-                        wins with a score of {gameSession.gameState.getPlayerState(
+                        won with a score of {gameSession.gameState.getPlayerState(
                             winner ?? 'anyone'
                         )?.score}
                     </h1>

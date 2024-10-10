@@ -37,25 +37,39 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
 
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedEstatesGameState
-        const nextBidder = gameState.auction?.nextBidder()
-        if (nextBidder) {
-            gameState.activePlayerIds = [nextBidder]
-            const auction = gameState.auction
-            if (!auction) {
-                throw Error(`No auction found`)
+
+        // No bidders
+        if (gameState.auction?.participants.length === 0) {
+            const endAuctionAction: EndAuction = {
+                type: ActionType.EndAuction,
+                id: nanoid(),
+                gameId: context.gameState.gameId,
+                source: ActionSource.System,
+                winnerId: undefined,
+                highBid: 0
             }
-            // Auto Pass if player doesn't have enough money to bid
-            const bidderState = gameState.getPlayerState(nextBidder)
-            if (bidderState.money < (auction.highBid ?? 0) + 1) {
-                const passAction: PlaceBid = {
-                    type: ActionType.PlaceBid,
-                    id: nanoid(),
-                    playerId: nextBidder,
-                    gameId: gameState.gameId,
-                    source: ActionSource.System,
-                    amount: 0
+            context.addPendingAction(endAuctionAction)
+        } else {
+            const nextBidder = gameState.auction?.nextBidder()
+            if (nextBidder) {
+                gameState.activePlayerIds = [nextBidder]
+                const auction = gameState.auction
+                if (!auction) {
+                    throw Error(`No auction found`)
                 }
-                context.addPendingAction(passAction)
+                // Auto Pass if player doesn't have enough money to bid
+                const bidderState = gameState.getPlayerState(nextBidder)
+                if (bidderState.money < (auction.highBid ?? 0) + 1) {
+                    const passAction: PlaceBid = {
+                        type: ActionType.PlaceBid,
+                        id: nanoid(),
+                        playerId: nextBidder,
+                        gameId: gameState.gameId,
+                        source: ActionSource.System,
+                        amount: 0
+                    }
+                    context.addPendingAction(passAction)
+                }
             }
         }
     }

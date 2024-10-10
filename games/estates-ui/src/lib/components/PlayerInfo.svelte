@@ -2,6 +2,7 @@
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import Cert2d from './Cert2d.svelte'
+    import { MachineState } from '@tabletop/estates'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let { playerId }: { playerId: String } = $props()
@@ -46,7 +47,12 @@
         </div>
 
         <div class="flex flex-col justify-center items-center ms-1">
-            <div class="text-2xl leading-none">${playerState?.money}</div>
+            {#if gameSession.gameState.machineState === MachineState.EndOfGame}
+                <div class="text-xs leading-none">SCORE</div>
+                <div class="text-xl leading-none">{playerState?.score}</div>
+            {:else}
+                <div class="text-2xl leading-none">${playerState?.money}</div>
+            {/if}
         </div>
     </div>
     <div class="h-full flex flex-col justify-center items-center gap-y-0">
