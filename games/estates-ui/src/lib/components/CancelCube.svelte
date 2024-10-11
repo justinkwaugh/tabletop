@@ -11,7 +11,11 @@
         outline?: boolean
     } & Props<typeof Group> = $props()
 
-    const material = new MeshBasicMaterial({ toneMapped: false })
+    const material = new MeshBasicMaterial({
+        toneMapped: false,
+        transparent: opacity !== 1,
+        opacity
+    })
 </script>
 
 <T.Group name="cancelCube" {...others}>
@@ -28,6 +32,20 @@
     <Text
         color="#CCCCCC"
         position.z={0.15}
+        depthOffset={-1}
+        fontSize={1}
+        fontWeight="bold"
+        anchorX="50%"
+        anchorY="50%"
+        text="X"
+        characters="123456HELO"
+        {material}
+    />
+
+    <Text
+        color="#CCCCCC"
+        rotation.y={Math.PI}
+        position.z={-0.15}
         depthOffset={-1}
         fontSize={1}
         fontWeight="bold"

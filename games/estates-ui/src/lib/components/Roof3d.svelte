@@ -2,17 +2,34 @@
     import { T, type Props } from '@threlte/core'
     import { Text } from '@threlte/extras'
     import RoofModel from '$lib/3d/Roof.svelte'
-    import { Group, MeshBasicMaterial } from 'three'
+    import { Group, MeshBasicMaterial, Object3D } from 'three'
     import type { Roof } from '@tabletop/estates'
     const material = new MeshBasicMaterial({ toneMapped: false })
+    let group: Group
 
-    let { roof, ...others }: { roof: Roof } & Props<typeof Group> = $props()
+    let {
+        roof,
+        onloaded,
+        ...others
+    }: { roof: Roof; onloaded?: ((ref: Object3D) => void) | undefined } & Props<typeof Group> =
+        $props()
 
     let text = roof.value === -1 ? '?' : (roof.value?.toString() ?? '?')
 </script>
 
-<T.Group name="roof" {...others}>
-    <RoofModel />
+<T.Group
+    oncreate={(ref) => {
+        group = ref
+    }}
+    name="roof"
+    {...others}
+>
+    <RoofModel
+        onloaded={(ref) => {
+            console.log('Roof loaded: group=', group)
+            onloaded?.(group)
+        }}
+    />
     <Text
         name="roofText"
         color="#CCCCCC"

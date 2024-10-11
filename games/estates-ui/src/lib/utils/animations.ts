@@ -1,0 +1,93 @@
+import { Mesh, Object3D, Material } from 'three'
+import { gsap } from 'gsap'
+
+export function eachMaterial(object: Object3D, fn: (material: Material) => void) {
+    object.traverse((object) => {
+        if (!(object instanceof Mesh)) {
+            return
+        }
+        if (object.material instanceof Material) {
+            fn(object.material)
+        } else if (Array.isArray(object.material)) {
+            object.material.forEach((material) => {
+                fn(material)
+            })
+        }
+    })
+}
+
+export function hideInstant(object: Object3D) {
+    eachMaterial(object, (material) => {
+        material.transparent = true
+        material.opacity = 0
+        material.needsUpdate = true
+    })
+}
+
+export function fade({
+    object,
+    duration = 0.3,
+    opacity = 0,
+    startAt,
+    timeline,
+    onComplete
+}: {
+    object: Object3D
+    duration?: number
+    opacity?: number
+    startAt?: number
+    timeline?: gsap.core.Timeline
+    onComplete?: () => void
+}): gsap.core.Timeline {
+    const myTimeline = timeline || gsap.timeline({ onComplete })
+
+    eachMaterial(object, (material) => {
+        material.transparent = true
+        material.needsUpdate = true
+
+        const options = {
+            ease: 'power2.in',
+            duration,
+            opacity
+        }
+        myTimeline.to(material, options, startAt ?? (timeline ? undefined : 0))
+    })
+
+    if (!timeline) {
+        myTimeline.play()
+    }
+
+    return myTimeline
+}
+
+export function fadeOut({
+    object,
+    timeline,
+    duration = 0.3,
+    startAt = undefined,
+    onComplete
+}: {
+    object: Object3D
+    timeline?: gsap.core.Timeline
+    duration?: number
+    startAt?: number
+    onComplete?: () => void
+}): gsap.core.Timeline {
+    return fade({ object, timeline, duration, opacity: 0, startAt, onComplete })
+}
+
+export function fadeIn({
+    object,
+    timeline,
+    duration = 0.3,
+    startAt = undefined,
+    onComplete
+}: {
+    object: Object3D
+    timeline?: gsap.core.Timeline
+    duration?: number
+    startAt?: number
+    onComplete?: () => void
+}): gsap.core.Timeline {
+    return fade({ object, timeline, duration, opacity: 1, startAt, onComplete })
+}

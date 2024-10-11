@@ -4,12 +4,13 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
 -->
 
 <script lang="ts">
-    import { Group, Mesh, MeshStandardMaterial } from 'three'
+    import { Group, Mesh, MeshStandardMaterial, Object3D } from 'three'
     import { T } from '@threlte/core'
     import { useGltf } from '@threlte/extras'
 
     export let stripes: number = 1
-    export const ref = new Group()
+    export let onloaded: ((ref: Object3D) => void) | undefined = undefined
+    export const group = new Group()
 
     type GLTFResult = {
         nodes: {
@@ -25,18 +26,18 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
     const gltf = useGltf<GLTFResult>('/BarrierOne.gltf')
 </script>
 
-<T is={ref} name="barrier" dispose={false} {...$$restProps}>
+<T is={group} name="barrier" dispose={false} {...$$restProps}>
     {#await gltf}
         <slot name="fallback" />
     {:then gltf}
         <T.Mesh
             scale={0.05}
             oncreate={(ref) => {
+                onloaded?.(group)
                 ref.geometry.center()
             }}
             name="outlineMesh"
             geometry={gltf.nodes.blankblockerv2.geometry}
-            material={gltf.materials['Material.001']}
             castShadow
             receiveShadow
         >
@@ -56,7 +57,6 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 }}
                 depthOffset={-1}
                 geometry={gltf.nodes.blankblockerv2001.geometry}
-                material={gltf.materials['Material.002']}
             >
                 <T.MeshPhysicalMaterial
                     color={'#EEEEEE'}
@@ -76,7 +76,6 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 }}
                 depthOffset={-1}
                 geometry={gltf.nodes.blankblockerv2001.geometry}
-                material={gltf.materials['Material.002']}
             >
                 <T.MeshPhysicalMaterial
                     color={'#EEEEEE'}
@@ -96,7 +95,6 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 }}
                 depthOffset={-1}
                 geometry={gltf.nodes.blankblockerv2001.geometry}
-                material={gltf.materials['Material.002']}
             >
                 <T.MeshPhysicalMaterial
                     color={'#EEEEEE'}
@@ -109,5 +107,5 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
         <slot name="error" {error} />
     {/await}
 
-    <slot {ref} />
+    <slot {group} />
 </T>

@@ -1,16 +1,24 @@
 <script lang="ts">
     import { T, useTask } from '@threlte/core'
     import { useViewport } from '@threlte/extras'
-    import { getContext } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import Cube3d from './Cube3d.svelte'
-    import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/estates'
+    import {
+        EstatesGameState,
+        isBarrier,
+        isCancelCube,
+        isCube,
+        isMayor,
+        isRoof
+    } from '@tabletop/estates'
     import { gsap } from 'gsap'
-    import { Object3D, Mesh, MeshStandardMaterial } from 'three'
+    import { Object3D } from 'three'
     import TopHat from '$lib/3d/TopHat.svelte'
     import CancelCube from './CancelCube.svelte'
     import Roof from './Roof3d.svelte'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
+    import { eachMaterial, fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const viewport = useViewport()
@@ -27,67 +35,83 @@
     })
 
     let group = $state<Object3D>()
+    let piece = $state<Object3D>()
+
+    let currentTimeline: gsap.core.Timeline | undefined
+    let didHide: boolean = false
 
     function flyUp(object: Object3D, yOffset: number = 0.6) {
         setTimeout(() => {
+            if (currentTimeline) {
+                currentTimeline.kill()
+            }
             const timeline = gsap.timeline({
                 onComplete: flyDone
             })
+            currentTimeline = timeline
             timeline.to(object.position, {
                 y: $viewport.height / 2 - yOffset,
                 duration: 0.3
             })
-
-            object.traverse((object) => {
-                if ((object as Mesh).material as MeshStandardMaterial) {
-                    const material = (object as Mesh).material as MeshStandardMaterial
-                    material.transparent = true
-                    material.needsUpdate = true
-                    timeline.to(
-                        material,
-                        {
-                            ease: 'power2.in',
-                            duration: 0.5,
-                            opacity: 1
-                        },
-                        0
-                    )
-                }
-            })
+            fadeIn({ object, duration: 0.5, timeline, startAt: 0 })
             timeline.play()
-        }, 1)
+        }, 200)
     }
 
     function hide(object: Object3D) {
-        object.traverse((object) => {
-            if ((object as Mesh).material as MeshStandardMaterial) {
-                const material = (object as Mesh).material as MeshStandardMaterial
-                material.transparent = true
-                material.opacity = 0
-                material.needsUpdate = true
-            }
-        })
+        if (!didHide) {
+            return
+        }
+        if (currentTimeline) {
+            currentTimeline.kill()
+        }
+        currentTimeline = fadeOut({ object, duration: 0.2 })
+        didHide = false
     }
 
     function show(object: Object3D) {
-        object.traverse((object) => {
-            if ((object as Mesh).material as MeshStandardMaterial) {
-                const material = (object as Mesh).material as MeshStandardMaterial
-                material.transparent = false
-                material.opacity = 1
-                material.needsUpdate = true
-            }
-        })
+        if (didHide) {
+            return
+        }
+        if (currentTimeline) {
+            currentTimeline.kill()
+        }
+        currentTimeline = fadeIn({ object, duration: 0.2 })
+        didHide = true
+    }
+
+    async function onGameStateChange(to: EstatesGameState, from?: EstatesGameState) {
+        const object = group
+        if (object && from?.chosenPiece && !to.chosenPiece) {
+            await new Promise<void>((resolve) => {
+                fadeOut({ object, duration: 0.2, onComplete: resolve })
+            })
+        }
     }
 
     $effect(() => {
-        if (!group) {
+        if (!group || !piece) {
             return
         }
         if (hidden) {
             hide(group)
         } else {
             show(group)
+        }
+    })
+
+    $effect(() => {
+        if (!group || !piece) {
+            return
+        }
+        group.position.y = $viewport.height / 2 - 3
+        flyUp(group)
+    })
+
+    onMount(() => {
+        gameSession.addGameStateChangeListener(onGameStateChange)
+        return () => {
+            gameSession.removeGameStateChangeListener(onGameStateChange)
         }
     })
 </script>
@@ -97,25 +121,49 @@
         scale={gameSession.mobileView ? 0.7 : 0.8}
         oncreate={(ref: Object3D) => {
             group = ref
-            hide(ref)
-            ref.position.y = $viewport.height / 2 - 3
-            flyUp(ref)
+            return () => {
+                group = undefined
+                piece = undefined
+            }
         }}
     >
         {#if isCube(gameSession.gameState.chosenPiece)}
             <Cube3d
+                oncreate={(ref: Object3D) => {
+                    hideInstant(ref)
+                    piece = ref
+                }}
                 position={[0, 0, 0]}
-                opacity={0}
                 rotation.y={rotation}
                 cube={gameSession.gameState.chosenPiece}
                 {...others}
             />
         {:else if isMayor(gameSession.gameState.chosenPiece)}
-            <TopHat rotation.y={rotation} position.y={0.15} scale={0.46} {...others} />
+            <TopHat
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    piece = ref
+                }}
+                rotation.y={rotation}
+                position.y={0.15}
+                scale={0.46}
+                {...others}
+            />
         {:else if isCancelCube(gameSession.gameState.chosenPiece)}
-            <CancelCube rotation.y={rotation} {...others} />
+            <CancelCube
+                oncreate={(ref: Object3D) => {
+                    hideInstant(ref)
+                    piece = ref
+                }}
+                rotation.y={rotation}
+                {...others}
+            />
         {:else if isBarrier(gameSession.gameState.chosenPiece)}
             <BarrierOne
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    piece = ref
+                }}
                 stripes={gameSession.gameState.chosenPiece.value}
                 scale={1}
                 rotation.y={rotation}
@@ -123,6 +171,10 @@
             />
         {:else if isRoof(gameSession.gameState.chosenPiece)}
             <Roof
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    piece = ref
+                }}
                 roof={gameSession.gameState.chosenPiece}
                 rotation.x={Math.PI / 2}
                 rotation.z={-rotation}

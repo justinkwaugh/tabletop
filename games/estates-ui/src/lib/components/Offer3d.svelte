@@ -23,6 +23,7 @@
     import { useTexture } from '@threlte/extras'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
     import { Outliner } from '$lib/utils/outliner'
+    import { fadeIn, hideInstant } from '$lib/utils/animations'
 
     const wood = useTexture(woodImg)
 
@@ -310,6 +311,10 @@
             {#if gameSession.gameState.visibleRoofs[i]}
                 <Roof
                     roof={{ pieceType: PieceType.Roof, value: -1 }}
+                    onloaded={(ref: Object3D) => {
+                        hideInstant(ref)
+                        fadeIn({ object: ref, duration: 0.1 })
+                    }}
                     onpointerenter={(event: any) => enterRoof(event, 'roof')}
                     onpointerleave={(event: any) => leavePiece(event, 'roof')}
                     onclick={(event: any) => {
@@ -327,6 +332,10 @@
                     {#if cube}
                         <Cube3d
                             {cube}
+                            oncreate={(ref: Object3D) => {
+                                hideInstant(ref)
+                                fadeIn({ object: ref, duration: 0.1 })
+                            }}
                             onclick={(event: any) => onCubeClick(event, cube, { row, col })}
                             rotation.x={-Math.PI / 2}
                             position.x={-2.75 + col}
@@ -343,6 +352,10 @@
 
         {#if gameSession.gameState.barrierOne}
             <BarrierOne
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    fadeIn({ object: ref, duration: 0.1 })
+                }}
                 onpointerenter={(event: any) => enterPiece(event, 'barrier')}
                 onpointerleave={(event: any) => leavePiece(event, 'barrier')}
                 onclick={(event: any) => {
@@ -357,6 +370,10 @@
         {/if}
         {#if gameSession.gameState.barrierTwo}
             <BarrierOne
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    fadeIn({ object: ref, duration: 0.1 })
+                }}
                 onpointerenter={(event: any) => enterPiece(event, 'barrier')}
                 onpointerleave={(event: any) => leavePiece(event, 'barrier')}
                 onclick={(event: any) => {
@@ -371,6 +388,10 @@
         {/if}
         {#if gameSession.gameState.barrierThree}
             <BarrierOne
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    fadeIn({ object: ref, duration: 0.1 })
+                }}
                 onpointerenter={(event: any) => enterPiece(event, 'barrier')}
                 onpointerleave={(event: any) => leavePiece(event, 'barrier')}
                 onclick={(event: any) => {
@@ -385,6 +406,10 @@
         {/if}
         {#if gameSession.gameState.mayor}
             <TopHat
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    fadeIn({ object: ref, duration: 0.1 })
+                }}
                 onpointerenter={(event: any) => enterPiece(event, 'topHat')}
                 onpointerleave={(event: any) => leavePiece(event, 'topHat')}
                 onclick={onMayorClick}
@@ -396,6 +421,10 @@
         {/if}
         {#if gameSession.gameState.cancelCube}
             <CancelCube
+                oncreate={(ref: Object3D) => {
+                    hideInstant(ref)
+                    fadeIn({ object: ref, duration: 0.1 })
+                }}
                 onpointerenter={(event: any) => enterPiece(event, 'cancelCube')}
                 onpointerleave={(event: any) => leavePiece(event, 'cancelCube')}
                 onclick={onCancelCubeClick}

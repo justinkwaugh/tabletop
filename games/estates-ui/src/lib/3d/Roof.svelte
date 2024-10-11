@@ -4,16 +4,16 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
 -->
 
 <script lang="ts">
-    import type * as THREE from 'three'
-    import { Group } from 'three'
+    import { Group, Object3D, Mesh } from 'three'
     import { T } from '@threlte/core'
     import { useGltf } from '@threlte/extras'
 
-    export const ref = new Group()
+    export let onloaded: ((ref: Object3D) => void) | undefined
+    export const group = new Group()
 
     type GLTFResult = {
         nodes: {
-            roof: THREE.Mesh
+            roof: Mesh
         }
         materials: {}
     }
@@ -21,7 +21,7 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
     const gltf = useGltf<GLTFResult>('/roof.gltf')
 </script>
 
-<T is={ref} dispose={false} {...$$restProps}>
+<T is={group} dispose={false} {...$$restProps}>
     {#await gltf}
         <slot name="fallback" />
     {:then gltf}
@@ -29,6 +29,7 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
             castShadow
             oncreate={(ref) => {
                 ref.geometry.center()
+                onloaded?.(group)
             }}
             name="outlineMesh"
             scale={0.05}
@@ -40,5 +41,5 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
         <slot name="error" {error} />
     {/await}
 
-    <slot {ref} />
+    <slot {group} />
 </T>

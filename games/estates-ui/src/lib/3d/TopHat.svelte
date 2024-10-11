@@ -8,28 +8,28 @@ Title: Top Hat
 -->
 
 <script lang="ts">
-    import type * as THREE from 'three'
-    import { Group } from 'three'
+    import { Group, Mesh, MeshStandardMaterial, Object3D } from 'three'
     import { T } from '@threlte/core'
-    import { useGltf, Outlines } from '@threlte/extras'
+    import { useGltf } from '@threlte/extras'
 
-    export const ref = new Group()
+    export let onloaded: ((ref: Object3D) => void) | undefined = undefined
+    export const group = new Group()
 
     type GLTFResult = {
         nodes: {
-            Object_4: THREE.Mesh
-            Object_5: THREE.Mesh
+            Object_4: Mesh
+            Object_5: Mesh
         }
         materials: {
-            hat1: THREE.MeshStandardMaterial
-            hat2: THREE.MeshStandardMaterial
+            hat1: MeshStandardMaterial
+            hat2: MeshStandardMaterial
         }
     }
 
     const gltf = useGltf<GLTFResult>('/TopHat.gltf')
 </script>
 
-<T is={ref} dispose={false} {...$$restProps} name="topHat">
+<T is={group} dispose={false} {...$$restProps} name="topHat">
     {#await gltf}
         <slot name="fallback" />
     {:then gltf}
@@ -37,6 +37,7 @@ Title: Top Hat
             <T.Mesh
                 oncreate={(ref) => {
                     ref.geometry.center()
+                    onloaded?.(group)
                 }}
                 name="outlineMesh"
                 geometry={gltf.nodes.Object_4.geometry}
@@ -53,5 +54,5 @@ Title: Top Hat
         <slot name="error" {error} />
     {/await}
 
-    <slot {ref} />
+    <slot {group} />
 </T>

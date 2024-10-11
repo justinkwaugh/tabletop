@@ -13,7 +13,6 @@
     import Offer from './Offer.svelte'
     import { gsap } from 'gsap'
 
-    let { hidden = $bindable() }: { hidden?: boolean } = $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     const viewport = useViewport()
@@ -47,7 +46,7 @@
     <HTML position.y={$viewport.height / 2 - 0.6} center>
         <div
             use:fadeIn
-            class="flex flex-col justify-start items-center gap-y-4 opacity-0 {hidden
+            class="flex flex-col justify-start items-center gap-y-4 opacity-0 {gameSession.shouldHideHud
                 ? 'hidden'
                 : ''}"
         >

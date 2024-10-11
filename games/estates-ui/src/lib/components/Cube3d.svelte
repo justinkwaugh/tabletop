@@ -10,18 +10,20 @@
 
     let {
         cube,
-        transparent = false,
         castShadow = true,
         opacity = 1,
         ...others
     }: {
         cube: Cube
         castShadow?: boolean
-        transparent?: boolean
         opacity?: number
     } & Props<typeof Group> = $props()
 
-    const material = new MeshBasicMaterial({ toneMapped: false })
+    const material = new MeshBasicMaterial({
+        toneMapped: false,
+        transparent: opacity !== 1,
+        opacity
+    })
 </script>
 
 <T.Group {...others} name="cube">
@@ -29,7 +31,7 @@
         <RoundedBoxGeometry args={[1, 1, 1]} />
         <T.MeshPhysicalMaterial
             color={gameSession.getUiColor(gameSession.getCompanyColor(cube.company))}
-            {transparent}
+            transparent={opacity !== 1}
             {opacity}
             clearcoat={1}
             clearcoatRoughness={0.33}
