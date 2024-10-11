@@ -16,6 +16,7 @@
     import History from '$lib/components/History.svelte'
     import { toast } from 'svelte-sonner'
     import LastActionDescription from './LastActionDescription.svelte'
+    import PlayersPanel from './PlayersPanel.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let chatActive: boolean = $state(false)
@@ -90,19 +91,22 @@
                 defaultClass="flex flex-wrap space-x-1 rtl:space-x-reverse"
                 contentClass="p-0 bg-transparent h-full overflow-scroll rounded-lg"
             >
-                <!-- <TabItem
-                    open
-                    onclick={onNonChatClick}
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
-                >
-                    <div slot="title" class="flex items-center gap-2">
-                        <UserCircleSolid size="md" />
-                        Players
-                    </div>
-                </TabItem> -->
+                {#if gameSession.mobileView}
+                    <TabItem
+                        open={gameSession.mobileView}
+                        onclick={onNonChatClick}
+                        activeClasses={activeTabClasses}
+                        inactiveClasses={inactiveTabClasses}
+                    >
+                        <div slot="title" class="flex items-center gap-2">
+                            <UserCircleSolid size="md" />
+                            Players
+                        </div>
+                        <PlayersPanel />
+                    </TabItem>
+                {/if}
                 <TabItem
-                    open
+                    open={!gameSession.mobileView}
                     onclick={onNonChatClick}
                     activeClasses={activeTabClasses}
                     inactiveClasses={inactiveTabClasses}

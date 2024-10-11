@@ -1,6 +1,6 @@
 <script lang="ts">
     import { T, useTask, useThrelte } from '@threlte/core'
-    import { interactivity, HUD, useViewport } from '@threlte/extras'
+    import { interactivity, HUD } from '@threlte/extras'
     import * as THREE from 'three'
     import { Group, Object3D, Mesh, MeshStandardMaterial, Box3, Vector3 } from 'three'
     import Map from './Map.svelte'
@@ -211,10 +211,21 @@
     oncreate={(ref) => {
         ref.lookAt(0, 2, 0)
         cameraControls = new CameraControls(ref, renderer.domElement)
+        cameraControls.touches.one = CameraControls.ACTION.TOUCH_CUSTOM
         cameraControls.maxPolarAngle = 1
         cameraControls.maxAzimuthAngle = Math.PI / 3
         cameraControls.minAzimuthAngle = -(Math.PI / 3)
         cameraControls.smoothTime = 0.2
+        cameraControls.addEventListener('controlstart', () => {
+            gameSession.touching = true
+        })
+        cameraControls.addEventListener('controlend', () => {
+            gameSession.touching = false
+        })
+
+        return () => {
+            cameraControls?.dispose()
+        }
     }}
 ></T.PerspectiveCamera>
 <T.AmbientLight intensity={1.5} />

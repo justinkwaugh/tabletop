@@ -1,20 +1,10 @@
 <script lang="ts">
     import { T, useTask } from '@threlte/core'
-    import { interactivity, useViewport } from '@threlte/extras'
+    import { useViewport } from '@threlte/extras'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import Cube3d from './Cube3d.svelte'
-    import {
-        Company,
-        Cube,
-        isBarrier,
-        isCancelCube,
-        isCube,
-        isMayor,
-        isRoof,
-        MachineState,
-        PieceType
-    } from '@tabletop/estates'
+    import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/estates'
     import { gsap } from 'gsap'
     import { Object3D, Mesh, MeshStandardMaterial } from 'three'
     import TopHat from '$lib/3d/TopHat.svelte'
@@ -26,14 +16,17 @@
     const viewport = useViewport()
     let {
         position,
+        hidden = false,
         flyDone,
         ...others
-    }: { position: [number, number, number]; flyDone?: () => void } = $props()
+    }: { position: [number, number, number]; hidden?: boolean; flyDone?: () => void } = $props()
 
     let rotation = $state(0)
     useTask((delta) => {
         rotation += delta
     })
+
+    let group = $state<Object3D>()
 
     function flyUp(object: Object3D, yOffset: number = 0.6) {
         setTimeout(() => {
@@ -75,12 +68,35 @@
             }
         })
     }
+
+    function show(object: Object3D) {
+        object.traverse((object) => {
+            if ((object as Mesh).material as MeshStandardMaterial) {
+                const material = (object as Mesh).material as MeshStandardMaterial
+                material.transparent = false
+                material.opacity = 1
+                material.needsUpdate = true
+            }
+        })
+    }
+
+    $effect(() => {
+        if (!group) {
+            return
+        }
+        if (hidden) {
+            hide(group)
+        } else {
+            show(group)
+        }
+    })
 </script>
 
 {#if gameSession.gameState.chosenPiece}
     <T.Group
         scale={gameSession.mobileView ? 0.7 : 0.8}
         oncreate={(ref: Object3D) => {
+            group = ref
             hide(ref)
             ref.position.y = $viewport.height / 2 - 3
             flyUp(ref)

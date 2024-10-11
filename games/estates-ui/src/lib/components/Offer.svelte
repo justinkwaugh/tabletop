@@ -115,6 +115,7 @@
         </div>
         <div class="flex flex-col justify-center items-center gap-y-1">
             <button
+                aria-label="mayor"
                 tabindex="-1"
                 onclick={() => chooseMayor()}
                 class="flex justify-center items-center text-[#DDDDDD] w-6 h-6 font-bold text-2xl select-none {canPlace

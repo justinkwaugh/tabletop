@@ -28,6 +28,9 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
     validBid = $derived(Math.max(this.currentBid, (this.gameState.auction?.highBid ?? 0) + 1))
 
     mobileView: boolean | undefined = $state()
+    touching: boolean = $state(false)
+
+    shouldHideHud = $derived(this.mobileView && this.touching)
 
     getCompanyColor(company: Company): Color {
         switch (company) {
