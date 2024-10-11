@@ -7,7 +7,9 @@
     import { fade } from 'svelte/transition'
 
     import { PlayerName } from '@tabletop/frontend-components'
+    import { fadeIn, fadeOut } from '$lib/utils/animations'
 
+    let { hidden }: { hidden?: boolean } = $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
     let activePlayerId: string | undefined = $derived.by(() => {
         if (gameSession.gameState.activePlayerIds.length === 1) {
@@ -15,6 +17,7 @@
         }
         return undefined
     })
+    let ref: HTMLDivElement
     const instructions = $derived.by(() => {
         if (gameSession.gameState.machineState === MachineState.StartOfTurn) {
             return 'to start an auction'
@@ -39,12 +42,20 @@
             }
         }
     })
+
+    $effect(() => {
+        if (hidden) {
+            fadeOut({ object: ref, duration: 0.2 })
+        } else {
+            fadeIn({ object: ref, duration: 0.2 })
+        }
+    })
 </script>
 
 <div
-    transition:fade={{ duration: 300 }}
+    bind:this={ref}
     class="py-2 px-4 bg-gray-900
-             rounded-lg gap-y-2 text-center border-2 border-gray-700"
+             rounded-lg gap-y-2 text-center border-2 border-gray-700 opacity-0"
 >
     <h1 class="text-lg text-gray-200">
         Waiting for <PlayerName playerId={activePlayerId} />

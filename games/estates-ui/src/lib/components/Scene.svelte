@@ -24,6 +24,7 @@
     } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
     import { MediaQuery } from 'runed'
+    import { fade, fadeIn, hideInstant } from '$lib/utils/animations'
 
     CameraControls.install({ THREE: THREE })
 
@@ -92,19 +93,8 @@
         [11.2, -0.5, 8.8]
     ]
 
-    function fadeIn(ref: Object3D) {
-        ref.traverse((ref) => {
-            if ((ref as Mesh).material as MeshStandardMaterial) {
-                const material = (ref as Mesh).material as MeshStandardMaterial
-                material.transparent = true
-                material.opacity = 0
-                material.needsUpdate = true
-                gsap.to(material, {
-                    duration: 0.5,
-                    opacity: 0.5
-                })
-            }
-        })
+    function fadeInHat(ref: Object3D) {
+        fade({ object: ref, duration: 0.5, opacity: 0.5 })
     }
 
     async function placeMayor(row: number) {
@@ -260,7 +250,16 @@
             <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
         {/each}
         {#if row.mayor}
-            <TopHat scale={0.5} position.y={0.35} position.x={10.2} position.z={RowOffsets[i]} />
+            <TopHat
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    fadeIn({ object: ref, duration: 0.1 })
+                }}
+                scale={0.5}
+                position.y={0.35}
+                position.x={10.2}
+                position.z={RowOffsets[i]}
+            />
         {/if}
     {/each}
 
@@ -329,7 +328,7 @@
 
     {#if ghostHat !== undefined}
         <TopHat
-            oncreate={fadeIn}
+            oncreate={fadeInHat}
             scale={0.45}
             position.y={0.35}
             position.x={10.2}

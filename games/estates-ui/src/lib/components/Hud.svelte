@@ -5,18 +5,19 @@
     import BidControls from './BidControls.svelte'
     import BidButtons from './BidButtons.svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { getContext } from 'svelte'
-    import { MachineState } from '@tabletop/estates'
+    import { getContext, onMount } from 'svelte'
+    import { EstatesGameState, MachineState } from '@tabletop/estates'
     import Instructions from './Instructions.svelte'
     import WaitingInstructions from './WaitingInstructions.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
     import Offer from './Offer.svelte'
-    import { gsap } from 'gsap'
+    import { fadeIn, fadeOut } from '$lib/utils/animations'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     const viewport = useViewport()
     let ready = $state(false)
+    let auctionControls: HTMLDivElement
 
     function onFlyDone() {
         ready = true
@@ -33,26 +34,45 @@
             return $viewport.height / 2 - 0.6
         }
     })
-    function fadeIn(element: HTMLElement) {
-        gsap.to(element, { opacity: 1, duration: 0.5 })
+    function onAdd(element: HTMLElement) {
+        element.style.opacity = '0'
+        fadeIn({ object: element, duration: 0.3 })
     }
 
-    function fadeOut(element: HTMLElement) {
-        gsap.to(element, { opacity: 0, duration: 0.5 })
+    async function onGameStateChange(to: EstatesGameState, from?: EstatesGameState) {
+        if (
+            to.machineState === MachineState.Auctioning &&
+            from?.machineState !== MachineState.Auctioning
+        ) {
+            ready = false
+        }
     }
+
+    onMount(() => {
+        gameSession.addGameStateChangeListener(onGameStateChange)
+        return () => {
+            gameSession.removeGameStateChangeListener(onGameStateChange)
+        }
+    })
+
+    $effect(() => {
+        if (gameSession.shouldHideHud) {
+            fadeOut({ object: auctionControls, duration: 0.2 })
+        } else {
+            fadeIn({ object: auctionControls, duration: 0.2 })
+        }
+    })
 </script>
 
 {#if ready && gameSession.gameState.machineState === MachineState.Auctioning}
     <HTML position.y={$viewport.height / 2 - 0.6} center>
         <div
-            use:fadeIn
-            class="flex flex-col justify-start items-center gap-y-4 opacity-0 {gameSession.shouldHideHud
-                ? 'hidden'
-                : ''}"
+            bind:this={auctionControls}
+            use:onAdd
+            class="flex flex-col justify-start items-center gap-y-4"
         >
             <div class="w-[340px] flex flex-row justify-between items-center">
                 <HighBid />
-
                 {#if gameSession.isMyTurn}
                     <BidControls />
                 {/if}
@@ -60,28 +80,26 @@
         </div>
     </HTML>
     <HTML position.y={$viewport.height / 2 - 1.4} center>
-        {#if gameSession.isMyTurn && !gameSession.shouldHideHud}
-            <BidButtons />
+        {#if gameSession.isMyTurn}
+            <BidButtons hidden={gameSession.shouldHideHud} />
         {/if}
     </HTML>
 {/if}
 
-{#if !gameSession.shouldHideHud}
-    {#if gameSession.isMyTurn}
-        {#if gameSession.gameState.machineState !== MachineState.Auctioning}
-            <HTML position.y={instructionY} center>
-                <Instructions />
-            </HTML>
-        {/if}
-    {:else if gameSession.gameState.result}
-        <HTML position.y={$viewport.height / 2 - 1} distanceFactor={5} center transform>
-            <GameEndPanel />
-        </HTML>
-    {:else}
-        <HTML position.y={instructionY} distanceFactor={5} center transform>
-            <WaitingInstructions />
+{#if gameSession.isMyTurn}
+    {#if gameSession.gameState.machineState !== MachineState.Auctioning}
+        <HTML position.y={instructionY} center>
+            <Instructions hidden={gameSession.shouldHideHud} />
         </HTML>
     {/if}
+{:else if gameSession.gameState.result}
+    <HTML position.y={$viewport.height / 2 - 1} distanceFactor={5} center transform>
+        <GameEndPanel hidden={gameSession.shouldHideHud} />
+    </HTML>
+{:else}
+    <HTML position.y={instructionY} distanceFactor={5} center transform>
+        <WaitingInstructions hidden={gameSession.shouldHideHud} />
+    </HTML>
 {/if}
 
 <AuctionPreview
@@ -90,6 +108,8 @@
     position={[0, $viewport.height / 2 - 0.6, 0]}
 />
 
-{#if gameSession.mobileView && !gameSession.shouldHideHud}
-    <HTML position={[0, -$viewport.height / 2 + 0.6, 0]} center={true}><Offer /></HTML>
+{#if gameSession.mobileView}
+    <HTML position={[0, -$viewport.height / 2 + 0.6, 0]} center={true}
+        ><Offer hidden={gameSession.shouldHideHud} /></HTML
+    >
 {/if}

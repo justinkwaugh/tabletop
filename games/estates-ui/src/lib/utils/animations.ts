@@ -32,7 +32,7 @@ export function fade({
     timeline,
     onComplete
 }: {
-    object: Object3D
+    object: Object3D | HTMLElement
     duration?: number
     opacity?: number
     startAt?: number
@@ -41,20 +41,34 @@ export function fade({
 }): gsap.core.Timeline {
     const myTimeline = timeline || gsap.timeline({ onComplete })
 
-    eachMaterial(object, (material) => {
-        material.transparent = true
-        material.needsUpdate = true
+    if (object) {
+        if ((object as Object3D).isObject3D) {
+            eachMaterial(object as Object3D, (material) => {
+                material.transparent = true
+                material.needsUpdate = true
 
-        const options = {
-            ease: 'power2.in',
-            duration,
-            opacity
+                const options = {
+                    ease: 'power2.in',
+                    duration,
+                    opacity
+                }
+                myTimeline.to(material, options, startAt ?? (timeline ? undefined : 0))
+            })
+        } else {
+            myTimeline.to(
+                object as HTMLElement,
+                {
+                    ease: 'power2.in',
+                    duration,
+                    opacity
+                },
+                startAt ?? (timeline ? undefined : 0)
+            )
         }
-        myTimeline.to(material, options, startAt ?? (timeline ? undefined : 0))
-    })
 
-    if (!timeline) {
-        myTimeline.play()
+        if (!timeline) {
+            myTimeline.play()
+        }
     }
 
     return myTimeline
@@ -67,7 +81,7 @@ export function fadeOut({
     startAt = undefined,
     onComplete
 }: {
-    object: Object3D
+    object: Object3D | HTMLElement
     timeline?: gsap.core.Timeline
     duration?: number
     startAt?: number
@@ -83,7 +97,7 @@ export function fadeIn({
     startAt = undefined,
     onComplete
 }: {
-    object: Object3D
+    object: Object3D | HTMLElement
     timeline?: gsap.core.Timeline
     duration?: number
     startAt?: number

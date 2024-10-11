@@ -4,13 +4,14 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { MachineState } from '@tabletop/estates'
 
-    import { fade } from 'svelte/transition'
     import TurnButtons from './TurnButtons.svelte'
     import PlaceButtons from './PlaceButtons.svelte'
     import BuyOutButtons from './BuyOutButtons.svelte'
+    import { fadeIn, fadeOut } from '$lib/utils/animations'
 
+    let { hidden }: { hidden?: boolean } = $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
-
+    let ref: HTMLDivElement
     const instructions = $derived.by(() => {
         if (gameSession.gameState.machineState === MachineState.StartOfTurn) {
             return 'Choose a piece to auction'
@@ -33,11 +34,19 @@
             }
         }
     })
+
+    $effect(() => {
+        if (hidden) {
+            fadeOut({ object: ref, duration: 0.2 })
+        } else {
+            fadeIn({ object: ref, duration: 0.2 })
+        }
+    })
 </script>
 
 <div
-    transition:fade={{ duration: 300 }}
-    class="py-2 px-8 rounded-lg flex flex-col justify-center items-center gap-y-2 text-center text-nowrap bg-gray-900 border-2 border-gray-700"
+    bind:this={ref}
+    class="py-2 px-8 rounded-lg flex flex-col justify-center items-center gap-y-2 text-center text-nowrap bg-gray-900 border-2 border-gray-700 opacity-0"
 >
     <h1 class="text-lg text-gray-200">{instructions}</h1>
     {#if gameSession.gameState.machineState === MachineState.StartOfTurn}

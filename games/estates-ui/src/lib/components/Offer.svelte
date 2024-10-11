@@ -1,11 +1,14 @@
 <script lang="ts">
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import { fadeIn, fadeOut } from '$lib/utils/animations'
     import { sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
     import { BarrierDirection, Cube, MachineState, PieceType } from '@tabletop/estates'
 
     import { getContext } from 'svelte'
 
+    let { hidden }: { hidden?: boolean } = $props()
     let gameSession = getContext('gameSession') as EstatesGameSession
+    let ref: HTMLDivElement
 
     let canPlace = $derived(
         gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
@@ -44,9 +47,17 @@
     function chooseCancel() {
         gameSession.startAuction({ pieceType: PieceType.CancelCube })
     }
+
+    $effect(() => {
+        if (hidden) {
+            fadeOut({ object: ref, duration: 0.2 })
+        } else {
+            fadeIn({ object: ref, duration: 0.2 })
+        }
+    })
 </script>
 
-<div class="p-2 flex justify-center bg-gray-900">
+<div bind:this={ref} class="p-2 flex justify-center bg-gray-900 opacity-0">
     <button
         tabindex="-1"
         onclick={() => chooseRoof()}

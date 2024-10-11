@@ -26,7 +26,6 @@
 >
     <RoofModel
         onloaded={(ref) => {
-            console.log('Roof loaded: group=', group)
             onloaded?.(group)
         }}
     />
