@@ -8,7 +8,7 @@
         MachineState,
         PieceType
     } from '@tabletop/estates'
-    import { Mesh, Object3D, MeshStandardMaterial, Group } from 'three'
+    import { Object3D, Group } from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
@@ -23,7 +23,7 @@
     import { useTexture } from '@threlte/extras'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
     import { Outliner } from '$lib/utils/outliner'
-    import { fadeIn, hideInstant } from '$lib/utils/animations'
+    import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
 
     const wood = useTexture(woodImg)
 
@@ -33,6 +33,8 @@
 
     const effects = getContext('effects') as Effects
     const outliner = new Outliner(effects)
+    let enterCounter = 0
+    let unHoverCubeTimer: ReturnType<typeof setTimeout> | undefined
 
     let canChoose = $derived(
         gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
@@ -41,25 +43,14 @@
     let placeableCubes = $derived(gameSession.gameState.placeableCubes())
     let yPos = spring(0)
 
-    let allowRoofInteraction = $state(true)
     let canChooseRoof: boolean = $derived(
         canChoose && gameSession.gameState.board.validRoofLocations().length > 0
     )
+    let chosenCube: OffsetCoordinates | undefined = $state()
+    let canChooseCube: boolean = $derived(canChoose && !chosenCube)
+
+    let allowRoofInteraction = $state(true)
     let canHoverRoof: boolean = $derived(canChooseRoof && allowRoofInteraction)
-
-    function onPointerEnter(event: PointerEvent) {
-        if (!canChoose) {
-            return
-        }
-
-        event.stopPropagation()
-        yPos.set(0.5)
-    }
-
-    function onPointerLeave(event: PointerEvent) {
-        event.stopPropagation()
-        yPos.set(0)
-    }
 
     function onCubeClick(event: any, cube: Cube, coords: OffsetCoordinates) {
         if (!canChoose || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
@@ -68,29 +59,32 @@
         event.stopPropagation()
         const cubeModel = findParentByName(event.object, 'cube')
         if (cubeModel) {
+            onLeaveCube(event, coords)
             chooseCube(cubeModel, cube, coords)
         }
     }
 
     function chooseCube(obj: Object3D, cube: Cube, coords: OffsetCoordinates) {
+        chosenCube = coords
         yPos.set(0)
+
         setTimeout(() => {
             fadeUp(obj, 2, () => {
                 gameSession.startAuction(cube)
+                chosenCube = undefined
             })
         }, 1)
     }
 
     function onMayorClick(event: any) {
+        if (!canChoose) {
+            return
+        }
         event.stopPropagation()
         chooseMayor(event.object.parent)
     }
 
     function chooseMayor(obj: Object3D) {
-        if (!canChoose) {
-            return
-        }
-
         outliner.removeOutline(obj)
 
         setTimeout(() => {
@@ -201,7 +195,7 @@
             y: height
         })
 
-        fade(object, 0.2, 0, 0, timeline)
+        fadeOut({ object, duration: 0.2, startAt: 0, timeline })
         timeline.play()
     }
 
@@ -222,36 +216,8 @@
             0
         )
 
-        fade(object, 0.2, 0, 0.3, timeline)
+        fadeOut({ object, duration: 0.2, startAt: 0.3, timeline })
         timeline.play()
-    }
-
-    function fade(
-        object: Object3D,
-        duration: number,
-        opacity: number,
-        start: number,
-        timeline: gsap.core.Timeline
-    ) {
-        object.traverse((object) => {
-            if ((object as Mesh).material as MeshStandardMaterial) {
-                const material = (object as Mesh).material as MeshStandardMaterial
-                material.transparent = true
-                material.needsUpdate = true
-                material.depthWrite = false
-                timeline.to(
-                    material,
-                    {
-                        duration,
-                        opacity,
-                        onComplete: () => {
-                            material.depthWrite = true
-                        }
-                    },
-                    start
-                )
-            }
-        })
     }
 
     function findParentByName(obj: Object3D, name: string) {
@@ -280,11 +246,39 @@
         outliner.removeOutline(event.object, parentName)
     }
 
-    function enterRoof(event: any, parentName?: string) {
+    function enterRoof(event: any) {
         if (!canHoverRoof) {
             return
         }
-        enterPiece(event, parentName)
+        enterPiece(event, 'roof')
+    }
+
+    function onEnterCube(event: any, coords: OffsetCoordinates) {
+        event.stopPropagation()
+        if (canChooseCube && placeableCubes.find((c) => sameCoordinates(c, coords))) {
+            enterPiece(event, 'cube')
+        }
+
+        enterCounter++
+        clearTimeout(unHoverCubeTimer)
+        unHoverCubeTimer = undefined
+        yPos.set(0.5)
+    }
+
+    function onLeaveCube(event: any, coords: OffsetCoordinates) {
+        event.stopPropagation()
+        if (placeableCubes.find((c) => sameCoordinates(c, coords))) {
+            leavePiece(event, 'cube')
+        }
+
+        enterCounter--
+        if (enterCounter > 0) {
+            return
+        }
+        unHoverCubeTimer = setTimeout(() => {
+            event.stopPropagation()
+            yPos.set(0)
+        }, 100)
     }
 </script>
 
@@ -294,8 +288,6 @@
             oncreate={(ref) => {
                 ref.geometry.center()
             }}
-            onpointerenter={onPointerEnter}
-            onpointerleave={onPointerLeave}
             receiveShadow
         >
             <T.BoxGeometry args={[19.5, 0.2, 4.5]} />
@@ -315,7 +307,7 @@
                         hideInstant(ref)
                         fadeIn({ object: ref, duration: 0.1 })
                     }}
-                    onpointerenter={(event: any) => enterRoof(event, 'roof')}
+                    onpointerenter={(event: any) => enterRoof(event)}
                     onpointerleave={(event: any) => leavePiece(event, 'roof')}
                     onclick={(event: any) => {
                         onRoofClick(event, i)
@@ -336,13 +328,21 @@
                                 hideInstant(ref)
                                 fadeIn({ object: ref, duration: 0.1 })
                             }}
+                            onpointerenter={(event: any) => {
+                                onEnterCube(event, { row, col })
+                            }}
+                            onpointerleave={(event: any) => {
+                                onLeaveCube(event, { row, col })
+                            }}
                             onclick={(event: any) => onCubeClick(event, cube, { row, col })}
                             rotation.x={-Math.PI / 2}
                             position.x={-2.75 + col}
-                            position.y={!canChoose ||
-                            !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
-                                ? 0
-                                : $yPos}
+                            position.y={sameCoordinates(chosenCube, { row, col })
+                                ? 0.5
+                                : !canChoose ||
+                                    !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
+                                  ? 0
+                                  : $yPos}
                             position.z={-1 + row}
                         />
                     {/if}
