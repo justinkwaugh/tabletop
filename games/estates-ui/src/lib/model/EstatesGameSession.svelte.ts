@@ -13,7 +13,9 @@ import {
     Cube,
     PlaceMayor,
     Roof,
-    Barrier
+    Barrier,
+    isPlaceBid,
+    isDrawRoof
 } from '@tabletop/estates'
 import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
 
@@ -30,7 +32,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
     mobileView: boolean | undefined = $state()
     touching: boolean = $state(false)
 
-    shouldHideHud = $derived(this.mobileView && this.touching)
+    shouldHideHud = $derived(this.touching)
 
     getCompanyColor(company: Company): Color {
         switch (company) {
@@ -63,7 +65,10 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
         this.currentBid = 1
     }
 
-    override shouldAutoStepAction(_action: GameAction) {
+    override shouldAutoStepAction(action: GameAction) {
+        if (isPlaceBid(action) || isDrawRoof(action)) {
+            return true
+        }
         return false
     }
 

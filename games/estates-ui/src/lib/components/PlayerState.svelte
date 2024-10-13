@@ -33,7 +33,7 @@
                 {player.name}
             </h1>
             {#if playerState?.stolen}
-                <h1 class="text-gray-300 text-xs leading-none">
+                <h1 class="text-gray-300 text-xs leading-none mb-1">
                     stole ${playerState?.stolen}
                 </h1>
             {/if}

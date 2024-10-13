@@ -109,14 +109,17 @@
     })
 
     onMount(() => {
+        console.log('MOUUUNt')
         gameSession.addGameStateChangeListener(onGameStateChange)
         return () => {
+            console.log('UNMOUUUNt')
             gameSession.removeGameStateChangeListener(onGameStateChange)
         }
     })
+    let auctionPiece = $derived(gameSession.gameState.chosenPiece)
 </script>
 
-{#if gameSession.gameState.chosenPiece}
+{#if auctionPiece}
     <T.Group
         scale={gameSession.mobileView ? 0.7 : 0.8}
         oncreate={(ref: Object3D) => {
@@ -127,7 +130,7 @@
             }
         }}
     >
-        {#if isCube(gameSession.gameState.chosenPiece)}
+        {#if isCube(auctionPiece)}
             <Cube3d
                 oncreate={(ref: Object3D) => {
                     hideInstant(ref)
@@ -135,10 +138,10 @@
                 }}
                 position={[0, 0, 0]}
                 rotation.y={rotation}
-                cube={gameSession.gameState.chosenPiece}
+                cube={auctionPiece}
                 {...others}
             />
-        {:else if isMayor(gameSession.gameState.chosenPiece)}
+        {:else if isMayor(auctionPiece)}
             <TopHat
                 onloaded={(ref: Object3D) => {
                     hideInstant(ref)
@@ -149,7 +152,7 @@
                 scale={0.46}
                 {...others}
             />
-        {:else if isCancelCube(gameSession.gameState.chosenPiece)}
+        {:else if isCancelCube(auctionPiece)}
             <CancelCube
                 oncreate={(ref: Object3D) => {
                     hideInstant(ref)
@@ -158,24 +161,24 @@
                 rotation.y={rotation}
                 {...others}
             />
-        {:else if isBarrier(gameSession.gameState.chosenPiece)}
+        {:else if isBarrier(auctionPiece)}
             <BarrierOne
                 onloaded={(ref: Object3D) => {
                     hideInstant(ref)
                     piece = ref
                 }}
-                stripes={gameSession.gameState.chosenPiece.value}
+                stripes={auctionPiece.value}
                 scale={1}
                 rotation.y={rotation}
                 {...others}
             />
-        {:else if isRoof(gameSession.gameState.chosenPiece)}
+        {:else if isRoof(auctionPiece)}
             <Roof
                 onloaded={(ref: Object3D) => {
                     hideInstant(ref)
                     piece = ref
                 }}
-                roof={gameSession.gameState.chosenPiece}
+                roof={auctionPiece}
                 rotation.x={Math.PI / 2}
                 rotation.z={-rotation}
                 {...others}

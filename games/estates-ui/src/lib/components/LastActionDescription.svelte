@@ -4,6 +4,7 @@
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
+    import { isEndAuction } from '@tabletop/estates'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -16,6 +17,24 @@
         }
         return action
     })
+
+    let playerId: string | undefined = $derived.by(() => {
+        if (!lastAction) {
+            return undefined
+        }
+
+        if (lastAction.playerId) {
+            return lastAction.playerId
+        }
+
+        if (isEndAuction(lastAction)) {
+            return (
+                lastAction.metadata?.auction?.winnerId ?? lastAction.metadata?.auction?.auctioneerId
+            )
+        }
+
+        return undefined
+    })
 </script>
 
 <div
@@ -23,8 +42,8 @@
 >
     <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text-lg text-pretty leading-none">
-            {#if lastAction && lastAction.playerId}
-                <PlayerName playerId={lastAction.playerId} />
+            {#if playerId}
+                <PlayerName {playerId} />
             {/if}
             {#if !lastAction}
                 The game has been started!

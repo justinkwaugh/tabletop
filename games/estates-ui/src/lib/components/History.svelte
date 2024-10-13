@@ -9,7 +9,7 @@
     import { quartIn } from 'svelte/easing'
     import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
-    import { isDrawRoof } from '@tabletop/estates'
+    import { isDrawRoof, isEndAuction } from '@tabletop/estates'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -33,6 +33,22 @@
             )
         return reversed
     })
+
+    function playerIdForAction(action: GameAction): string | undefined {
+        if (!action) {
+            return undefined
+        }
+
+        if (action.playerId) {
+            return action.playerId
+        }
+
+        if (isEndAuction(action)) {
+            return action.metadata?.auction?.winnerId ?? action.metadata?.auction?.auctioneerId
+        }
+
+        return undefined
+    }
 </script>
 
 <div
@@ -67,8 +83,8 @@
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
-                            {#if action.playerId}
-                                <PlayerName playerId={action.playerId} />
+                            {#if playerIdForAction(action)}
+                                <PlayerName playerId={playerIdForAction(action)} />
                             {/if}
                             {getDescriptionForAction(action)}
                         </p>

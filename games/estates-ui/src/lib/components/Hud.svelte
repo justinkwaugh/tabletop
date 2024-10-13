@@ -12,6 +12,9 @@
     import GameEndPanel from './GameEndPanel.svelte'
     import Offer from './Offer.svelte'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
+    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { P } from 'flowbite-svelte'
+    import PlayerInfo from './PlayerInfo.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -64,7 +67,7 @@
     })
 </script>
 
-{#if ready && gameSession.gameState.machineState === MachineState.Auctioning}
+{#if ready && gameSession.gameState.machineState === MachineState.Auctioning && gameSession.mode === GameSessionMode.Play}
     <HTML position.y={$viewport.height / 2 - 0.6} center>
         <div
             bind:this={auctionControls}
@@ -96,7 +99,7 @@
     <HTML position.y={$viewport.height / 2 - 1} distanceFactor={5} center transform>
         <GameEndPanel hidden={gameSession.shouldHideHud} />
     </HTML>
-{:else}
+{:else if gameSession.mode === GameSessionMode.Play}
     <HTML position.y={instructionY} distanceFactor={5} center transform>
         <WaitingInstructions hidden={gameSession.shouldHideHud} />
     </HTML>

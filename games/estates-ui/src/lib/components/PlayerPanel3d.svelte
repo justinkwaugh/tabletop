@@ -3,12 +3,14 @@
     import { HTML, Text } from '@threlte/extras'
     import { Group, MeshBasicMaterial } from 'three'
     import { getContext } from 'svelte'
-    import { AuctionParticipant } from '@tabletop/common'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
 
     import PlayerInfo from './PlayerInfo.svelte'
     import GlassPanel from './GlassPanel.svelte'
     import RoundedRectangleGeometry from './RoundedRectangleGeometry.svelte'
+    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { isEndAuction } from '@tabletop/estates'
+    import type { OnceAroundAuction } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -21,12 +23,27 @@
         )
     })
 
-    function getBidStringForPlayer(playerId: string): string | undefined {
-        const participant = gameSession.gameState.auction?.participants.find(
-            (participant) => participant.playerId === playerId
-        )
+    let lastAction = $derived.by(() => {
+        let action
+        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
+            action = gameSession.actions[gameSession.currentHistoryIndex]
+        } else if (gameSession.mode === GameSessionMode.Play) {
+            action = gameSession.actions[gameSession.actions.length - 1]
+        }
+        return action
+    })
 
-        if (gameSession.gameState.auction?.auctioneerId === playerId) {
+    function getBidStringForPlayer(playerId: string): string | undefined {
+        let auction: OnceAroundAuction | undefined = gameSession.gameState.auction
+
+        if (!auction && isEndAuction(lastAction)) {
+            auction = lastAction.metadata?.auction
+        }
+        const participants = auction?.participants ?? []
+
+        const participant = participants.find((participant) => participant.playerId === playerId)
+
+        if (auction?.auctioneerId === playerId) {
             return 'Auctioneer'
         }
 

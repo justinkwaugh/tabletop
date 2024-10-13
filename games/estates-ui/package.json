@@ -40,7 +40,7 @@
         "@threlte/core": "^8.0.0-next.17",
         "@threlte/extras": "^9.0.0-next.23",
         "@types/three": "^0.169.0",
-        "camera-controls": "https://github.com/justinkwaugh/camera-controls.git",
+        "camera-controls": "github:justinkwaugh/camera-controls",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^3.3.7",
         "runed": "^0.15.3",

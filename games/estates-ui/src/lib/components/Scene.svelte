@@ -1,12 +1,12 @@
 <script lang="ts">
     import { T, useTask, useThrelte } from '@threlte/core'
-    import { interactivity, HUD } from '@threlte/extras'
+    import { interactivity, HUD, Suspense } from '@threlte/extras'
     import * as THREE from 'three'
-    import { Group, Object3D, Mesh, MeshStandardMaterial, Box3, Vector3 } from 'three'
+    import { Group, Object3D, Box3, Vector3 } from 'three'
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
-    import { getContext, onMount } from 'svelte'
+    import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Offer3d from './Offer3d.svelte'
@@ -23,8 +23,8 @@
         MachineState
     } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
-    import { MediaQuery } from 'runed'
     import { fade, fadeIn, hideInstant } from '$lib/utils/animations'
+    import { useViewport } from '@threlte/extras'
 
     CameraControls.install({ THREE: THREE })
 
@@ -36,11 +36,10 @@
             isMayor(gameSession.gameState.chosenPiece)
     )
 
-    const screen = new MediaQuery('(min-width: 640px)')
-
     interactivity()
 
     const { scene, renderer, camera, size } = useThrelte()
+    const viewport = useViewport()
 
     let cameraControls: CameraControls | undefined
 
@@ -122,23 +121,26 @@
         cameraControls.updateCameraUp()
 
         await cameraControls.setLookAt(0, 16, 20, 0, 2, 0, false)
-        await cameraControls.rotateTo(0, 0, false)
+        await cameraControls.rotateTo(0, 0.88, false)
 
         await cameraControls.fitToBox(new Box3().setFromObject(scene), false, {
             paddingTop: 0,
-            paddingLeft: 0,
-            paddingBottom: 0,
+            paddingLeft: -1,
+            paddingBottom: -1,
             paddingRight: 0
         })
 
-        cameraControls.maxDistance = cameraControls.distance
-        cameraControls.minDistance = cameraControls.distance - 10
-        cameraControls.maxPolarAngle = 1
+        cameraControls.maxPolarAngle = 0.88
         cameraControls.minPolarAngle = 0
-        cameraControls.maxAzimuthAngle = Math.PI / 3
-        cameraControls.minAzimuthAngle = -(Math.PI / 3)
+        cameraControls.maxAzimuthAngle = Math.PI / 4
+        cameraControls.minAzimuthAngle = -(Math.PI / 4)
 
-        await cameraControls.rotateTo(0, 1, false)
+        await cameraControls.rotateTo(0, 0.88, false)
+        await cameraControls.dollyTo(cameraControls.distance - 4, false)
+        cameraControls.maxDistance = cameraControls.distance + 4
+        cameraControls.minDistance = cameraControls.distance - 10
+        cameraControls.mouseButtons.left = CameraControls.ACTION.ROTATE
+
         cameraControls.saveState()
     }
 
@@ -152,7 +154,6 @@
 
         await cameraControls.setLookAt(0, 10, 0, 0, 0, 0, false)
         await cameraControls.rotateTo(-Math.PI / 2, 1, false)
-
         await cameraControls.fitToBox(new Box3().setFromObject(scene), false, {
             paddingTop: 0,
             paddingLeft: 0,
@@ -166,33 +167,40 @@
         cameraControls.minPolarAngle = Math.PI / 2
         cameraControls.maxAzimuthAngle = -Math.PI / 4
         cameraControls.minAzimuthAngle = -(Math.PI / 4) * 3
+        cameraControls.mouseButtons.left = CameraControls.ACTION.CUSTOM
         cameraControls.saveState()
     }
 
-    let lastWidth = $state(window.innerWidth)
+    let lastWidth: number = 0
+    let lastHeight: number = 0
 
-    function onWindowResize() {
-        if (window.innerWidth < 640) {
-            if (lastWidth > 640 || gameSession.mobileView === undefined) {
-                gameSession.mobileView = true
-            }
+    function adjustRenderSize(width: number, height: number) {
+        if (!lastWidth || !lastHeight) {
+            return
+        }
+
+        if (width < height) {
+            gameSession.mobileView = true
             moveCameraToOverhead()
-        } else if (window.innerWidth >= 640) {
-            if (lastWidth <= 640 || gameSession.mobileView === undefined) {
-                gameSession.mobileView = false
-            }
+        } else {
+            gameSession.mobileView = false
             moveCameraToFit()
         }
-        lastWidth = window.innerWidth
     }
 
-    onMount(() => {
-        console.log(window.innerWidth)
-        onWindowResize()
+    $effect(() => {
+        const newWidth = $size.width
+        const newHeight = $size.height
+        if (newWidth === lastWidth && newHeight === lastHeight) {
+            return
+        }
+
+        console.log('size', $size.width, $size.height)
+        adjustRenderSize(newWidth, newHeight)
+        lastWidth = newWidth
+        lastHeight = newHeight
     })
 </script>
-
-<svelte:window onresize={onWindowResize} />
 
 <!-- <Stars /> -->
 <T.PerspectiveCamera
@@ -201,7 +209,7 @@
     oncreate={(ref) => {
         ref.lookAt(0, 2, 0)
         cameraControls = new CameraControls(ref, renderer.domElement)
-        cameraControls.touches.one = CameraControls.ACTION.TOUCH_CUSTOM
+        cameraControls.touches.one = CameraControls.ACTION.CUSTOM
         cameraControls.maxPolarAngle = 1
         cameraControls.maxAzimuthAngle = Math.PI / 3
         cameraControls.minAzimuthAngle = -(Math.PI / 3)
@@ -239,12 +247,12 @@
     <HudScene />
 </HUD>
 
-<T.Group
-    oncreate={() => {
-        setTimeout(onWindowResize, 500)
-    }}
->
-    <Map />
+<Suspense final>
+    <Map
+        onrender={() => {
+            adjustRenderSize(lastWidth, lastHeight)
+        }}
+    />
     {#each gameSession.gameState.board.rows as row, i}
         {#each row.sites as site, j}
             <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
@@ -263,7 +271,7 @@
         {/if}
     {/each}
 
-    {#if screen.matches}
+    {#if !gameSession.mobileView}
         <Offer3d position={[-2, -0.6, 7.5]} />
 
         {#each Object.values(Company) as company, i (company)}
@@ -283,7 +291,7 @@
             }}
         />
     {/if}
-</T.Group>
+</Suspense>
 
 {#if showMayorHighlights}
     <GlowingCircle

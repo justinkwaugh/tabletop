@@ -12,6 +12,4 @@
 <T.AmbientLight intensity={1.5} />
 <T.PointLight position={[10, 10, 10]} decay={0} intensity={1.5} />
 
-{#if gameSession.mode === GameSessionMode.Play}
-    <Hud />
-{/if}
+<Hud />

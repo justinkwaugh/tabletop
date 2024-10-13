@@ -1,11 +1,18 @@
 <script lang="ts">
     import { T } from '@threlte/core'
-    import { useTexture } from '@threlte/extras'
+    import { useTexture, onReveal } from '@threlte/extras'
     import boardImg from '$lib/images/board.jpg'
+
+    let { onrender }: { onrender?: () => void } = $props()
 
     const map = useTexture(boardImg)
     const height = 10
     const width = height * 2.75
+
+    onReveal(() => {
+        console.log('The component has been revealed')
+        onrender?.()
+    })
 </script>
 
 {#await map then mapValue}

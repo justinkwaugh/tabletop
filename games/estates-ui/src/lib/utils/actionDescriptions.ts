@@ -17,7 +17,11 @@ import {
 export function getDescriptionForAction(action: GameAction) {
     switch (true) {
         case isEndAuction(action):
-            return 'The auction has ended'
+            if (action.winnerId) {
+                return 'bid the most at $' + action.highBid
+            } else {
+                return 'recieved the piece for free'
+            }
         case isPlaceBid(action):
             return action.amount > 0 ? 'placed a bid of $' + action.amount : 'passed'
         case isStartAuction(action):
