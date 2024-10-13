@@ -112,7 +112,7 @@
             <Tabs
                 tabStyle="pill"
                 defaultClass="flex flex-wrap space-x-1 rtl:space-x-reverse"
-                contentClass="p-0 bg-transparent h-full overflow-scroll rounded-lg"
+                contentClass="p-0 bg-transparent h-full overflow-auto rounded-lg"
             >
                 <TabItem
                     open

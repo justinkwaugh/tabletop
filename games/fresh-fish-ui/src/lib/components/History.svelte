@@ -67,7 +67,7 @@
 <div
     class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden min-h-[300px]"
 >
-    <div class="overflow-scroll h-full">
+    <div class="overflow-auto h-full">
         <Timeline class="ms-1">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
                 <TimelineItem

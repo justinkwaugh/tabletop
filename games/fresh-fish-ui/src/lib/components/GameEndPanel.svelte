@@ -44,7 +44,7 @@
                 </h1>
             {/if}
         </div>
-        <div class="flex w-full shrink overflow-scroll">
+        <div class="flex w-full shrink overflow-auto">
             <div class="flex flex-row m-auto">
                 {#each gameSession.gameState.players as player}
                     <div

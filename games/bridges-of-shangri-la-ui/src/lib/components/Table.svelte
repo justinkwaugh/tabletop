@@ -91,10 +91,7 @@
             >
                 <HistoryControls />
             </div>
-            <Tabs
-                tabStyle="pill"
-                contentClass="p-0 bg-transparent h-full overflow-scroll rounded-lg"
-            >
+            <Tabs tabStyle="pill" contentClass="p-0 bg-transparent h-full overflow-auto rounded-lg">
                 <TabItem
                     open
                     onclick={onNonChatClick}

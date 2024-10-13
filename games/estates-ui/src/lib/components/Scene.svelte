@@ -121,12 +121,12 @@
         cameraControls.updateCameraUp()
 
         await cameraControls.setLookAt(0, 16, 20, 0, 2, 0, false)
-        await cameraControls.rotateTo(0, 0.88, false)
+        await cameraControls.rotateTo(0, 0, false)
 
         await cameraControls.fitToBox(new Box3().setFromObject(scene), false, {
             paddingTop: 0,
-            paddingLeft: -1,
-            paddingBottom: -1,
+            paddingLeft: 0,
+            paddingBottom: 0,
             paddingRight: 0
         })
 
@@ -136,10 +136,11 @@
         cameraControls.minAzimuthAngle = -(Math.PI / 4)
 
         await cameraControls.rotateTo(0, 0.88, false)
-        await cameraControls.dollyTo(cameraControls.distance - 4, false)
-        cameraControls.maxDistance = cameraControls.distance + 4
+        await cameraControls.dollyTo(cameraControls.distance + 1, false)
+        cameraControls.maxDistance = cameraControls.distance + 5
         cameraControls.minDistance = cameraControls.distance - 10
         cameraControls.mouseButtons.left = CameraControls.ACTION.ROTATE
+        cameraControls.touches.one = CameraControls.ACTION.TOUCH_ROTATE
 
         cameraControls.saveState()
     }
@@ -168,6 +169,7 @@
         cameraControls.maxAzimuthAngle = -Math.PI / 4
         cameraControls.minAzimuthAngle = -(Math.PI / 4) * 3
         cameraControls.mouseButtons.left = CameraControls.ACTION.CUSTOM
+        cameraControls.touches.one = CameraControls.ACTION.CUSTOM
         cameraControls.saveState()
     }
 
@@ -248,49 +250,55 @@
 </HUD>
 
 <Suspense final>
-    <Map
-        onrender={() => {
+    <T.Group
+        oncreate={() => {
             adjustRenderSize(lastWidth, lastHeight)
         }}
-    />
-    {#each gameSession.gameState.board.rows as row, i}
-        {#each row.sites as site, j}
-            <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
-        {/each}
-        {#if row.mayor}
-            <TopHat
-                onloaded={(ref: Object3D) => {
-                    hideInstant(ref)
-                    fadeIn({ object: ref, duration: 0.1 })
-                }}
-                scale={0.5}
-                position.y={0.35}
-                position.x={10.2}
-                position.z={RowOffsets[i]}
-            />
-        {/if}
-    {/each}
-
-    {#if !gameSession.mobileView}
-        <Offer3d position={[-2, -0.6, 7.5]} />
-
-        {#each Object.values(Company) as company, i (company)}
-            {#if gameSession.gameState.certificates.includes(company)}
-                <Cert3d {company} scale={1.2} position={certPositions[i]} />
+    >
+        <Map
+            onrender={() => {
+                adjustRenderSize(lastWidth, lastHeight)
+            }}
+        />
+        {#each gameSession.gameState.board.rows as row, i}
+            {#each row.sites as site, j}
+                <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
+            {/each}
+            {#if row.mayor}
+                <TopHat
+                    onloaded={(ref: Object3D) => {
+                        hideInstant(ref)
+                        fadeIn({ object: ref, duration: 0.1 })
+                    }}
+                    scale={0.5}
+                    position.y={0.35}
+                    position.x={10.2}
+                    position.z={RowOffsets[i]}
+                />
             {/if}
         {/each}
 
-        <PlayerPanel3d
-            position.x={0}
-            position.y={playerPanelPos.y}
-            position.z={-6}
-            oncreate={(ref: Group) => {
-                let size = new Box3().setFromObject(ref).getSize(new Vector3())
-                ref.position.x = -(size.x / 2) + 2.5
-                billboards.push(ref)
-            }}
-        />
-    {/if}
+        {#if !gameSession.mobileView}
+            <Offer3d position={[-2, -0.6, 7.5]} />
+
+            {#each Object.values(Company) as company, i (company)}
+                {#if gameSession.gameState.certificates.includes(company)}
+                    <Cert3d {company} scale={1.2} position={certPositions[i]} />
+                {/if}
+            {/each}
+
+            <PlayerPanel3d
+                position.x={0}
+                position.y={playerPanelPos.y}
+                position.z={-6}
+                oncreate={(ref: Group) => {
+                    let size = new Box3().setFromObject(ref).getSize(new Vector3())
+                    ref.position.x = -(size.x / 2) + 2.5
+                    billboards.push(ref)
+                }}
+            />
+        {/if}
+    </T.Group>
 </Suspense>
 
 {#if showMayorHighlights}

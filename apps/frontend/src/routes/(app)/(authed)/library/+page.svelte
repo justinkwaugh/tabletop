@@ -21,7 +21,7 @@
 
 <div class="p-2 w-full">
     <div
-        class="flex justify-start items-start gap-x-2 sm:gap-x-4 overflow-scroll m-auto max-w-[1200px]"
+        class="flex justify-start items-start gap-x-2 sm:gap-x-4 overflow-auto m-auto max-w-[1200px]"
     >
         <div
             class="m-auto flex flex-col justify-center items-center {selectedTitle
@@ -56,27 +56,6 @@
                 {/each}
             </div>
         </div>
-        {#if selectedTitle && false}
-            <div
-                class="grow shrink max-sm:min-w-[90vw] sm:min-w-[375px] max-sm:max-w-[90vw] h-full max-h-[calc(100dvh-70px)] overflow-hidden"
-            >
-                <div class="text-center h-full">
-                    <div class="shrink-0 grow-0 dark:text-gray-200 text-2xl mx-2 mb-2">
-                        Open Games
-                    </div>
-                    <div class="h-[calc(100%-32px)] overflow-y-scroll">
-                        <div class="flex flex-col justify-center items-center">
-                            <div
-                                class="text-lg dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
-                            >
-                                <p>No games available</p>
-                                <Button class="mt-4" size="xs">Start one?</Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {/if}
     </div>
 </div>
 

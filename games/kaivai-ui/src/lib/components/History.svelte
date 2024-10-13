@@ -75,7 +75,7 @@
 <div
     class="rounded-lg border-2 border-[#634a11] text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden bg-[#302408]"
 >
-    <div class="overflow-scroll h-full">
+    <div class="overflow-auto h-full">
         <Timeline class="ms-1 dark:border-[#cabb7a]">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
                 <TimelineItem

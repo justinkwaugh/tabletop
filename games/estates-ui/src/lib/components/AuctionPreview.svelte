@@ -109,10 +109,8 @@
     })
 
     onMount(() => {
-        console.log('MOUUUNt')
         gameSession.addGameStateChangeListener(onGameStateChange)
         return () => {
-            console.log('UNMOUUUNt')
             gameSession.removeGameStateChangeListener(onGameStateChange)
         }
     })

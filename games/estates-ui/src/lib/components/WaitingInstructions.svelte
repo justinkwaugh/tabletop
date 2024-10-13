@@ -4,8 +4,6 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { MachineState } from '@tabletop/estates'
 
-    import { fade } from 'svelte/transition'
-
     import { PlayerName } from '@tabletop/frontend-components'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
 
@@ -55,7 +53,7 @@
 <div
     bind:this={ref}
     class="py-2 px-4 bg-gray-900
-             rounded-lg gap-y-2 text-center border-2 border-gray-700 opacity-0"
+             rounded-lg gap-y-2 text-center border-2 border-gray-700 opacity-0 text-center"
 >
     <h1 class="text-lg text-gray-200">
         Waiting for <PlayerName playerId={activePlayerId} />
