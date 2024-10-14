@@ -38,10 +38,10 @@
 </script>
 
 <div
-    class="rounded-lg bg-gray-300 text-[#111111] py-1 px-2 text-center flex flex-row justify-center items-center mb-2 h-[42px]"
+    class="rounded-lg bg-gray-300 text-[#111111] py-1 px-2 text-center flex flex-row justify-center items-center mb-2 min-h-[42px]"
 >
     <div class="flex flex-col justify-center items-center mx-8">
-        <h1 class="text-lg text-pretty leading-none">
+        <h1 class="text-lg text-pretty leading-tight">
             {#if !lastAction}
                 The game has been started!
             {:else}

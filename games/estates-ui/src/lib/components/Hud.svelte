@@ -87,7 +87,7 @@
     </HTML>
 {/if}
 
-{#if gameSession.isMyTurn}
+{#if gameSession.isMyTurn && gameSession.mode === GameSessionMode.Play}
     {#if gameSession.gameState.machineState !== MachineState.Auctioning}
         <HTML position.y={instructionY} center>
             <Instructions hidden={gameSession.shouldHideHud} />
