@@ -24,7 +24,7 @@
     } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
     import { fade, fadeIn, hideInstant } from '$lib/utils/animations'
-    import { useViewport } from '@threlte/extras'
+    import { useDebounce } from 'runed'
 
     CameraControls.install({ THREE: THREE })
 
@@ -38,8 +38,9 @@
 
     interactivity()
 
+    const sizingGroup = new Group() // This group is used to measure sizing for the camera
+
     const { scene, renderer, camera, size } = useThrelte()
-    const viewport = useViewport()
 
     let cameraControls: CameraControls | undefined
 
@@ -113,8 +114,12 @@
 
     async function moveCameraToFit() {
         if (!cameraControls) return
-        cameraControls.stop()
 
+        const sceneBox = new Box3().setFromObject(scene)
+        if (sceneBox.isEmpty()) {
+            return
+        }
+        cameraControls.stop()
         resetCameraRestrictions()
 
         camera.current.up = new THREE.Vector3(0, 1, 0)
@@ -123,7 +128,7 @@
         await cameraControls.setLookAt(0, 16, 20, 0, 2, 0, false)
         await cameraControls.rotateTo(0, 0, false)
 
-        await cameraControls.fitToBox(new Box3().setFromObject(scene), false, {
+        await cameraControls.fitToBox(sceneBox, false, {
             paddingTop: 0,
             paddingLeft: 0,
             paddingBottom: 0,
@@ -147,6 +152,12 @@
 
     async function moveCameraToOverhead() {
         if (!cameraControls) return
+
+        const sceneBox = new Box3().setFromObject(scene)
+        if (sceneBox.isEmpty()) {
+            return
+        }
+
         cameraControls.stop()
         resetCameraRestrictions()
 
@@ -155,7 +166,7 @@
 
         await cameraControls.setLookAt(0, 10, 0, 0, 0, 0, false)
         await cameraControls.rotateTo(-Math.PI / 2, 1, false)
-        await cameraControls.fitToBox(new Box3().setFromObject(scene), false, {
+        await cameraControls.fitToBox(sceneBox, false, {
             paddingTop: 0,
             paddingLeft: 0,
             paddingBottom: 0,
@@ -176,19 +187,19 @@
     let lastWidth: number = 0
     let lastHeight: number = 0
 
-    function adjustRenderSize(width: number, height: number) {
+    const adjustRenderSize = useDebounce(() => {
         if (!lastWidth || !lastHeight) {
             return
         }
 
-        if (width < height) {
+        if (lastWidth < lastHeight) {
             gameSession.mobileView = true
             moveCameraToOverhead()
         } else {
             gameSession.mobileView = false
             moveCameraToFit()
         }
-    }
+    }, 50)
 
     $effect(() => {
         const newWidth = $size.width
@@ -196,11 +207,14 @@
         if (newWidth === lastWidth && newHeight === lastHeight) {
             return
         }
-
-        console.log('size', $size.width, $size.height)
-        adjustRenderSize(newWidth, newHeight)
         lastWidth = newWidth
         lastHeight = newHeight
+
+        adjustRenderSize()
+    })
+
+    sizingGroup.addEventListener('childadded', (e) => {
+        setTimeout(adjustRenderSize, 1)
     })
 </script>
 
@@ -250,34 +264,12 @@
 </HUD>
 
 <Suspense final>
-    <T.Group
-        oncreate={() => {
-            adjustRenderSize(lastWidth, lastHeight)
-        }}
-    >
+    <T is={sizingGroup}>
         <Map
             onrender={() => {
-                adjustRenderSize(lastWidth, lastHeight)
+                adjustRenderSize()
             }}
         />
-        {#each gameSession.gameState.board.rows as row, i}
-            {#each row.sites as site, j}
-                <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
-            {/each}
-            {#if row.mayor}
-                <TopHat
-                    onloaded={(ref: Object3D) => {
-                        hideInstant(ref)
-                        fadeIn({ object: ref, duration: 0.1 })
-                    }}
-                    scale={0.5}
-                    position.y={0.35}
-                    position.x={10.2}
-                    position.z={RowOffsets[i]}
-                />
-            {/if}
-        {/each}
-
         {#if !gameSession.mobileView}
             <Offer3d position={[-2, -0.6, 7.5]} />
 
@@ -298,57 +290,74 @@
                 }}
             />
         {/if}
-    </T.Group>
+    </T>
+
+    {#each gameSession.gameState.board.rows as row, i}
+        {#each row.sites as site, j}
+            <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
+        {/each}
+        {#if row.mayor}
+            <TopHat
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    fadeIn({ object: ref, duration: 0.1 })
+                }}
+                scale={0.5}
+                position.y={0.35}
+                position.x={10.2}
+                position.z={RowOffsets[i]}
+            />
+        {/if}
+        {#if showMayorHighlights}
+            <GlowingCircle
+                onpointerenter={() => {
+                    ghostHat = 0
+                }}
+                onpointerleave={() => {
+                    ghostHat = undefined
+                }}
+                onclick={() => {
+                    placeMayor(0)
+                }}
+                position={[10.1, -0.49, RowOffsets[0]]}
+                rotation.x={-Math.PI / 2}
+            />
+            <GlowingCircle
+                onpointerenter={() => {
+                    ghostHat = 1
+                }}
+                onpointerleave={() => {
+                    ghostHat = undefined
+                }}
+                onclick={() => {
+                    placeMayor(1)
+                }}
+                position={[10.1, -0.49, RowOffsets[1]]}
+                rotation.x={-Math.PI / 2}
+            />
+            <GlowingCircle
+                onpointerenter={() => {
+                    ghostHat = 2
+                }}
+                onpointerleave={() => {
+                    ghostHat = undefined
+                }}
+                onclick={() => {
+                    placeMayor(2)
+                }}
+                position={[10.1, -0.49, RowOffsets[2]]}
+                rotation.x={-Math.PI / 2}
+            />
+
+            {#if ghostHat !== undefined}
+                <TopHat
+                    oncreate={fadeInHat}
+                    scale={0.45}
+                    position.y={0.35}
+                    position.x={10.2}
+                    position.z={RowOffsets[ghostHat]}
+                />
+            {/if}
+        {/if}
+    {/each}
 </Suspense>
-
-{#if showMayorHighlights}
-    <GlowingCircle
-        onpointerenter={() => {
-            ghostHat = 0
-        }}
-        onpointerleave={() => {
-            ghostHat = undefined
-        }}
-        onclick={() => {
-            placeMayor(0)
-        }}
-        position={[10.1, -0.49, RowOffsets[0]]}
-        rotation.x={-Math.PI / 2}
-    />
-    <GlowingCircle
-        onpointerenter={() => {
-            ghostHat = 1
-        }}
-        onpointerleave={() => {
-            ghostHat = undefined
-        }}
-        onclick={() => {
-            placeMayor(1)
-        }}
-        position={[10.1, -0.49, RowOffsets[1]]}
-        rotation.x={-Math.PI / 2}
-    />
-    <GlowingCircle
-        onpointerenter={() => {
-            ghostHat = 2
-        }}
-        onpointerleave={() => {
-            ghostHat = undefined
-        }}
-        onclick={() => {
-            placeMayor(2)
-        }}
-        position={[10.1, -0.49, RowOffsets[2]]}
-        rotation.x={-Math.PI / 2}
-    />
-
-    {#if ghostHat !== undefined}
-        <TopHat
-            oncreate={fadeInHat}
-            scale={0.45}
-            position.y={0.35}
-            position.x={10.2}
-            position.z={RowOffsets[ghostHat]}
-        />
-    {/if}
-{/if}

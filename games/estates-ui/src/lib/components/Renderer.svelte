@@ -67,8 +67,11 @@
         effects.pulseOutline = pulseOutlineEffect
     }
     // We need to set up the passes according to the camera in use
+    let cameraSetup = false
     $effect(() => {
+        if (cameraSetup) return
         setupEffectComposer($camera)
+        cameraSetup = true
     })
     $effect(() => {
         composer.setSize($size.width, $size.height)
