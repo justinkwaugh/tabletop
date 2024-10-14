@@ -1,10 +1,10 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { GameSessionMode } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
     import { isEndAuction } from '@tabletop/estates'
+    import ActionDescription from '$lib/components/ActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -42,13 +42,10 @@
 >
     <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text-lg text-pretty leading-none">
-            {#if playerId}
-                <PlayerName {playerId} />
-            {/if}
             {#if !lastAction}
                 The game has been started!
             {:else}
-                {getDescriptionForAction(lastAction)}
+                <ActionDescription action={lastAction} />
             {/if}
         </h1>
     </div>

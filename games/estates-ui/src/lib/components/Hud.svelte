@@ -13,8 +13,6 @@
     import Offer from './Offer.svelte'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
     import { GameSessionMode } from '@tabletop/frontend-components'
-    import { P } from 'flowbite-svelte'
-    import PlayerInfo from './PlayerInfo.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 

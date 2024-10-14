@@ -2,14 +2,14 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import type { GameAction } from '@tabletop/common'
+    import { type GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
-    import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
-    import { isDrawRoof, isEndAuction } from '@tabletop/estates'
+    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { isDrawRoof } from '@tabletop/estates'
+    import ActionDescription from '$lib/components/ActionDescription.svelte'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -33,22 +33,6 @@
             )
         return reversed
     })
-
-    function playerIdForAction(action: GameAction): string | undefined {
-        if (!action) {
-            return undefined
-        }
-
-        if (action.playerId) {
-            return action.playerId
-        }
-
-        if (isEndAuction(action)) {
-            return action.metadata?.auction?.winnerId ?? action.metadata?.auction?.auctioneerId
-        }
-
-        return undefined
-    }
 </script>
 
 <div
@@ -82,12 +66,9 @@
                         classLi="mb-5 text-left"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
                     >
-                        <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
-                            {#if playerIdForAction(action)}
-                                <PlayerName playerId={playerIdForAction(action)} />
-                            {/if}
-                            {getDescriptionForAction(action)}
-                        </p>
+                        <div class="flex items-center gap-x-1 text-sm text-gray-200">
+                            <ActionDescription {action} />
+                        </div>
                     </TimelineItem>
                 </div>
             {/each}

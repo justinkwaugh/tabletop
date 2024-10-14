@@ -20,7 +20,7 @@ export function getDescriptionForAction(action: GameAction) {
             if (action.winnerId) {
                 return 'bid the most at $' + action.highBid
             } else {
-                return 'recieved the piece for free'
+                return 'received the piece for free'
             }
         case isPlaceBid(action):
             return action.amount > 0 ? 'placed a bid of $' + action.amount : 'passed'
