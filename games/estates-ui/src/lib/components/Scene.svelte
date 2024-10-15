@@ -1,6 +1,6 @@
 <script lang="ts">
     import { T, useTask, useThrelte } from '@threlte/core'
-    import { interactivity, HUD, Suspense } from '@threlte/extras'
+    import { interactivity, HUD, Suspense, useViewport } from '@threlte/extras'
     import * as THREE from 'three'
     import { Group, Object3D, Box3, Vector3 } from 'three'
     import Map from './Map.svelte'
@@ -25,6 +25,8 @@
     import CameraControls from 'camera-controls'
     import { fade, fadeIn, hideInstant } from '$lib/utils/animations'
     import { useDebounce } from 'runed'
+    // import { Checkbox, Folder, FpsGraph, List, Pane, Slider } from 'svelte-tweakpane-ui'
+    // import RenderIndicator from './RenderIndicator.svelte'
 
     CameraControls.install({ THREE: THREE })
 
@@ -40,7 +42,7 @@
 
     const sizingGroup = new Group() // This group is used to measure sizing for the camera
 
-    const { scene, renderer, camera, size } = useThrelte()
+    const { scene, renderer, camera, size, invalidate } = useThrelte()
 
     let cameraControls: CameraControls | undefined
 
@@ -67,22 +69,25 @@
 
     let billboards: any[] = []
 
-    useTask(async (delta) => {
-        if (camera.current) {
-            for (const obj of billboards) {
-                const vector = new Vector3(
-                    obj.position.x,
-                    camera.current.position.y,
-                    camera.current.position.z
-                )
-                obj.lookAt(vector)
+    useTask(
+        async (delta) => {
+            if (camera.current) {
+                for (const obj of billboards) {
+                    const vector = new Vector3(
+                        obj.position.x,
+                        camera.current.position.y,
+                        camera.current.position.z
+                    )
+                    obj.lookAt(vector)
+                }
             }
-        }
 
-        if (cameraControls) {
-            cameraControls.update(delta)
-        }
-    })
+            if (cameraControls) {
+                cameraControls.update(delta)
+            }
+        },
+        { autoInvalidate: false }
+    )
 
     const certPositions: [number, number, number][] = [
         [9, -0.5, 6.2],
@@ -237,6 +242,10 @@
             gameSession.touching = false
         })
 
+        cameraControls.addEventListener('update', () => {
+            invalidate()
+        })
+
         return () => {
             cameraControls?.dispose()
         }
@@ -361,3 +370,10 @@
         {/if}
     {/each}
 </Suspense>
+
+<!-- <Pane position="fixed" title="Tweaks">
+    <Folder title="Rendering Activity">
+        <RenderIndicator />
+        <FpsGraph />
+    </Folder>
+</Pane> -->

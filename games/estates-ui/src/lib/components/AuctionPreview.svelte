@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { T, useTask } from '@threlte/core'
+    import { T, useTask, useThrelte } from '@threlte/core'
     import { useViewport } from '@threlte/extras'
     import { getContext, onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
@@ -18,9 +18,10 @@
     import CancelCube from './CancelCube.svelte'
     import Roof from './Roof3d.svelte'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
-    import { eachMaterial, fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
+    import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
+    let { invalidate } = useThrelte()
     const viewport = useViewport()
     let {
         position,
@@ -30,9 +31,15 @@
     }: { position: [number, number, number]; hidden?: boolean; flyDone?: () => void } = $props()
 
     let rotation = $state(0)
-    useTask((delta) => {
-        rotation += delta
-    })
+    useTask(
+        (delta) => {
+            rotation += delta
+            if (auctionPiece) {
+                invalidate()
+            }
+        },
+        { autoInvalidate: false }
+    )
 
     let group = $state<Object3D>()
     let piece = $state<Object3D>()

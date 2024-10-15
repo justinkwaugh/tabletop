@@ -4,6 +4,7 @@
         BarrierDirection,
         Cube,
         EstatesGameState,
+        isMayor,
         isRoof,
         MachineState,
         PieceType
@@ -24,6 +25,7 @@
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
     import { Outliner } from '$lib/utils/outliner'
     import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
+    import { Bloomer } from '$lib/utils/bloomer'
 
     const wood = useTexture(woodImg)
 
@@ -33,6 +35,7 @@
 
     const effects = getContext('effects') as Effects
     const outliner = new Outliner(effects)
+    const bloomer = new Bloomer(effects)
     let enterCounter = 0
     let unHoverCubeTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -86,6 +89,7 @@
 
     function chooseMayor(obj: Object3D) {
         outliner.removeOutline(obj)
+        bloomer.removeBloom(obj)
 
         setTimeout(() => {
             fadeUp(obj, 2, () => {
@@ -104,6 +108,7 @@
 
     function chooseCancelCube(obj: Object3D) {
         outliner.removeOutline(obj)
+        bloomer.removeBloom(obj)
         setTimeout(() => {
             fadeUp(obj, 2, () => {
                 gameSession.startAuction({
@@ -126,7 +131,7 @@
 
     function chooseBarrier(obj: Object3D, value: number) {
         outliner.removeOutline(obj)
-
+        bloomer.removeBloom(obj)
         setTimeout(() => {
             fadeUp(obj, 2, () => {
                 gameSession.startAuction({
@@ -157,7 +162,7 @@
     async function chooseRoof(obj: Object3D, index: number) {
         allowRoofInteraction = false
         outliner.removeOutline(obj)
-
+        bloomer.removeBloom(obj)
         // Make a listener for the game state update
         const listener = async (to: EstatesGameState) => {
             gameSession.removeGameStateChangeListener(listener)
@@ -239,11 +244,15 @@
         }
 
         event.stopPropagation()
-        outliner.findAndOutline(event.object, parentName)
+        if (parentName === 'topHat') {
+            outliner.findAndOutline(event.object, parentName)
+        }
+        bloomer.addBloom(event.object, parentName)
     }
 
     function leavePiece(event: any, parentName?: string) {
         outliner.removeOutline(event.object, parentName)
+        bloomer.removeBloom(event.object, parentName)
     }
 
     function enterRoof(event: any) {
@@ -276,7 +285,6 @@
             return
         }
         unHoverCubeTimer = setTimeout(() => {
-            event.stopPropagation()
             yPos.set(0)
         }, 100)
     }

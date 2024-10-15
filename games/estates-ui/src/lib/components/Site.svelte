@@ -191,6 +191,21 @@
 </script>
 
 <T.Group position.x={x} position.y={y} position.z={z} scale={1}>
+    {#if canPreview}
+        <T.Mesh
+            oncreate={(ref) => {
+                effects.bloom?.selection.add(ref)
+                return () => {
+                    effects.bloom?.selection.delete(ref)
+                }
+            }}
+            position.y={-0.49 + site.cubes.length}
+            rotation.x={-Math.PI / 2}
+        >
+            <T.PlaneGeometry args={site.cubes.length === 0 ? [1.3, 1.3] : [1, 1]} />
+            <T.MeshBasicMaterial color={'white'} transparent={true} opacity={0.5} />
+        </T.Mesh>
+    {/if}
     <T.Mesh
         depthOffset={5}
         position.y={height / 2 - 0.5}
@@ -232,8 +247,6 @@
     {/each}
     {#if hoverCube}
         <Cube3d
-            transparent={true}
-            opacity={0.7}
             cube={hoverCube}
             position.x={0}
             position.z={0}

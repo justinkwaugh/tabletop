@@ -1,34 +1,34 @@
 import type { Effects } from '$lib/model/Effects.svelte'
 import type { Object3D } from 'three'
 
-export class Outliner {
-    unHighlightTimers = new Map<unknown, ReturnType<typeof setTimeout>>()
+export class Bloomer {
+    removeTimers = new Map<unknown, ReturnType<typeof setTimeout>>()
 
     constructor(private readonly effects: Effects) {}
 
-    findAndOutline(object: Object3D, parentName?: string) {
+    addBloom(object: Object3D, parentName?: string) {
         const obj = parentName ? this.findParentByName(object, parentName) : object
         const mesh = obj?.getObjectByName('outlineMesh')
         if (mesh) {
-            if (this.unHighlightTimers.has(obj)) {
-                clearTimeout(this.unHighlightTimers.get(obj))
-                this.unHighlightTimers.delete(obj)
+            if (this.removeTimers.has(obj)) {
+                clearTimeout(this.removeTimers.get(obj))
+                this.removeTimers.delete(obj)
             }
-            this.effects.outline?.selection.add(mesh)
+            this.effects.bloom?.selection.add(mesh)
         }
     }
 
-    removeOutline(object: Object3D, parentName?: string) {
+    removeBloom(object: Object3D, parentName?: string) {
         const obj = parentName ? this.findParentByName(object, parentName) : object
         const mesh = obj?.getObjectByName('outlineMesh')
         if (mesh) {
-            this.unHighlightTimers.set(
+            this.removeTimers.set(
                 obj,
                 setTimeout(() => {
                     try {
-                        this.effects.outline?.selection.delete(mesh)
+                        this.effects.bloom?.selection.delete(mesh)
                     } finally {
-                        this.unHighlightTimers.delete(obj)
+                        this.removeTimers.delete(obj)
                     }
                 }, 100)
             )

@@ -41,7 +41,7 @@
             hiddenEdgeColor: 0xffffff,
             height: 480,
             blur: true,
-            xRay: true,
+            xRay: false,
             kernelSize: KernelSize.VERY_SMALL
         })
 
