@@ -23,6 +23,7 @@
     import type { Effects } from '$lib/model/Effects.svelte'
     import { Bloomer } from '$lib/utils/bloomer'
     import { gsap, Power1, Power2 } from 'gsap'
+    import { GameSessionMode } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const effects = getContext('effects') as Effects
@@ -111,7 +112,7 @@
     let dims = $derived(site.cubes.length === 0 ? 1.6 : 1)
 
     let canPreview = $derived.by(() => {
-        if (!gameSession.isMyTurn) {
+        if (!gameSession.isMyTurn || gameSession.mode !== GameSessionMode.Play) {
             return false
         }
         if (gameSession.gameState.machineState !== MachineState.PlacingPiece) {
