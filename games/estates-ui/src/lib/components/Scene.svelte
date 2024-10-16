@@ -14,7 +14,7 @@
     import Cert3d from './Cert3d.svelte'
     import PlayerPanel3d from './PlayerPanel3d.svelte'
     import GlowingCircle from './GlowingCircle.svelte'
-    import { gsap } from 'gsap'
+    import { gsap, Power1 } from 'gsap'
     import {
         Company,
         EstatesGameState,
@@ -23,7 +23,7 @@
         MachineState
     } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
-    import { fade, fadeIn, hideInstant } from '$lib/utils/animations'
+    import { fade, fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
     import { useDebounce } from 'runed'
     // import { Checkbox, Folder, FpsGraph, List, Pane, Slider } from 'svelte-tweakpane-ui'
     // import RenderIndicator from './RenderIndicator.svelte'
@@ -50,6 +50,8 @@
         y: 2
     })
 
+    let currentMayor: Object3D | undefined
+
     async function onGameStateChange(to: EstatesGameState, from?: EstatesGameState) {
         const state = new HydratedEstatesGameState(to)
         const heightForBackRow = state.board.maxRowHeight(0) - 0.8
@@ -62,6 +64,21 @@
             duration: 0.5,
             y: maxHeight + 0.5
         })
+
+        if (
+            currentMayor !== undefined &&
+            !to.board.rows[0].mayor &&
+            !to.board.rows[1].mayor &&
+            !to.board.rows[2].mayor
+        ) {
+            await fadeOut({
+                object: currentMayor,
+                duration: 0.1,
+                onComplete: () => {
+                    currentMayor = undefined
+                }
+            })
+        }
     }
 
     gameSession.addGameStateChangeListener(onGameStateChange)
@@ -99,12 +116,12 @@
     ]
 
     function fadeInHat(ref: Object3D) {
-        fade({ object: ref, duration: 0.5, opacity: 0.5 })
+        fade({ object: ref, duration: 0.2, opacity: 1 })
     }
 
     async function placeMayor(row: number) {
-        ghostHat = undefined
         await gameSession.placeMayor(row)
+        ghostHat = undefined
     }
 
     async function resetCameraRestrictions() {
@@ -221,6 +238,38 @@
     sizingGroup.addEventListener('childadded', (e) => {
         setTimeout(adjustRenderSize, 1)
     })
+
+    let pulseOpacity = $state({ opacity: 0 })
+    const pulse = gsap.timeline()
+    pulse.to(pulseOpacity, {
+        opacity: 1,
+        duration: 0.6,
+        ease: Power1.easeIn
+    })
+    pulse.to(pulseOpacity, {
+        opacity: 0.15,
+        duration: 1.2,
+        ease: Power1.easeInOut,
+        repeat: -1,
+        yoyo: true
+    })
+
+    let showingMayorHighlights = $state(false)
+    $effect(() => {
+        if (showMayorHighlights) {
+            showingMayorHighlights = true
+            pulse.play(0)
+        } else {
+            pulse.pause()
+            gsap.to(pulseOpacity, {
+                opacity: 0,
+                duration: 0.2,
+                onComplete: () => {
+                    showingMayorHighlights = false
+                }
+            })
+        }
+    })
 </script>
 
 <!-- <Stars /> -->
@@ -308,67 +357,83 @@
         {#if row.mayor}
             <TopHat
                 onloaded={(ref: Object3D) => {
+                    currentMayor = ref
                     hideInstant(ref)
                     fadeIn({ object: ref, duration: 0.1 })
                 }}
                 scale={0.5}
-                position.y={0.35}
-                position.x={10.2}
+                position.y={0}
+                position.x={10.1}
                 position.z={RowOffsets[i]}
             />
         {/if}
-        {#if showMayorHighlights}
-            <GlowingCircle
-                onpointerenter={() => {
-                    ghostHat = 0
-                }}
-                onpointerleave={() => {
-                    ghostHat = undefined
-                }}
-                onclick={() => {
-                    placeMayor(0)
-                }}
-                position={[10.1, -0.49, RowOffsets[0]]}
-                rotation.x={-Math.PI / 2}
-            />
-            <GlowingCircle
-                onpointerenter={() => {
-                    ghostHat = 1
-                }}
-                onpointerleave={() => {
-                    ghostHat = undefined
-                }}
-                onclick={() => {
-                    placeMayor(1)
-                }}
-                position={[10.1, -0.49, RowOffsets[1]]}
-                rotation.x={-Math.PI / 2}
-            />
-            <GlowingCircle
-                onpointerenter={() => {
-                    ghostHat = 2
-                }}
-                onpointerleave={() => {
-                    ghostHat = undefined
-                }}
-                onclick={() => {
-                    placeMayor(2)
-                }}
-                position={[10.1, -0.49, RowOffsets[2]]}
-                rotation.x={-Math.PI / 2}
-            />
-
-            {#if ghostHat !== undefined}
-                <TopHat
-                    oncreate={fadeInHat}
-                    scale={0.45}
-                    position.y={0.35}
-                    position.x={10.2}
-                    position.z={RowOffsets[ghostHat]}
-                />
-            {/if}
-        {/if}
     {/each}
+    {#if showMayorHighlights || showingMayorHighlights}
+        <GlowingCircle
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                ghostHat = 0
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                ghostHat = undefined
+            }}
+            onclick={(event: any) => {
+                event.stopPropagation()
+                placeMayor(0)
+            }}
+            position={[10.1, -0.49, RowOffsets[0]]}
+            opacity={pulseOpacity.opacity}
+            rotation.x={-Math.PI / 2}
+        />
+        <GlowingCircle
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                ghostHat = 1
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                ghostHat = undefined
+            }}
+            onclick={(event: any) => {
+                event.stopPropagation()
+                placeMayor(1)
+            }}
+            position={[10.1, -0.49, RowOffsets[1]]}
+            opacity={pulseOpacity.opacity}
+            rotation.x={-Math.PI / 2}
+        />
+        <GlowingCircle
+            onpointerenter={(event: any) => {
+                event.stopPropagation()
+                ghostHat = 2
+            }}
+            onpointerleave={(event: any) => {
+                event.stopPropagation()
+                ghostHat = undefined
+            }}
+            onclick={(event: any) => {
+                event.stopPropagation()
+                placeMayor(2)
+            }}
+            position={[10.1, -0.49, RowOffsets[2]]}
+            opacity={pulseOpacity.opacity}
+            rotation.x={-Math.PI / 2}
+        />
+
+        {#if ghostHat !== undefined}
+            <TopHat
+                onloaded={(ref: Object3D) => {
+                    hideInstant(ref)
+                    fadeInHat(ref)
+                }}
+                scale={0.5}
+                position.y={0}
+                position.x={10.1}
+                position.z={RowOffsets[ghostHat]}
+            />
+        {/if}
+    {/if}
 </Suspense>
 
 <!-- <Pane position="fixed" title="Tweaks">

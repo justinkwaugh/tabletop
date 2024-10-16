@@ -22,6 +22,7 @@
     import Barrier3d from '$lib/3d/BarrierOne.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
     import { Bloomer } from '$lib/utils/bloomer'
+    import { gsap, Power1, Power2 } from 'gsap'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const effects = getContext('effects') as Effects
@@ -188,10 +189,41 @@
         }
         return 0
     })
+
+    let pulseOpacity = $state({ opacity: 0 })
+    const pulse = gsap.timeline()
+    pulse.to(pulseOpacity, {
+        opacity: 1,
+        duration: 0.6,
+        ease: Power1.easeIn
+    })
+    pulse.to(pulseOpacity, {
+        opacity: 0.4,
+        duration: 1.2,
+        ease: Power1.easeInOut,
+        repeat: -1,
+        yoyo: true
+    })
+    let showing = $state(false)
+    $effect(() => {
+        if (canPreview) {
+            showing = true
+            pulse.play(0)
+        } else {
+            pulse.pause()
+            gsap.to(pulseOpacity, {
+                opacity: 0,
+                duration: 0.2,
+                onComplete: () => {
+                    showing = false
+                }
+            })
+        }
+    })
 </script>
 
 <T.Group position.x={x} position.y={y} position.z={z} scale={1}>
-    {#if canPreview}
+    {#if canPreview || showing}
         <T.Mesh
             oncreate={(ref) => {
                 effects.bloom?.selection.add(ref)
@@ -203,7 +235,11 @@
             rotation.x={-Math.PI / 2}
         >
             <T.PlaneGeometry args={site.cubes.length === 0 ? [1.3, 1.3] : [1, 1]} />
-            <T.MeshBasicMaterial color={'white'} transparent={true} opacity={0.5} />
+            <T.MeshBasicMaterial
+                color={'white'}
+                transparent={true}
+                opacity={pulseOpacity.opacity}
+            />
         </T.Mesh>
     {/if}
     <T.Mesh

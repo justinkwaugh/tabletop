@@ -43,7 +43,7 @@
     async function onGameStateChange(to: EstatesGameState, from?: EstatesGameState) {
         if (
             to.machineState === MachineState.Auctioning &&
-            from?.machineState !== MachineState.Auctioning
+            (!from || from.machineState === MachineState.StartOfTurn)
         ) {
             ready = false
         }

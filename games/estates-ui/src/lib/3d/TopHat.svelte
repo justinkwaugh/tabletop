@@ -33,7 +33,7 @@ Title: Top Hat
     {#await gltf}
         <slot name="fallback" />
     {:then gltf}
-        <T.Group position={[-0.33, -0.52, 0.15]}>
+        <T.Group>
             <T.Mesh
                 oncreate={(ref) => {
                     ref.geometry.center()
@@ -41,12 +41,12 @@ Title: Top Hat
                 }}
                 name="outlineMesh"
                 geometry={gltf.nodes.Object_4.geometry}
-                material={gltf.materials.hat1}
+                material={gltf.materials.hat1.clone()}
                 castShadow
             ></T.Mesh>
             <T.Mesh
                 geometry={gltf.nodes.Object_5.geometry}
-                material={gltf.materials.hat2}
+                material={gltf.materials.hat2.clone()}
                 castShadow
             />
         </T.Group>
