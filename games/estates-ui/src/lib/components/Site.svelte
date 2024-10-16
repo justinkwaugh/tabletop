@@ -117,7 +117,7 @@
             }
         }
         if (hoverBarrier && hoverBarrierObject) {
-            const index = upcomingSite.barriers.findIndex((b) => b.value === hoverBarrier.value)
+            const index = upcomingSite.barriers.findIndex((b) => b.value === hoverBarrier!.value)
             const offsetInSite =
                 calculateBarrierStart(upcomingSite.barriers) +
                 index * calculateBarrierOffset(upcomingSite.barriers)
