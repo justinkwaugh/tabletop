@@ -1,11 +1,6 @@
 <script lang="ts">
     import { T } from '@threlte/core'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { getContext } from 'svelte'
     import Hud from './Hud.svelte'
-    import { GameSessionMode } from '@tabletop/frontend-components'
-
-    let gameSession = getContext('gameSession') as EstatesGameSession
 </script>
 
 <T.OrthographicCamera makeDefault zoom={80} position={[0, 0, 10]} />

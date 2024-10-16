@@ -259,6 +259,7 @@
         if (!canHoverRoof) {
             return
         }
+
         enterPiece(event, 'roof')
     }
 

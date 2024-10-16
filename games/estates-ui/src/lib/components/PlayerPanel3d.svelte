@@ -1,6 +1,6 @@
 <script lang="ts">
     import { T, type Props } from '@threlte/core'
-    import { HTML, Text } from '@threlte/extras'
+    import { Text, HTML } from '@threlte/extras'
     import { Group, MeshBasicMaterial } from 'three'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'

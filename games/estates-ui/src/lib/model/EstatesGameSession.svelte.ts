@@ -1,4 +1,4 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
 import {
     HydratedEstatesGameState,
     EstatesGameState,
@@ -72,13 +72,6 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
         return false
     }
 
-    createPlaceBidAction(amount: number): PlaceBid {
-        return {
-            ...(this.createBaseAction(ActionType.PlaceBid) as PlaceBid),
-            amount
-        }
-    }
-
     async drawRoof(index: number) {
         const action = {
             ...this.createBaseAction(ActionType.DrawRoof),
@@ -86,12 +79,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             revealsInfo: true
         }
 
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error drawing roof', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async startAuction(piece: Piece) {
@@ -99,12 +87,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             ...(this.createBaseAction(ActionType.StartAuction) as StartAuction),
             piece
         }
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error starting auction', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async placeBid(amount: number) {
@@ -112,12 +95,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             ...(this.createBaseAction(ActionType.PlaceBid) as PlaceBid),
             amount
         }
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error placing bid', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async chooseRecipient(recipient: AuctionRecipient) {
@@ -126,12 +104,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             recipient
         }
 
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error choosing recipient', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async placeCube(cube: Cube, coords: OffsetCoordinates) {
@@ -140,12 +113,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             cube,
             coords
         }
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error placing cube', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async placeRoof(roof: Roof, coords: OffsetCoordinates) {
@@ -154,12 +122,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             roof,
             coords
         }
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error placing roof', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async placeBarrier(barrier: Barrier, coords: OffsetCoordinates) {
@@ -168,12 +131,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             barrier,
             coords
         }
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error placing roof', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async removeBarrier(barrier: Barrier, coords: OffsetCoordinates) {
@@ -182,12 +140,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             barrier,
             coords
         }
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error placing roof', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async placeMayor(row: number) {
@@ -196,12 +149,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             row
         }
 
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error placing mayor', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async discardPiece() {
@@ -214,12 +162,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             piece: this.gameState.chosenPiece
         }
 
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.error('Error placing mayor', e)
-            this.resetAction()
-        }
+        await this.doAction(action)
     }
 
     async embezzle() {
@@ -231,10 +174,18 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             ...this.createBaseAction(ActionType.Embezzle)
         }
 
+        await this.doAction(action)
+    }
+
+    async doAction(action: GameAction) {
+        if (this.mode !== GameSessionMode.Play) {
+            return
+        }
+
         try {
             await this.applyAction(action)
         } catch (e) {
-            console.error('Error embezzling', e)
+            console.error('Error for action', e, action)
             this.resetAction()
         }
     }

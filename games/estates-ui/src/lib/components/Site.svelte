@@ -21,11 +21,11 @@
     import type { OffsetCoordinates } from '@tabletop/common'
     import Barrier3d from '$lib/3d/BarrierOne.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
-    import { Outliner } from '$lib/utils/outliner'
+    import { Bloomer } from '$lib/utils/bloomer'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const effects = getContext('effects') as Effects
-    const outliner = new Outliner(effects)
+    const bloomer = new Bloomer(effects)
 
     let {
         site,
@@ -150,11 +150,11 @@
         }
 
         event.stopPropagation()
-        outliner.findAndOutline(event.object, 'barrier')
+        bloomer.addBloom(event.object, 'barrier')
     }
 
     function leavePiece(event: any) {
-        outliner.removeOutline(event.object, 'barrier')
+        bloomer.removeBloom(event.object, 'barrier')
     }
 
     function onBarrierClick(event: any, barrier: Barrier) {
@@ -165,7 +165,7 @@
             return
         }
 
-        outliner.removeOutline(event.object, 'barrier')
+        bloomer.removeBloom(event.object, 'barrier')
 
         gameSession.removeBarrier(barrier, coords)
     }

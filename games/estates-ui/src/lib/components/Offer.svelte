@@ -127,7 +127,7 @@
         <div class="flex justify-center items-center gap-x-1">
             {#if gameSession.gameState.barrierOne || gameSession.gameState.barrierTwo || gameSession.gameState.barrierThree}
                 <div class="flex flex-col justify-center items-center gap-y-1">
-                    {#if gameSession.gameState.barrierOne}
+                    {#if gameSession.gameState.barrierThree}
                         <button
                             tabindex="-1"
                             onclick={() => chooseBarrier(3)}
@@ -145,7 +145,7 @@
                             {@render barrier(2)}
                         </button>
                     {/if}
-                    {#if gameSession.gameState.barrierThree}
+                    {#if gameSession.gameState.barrierOne}
                         <button
                             tabindex="-1"
                             onclick={() => chooseBarrier(1)}
