@@ -4,6 +4,8 @@
         ActionType,
         Barrier,
         Company,
+        EstatesGameState,
+        HydratedEstatesGameState,
         isBarrier,
         isCancelCube,
         isCube,
@@ -18,12 +20,15 @@
     import { spring } from 'svelte/motion'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import type { OffsetCoordinates } from '@tabletop/common'
+    import { remove, type OffsetCoordinates } from '@tabletop/common'
     import Barrier3d from '$lib/3d/BarrierOne.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
     import { Bloomer } from '$lib/utils/bloomer'
     import { gsap, Power1, Power2 } from 'gsap'
     import { GameSessionMode } from '@tabletop/frontend-components'
+    import { fadeOut } from '$lib/utils/animations'
+    import type { Object3D } from 'three'
+    import { ColumnOffsets } from '$lib/utils/boardOffsets'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const effects = getContext('effects') as Effects
@@ -43,6 +48,10 @@
     let hoverRoof: Roof | undefined = $state()
     let hoverBarrier: Barrier | undefined = $state()
 
+    let choosingBarrier = $state(false)
+    let hoverBarrierObject: Object3D | undefined
+    let barrierObjects: Map<number, Object3D> = new Map()
+
     let canSelectBarrier = $derived.by(() => {
         if (!gameSession.isMyTurn) {
             return false
@@ -60,6 +69,71 @@
 
         return true
     })
+
+    async function onGameStateChange({
+        to,
+        from,
+        timeline
+    }: {
+        to: EstatesGameState
+        from?: EstatesGameState
+        timeline: gsap.core.Timeline
+    }) {
+        const state = new HydratedEstatesGameState(to)
+        const upcomingSite = state.board.getSiteAtCoords(coords)
+        if (!upcomingSite) {
+            return
+        }
+
+        for (const barrier of site.barriers) {
+            if (upcomingSite.barriers.find((b) => b.value === barrier.value)) {
+                continue
+            }
+            const barrierCoords = state.board.findBarrierSite(barrier)
+            if (!barrierCoords) {
+                const barrierObject = barrierObjects.get(barrier.value)
+                if (barrierObject) {
+                    fadeOut({ object: barrierObject, duration: 0.2, timeline, startAt: 0 })
+                }
+            } else {
+                const barrierSite = state.board.getSiteAtCoords(barrierCoords)
+                const barrierObject = barrierObjects.get(barrier.value)
+                if (barrierObject && barrierSite) {
+                    const index = barrierSite.barriers.findIndex((b) => b.value === barrier.value)
+                    const offsetInSite =
+                        calculateBarrierStart(barrierSite.barriers) +
+                        index * calculateBarrierOffset(barrierSite.barriers)
+
+                    timeline.to(
+                        barrierObject.position,
+                        {
+                            x: ColumnOffsets[barrierCoords.col] - x + offsetInSite,
+                            duration: 0.2,
+                            ease: Power2.easeInOut
+                        },
+                        0
+                    )
+                }
+            }
+        }
+        if (hoverBarrier && hoverBarrierObject) {
+            const index = upcomingSite.barriers.findIndex((b) => b.value === hoverBarrier.value)
+            const offsetInSite =
+                calculateBarrierStart(upcomingSite.barriers) +
+                index * calculateBarrierOffset(upcomingSite.barriers)
+            timeline.to(
+                hoverBarrierObject.position,
+                {
+                    x: offsetInSite,
+                    duration: 0.2,
+                    ease: Power2.easeInOut
+                },
+                0
+            )
+        }
+    }
+
+    gameSession.addGameStateChangeListener(onGameStateChange)
 
     function onPointerEnter(event: PointerEvent) {
         if (!canPreview) {
@@ -85,9 +159,11 @@
     function onPointerLeave(event: PointerEvent) {
         hoverCube = undefined
         hoverRoof = undefined
-        hoverBarrier = undefined
+        if (!choosingBarrier) {
+            hoverBarrier = undefined
+            scale.set(0.1)
+        }
         event.stopPropagation()
-        scale.set(0.1)
     }
 
     async function onClick(event: MouseEvent) {
@@ -104,9 +180,12 @@
             await gameSession.placeRoof(gameSession.gameState.chosenPiece, coords)
             hoverRoof = undefined
         } else if (isBarrier(gameSession.gameState.chosenPiece)) {
+            choosingBarrier = true
             await gameSession.placeBarrier(gameSession.gameState.chosenPiece, coords)
+            choosingBarrier = false
             hoverBarrier = undefined
         }
+        scale.set(0.1)
     }
     let height = $derived(site.cubes.length + (site.roof !== undefined ? 0.5 : 0))
     let dims = $derived(site.cubes.length === 0 ? 1.6 : 1)
@@ -164,6 +243,7 @@
     }
 
     function onBarrierClick(event: any, barrier: Barrier) {
+        event.stopPropagation()
         if (
             !canSelectBarrier ||
             !gameSession.gameState.board.canRemoveBarrierFromSite(barrier, coords)
@@ -176,23 +256,28 @@
         gameSession.removeBarrier(barrier, coords)
     }
 
-    let barrierStart = $derived.by(() => {
-        if (site.barriers.length === 2) {
-            return -0.4
-        } else if (site.barriers.length === 3) {
+    function calculateBarrierStart(barriers: Barrier[]) {
+        if (barriers.length === 2 || barriers.length === 3) {
             return -0.4
         }
-
         return 0
-    })
+    }
 
-    let barrierOffset = $derived.by(() => {
-        if (site.barriers.length === 2) {
+    function calculateBarrierOffset(barriers: Barrier[]) {
+        if (barriers.length === 2) {
             return 0.7
-        } else if (site.barriers.length === 3) {
+        } else if (barriers.length === 3) {
             return 0.4
         }
         return 0
+    }
+
+    let barrierStart = $derived.by(() => {
+        return calculateBarrierStart(site.barriers)
+    })
+
+    let barrierOffset = $derived.by(() => {
+        return calculateBarrierOffset(site.barriers)
     })
 
     let pulseOpacity = $state({ opacity: 0 })
@@ -277,6 +362,12 @@
     {/if}
     {#each site.barriers as barrier, i}
         <Barrier3d
+            oncreate={(ref: Object3D) => {
+                barrierObjects.set(barrier.value, ref)
+                return () => {
+                    barrierObjects.delete(barrier.value)
+                }
+            }}
             stripes={barrier.value}
             onpointerenter={(event: any) => enterBarrier(event, barrier)}
             onpointerleave={leavePiece}
@@ -310,6 +401,12 @@
     {/if}
     {#if hoverBarrier}
         <Barrier3d
+            oncreate={(ref: Object3D) => {
+                hoverBarrierObject = ref
+                return () => {
+                    hoverBarrierObject = undefined
+                }
+            }}
             stripes={hoverBarrier.value}
             transparent={true}
             opacity={0.6}

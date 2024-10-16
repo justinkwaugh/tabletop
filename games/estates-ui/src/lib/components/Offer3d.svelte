@@ -164,7 +164,15 @@
         outliner.removeOutline(obj)
         bloomer.removeBloom(obj)
         // Make a listener for the game state update
-        const listener = async (to: EstatesGameState) => {
+        const listener = async ({
+            to,
+            from,
+            timeline
+        }: {
+            to: EstatesGameState
+            from?: EstatesGameState
+            timeline: gsap.core.Timeline
+        }) => {
             gameSession.removeGameStateChangeListener(listener)
 
             if (to.machineState === MachineState.Auctioning && isRoof(to.chosenPiece)) {

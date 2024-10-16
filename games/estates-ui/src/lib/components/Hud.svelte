@@ -40,7 +40,13 @@
         fadeIn({ object: element, duration: 0.3 })
     }
 
-    async function onGameStateChange(to: EstatesGameState, from?: EstatesGameState) {
+    async function onGameStateChange({
+        to,
+        from
+    }: {
+        to: EstatesGameState
+        from?: EstatesGameState
+    }) {
         if (
             to.machineState === MachineState.Auctioning &&
             (!from || from.machineState === MachineState.StartOfTurn)

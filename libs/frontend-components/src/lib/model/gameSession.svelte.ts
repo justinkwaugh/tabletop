@@ -36,6 +36,7 @@ import { ColorblindColorizer } from '$lib/utils/colorblindPalette'
 import type { GameColorizer } from '$lib/definition/gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import { goto } from '$app/navigation'
+import { gsap } from 'gsap'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -49,7 +50,15 @@ type ActionResults = {
     revealing: boolean
 }
 
-export type GameStateChangeListener<T extends GameState> = (to: T, from?: T) => Promise<void>
+export type GameStateChangeListener<T extends GameState> = ({
+    to,
+    from,
+    timeline
+}: {
+    to: T
+    from?: T
+    timeline: gsap.core.Timeline
+}) => Promise<void>
 
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     public definition: GameUiDefinition
@@ -858,8 +867,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         if (!gameState) {
             return
         }
+
+        const timeline = gsap.timeline({
+            autoRemoveChildren: true
+        })
         for (const listener of this.gameStateChangeListeners) {
-            await listener(gameState as T, this.game.state as T)
+            await listener({ to: gameState as T, from: this.game.state as T, timeline })
+        }
+        if (timeline.getChildren().length > 0) {
+            await timeline.play()
         }
         this.game.state = gameState
     }

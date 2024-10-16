@@ -229,6 +229,19 @@ export class HydratedEstatesGameBoard
         return barriers
     }
 
+    findBarrierSite(barrier: Barrier): OffsetCoordinates | undefined {
+        for (let row = 0; row < this.rows.length; row++) {
+            const boardRow = this.rows[row]
+            for (let col = 0; col < boardRow.sites.length; col++) {
+                const site = boardRow.sites[col]
+                if (site.barriers.find((b) => b.value === barrier.value)) {
+                    return { row, col }
+                }
+            }
+        }
+        return undefined
+    }
+
     isRowComplete(row: BoardRow): boolean {
         for (let i = 0; i < row.length; i++) {
             if (!row.sites[i].roof) {

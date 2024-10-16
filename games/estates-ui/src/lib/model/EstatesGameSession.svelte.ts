@@ -60,7 +60,6 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
     }
 
     resetAction() {
-        console.log('reset action')
         this.chosenAction = undefined
         this.currentBid = 1
     }

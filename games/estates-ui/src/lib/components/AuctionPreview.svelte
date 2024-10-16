@@ -87,12 +87,18 @@
         didHide = true
     }
 
-    async function onGameStateChange(to: EstatesGameState, from?: EstatesGameState) {
+    async function onGameStateChange({
+        to,
+        from,
+        timeline
+    }: {
+        to: EstatesGameState
+        from?: EstatesGameState
+        timeline: gsap.core.Timeline
+    }) {
         const object = group
         if (object && from?.chosenPiece && !to.chosenPiece) {
-            await new Promise<void>((resolve) => {
-                fadeOut({ object, duration: 0.2, onComplete: resolve })
-            })
+            fadeOut({ object, duration: 0.2, timeline, startAt: 0 })
         }
     }
 

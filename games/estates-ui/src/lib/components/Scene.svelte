@@ -52,7 +52,15 @@
 
     let currentMayor: Object3D | undefined
 
-    async function onGameStateChange(to: EstatesGameState, from?: EstatesGameState) {
+    async function onGameStateChange({
+        to,
+        from,
+        timeline
+    }: {
+        to: EstatesGameState
+        from?: EstatesGameState
+        timeline: gsap.core.Timeline
+    }) {
         const state = new HydratedEstatesGameState(to)
         const heightForBackRow = state.board.maxRowHeight(0) - 0.8
         const heightForMiddleRow = state.board.maxRowHeight(1) - 1.5
@@ -71,18 +79,19 @@
             !to.board.rows[1].mayor &&
             !to.board.rows[2].mayor
         ) {
-            await fadeOut({
+            fadeOut({
                 object: currentMayor,
                 duration: 0.1,
                 onComplete: () => {
                     currentMayor = undefined
-                }
+                },
+                timeline
             })
         }
     }
 
     gameSession.addGameStateChangeListener(onGameStateChange)
-    onGameStateChange(gameSession.gameState)
+    onGameStateChange({ to: gameSession.gameState, timeline: gsap.timeline() })
 
     let billboards: any[] = []
 
