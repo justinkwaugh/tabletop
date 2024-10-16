@@ -45,7 +45,7 @@
     let piece = $state<Object3D>()
 
     let currentTimeline: gsap.core.Timeline | undefined
-    let didHide: boolean = false
+    let didHide: boolean = true
 
     function flyUp(object: Object3D, yOffset: number = 0.6) {
         setTimeout(() => {
