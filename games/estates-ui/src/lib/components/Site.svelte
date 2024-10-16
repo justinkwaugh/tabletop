@@ -38,6 +38,7 @@
     let scale = spring(0.1)
 
     let hoverCube: Cube | undefined = $state()
+    let hoverCubeHeight = $state(0)
     let hoverRoof: Roof | undefined = $state()
     let hoverBarrier: Barrier | undefined = $state()
 
@@ -65,6 +66,7 @@
         }
 
         if (isCube(gameSession.gameState.chosenPiece)) {
+            hoverCubeHeight = site.cubes.length
             hoverCube = gameSession.gameState.chosenPiece as Cube
         }
 
@@ -93,14 +95,16 @@
         }
 
         if (isCube(gameSession.gameState.chosenPiece)) {
-            hoverCube = undefined
+            canPreview = false
             await gameSession.placeCube(gameSession.gameState.chosenPiece, coords)
+
+            hoverCube = undefined
         } else if (isRoof(gameSession.gameState.chosenPiece)) {
-            hoverRoof = undefined
             await gameSession.placeRoof(gameSession.gameState.chosenPiece, coords)
+            hoverRoof = undefined
         } else if (isBarrier(gameSession.gameState.chosenPiece)) {
-            hoverBarrier = undefined
             await gameSession.placeBarrier(gameSession.gameState.chosenPiece, coords)
+            hoverBarrier = undefined
         }
     }
     let height = $derived(site.cubes.length + (site.roof !== undefined ? 0.5 : 0))
@@ -286,7 +290,7 @@
             cube={hoverCube}
             position.x={0}
             position.z={0}
-            position.y={site.cubes.length}
+            position.y={hoverCubeHeight}
             rotation.z={gameSession.mobileView ? -Math.PI / 2 : 0}
             scale={$scale}
         />

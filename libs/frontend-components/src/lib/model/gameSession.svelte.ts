@@ -428,6 +428,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async applyAction(action: GameAction) {
+        if (this.mode !== GameSessionMode.Play) {
+            return
+        }
+
         // Preserve state in case we need to roll back
         action = $state.snapshot(action)
         const gameSnapshot = $state.snapshot(this.game)
