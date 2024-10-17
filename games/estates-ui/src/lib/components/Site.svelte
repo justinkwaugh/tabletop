@@ -1,9 +1,7 @@
 <script lang="ts">
     import { T } from '@threlte/core'
     import {
-        ActionType,
         Barrier,
-        Company,
         EstatesGameConfig,
         EstatesGameState,
         HydratedEstatesGameState,
@@ -12,7 +10,6 @@
         isCube,
         isRoof,
         MachineState,
-        Piece,
         Site
     } from '@tabletop/estates'
     import Cube3d from './Cube3d.svelte'
@@ -27,7 +24,7 @@
     import { Bloomer } from '$lib/utils/bloomer'
     import { gsap, Power1, Power2 } from 'gsap'
     import { GameSessionMode } from '@tabletop/frontend-components'
-    import { fadeOut } from '$lib/utils/animations'
+    import { fadeIn, fadeOut, hideInstant, scaleIn, scaleOut } from '$lib/utils/animations'
     import type { Object3D } from 'three'
     import { ColumnOffsets } from '$lib/utils/boardOffsets'
 
@@ -52,6 +49,8 @@
     let choosingBarrier = $state(false)
     let hoverBarrierObject: Object3D | undefined
     let barrierObjects: Map<number, Object3D> = new Map()
+    let cubeObjects: Object3D[] = []
+    let roofObject: Object3D | undefined
 
     let canSelectBarrier = $derived.by(() => {
         if (!gameSession.isMyTurn) {
@@ -73,7 +72,6 @@
 
     async function onGameStateChange({
         to,
-        from,
         timeline
     }: {
         to: EstatesGameState
@@ -131,6 +129,22 @@
                 },
                 0
             )
+        }
+
+        for (const [i, cube] of site.cubes.entries()) {
+            if (i < upcomingSite.cubes.length) {
+                continue
+            }
+            const cubeObject = cubeObjects[i]
+            if (cubeObject) {
+                scaleOut({ object: cubeObject, duration: 0.1, timeline, startAt: 0 })
+                fadeOut({ object: cubeObject, duration: 0.1, timeline, startAt: 0 })
+            }
+        }
+
+        if (site.roof && !upcomingSite.roof && roofObject) {
+            scaleOut({ object: roofObject, duration: 0.1, timeline, startAt: 0 })
+            fadeOut({ object: roofObject, duration: 0.1, timeline, startAt: 0 })
         }
     }
 
@@ -341,19 +355,37 @@
             />
         </T.Mesh>
     {/if}
-    <T.Mesh
-        depthOffset={5}
-        position.y={height / 2 - 0.5}
-        onpointerenter={onPointerEnter}
-        onpointerleave={onPointerLeave}
-        onclick={onClick}
-    >
-        <T.BoxGeometry args={[dims, height, dims]} />
-        <T.MeshBasicMaterial color={'white'} transparent={true} opacity={0} />
-    </T.Mesh>
+    <!-- This mesh is used to make pointer enter/leave more simple -->
+    {#if canPreview}
+        <T.Mesh
+            depthOffset={5}
+            position.y={height / 2 - 0.5}
+            onpointerenter={onPointerEnter}
+            onpointerleave={onPointerLeave}
+            onclick={onClick}
+        >
+            <T.BoxGeometry args={[dims, height, dims]} />
+            <T.MeshBasicMaterial color={'white'} transparent={true} opacity={0} />
+        </T.Mesh>
+    {/if}
     {#each site.cubes as cube, i}
         <Cube3d
             {cube}
+            oncreate={(ref: Object3D) => {
+                cubeObjects.push(ref)
+
+                // Only scale in on create in history mode because regularly
+                // we are replacing the hover cube and do not want to animate
+                if (gameSession.mode === GameSessionMode.History) {
+                    ref.scale.x = 0.1
+                    ref.scale.y = 0.1
+                    ref.scale.z = 0.1
+                    scaleIn({ object: ref, duration: 0.1, startAt: 0 })
+                }
+                return () => {
+                    remove(cubeObjects, ref)
+                }
+            }}
             singleNumber={sneakyBuildings}
             position.x={0}
             position.z={0}
@@ -365,6 +397,21 @@
     {#if site.roof}
         <Roof3d
             roof={site.roof}
+            oncreate={(ref: Object3D) => {
+                roofObject = ref
+
+                // Only scale in on create in history mode because regularly
+                // we are replacing the hover roof and do not want to animate
+                if (gameSession.mode === GameSessionMode.History) {
+                    ref.scale.x = 0.1
+                    ref.scale.y = 0.1
+                    ref.scale.z = 0.1
+                    scaleIn({ object: ref, duration: 0.1, startAt: 0 })
+                }
+                return () => {
+                    roofObject = undefined
+                }
+            }}
             position.x={0}
             position.z={0}
             position.y={site.cubes.length - 0.305}

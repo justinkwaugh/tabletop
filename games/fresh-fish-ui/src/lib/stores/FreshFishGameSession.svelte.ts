@@ -73,6 +73,7 @@ export class FreshFishGameSession extends GameSession<
         }
     }
 
+    // Should change this to just look at last action
     override onHistoryAction(action?: GameAction) {
         if (!action) {
             this.clearHighlightedCoords()

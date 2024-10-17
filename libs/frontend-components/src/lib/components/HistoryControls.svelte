@@ -3,16 +3,19 @@
     import type { GameSession } from '$lib/model/gameSession.svelte'
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { UserSolid } from 'flowbite-svelte-icons'
+    import type { GameAction, GameState, HydratedGameState } from '@tabletop/common'
 
     let {
         enabledColor = 'text-white',
         disabledColor = 'text-gray-700'
     }: { enabledColor?: string; disabledColor?: string } = $props()
 
-    let gameSession = getContext('gameSession') as GameSession
+    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
 
     let myFirstAction = $derived(
-        gameSession.actions.findIndex((action) => action.playerId === gameSession.myPlayer?.id)
+        gameSession.actions.findIndex(
+            (action: GameAction) => action.playerId === gameSession.myPlayer?.id
+        )
     )
 
     let hasPreviousAction = $derived(
@@ -22,7 +25,9 @@
     )
 
     let myLastAction = $derived(
-        gameSession.actions.findLastIndex((action) => action.playerId === gameSession.myPlayer?.id)
+        gameSession.actions.findLastIndex(
+            (action: GameAction) => action.playerId === gameSession.myPlayer?.id
+        )
     )
 
     let hasNextAction = $derived(
@@ -34,7 +39,7 @@
 
 <div class="w-full flex flex-row justify-between items-center">
     <button
-        onclick={() => gameSession.goToMyPreviousTurn()}
+        onclick={async () => await gameSession.goToMyPreviousTurn()}
         class="flex flex-row justify-center items-center {hasPreviousAction
             ? enabledColor
             : disabledColor}"
@@ -60,7 +65,9 @@
     </button>
 
     <div class="flex flex-row justify-center items-center space-x-2">
-        <button onclick={() => gameSession.gotoAction(-1)}
+        <button
+            aria-label="goto my last turn"
+            onclick={async () => await gameSession.gotoAction(-1)}
             ><svg
                 class="w-[25px] h-[25px] {gameSession.actions.length === 0 ||
                 gameSession.currentHistoryIndex === -1
@@ -80,7 +87,7 @@
                 ></path>
             </svg>
         </button>
-        <button onclick={() => gameSession.stepBackward()}
+        <button aria-label="step backwards" onclick={async () => await gameSession.stepBackward()}
             ><svg
                 class="w-[24px] h-[24px] {gameSession.actions.length === 0 ||
                 gameSession.currentHistoryIndex === -1
@@ -103,7 +110,7 @@
             </svg>
         </button>
         <button
-            onclick={() => gameSession.playHistory()}
+            onclick={async () => await gameSession.playHistory()}
             class={gameSession.playingHistory ? 'hidden' : ''}
             ><svg
                 class="w-[25px] h-[25px] {gameSession.actions.length === 0
@@ -124,7 +131,7 @@
             </svg>
         </button>
         <button
-            onclick={() => gameSession.stopHistoryPlayback()}
+            onclick={async () => await gameSession.stopHistoryPlayback()}
             class={!gameSession.playingHistory ? 'hidden' : ''}
         >
             <svg
@@ -143,7 +150,7 @@
                 ></path>
             </svg>
         </button>
-        <button onclick={() => gameSession.stepForward()}
+        <button onclick={async () => await gameSession.stepForward()}
             ><svg
                 class="w-[24px] h-[24px] {gameSession.mode !== GameSessionMode.History
                     ? disabledColor
@@ -164,7 +171,7 @@
                 ></path>
             </svg>
         </button>
-        <button onclick={() => gameSession.gotoCurrent()}>
+        <button onclick={async () => await gameSession.gotoCurrent()}>
             <svg
                 class="w-[25px] h-[25px] {gameSession.mode !== GameSessionMode.History
                     ? disabledColor
@@ -185,7 +192,7 @@
         </button>
     </div>
     <button
-        onclick={() => gameSession.goToMyNextTurn()}
+        onclick={async () => await gameSession.goToMyNextTurn()}
         class="flex flex-row justify-center items-center {hasNextAction
             ? enabledColor
             : disabledColor}"

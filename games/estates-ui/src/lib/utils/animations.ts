@@ -105,3 +105,76 @@ export function fadeIn({
 }): gsap.core.Timeline {
     return fade({ object, timeline, duration, opacity: 1, startAt, onComplete })
 }
+
+export function scale({
+    object,
+    duration = 0.3,
+    scale = 1,
+    startAt,
+    timeline,
+    onComplete
+}: {
+    object: Object3D | HTMLElement
+    duration?: number
+    scale?: number
+    startAt?: number
+    timeline?: gsap.core.Timeline
+    onComplete?: () => void
+}): gsap.core.Timeline {
+    const myTimeline = timeline || gsap.timeline({ onComplete })
+
+    if (object) {
+        if ((object as Object3D).isObject3D) {
+            const options = {
+                ease: 'power2.in',
+                duration,
+                x: scale,
+                y: scale,
+                z: scale
+            }
+            myTimeline.to(
+                (object as Object3D).scale,
+                options,
+                startAt ?? (timeline ? undefined : 0)
+            )
+        }
+
+        if (!timeline) {
+            myTimeline.play()
+        }
+    }
+
+    return myTimeline
+}
+
+export function scaleOut({
+    object,
+    timeline,
+    duration = 0.3,
+    startAt = undefined,
+    onComplete
+}: {
+    object: Object3D | HTMLElement
+    timeline?: gsap.core.Timeline
+    duration?: number
+    startAt?: number
+    onComplete?: () => void
+}): gsap.core.Timeline {
+    return scale({ object, timeline, duration, scale: 0.1, startAt, onComplete })
+}
+
+export function scaleIn({
+    object,
+    timeline,
+    duration = 0.3,
+    startAt = undefined,
+    onComplete
+}: {
+    object: Object3D | HTMLElement
+    timeline?: gsap.core.Timeline
+    duration?: number
+    startAt?: number
+    onComplete?: () => void
+}): gsap.core.Timeline {
+    return scale({ object, timeline, duration, scale: 1, startAt, onComplete })
+}

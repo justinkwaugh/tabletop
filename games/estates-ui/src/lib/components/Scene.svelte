@@ -23,8 +23,17 @@
         MachineState
     } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
-    import { fade, fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
+    import {
+        fade,
+        fadeIn,
+        fadeOut,
+        hideInstant,
+        scale,
+        scaleIn,
+        scaleOut
+    } from '$lib/utils/animations'
     import { useDebounce } from 'runed'
+    import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
     // import { Checkbox, Folder, FpsGraph, List, Pane, Slider } from 'svelte-tweakpane-ui'
     // import RenderIndicator from './RenderIndicator.svelte'
 
@@ -79,12 +88,15 @@
             !to.board.rows[1].mayor &&
             !to.board.rows[2].mayor
         ) {
+            scale({
+                object: currentMayor,
+                duration: 0.1,
+                scale: 0.01,
+                timeline
+            })
             fadeOut({
                 object: currentMayor,
                 duration: 0.1,
-                onComplete: () => {
-                    currentMayor = undefined
-                },
                 timeline
             })
         }
@@ -367,8 +379,14 @@
             <TopHat
                 onloaded={(ref: Object3D) => {
                     currentMayor = ref
-                    hideInstant(ref)
-                    fadeIn({ object: ref, duration: 0.1 })
+                    if (gameSession.mode === GameSessionMode.History) {
+                        hideInstant(ref)
+                        ref.scale.x = 0.1
+                        ref.scale.y = 0.1
+                        ref.scale.z = 0.1
+                        fadeIn({ object: ref, duration: 0.1 })
+                        scale({ object: ref, duration: 0.1, scale: 0.5 })
+                    }
                 }}
                 scale={0.5}
                 position.y={0}
