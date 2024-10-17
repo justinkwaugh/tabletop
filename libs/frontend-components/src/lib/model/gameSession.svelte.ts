@@ -50,13 +50,13 @@ type ActionResults = {
     revealing: boolean
 }
 
-export type GameStateChangeListener<T extends GameState> = ({
+export type GameStateChangeListener<U extends HydratedGameState> = ({
     to,
     from,
     timeline
 }: {
-    to: T
-    from?: T
+    to: U
+    from?: U
     timeline: gsap.core.Timeline
 }) => Promise<void>
 
@@ -74,7 +74,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     private processingActions = false
     private stepping = false
-    private gameStateChangeListeners: Set<GameStateChangeListener<T>> = new Set()
+    private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
 
     chatService: ChatService
 
@@ -646,11 +646,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
-    addGameStateChangeListener(listener: GameStateChangeListener<T>) {
+    addGameStateChangeListener(listener: GameStateChangeListener<U>) {
         this.gameStateChangeListeners.add(listener)
     }
 
-    removeGameStateChangeListener(listener: GameStateChangeListener<T>) {
+    removeGameStateChangeListener(listener: GameStateChangeListener<U>) {
         this.gameStateChangeListeners.delete(listener)
     }
 
@@ -885,13 +885,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         if (!gameState) {
             return
         }
-
         const game = targetGame ?? this.game
+
+        const hydratedNewState = this.definition.hydrator.hydrateState(
+            structuredClone(gameState)
+        ) as U
+        const hydratedOldState = game.state
+            ? (this.definition.hydrator.hydrateState($state.snapshot(game.state)) as U)
+            : undefined
+
         const timeline = gsap.timeline({
             autoRemoveChildren: true
         })
         for (const listener of this.gameStateChangeListeners) {
-            await listener({ to: gameState as T, from: game.state as T, timeline })
+            await listener({ to: hydratedNewState, from: hydratedOldState, timeline })
         }
         if (timeline.getChildren().length > 0) {
             await timeline.play()

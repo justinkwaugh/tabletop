@@ -6,7 +6,7 @@
     import BidButtons from './BidButtons.svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { getContext, onMount } from 'svelte'
-    import { EstatesGameState, MachineState } from '@tabletop/estates'
+    import { EstatesGameState, HydratedEstatesGameState, MachineState } from '@tabletop/estates'
     import Instructions from './Instructions.svelte'
     import WaitingInstructions from './WaitingInstructions.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
@@ -44,8 +44,8 @@
         to,
         from
     }: {
-        to: EstatesGameState
-        from?: EstatesGameState
+        to: HydratedEstatesGameState
+        from?: HydratedEstatesGameState
     }) {
         if (
             to.machineState === MachineState.Auctioning &&

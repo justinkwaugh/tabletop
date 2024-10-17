@@ -6,6 +6,7 @@
     import Cube3d from './Cube3d.svelte'
     import {
         EstatesGameState,
+        HydratedEstatesGameState,
         isBarrier,
         isCancelCube,
         isCube,
@@ -92,8 +93,8 @@
         from,
         timeline
     }: {
-        to: EstatesGameState
-        from?: EstatesGameState
+        to: HydratedEstatesGameState
+        from?: HydratedEstatesGameState
         timeline: gsap.core.Timeline
     }) {
         const object = group

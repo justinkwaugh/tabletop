@@ -74,12 +74,11 @@
         to,
         timeline
     }: {
-        to: EstatesGameState
-        from?: EstatesGameState
+        to: HydratedEstatesGameState
+        from?: HydratedEstatesGameState
         timeline: gsap.core.Timeline
     }) {
-        const state = new HydratedEstatesGameState(to)
-        const upcomingSite = state.board.getSiteAtCoords(coords)
+        const upcomingSite = to.board.getSiteAtCoords(coords)
         if (!upcomingSite) {
             return
         }
@@ -88,14 +87,14 @@
             if (upcomingSite.barriers.find((b) => b.value === barrier.value)) {
                 continue
             }
-            const barrierCoords = state.board.findBarrierSite(barrier)
+            const barrierCoords = to.board.findBarrierSite(barrier)
             if (!barrierCoords) {
                 const barrierObject = barrierObjects.get(barrier.value)
                 if (barrierObject) {
                     fadeOut({ object: barrierObject, duration: 0.2, timeline, startAt: 0 })
                 }
             } else {
-                const barrierSite = state.board.getSiteAtCoords(barrierCoords)
+                const barrierSite = to.board.getSiteAtCoords(barrierCoords)
                 const barrierObject = barrierObjects.get(barrier.value)
                 if (barrierObject && barrierSite) {
                     const index = barrierSite.barriers.findIndex((b) => b.value === barrier.value)

@@ -66,14 +66,13 @@
         from,
         timeline
     }: {
-        to: EstatesGameState
-        from?: EstatesGameState
+        to: HydratedEstatesGameState
+        from?: HydratedEstatesGameState
         timeline: gsap.core.Timeline
     }) {
-        const state = new HydratedEstatesGameState(to)
-        const heightForBackRow = state.board.maxRowHeight(0) - 0.8
-        const heightForMiddleRow = state.board.maxRowHeight(1) - 1.5
-        const heightForFrontRow = state.board.maxRowHeight(2) - 3
+        const heightForBackRow = to.board.maxRowHeight(0) - 0.8
+        const heightForMiddleRow = to.board.maxRowHeight(1) - 1.5
+        const heightForFrontRow = to.board.maxRowHeight(2) - 3
 
         const maxHeight = Math.max(2, heightForBackRow, heightForMiddleRow, heightForFrontRow)
 

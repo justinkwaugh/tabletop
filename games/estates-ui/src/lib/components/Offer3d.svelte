@@ -4,6 +4,7 @@
         BarrierDirection,
         Cube,
         EstatesGameState,
+        HydratedEstatesGameState,
         isMayor,
         isRoof,
         MachineState,
@@ -54,6 +55,16 @@
 
     let allowRoofInteraction = $state(true)
     let canHoverRoof: boolean = $derived(canChooseRoof && allowRoofInteraction)
+
+    async function onGameStateChange({
+        to
+    }: {
+        to: HydratedEstatesGameState
+        from?: HydratedEstatesGameState
+        timeline: gsap.core.Timeline
+    }) {}
+
+    gameSession.addGameStateChangeListener(onGameStateChange)
 
     function onCubeClick(event: any, cube: Cube, coords: OffsetCoordinates) {
         if (!canChoose || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
