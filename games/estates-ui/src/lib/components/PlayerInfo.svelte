@@ -27,6 +27,8 @@
             return 'w-[25px]'
         }
     }
+
+    const hideMoney = $derived(gameSession.game.config?.hiddenMoney ?? false)
 </script>
 
 <div
@@ -39,7 +41,7 @@
             <h1 class="leading-none text-sm">
                 {playerId === gameSession.myPlayer?.id ? 'You' : player?.name}
             </h1>
-            {#if playerState?.stolen}
+            {#if playerState?.stolen && !hideMoney}
                 <h1 class="text-gray-300" style="font-size:.5rem; line-height:.65rem">
                     stole ${playerState?.stolen}
                 </h1>
@@ -50,7 +52,7 @@
             {#if gameSession.gameState.machineState === MachineState.EndOfGame}
                 <div class="text-xs leading-none">SCORE</div>
                 <div class="text-xl leading-none">{playerState?.score}</div>
-            {:else}
+            {:else if !hideMoney || playerId === gameSession.myPlayer?.id}
                 <div class="text-2xl leading-none">${playerState?.money}</div>
             {/if}
         </div>

@@ -351,8 +351,8 @@
                             onpointerleave={(event: any) => {
                                 onLeaveCube(event, { row, col })
                             }}
+                            singleNumber={true}
                             onclick={(event: any) => onCubeClick(event, cube, { row, col })}
-                            rotation.x={-Math.PI / 2}
                             position.x={-2.75 + col}
                             position.y={sameCoordinates(chosenCube, { row, col })
                                 ? 0.5

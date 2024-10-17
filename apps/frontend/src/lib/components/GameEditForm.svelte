@@ -239,7 +239,13 @@
     <Toggle
         onchange={(event: Event) => onOptionChange(option, event)}
         id={option.id}
-        checked={option.default}>{option.name}</Toggle
+        checked={option.default}
+        ><div class="flex flex-col leading-tight justify-center items-start">
+            {option.name}
+            <Helper class="text-[.65rem] dark:text-gray-400 leading-tight">
+                {option.description}
+            </Helper>
+        </div></Toggle
     >
 {/snippet}
 

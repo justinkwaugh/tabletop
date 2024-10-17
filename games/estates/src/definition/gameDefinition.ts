@@ -3,6 +3,7 @@ import { EstatesHydrator } from './hydrator.js'
 import { EstatesGameInitializer } from './gameInitializer.js'
 import { EstatesApiActions } from './apiActions.js'
 import { EstatesStateHandlers } from './stateHandlers.js'
+import { EstatesGameConfigOptions } from './gameConfig.js'
 
 export const EstatesDefinition = <GameDefinition>{
     id: 'estates',
@@ -25,6 +26,6 @@ export const EstatesDefinition = <GameDefinition>{
     apiActions: EstatesApiActions,
     playerColors: [],
 
-    configOptions: [],
+    configOptions: EstatesGameConfigOptions,
     stateLogger: new DefaultStateLogger()
 }

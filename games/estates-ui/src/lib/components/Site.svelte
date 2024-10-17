@@ -4,6 +4,7 @@
         ActionType,
         Barrier,
         Company,
+        EstatesGameConfig,
         EstatesGameState,
         HydratedEstatesGameState,
         isBarrier,
@@ -310,6 +311,14 @@
             })
         }
     })
+
+    const sneakyBuildings: boolean = $derived.by(() => {
+        const config = gameSession.game.config
+        if (!config) {
+            return false
+        }
+        return (config as EstatesGameConfig).sneakyBuildings ?? false
+    })
 </script>
 
 <T.Group position.x={x} position.y={y} position.z={z} scale={1}>
@@ -345,10 +354,12 @@
     {#each site.cubes as cube, i}
         <Cube3d
             {cube}
+            singleNumber={sneakyBuildings}
             position.x={0}
             position.z={0}
             position.y={i}
-            rotation.z={gameSession.mobileView ? -Math.PI / 2 : 0}
+            rotation.y={sneakyBuildings && gameSession.mobileView ? -Math.PI / 2 : 0}
+            rotation.z={!sneakyBuildings && gameSession.mobileView ? -Math.PI / 2 : 0}
         />
     {/each}
     {#if site.roof}
@@ -380,10 +391,12 @@
     {#if hoverCube}
         <Cube3d
             cube={hoverCube}
+            singleNumber={sneakyBuildings}
             position.x={0}
             position.z={0}
             position.y={hoverCubeHeight}
-            rotation.z={gameSession.mobileView ? -Math.PI / 2 : 0}
+            rotation.y={sneakyBuildings && gameSession.mobileView ? -Math.PI / 2 : 0}
+            rotation.z={!sneakyBuildings && gameSession.mobileView ? -Math.PI / 2 : 0}
             scale={$scale}
         />
     {/if}

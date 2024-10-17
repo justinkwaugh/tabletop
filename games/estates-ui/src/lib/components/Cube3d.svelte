@@ -10,11 +10,13 @@
 
     let {
         cube,
+        singleNumber = false,
         castShadow = true,
         opacity = 1,
         ...others
     }: {
         cube: Cube
+        singleNumber?: boolean
         castShadow?: boolean
         opacity?: number
     } & Props<typeof Group> = $props()
@@ -37,55 +39,74 @@
             clearcoatRoughness={0.33}
         />
     </T.Mesh>
-    <Text
-        color="#CCCCCC"
-        position.z={0.5}
-        depthOffset={-1}
-        fontSize={0.8}
-        fontWeight="bold"
-        anchorX="50%"
-        anchorY="50%"
-        text={cube.value.toString()}
-        characters="123456HELO"
-        {material}
-    />
-    <Text
-        color="#CCCCCC"
-        rotation.y={Math.PI}
-        position.z={-0.5}
-        depthOffset={-1}
-        fontSize={0.8}
-        fontWeight="bold"
-        anchorX="50%"
-        anchorY="50%"
-        text={cube.value.toString()}
-        characters="123456HELO"
-        {material}
-    />
-    <Text
-        color="#CCCCCC"
-        rotation.y={-Math.PI / 2}
-        position.x={-0.5}
-        depthOffset={-1}
-        fontSize={0.8}
-        fontWeight="bold"
-        anchorX="50%"
-        anchorY="50%"
-        text={cube.value.toString()}
-        characters="123456HELO"
-        {material}
-    />
-    <Text
-        color="#CCCCCC"
-        rotation.y={Math.PI / 2}
-        position.x={0.5}
-        depthOffset={-1}
-        fontSize={0.8}
-        fontWeight="bold"
-        anchorX="50%"
-        anchorY="50%"
-        text={cube.value.toString()}
-        characters="123456HELO"
-        {material}
-    />
+
+    {#if singleNumber}
+        <Text
+            color="#CCCCCC"
+            position.y={0.5}
+            rotation.x={-Math.PI / 2}
+            depthOffset={-1}
+            fontSize={0.8}
+            fontWeight="bold"
+            anchorX="50%"
+            anchorY="50%"
+            text={cube.value.toString()}
+            characters="123456HELO"
+            {material}
+        />
+    {/if}
+
+    {#if !singleNumber}
+        <Text
+            color="#CCCCCC"
+            position.z={0.5}
+            depthOffset={-1}
+            fontSize={0.8}
+            fontWeight="bold"
+            anchorX="50%"
+            anchorY="50%"
+            text={cube.value.toString()}
+            characters="123456HELO"
+            {material}
+        />
+        <Text
+            color="#CCCCCC"
+            rotation.y={Math.PI}
+            position.z={-0.5}
+            depthOffset={-1}
+            fontSize={0.8}
+            fontWeight="bold"
+            anchorX="50%"
+            anchorY="50%"
+            text={cube.value.toString()}
+            characters="123456HELO"
+            {material}
+        />
+        <Text
+            color="#CCCCCC"
+            rotation.y={-Math.PI / 2}
+            position.x={-0.5}
+            depthOffset={-1}
+            fontSize={0.8}
+            fontWeight="bold"
+            anchorX="50%"
+            anchorY="50%"
+            text={cube.value.toString()}
+            characters="123456HELO"
+            {material}
+        />
+        <Text
+            color="#CCCCCC"
+            rotation.y={Math.PI / 2}
+            position.x={0.5}
+            depthOffset={-1}
+            fontSize={0.8}
+            fontWeight="bold"
+            anchorX="50%"
+            anchorY="50%"
+            text={cube.value.toString()}
+            characters="123456HELO"
+            {material}
+        />
+    {/if}
 </T.Group>
