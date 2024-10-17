@@ -299,13 +299,19 @@
             gsap.timeline({
                 onComplete
             })
-        myTimeline.to(object.position, {
-            duration: 0.2,
-            y: height
-        })
+        myTimeline.to(
+            object.position,
+            {
+                duration: 0.2,
+                y: height
+            },
+            0
+        )
 
-        fadeOut({ object, duration: 0.2, startAt: 0, timeline })
-        myTimeline.play()
+        fadeOut({ object, duration: 0.2, startAt: 0, timeline: myTimeline })
+        if (!timeline) {
+            myTimeline.play()
+        }
     }
 
     function flipAndFadeUp(object: Object3D, onComplete: () => void) {
