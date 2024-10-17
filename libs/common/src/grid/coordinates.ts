@@ -58,6 +58,18 @@ export const HexCoordinates = Type.Union([
     HexTupleCoordinates
 ])
 
+export function coordinatesToNumber(coords: OffsetCoordinates): number
+export function coordinatesToNumber(coords: AxialCoordinates): number
+export function coordinatesToNumber(coords: unknown): number {
+    if (isAxial(coords)) {
+        return szudzikPairSigned(coords.q, coords.r)
+    }
+    if (isOffset(coords)) {
+        return szudzikPairSigned(coords.col, coords.row)
+    }
+    throw Error('Invalid coordinates')
+}
+
 export function axialCoordinatesToNumber(axial: AxialCoordinates): number {
     return szudzikPairSigned(axial.q, axial.r)
 }

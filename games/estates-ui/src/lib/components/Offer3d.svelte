@@ -15,7 +15,7 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Cube3d from './Cube3d.svelte'
-    import { OffsetCoordinates, sameCoordinates } from '@tabletop/common'
+    import { coordinatesToNumber, OffsetCoordinates, sameCoordinates } from '@tabletop/common'
     import { spring } from 'svelte/motion'
     import CancelCube from './CancelCube.svelte'
     import { gsap } from 'gsap'
@@ -27,6 +27,8 @@
     import { Outliner } from '$lib/utils/outliner'
     import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
     import { Bloomer } from '$lib/utils/bloomer'
+    import { GameSessionMode } from '@tabletop/frontend-components'
+    import type { O } from 'vitest/dist/reporters-yx5ZTtEV.js'
 
     const wood = useTexture(woodImg)
 
@@ -56,13 +58,68 @@
     let allowRoofInteraction = $state(true)
     let canHoverRoof: boolean = $derived(canChooseRoof && allowRoofInteraction)
 
+    let mayorObject: Object3D | undefined
+    let barrierOneObject: Object3D | undefined
+    let barrierTwoObject: Object3D | undefined
+    let barrierThreeObject: Object3D | undefined
+    let cancelCubeObject: Object3D | undefined
+
+    let cubeObjects: Map<number, Object3D> = new Map()
+    let roofObjects: (Object3D | undefined)[] = new Array(12)
+
     async function onGameStateChange({
-        to
+        to,
+        timeline
     }: {
         to: HydratedEstatesGameState
         from?: HydratedEstatesGameState
         timeline: gsap.core.Timeline
-    }) {}
+    }) {
+        if (gameSession.mode !== GameSessionMode.History) {
+            return
+        }
+
+        for (const [rowIndex, row] of gameSession.gameState.cubes.entries()) {
+            for (const [colIndex, cube] of row.entries()) {
+                if (cube && !to.cubes[rowIndex][colIndex]) {
+                    const id = coordinatesToNumber({ row: rowIndex, col: colIndex })
+                    const cubeObject = cubeObjects.get(id)
+                    if (cubeObject) {
+                        fadeUp({ object: cubeObject, height: 2, timeline })
+                    }
+                }
+            }
+        }
+
+        for (const [index, roof] of gameSession.gameState.visibleRoofs.entries()) {
+            if (roof && !to.visibleRoofs[index]) {
+                const roofObject = roofObjects[index]
+                if (roofObject) {
+                    fadeUp({ object: roofObject, height: 2, timeline })
+                }
+            }
+        }
+
+        if (gameSession.gameState.mayor && !to.mayor && mayorObject) {
+            fadeUp({ object: mayorObject, height: 2, timeline })
+        }
+
+        if (gameSession.gameState.barrierOne && !to.barrierOne && barrierOneObject) {
+            fadeUp({ object: barrierOneObject, height: 2, timeline })
+        }
+
+        if (gameSession.gameState.barrierTwo && !to.barrierTwo && barrierTwoObject) {
+            fadeUp({ object: barrierTwoObject, height: 2, timeline })
+        }
+
+        if (gameSession.gameState.barrierThree && !to.barrierThree && barrierThreeObject) {
+            fadeUp({ object: barrierThreeObject, height: 2, timeline })
+        }
+
+        if (gameSession.gameState.cancelCube && !to.cancelCube && cancelCubeObject) {
+            fadeUp({ object: cancelCubeObject, height: 2, timeline })
+        }
+    }
 
     gameSession.addGameStateChangeListener(onGameStateChange)
 
@@ -83,9 +140,13 @@
         yPos.set(0)
 
         setTimeout(() => {
-            fadeUp(obj, 2, () => {
-                gameSession.startAuction(cube)
-                chosenCube = undefined
+            fadeUp({
+                object: obj,
+                height: 2,
+                onComplete: () => {
+                    gameSession.startAuction(cube)
+                    chosenCube = undefined
+                }
             })
         }, 1)
     }
@@ -103,8 +164,12 @@
         bloomer.removeBloom(obj)
 
         setTimeout(() => {
-            fadeUp(obj, 2, () => {
-                gameSession.startAuction({ pieceType: PieceType.Mayor })
+            fadeUp({
+                object: obj,
+                height: 2,
+                onComplete: () => {
+                    gameSession.startAuction({ pieceType: PieceType.Mayor })
+                }
             })
         }, 1)
     }
@@ -121,10 +186,14 @@
         outliner.removeOutline(obj)
         bloomer.removeBloom(obj)
         setTimeout(() => {
-            fadeUp(obj, 2, () => {
-                gameSession.startAuction({
-                    pieceType: PieceType.CancelCube
-                })
+            fadeUp({
+                object: obj,
+                height: 2,
+                onComplete: () => {
+                    gameSession.startAuction({
+                        pieceType: PieceType.CancelCube
+                    })
+                }
             })
         }, 1)
     }
@@ -144,12 +213,16 @@
         outliner.removeOutline(obj)
         bloomer.removeBloom(obj)
         setTimeout(() => {
-            fadeUp(obj, 2, () => {
-                gameSession.startAuction({
-                    pieceType: PieceType.Barrier,
-                    value,
-                    direction: BarrierDirection.Unplaced
-                })
+            fadeUp({
+                object: obj,
+                height: 2,
+                onComplete: () => {
+                    gameSession.startAuction({
+                        pieceType: PieceType.Barrier,
+                        value,
+                        direction: BarrierDirection.Unplaced
+                    })
+                }
             })
         }, 1)
     }
@@ -210,17 +283,29 @@
         await gameSession.drawRoof(index)
     }
 
-    function fadeUp(object: Object3D, height: number, onComplete: () => void) {
-        const timeline = gsap.timeline({
-            onComplete
-        })
-        timeline.to(object.position, {
+    function fadeUp({
+        object,
+        height,
+        onComplete,
+        timeline
+    }: {
+        object: Object3D
+        height: number
+        onComplete?: () => void
+        timeline?: gsap.core.Timeline
+    }) {
+        const myTimeline =
+            timeline ??
+            gsap.timeline({
+                onComplete
+            })
+        myTimeline.to(object.position, {
             duration: 0.2,
             y: height
         })
 
         fadeOut({ object, duration: 0.2, startAt: 0, timeline })
-        timeline.play()
+        myTimeline.play()
     }
 
     function flipAndFadeUp(object: Object3D, onComplete: () => void) {
@@ -332,8 +417,12 @@
                 <Roof
                     roof={{ pieceType: PieceType.Roof, value: -1 }}
                     onloaded={(ref: Object3D) => {
+                        roofObjects[i] = ref
                         hideInstant(ref)
                         fadeIn({ object: ref, duration: 0.1 })
+                        return () => {
+                            roofObjects[i] = undefined
+                        }
                     }}
                     onpointerenter={(event: any) => enterRoof(event)}
                     onpointerleave={(event: any) => leavePiece(event, 'roof')}
@@ -353,8 +442,13 @@
                         <Cube3d
                             {cube}
                             oncreate={(ref: Object3D) => {
+                                const id = coordinatesToNumber({ row, col })
+                                cubeObjects.set(id, ref)
                                 hideInstant(ref)
                                 fadeIn({ object: ref, duration: 0.1 })
+                                return () => {
+                                    cubeObjects.delete(id)
+                                }
                             }}
                             onpointerenter={(event: any) => {
                                 onEnterCube(event, { row, col })
@@ -381,8 +475,12 @@
         {#if gameSession.gameState.barrierOne}
             <BarrierOne
                 onloaded={(ref: Object3D) => {
+                    barrierOneObject = ref
                     hideInstant(ref)
                     fadeIn({ object: ref, duration: 0.1 })
+                    return () => {
+                        barrierOneObject = undefined
+                    }
                 }}
                 onpointerenter={(event: any) => enterPiece(event, 'barrier')}
                 onpointerleave={(event: any) => leavePiece(event, 'barrier')}
@@ -399,8 +497,12 @@
         {#if gameSession.gameState.barrierTwo}
             <BarrierOne
                 onloaded={(ref: Object3D) => {
+                    barrierTwoObject = ref
                     hideInstant(ref)
                     fadeIn({ object: ref, duration: 0.1 })
+                    return () => {
+                        barrierTwoObject = undefined
+                    }
                 }}
                 onpointerenter={(event: any) => enterPiece(event, 'barrier')}
                 onpointerleave={(event: any) => leavePiece(event, 'barrier')}
@@ -417,8 +519,12 @@
         {#if gameSession.gameState.barrierThree}
             <BarrierOne
                 onloaded={(ref: Object3D) => {
+                    barrierThreeObject = ref
                     hideInstant(ref)
                     fadeIn({ object: ref, duration: 0.1 })
+                    return () => {
+                        barrierThreeObject = undefined
+                    }
                 }}
                 onpointerenter={(event: any) => enterPiece(event, 'barrier')}
                 onpointerleave={(event: any) => leavePiece(event, 'barrier')}
@@ -435,8 +541,12 @@
         {#if gameSession.gameState.mayor}
             <TopHat
                 onloaded={(ref: Object3D) => {
+                    mayorObject = ref
                     hideInstant(ref)
                     fadeIn({ object: ref, duration: 0.1 })
+                    return () => {
+                        mayorObject = undefined
+                    }
                 }}
                 onpointerenter={(event: any) => enterPiece(event, 'topHat')}
                 onpointerleave={(event: any) => leavePiece(event, 'topHat')}
@@ -450,8 +560,12 @@
         {#if gameSession.gameState.cancelCube}
             <CancelCube
                 oncreate={(ref: Object3D) => {
+                    cancelCubeObject = ref
                     hideInstant(ref)
                     fadeIn({ object: ref, duration: 0.1 })
+                    return () => {
+                        cancelCubeObject = undefined
+                    }
                 }}
                 onpointerenter={(event: any) => enterPiece(event, 'cancelCube')}
                 onpointerleave={(event: any) => leavePiece(event, 'cancelCube')}
