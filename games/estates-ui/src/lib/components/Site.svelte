@@ -346,7 +346,7 @@
             position.y={-0.49 + site.cubes.length}
             rotation.x={-Math.PI / 2}
         >
-            <T.PlaneGeometry args={site.cubes.length === 0 ? [1.3, 1.3] : [1, 1]} />
+            <T.PlaneGeometry args={site.cubes.length === 0 ? [1, 1] : [1, 1]} />
             <T.MeshBasicMaterial
                 color={'white'}
                 transparent={true}
