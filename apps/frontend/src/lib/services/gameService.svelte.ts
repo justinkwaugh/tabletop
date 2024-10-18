@@ -14,7 +14,9 @@ import {
     GameStatus,
     Notification,
     NotificationCategory,
-    GameAction
+    GameAction,
+    GameState,
+    type HydratedGameState
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
@@ -45,11 +47,11 @@ export class GameService {
             )
             .slice(0, 10)
     )
-    private loading = $state(false)
+    private loading = false
     private loaded = false
     private loadingPromise: Promise<void> | null = null
 
-    currentGameSession: GameSession | undefined = $state(undefined)
+    currentGameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
 
     constructor(
         private readonly authorizationService: AuthorizationService,
@@ -59,18 +61,14 @@ export class GameService {
         notificationService.addListener(this.NotificationListener)
     }
 
-    isLoading(): boolean {
-        return this.loading
-    }
-
     async loadGames() {
         if (this.loaded) {
             return
         }
         if (!this.loadingPromise) {
             this.loading = true
+            this.gamesById.clear()
             this.loadingPromise = this.api.getMyGames().then((games) => {
-                this.gamesById.clear()
                 games.forEach((game) => {
                     this.gamesById.set(game.id, game)
                 })

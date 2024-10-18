@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { Modal, Button } from 'flowbite-svelte'
+    import { Modal } from 'flowbite-svelte'
     import GameCard from '$lib/components/GameCard.svelte'
-    import { getContext, onMount } from 'svelte'
+    import { getContext } from 'svelte'
     import GameEditForm from '$lib/components/GameEditForm.svelte'
     import type { Game } from '@tabletop/common'
     import type { AppContext } from '$lib/stores/appContext.svelte'

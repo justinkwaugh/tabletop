@@ -34,11 +34,12 @@ export class RedisService {
 
     private async initialize(): Promise<void> {
         console.log(`Initializing RedisPubSubService`)
-        this.client.on('error', (err) => console.log('Redis client error:', err))
-        this.client.on('connect', () => console.log('Redis client connected'))
-        this.client.on('ready', () => console.log('Redis client ready'))
-        this.client.on('end', () => console.log('Redis client has ended its connection'))
-        this.client.on('reconnecting', () => console.log('Redis client is reconnecting'))
+        const tempFix = this.client as any
+        tempFix.on('error', (err: unknown) => console.log('Redis client error:', err))
+        tempFix.on('connect', () => console.log('Redis client connected'))
+        tempFix.on('ready', () => console.log('Redis client ready'))
+        tempFix.on('end', () => console.log('Redis client has ended its connection'))
+        tempFix.on('reconnecting', () => console.log('Redis client is reconnecting'))
         await this.client.connect()
     }
 }
