@@ -29,6 +29,7 @@ export const GameState = Type.Object({
 })
 
 export interface HydratedGameState extends GameState {
+    isActivePlayer(playerId: string): boolean
     recordAction(action: GameAction): void
     dehydrate(): GameState
 }

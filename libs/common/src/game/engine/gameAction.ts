@@ -43,9 +43,6 @@ export const ToAPIAction = (schema: TSchema) =>
         })
     ])
 
-export type APIAction = Static<typeof APIAction>
-export const APIAction = ToAPIAction(GameAction)
-
 export interface HydratedAction extends GameAction {
     apply(state: GameState, context?: MachineContext): void
     dehydrate(): GameAction
@@ -64,6 +61,8 @@ export abstract class HydratableAction<T extends TSchema>
     declare undoPatch?: Patch
     declare simultaneousGroupId?: string
     declare revealsInfo?: boolean
+    declare createdAt?: Date
+    declare updatedAt?: Date
 
     abstract apply(state: GameState): void
 }

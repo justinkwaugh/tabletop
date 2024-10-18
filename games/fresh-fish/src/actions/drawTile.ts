@@ -28,6 +28,7 @@ export function isDrawTile(action: GameAction): action is DrawTile {
 export class HydratedDrawTile extends HydratableAction<typeof DrawTile> implements DrawTile {
     declare type: ActionType.DrawTile
     declare revealsInfo: true
+    declare metadata: { chosenTile: Tile }
 
     constructor(data: DrawTile) {
         super(data, DrawTileValidator)

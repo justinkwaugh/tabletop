@@ -1,7 +1,7 @@
 import jsonpatch, { Operation } from 'fast-json-patch'
 import { GameAction, HydratedAction, Patch } from './gameAction.js'
 import { Game } from '../model/game.js'
-import { GameState } from '../model/gameState.js'
+import { GameState, HydratedGameState } from '../model/gameState.js'
 import { MachineContext } from './machineContext.js'
 import { MachineStateHandler } from './machineStateHandler.js'
 import { GameDefinition } from '../definition/gameDefinition.js'
@@ -36,10 +36,8 @@ export class GameEngine {
             gameState: initialState
         })
 
-        const initialHandler = this.getStateHandler(initialState.machineState)
+        const initialHandler = this.getStateHandler(initialState)
         initialHandler.enter(machineContext)
-
-        this.definition.stateLogger?.logState(initialState)
 
         startedGame.state = initialState.dehydrate()
         return startedGame
@@ -51,18 +49,18 @@ export class GameEngine {
         }
 
         const state = game.state
-        if (!state.activePlayerIds.includes(playerId)) {
+
+        const hydratedState = this.definition.hydrator.hydrateState(state)
+        if (!hydratedState.isActivePlayer(playerId)) {
             return []
         }
 
-        const hydratedState = this.definition.hydrator.hydrateState(state)
         const machineContext = new MachineContext({
             gameConfig: game.config,
             gameState: hydratedState
         })
 
-        const machineState = hydratedState.machineState
-        const stateHandler = this.getStateHandler(machineState)
+        const stateHandler = this.getStateHandler(hydratedState)
         return stateHandler.validActionsForPlayer(playerId, machineContext)
     }
 
@@ -93,7 +91,6 @@ export class GameEngine {
             )
         }
 
-        // this.definition.stateLogger?.logState(hydratedState)
         while (
             machineContext.getPendingActions().length > 0 &&
             (mode === RunMode.Multiple || processedActions.length === 0)
@@ -114,12 +111,10 @@ export class GameEngine {
                 hydratedAction.createdAt = new Date()
             }
 
-            const machineState = hydratedState.machineState
-            const stateHandler = this.getStateHandler(machineState)
-
+            const stateHandler = this.getStateHandler(hydratedState)
             if (!stateHandler.isValidAction(hydratedAction, machineContext)) {
                 throw Error(
-                    `Action of type ${hydratedAction.type} is not valid for the current machine state: ${machineState}`
+                    `Action of type ${hydratedAction.type} is not valid for the current machine state: ${hydratedState.machineState}`
                 )
             }
 
@@ -130,7 +125,7 @@ export class GameEngine {
             hydratedState.recordAction(hydratedAction)
             hydratedState.machineState = nextMachineState
 
-            const nextHandler = this.getStateHandler(nextMachineState)
+            const nextHandler = this.getStateHandler(hydratedState)
             nextHandler.enter(machineContext)
 
             const stateBeforeAction = updatedState
@@ -143,7 +138,6 @@ export class GameEngine {
             processedActions.push(dehydratedAction)
         }
 
-        // this.definition.stateLogger?.logState(hydratedState)
         return { processedActions, updatedState, indexOffset }
     }
 
@@ -163,18 +157,14 @@ export class GameEngine {
         return state
     }
 
-    private isPlayerAllowed(action: GameAction, state: GameState): boolean {
-        return !action.playerId || this.isPlayerActive(action.playerId, state)
+    private isPlayerAllowed(action: GameAction, state: HydratedGameState): boolean {
+        return !action.playerId || state.isActivePlayer(action.playerId)
     }
 
-    private isPlayerActive(playerId: string, state: GameState) {
-        return state.activePlayerIds.includes(playerId)
-    }
-
-    private getStateHandler(machineState: string): MachineStateHandler<HydratedAction> {
-        const stateHandler = this.definition.stateHandlers[machineState]
+    private getStateHandler(state: GameState): MachineStateHandler<HydratedAction> {
+        const stateHandler = this.definition.stateHandlers[state.machineState]
         if (!stateHandler) {
-            throw Error(`Unknown machine state: ${machineState}`)
+            throw Error(`Unknown machine state: ${state.machineState}`)
         }
         return stateHandler
     }
