@@ -88,14 +88,20 @@
 <svelte:window bind:innerHeight={windowHeight} />
 
 <div class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row justify-center items-center">
-    {#if gameSession.chosenAction === ActionType.PlaceBid || gameSession.chosenAction === ActionType.PlaceStall}
+    {#if gameSession.chosenAction === ActionType.PlaceBid}
         <StallTile
-            size={windowHeight && windowHeight > 700 ? 90 : 50}
+            size={windowHeight && windowHeight > 700 ? 90 : 80}
+            goodsType={gameSession.gameState.getChosenStallType()}
+        />
+    {/if}
+    {#if gameSession.chosenAction === ActionType.PlaceStall}
+        <StallTile
+            size={windowHeight && windowHeight > 700 ? 80 : 50}
             goodsType={gameSession.gameState.getChosenStallType()}
         />
     {/if}
     {#if gameSession.chosenAction === ActionType.PlaceMarket}
-        <MarketTile size={windowHeight && windowHeight > 700 ? 90 : 50} animate={false} />
+        <MarketTile size={windowHeight && windowHeight > 700 ? 80 : 50} animate={false} />
     {/if}
     <div class="flex flex-col justify-center items-center mx-8">
         <h1 class="text:md sm:text-lg leading-tight">{instructions}</h1>

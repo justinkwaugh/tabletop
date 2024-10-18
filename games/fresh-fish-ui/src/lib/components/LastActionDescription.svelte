@@ -9,6 +9,8 @@
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
 
+    let windowHeight: number | null | undefined = $state()
+
     let lastAction = $derived.by(() => {
         let action
         if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
@@ -24,19 +26,22 @@
     })
 </script>
 
+<svelte:window bind:innerHeight={windowHeight} />
+
 {#if lastAction}
     <div
         class="rounded-lg bg-transparent text-gray-200 p-1 sm:p-2 text-center flex flex-row justify-center items-center mb-2"
     >
         <div class="flex flex-col justify-center items-center w-full grow-1">
-            <h1 class="text-sm sm:text-lg text-pretty leading-tight">
-                {#if lastAction && lastAction.playerId}
-                    <PlayerName playerId={lastAction.playerId} />
-                {/if}
-                {getDescriptionForAction(lastAction)}
-            </h1>
             {#if isEndAuction(lastAction)}
-                <AuctionResults action={lastAction} />
+                <AuctionResults winnerOnly={(windowHeight ?? 0) <= 700} action={lastAction} />
+            {:else}
+                <h1 class="text-sm sm:text-lg text-pretty leading-tight">
+                    {#if lastAction && lastAction.playerId}
+                        <PlayerName playerId={lastAction.playerId} />
+                    {/if}
+                    {getDescriptionForAction(lastAction)}
+                </h1>
             {/if}
         </div>
 

@@ -31,7 +31,7 @@ export function getDescriptionForAction(action: GameAction) {
                 return `had to place a ${getGoodsName(action.goodsType)} stall, but did not have a reserved location so the stall was discarded`
             }
         case isEndAuction(action):
-            return 'The auction has ended:'
+            return 'The auction has ended'
         case isPlaceBid(action):
             return 'placed a bid'
         case isStartAuction(action):
