@@ -35,7 +35,11 @@ export function getDescriptionForAction(action: GameAction) {
         case isPlaceBid(action):
             return 'placed a bid'
         case isStartAuction(action):
-            return 'started an auction'
+            if (action.metadata) {
+                return `started a ${getGoodsName(action.metadata.goodsType)} stall auction`
+            } else {
+                return `started an auction`
+            }
         default:
             return action.type
     }

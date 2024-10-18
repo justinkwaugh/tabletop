@@ -12,12 +12,18 @@ import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { isStallTile } from '../components/tiles.js'
 import { ActionType } from '../definition/actions.js'
+import { GoodsType } from '../definition/goodsType.js'
 
 export type StartAuction = Static<typeof StartAuction>
 export const StartAuction = Type.Composite([
     GameAction,
     Type.Object({
-        type: Type.Literal(ActionType.StartAuction)
+        type: Type.Literal(ActionType.StartAuction),
+        metadata: Type.Optional(
+            Type.Object({
+                goodsType: Type.Enum(GoodsType)
+            })
+        )
     })
 ])
 
@@ -32,6 +38,7 @@ export class HydratedStartAuction
     implements StartAuction
 {
     declare type: ActionType.StartAuction
+    declare metadata: { goodsType: GoodsType }
 
     constructor(data: StartAuction) {
         super(data, StartAuctionValidator)
@@ -64,5 +71,7 @@ export class HydratedStartAuction
             tie: false,
             tieResolution: TieResolutionStrategy.FirstInOrder
         })
+
+        this.metadata = { goodsType: chosenTile.goodsType }
     }
 }
