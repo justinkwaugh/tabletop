@@ -62,10 +62,14 @@
 
         const maxHeight = Math.max(2, heightForBackRow, heightForMiddleRow, heightForFrontRow)
 
-        gsap.to(playerPanelPos, {
-            duration: 0.5,
-            y: maxHeight + 0.5
-        })
+        timeline.to(
+            playerPanelPos,
+            {
+                duration: 0.5,
+                y: maxHeight + 0.5
+            },
+            0
+        )
 
         if (
             currentMayor !== undefined &&

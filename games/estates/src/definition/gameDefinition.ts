@@ -11,12 +11,13 @@ export const EstatesDefinition = <GameDefinition>{
     metadata: {
         name: 'The Estates',
         designer: 'Klaus Zoch',
-        description: 'Bidding game',
+        description:
+            'The estates is a highly interactive auction game in which you act as investors vying to build profitable buildings.',
         year: '2018',
         minPlayers: 2,
         maxPlayers: 5,
         defaultPlayerCount: 4,
-        beta: true
+        beta: false
     },
 
     initializer: new EstatesGameInitializer(),
