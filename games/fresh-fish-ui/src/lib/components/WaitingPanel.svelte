@@ -32,29 +32,29 @@
 <div
     class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row flex-wrap justify-center items-center"
 >
-    <div class="flex flex-col justify-center items-center mx-4">
+    <div class="flex flex-col justify-center items-center mx-4 leading-tight">
         {#if isAuctioning}
-            <h1 class="text-lg">Collecting other players' bids...</h1>
+            <h1 class="text-md sm:text-lg">Collecting other players' bids...</h1>
             <div class="flex flex-row justify-center items-center">
                 {#each gameSession.gameState.activePlayerIds as playerId}
                     <div class="flex flex-col justify-center items-center mx-2">
-                        <h1 class="text-lg">
+                        <h1 class="text-md sm:text-lg">
                             <PlayerName {playerId} />
                         </h1>
                     </div>
                 {/each}
             </div>
         {:else if isMarketPlacement}
-            <h1 class="text-lg text-pretty">
+            <h1 class="text-md sm:text-lg text-pretty">
                 Waiting for <PlayerName playerId={currentPlayerId} /> to place their market tile...
             </h1>
         {:else if isStallPlacement}
-            <h1 class="text-lg text-pretty">
+            <h1 class="text-md sm:text-lg text-pretty">
                 Waiting for <PlayerName playerId={currentPlayerId} /> to place their {stallName} stall
                 tile...
             </h1>
         {:else}
-            <h1 class="text-lg text-pretty">
+            <h1 class="text-md sm:text-lg text-pretty">
                 Waiting for <PlayerName playerId={currentPlayerId} /> to take their turn...
             </h1>
         {/if}

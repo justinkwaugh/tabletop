@@ -54,9 +54,9 @@
             case ActionType.PlaceBid:
                 return 'Place your bid'
             case ActionType.PlaceDisk:
-                return 'Please place a disk on the board'
+                return 'Please place your disk'
             case ActionType.PlaceStall:
-                return 'Please place the stall on the board'
+                return 'Please place your stall on the board'
             case ActionType.PlaceMarket:
                 return 'Please place the market on the board'
             default:
@@ -87,24 +87,28 @@
 
 <svelte:window bind:innerHeight={windowHeight} />
 
-<div
-    class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row flex-wrap justify-center items-center"
->
-    {#if gameSession.chosenAction === ActionType.PlaceBid}
-        <StallTile size={90} goodsType={gameSession.gameState.getChosenStallType()} />
+<div class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row justify-center items-center">
+    {#if gameSession.chosenAction === ActionType.PlaceBid || gameSession.chosenAction === ActionType.PlaceStall}
+        <StallTile
+            size={windowHeight && windowHeight > 700 ? 90 : 50}
+            goodsType={gameSession.gameState.getChosenStallType()}
+        />
+    {/if}
+    {#if gameSession.chosenAction === ActionType.PlaceMarket}
+        <MarketTile size={windowHeight && windowHeight > 700 ? 90 : 50} animate={false} />
     {/if}
     <div class="flex flex-col justify-center items-center mx-8">
-        <h1 class="text-lg">{instructions}</h1>
+        <h1 class="text:md sm:text-lg leading-tight">{instructions}</h1>
         {#if gameSession.chosenAction === ActionType.PlaceBid}
-            <div class="flex flex-row justify-center items-center mt-2 mb-3">
+            <div class="flex flex-row justify-center items-center my-0 sm:my-1 md:my-2">
                 <button
-                    class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px] bg-gray-400"
-                    onclick={decrementBid}><h1 class="text-2xl">-</h1></button
+                    class="flex flex-col justify-center items-center rounded-full w-[30px] sm:w-[35px] h-[30px] sm:h-[35px] bg-gray-400"
+                    onclick={decrementBid}><h1 class="text-2xl mb-1">-</h1></button
                 >
-                <h1 class="w-[50px] text-4xl">{bidValue}</h1>
+                <h1 class="w-[50px] text-3xl sm:text-4xl">{bidValue}</h1>
                 <button
-                    class="flex flex-col justify-center items-center rounded-full w-[35px] h-[35px] bg-gray-400"
-                    onclick={incrementBid}><h1 class="text-2xl">+</h1></button
+                    class="flex flex-col justify-center items-center rounded-full w-[30px] sm:w-[35px] h-[30px] sm:h-[35px] bg-gray-400"
+                    onclick={incrementBid}><h1 class="text-2xl mb-1">+</h1></button
                 >
             </div>
         {/if}
@@ -125,20 +129,6 @@
                 <Button onclick={() => placeBid()} size="xs" class="m-1" color="blue"
                     >Bid ${bidValue}</Button
                 >
-            {/if}
-            {#if gameSession.chosenAction === ActionType.PlaceStall}
-                <div class="my-2">
-                    <StallTile
-                        size={windowHeight && windowHeight > 700 ? 100 : 75}
-                        playerId={gameSession.myPlayer?.id}
-                        goodsType={gameSession.gameState.getChosenStallType()}
-                    />
-                </div>
-            {/if}
-            {#if gameSession.chosenAction === ActionType.PlaceMarket}
-                <div class="my-2">
-                    <MarketTile animate={false} />
-                </div>
             {/if}
         </div>
     </div>
