@@ -1,1 +1,127 @@
-{"scene":0,"asset":{"generator":"ImageToStl.com","version":"2.0"},"scenes":[{"name":"Scene","nodes":[0]}],"nodes":[{"name":"Node0","children":[1]},{"name":"Node1","mesh":0}],"materials":[{"name":"Material #25","pbrMetallicRoughness":{"baseColorFactor":[0.58431375,0.58431375,0.58431375,1.0],"metallicFactor":0.0,"roughnessFactor":1.0},"doubleSided":true},{"name":"Material #26","pbrMetallicRoughness":{"baseColorFactor":[0.58431375,0.58431375,0.58431375,1.0],"metallicFactor":0.0,"roughnessFactor":1.0},"doubleSided":true},{"name":"01 - Default","pbrMetallicRoughness":{"baseColorFactor":[0.5882353,0.5882353,0.5882353,1.0],"metallicFactor":0.0,"roughnessFactor":1.0},"doubleSided":true},{"name":"Material #28","pbrMetallicRoughness":{"baseColorFactor":[0.58431375,0.58431375,0.58431375,1.0],"metallicFactor":0.0,"roughnessFactor":1.0},"doubleSided":true},{"name":"Material #29","pbrMetallicRoughness":{"baseColorFactor":[0.58431375,0.58431375,0.58431375,1.0],"metallicFactor":0.0,"roughnessFactor":1.0},"doubleSided":true},{"name":"Material #30","pbrMetallicRoughness":{"baseColorFactor":[0.58431375,0.58431375,0.58431375,1.0],"metallicFactor":0.0,"roughnessFactor":1.0},"doubleSided":true}],"meshes":[{"name":"Mesh0","primitives":[{"indices":1,"material":2,"attributes":{"POSITION":0}}]}],"accessors":[{"bufferView":0,"componentType":5126,"count":16,"type":"VEC3","min":[-0.22849801,-0.9999999,0.0],"max":[0.22849801,1.0,0.8130001]},{"bufferView":1,"componentType":5123,"count":84,"type":"SCALAR"}],"bufferViews":[{"target":34962,"buffer":0,"byteLength":192,"byteOffset":0},{"target":34963,"buffer":0,"byteLength":168,"byteOffset":192}],"buffers":[{"byteLength":360,"uri":"data:application/octet-stream;base64,Yvtpvv7/f78AAAAAYvtpvgAAgD8AAAAAYvtpPgAAgD8AAAAAYvtpPv7/f78AAAAAuDNSvf7/f7/EIFA/uDNSPf7/f7/EIFA/uDNSPQAAgD/GIFA/uDNSvQAAgD/GIFA/YvtpPv7/f7/kpZs9Yvtpvv7/f7/kpZs9A0SmPf7/f7/E9ag+A0Smvf7/f7/E9ag+YvtpPgAAgD/kpZs9A0SmPQAAgD/E9ag+YvtpvgAAgD/kpZs9A0SmvQAAgD/E9ag+AAABAAIAAgADAAAABAAFAAYABgAHAAQAAAADAAgACAAJAAAACQAIAAoACgALAAkACwAKAAUABQAEAAsAAwACAAwADAAIAAMACAAMAA0ADQAKAAgACgANAAYABgAFAAoAAgABAA4ADgAMAAIADAAOAA8ADwANAAwADQAPAAcABwAGAA0AAQAAAAkACQAOAAEADgAJAAsACwAPAA4ADwALAAQABAAHAA8A"}]}
+{
+    "asset": {
+        "generator": "Khronos glTF Blender I/O v4.2.69",
+        "version": "2.0"
+    },
+    "scene": 0,
+    "scenes": [
+        {
+            "name": "Scene",
+            "nodes": [0]
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "name": "roundedblocker"
+        }
+    ],
+    "materials": [
+        {
+            "doubleSided": true,
+            "name": "Material.006",
+            "pbrMetallicRoughness": {
+                "baseColorTexture": {
+                    "index": 0
+                },
+                "metallicFactor": 0,
+                "roughnessFactor": 0.5
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "roundedblocker",
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0,
+                        "NORMAL": 1,
+                        "TEXCOORD_0": 2
+                    },
+                    "indices": 3,
+                    "material": 0
+                }
+            ]
+        }
+    ],
+    "textures": [
+        {
+            "sampler": 0,
+            "source": 0
+        }
+    ],
+    "images": [
+        {
+            "mimeType": "image/png",
+            "name": "selectedfacesroundedblocker",
+            "uri": "selectedfacesroundedblocker.png"
+        }
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "componentType": 5126,
+            "count": 695,
+            "max": [16.385194778442383, 20, 0],
+            "min": [-1.3851956129074097, 0, -20],
+            "type": "VEC3"
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5126,
+            "count": 695,
+            "type": "VEC3"
+        },
+        {
+            "bufferView": 2,
+            "componentType": 5126,
+            "count": 695,
+            "type": "VEC2"
+        },
+        {
+            "bufferView": 3,
+            "componentType": 5123,
+            "count": 1524,
+            "type": "SCALAR"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteLength": 8340,
+            "byteOffset": 0,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteLength": 8340,
+            "byteOffset": 8340,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteLength": 5560,
+            "byteOffset": 16680,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteLength": 3048,
+            "byteOffset": 22240,
+            "target": 34963
+        }
+    ],
+    "samplers": [
+        {
+            "magFilter": 9729,
+            "minFilter": 9987
+        }
+    ],
+    "buffers": [
+        {
+            "byteLength": 25288,
+            "uri": "Barrier.bin"
+        }
+    ]
+}

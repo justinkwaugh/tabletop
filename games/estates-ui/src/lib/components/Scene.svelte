@@ -15,25 +15,11 @@
     import PlayerPanel3d from './PlayerPanel3d.svelte'
     import GlowingCircle from './GlowingCircle.svelte'
     import { gsap, Power1 } from 'gsap'
-    import {
-        Company,
-        EstatesGameState,
-        HydratedEstatesGameState,
-        isMayor,
-        MachineState
-    } from '@tabletop/estates'
+    import { Company, HydratedEstatesGameState, isMayor, MachineState } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
-    import {
-        fade,
-        fadeIn,
-        fadeOut,
-        hideInstant,
-        scale,
-        scaleIn,
-        scaleOut
-    } from '$lib/utils/animations'
+    import { fade, fadeIn, fadeOut, hideInstant, scale } from '$lib/utils/animations'
     import { useDebounce } from 'runed'
-    import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
+    import { GameSessionMode } from '@tabletop/frontend-components'
     // import { Checkbox, Folder, FpsGraph, List, Pane, Slider } from 'svelte-tweakpane-ui'
     // import RenderIndicator from './RenderIndicator.svelte'
 
@@ -215,6 +201,11 @@
             paddingRight: 0
         })
 
+        const currentPos = cameraControls.getPosition(new Vector3())
+        await cameraControls.setLookAt(0, currentPos.y, 0, 0, 0, 0, false)
+        cameraControls.polarAngle = Math.PI / 2
+        cameraControls.azimuthAngle = -Math.PI / 2
+
         cameraControls.maxDistance = cameraControls.distance
         cameraControls.minDistance = cameraControls.distance - 10
         cameraControls.maxPolarAngle = Math.PI / 2
@@ -223,6 +214,7 @@
         cameraControls.minAzimuthAngle = -(Math.PI / 4) * 3
         cameraControls.mouseButtons.left = CameraControls.ACTION.CUSTOM
         cameraControls.touches.one = CameraControls.ACTION.CUSTOM
+
         cameraControls.saveState()
     }
 

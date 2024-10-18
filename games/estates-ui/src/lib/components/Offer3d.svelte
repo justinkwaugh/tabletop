@@ -28,7 +28,6 @@
     import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
     import { Bloomer } from '$lib/utils/bloomer'
     import { GameSessionMode } from '@tabletop/frontend-components'
-    import type { O } from 'vitest/dist/reporters-yx5ZTtEV.js'
 
     const wood = useTexture(woodImg)
 
