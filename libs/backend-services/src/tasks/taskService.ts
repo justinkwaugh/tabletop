@@ -33,4 +33,13 @@ export interface TaskService {
         token: string
         toEmail: string
     }): Promise<void>
+    sendTurnNotification({
+        userId,
+        gameId,
+        notificationId
+    }: {
+        userId: string
+        gameId: string
+        notificationId: string
+    }): Promise<void>
 }

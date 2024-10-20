@@ -62,6 +62,7 @@ import { nanoid } from 'nanoid'
 import { GameStore } from '../persistence/stores/gameStore.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
+import { RedisCacheService } from '../cache/cacheService.js'
 
 const FreshFish = FreshFishDefinition
 const BridgesOfShangrila = BridgesDefinition
@@ -82,6 +83,7 @@ export class GameService {
         private readonly tokenService: TokenService,
         private readonly taskService: TaskService,
         private readonly notificationService: NotificationService,
+        private readonly cacheService: RedisCacheService,
         private readonly availableTitles: Record<string, GameDefinition> = AVAILABLE_TITLES
     ) {}
 
@@ -675,7 +677,20 @@ export class GameService {
                 if (!activeUser) {
                     continue
                 }
-                await this.notifyIsYourTurn(activeUser, updatedGame)
+
+                const notificationId = nanoid()
+                const cacheKey = this.makeTurnNotificationCacheKey(activeUser.id, updatedGame.id)
+
+                await this.cacheService.set(cacheKey, notificationId, 60 * 2)
+                this.taskService
+                    .sendTurnNotification({
+                        userId: activeUser.id,
+                        gameId: updatedGame.id,
+                        notificationId
+                    })
+                    .catch((e) => {
+                        console.error('Failed to send turn notification', e)
+                    })
             }
         }
 
@@ -1002,23 +1017,47 @@ export class GameService {
         })
     }
 
-    private async notifyIsYourTurn(user: User, game: Game): Promise<void> {
-        const notification: IsYourTurnNotification = {
-            id: nanoid(),
-            type: NotificationCategory.User,
-            action: UserNotificationAction.IsYourTurn,
-            data: {
-                user: {
-                    id: user.id
-                },
-                game: {
-                    id: game.id,
-                    typeId: game.typeId,
-                    name: game.name
+    async notifyIsYourTurn(userId: string, gameId: string, notificationId: string): Promise<void> {
+        const cacheKey = this.makeTurnNotificationCacheKey(userId, gameId)
+        const { value } = await this.cacheService.get(cacheKey)
+        if (value !== notificationId) {
+            console.log('Notification id not found')
+            return
+        }
+
+        const user = await this.userService.getUser(userId)
+        const game = await this.getGame({ gameId })
+
+        if (!user || !game) {
+            console.log('Cannot find user or game for notification', userId, gameId)
+            return
+        }
+
+        try {
+            const playerId = this.findValidPlayerForUser({ user, game }).id
+            if (!game.activePlayerIds?.includes(playerId)) {
+                return
+            }
+
+            const notification: IsYourTurnNotification = {
+                id: notificationId,
+                type: NotificationCategory.User,
+                action: UserNotificationAction.IsYourTurn,
+                data: {
+                    user: {
+                        id: user.id
+                    },
+                    game: {
+                        id: game.id,
+                        typeId: game.typeId,
+                        name: game.name
+                    }
                 }
             }
+            await this.notifyUser(notification)
+        } catch (e) {
+            console.log('error in notifyIsYourTurn', e)
         }
-        await this.notifyUser(notification)
     }
 
     private async notifyWasInvited(user: User, owner: User, game: Game): Promise<void> {
@@ -1121,5 +1160,9 @@ export class GameService {
             topics: [userTopic],
             channels: [NotificationDistributionMethod.UserDirect]
         })
+    }
+
+    private makeTurnNotificationCacheKey(userId: string, gameId: string): string {
+        return `turn-notification-${userId}-${gameId}`
     }
 }

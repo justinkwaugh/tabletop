@@ -80,7 +80,8 @@ export default fp(async (fastify: FastifyInstance) => {
         userService,
         tokenService,
         taskService,
-        notificationService
+        notificationService,
+        redisCacheService
     )
 
     const discordService = new DiscordService(notificationService, userService)

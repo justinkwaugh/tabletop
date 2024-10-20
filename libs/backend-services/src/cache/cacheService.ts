@@ -37,6 +37,23 @@ export class RedisCacheService {
         this.client = redisService.client
     }
 
+    // simple getting from the cache without any locking
+    public async get<T>(key: string): Promise<{ value: T | undefined; cached: boolean }> {
+        const { value, cached } = await this.cacheGet(key)
+        return { value: value as T, cached }
+    }
+
+    // Simple setting into the cache without any locking
+    public async set(key: string, value: unknown, forSeconds?: number): Promise<void> {
+        const valueToCache = this.valueForCache(value)
+        const cacheValue = valueToCache === undefined ? NONE_PREFIX : VALUE_PREFIX + valueToCache
+        if (forSeconds === undefined) {
+            await this.client.set(key, cacheValue)
+        } else {
+            await this.client.setEx(key, forSeconds, cacheValue)
+        }
+    }
+
     // This method will do a cached get, but on a miss will call the provided
     // function to produce the correct value and then will attempt to cache it
     public async cachingGet<T>(

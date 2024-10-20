@@ -61,4 +61,21 @@ export abstract class BaseTaskService implements TaskService {
             payload: { userId, gameId, token, toEmail }
         })
     }
+
+    async sendTurnNotification({
+        userId,
+        gameId,
+        notificationId
+    }: {
+        userId: string
+        gameId: string
+        notificationId: string
+    }): Promise<void> {
+        await this.createPushTask({
+            queue: 'turn-notification',
+            path: '/notification/sendTurnNotification',
+            inSeconds: 60,
+            payload: { userId, gameId, notificationId }
+        })
+    }
 }
