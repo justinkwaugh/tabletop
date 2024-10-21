@@ -235,7 +235,7 @@ export class RedisCacheService {
         try {
             return await this.client.executeIsolated(async (isolatedClient) => {
                 const lockValues = []
-                // Watch the keys to ensure they doesn't change
+                // Watch the keys to ensure they don't change
                 await isolatedClient.watch(keys)
 
                 // Grab the current values
@@ -245,7 +245,6 @@ export class RedisCacheService {
                 for (const [index, currentValue] of currentValues.entries()) {
                     // If the key is already locked, we can't lock it, otherwise set it with expiry
                     if (currentValue !== null && this.isLocked(currentValue)) {
-                        await isolatedClient.unwatch()
                         lockValues.push(undefined)
                     } else {
                         const lockValue = READ_LOCK_PREFIX + nanoid()
@@ -370,7 +369,7 @@ export class RedisCacheService {
                 for (const [index, currentValue] of currentValues.entries()) {
                     const request = setRequests[index]
                     if (currentValue !== request.lockValue) {
-                        await isolatedClient.unwatch()
+                        continue
                     } else {
                         pipeline.set(request.key, request.value)
                     }
