@@ -29,6 +29,7 @@ import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
 import Ably from 'ably'
 import { checkVersion, VersionChange } from './versionChecker.js'
+import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
@@ -521,7 +522,10 @@ export class TabletopApi {
         }
     }
 
-    private on401() {
-        // goto('/login')
+    private async on401() {
+        toast.error('Your session has timed out.  Rerouting to login page.')
+        window.location.reload()
+        // let the window reload
+        await new Promise((r) => setTimeout(r, 60000))
     }
 }
