@@ -1,3 +1,8 @@
+<script module>
+    import { PUBLIC_ENABLE_DISCORD_LOGIN } from '$env/static/public'
+    export const isEnabled: boolean = !!PUBLIC_ENABLE_DISCORD_LOGIN
+</script>
+
 <script lang="ts">
     import { Button } from 'flowbite-svelte'
 
