@@ -1,10 +1,12 @@
+<script module>
+    import { PUBLIC_GOOGLE_CLIENT_ID } from '$env/static/public'
+    export const isEnabled: boolean = !!PUBLIC_GOOGLE_CLIENT_ID
+</script>
+
 <script lang="ts">
-    import { TabletopApi } from '@tabletop/frontend-components'
     import { getContext, onMount } from 'svelte'
     import { isLibraryLoaded, markLibraryLoaded } from '$lib/stores/libraryLoaded.svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
-    import { PUBLIC_GOOGLE_CLIENT_ID } from '$env/static/public'
-    import { P } from 'flowbite-svelte'
 
     let { mode = 'login' }: { mode: 'link' | 'login' } = $props()
 
