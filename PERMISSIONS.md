@@ -12,4 +12,4 @@ Permission granted by Helge Ostertag to Justin Waugh on 2024-09-11 for non-comme
 
 ### The Estates
 
-Permission granted by Clay Ross to Justin Waugh on 20204-10-21 for non-commercial use of The Estates and its graphical assets when hosted on https://boardtogether.games
+Permission granted by Clay Ross to Justin Waugh on 2024-10-21 for non-commercial use of The Estates and its graphical assets when hosted on https://boardtogether.games
