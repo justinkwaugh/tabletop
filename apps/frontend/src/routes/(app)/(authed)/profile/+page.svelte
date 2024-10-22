@@ -11,8 +11,12 @@
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import googleLogo from '$lib/components/images/google.jpg'
     import discordLogo from '$lib/components/images/discord.png'
-    import GoogleSignIn from '$lib/components/GoogleSignIn.svelte'
-    import DiscordSignIn from '$lib/components/DiscordSignIn.svelte'
+    import GoogleSignIn, {
+        isEnabled as isGoogleSigninEnabled
+    } from '$lib/components/GoogleSignIn.svelte'
+    import DiscordSignIn, {
+        isEnabled as isDiscordSigninEnabled
+    } from '$lib/components/DiscordSignIn.svelte'
 
     let { authorizationService, api } = getContext('appContext') as AppContext
 
@@ -242,48 +246,56 @@
             <Label class="space-y-2">
                 <span>Linked Accounts</span>
                 <div class="rounded-lg border-gray-600 border p-4">
-                    <div class="flex flex-row justify-between items-end mb-2 h-[44px]">
-                        <div class="rounded-lg overflow-hidden w-[40px] h-[40px] me-4">
-                            <img
-                                class="w-full h-full object-cover"
-                                alt={ExternalAuthService.Google}
-                                src={imageForLinkType.get(ExternalAuthService.Google)}
-                            />
+                    {#if isGoogleSigninEnabled}
+                        <div class="flex flex-row justify-between items-end mb-2 h-[44px]">
+                            <div class="rounded-lg overflow-hidden w-[40px] h-[40px] me-4">
+                                <img
+                                    class="w-full h-full object-cover"
+                                    alt={ExternalAuthService.Google}
+                                    src={imageForLinkType.get(ExternalAuthService.Google)}
+                                />
+                            </div>
+                            {#if linkedAccountIdsByType.get(ExternalAuthService.Google)}
+                                <Button
+                                    class="rounded-full w-[100px]"
+                                    onclick={() => {
+                                        unlink(
+                                            linkedAccountIdsByType.get(ExternalAuthService.Google)!
+                                        )
+                                    }}
+                                    color="light"
+                                    size="xs">Unlink</Button
+                                >
+                            {:else}
+                                <GoogleSignIn mode={'link'} />
+                            {/if}
                         </div>
-                        {#if linkedAccountIdsByType.get(ExternalAuthService.Google)}
-                            <Button
-                                class="rounded-full w-[100px]"
-                                onclick={() => {
-                                    unlink(linkedAccountIdsByType.get(ExternalAuthService.Google)!)
-                                }}
-                                color="light"
-                                size="xs">Unlink</Button
-                            >
-                        {:else}
-                            <GoogleSignIn mode={'link'} />
-                        {/if}
-                    </div>
-                    <div class="flex flex-row justify-between items-center h-[44px]">
-                        <div class="rounded-lg overflow-hidden w-[40px] h-[40px] me-4">
-                            <img
-                                class="w-full h-full object-cover"
-                                alt={ExternalAuthService.Discord}
-                                src={imageForLinkType.get(ExternalAuthService.Discord)}
-                            />
+                    {/if}
+                    {#if isDiscordSigninEnabled}
+                        <div class="flex flex-row justify-between items-center h-[44px]">
+                            <div class="rounded-lg overflow-hidden w-[40px] h-[40px] me-4">
+                                <img
+                                    class="w-full h-full object-cover"
+                                    alt={ExternalAuthService.Discord}
+                                    src={imageForLinkType.get(ExternalAuthService.Discord)}
+                                />
+                            </div>
+                            {#if linkedAccountIdsByType.get(ExternalAuthService.Discord)}
+                                <Button
+                                    class="rounded-full w-[100px]"
+                                    onclick={() => {
+                                        unlink(
+                                            linkedAccountIdsByType.get(ExternalAuthService.Discord)!
+                                        )
+                                    }}
+                                    color="light"
+                                    size="xs">Unlink</Button
+                                >
+                            {:else}
+                                <DiscordSignIn mode={'link'} />
+                            {/if}
                         </div>
-                        {#if linkedAccountIdsByType.get(ExternalAuthService.Discord)}
-                            <Button
-                                class="rounded-full w-[100px]"
-                                onclick={() => {
-                                    unlink(linkedAccountIdsByType.get(ExternalAuthService.Discord)!)
-                                }}
-                                color="light"
-                                size="xs">Unlink</Button
-                            >
-                        {:else}
-                            <DiscordSignIn mode={'link'} />
-                        {/if}
-                    </div>
+                    {/if}
                 </div>
             </Label>
             {#if reauthType === ReauthType.Password}

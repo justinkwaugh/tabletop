@@ -21,12 +21,13 @@ import {
     AblyTransport,
     AblyService,
     NullPubSubService,
-    // RedisPubSubService,
+    RedisPubSubService,
     RedisCacheService,
     RedisService,
     ChatService,
     FirestoreChatStore,
-    ResendEmailService
+    ResendEmailService,
+    PubSubTransport
 } from '@tabletop/backend-services'
 
 import { FastifyInstance } from 'fastify'
@@ -51,6 +52,8 @@ declare module 'fastify' {
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const TASKS_HOST = process.env['TASKS_HOST'] ?? ''
 
+const useAbly = !!process.env['ABLY_API_KEY']
+
 export default fp(async (fastify: FastifyInstance) => {
     const secretsService = new EnvSecretsService()
     const emailService = await ResendEmailService.createEmailService(secretsService)
@@ -68,8 +71,10 @@ export default fp(async (fastify: FastifyInstance) => {
         taskService
     )
 
-    // const pubSubService = await RedisPubSubService.createRedisPubSubService(secretsService)
-    const pubSubService = new NullPubSubService() // While using Ably we do not need a pub sub service
+    let pubSubService: PubSubService = new NullPubSubService()
+    if (useAbly) {
+        pubSubService = await RedisPubSubService.createPubSubService(redisService)
+    }
 
     const notificationService = await DefaultNotificationService.createNotificationService(
         new FirestoreNotificationStore(redisCacheService, fastify.firestore),
@@ -87,8 +92,6 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const discordService = new DiscordService(notificationService, userService)
 
-    // const pubSubTransport = new PubSubTransport(pubSubService)
-
     if (process.env['DISCORD_BOT_TOKEN']) {
         const discordTransport = await DiscordTransport.createDiscordTransport(
             secretsService,
@@ -100,12 +103,14 @@ export default fp(async (fastify: FastifyInstance) => {
     const webPushTransport = await WebPushTransport.createWebPushTransport(secretsService)
     notificationService.addTransport(webPushTransport)
 
-    // notificationService.addTopicTransport(pubSubTransport)
-    if (process.env['ABLY_API_KEY']) {
+    if (useAbly) {
         const ablyTransport = await AblyTransport.createAblyTransport(secretsService)
         notificationService.addTopicTransport(ablyTransport)
         const ablyService = await AblyService.createAblyService(secretsService)
         fastify.decorate('ablyService', ablyService)
+    } else {
+        const pubSubTransport = new PubSubTransport(pubSubService)
+        notificationService.addTopicTransport(pubSubTransport)
     }
 
     const chatService = new ChatService(
