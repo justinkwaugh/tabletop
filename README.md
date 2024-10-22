@@ -37,8 +37,9 @@ The frontend is run as a separate Vite process during development but for deploy
 ### Setup
 
 1. Clone the repository
-1. Run `npm install --force` from the root. Currently the project is using a preview version of Svelte 5 and as such there a few dependency conflicts which need to be forced until certain libraries are updated.
-1. In the root of the backend workspace `/apps/backend` add a file named `.env.local` and populate it as shown below. Note that in order to support Google and Discord login you will need to provide appropriate ids/secrets as indicated. More details will be provided later in this document. Likewise in order to have the project send emails you will need a Resend account and it's API key:
+1. Run `npm install` from the root.
+1. Run `npx web-push generate-vapid-keys` to generate private and public vapid keys
+1. In the root of the backend workspace `/apps/backend` add a file named `.env.local` and populate it as shown below, adding the vapid keys where appropriate. Note that in order to support Google and Discord login you will need to provide appropriate ids/secrets as indicated. More details will be provided later in this document. Likewise in order to have the project send emails you will need a Resend account and it's API key:
 
 ```
 FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"
@@ -68,7 +69,7 @@ VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 ```
 
-4. In the root of the frontend workspace `/apps/frontend` add a file named `.env.development.local` and populate it as follows:
+4. In the root of the frontend workspace `/apps/frontend` add a file named `.env.development.local` and populate it as follows, again adding the public vapid key where appropriate:
 
 ```
 PUBLIC_API_HOST="http://localhost:3000"
@@ -105,15 +106,11 @@ As such I will not require permission for a game to be implemented, however I wi
 The project is licensed under [MIT](https://github.com/justinkwaugh/tabletop/blob/main/LICENSE)
 
 Exceptions:
-Any copyrightable assets (including but not limited to images, videos, text, etc.) 
-in this repository that are owned and copyrighted by third parties (e.g. publishers 
-or designers) are not subject to this license and all rights remain with the 
+Any copyrightable assets (including but not limited to images, videos, text, etc.)
+in this repository that are owned and copyrighted by third parties (e.g. publishers
+or designers) are not subject to this license and all rights remain with the
 original owners.
 
 While permission may have been given to allow use of such copyrighted assets, that permission
-may vary in scope and does not necessarily permit use outside of this project.  Please see the
+may vary in scope and does not necessarily permit use outside of this project. Please see the
 [Permissions](https://github.com/justinkwaugh/tabletop/blob/main/PERMISSIONS.md) file for more detail.
-
-
-
-

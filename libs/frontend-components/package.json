@@ -33,7 +33,7 @@
         "svelte": "^5.0.0"
     },
     "dependencies": {
-        "@joeattardi/emoji-button": "^4.6.4",
+        "@joeattardi/emoji-button": "github:justinkwaugh/picmo#emoji-button",
         "@sinclair/typebox": "^0.32.32",
         "@sveltejs/package": "^2.3.2",
         "@tabletop/common": "*",

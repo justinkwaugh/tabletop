@@ -33,7 +33,9 @@ const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
 
-const SESSION_SECRET = process.env['SESSION_SECRET'] ?? ''
+const SESSION_SECRET = process.env['SESSION_SECRET']
+    ? process.env['SESSION_SECRET']
+    : 'youneedtosetthevalueintheenv.localfiletosomethingelse'
 const SESSION_SALT = process.env['SESSION_SALT'] ?? ''
 
 /* eslint-disable-next-line */

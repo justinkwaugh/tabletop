@@ -25,7 +25,8 @@ import {
     RedisCacheService,
     RedisService,
     ChatService,
-    FirestoreChatStore
+    FirestoreChatStore,
+    ResendEmailService
 } from '@tabletop/backend-services'
 
 import { FastifyInstance } from 'fastify'
@@ -52,7 +53,7 @@ const TASKS_HOST = process.env['TASKS_HOST'] ?? ''
 
 export default fp(async (fastify: FastifyInstance) => {
     const secretsService = new EnvSecretsService()
-    const emailService = await EmailService.createEmailService(secretsService)
+    const emailService = await ResendEmailService.createEmailService(secretsService)
     const redisService = await RedisService.createRedisService(secretsService)
     const redisCacheService = new RedisCacheService(redisService)
 
@@ -87,21 +88,25 @@ export default fp(async (fastify: FastifyInstance) => {
     const discordService = new DiscordService(notificationService, userService)
 
     // const pubSubTransport = new PubSubTransport(pubSubService)
-    const ablyTransport = await AblyTransport.createAblyTransport(secretsService)
 
-    const discordTransport = await DiscordTransport.createDiscordTransport(
-        secretsService,
-        gameService
-    )
+    if (process.env['DISCORD_BOT_TOKEN']) {
+        const discordTransport = await DiscordTransport.createDiscordTransport(
+            secretsService,
+            gameService
+        )
+        notificationService.addTransport(discordTransport)
+    }
+
     const webPushTransport = await WebPushTransport.createWebPushTransport(secretsService)
-
-    notificationService.addTransport(discordTransport)
     notificationService.addTransport(webPushTransport)
 
     // notificationService.addTopicTransport(pubSubTransport)
-    notificationService.addTopicTransport(ablyTransport)
-
-    const ablyService = await AblyService.createAblyService(secretsService)
+    if (process.env['ABLY_API_KEY']) {
+        const ablyTransport = await AblyTransport.createAblyTransport(secretsService)
+        notificationService.addTopicTransport(ablyTransport)
+        const ablyService = await AblyService.createAblyService(secretsService)
+        fastify.decorate('ablyService', ablyService)
+    }
 
     const chatService = new ChatService(
         gameService,
@@ -117,6 +122,5 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('pubSubService', pubSubService)
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)
-    fastify.decorate('ablyService', ablyService)
     fastify.decorate('chatService', chatService)
 })
