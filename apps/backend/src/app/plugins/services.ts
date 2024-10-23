@@ -72,7 +72,7 @@ export default fp(async (fastify: FastifyInstance) => {
     )
 
     let pubSubService: PubSubService = new NullPubSubService()
-    if (useAbly) {
+    if (!useAbly) {
         pubSubService = await RedisPubSubService.createPubSubService(redisService)
     }
 
