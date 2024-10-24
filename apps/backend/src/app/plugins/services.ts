@@ -66,7 +66,7 @@ export default fp(async (fastify: FastifyInstance) => {
             : new CloudTasksTaskService(TASKS_HOST)
     const tokenService = new TokenService(new FirestoreTokenStore(fastify.firestore))
     const userService = new UserService(
-        new FirestoreUserStore(redisCacheService, fastify.firestore),
+        new FirestoreUserStore(redisCacheService, fastify.firestore, service === 'local'),
         tokenService,
         taskService
     )

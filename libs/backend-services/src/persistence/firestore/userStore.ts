@@ -1,4 +1,4 @@
-import { BaseError, ExternalAuthService, User, UserStatus } from '@tabletop/common'
+import { BaseError, ExternalAuthService, Role, User, UserStatus } from '@tabletop/common'
 import {
     CollectionReference,
     DocumentData,
@@ -30,7 +30,8 @@ export class FirestoreUserStore implements UserStore {
 
     constructor(
         private cacheService: RedisCacheService,
-        private firestore: Firestore
+        private firestore: Firestore,
+        private local: boolean = false
     ) {
         this.users = firestore.collection('users').withConverter<StoredUser>(userConverter)
         this.userUsernames = firestore.collection('userUsernames')
@@ -176,6 +177,15 @@ export class FirestoreUserStore implements UserStore {
             newStoredUser.externalIds.forEach((externalId: string) => {
                 transaction.create(this.userExternalIds.doc(externalId), {})
             })
+
+            if (this.local) {
+                const snapshot = await this.users.count().get()
+                if (snapshot.data().count === 0) {
+                    console.log('Adding admin to first user')
+                    newStoredUser.roles.push(Role.Admin)
+                }
+            }
+
             console.log('creating: ', newStoredUser)
             transaction.create(this.users.doc(newStoredUser.id), newStoredUser)
             return newStoredUser
