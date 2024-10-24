@@ -16,6 +16,14 @@ export enum ConnectionStatus {
 const GAME_PATH = '/sse/game'
 const USER_PATH = '/sse/user'
 
+type ChannelData = {
+    channel: NotificationChannel
+    path: string
+    eventSource?: EventSource
+    retryTimer?: ReturnType<typeof setTimeout>
+    connectionStatus: ConnectionStatus
+}
+
 export class SseConnection implements RealtimeConnection {
     static MAX_RETRY_TIMEOUT = 10000
 
@@ -23,11 +31,7 @@ export class SseConnection implements RealtimeConnection {
 
     private api: TabletopApi
     private handler?: RealtimeEventHandler
-    private path?: string
-    private isGame = false
-
-    private eventSource: EventSource | null = null
-    private retryTimer: ReturnType<typeof setTimeout> | null = null
+    private channels: Map<string, ChannelData> = new Map()
 
     constructor({ api }: { api: TabletopApi }) {
         this.api = api
@@ -38,54 +42,86 @@ export class SseConnection implements RealtimeConnection {
     }
 
     async addChannel(identifier: ChannelIdentifier): Promise<void> {
-        const oldPath = this.path
-        const newPath =
-            identifier.channel === NotificationChannel.GameInstance
-                ? `${GAME_PATH}/${identifier.id}`
-                : USER_PATH
+        console.log('Adding channel', identifier)
 
-        if (identifier.channel === NotificationChannel.GameInstance) {
-            this.isGame = true
+        if (this.channels.has(identifier.channelName)) {
+            return
         }
 
-        if (newPath !== oldPath) {
-            this.path = newPath
-            if (this.connectionStatus === ConnectionStatus.Connected) {
-                console.log('Switching realtime connection to', this.path)
-                this.disconnect()
-                await this.connect()
-            }
+        const channelData: ChannelData = {
+            channel: identifier.channel,
+            path:
+                identifier.channel === NotificationChannel.GameInstance
+                    ? `${GAME_PATH}/${identifier.id}`
+                    : USER_PATH,
+            connectionStatus: ConnectionStatus.Disconnected
+        }
+
+        this.channels.set(identifier.channelName, channelData)
+
+        if (this.connectionStatus === ConnectionStatus.Connected) {
+            await this.connectChannel(channelData)
         }
     }
 
     async removeChannel(identifier: ChannelIdentifier): Promise<void> {
-        if (identifier.channel === NotificationChannel.GameInstance) {
-            this.isGame = false
-            this.path = USER_PATH
-            if (this.connectionStatus === ConnectionStatus.Connected) {
-                console.log('Switching realtime connection to', this.path)
-                this.disconnect()
-                await this.connect()
-            }
+        console.log('Removing channel', identifier)
+        const channelData = this.channels.get(identifier.channelName)
+        if (channelData) {
+            this.disconnectChannel(channelData)
         }
+        this.channels.delete(identifier.channelName)
     }
 
     async connect() {
         if (this.connectionStatus !== ConnectionStatus.Disconnected) {
             return
         }
+        this.connectionStatus = ConnectionStatus.Connected
+        for (const [, channelData] of this.channels) {
+            await this.connectChannel(channelData)
+        }
+    }
 
+    disconnect() {
+        if (this.connectionStatus === ConnectionStatus.Disconnected) {
+            return
+        }
+        for (const [, channelData] of this.channels) {
+            this.disconnectChannel(channelData)
+        }
+        this.connectionStatus = ConnectionStatus.Connected
+    }
+
+    disconnectChannel(channelData: ChannelData) {
+        this.cancelRetry(channelData)
+
+        if (!channelData.eventSource) {
+            return
+        }
+
+        channelData.eventSource.close()
+        channelData.eventSource = undefined
+
+        channelData.connectionStatus = ConnectionStatus.Disconnected
+        console.log(
+            'Realtime feed closed for channel',
+            channelData.channel,
+            channelData.connectionStatus
+        )
+    }
+
+    private async connectChannel(channelData: ChannelData) {
         try {
-            console.log(`Connecting event source on ${this.path}`)
+            console.log(`Connecting event source on ${channelData.path}`)
             const token = await this.api.getSseToken()
-            this.connectionStatus = ConnectionStatus.Connecting
-            this.eventSource = this.api.getEventSource(`${this.path}/${token}`)
-
-            this.eventSource.onopen = () => {
+            channelData.connectionStatus = ConnectionStatus.Connecting
+            channelData.eventSource = this.api.getEventSource(`${channelData.path}/${token}`)
+            channelData.eventSource.onopen = () => {
                 console.log('Event source connected')
-                this.connectionStatus = ConnectionStatus.Connected
+                channelData.connectionStatus = ConnectionStatus.Connected
 
-                if (this.isGame) {
+                if (channelData.channel === NotificationChannel.GameInstance) {
                     const realtimeEvent: RealtimeEvent = {
                         type: RealtimeEventType.Discontinuity,
                         channel: NotificationChannel.GameInstance
@@ -105,13 +141,13 @@ export class SseConnection implements RealtimeConnection {
                 }
             }
 
-            this.eventSource.onerror = () => {
+            channelData.eventSource.onerror = () => {
                 console.log('Error on event source')
                 this.disconnect()
-                this.scheduleRetry()
+                this.scheduleRetry(channelData)
             }
 
-            this.eventSource.onmessage = (event) => {
+            channelData.eventSource.onmessage = (event) => {
                 if (event.data === 'hello') {
                     return
                 }
@@ -120,9 +156,10 @@ export class SseConnection implements RealtimeConnection {
 
                 const realtimeEvent: RealtimeEvent = {
                     type: RealtimeEventType.Data,
-                    channel: this.isGame
-                        ? NotificationChannel.GameInstance
-                        : NotificationChannel.User,
+                    channel:
+                        channelData.channel === NotificationChannel.GameInstance
+                            ? NotificationChannel.GameInstance
+                            : NotificationChannel.User,
                     data: parsedData
                 }
                 if (this.handler) {
@@ -131,41 +168,26 @@ export class SseConnection implements RealtimeConnection {
             }
         } catch (e) {
             console.error('Error connecting to event source', e)
-            this.scheduleRetry()
+            this.scheduleRetry(channelData)
         }
     }
 
-    disconnect() {
-        this.cancelRetry()
-
-        if (!this.eventSource) {
-            return
-        }
-
-        this.eventSource.close()
-        this.eventSource = null
-
-        this.connectionStatus = ConnectionStatus.Disconnected
-        console.log('Realtime feed closed, status', this.connectionStatus)
-    }
-
-    private scheduleRetry() {
-        console.log('Scheduling retry')
-        this.cancelRetry()
-        const timeout = 3000
-        this.retryTimer = setTimeout(async () => {
-            console.log('Retrying connection')
-            await this.connect()
-            this.retryTimer = null
+    private scheduleRetry(channelData: ChannelData) {
+        console.log('Scheduling retry for channel', channelData.channel)
+        this.cancelRetry(channelData)
+        const timeout = 5000
+        channelData.retryTimer = setTimeout(async () => {
+            console.log('Retrying connection for channel', channelData.channel)
+            channelData.retryTimer = undefined
+            await this.connectChannel(channelData)
         }, timeout)
     }
 
-    private cancelRetry() {
-        if (this.retryTimer) {
-            console.log('Cancelling retry')
-            clearTimeout(this.retryTimer)
-
-            this.retryTimer = null
+    private cancelRetry(channelData: ChannelData) {
+        if (channelData.retryTimer) {
+            console.log('Cancelling retry for channel', channelData.channel)
+            clearTimeout(channelData.retryTimer)
+            channelData.retryTimer = undefined
         }
     }
 }
