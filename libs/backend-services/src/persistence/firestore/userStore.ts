@@ -179,6 +179,7 @@ export class FirestoreUserStore implements UserStore {
             })
 
             if (this.local) {
+                console.log('Checking user count')
                 const snapshot = await this.users.count().get()
                 if (snapshot.data().count === 0) {
                     console.log('Adding admin to first user')
