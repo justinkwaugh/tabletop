@@ -1,4 +1,4 @@
-<script module>
+<script module lang="ts">
     import { PUBLIC_ENABLE_DISCORD_LOGIN } from '$env/static/public'
     export const isEnabled: boolean = !!PUBLIC_ENABLE_DISCORD_LOGIN
 </script>

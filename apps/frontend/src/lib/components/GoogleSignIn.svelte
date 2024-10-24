@@ -1,4 +1,4 @@
-<script module>
+<script module lang="ts">
     import { PUBLIC_GOOGLE_CLIENT_ID } from '$env/static/public'
     export const isEnabled: boolean = !!PUBLIC_GOOGLE_CLIENT_ID
 </script>
