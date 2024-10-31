@@ -98,7 +98,10 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         // Mark boat as used
         playerState.availableBoats = playerState.availableBoats.filter((id) => id !== this.boatId)
 
-        const neighboringIslandIds = state.board.getNeighboringIslands(this.boatCoords)
+        const neighboringIslandIds = state.board.getNeighboringIslands(
+            this.boatCoords,
+            CellType.Cult
+        )
         const fishingData: IslandFishingData[] = neighboringIslandIds.map((islandId) => {
             const numHuts = state.board.numHutsOnIsland(islandId, this.playerId, HutType.Fishing)
             const hasGod = state.godLocation?.islandId === islandId
