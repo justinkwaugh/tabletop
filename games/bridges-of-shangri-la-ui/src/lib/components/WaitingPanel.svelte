@@ -1,7 +1,6 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
-    import { Button } from 'flowbite-svelte'
     import { MachineState } from '@tabletop/bridges-of-shangri-la'
     import { PlayerName } from '@tabletop/frontend-components'
 
@@ -30,17 +29,5 @@
             Waiting for <PlayerName playerId={currentPlayerId} />
             {waitingText}
         </h1>
-
-        {#if gameSession.undoableAction}
-            <Button
-                onclick={async () => {
-                    await gameSession.undo()
-                }}
-                size="xs"
-                class="mt-4"
-                color="light"
-                >Undo {gameSession.nameForActionType(gameSession.undoableAction.type)}</Button
-            >
-        {/if}
     </div>
 </div>

@@ -200,18 +200,6 @@
                     >
                 {/each}
             {/if}
-
-            {#if gameSession.undoableAction}
-                <Button
-                    onclick={async () => {
-                        gameSession.resetAction()
-                        await gameSession.undo()
-                    }}
-                    size="xs"
-                    class="m-1"
-                    color="light">Undo</Button
-                >
-            {/if}
         </div>
     </div>
 </div>

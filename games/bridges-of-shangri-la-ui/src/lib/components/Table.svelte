@@ -21,6 +21,7 @@
     import { Indicator, TabItem, Tabs } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
     import { toast } from 'svelte-sonner'
+    import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as BridgesGameSession
     let chatActive: boolean = $state(false)
@@ -145,7 +146,10 @@
             <div class="shrink-0">
                 {#if gameSession.gameState.result}
                     <GameEndPanel />
+                {:else if gameSession.mode === GameSessionMode.History}
+                    <LastActionDescription />
                 {:else if gameSession.mode === GameSessionMode.Play}
+                    <LastActionDescription />
                     {#if gameSession.isMyTurn}
                         <ActionPanel />
                     {:else}

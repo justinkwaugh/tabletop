@@ -65,6 +65,14 @@ export class HydratedRecruitStudents
         playerId: string,
         placement: Placement
     ): { valid: boolean; reason: string } {
+        const playerState = state.getPlayerState(playerId)
+        if (!playerState.hasPiece(placement.masterType)) {
+            return {
+                valid: false,
+                reason: `Player ${playerId} has no ${placement.masterType} piece to place`
+            }
+        }
+
         const board = state.board
         if (!board.hasVillage(placement.village)) {
             return { valid: false, reason: `Invalid Village ${placement.village}` }

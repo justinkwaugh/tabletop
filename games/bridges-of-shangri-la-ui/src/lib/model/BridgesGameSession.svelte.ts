@@ -8,7 +8,8 @@ import {
     PlaceMaster,
     Placement,
     RecruitStudents,
-    Pass
+    Pass,
+    isPass
 } from '@tabletop/bridges-of-shangri-la'
 import healer from '$lib/images/healer.png'
 import rainmaker from '$lib/images/rainmaker.png'
@@ -17,13 +18,15 @@ import firekeeper from '$lib/images/firekeeper.png'
 import priest from '$lib/images/priest.png'
 import yetiwhisperer from '$lib/images/yetiwhisperer.png'
 import astrologer from '$lib/images/astrologer.png'
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
+import type { GameAction } from '@tabletop/common'
 
 export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBridgesGameState> {
     chosenAction: string | undefined = $state(undefined)
     chosenMasterType: MasterType | undefined = $state(undefined)
     chosenVillage: number | undefined = $state(undefined)
     highlightedVillages: number[] = $state([])
+    highlightedMasterType: MasterType | undefined = $state(undefined)
 
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
@@ -33,6 +36,16 @@ export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBr
             return 0
         }
         return this.gameState.turnManager.turnCount(this.myPlayer.id)
+    })
+
+    currentAction = $derived.by(() => {
+        let action
+        if (this.mode === GameSessionMode.History && this.currentHistoryIndex >= 0) {
+            action = this.actions[this.currentHistoryIndex]
+        } else if (this.mode === GameSessionMode.Play) {
+            action = this.actions[this.actions.length - 1]
+        }
+        return action
     })
 
     nameForActionType(actionType: string) {
@@ -77,25 +90,6 @@ export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBr
         }
     }
 
-    nameForMasterType(masterType: MasterType, withArticle = false) {
-        switch (masterType) {
-            case MasterType.Astrologer:
-                return `${withArticle ? 'an ' : ''} Astrologer`
-            case MasterType.DragonBreeder:
-                return `${withArticle ? 'a ' : ''} Dragon Breeder`
-            case MasterType.Firekeeper:
-                return `${withArticle ? 'a ' : ''} Firekeeper`
-            case MasterType.Healer:
-                return `${withArticle ? 'a ' : ''} Healer`
-            case MasterType.Priest:
-                return `${withArticle ? 'a ' : ''} Priest`
-            case MasterType.Rainmaker:
-                return `${withArticle ? 'a ' : ''} Rainmaker`
-            case MasterType.YetiWhisperer:
-                return `${withArticle ? 'a ' : ''} Yeti Whisperer`
-        }
-    }
-
     cancel() {
         if (
             this.chosenAction === ActionType.PlaceMaster ||
@@ -121,12 +115,18 @@ export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBr
         this.chosenVillage = undefined
     }
 
-    highlightVillages(villages: number[]) {
+    override shouldAutoStepAction(action: GameAction) {
+        return isPass(action)
+    }
+
+    highlightVillages(villages: number[], masterType?: MasterType) {
         this.highlightedVillages = villages
+        this.highlightedMasterType = masterType
     }
 
     clearHighlightedVillages() {
         this.highlightedVillages = []
+        this.highlightedMasterType = undefined
     }
 
     createPlaceMasterAction(village: number, masterType: MasterType): PlaceMaster {

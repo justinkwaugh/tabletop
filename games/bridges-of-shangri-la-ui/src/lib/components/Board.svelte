@@ -10,15 +10,15 @@
         'top-[125px] left-[143px]',
         'top-[117px] left-[628px]',
         'top-[161px] left-[1009px]',
-        'top-[566px] left-[234px]',
+        'top-[566px] left-[233px]',
         'top-[380px] left-[485px]',
-        'top-[349px] left-[819px]',
+        'top-[348px] left-[818px]',
         'top-[932px] left-[143px]',
         'top-[794px] left-[530px]',
-        'top-[606px] left-[790px]',
-        'top-[624px] left-[1061px]',
+        'top-[605px] left-[789px]',
+        'top-[623px] left-[1060px]',
         'top-[1117px] left-[432px]',
-        'top-[1100px] left-[820px]',
+        'top-[1099px] left-[820px]',
         'top-[864px] left-[977px]'
     ]
 

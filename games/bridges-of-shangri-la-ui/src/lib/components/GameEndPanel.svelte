@@ -21,7 +21,7 @@
             {#if isWin}
                 <h1 class="text-md sm:text-lg">
                     <PlayerName playerId={winner} />
-                    wins with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')
+                    won with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')
                         ?.score}
                 </h1>
             {:else}

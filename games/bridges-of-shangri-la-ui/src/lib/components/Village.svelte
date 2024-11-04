@@ -14,10 +14,14 @@
         Placement,
         ActionType,
         HydratedRecruitStudents,
-        HydratedBeginJourney
+        HydratedBeginJourney,
+        isPlaceMaster,
+        isRecruitStudents,
+        isBeginJourney
     } from '@tabletop/bridges-of-shangri-la'
     import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+    import { GameSessionMode } from '@tabletop/frontend-components'
 
     let { village, index }: { village: HydratedVillage; index: number } = $props()
     let gameSession = getContext('gameSession') as BridgesGameSession
@@ -83,12 +87,43 @@
         return false
     })
 
-    let disabled = $derived(
-        village.stone ||
+    let disabled = $derived.by(() => {
+        if (village.stone) {
+            return true
+        }
+
+        if (gameSession.mode === GameSessionMode.History) {
+            const currentAction = gameSession.currentAction
+            if (isPlaceMaster(currentAction) || isRecruitStudents(currentAction)) {
+                return currentAction.placement.village !== index
+            } else if (isBeginJourney(currentAction)) {
+                return currentAction.from !== index && currentAction.to !== index
+            }
+            return false
+        }
+
+        return (
             (interacting && !interactable) ||
             (gameSession.highlightedVillages.length > 0 &&
                 !gameSession.highlightedVillages.includes(index))
-    )
+        )
+    })
+
+    let highlightedType = $derived.by(() => {
+        if (gameSession.mode !== GameSessionMode.History) {
+            return gameSession.highlightedVillages.length > 0 &&
+                gameSession.highlightedVillages.includes(index)
+                ? gameSession.highlightedMasterType
+                : undefined
+        }
+
+        const currentAction = gameSession.currentAction
+        if (isPlaceMaster(currentAction) || isRecruitStudents(currentAction)) {
+            return currentAction.placement.village === index && currentAction.placement.masterType
+        }
+        return undefined
+    })
+
     let isSourceVillageForJourney = $derived(
         interacting &&
             gameSession.chosenAction === ActionType.BeginJourney &&
@@ -153,23 +188,24 @@
     }
 </script>
 
-{#snippet space(masterType: MasterType, offsets: string)}
+{#snippet space(masterType: MasterType, offsets: string, highlight?: boolean)}
     {#if village.hasMaster(masterType)}
         <div
-            class="pointer-events-none absolute w-[49px] h-[50px] {offsets} {bgColorForMaster(
-                masterType
-            )}
-    )} border-2 border-gray-800 z-10"
+            class="w-[52px] h-[52px] box-border absolute border-2 border-gray-800 {offsets} {highlight
+                ? 'scale-150 z-30'
+                : 'z-10'}"
         >
-            <img src={imageForMaster(masterType)} alt="rain maker" />
-        </div>
-        {#if village.hasStudent(masterType)}
-            <div
-                class="absolute w-[49px] h-[50px] {offsets} bg-opacity-40 bg-gray-900 text-white flex flex-col justify-center items-center z-20"
-            >
-                <h1 class="text-2xl">S</h1>
+            <div class="pointer-events-none {offsets} {bgColorForMaster(masterType)}">
+                <img src={imageForMaster(masterType)} alt="rain maker" />
             </div>
-        {/if}
+            {#if village.hasStudent(masterType)}
+                <div
+                    class="absolute top-0 left-0 w-[48px] h-[48px] bg-opacity-30 bg-gray-900 text-white flex flex-col justify-center items-center z-20"
+                >
+                    <h1 class="text-3xl text-shadow">S</h1>
+                </div>
+            {/if}
+        </div>
     {/if}
 {/snippet}
 
@@ -186,13 +222,41 @@
     >
         <h1 class="text-3xl select-none">{village.strength()}</h1>
     </div>
-    {@render space(MasterType.Rainmaker, 'top-0 left-[27px]')}
-    {@render space(MasterType.Astrologer, 'top-0 left-[78px]')}
-    {@render space(MasterType.DragonBreeder, 'top-[52px] left-0')}
-    {@render space(MasterType.Priest, 'top-[52px] left-[51px]')}
-    {@render space(MasterType.YetiWhisperer, 'top-[52px] left-[102px]')}
-    {@render space(MasterType.Firekeeper, 'top-[105px] left-[25px]')}
-    {@render space(MasterType.Healer, 'top-[105px] left-[76px]')}
+    {@render space(
+        MasterType.Rainmaker,
+        'top-0 left-[27px]',
+        highlightedType === MasterType.Rainmaker
+    )}
+    {@render space(
+        MasterType.Astrologer,
+        'top-0 left-[78px]',
+        highlightedType === MasterType.Astrologer
+    )}
+    {@render space(
+        MasterType.DragonBreeder,
+        'top-[52px] left-0',
+        highlightedType === MasterType.DragonBreeder
+    )}
+    {@render space(
+        MasterType.Priest,
+        'top-[52px] left-[51px]',
+        highlightedType === MasterType.Priest
+    )}
+    {@render space(
+        MasterType.YetiWhisperer,
+        'top-[52px] left-[102px]',
+        highlightedType === MasterType.YetiWhisperer
+    )}
+    {@render space(
+        MasterType.Firekeeper,
+        'top-[105px] left-[25px]',
+        highlightedType === MasterType.Firekeeper
+    )}
+    {@render space(
+        MasterType.Healer,
+        'top-[105px] left-[76px]',
+        highlightedType === MasterType.Healer
+    )}
 
     {#if village.stone}
         <div
@@ -214,3 +278,9 @@
         ></div>
     {/if}
 </div>
+
+<style>
+    .text-shadow {
+        text-shadow: 2px 3px 6px black;
+    }
+</style>

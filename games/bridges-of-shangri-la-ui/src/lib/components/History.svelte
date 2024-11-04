@@ -3,7 +3,6 @@
     import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import {
-        isPass,
         isPlaceMaster,
         isRecruitStudents,
         isBeginJourney
@@ -13,7 +12,8 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, HistoryControls, PlayerName } from '@tabletop/frontend-components'
+    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -38,34 +38,13 @@
         return reversed
     })
 
-    function getDescriptionForAction(action: GameAction) {
-        switch (true) {
-            case isPlaceMaster(action):
-                return `placed ${gameSession.nameForMasterType(action.placement.masterType, true)} master`
-            case isRecruitStudents(action):
-                const skipInfo = action.metadata?.forceSkip
-                    ? ' but was unable to recruit another'
-                    : ''
-                return `placed ${gameSession.nameForMasterType(action.placement.masterType, true)} student${skipInfo}`
-            case isBeginJourney(action):
-                return 'journied from one village to another'
-            case isPass(action):
-                if (action.metadata?.recruiting) {
-                    return 'declined to recruit a second student'
-                }
-                return 'passed'
-            default:
-                return action.type
-        }
-    }
-
     function highlight(action: GameAction) {
         if (isPlaceMaster(action) || isRecruitStudents(action)) {
             if (unhighlightTimeout) {
                 clearTimeout(unhighlightTimeout)
             }
 
-            gameSession.highlightVillages([action.placement.village])
+            gameSession.highlightVillages([action.placement.village], action.placement.masterType)
         } else if (isBeginJourney(action)) {
             if (unhighlightTimeout) {
                 clearTimeout(unhighlightTimeout)

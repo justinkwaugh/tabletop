@@ -3,7 +3,6 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
-    import { isEndAuction } from '@tabletop/estates'
     import ActionDescription from '$lib/components/ActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
@@ -16,24 +15,6 @@
             action = gameSession.actions[gameSession.actions.length - 1]
         }
         return action
-    })
-
-    let playerId: string | undefined = $derived.by(() => {
-        if (!lastAction) {
-            return undefined
-        }
-
-        if (lastAction.playerId) {
-            return lastAction.playerId
-        }
-
-        if (isEndAuction(lastAction)) {
-            return (
-                lastAction.metadata?.auction?.winnerId ?? lastAction.metadata?.auction?.auctioneerId
-            )
-        }
-
-        return undefined
     })
 </script>
 
