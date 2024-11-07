@@ -5,7 +5,8 @@ import {
     AuctionType,
     HydratableAction,
     TieResolutionStrategy,
-    range
+    range,
+    MachineContext
 } from '@tabletop/common'
 
 import { HydratedFreshFishGameState } from '../model/gameState.js'
@@ -13,6 +14,7 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { isStallTile } from '../components/tiles.js'
 import { ActionType } from '../definition/actions.js'
 import { GoodsType } from '../definition/goodsType.js'
+import { FreshFishGameConfig } from '../definition/gameConfig.js'
 
 export type StartAuction = Static<typeof StartAuction>
 export const StartAuction = Type.Composite([
@@ -44,7 +46,7 @@ export class HydratedStartAuction
         super(data, StartAuctionValidator)
     }
 
-    apply(state: HydratedFreshFishGameState) {
+    apply(state: HydratedFreshFishGameState, context?: MachineContext) {
         const chosenTile = state.chosenTile
         if (!isStallTile(chosenTile)) {
             throw Error('Cannot start auction without a chosen stall tile')
@@ -53,9 +55,11 @@ export class HydratedStartAuction
         const turnOrder = state.turnManager.turnOrder
         const doubledTurnOrder = turnOrder.concat(state.turnManager.turnOrder) // So we don't have to worry about wrap
 
-        const leftOfAuctioneerIndex =
-            turnOrder.findIndex((playerId) => playerId === this.playerId) + 1
-        const biddingOrder = range(leftOfAuctioneerIndex, turnOrder.length).map(
+        const auctioneerIndex = turnOrder.findIndex((playerId) => playerId === this.playerId)
+
+        const config = context?.gameConfig as FreshFishGameConfig
+        const firstInOrderIndex = config?.auctioneerWinsTie ? auctioneerIndex : auctioneerIndex + 1
+        const biddingOrder = range(firstInOrderIndex, turnOrder.length).map(
             (index) => doubledTurnOrder[index]
         )
         const validBidders = biddingOrder.filter((playerId) =>

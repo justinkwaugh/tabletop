@@ -64,5 +64,5 @@ export abstract class HydratableAction<T extends TSchema>
     declare createdAt?: Date
     declare updatedAt?: Date
 
-    abstract apply(state: GameState): void
+    abstract apply(state: GameState, context?: MachineContext): void
 }

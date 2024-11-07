@@ -104,7 +104,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         if (
             actionType === ActionType.DrawTile &&
             gameState.getPlayerState(playerId).hasDiskOnBoard() &&
-            gameState.turnManager.turnCount(playerId) >= (gameConfig.numTurnsWithDisksToStart ?? 3)
+            (gameConfig.forceThreeDisks === false || gameState.turnManager.turnCount(playerId) >= 3)
         ) {
             return true
         }
