@@ -93,12 +93,11 @@ export function coordinatesToNumber(coords: unknown): number {
     throw Error('Invalid coordinates')
 }
 
-export function axialCoordinatesToNumber(axial: AxialCoordinates): number {
-    return szudzikPairSigned(axial.q, axial.r)
-}
-
 export function sameCoordinates(a?: OffsetCoordinates, b?: OffsetCoordinates): boolean
 export function sameCoordinates(a?: AxialCoordinates, b?: AxialCoordinates): boolean
+export function sameCoordinates(a?: OffsetTupleCoordinates, b?: OffsetTupleCoordinates): boolean
+export function sameCoordinates(a?: HexTupleCoordinates, b?: HexTupleCoordinates): boolean
+export function sameCoordinates(a?: Coordinates, b?: Coordinates): boolean
 export function sameCoordinates(a?: unknown, b?: unknown): boolean {
     if (a === undefined || b === undefined) {
         return false
@@ -109,6 +108,12 @@ export function sameCoordinates(a?: unknown, b?: unknown): boolean {
     }
     if (isOffset(a) && isOffset(b)) {
         return a.col === b.col && a.row === b.row
+    }
+    if (isOffsetTuple(a) && isOffsetTuple(b)) {
+        return a[0] === b[0] && a[1] === b[1]
+    }
+    if (isHexTuple(a) && isHexTuple(b)) {
+        return a[0] === b[0] && a[1] === b[1] && a[2] === b[2]
     }
 
     return false

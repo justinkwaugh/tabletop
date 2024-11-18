@@ -2,7 +2,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import {
     AxialCoordinates,
-    axialCoordinatesToNumber,
+    coordinatesToNumber,
     flood,
     Hydratable,
     sameCoordinates
@@ -66,11 +66,11 @@ export class HydratedKaivaiGameBoard
                 this.islands[cell.islandId] = { id: cell.islandId, coordList: [cell.coords] }
             }
         }
-        this.cells[axialCoordinatesToNumber(cell.coords)] = cell
+        this.cells[coordinatesToNumber(cell.coords)] = cell
     }
 
     getCellAt(coords: AxialCoordinates) {
-        return this.cells[axialCoordinatesToNumber(coords)]
+        return this.cells[coordinatesToNumber(coords)]
     }
 
     isWaterCell(coords: AxialCoordinates) {
@@ -158,7 +158,7 @@ export class HydratedKaivaiGameBoard
         let islandId: string | undefined
         return water.every((hex) => {
             return this.getNeighbors(hex).every((neighbor) => {
-                const numId = axialCoordinatesToNumber(neighbor)
+                const numId = coordinatesToNumber(neighbor)
                 if (checked.has(numId)) {
                     return true
                 }
@@ -217,10 +217,9 @@ export class HydratedKaivaiGameBoard
         }
 
         // Find a hex in the disconnected set
-        const afterSet = new Set(afterReachableHexes.map(axialCoordinatesToNumber))
+        const afterSet = new Set(afterReachableHexes.map(coordinatesToNumber))
         const disconnectedHex = beforeReachableHexes.find(
-            (hex) =>
-                !afterSet.has(axialCoordinatesToNumber(hex)) && !sameCoordinates(hex, blockedHex)
+            (hex) => !afterSet.has(coordinatesToNumber(hex)) && !sameCoordinates(hex, blockedHex)
         )
 
         if (!disconnectedHex) {

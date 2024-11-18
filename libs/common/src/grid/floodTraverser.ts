@@ -1,5 +1,5 @@
 import { Hex, HexCoordinates, Traverser, Direction, neighborOf } from 'honeycomb-grid'
-import { axialCoordinatesToNumber } from './coordinates.js'
+import { coordinatesToNumber } from './coordinates.js'
 
 export function flood<T extends Hex>(options: FloodOptions): Traverser<T> {
     return function floodTraverser(createHex, _cursor) {
@@ -10,7 +10,7 @@ export function flood<T extends Hex>(options: FloodOptions): Traverser<T> {
 
         let depth = 0
         const queue: T[] = [startHex]
-        visitedHexes.set(axialCoordinatesToNumber(startHex), startHex)
+        visitedHexes.set(coordinatesToNumber(startHex), startHex)
 
         while (queue.length > 0 && (options.range === undefined || depth < options.range)) {
             const numAtCurrentDepth = queue.length
@@ -21,7 +21,7 @@ export function flood<T extends Hex>(options: FloodOptions): Traverser<T> {
                     if (options.canTraverse && !options.canTraverse(neighbor)) {
                         continue
                     }
-                    const neighborKey = axialCoordinatesToNumber(neighbor)
+                    const neighborKey = coordinatesToNumber(neighbor)
                     if (!visitedHexes.has(neighborKey)) {
                         visitedHexes.set(neighborKey, neighbor)
                         queue.push(neighbor)
