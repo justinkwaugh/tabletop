@@ -1,4 +1,5 @@
 import { Static, Type } from '@sinclair/typebox'
+import { OffsetCoordinates } from '@tabletop/common'
 
 export enum StationType {
     EnergyNode = 'EnergyNode',
@@ -9,7 +10,8 @@ export enum StationType {
 export type BaseStation = Static<typeof BaseStation>
 export const BaseStation = Type.Object({
     id: Type.String(),
-    playerId: Type.String()
+    playerId: Type.String(),
+    coords: OffsetCoordinates
 })
 
 export type EnergyNode = Static<typeof EnergyNode>

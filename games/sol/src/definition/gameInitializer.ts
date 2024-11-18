@@ -20,6 +20,9 @@ import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { SolColors } from './colors.js'
 import { SolGameConfig, SolGameConfigValidator } from './gameConfig.js'
+import { Sundiver } from 'src/components/sundiver.js'
+import { SolarGate } from 'src/components/solarGate.js'
+import { EnergyNode, StationType, SundiverFoundry, TransmitTower } from 'src/components/stations.js'
 
 export class SolGameInitializer extends BaseGameInitializer implements GameInitializer {
     override initializeGame(game: Partial<Game>): Game {
@@ -63,17 +66,68 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         shuffle(colors, random)
 
         const players = game.players.map((player: Player, index: number) => {
+            const holdSundivers: Sundiver[] = []
+            for (let i = 0; i < 8; i++) {
+                holdSundivers.push({
+                    id: nanoid(),
+                    playerId: player.id
+                })
+            }
+
+            const reserveSundivers: Sundiver[] = []
+            for (let i = 0; i < 5; i++) {
+                reserveSundivers.push({
+                    id: nanoid(),
+                    playerId: player.id
+                })
+            }
+
+            const solarGates: SolarGate[] = []
+            for (let i = 0; i < 5; i++) {
+                solarGates.push({
+                    id: nanoid(),
+                    playerId: player.id
+                })
+            }
+
+            const energyNodes: EnergyNode[] = []
+            for (let i = 0; i < 3; i++) {
+                energyNodes.push({
+                    type: StationType.EnergyNode,
+                    id: nanoid(),
+                    playerId: player.id
+                })
+            }
+
+            const sundiverFoundries: SundiverFoundry[] = []
+            for (let i = 0; i < 3; i++) {
+                sundiverFoundries.push({
+                    type: StationType.SundiverFoundry,
+                    id: nanoid(),
+                    playerId: player.id
+                })
+            }
+
+            const transmitTowers: TransmitTower[] = []
+            for (let i = 0; i < 3; i++) {
+                transmitTowers.push({
+                    type: StationType.TransmitTower,
+                    id: nanoid(),
+                    playerId: player.id
+                })
+            }
+
             return new HydratedSolPlayerState({
                 playerId: player.id,
                 color: colors[index],
                 score: 0,
-                holdSundivers: 8,
-                reserveSundivers: 5,
+                holdSundivers,
+                reserveSundivers,
                 energyCubes: 3,
-                solarGates: 5,
-                energyNodes: 3,
-                sundiverFoundries: 3,
-                transmitTowers: 3,
+                solarGates,
+                energyNodes,
+                sundiverFoundries,
+                transmitTowers,
                 movement: 3
             })
         })

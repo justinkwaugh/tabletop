@@ -1,3 +1,3 @@
 import { Color } from '@tabletop/common'
 
-export const SolColors = [Color.Red, Color.Blue, Color.Yellow, Color.Green]
+export const SolColors = [Color.Purple, Color.Gray, Color.Green, Color.Blue, Color.Black]

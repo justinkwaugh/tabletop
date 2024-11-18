@@ -1,5 +1,8 @@
 export enum ActionType {
-    Move = 'Move',
+    Launch = 'Launch',
+    Fly = 'Fly',
+    Hurl = 'Hurl',
     Convert = 'Convert',
-    Activate = 'Activate'
+    Activate = 'Activate',
+    UseCard = 'UseCard'
 }
