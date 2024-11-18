@@ -1,196 +1,65 @@
-import { coordinatesToNumber, OffsetCoordinates } from '@tabletop/common'
+import { Coordinates, coordinatesToNumber } from '@tabletop/common'
 
-enum Direction {
-    Out = 'Out',
-    In = 'In',
-    Clockwise = 'Clockwise',
-    CounterClockwise = 'CounterClockwise'
+export type Node<T extends Coordinates> = {
+    coords: T
 }
 
-enum Ring {
-    Radiative = 0,
-    Convective = 1,
-    Core = 2,
-    Inner = 3,
-    Outer = 4
+export type Direction = string
+
+// Traverses a graph and returns a list of nodes
+export type Traverser<T extends Node<U>, U extends Coordinates, R extends Iterable<T> = T[]> = (
+    graph: Graph<T, U>
+) => R
+
+// Finds a path through a graph and returns a list of paths
+export type Pathfinder<
+    T extends Node<U>,
+    U extends Coordinates,
+    R extends Iterable<T[]> = T[][]
+> = (graph: Graph<T, U>) => R
+
+export interface Graph<T extends Node<U>, U extends Coordinates> {
+    nodeAt(coords: U): T
+    neighborsOf(coords: U, direction?: Direction): T[]
+    contains(coords: U): boolean
+    traverse(traverser: Traverser<T, U>): T[]
 }
 
-type Node = {
-    coords: OffsetCoordinates
-    neighbors: Record<Direction, OffsetCoordinates[]>
-}
+export class BaseGraph<T extends Node<U>, U extends Coordinates> implements Graph<T, U> {
+    private nodes: Record<number, T> = {}
 
-const ONE_TO_FOUR_PLAYER_RING_COUNTS = [5, 8, 13, 13, 13]
-const FIVE_PLAYER_RING_COUNTS = [5, 8, 13, 16, 16]
-
-// prettier-ignore
-const IN_OUT_EDGES = [
-    // Radiative to Convective
-    [{ col: 0, row: Ring.Radiative },{ col: 0, row: Ring.Convective }],
-    [{ col: 0, row: Ring.Radiative },{ col: 1, row: Ring.Convective }],
-    [{ col: 1, row: Ring.Radiative },{ col: 2, row: Ring.Convective }],
-    [{ col: 1, row: Ring.Radiative },{ col: 3, row: Ring.Convective }],
-    [{ col: 2, row: Ring.Radiative },{ col: 3, row: Ring.Convective }],
-    [{ col: 2, row: Ring.Radiative },{ col: 4, row: Ring.Convective }],
-    [{ col: 2, row: Ring.Radiative },{ col: 5, row: Ring.Convective }],
-    [{ col: 3, row: Ring.Radiative },{ col: 5, row: Ring.Convective }],
-    [{ col: 3, row: Ring.Radiative },{ col: 6, row: Ring.Convective }],
-    [{ col: 4, row: Ring.Radiative },{ col: 6, row: Ring.Convective }],
-    [{ col: 4, row: Ring.Radiative },{ col: 7, row: Ring.Convective }],
-    [{ col: 4, row: Ring.Radiative },{ col: 8, row: Ring.Convective }],
-    [{ col: 5, row: Ring.Radiative },{ col: 8, row: Ring.Convective }],
-    [{ col: 5, row: Ring.Radiative },{ col: 9, row: Ring.Convective }],
-    [{ col: 6, row: Ring.Radiative },{ col: 10, row: Ring.Convective }],
-    [{ col: 6, row: Ring.Radiative },{ col: 11, row: Ring.Convective }],
-    [{ col: 7, row: Ring.Radiative },{ col: 11, row: Ring.Convective }],
-    [{ col: 7, row: Ring.Radiative },{ col: 12, row: Ring.Convective }],
-    [{ col: 7, row: Ring.Radiative },{ col: 0, row: Ring.Convective }],
-    // Core to Radiative
-    [{ col: 0, row: Ring.Core },{ col: 0, row: Ring.Radiative }],
-    [{ col: 0, row: Ring.Core },{ col: 1, row: Ring.Radiative }],
-    [{ col: 1, row: Ring.Core },{ col: 2, row: Ring.Radiative }],
-    [{ col: 1, row: Ring.Core },{ col: 3, row: Ring.Radiative }],
-    [{ col: 2, row: Ring.Core },{ col: 3, row: Ring.Radiative }],
-    [{ col: 2, row: Ring.Core },{ col: 4, row: Ring.Radiative }],
-    [{ col: 3, row: Ring.Core },{ col: 5, row: Ring.Radiative }],
-    [{ col: 3, row: Ring.Core },{ col: 6, row: Ring.Radiative }],
-    [{ col: 4, row: Ring.Core },{ col: 6, row: Ring.Radiative }],
-    [{ col: 4, row: Ring.Core },{ col: 7, row: Ring.Radiative }],
-    [{ col: 4, row: Ring.Core },{ col: 0, row: Ring.Radiative }]
-]
-
-export class SolGraph {
-    private nodes: Record<number, Node> = {}
-
-    constructor(playerCount: number) {
-        if (playerCount < 1 || playerCount > 5) {
-            throw new Error('Invalid player count')
-        }
-
-        if (playerCount < 5) {
-            this.initializeOneToFourPlayers()
-        } else {
-            this.initializeFivePlayers()
-        }
-    }
-
-    private addNode(node: Node) {
+    public addNode(node: T) {
         const nodeId = coordinatesToNumber(node.coords)
         this.nodes[nodeId] = node
     }
 
-    private initializeOneToFourPlayers() {
-        this.createRingNodes(false)
-
-        // Add In/Out edges
-        this.addInnerOuterEdges(false)
-
-        // Inner ring In
-        for (let col = 0; col < ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Inner]; col++) {
-            const node = this.nodes[coordinatesToNumber({ col, row: Ring.Inner })]
-            node.neighbors.In.push(
-                ...[
-                    { col, row: Ring.Convective },
-                    { col: (col + 1) % 13, row: Ring.Convective }
-                ]
-            )
-        }
-
-        // Convective Out
-        for (let col = 0; col < ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Convective]; col++) {
-            const node = this.nodes[coordinatesToNumber({ col, row: Ring.Convective })]
-            node.neighbors.Out.push(
-                ...[
-                    { col: (col - 1) % 13, row: Ring.Inner },
-                    { col, row: Ring.Inner }
-                ]
-            )
-        }
-
-        // The rest
-        this.addCenterThreeRingEdges()
+    public removeNode(node: T) {
+        const nodeId = coordinatesToNumber(node.coords)
+        delete this.nodes[nodeId]
     }
 
-    private initializeFivePlayers() {
-        this.createRingNodes(true)
-
-        // Add In/Out edges
-
-        this.addInnerOuterEdges(false)
-
-        // Inner ring In
-        let innerOffset = 0
-        for (let col = 0; col < FIVE_PLAYER_RING_COUNTS[Ring.Inner]; col++) {
-            const node = this.nodes[coordinatesToNumber({ col, row: Ring.Inner })]
-            if (col === 5 || col === 10 || col === 15) {
-                innerOffset -= 1
-            }
-            if (col !== 0 && col !== 5 && col !== 6 && col !== 10 && col !== 11 && col !== 15) {
-                node.neighbors.In.push({ col: col + innerOffset - 1, row: Ring.Convective })
-            }
-            node.neighbors.In.push({ col: col + innerOffset, row: Ring.Convective })
-        }
-
-        // Convective Out
-        let convectiveOffset = 0
-        for (let col = 0; col < FIVE_PLAYER_RING_COUNTS[Ring.Convective]; col++) {
-            const node = this.nodes[coordinatesToNumber({ col, row: Ring.Convective })]
-            if (col === 5 || col === 9) {
-                convectiveOffset += 1
-            }
-            node.neighbors.In.push({ col: col + convectiveOffset, row: Ring.Inner })
-            node.neighbors.In.push({ col: col + convectiveOffset + 1, row: Ring.Inner })
-        }
-
-        // The rest
-        this.addCenterThreeRingEdges()
+    public removeNodeAt(coords: U) {
+        const nodeId = coordinatesToNumber(coords)
+        delete this.nodes[nodeId]
     }
 
-    private createRingNodes(fivePlayer: boolean) {
-        for (let ring = 0; ring < 5; ring++) {
-            const count = fivePlayer
-                ? FIVE_PLAYER_RING_COUNTS[ring]
-                : ONE_TO_FOUR_PLAYER_RING_COUNTS[ring]
-            for (let col = 0; col < count; col++) {
-                const clockwise = (col + 1) % 13
-                const counterClockwise = (col - 1) % 13
-                this.addNode({
-                    coords: { col, row: ring },
-                    neighbors: {
-                        Out: [],
-                        In: [],
-                        Clockwise: [{ col: clockwise, row: ring }],
-                        CounterClockwise: [{ col: counterClockwise, row: ring }]
-                    }
-                })
-            }
-        }
+    public nodeAt(coords: U): T {
+        return this.nodes[coordinatesToNumber(coords)]
     }
 
-    private addInnerOuterEdges(fivePlayer: boolean) {
-        // Outer ring In
-        const count = fivePlayer
-            ? FIVE_PLAYER_RING_COUNTS[Ring.Outer]
-            : ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Outer]
-        for (let col = 0; col < count; col++) {
-            const node = this.nodes[coordinatesToNumber({ col, row: Ring.Outer })]
-            node.neighbors.In.push({ col, row: Ring.Inner })
-        }
-
-        // Inner ring Out
-        for (let col = 0; col < count; col++) {
-            const node = this.nodes[coordinatesToNumber({ col, row: Ring.Inner })]
-            node.neighbors.Out.push({ col, row: Ring.Outer })
-        }
+    public neighborsOf(_coords: U, _direction?: Direction): T[] {
+        throw new Error('Not implemented')
     }
 
-    private addCenterThreeRingEdges() {
-        for (const edge of IN_OUT_EDGES) {
-            const [innerCoords, outerCoords] = edge
-            const innerNode = this.nodes[coordinatesToNumber(innerCoords)]
-            const outerNode = this.nodes[coordinatesToNumber(outerCoords)]
-            innerNode.neighbors.Out.push(outerCoords)
-            outerNode.neighbors.In.push(innerCoords)
-        }
+    public contains(coords: U): boolean {
+        return !!this.nodeAt(coords)
+    }
+
+    public traverse(traverser: Traverser<T, U>): T[] {
+        return traverser(this)
+    }
+
+    public findPath(pathfinder: Pathfinder<T, U>): T[][] {
+        return pathfinder(this)
     }
 }
