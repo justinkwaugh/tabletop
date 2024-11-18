@@ -5,7 +5,7 @@
     import cultTile from '$lib/images/culttile.png'
     import fishtoken from '$lib/images/fishtoken.png'
     import FishGod from '$lib/images/fishgod.svelte'
-    import { axialCoordinatesToNumber, sameCoordinates, Point, Game } from '@tabletop/common'
+    import { coordinatesToNumber, sameCoordinates, Point, Game } from '@tabletop/common'
     import {
         ActionType,
         CellType,
@@ -32,7 +32,7 @@
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let { hex, origin }: { hex: Hex; origin: Point } = $props()
-    let cell = $derived(gameSession.gameState.board.cells[axialCoordinatesToNumber(hex)])
+    let cell = $derived(gameSession.gameState.board.cells[coordinatesToNumber(hex)])
     let cellImage = $derived.by(() => {
         if (cell) {
             switch (cell.type) {
@@ -199,7 +199,7 @@
             const boat = getBoat()
             return boat !== undefined && gameSession.usableBoats.includes(boat.id)
         } else if (!gameSession.chosenBoatLocation) {
-            return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
+            return gameSession.validBoatLocationIds.has(coordinatesToNumber(hex))
         } else if (gameSession.chosenHutType) {
             // Why is checking every cell faster than using the validBuildLocationIds set?
             const { valid } = HydratedBuild.isValidPlacement(gameSession.gameState, {
@@ -210,7 +210,7 @@
                 boatCoords: gameSession.chosenBoatLocation
             })
             return valid
-            // return gameSession.validBuildLocationIds.has(axialCoordinatesToNumber(hex))
+            // return gameSession.validBuildLocationIds.has(coordinatesToNumber(hex))
         }
         return false
     }
@@ -236,7 +236,7 @@
             const boat = getBoat()
             return boat !== undefined && gameSession.usableBoats.includes(boat.id)
         } else if (!gameSession.chosenBoatLocation) {
-            return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
+            return gameSession.validBoatLocationIds.has(coordinatesToNumber(hex))
         }
         return false
     }
@@ -246,9 +246,9 @@
             const boat = getBoat()
             return boat !== undefined && gameSession.usableBoats.includes(boat.id)
         } else if (!gameSession.chosenBoatLocation) {
-            return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
+            return gameSession.validBoatLocationIds.has(coordinatesToNumber(hex))
         } else {
-            return gameSession.validDeliveryLocationIds.includes(axialCoordinatesToNumber(hex))
+            return gameSession.validDeliveryLocationIds.includes(coordinatesToNumber(hex))
         }
         return false
     }
@@ -258,7 +258,7 @@
             const boat = getBoat()
             return boat !== undefined && gameSession.usableBoats.includes(boat.id)
         } else if (!gameSession.chosenBoatLocation) {
-            return gameSession.validBoatLocationIds.has(axialCoordinatesToNumber(hex))
+            return gameSession.validBoatLocationIds.has(coordinatesToNumber(hex))
         }
         return false
     }
@@ -316,7 +316,7 @@
 
         const state = gameSession.gameState
         if (gameSession.highlightedHexes.size > 0) {
-            if (!gameSession.highlightedHexes.has(axialCoordinatesToNumber(hex))) {
+            if (!gameSession.highlightedHexes.has(coordinatesToNumber(hex))) {
                 return true
             } else {
                 return false

@@ -39,7 +39,7 @@ import {
     HydratedKaivaiGameState
 } from '@tabletop/kaivai'
 import {
-    axialCoordinatesToNumber,
+    coordinatesToNumber,
     GameAction,
     Color,
     sameCoordinates,
@@ -124,7 +124,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
                     gameState: this.gameState,
                     playerState: playerState,
                     boatId: this.chosenBoat
-                }).map((coords) => axialCoordinatesToNumber(coords))
+                }).map((coords) => coordinatesToNumber(coords))
             )
         } else if (this.chosenAction === ActionType.Fish) {
             return new Set(
@@ -132,7 +132,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
                     gameState: this.gameState,
                     playerState: playerState,
                     boatId: this.chosenBoat
-                }).map((coords) => axialCoordinatesToNumber(coords))
+                }).map((coords) => coordinatesToNumber(coords))
             )
         } else if (this.chosenAction === ActionType.Deliver) {
             return new Set(
@@ -140,7 +140,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
                     gameState: this.gameState,
                     playerState: playerState,
                     boatId: this.chosenBoat
-                }).map((coords) => axialCoordinatesToNumber(coords))
+                }).map((coords) => coordinatesToNumber(coords))
             )
         } else if (this.chosenAction === ActionType.Move) {
             return new Set(
@@ -148,7 +148,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
                     gameState: this.gameState,
                     playerState: playerState,
                     boatId: this.chosenBoat
-                }).map((coords) => axialCoordinatesToNumber(coords))
+                }).map((coords) => coordinatesToNumber(coords))
             )
         }
         return new Set()
@@ -184,7 +184,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     //                     })
     //                     return valid
     //                 })
-    //                 .map((coords) => axialCoordinatesToNumber(coords))
+    //                 .map((coords) => coordinatesToNumber(coords))
     //         )
     //     }
 
@@ -214,7 +214,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
                 })
                 return !delivery || cell.fish + delivery.amount <= 3
             })
-            .map((cell) => axialCoordinatesToNumber(cell.coords))
+            .map((cell) => coordinatesToNumber(cell.coords))
     })
 
     validCelebrationIslands: Set<string> = $derived.by(() => {

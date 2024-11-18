@@ -5,7 +5,7 @@ import {
     BaseGameInitializer,
     range,
     AxialCoordinates,
-    axialCoordinatesToNumber,
+    coordinatesToNumber,
     pickRandom,
     HydratedRoundManager,
     HydratedPhaseManager,
@@ -155,7 +155,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                     coords,
                     islandId: island.id
                 }
-                cells[axialCoordinatesToNumber(coords)] = cell
+                cells[coordinatesToNumber(coords)] = cell
             }
         }
 
