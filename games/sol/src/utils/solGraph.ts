@@ -1,7 +1,7 @@
 import { OffsetCoordinates } from '@tabletop/common'
 import { BaseGraph, Graph, Node } from './graph.js'
 
-enum Direction {
+export enum Direction {
     Out = 'O',
     In = 'I',
     Clockwise = 'C',
@@ -9,7 +9,7 @@ enum Direction {
     Portal = 'P' // For Portal Effect to connect nodes
 }
 
-enum Ring {
+export enum Ring {
     Radiative = 0,
     Convective = 1,
     Core = 2,
