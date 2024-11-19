@@ -4,7 +4,8 @@ import {
     RandomFunction,
     BaseGameInitializer,
     PrngState,
-    Prng
+    Prng,
+    PlayerState
 } from '@tabletop/common'
 import {
     Game,
@@ -19,10 +20,13 @@ import { HydratedSolPlayerState, SolPlayerState } from '../model/playerState.js'
 import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { SolColors } from './colors.js'
-import { SolGameConfig, SolGameConfigValidator } from './gameConfig.js'
+import { SolGameConfigValidator } from './gameConfig.js'
 import { Sundiver } from 'src/components/sundiver.js'
 import { SolarGate } from 'src/components/solarGate.js'
 import { EnergyNode, StationType, SundiverFoundry, TransmitTower } from 'src/components/stations.js'
+import { HydratedSolGameBoard } from 'src/components/gameBoard.js'
+
+const MOTHERSHIP_SPACING = [0, 6, 4, 3, 3]
 
 export class SolGameInitializer extends BaseGameInitializer implements GameInitializer {
     override initializeGame(game: Partial<Game>): Game {
@@ -40,7 +44,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         const players = this.initializePlayers(game, prng.random)
         // const numPlayers = game.players.length
         // const config = game.config as SolGameConfig
-        // const board = this.initializeBoard(numPlayers, config.ruleset, prng.random)
+        const board = this.initializeBoard(players, prng.random)
 
         const state = new HydratedSolGameState({
             id: nanoid(),
@@ -53,6 +57,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             players: players,
             machineState: MachineState.EndOfGame,
             winningPlayerIds: [],
+            board,
             instability: 13,
             energyCubes: 89
         })
@@ -133,5 +138,26 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         })
 
         return players
+    }
+
+    private initializeBoard(players: PlayerState[], random: RandomFunction): HydratedSolGameBoard {
+        const numPlayers = players.length
+        const numMothershipPositions = numPlayers === 5 ? 16 : 13
+        const spacing = MOTHERSHIP_SPACING[numPlayers]
+        const motherships: Record<string, number> = {}
+
+        const randomOffset = Math.floor(random() * numMothershipPositions)
+        for (let i = 0; i < players.length; i++) {
+            motherships[players[i].playerId] = (randomOffset + i * spacing) % numMothershipPositions
+        }
+
+        const board = new HydratedSolGameBoard({
+            numPlayers,
+            motherships,
+            cells: {},
+            gates: {}
+        })
+
+        return board
     }
 }
