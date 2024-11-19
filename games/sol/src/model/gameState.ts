@@ -9,6 +9,7 @@ import { SolPlayerState, HydratedSolPlayerState } from './playerState.js'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { MachineState } from '../definition/states.js'
+import { HydratedSolGameBoard, SolGameBoard } from 'src/components/gameBoard.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Composite([
@@ -16,6 +17,7 @@ export const SolGameState = Type.Composite([
     Type.Object({
         players: Type.Array(SolPlayerState),
         machineState: Type.Enum(MachineState),
+        board: SolGameBoard,
         instability: Type.Number(),
         energyCubes: Type.Number()
     })
@@ -43,6 +45,7 @@ export class HydratedSolGameState
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
+    declare board: HydratedSolGameBoard
     declare instability: number
     declare energyCubes: number
 
