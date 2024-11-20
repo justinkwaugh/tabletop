@@ -21,10 +21,13 @@ import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { SolColors } from './colors.js'
 import { SolGameConfigValidator } from './gameConfig.js'
-import { Sundiver } from 'src/components/sundiver.js'
-import { SolarGate } from 'src/components/solarGate.js'
-import { EnergyNode, StationType, SundiverFoundry, TransmitTower } from 'src/components/stations.js'
-import { HydratedSolGameBoard } from 'src/components/gameBoard.js'
+import { Sundiver } from '../components/sundiver.js'
+import { SolarGate } from '../components/solarGate.js'
+import { EnergyNode, StationType, SundiverFoundry, TransmitTower } from '../components/stations.js'
+import { HydratedSolGameBoard } from '../components/gameBoard.js'
+import { Suit } from '../components/cards.js'
+import { Deck } from '../components/deck.js'
+import { Effect, Effects } from '../components/effects.js'
 
 const MOTHERSHIP_SPACING = [0, 6, 4, 3, 3]
 
@@ -42,7 +45,26 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         const prngState: PrngState = { seed, invocations: 0 }
         const prng = new Prng(prngState)
         const players = this.initializePlayers(game, prng.random)
-        // const numPlayers = game.players.length
+        const nonFlareSuits = [
+            Suit.Condensation,
+            Suit.Expansion,
+            Suit.Oscillation,
+            Suit.Refraction,
+            Suit.Reverberation,
+            Suit.Subduction
+        ]
+        shuffle(nonFlareSuits, prng.random)
+        const suits = [Suit.Flare, ...nonFlareSuits.slice(0, players.length + 1)]
+        const deck = Deck.create(suits, prng.random)
+
+        const allEffects = structuredClone(Effects)
+        shuffle(allEffects, prng.random)
+        const effects: Record<string, Effect> = {}
+
+        suits.forEach((suit, index) => {
+            effects[suit] = allEffects[index]
+        })
+
         // const config = game.config as SolGameConfig
         const board = this.initializeBoard(players, prng.random)
 
@@ -58,6 +80,8 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             machineState: MachineState.EndOfGame,
             winningPlayerIds: [],
             board,
+            deck,
+            effects,
             instability: 13,
             energyCubes: 89
         })

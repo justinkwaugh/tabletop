@@ -1,11 +1,17 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { Hydratable, OffsetCoordinates, sameCoordinates } from '@tabletop/common'
+import {
+    coordinatesToNumber,
+    Hydratable,
+    OffsetCoordinates,
+    sameCoordinates
+} from '@tabletop/common'
 import { Station } from './stations.js'
 import { Sundiver } from './sundiver.js'
 import { SolarGate } from './solarGate.js'
 import { Direction, Ring, SolGraph, SolNode } from '../utils/solGraph.js'
 import { flood } from '../utils/floodTraverser.js'
+import { HydratedSolPlayerState } from 'src/model/playerState.js'
 
 export type Cell = Static<typeof Cell>
 export const Cell = Type.Object({
@@ -69,20 +75,55 @@ export class HydratedSolGameBoard extends Hydratable<typeof SolGameBoard> implem
         return false
     }
 
-    public launchCoordinates(playerId: string): OffsetCoordinates[] {
+    public canAddSundiversToCell(
+        playerId: string,
+        numSundivers: number,
+        coords: OffsetCoordinates
+    ): boolean {
+        if (!this.graph.contains(coords)) {
+            return false
+        }
+
+        const cell = this.cells[coordinatesToNumber(coords)]
+        if (!cell) {
+            return true
+        }
+
+        return this.sundiversForPlayer(playerId, cell).length + numSundivers <= 5
+    }
+
+    public addSundiversToCell(sundivers: Sundiver[], coords: OffsetCoordinates) {
+        const sundiversByPlayer: Record<string, Sundiver[]> = {}
+        for (const sundiver of sundivers) {
+            if (!sundiversByPlayer[sundiver.playerId]) {
+                sundiversByPlayer[sundiver.playerId] = []
+            }
+            sundiversByPlayer[sundiver.playerId].push(sundiver)
+        }
+
+        let cell = this.cells[coordinatesToNumber(coords)]
+        if (!cell) {
+            cell = {
+                coords,
+                station: Station.None,
+                sundivers: []
+            }
+            this.cells[coordinatesToNumber(coords)] = cell
+        }
+
+        for (const [playerId, sundivers] of Object.entries(sundiversByPlayer)) {
+            if (!this.canAddSundiversToCell(playerId, sundivers.length, coords)) {
+                throw new Error('Cannot add sundivers to cell')
+            }
+            cell.sundivers.push(...sundivers)
+        }
+    }
+
+    public launchCoordinatesForMothership(playerId: string): OffsetCoordinates[] {
         const mothershipIndex = this.motherships[playerId]
         if (mothershipIndex === undefined) {
             return []
         }
-
-        const results = this.launchCoordinatesForMothership(mothershipIndex)
-
-        // If portal, add all other mothership positions
-
-        return results
-    }
-
-    private launchCoordinatesForMothership(mothershipIndex: number): OffsetCoordinates[] {
         const numMothershipPositions = this.numPlayers === 5 ? 16 : 13
         const secondCol = (mothershipIndex + 1) % numMothershipPositions
         return [
@@ -91,6 +132,10 @@ export class HydratedSolGameBoard extends Hydratable<typeof SolGameBoard> implem
             { row: Ring.Outer, col: secondCol },
             { row: Ring.Inner, col: secondCol }
         ]
+    }
+
+    private sundiversForPlayer(playerId: string, cell: Cell): Sundiver[] {
+        return cell.sundivers.filter((sundiver) => sundiver.playerId === playerId)
     }
 
     get graph(): SolGraph {

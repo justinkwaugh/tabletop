@@ -9,7 +9,9 @@ import { SolPlayerState, HydratedSolPlayerState } from './playerState.js'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { MachineState } from '../definition/states.js'
-import { HydratedSolGameBoard, SolGameBoard } from 'src/components/gameBoard.js'
+import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
+import { Effect } from '../components/effects.js'
+import { Deck, HydratedDeck } from 'src/components/deck.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Composite([
@@ -18,6 +20,8 @@ export const SolGameState = Type.Composite([
         players: Type.Array(SolPlayerState),
         machineState: Type.Enum(MachineState),
         board: SolGameBoard,
+        deck: Deck,
+        effects: Type.Record(Type.String(), Effect),
         instability: Type.Number(),
         energyCubes: Type.Number()
     })
@@ -28,6 +32,8 @@ const SolGameStateValidator = TypeCompiler.Compile(SolGameState)
 type HydratedProperties = {
     turnManager: HydratedSimpleTurnManager
     players: HydratedSolPlayerState[]
+    board: HydratedSolGameBoard
+    deck: HydratedDeck
 }
 
 export class HydratedSolGameState
@@ -46,13 +52,17 @@ export class HydratedSolGameState
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare board: HydratedSolGameBoard
+    declare deck: Deck
+    declare effects: Record<string, Effect>
     declare instability: number
     declare energyCubes: number
 
     constructor(data: SolGameState) {
         const hydratedProperties: HydratedProperties = {
             turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            players: data.players.map((player) => new HydratedSolPlayerState(player))
+            players: data.players.map((player) => new HydratedSolPlayerState(player)),
+            board: new HydratedSolGameBoard(data.board),
+            deck: new HydratedDeck(data.deck)
         }
         super(data, SolGameStateValidator, hydratedProperties)
     }

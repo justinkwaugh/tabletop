@@ -46,4 +46,42 @@ export class HydratedSolPlayerState
     constructor(data: SolPlayerState) {
         super(data, SolPlayerStateValidator)
     }
+
+    public numSundiversInHold(playerId?: string) {
+        const owner = playerId ?? this.playerId
+        return this.holdSundivers.filter((sundiver) => sundiver.playerId === owner).length
+    }
+
+    public removeSundiversFromHold(numSundivers: number, playerId?: string): Sundiver[] {
+        const owner = playerId ?? this.playerId
+        const ownerSundivers = this.holdSundivers.filter((sundiver) => sundiver.playerId === owner)
+        if (ownerSundivers.length < numSundivers) {
+            throw new Error(`Player ${owner} only has ${ownerSundivers.length} sundivers in hold`)
+        }
+        const nonOwnerSundivers = this.holdSundivers.filter(
+            (sundiver) => sundiver.playerId !== owner
+        )
+        const removedSundivers = ownerSundivers.splice(0, numSundivers)
+
+        this.holdSundivers = [...nonOwnerSundivers, ...ownerSundivers]
+
+        return removedSundivers
+    }
+
+    public addSundiversToHold(sundivers: Sundiver[]) {
+        this.holdSundivers.push(...sundivers)
+    }
+
+    public addSundiversToReserve(sundivers: Sundiver[]) {
+        this.reserveSundivers.push(...sundivers)
+    }
+
+    public removeSundiversFromReserve(numSundivers: number): Sundiver[] {
+        if (this.reserveSundivers.length < numSundivers) {
+            throw new Error(
+                `Player ${this.playerId} only has ${this.reserveSundivers.length} sundivers in reserve`
+            )
+        }
+        return this.reserveSundivers.splice(0, numSundivers)
+    }
 }
