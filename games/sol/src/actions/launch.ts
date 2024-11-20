@@ -15,7 +15,8 @@ export const Launch = Type.Composite([
     Type.Object({
         type: Type.Literal(ActionType.Launch),
         playerId: Type.String(),
-        sundiverIds: Type.Array(Type.String()),
+        mothership: Type.String(), // player id is surrogate for mothership
+        numSundivers: Type.Number(),
         destination: OffsetCoordinates,
         metadata: Type.Optional(LaunchMetadata)
     })
@@ -30,7 +31,8 @@ export function isLaunch(action?: GameAction): action is Launch {
 export class HydratedLaunch extends HydratableAction<typeof Launch> implements Launch {
     declare type: ActionType.Launch
     declare playerId: string
-    declare sundiverIds: string[]
+    declare mothership: string
+    declare numSundivers: number
     declare destination: OffsetCoordinates
     declare metadata?: LaunchMetadata
 
@@ -40,5 +42,36 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
+
+        const mothershipPlayer = state.getPlayerState(this.mothership)
+        const launchedSundivers = mothershipPlayer.removeSundiversFromHold(
+            this.numSundivers,
+            this.playerId
+        )
+        state.board.addSundiversToCell(launchedSundivers, this.destination)
+    }
+
+    static canLaunch(state: HydratedSolGameState, playerId: string): boolean {
+        // check every player's hold due to potential Blight effect
+        for (const player of state.players) {
+            if (player.numSundiversInHold(playerId) === 0) {
+                continue
+            }
+
+            const launchCoordinates = state.board.launchCoordinatesForMothership(player.playerId)
+            if (
+                launchCoordinates.length > 0 &&
+                launchCoordinates.some((coords) =>
+                    state.board.canAddSundiversToCell(playerId, 1, coords)
+                )
+            ) {
+                return true
+            }
+        }
+        return false
+    }
+
+    static isValidLaunch(state: HydratedSolGameState, coords: OffsetCoordinates): boolean {
+        return state.board.canPlaceCubeAtCoords(cube, coords)
     }
 }

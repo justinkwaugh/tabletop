@@ -2,7 +2,7 @@ import { Static, Type } from '@sinclair/typebox'
 
 export enum Suit {
     Refraction = 'Refraction',
-    Condesation = 'Condensation',
+    Condensation = 'Condensation',
     Subduction = 'Subduction',
     Oscillation = 'Oscillation',
     Expansion = 'Expansion',
