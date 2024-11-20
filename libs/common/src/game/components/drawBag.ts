@@ -24,19 +24,47 @@ export abstract class HydratedDrawBag<T, U extends TSchema> extends Hydratable<U
         return this.remaining
     }
 
+    addItem(item: T) {
+        this.addItems([item])
+    }
+
+    addItems(items: T[]) {
+        this.fixOldBags()
+
+        this.items.push(...structuredClone(items))
+        this.remaining += 1
+    }
+
     shuffle(random?: RandomFunction) {
+        this.fixOldBags()
+
         shuffle(this.items, random)
     }
 
     isEmpty(): boolean {
-        return this.remaining == 0
+        return this.count() == 0
     }
 
     draw(): T {
-        if (this.isEmpty()) {
-            throw Error('Trying to draw from empty bag')
+        return this.drawItems()[0]
+    }
+
+    drawItems(count: number = 1): T[] {
+        this.fixOldBags()
+
+        if (count < 1 || count > this.count()) {
+            throw Error('Trying to draw an invalid amount of items')
         }
-        this.remaining -= 1
-        return structuredClone(this.items[this.remaining])
+        this.remaining -= count
+        // Remove count items
+        return structuredClone(this.items.splice(this.remaining, count))
+    }
+
+    // For reasons I don't remember, the original implementation never adjusted the items array
+    // which I think was a mistake.  This will pare any old items down tot the remaining count.
+    private fixOldBags() {
+        if (this.items.length > this.remaining) {
+            this.items.splice(this.remaining)
+        }
     }
 }
