@@ -197,7 +197,7 @@ export class SolGraph
         }
     }
 
-    public neighborsOf(coords: OffsetCoordinates, direction?: Direction): SolNode[] {
+    public override neighborsOf(coords: OffsetCoordinates, direction?: Direction): SolNode[] {
         if (!this.contains(coords)) {
             throw new Error('Invalid coordinates')
         }

@@ -3,8 +3,6 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedSolPlayerState } from '../model/playerState.js'
-import { MachineState } from '../definition/states.js'
 
 export type HurlMetadata = Static<typeof HurlMetadata>
 export const HurlMetadata = Type.Object({})
