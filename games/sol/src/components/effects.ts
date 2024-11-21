@@ -33,47 +33,64 @@ export enum EffectType {
     Tribute = 'Tribute'
 }
 
-export enum EffectCategory {
-    Simple = 'Simple',
-    Complex = 'Complex',
-    Conflict = 'Conflict'
+export enum EffectColor {
+    Red = 'Red',
+    Green = 'Green',
+    Blue = 'Blue',
+    Yellow = 'Yellow'
 }
 
 export type Effect = Static<typeof Effect>
 export const Effect = Type.Object({
     type: Type.Enum(EffectType),
-    category: Type.Enum(EffectCategory)
+    color: Type.Enum(EffectColor)
 })
 
 export const Effects: Effect[] = [
-    { type: EffectType.Accelerate, category: EffectCategory.Simple },
-    { type: EffectType.Augment, category: EffectCategory.Simple },
-    { type: EffectType.Blight, category: EffectCategory.Simple },
-    { type: EffectType.Cascade, category: EffectCategory.Simple },
-    { type: EffectType.Catapult, category: EffectCategory.Simple },
-    { type: EffectType.Ceremony, category: EffectCategory.Simple },
-    { type: EffectType.Chain, category: EffectCategory.Simple },
-    { type: EffectType.Channel, category: EffectCategory.Simple },
-    { type: EffectType.Cluster, category: EffectCategory.Simple },
-    { type: EffectType.Duplicate, category: EffectCategory.Simple },
-    { type: EffectType.Festival, category: EffectCategory.Simple },
-    { type: EffectType.Fuel, category: EffectCategory.Simple },
-    { type: EffectType.Hatch, category: EffectCategory.Simple },
-    { type: EffectType.Hyperdrive, category: EffectCategory.Simple },
-    { type: EffectType.Invade, category: EffectCategory.Simple },
-    { type: EffectType.Juggernaut, category: EffectCategory.Simple },
-    { type: EffectType.Metamorphosis, category: EffectCategory.Simple },
-    { type: EffectType.Motivate, category: EffectCategory.Simple },
-    { type: EffectType.Passage, category: EffectCategory.Simple },
-    { type: EffectType.Pillar, category: EffectCategory.Simple },
-    { type: EffectType.Portal, category: EffectCategory.Simple },
-    { type: EffectType.Procreate, category: EffectCategory.Simple },
-    { type: EffectType.Pulse, category: EffectCategory.Simple },
-    { type: EffectType.Puncture, category: EffectCategory.Simple },
-    { type: EffectType.Sacrifice, category: EffectCategory.Simple },
-    { type: EffectType.Squeeze, category: EffectCategory.Simple },
-    { type: EffectType.Synchronize, category: EffectCategory.Simple },
-    { type: EffectType.Teleport, category: EffectCategory.Simple },
-    { type: EffectType.Transcend, category: EffectCategory.Simple },
-    { type: EffectType.Tribute, category: EffectCategory.Simple }
+    { type: EffectType.Accelerate, color: EffectColor.Yellow },
+    { type: EffectType.Augment, color: EffectColor.Yellow },
+    { type: EffectType.Blight, color: EffectColor.Yellow },
+    { type: EffectType.Cascade, color: EffectColor.Blue },
+    { type: EffectType.Catapult, color: EffectColor.Blue },
+    { type: EffectType.Ceremony, color: EffectColor.Blue },
+    { type: EffectType.Chain, color: EffectColor.Yellow },
+    { type: EffectType.Channel, color: EffectColor.Green },
+    { type: EffectType.Cluster, color: EffectColor.Green },
+    { type: EffectType.Duplicate, color: EffectColor.Green },
+    { type: EffectType.Festival, color: EffectColor.Yellow },
+    { type: EffectType.Fuel, color: EffectColor.Green },
+    { type: EffectType.Hatch, color: EffectColor.Red },
+    { type: EffectType.Hyperdrive, color: EffectColor.Yellow },
+    { type: EffectType.Invade, color: EffectColor.Red },
+    { type: EffectType.Juggernaut, color: EffectColor.Blue },
+    { type: EffectType.Metamorphosis, color: EffectColor.Green },
+    { type: EffectType.Motivate, color: EffectColor.Blue },
+    { type: EffectType.Passage, color: EffectColor.Green },
+    { type: EffectType.Pillar, color: EffectColor.Yellow },
+    { type: EffectType.Portal, color: EffectColor.Yellow },
+    { type: EffectType.Procreate, color: EffectColor.Blue },
+    { type: EffectType.Pulse, color: EffectColor.Green },
+    { type: EffectType.Puncture, color: EffectColor.Blue },
+    { type: EffectType.Sacrifice, color: EffectColor.Yellow },
+    { type: EffectType.Squeeze, color: EffectColor.Yellow },
+    { type: EffectType.Synchronize, color: EffectColor.Green },
+    { type: EffectType.Teleport, color: EffectColor.Yellow },
+    { type: EffectType.Transcend, color: EffectColor.Yellow },
+    { type: EffectType.Tribute, color: EffectColor.Red }
 ]
+
+export function blueEffects(): Effect[] {
+    return Effects.filter((effect) => effect.color === EffectColor.Blue)
+}
+
+export function greenEffects(): Effect[] {
+    return Effects.filter((effect) => effect.color === EffectColor.Green)
+}
+
+export function yellowEffects(): Effect[] {
+    return Effects.filter((effect) => effect.color === EffectColor.Yellow)
+}
+
+export function redEffects(): Effect[] {
+    return Effects.filter((effect) => effect.color === EffectColor.Red)
+}

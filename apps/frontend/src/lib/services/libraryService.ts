@@ -2,6 +2,7 @@ import { FreshFishUiDefinition } from '@tabletop/fresh-fish-ui'
 import { BridgesUiDefinition } from '@tabletop/bridges-of-shangri-la-ui'
 import { KaivaiUiDefinition } from '@tabletop/kaivai-ui'
 import { EstatesUiDefinition } from '@tabletop/estates-ui'
+import { SolUiDefinition } from '@tabletop/sol-ui'
 import { type GameUiDefinition } from '@tabletop/frontend-components'
 import type { AuthorizationService } from './authorizationService.svelte'
 import { Role } from '@tabletop/common'
@@ -11,7 +12,8 @@ export class LibraryService {
         [BridgesUiDefinition.id, BridgesUiDefinition],
         [FreshFishUiDefinition.id, FreshFishUiDefinition],
         [EstatesUiDefinition.id, EstatesUiDefinition],
-        [KaivaiUiDefinition.id, KaivaiUiDefinition]
+        [KaivaiUiDefinition.id, KaivaiUiDefinition],
+        [SolUiDefinition.id, SolUiDefinition]
     ])
 
     constructor(private readonly authorizationService: AuthorizationService) {}

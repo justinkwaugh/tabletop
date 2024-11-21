@@ -3,9 +3,9 @@ import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Color } from '@tabletop/common'
 import { Card } from '../components/cards.js'
-import { Sundiver } from 'src/components/sundiver.js'
-import { SolarGate } from 'src/components/solarGate.js'
-import { EnergyNode, SundiverFoundry, TransmitTower } from 'src/components/stations.js'
+import { Sundiver } from '../components/sundiver.js'
+import { SolarGate } from '../components/solarGate.js'
+import { EnergyNode, SundiverFoundry, TransmitTower } from '../components/stations.js'
 
 export type SolPlayerState = Static<typeof SolPlayerState>
 export const SolPlayerState = Type.Composite([
@@ -20,6 +20,7 @@ export const SolPlayerState = Type.Composite([
         sundiverFoundries: Type.Array(SundiverFoundry),
         transmitTowers: Type.Array(TransmitTower),
         movement: Type.Number(),
+        movementPoints: Type.Number(),
         card: Type.Optional(Card)
     })
 ])
@@ -40,7 +41,9 @@ export class HydratedSolPlayerState
     declare energyNodes: EnergyNode[]
     declare sundiverFoundries: SundiverFoundry[]
     declare transmitTowers: TransmitTower[]
+    declare movementPoints: number
     declare movement: number
+
     declare card?: Card
 
     constructor(data: SolPlayerState) {

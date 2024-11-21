@@ -11,7 +11,6 @@ import { Sundiver } from './sundiver.js'
 import { SolarGate } from './solarGate.js'
 import { Direction, Ring, SolGraph, SolNode } from '../utils/solGraph.js'
 import { flood } from '../utils/floodTraverser.js'
-import { HydratedSolPlayerState } from 'src/model/playerState.js'
 
 export type Cell = Static<typeof Cell>
 export const Cell = Type.Object({

@@ -26,7 +26,7 @@ import { SolarGate } from '../components/solarGate.js'
 import { EnergyNode, StationType, SundiverFoundry, TransmitTower } from '../components/stations.js'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { Suit } from '../components/cards.js'
-import { Deck } from '../components/deck.js'
+import { HydratedDeck } from '../components/deck.js'
 import { Effect, Effects } from '../components/effects.js'
 
 const MOTHERSHIP_SPACING = [0, 6, 4, 3, 3]
@@ -55,7 +55,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         ]
         shuffle(nonFlareSuits, prng.random)
         const suits = [Suit.Flare, ...nonFlareSuits.slice(0, players.length + 1)]
-        const deck = Deck.create(suits, prng.random)
+        const deck = HydratedDeck.create(suits, prng.random)
 
         const allEffects = structuredClone(Effects)
         shuffle(allEffects, prng.random)
@@ -157,7 +157,8 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
                 energyNodes,
                 sundiverFoundries,
                 transmitTowers,
-                movement: 3
+                movement: 3,
+                movementPoints: 0
             })
         })
 

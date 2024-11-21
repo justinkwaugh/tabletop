@@ -38,16 +38,6 @@ export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBr
         return this.gameState.turnManager.turnCount(this.myPlayer.id)
     })
 
-    currentAction = $derived.by(() => {
-        let action
-        if (this.mode === GameSessionMode.History && this.currentHistoryIndex >= 0) {
-            action = this.actions[this.currentHistoryIndex]
-        } else if (this.mode === GameSessionMode.Play) {
-            action = this.actions[this.actions.length - 1]
-        }
-        return action
-    })
-
     nameForActionType(actionType: string) {
         switch (actionType) {
             case ActionType.PlaceMaster:

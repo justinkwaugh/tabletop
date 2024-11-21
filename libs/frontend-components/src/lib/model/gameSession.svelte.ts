@@ -120,6 +120,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             : this.definition.colorizer
     })
 
+    currentAction = $derived.by(() => {
+        let action
+        if (this.mode === GameSessionMode.History && this.currentHistoryIndex >= 0) {
+            action = this.actions[this.currentHistoryIndex]
+        } else if (this.mode === GameSessionMode.Play) {
+            action = this.actions[this.actions.length - 1]
+        }
+        return action
+    })
+
     undoableAction: GameAction | undefined = $derived.by(() => {
         // No spectators, must have actions, not viewing history
         if (
