@@ -11,7 +11,7 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { MachineState } from '../definition/states.js'
 import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
 import { Effect } from '../components/effects.js'
-import { Deck, HydratedDeck } from 'src/components/deck.js'
+import { Deck, HydratedDeck } from '../components/deck.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Composite([

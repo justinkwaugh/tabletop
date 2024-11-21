@@ -14,6 +14,8 @@
         "../../node_modules/@tabletop/bridges-of-shangri-la",
         "../../node_modules/@tabletop/kaivai",
         "../../node_modules/@tabletop/estates",
+        "../../node_modules/@tabletop/sol",
+        "../../node_modules/@tabletop/sol-ui",
         "src/**/*.spec.ts",
         "src/tests/**/*"
     ],

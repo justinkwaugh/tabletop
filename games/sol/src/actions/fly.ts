@@ -3,9 +3,7 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedSolPlayerState } from '../model/playerState.js'
-import { MachineState } from '../definition/states.js'
-import { SolarGate } from 'src/components/solarGate.js'
+import { SolarGate } from '../components/solarGate.js'
 
 export type FlyMetadata = Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({})
