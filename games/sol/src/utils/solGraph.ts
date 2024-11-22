@@ -1,6 +1,5 @@
 import { OffsetCoordinates } from '@tabletop/common'
 import { BaseGraph, Graph, Node } from './graph.js'
-import { flood } from './floodTraverser.js'
 
 export enum Direction {
     Out = 'O',
@@ -63,7 +62,7 @@ const IN_OUT_EDGES = [
 
 export class SolGraph
     extends BaseGraph<SolNode, OffsetCoordinates>
-    implements Graph<SolNode, OffsetCoordinates>, Iterable<SolNode>
+    implements Graph<SolNode, OffsetCoordinates>
 {
     constructor(playerCount: number) {
         if (playerCount < 1 || playerCount > 5) {
@@ -76,23 +75,6 @@ export class SolGraph
             this.initializeOneToFourPlayers()
         } else {
             this.initializeFivePlayers()
-        }
-    }
-
-    *[Symbol.iterator](): IterableIterator<SolNode> {
-        const startNode = this.nodeAt({ col: 0, row: Ring.Core })
-        const traverser = flood({
-            start: startNode
-        })
-        const nodes = this.traverse(traverser)
-        for (const node of nodes) {
-            yield node
-        }
-    }
-
-    *map<T>(callback: (node: SolNode) => T): IterableIterator<T> {
-        for (const x of this) {
-            yield callback(x)
         }
     }
 

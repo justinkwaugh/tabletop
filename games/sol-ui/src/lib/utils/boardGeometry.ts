@@ -33,6 +33,8 @@ export const RING_RADII: Record<number, [number, number]> = {
     [Ring.Outer]: [472, 576]
 }
 
+export const MOTHERSHIP_RADIUS = 472
+
 export function dimensionsForSpace(numPlayers: number, coords: OffsetCoordinates) {
     const angles = numPlayers === 5 ? FIVE_PLAYER_ANGLES : ONE_TO_FOUR_PLAYER_ANGLES
     const innerRadius = RING_RADII[coords.row][0]
