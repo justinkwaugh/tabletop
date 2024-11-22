@@ -1,5 +1,6 @@
 import { OffsetCoordinates } from '@tabletop/common'
 import { BaseGraph, Graph, Node } from './graph.js'
+import { flood } from './floodTraverser.js'
 
 export enum Direction {
     Out = 'O',
@@ -10,9 +11,9 @@ export enum Direction {
 }
 
 export enum Ring {
-    Radiative = 0,
-    Convective = 1,
-    Core = 2,
+    Core = 0,
+    Radiative = 1,
+    Convective = 2,
     Inner = 3,
     Outer = 4
 }
@@ -21,8 +22,8 @@ export type SolNode = Node<OffsetCoordinates> & {
     neighbors: Record<Direction, OffsetCoordinates[]>
 }
 
-const ONE_TO_FOUR_PLAYER_RING_COUNTS = [5, 8, 13, 13, 13]
-const FIVE_PLAYER_RING_COUNTS = [5, 8, 13, 16, 16]
+export const ONE_TO_FOUR_PLAYER_RING_COUNTS = [5, 8, 13, 13, 13]
+export const FIVE_PLAYER_RING_COUNTS = [5, 8, 13, 16, 16]
 
 // prettier-ignore
 const IN_OUT_EDGES = [
@@ -62,7 +63,7 @@ const IN_OUT_EDGES = [
 
 export class SolGraph
     extends BaseGraph<SolNode, OffsetCoordinates>
-    implements Graph<SolNode, OffsetCoordinates>
+    implements Graph<SolNode, OffsetCoordinates>, Iterable<SolNode>
 {
     constructor(playerCount: number) {
         if (playerCount < 1 || playerCount > 5) {
@@ -75,6 +76,23 @@ export class SolGraph
             this.initializeOneToFourPlayers()
         } else {
             this.initializeFivePlayers()
+        }
+    }
+
+    *[Symbol.iterator](): IterableIterator<SolNode> {
+        const startNode = this.nodeAt({ col: 0, row: Ring.Core })
+        const traverser = flood({
+            start: startNode
+        })
+        const nodes = this.traverse(traverser)
+        for (const node of nodes) {
+            yield node
+        }
+    }
+
+    *map<T>(callback: (node: SolNode) => T): IterableIterator<T> {
+        for (const x of this) {
+            yield callback(x)
         }
     }
 
@@ -100,7 +118,7 @@ export class SolGraph
             const node = this.nodeAt({ col, row: Ring.Convective })
             node.neighbors[Direction.Out].push(
                 ...[
-                    { col: (col - 1) % 13, row: Ring.Inner },
+                    { col: col === 0 ? 12 : col - 1, row: Ring.Inner },
                     { col, row: Ring.Inner }
                 ]
             )
@@ -154,8 +172,8 @@ export class SolGraph
                 ? FIVE_PLAYER_RING_COUNTS[ring]
                 : ONE_TO_FOUR_PLAYER_RING_COUNTS[ring]
             for (let col = 0; col < count; col++) {
-                const clockwise = (col + 1) % 13
-                const counterClockwise = (col - 1) % 13
+                const clockwise = (col + 1) % count
+                const counterClockwise = col === 0 ? count - 1 : col - 1
                 this.addNode({
                     coords: { col, row: ring },
                     neighbors: {

@@ -4,7 +4,14 @@
     import boardImg from '$lib/images/board.jpg'
     import GreenShip from '$lib/images/greenShip.svelte'
     import PurpleShip from '$lib/images/purpleShip.svelte'
+    import SilverShip from '$lib/images/silverShip.svelte'
+    import BlackShip from '$lib/images/blackShip.svelte'
+    import BlueShip from '$lib/images/blueShip.svelte'
+    import Sundiver from '$lib/images/sundiver.svelte'
+    import Tower from '$lib/images/tower.svelte'
     import boardImg5p from '$lib/images/board5p.jpg'
+    import { SolGraph } from '@tabletop/sol'
+    import { dimensionsForSpace } from '$lib/utils/boardGeometry.js'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -34,71 +41,13 @@
         return `M${start.x} ${start.y} L${startOuter.x} ${startOuter.y} A${outerRadius} ${outerRadius} 0 0 1 ${endOuter.x} ${endOuter.y} L${end.x} ${end.y} A${innerRadius} ${innerRadius} 0 0 0 ${start.x} ${start.y}Z`
     }
 
-    const INNER_CORE_RADIUS = 48
-    const OUTER_CORE_RADIUS = 143
-    const INNER_RADIATIVE_RADIUS = 153
-    const OUTER_RADIATIVE_RADIUS = 256
-    const INNER_CONVECTIVE_RADIUS = 266
-    const OUTER_CONVECTIVE_RADIUS = 359
-    const INNER_INNER_ORBIT_RADIUS = 368
-    const OUTER_INNER_ORBIT_RADIUS = 462
-    const INNER_OUTER_ORBIT_RADIUS = 483
-    const OUTER_OUTER_ORBIT_RADIUS = 574
+    function getMothershipTranslation(angle: number) {
+        const radius = 470
+        const point = getCirclePoint(radius, toRadians(angle))
+        return `translate(${point.x}, ${point.y})`
+    }
 
-    const cells = [
-        [INNER_CORE_RADIUS, OUTER_CORE_RADIUS, 15, 83],
-        [INNER_CORE_RADIUS, OUTER_CORE_RADIUS, 83, 150],
-        [INNER_CORE_RADIUS, OUTER_CORE_RADIUS, 150, 225],
-        [INNER_CORE_RADIUS, OUTER_CORE_RADIUS, 225, 297],
-        [INNER_CORE_RADIUS, OUTER_CORE_RADIUS, 297, 15],
-        [INNER_RADIATIVE_RADIUS, OUTER_RADIATIVE_RADIUS, 15, 59],
-        [INNER_RADIATIVE_RADIUS, OUTER_RADIATIVE_RADIUS, 60, 104],
-        [INNER_RADIATIVE_RADIUS, OUTER_RADIATIVE_RADIUS, 105, 149],
-        [INNER_RADIATIVE_RADIUS, OUTER_RADIATIVE_RADIUS, 150, 192],
-        [INNER_RADIATIVE_RADIUS, OUTER_RADIATIVE_RADIUS, 193, 238.5],
-        [INNER_RADIATIVE_RADIUS, OUTER_RADIATIVE_RADIUS, 239.5, 283.5],
-        [INNER_RADIATIVE_RADIUS, OUTER_RADIATIVE_RADIUS, 284.5, 330.5],
-        [INNER_RADIATIVE_RADIUS, OUTER_RADIATIVE_RADIUS, 331.5, 14],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 27, 54],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 55, 81.5],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 82.5, 109],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 110, 136.5],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 137.5, 164.5],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 165.5, 192],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 193, 219.5],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 220.5, 247.5],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 248.5, 275],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 276, 302.5],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 303.5, 330.5],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 331.5, 358.5],
-        [INNER_CONVECTIVE_RADIUS, OUTER_CONVECTIVE_RADIUS, 359.5, 26],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 11.5, 38.25],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 39.25, 66],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 67, 93.75],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 94.75, 121.5],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 122.5, 149.25],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 150.25, 176.75],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 177.75, 204.5],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 205.5, 232],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 233, 259.5],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 260.5, 287.25],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 288.25, 315],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 316, 342.75],
-        [INNER_INNER_ORBIT_RADIUS, OUTER_INNER_ORBIT_RADIUS, 343.75, 10.5],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 11.5, 38.25],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 39.25, 66],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 67, 93.75],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 94.75, 121.5],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 122.5, 149.25],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 150.25, 176.75],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 177.75, 204.5],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 205.5, 232],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 233, 259.5],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 260.5, 287.25],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 288.25, 315],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 316, 342.75],
-        [INNER_OUTER_ORBIT_RADIUS, OUTER_OUTER_ORBIT_RADIUS, 343.75, 10.5]
-    ]
+    const dimensions = new SolGraph(4).map((node) => dimensionsForSpace(4, node.coords))
 </script>
 
 <div class="relative w-[1280px] h-[1280px]">
@@ -106,8 +55,16 @@
         <img src={boardImg} alt="game board" />
     </div>
     <svg class="absolute z-10" width="1280" height="1280" viewBox="0 0 1280 1280">
+        <defs>
+            <filter id="textshadow" width="130%" height="130%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="1 1" result="shadow"
+                ></feGaussianBlur>
+                <feOffset dx="2" dy="2"></feOffset>
+            </filter>
+        </defs>
+
         <!-- {#each cells as [innerRadius, outerRadius, startDegrees, endDegrees]}
-            <g transform="translate(639,640)" stroke="#FFF" stroke-width="4">
+            <g transform="translate(639,640)" stroke="#FFF" stroke-width="2">
                 <path
                     d={drawSection(innerRadius, outerRadius, startDegrees, endDegrees)}
                     fill="transparent"
@@ -115,16 +72,188 @@
             </g>
         {/each} -->
 
+        {#each dimensions as dimension, i}
+            {#if i % 5 !== 0}
+                <g transform="translate(639,640)" stroke="none">
+                    <path
+                        d={drawSection(
+                            dimension.innerRadius,
+                            dimension.outerRadius,
+                            dimension.startDegrees,
+                            dimension.endDegrees
+                        )}
+                        opacity="0.5"
+                        fill="black"
+                    ></path>
+                </g>
+            {/if}
+        {/each}
+
         <g
-            transform="translate(480, 0) translate(639, 640) scale(.5) rotate(0) translate(-100,-200)"
+            transform="{getMothershipTranslation(
+                55
+            )} translate(639, 640) scale(.4) rotate(55) translate(-100,-200)"
         >
             <GreenShip />
         </g>
 
         <g
-            transform="translate(-480, 0) translate(639,640) scale(.5) rotate(180) translate(-84, -200)"
+            transform="{getMothershipTranslation(
+                55
+            )} translate(639,640) scale(.4) rotate(55) translate(-84, -200)"
         >
             <PurpleShip />
+        </g>
+        <g
+            transform="{getMothershipTranslation(
+                55
+            )} translate(639,640) scale(.4) rotate(55) translate(-122, -200)"
+        >
+            <SilverShip />
+        </g>
+        <g
+            transform="{getMothershipTranslation(
+                55
+            )} translate(639,640) scale(.4) rotate(55) translate(-92, -200)"
+        >
+            <BlackShip />
+        </g>
+        <g
+            transform="{getMothershipTranslation(
+                55
+            )} translate(639,640) scale(.4) rotate(55) translate(-132, -200)"
+        >
+            <BlueShip />
+        </g>
+
+        <g transform="translate(70, 0) translate(639,640) scale(.8) translate(-19, -25)">
+            <Sundiver />
+        </g>
+        <g transform="translate(100, 0) translate(639,640) scale(.8) translate(-19, -25)">
+            <Sundiver />
+        </g>
+        <g transform="translate(100, 0) translate(639,640)">
+            <text
+                class="select-none"
+                style="filter: url(#textshadow); fill: black"
+                y="1"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="23"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#000000"
+                opacity=".5"
+                fill="black">2</text
+            >
+            <text
+                y="1"
+                class="select-none"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="23"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#FFFFFF"
+                fill="white"
+                >2
+            </text>
+        </g>
+
+        <g transform="translate(130, 0) translate(639,640) scale(.8) translate(-19, -25)">
+            <Sundiver />
+        </g>
+        <g transform="translate(130, 0) translate(639,640)">
+            <text
+                class="select-none"
+                style="filter: url(#textshadow); fill: black"
+                y="1"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="23"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#000000"
+                opacity=".5"
+                fill="black">3</text
+            >
+            <text
+                y="1"
+                class="select-none"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="23"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#FFFFFF"
+                fill="white"
+                >3
+            </text>
+        </g>
+
+        <g transform="translate(80, -40) translate(639,640) scale(.8) translate(-19, -25)">
+            <Sundiver />
+        </g>
+        <g transform="translate(80, -40) translate(639,640)">
+            <text
+                class="select-none"
+                style="filter: url(#textshadow); fill: black"
+                y="1"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="23"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#000000"
+                opacity=".5"
+                fill="black">4</text
+            >
+            <text
+                y="1"
+                class="select-none"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="23"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#FFFFFF"
+                fill="white"
+                >4
+            </text>
+        </g>
+
+        <g transform="translate(110, -40) translate(639,640) scale(.8) translate(-19, -25)">
+            <Sundiver />
+        </g>
+        <g transform="translate(110, -40) translate(639,640)">
+            <text
+                class="select-none"
+                style="filter: url(#textshadow); fill: black"
+                y="1"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="23"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#000000"
+                opacity=".5"
+                fill="black">5</text
+            >
+            <text
+                y="1"
+                class="select-none"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="23"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#FFFFFF"
+                fill="white"
+                >5
+            </text>
+        </g>
+        <g transform="translate(70, 70) translate(639,640) scale(.9) translate(-24, -50)">
+            <Tower />
         </g>
     </svg>
 </div>
