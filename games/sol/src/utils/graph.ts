@@ -18,7 +18,7 @@ export type Pathfinder<
     R extends Iterable<T[]> = T[][]
 > = (graph: Graph<T, U>) => R
 
-export interface Graph<T extends Node<U>, U extends Coordinates> {
+export interface Graph<T extends Node<U>, U extends Coordinates> extends Iterable<T> {
     nodeAt(coords: U): T
     neighborsOf(coords: U, direction?: Direction): T[]
     contains(coords: U): boolean
@@ -26,6 +26,16 @@ export interface Graph<T extends Node<U>, U extends Coordinates> {
 }
 
 export class BaseGraph<T extends Node<U>, U extends Coordinates> implements Graph<T, U> {
+    *[Symbol.iterator](): IterableIterator<T> {
+        yield* Object.values(this.nodes)
+    }
+
+    *map<V>(callback: (node: T) => V): IterableIterator<V> {
+        for (const node of this) {
+            yield callback(node)
+        }
+    }
+
     private nodes: Record<number, T> = {}
 
     public addNode(node: T) {
