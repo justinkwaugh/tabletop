@@ -4,17 +4,12 @@
     import boardImg from '$lib/images/board.jpg'
     import Cell from '$lib/components/Cell.svelte'
     import TextShadow from '$lib/components/TextShadow.svelte'
-    import GreenShip from '$lib/images/greenShip.svelte'
-    import PurpleShip from '$lib/images/purpleShip.svelte'
-    import SilverShip from '$lib/images/silverShip.svelte'
-    import BlackShip from '$lib/images/blackShip.svelte'
-    import BlueShip from '$lib/images/blueShip.svelte'
+    import Mothership from './Mothership.svelte'
     import Sundiver from '$lib/images/sundiver.svelte'
     import Tower from '$lib/images/tower.svelte'
     import boardImg5p from '$lib/images/board5p.jpg'
-    import { Ring, SolGraph } from '@tabletop/sol'
-    import { getMothershipTransformation, translateFromCenter } from '$lib/utils/boardGeometry.js'
-    import { Color } from '@tabletop/common'
+    import { SolGraph } from '@tabletop/sol'
+    import { translateFromCenter } from '$lib/utils/boardGeometry.js'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const graph = new SolGraph(gameSession.numPlayers)
@@ -33,27 +28,14 @@
             <Cell coords={node.coords} />
         {/each}
 
-        <g transform={getMothershipTransformation(Color.Green, 1)}>
-            <GreenShip />
-        </g>
+        {#each gameSession.gameState.players as player}
+            <Mothership playerId={player.playerId} />
+        {/each}
 
-        <g transform={getMothershipTransformation(Color.Purple, 4)}>
-            <PurpleShip />
-        </g>
-        <g transform={getMothershipTransformation(Color.Gray, 7)}>
-            <SilverShip />
-        </g>
-        <g transform={getMothershipTransformation(Color.Black, 10)}>
-            <BlackShip />
-        </g>
-        <g transform={getMothershipTransformation(Color.Blue, 12)}>
-            <BlueShip />
-        </g>
-
-        <g transform="{translateFromCenter(70, 0)} scale(.8) translate(-19, -25)">
+        <g transform="{translateFromCenter(70, 0)} scale(.7) translate(-19, -25)">
             <Sundiver />
         </g>
-        <g transform="{translateFromCenter(100, 0)} scale(.8) translate(-19, -25)">
+        <g transform="{translateFromCenter(100, 0)} scale(.7) translate(-19, -25)">
             <Sundiver />
         </g>
         <g transform={translateFromCenter(100, 0)}>
@@ -63,7 +45,7 @@
                 y="1"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                font-size="23"
+                font-size="20"
                 font-weight="bold"
                 stroke-width="1"
                 stroke="#000000"
@@ -75,7 +57,7 @@
                 class="select-none"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                font-size="23"
+                font-size="20"
                 font-weight="bold"
                 stroke-width="1"
                 stroke="#FFFFFF"

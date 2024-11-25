@@ -83,16 +83,17 @@ export function toRadians(degrees: number) {
     return degrees * (Math.PI / 180)
 }
 
-function getMothershipAngle(index: number) {
-    return ONE_TO_FOUR_PLAYER_ANGLES[Ring.Outer][index]
+export function getMothershipAngle(color: Color, index: number) {
+    const offsets = MOTHERSHIP_OFFSETS[color]
+    return ONE_TO_FOUR_PLAYER_ANGLES[Ring.Outer][index] + offsets.angle
 }
 
 export function getMothershipTransformation(color: Color, index: number) {
-    const offsets = MOTHERSHIP_OFFSETS[color]
     const radius = MOTHERSHIP_RADIUS
-    const degrees = getMothershipAngle(index) + offsets.angle
+    const degrees = getMothershipAngle(color, index)
     const point = getCirclePoint(radius, toRadians(degrees))
-    return `${translateFromCenter(point.x, point.y)} scale(.4) rotate(${degrees}) translate(${offsets.x},${offsets.y})`
+    //rotate(${degrees})
+    return `translate(${point.x}, ${point.y}) `
 }
 
 export function translateFromCenter(x: number, y: number) {
