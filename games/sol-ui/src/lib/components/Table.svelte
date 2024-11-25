@@ -10,7 +10,7 @@
         ChatToast
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    // import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import ActionPanel from '$lib/components/ActionPanel.svelte'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
@@ -150,18 +150,18 @@
         >
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
-                <!-- {#if gameSession.gameState.result}
-                    <GameEndPanel />
+                {#if gameSession.gameState.result}
+                    <!-- <GameEndPanel /> -->
                 {:else if gameSession.mode === GameSessionMode.History}
-                    <LastActionDescription />
+                    <!-- <LastActionDescription /> -->
                 {:else if gameSession.mode === GameSessionMode.Play}
-                    <LastActionDescription />
+                    <!-- <LastActionDescription /> -->
                     {#if gameSession.isMyTurn}
                         <ActionPanel />
                     {:else}
-                        <WaitingPanel />
+                        <!-- <WaitingPanel /> -->
                     {/if}
-                {/if} -->
+                {/if}
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
@@ -178,3 +178,20 @@
         {/if}
     </div>
 </div>
+
+<style global>
+    @font-face {
+        font-family: 'metropolis';
+        src: url('/Metropolis-Bold.woff') format('woff');
+    }
+
+    :global(.sol-font) {
+        font-family: 'metropolis', ui-sans-serif, system-ui, sans-serif;
+    }
+
+    :global(.sol-font-bold) {
+        font-family: 'metropolis', ui-sans-serif, system-ui, sans-serif;
+        font-weight: bold;
+        letter-spacing: 0.2em;
+    }
+</style>
