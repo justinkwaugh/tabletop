@@ -36,6 +36,7 @@
         "@tabletop/common": "*",
         "@tabletop/sol": "*",
         "@tabletop/frontend-components": "*",
+        "gsap": "^3.12.5",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^3.3.7"
     },
