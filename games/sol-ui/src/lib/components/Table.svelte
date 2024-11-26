@@ -194,4 +194,84 @@
         font-weight: bold;
         letter-spacing: 0.2em;
     }
+
+    :global(.sol.green .a) {
+        color: #88c188;
+        fill: #88c188;
+    }
+
+    :global(.sol.green .b) {
+        color: #6db16d;
+        fill: #6db16d;
+    }
+
+    :global(.sol.green .c) {
+        color: #328432;
+        fill: #328432;
+    }
+
+    :global(.sol.green .d) {
+        color: #116511;
+        fill: #116511;
+    }
+
+    :global(.sol.blue .a) {
+        color: #0e97c6;
+        fill: #0e97c6;
+    }
+
+    :global(.sol.blue .b) {
+        color: #0e9cca;
+        fill: #0e9cca;
+    }
+
+    :global(.sol.blue .c) {
+        color: #0c7ea4;
+        fill: #0c7ea4;
+    }
+
+    :global(.sol.blue .d) {
+        color: #12404c;
+        fill: #12404c;
+    }
+
+    :global(.sol.purple .a) {
+        color: #b58ad0;
+        fill: #b58ad0;
+    }
+
+    :global(.sol.purple .b) {
+        color: #ad7fcb;
+        fill: #ad7fcb;
+    }
+
+    :global(.sol.purple .c) {
+        color: #9f6dc2;
+        fill: #9f6dc2;
+    }
+
+    :global(.sol.purple .d) {
+        color: #773fa9;
+        fill: #773fa9;
+    }
+
+    :global(.sol.gray .a) {
+        color: #d2d4d7;
+        fill: #d2d4d7;
+    }
+
+    :global(.sol.gray .b) {
+        color: #ccced2;
+        fill: #ccced2;
+    }
+
+    :global(.sol.gray .c) {
+        color: #bbbbbb;
+        fill: #bbbbbb;
+    }
+
+    :global(.sol.gray .d) {
+        color: #777777;
+        fill: #777777;
+    }
 </style>

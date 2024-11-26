@@ -42,33 +42,39 @@ export type MothershipOffsets = {
     x: number
     y: number
     angle: number
+    rotation: number
 }
 
 export const MOTHERSHIP_OFFSETS: Record<string, MothershipOffsets> = {
     [Color.Blue]: {
         x: -132,
         y: -200,
-        angle: 3
+        angle: -3,
+        rotation: 180
     },
     [Color.Green]: {
         x: -100,
         y: -200,
-        angle: 3
+        angle: -3,
+        rotation: 180
     },
     [Color.Purple]: {
         x: -84,
         y: -200,
-        angle: 5.5
+        angle: 5.5,
+        rotation: 0
     },
     [Color.Gray]: {
         x: -122,
         y: -200,
-        angle: 3
+        angle: 3,
+        rotation: 0
     },
     [Color.Black]: {
         x: -92,
         y: -200,
-        angle: 5.8
+        angle: 5.8,
+        rotation: 0
     }
 }
 

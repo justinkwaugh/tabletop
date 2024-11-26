@@ -3,13 +3,14 @@
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import boardImg from '$lib/images/board.jpg'
     import Cell from '$lib/components/Cell.svelte'
-    import TextShadow from '$lib/components/TextShadow.svelte'
+    import DropShadow from '$lib/components/DropShadow.svelte'
     import Mothership from './Mothership.svelte'
-    import Sundiver from '$lib/images/sundiver.svelte'
+    import SundiverIcon from '$lib/images/sundiver.svelte'
     import Tower from '$lib/images/tower.svelte'
     import boardImg5p from '$lib/images/board5p.jpg'
     import { SolGraph } from '@tabletop/sol'
     import { translateFromCenter } from '$lib/utils/boardGeometry.js'
+    import Sundiver from './Sundiver.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const graph = new SolGraph(gameSession.numPlayers)
@@ -21,7 +22,8 @@
     </div>
     <svg class="absolute z-10" width="1280" height="1280" viewBox="0 0 1280 1280">
         <defs>
-            <TextShadow />
+            <DropShadow id="textshadow" />
+            <DropShadow id="divershadow" offset={{ x: 0, y: 0 }} amount={20} />
         </defs>
 
         {#each graph as node}
@@ -32,11 +34,44 @@
             <Mothership playerId={player.playerId} />
         {/each}
 
-        <g transform="{translateFromCenter(70, 0)} scale(.7) translate(-19, -25)">
-            <Sundiver />
+        <Sundiver
+            playerId={gameSession.gameState.players[0].playerId}
+            quantity={1}
+            location={{ x: -70, y: 0 }}
+        />
+
+        <g transform="{translateFromCenter(70, 0)} scale(.8) translate(-19, -25)">
+            <SundiverIcon class="gray" />
         </g>
-        <g transform="{translateFromCenter(100, 0)} scale(.7) translate(-19, -25)">
-            <Sundiver />
+        <g transform={translateFromCenter(70, 0)}>
+            <text
+                class="select-none"
+                style="filter: url(#textshadow); fill: black"
+                y="1"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="20"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#000000"
+                opacity=".5"
+                fill="black">4</text
+            >
+            <text
+                y="1"
+                class="select-none"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="20"
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#FFFFFF"
+                fill="white"
+                >4
+            </text>
+        </g>
+        <g transform="{translateFromCenter(100, 0)} scale(.8) translate(-19, -25)">
+            <SundiverIcon />
         </g>
         <g transform={translateFromCenter(100, 0)}>
             <text
@@ -67,7 +102,7 @@
         </g>
 
         <g transform="{translateFromCenter(130, 0)} scale(.8) translate(-19, -25)">
-            <Sundiver />
+            <SundiverIcon class="green" />
         </g>
         <g transform={translateFromCenter(130, 0)}>
             <text
@@ -98,7 +133,7 @@
         </g>
 
         <g transform="{translateFromCenter(80, -40)} scale(.8) translate(-19, -25)">
-            <Sundiver />
+            <SundiverIcon class="blue" />
         </g>
         <g transform={translateFromCenter(80, -40)}>
             <text
@@ -129,7 +164,7 @@
         </g>
 
         <g transform="{translateFromCenter(110, -40)} scale(.8) translate(-19, -25)">
-            <Sundiver />
+            <SundiverIcon class="purple" />
         </g>
         <g transform={translateFromCenter(110, -40)}>
             <text

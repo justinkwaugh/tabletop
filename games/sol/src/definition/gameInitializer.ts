@@ -77,7 +77,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             actionCount: 0,
             actionChecksum: 0,
             players: players,
-            machineState: MachineState.EndOfGame,
+            machineState: MachineState.StartOfTurn,
             winningPlayerIds: [],
             board,
             deck,

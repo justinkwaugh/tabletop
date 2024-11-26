@@ -7,6 +7,7 @@
     import { MachineState } from '@tabletop/sol'
     import { Button } from 'flowbite-svelte'
     import { slide, fade } from 'svelte/transition'
+    import { ActionCategory } from '$lib/definition/actionCategory.js'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -33,6 +34,10 @@
             gameSession.resetAction()
         }
     })
+
+    function chooseMove() {
+        gameSession.chosenActionCategory = ActionCategory.Move
+    }
 </script>
 
 <div
@@ -44,6 +49,7 @@
     <div class="flex sol-font-bold me-4 leading-tight text-center">CHOOSE<br />AN ACTION</div>
     <div class="flex">
         <button
+            onclick={chooseMove}
             class="box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent hover:border hover:border-[#ad9c80] rounded-lg sol-font-bold"
             ><MoveArrows />
             <div class="ms-3">MOVE</div></button

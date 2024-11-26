@@ -60,29 +60,34 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
     }
 
     static canLaunch(state: HydratedSolGameState, playerId: string): boolean {
-        const playerState = state.getPlayerState(playerId)
+        return state.players.some((player) =>
+            this.canLaunchFromMothership(state, playerId, player.playerId)
+        )
+    }
 
-        if (playerState.movementPoints === 0) {
+    static canLaunchFromMothership(
+        state: HydratedSolGameState,
+        playerId: string,
+        mothershipPlayerId: string
+    ): boolean {
+        const player = state.getPlayerState(playerId)
+        if (player.movementPoints === 0) {
             return false
         }
 
-        // check every player's hold due to potential Blight effect
-        for (const player of state.players) {
-            if (player.numSundiversInHold(playerId) === 0) {
-                continue
-            }
-
-            const launchCoordinates = state.board.launchCoordinatesForMothership(player.playerId)
-            if (
-                launchCoordinates.length > 0 &&
-                launchCoordinates.some((coords) =>
-                    state.board.canAddSundiversToCell(playerId, 1, coords)
-                )
-            ) {
-                return true
-            }
+        const mothershipPlayer = state.getPlayerState(mothershipPlayerId)
+        if (mothershipPlayer.numSundiversInHold(playerId) === 0) {
+            return false
         }
-        return false
+
+        const launchCoordinates = state.board.launchCoordinatesForMothership(mothershipPlayerId)
+
+        return (
+            launchCoordinates.length > 0 &&
+            launchCoordinates.some((coords) =>
+                state.board.canAddSundiversToCell(playerId, 1, coords)
+            )
+        )
     }
 
     isValidLaunch(state: HydratedSolGameState): boolean {
