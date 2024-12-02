@@ -1,36 +1,27 @@
 <script lang="ts">
     import SundiverIcon from '$lib/images/sundiver.svelte'
     import SundiverMask from '$lib/images/sundiverMask.svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
     import { translateFromCenter } from '$lib/utils/boardGeometry.js'
-    import { Color, type Point } from '@tabletop/common'
-    import { getContext } from 'svelte'
+    import { type Point } from '@tabletop/common'
 
-    let { playerId, quantity, location }: { playerId: string; quantity: number; location: Point } =
-        $props()
+    let {
+        color,
+        quantity,
+        location,
+        onclick
+    }: { color: string; quantity: number; location: Point; onclick?: () => void } = $props()
 
-    let gameSession = getContext('gameSession') as SolGameSession
-    let playerColor = gameSession.gameState.getPlayerState(playerId).color
-
-    function cssColor(color: Color) {
-        switch (color) {
-            case Color.Black:
-                return 'black'
-            case Color.Blue:
-                return 'blue'
-            case Color.Green:
-                return 'green'
-            case Color.Purple:
-                return 'purple'
-            case Color.Gray:
-                return 'gray'
-            default:
-                return 'black'
+    let onClick = () => {
+        if (onclick) {
+            onclick()
         }
     }
 </script>
 
-<g transform="{translateFromCenter(location.x, location.y)} scale(.8) translate(-19, -25)">
+<g
+    onclick={onClick}
+    transform="{translateFromCenter(location.x, location.y)} scale(.8) translate(-19, -25)"
+>
     <g transform="translate(-1, -1)">
         <SundiverMask
             width="40"
@@ -41,7 +32,7 @@
             style="filter: url(#divershadow)"
         />
     </g>
-    <SundiverIcon class={cssColor(playerColor)} />
+    <SundiverIcon class={color} />
 </g>
 {#if quantity > 1}
     <g transform={translateFromCenter(location.x, location.y)}>

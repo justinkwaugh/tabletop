@@ -12,7 +12,7 @@
     let { coords }: { coords: OffsetCoordinates } = $props()
     let gameSession = getContext('gameSession') as SolGameSession
 
-    let dimensions = dimensionsForSpace(gameSession.numPlayers, coords)
+    let dimensions = dimensionsForSpace(5, coords) //gameSession.numPlayers, coords)
     let disabled = $derived.by(() => {
         return false
     })
