@@ -25,6 +25,7 @@
     let { playerId }: { playerId: string } = $props()
     let gameSession = getContext('gameSession') as SolGameSession
 
+    let numPlayers = gameSession.gameState.players.length
     let color = gameSession.gameState.getPlayerState(playerId).color
     let Ship = componentForColor(color)
     let Mask = maskForColor(color)
@@ -33,9 +34,9 @@
     let locationIndex = $derived(gameSession.gameState.board.motherships[playerId])
 
     const offsets = MOTHERSHIP_OFFSETS[color]
-    let shapeTransformation = `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.4) rotate(${offsets.rotation}) translate(${offsets.x},${offsets.y}) `
+    let shapeTransformation = `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${offsets.rotation}) translate(${offsets.x},${offsets.y}) `
     let locationTransformation = $derived(
-        `rotate(${getMothershipAngle(color, locationIndex)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
+        `rotate(${getMothershipAngle(numPlayers, color, locationIndex)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
     )
 
     let shipElement: SVGElement
@@ -133,7 +134,7 @@
     // }
 
     let shadowOffset = $derived.by(() => {
-        const angle = getMothershipAngle(color, locationIndex) + offsets.rotation / 2
+        const angle = getMothershipAngle(numPlayers, color, locationIndex) + offsets.rotation / 2
         return getCirclePoint(40, angle)
     })
 </script>
