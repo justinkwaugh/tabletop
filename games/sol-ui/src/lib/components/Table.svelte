@@ -206,8 +206,8 @@
     }
 
     :global(.sol.green .c) {
-        color: #328432;
-        fill: #328432;
+        color: #389638;
+        fill: #389638;
     }
 
     :global(.sol.green .d) {

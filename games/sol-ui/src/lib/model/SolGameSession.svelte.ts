@@ -1,6 +1,6 @@
-import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
+import { GameSession } from '@tabletop/frontend-components'
 import { HydratedSolGameState, SolGameState } from '@tabletop/sol'
-import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import type { ActionCategory } from '$lib/definition/actionCategory.js'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
@@ -24,7 +24,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.chosenAction = undefined
     }
 
-    override shouldAutoStepAction(action: GameAction) {
+    override shouldAutoStepAction(_action: GameAction) {
         return false
     }
 

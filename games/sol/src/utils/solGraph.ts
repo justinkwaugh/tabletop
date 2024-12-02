@@ -140,8 +140,8 @@ export class SolGraph
             if (col === 5 || col === 9) {
                 convectiveOffset += 1
             }
-            node.neighbors[Direction.In].push({ col: col + convectiveOffset, row: Ring.Inner })
-            node.neighbors[Direction.In].push({ col: col + convectiveOffset + 1, row: Ring.Inner })
+            node.neighbors[Direction.Out].push({ col: col + convectiveOffset, row: Ring.Inner })
+            node.neighbors[Direction.Out].push({ col: col + convectiveOffset + 1, row: Ring.Inner })
         }
 
         // The rest

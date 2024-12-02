@@ -1,12 +1,12 @@
 import { Color, type OffsetCoordinates } from '@tabletop/common'
 import { Ring } from '@tabletop/sol'
 
-export const CENTER_POINT = { x: 639, y: 640 }
+export const CENTER_POINT = { x: 640, y: 640 }
 export const CENTER_TRANSLATION = `translate(${CENTER_POINT.x}, ${CENTER_POINT.y})`
 
 export const ONE_TO_FOUR_PLAYER_ANGLES: Record<number, number[]> = {
     [Ring.Core]: [298, 15, 83, 150, 225.5],
-    [Ring.Radiative]: [284, 331, 14.5, 59.5, 104.5, 149.5, 192.5, 239],
+    [Ring.Radiative]: [284, 331, 15, 59.5, 104.5, 149.5, 192.5, 239],
     [Ring.Convective]: [275.5, 303.5, 331, 359, 26.5, 54.5, 82, 109.5, 137, 165, 192.5, 220, 248],
     [Ring.Inner]: [
         287.75, 315.5, 343.25, 11, 38.75, 66.5, 94.25, 122, 149.5, 177.25, 205, 232.5, 260
@@ -17,14 +17,18 @@ export const ONE_TO_FOUR_PLAYER_ANGLES: Record<number, number[]> = {
 }
 
 export const FIVE_PLAYER_ANGLES: Record<number, number[]> = {
-    [Ring.Core]: [297, 15, 83, 150, 225],
+    [Ring.Core]: [297, 14.5, 83, 150, 225],
     [Ring.Radiative]: [284, 331, 14.5, 59.5, 104.5, 149.5, 192.5, 239],
-    [Ring.Convective]: [275.5, 303, 331, 359, 26.5, 54.5, 82, 109.5, 137, 165, 192.5, 220, 248],
+    [Ring.Convective]: [
+        277.25, 304.5, 331, 358.75, 25.75, 52.5, 80.75, 109.5, 137.25, 165, 192.5, 220, 248
+    ],
     [Ring.Inner]: [
-        287.75, 315.5, 343.25, 11, 38.75, 66.5, 94.25, 122, 149.75, 177.25, 205, 232.5, 260
+        277.25, 299.75, 322.25, 344.75, 7.25, 29.75, 52.25, 74.75, 97.25, 119.75, 142.25, 164.75,
+        187.25, 209.75, 232.25, 254.75
     ],
     [Ring.Outer]: [
-        287.75, 315.5, 343.25, 11, 38.75, 66.5, 94.25, 122, 149.75, 177.25, 205, 232.5, 260
+        277.25, 299.75, 322.25, 344.75, 7.25, 29.75, 52.25, 74.75, 97.25, 119.75, 142.25, 164.75,
+        187.25, 209.75, 232.25, 254.75
     ]
 }
 
@@ -61,19 +65,19 @@ export const MOTHERSHIP_OFFSETS: Record<string, MothershipOffsets> = {
     [Color.Purple]: {
         x: -84,
         y: -200,
-        angle: 5.5,
+        angle: 5,
         rotation: 0
     },
     [Color.Gray]: {
         x: -122,
         y: -200,
-        angle: 3,
+        angle: 2.25,
         rotation: 0
     },
     [Color.Black]: {
         x: -92,
         y: -200,
-        angle: 5.8,
+        angle: 5.3,
         rotation: 0
     }
 }
@@ -89,14 +93,15 @@ export function toRadians(degrees: number) {
     return degrees * (Math.PI / 180)
 }
 
-export function getMothershipAngle(color: Color, index: number) {
+export function getMothershipAngle(numPlayers: number, color: Color, index: number) {
     const offsets = MOTHERSHIP_OFFSETS[color]
-    return ONE_TO_FOUR_PLAYER_ANGLES[Ring.Outer][index] + offsets.angle
+    const angles = numPlayers === 5 ? FIVE_PLAYER_ANGLES : ONE_TO_FOUR_PLAYER_ANGLES
+    return angles[Ring.Outer][index] + offsets.angle
 }
 
-export function getMothershipTransformation(color: Color, index: number) {
+export function getMothershipTransformation(numPlayers: number, color: Color, index: number) {
     const radius = MOTHERSHIP_RADIUS
-    const degrees = getMothershipAngle(color, index)
+    const degrees = getMothershipAngle(numPlayers, color, index)
     const point = getCirclePoint(radius, toRadians(degrees))
     //rotate(${degrees})
     return `translate(${point.x}, ${point.y}) `
@@ -118,4 +123,83 @@ export function dimensionsForSpace(numPlayers: number, coords: OffsetCoordinates
         startDegrees,
         endDegrees
     }
+}
+
+export type GatePosition = {
+    radius: number
+    angle: number
+}
+
+export function getGatePosition(
+    numPlayers: number,
+    innerCoords: OffsetCoordinates,
+    outerCoords: OffsetCoordinates
+): GatePosition {
+    const innerDimensions = dimensionsForSpace(numPlayers, innerCoords)
+    const outerDimensions = dimensionsForSpace(numPlayers, outerCoords)
+    const radius = innerDimensions.outerRadius
+
+    if (outerDimensions.startDegrees > outerDimensions.endDegrees) {
+        if (innerDimensions.startDegrees < outerDimensions.endDegrees) {
+            innerDimensions.startDegrees = 360 + innerDimensions.startDegrees
+            innerDimensions.endDegrees = 360 + innerDimensions.endDegrees
+        }
+
+        outerDimensions.endDegrees = 360 + outerDimensions.endDegrees
+
+        if (innerDimensions.startDegrees > innerDimensions.endDegrees) {
+            innerDimensions.endDegrees = 360 + innerDimensions.endDegrees
+        }
+    } else if (innerDimensions.startDegrees > innerDimensions.endDegrees) {
+        if (
+            innerDimensions.startDegrees > outerDimensions.startDegrees &&
+            innerDimensions.endDegrees > outerDimensions.startDegrees
+        ) {
+            innerDimensions.startDegrees = 0 - (360 - innerDimensions.startDegrees)
+        } else {
+            innerDimensions.endDegrees = 360 + innerDimensions.endDegrees
+        }
+    }
+
+    if (
+        outerDimensions.startDegrees >= innerDimensions.startDegrees &&
+        outerDimensions.endDegrees <= innerDimensions.endDegrees
+    ) {
+        return {
+            radius,
+            angle: (outerDimensions.startDegrees + outerDimensions.endDegrees) / 2
+        }
+    } else if (
+        innerDimensions.startDegrees >= outerDimensions.startDegrees &&
+        innerDimensions.endDegrees <= outerDimensions.endDegrees
+    ) {
+        return {
+            radius,
+            angle: (innerDimensions.startDegrees + innerDimensions.endDegrees) / 2
+        }
+    } else if (
+        innerDimensions.startDegrees > outerDimensions.startDegrees &&
+        innerDimensions.startDegrees < outerDimensions.endDegrees
+    ) {
+        return {
+            radius,
+            angle: (innerDimensions.startDegrees + outerDimensions.endDegrees) / 2
+        }
+    } else {
+        return {
+            radius,
+            angle: (innerDimensions.endDegrees + outerDimensions.startDegrees) / 2
+        }
+    }
+}
+
+export function getSpaceCentroid(numPlayers: number, coords: OffsetCoordinates) {
+    const { innerRadius, outerRadius, startDegrees, endDegrees } = dimensionsForSpace(
+        numPlayers,
+        coords
+    )
+
+    const radius = (innerRadius + outerRadius) / 2
+    const angle = (startDegrees + (startDegrees > endDegrees ? endDegrees + 360 : endDegrees)) / 2
+    return getCirclePoint(radius, toRadians(angle))
 }
