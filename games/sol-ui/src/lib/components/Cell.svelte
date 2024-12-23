@@ -8,11 +8,14 @@
         toRadians,
         translateFromCenter
     } from '$lib/utils/boardGeometry.js'
+    import { getCellLayout } from '$lib/utils/cellLayouts.js'
+    import type { Cell } from '@tabletop/sol'
 
-    let { coords }: { coords: OffsetCoordinates } = $props()
-    let gameSession = getContext('gameSession') as SolGameSession
+    let { cell }: { cell: Cell } = $props()
+    const gameSession = getContext('gameSession') as SolGameSession
+    const dimensions = dimensionsForSpace(gameSession.numPlayers, cell.coords)
+    const cellLayout = getCellLayout(cell, gameSession.numPlayers, gameSession.gameState.board)
 
-    let dimensions = dimensionsForSpace(5, coords) //gameSession.numPlayers, coords)
     let disabled = $derived.by(() => {
         return false
     })

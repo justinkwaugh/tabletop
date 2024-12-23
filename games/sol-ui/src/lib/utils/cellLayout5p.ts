@@ -1,4 +1,6 @@
-export const CELL_LAYOUT_5P = {
+import type { CellLayouts } from './cellLayouts.js'
+
+export const CELL_LAYOUT_5P: CellLayouts = {
     '0-0': {
         t: {
             station: { point: { x: 86, y: -67 }, z: 20 },
@@ -55,7 +57,7 @@ export const CELL_LAYOUT_5P = {
                 { x: 22, y: -86 },
                 { x: -72, y: -107 },
                 { x: 42, y: -114 },
-                { x: -41, y: 116 }
+                { x: -41, y: -116 }
             ]
         }
     },
@@ -147,7 +149,7 @@ export const CELL_LAYOUT_5P = {
         't-g1': {
             station: { point: { x: -65, y: -198 }, z: 20 },
             divers: [
-                { x: -19, y: -205 },
+                { x: -9, y: -205 },
                 { x: -100, y: -203 },
                 { x: -27, y: -235 },
                 { x: 31, y: -227 },
@@ -553,7 +555,7 @@ export const CELL_LAYOUT_5P = {
     },
     '4-4': {
         t: {
-            station: { point: { x: 507, y: -159 }, z: 30 },
+            station: { point: { x: 507, y: 159 }, z: 30 },
             divers: [
                 { x: 470, y: 179 },
                 { x: 539, y: 127 },

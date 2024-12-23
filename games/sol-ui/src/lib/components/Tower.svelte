@@ -3,12 +3,8 @@
     import { translateFromCenter } from '$lib/utils/boardGeometry.js'
     import { type Point } from '@tabletop/common'
 
-    let {
-        color,
-        quantity,
-        location,
-        onclick
-    }: { color: string; quantity: number; location: Point; onclick?: () => void } = $props()
+    let { color, location, onclick }: { color: string; location: Point; onclick?: () => void } =
+        $props()
 
     let onClick = () => {
         if (onclick) {

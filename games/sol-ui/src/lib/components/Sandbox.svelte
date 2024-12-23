@@ -28,7 +28,7 @@
         Sundiver,
         Tower
     }
-    const numPlayers = 5
+    let numPlayers = 4
 
     console.log(getCirclePoint(148, toRadians(45)))
 
@@ -56,6 +56,30 @@
             label: `[${node.coords.row}, ${node.coords.col}]`
         })
     }
+
+    const diverLocs: { point: Point; quantity: number }[] = []
+    // for (const node of graph) {
+    //     const layoutKey = `${node.coords.row}-${node.coords.col}`
+    //     const cellLayouts = CELL_LAYOUT_5P[layoutKey] ?? {}
+    //     const layout = cellLayouts['t-g1-g2'] ?? cellLayouts['t-g1'] ?? cellLayouts['t']
+    //     if (layout) {
+    //         diverLocs.push(
+    //             ...layout.divers.map((diver: Point, index: number) => {
+    //                 return { point: diver, quantity: index + 1 }
+    //             })
+    //         )
+    //     }
+    // }
+
+    const towerLocs: Point[] = []
+    // for (const node of graph) {
+    //     const layoutKey = `${node.coords.row}-${node.coords.col}`
+    //     const cellLayouts = CELL_LAYOUT_5P[layoutKey] ?? {}
+    //     const layout = cellLayouts['t-g1-g2'] ?? cellLayouts['t-g1'] ?? cellLayouts['t']
+    //     if (layout && layout.station) {
+    //         towerLocs.push(layout.station.point)
+    //     }
+    // }
 
     const blueOffsets = MOTHERSHIP_OFFSETS[Color.Blue]
     const grayOffsets = MOTHERSHIP_OFFSETS[Color.Gray]
@@ -142,6 +166,14 @@
         currentType = PieceType.Tower
     }
 </script>
+
+{#each diverLocs as { point, quantity }}
+    <Sundiver color="blue" {quantity} location={point} />
+{/each}
+
+{#each towerLocs as point}
+    <Tower color="blue" location={point} />
+{/each}
 
 {#if !hideStuff}
     {#each spaceLabels as { point, label }}
@@ -267,7 +299,6 @@
                 towerClick(id)
             }}
             color="blue"
-            quantity={1}
             location={point}
         />
         <g transform={translateFromCenter(point.x, point.y)}>
