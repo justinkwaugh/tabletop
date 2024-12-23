@@ -4,7 +4,8 @@ import {
     coordinatesToNumber,
     Hydratable,
     OffsetCoordinates,
-    sameCoordinates
+    sameCoordinates,
+    szudzikPairSigned
 } from '@tabletop/common'
 import { Station } from './stations.js'
 import { Sundiver } from './sundiver.js'
@@ -15,7 +16,7 @@ import { flood } from '../utils/floodTraverser.js'
 export type Cell = Static<typeof Cell>
 export const Cell = Type.Object({
     coords: OffsetCoordinates,
-    station: Station,
+    station: Type.Optional(Station),
     sundivers: Type.Array(Sundiver)
 })
 
@@ -29,16 +30,38 @@ export const SolGameBoard = Type.Object({
 
 export const SolGameBoardValidator = TypeCompiler.Compile(SolGameBoard)
 
-export class HydratedSolGameBoard extends Hydratable<typeof SolGameBoard> implements SolGameBoard {
+export class HydratedSolGameBoard
+    extends Hydratable<typeof SolGameBoard>
+    implements SolGameBoard, Iterable<Cell>
+{
     declare numPlayers: number
     declare motherships: Record<string, number>
     declare cells: Record<number, Cell>
     declare gates: Record<string, SolarGate>
 
-    private internalGraph?: SolGraph
+    private internalGraph?: SolGraph;
+
+    *[Symbol.iterator](): IterableIterator<Cell> {
+        yield* this.graph.map((node) => {
+            const cell = this.cells[coordinatesToNumber(node.coords)]
+            if (cell) {
+                return cell
+            } else {
+                return {
+                    coords: node.coords,
+                    station: undefined,
+                    sundivers: []
+                }
+            }
+        })
+    }
 
     constructor(data: SolGameBoard) {
         super(data, SolGameBoardValidator)
+    }
+
+    public cellAt(coords: OffsetCoordinates): Cell {
+        return this.cells[coordinatesToNumber(coords)]
     }
 
     public reachableCoordinates(coords: OffsetCoordinates, range: number): OffsetCoordinates[] {
@@ -72,6 +95,19 @@ export class HydratedSolGameBoard extends Hydratable<typeof SolGameBoard> implem
             }
         }
         return false
+    }
+
+    public gatesForCell(
+        coords: OffsetCoordinates,
+        direction: Direction.In | Direction.Out
+    ): (SolarGate | undefined)[] {
+        const node = this.graph.nodeAt(coords)
+        return this.graph.neighborsOf(node.coords, direction).map((neighbor) => {
+            const innerCoords = direction === Direction.In ? neighbor.coords : coords
+            const outerCoords = direction === Direction.Out ? coords : neighbor.coords
+            const gateKey = this.gateKey(innerCoords, outerCoords)
+            return this.gates[gateKey]
+        })
     }
 
     public canAddSundiversToCell(
@@ -135,6 +171,10 @@ export class HydratedSolGameBoard extends Hydratable<typeof SolGameBoard> implem
 
     private sundiversForPlayer(playerId: string, cell: Cell): Sundiver[] {
         return cell.sundivers.filter((sundiver) => sundiver.playerId === playerId)
+    }
+
+    private gateKey(innerCoords: OffsetCoordinates, outerCoords: OffsetCoordinates) {
+        return szudzikPairSigned(coordinatesToNumber(innerCoords), coordinatesToNumber(outerCoords))
     }
 
     get graph(): SolGraph {
