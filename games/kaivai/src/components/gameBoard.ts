@@ -257,10 +257,10 @@ export class HydratedKaivaiGameBoard
         return this.grid.neighborOf(coords, direction)
     }
 
-    getDeliverableNeighbors(coords: AxialCoordinates) {
+    getDeliverableNeighbors(coords: AxialCoordinates, actingBoatId?: string) {
         return this.getNeighbors(coords)
             .map((hex) => this.getCellAt(hex))
-            .filter((cell) => isDeliverableCell(cell))
+            .filter((cell) => isDeliverableCell(cell, actingBoatId))
     }
 
     getCelebratableCells(): (MeetingCell | BoatBuildingCell)[] {

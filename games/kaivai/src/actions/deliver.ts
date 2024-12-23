@@ -164,12 +164,12 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
             return { valid, reason }
         }
 
-        const deliverableCells = state.board.getDeliverableNeighbors(boatCoords)
+        const deliverableCells = state.board.getDeliverableNeighbors(boatCoords, boatId)
         for (const delivery of deliveries) {
             const cell = deliverableCells.find((cell) =>
                 sameCoordinates(cell.coords, delivery.coords)
             )
-            if (!isDeliverableCell(cell)) {
+            if (!isDeliverableCell(cell, boatId)) {
                 return { valid: false, reason: 'Invalid delivery location' }
             }
             if (cell.fish + delivery.amount > 3) {
@@ -265,7 +265,7 @@ export class HydratedDeliver extends HydratableAction<typeof Deliver> implements
             return { valid: false, reason: 'Another boat is already at the specified location' }
         }
 
-        if (state.board.getDeliverableNeighbors(boatCoords).length === 0) {
+        if (state.board.getDeliverableNeighbors(boatCoords, boatId).length === 0) {
             return {
                 valid: false,
                 reason: 'Boat must be adjacent to a meeting hut or empty boatbuilder'

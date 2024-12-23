@@ -112,7 +112,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
     }
 
     private initializeBoard(
-        _numPlayers: number,
+        numPlayers: number,
         ruleset: Ruleset,
         random: RandomFunction
     ): KaivaiGameBoard {
@@ -144,9 +144,16 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         initialCoords.push(...island.coordList)
         islands[island.id] = island
 
-        const island2 = this.createAdditionalIsland(hexGrid, initialCoords, singleIsland, random)
-        initialCoords.push(...island2.coordList)
-        islands[island2.id] = island2
+        if (ruleset !== Ruleset.FirstEdition || numPlayers === 4) {
+            const island2 = this.createAdditionalIsland(
+                hexGrid,
+                initialCoords,
+                singleIsland,
+                random
+            )
+            initialCoords.push(...island2.coordList)
+            islands[island2.id] = island2
+        }
 
         for (const island of Object.values(islands)) {
             for (const coords of island.coordList) {

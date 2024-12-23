@@ -207,7 +207,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         }
 
         return this.gameState.board
-            .getDeliverableNeighbors(this.chosenBoatLocation)
+            .getDeliverableNeighbors(this.chosenBoatLocation, this.chosenBoat)
             .filter((cell) => {
                 const delivery = this.chosenDeliveries.find((d) => {
                     return sameCoordinates(d.coords, cell.coords)
