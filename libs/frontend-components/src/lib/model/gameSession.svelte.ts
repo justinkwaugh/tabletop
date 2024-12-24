@@ -72,6 +72,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     private actionsToProcess: GameAction[] = []
 
+    private busy = false
     private processingActions = false
     private stepping = false
     private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
@@ -555,12 +556,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async undo() {
-        if (!this.undoableAction) {
+        if (!this.undoableAction || this.busy) {
             return
         }
+
         this.willUndo()
         try {
             // Block server actions while we are processing
+            this.busy = true
             this.processingActions = true
 
             const targetAction = $state.snapshot(this.undoableAction)
@@ -642,6 +645,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
         } finally {
             this.processingActions = false
+            this.busy = false
             await this.applyQueuedActions()
         }
     }
@@ -672,104 +676,137 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         return action.source === ActionSource.System
     }
 
-    public async stepBackward({
-        toActionIndex,
-        stopPlayback = true
-    }: { toActionIndex?: number; stopPlayback?: boolean } = {}) {
+    public async goToBeginning() {
         if (this.stepping) {
             return
         }
         this.stepping = true
         try {
-            if (
-                this.currentHistoryIndex < 0 ||
-                this.actions.length === 0 ||
-                (toActionIndex !== undefined && toActionIndex >= this.currentHistoryIndex)
-            ) {
-                return
-            }
-
-            this.enterHistoryMode()
-
-            if (!this.historyGame) {
-                return
-            }
-
-            const gameSnapshot = $state.snapshot(this.historyGame)
-            let lastAction: GameAction | undefined
-            do {
-                lastAction = $state.snapshot(this.actions[this.currentHistoryIndex])
-                const updatedState = this.engine.undoAction(gameSnapshot, lastAction)
-                this.currentHistoryIndex -= 1
-                gameSnapshot.state = updatedState
-            } while (
-                this.currentHistoryIndex >= 0 &&
-                ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
-                    this.shouldAutoStepAction(this.actions[this.currentHistoryIndex]))
-            )
-            await this.updateGameState(gameSnapshot.state, this.historyGame)
-            this.onHistoryAction(
-                this.currentHistoryIndex >= 0 ? this.actions[this.currentHistoryIndex] : undefined
-            )
-
-            if (stopPlayback) {
-                this.stopHistoryPlayback()
-            }
+            await this.gotoAction(-1)
         } finally {
             this.stepping = false
         }
     }
 
-    public async stepForward({
-        toActionIndex,
-        stopPlayback = true
-    }: { toActionIndex?: number; stopPlayback?: boolean } = {}) {
+    public async goToCurrent() {
         if (this.stepping) {
             return
         }
         this.stepping = true
         try {
-            if (
-                this.mode === GameSessionMode.History &&
-                this.currentHistoryIndex === this.actions.length - 1
-            ) {
-                this.stopHistoryPlayback()
-                this.exitHistoryMode()
-            }
-
-            if (
-                this.mode !== GameSessionMode.History ||
-                !this.historyGame ||
-                this.currentHistoryIndex >= this.actions.length - 1
-            ) {
-                return
-            }
-
-            const gameSnapshot = $state.snapshot(this.historyGame)
-            let nextAction: GameAction | undefined
-            do {
-                this.currentHistoryIndex += 1
-                nextAction = $state.snapshot(this.actions[this.currentHistoryIndex]) as GameAction
-                const { updatedState } = this.engine.run(nextAction, gameSnapshot, RunMode.Single)
-                gameSnapshot.state = updatedState
-            } while (
-                this.currentHistoryIndex < this.actions.length - 1 &&
-                ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
-                    this.shouldAutoStepAction(nextAction))
-            )
-            await this.updateGameState(gameSnapshot.state, this.historyGame)
-            // this.historyGame.state = gameSnapshot.state
-            this.onHistoryAction(this.actions[this.currentHistoryIndex])
-
-            if (stopPlayback) {
-                this.stopHistoryPlayback()
-            }
+            await this.gotoAction(this.actions.length - 1)
+            this.exitHistoryMode()
         } finally {
             this.stepping = false
         }
     }
 
-    public async gotoAction(actionIndex: number) {
+    public async goToPreviousAction() {
+        if (this.stepping) {
+            return
+        }
+        this.stepping = true
+        try {
+            await this.stepBackward()
+        } finally {
+            this.stepping = false
+        }
+    }
+
+    public async goToNextAction() {
+        if (this.stepping) {
+            return
+        }
+        this.stepping = true
+        try {
+            await this.stepForward()
+        } finally {
+            this.stepping = false
+        }
+    }
+
+    private async stepBackward({
+        toActionIndex,
+        stopPlayback = true
+    }: { toActionIndex?: number; stopPlayback?: boolean } = {}) {
+        if (
+            this.currentHistoryIndex < 0 ||
+            this.actions.length === 0 ||
+            (toActionIndex !== undefined && toActionIndex >= this.currentHistoryIndex)
+        ) {
+            return
+        }
+
+        this.enterHistoryMode()
+
+        if (!this.historyGame) {
+            return
+        }
+
+        const gameSnapshot = $state.snapshot(this.historyGame)
+        let lastAction: GameAction | undefined
+        do {
+            lastAction = $state.snapshot(this.actions[this.currentHistoryIndex])
+            const updatedState = this.engine.undoAction(gameSnapshot, lastAction)
+            this.currentHistoryIndex -= 1
+            gameSnapshot.state = updatedState
+        } while (
+            this.currentHistoryIndex >= 0 &&
+            ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
+                this.shouldAutoStepAction(this.actions[this.currentHistoryIndex]))
+        )
+        await this.updateGameState(gameSnapshot.state, this.historyGame)
+        this.onHistoryAction(
+            this.currentHistoryIndex >= 0 ? this.actions[this.currentHistoryIndex] : undefined
+        )
+
+        if (stopPlayback) {
+            this.stopHistoryPlayback()
+        }
+    }
+
+    private async stepForward({
+        toActionIndex,
+        stopPlayback = true
+    }: { toActionIndex?: number; stopPlayback?: boolean } = {}) {
+        if (
+            this.mode === GameSessionMode.History &&
+            this.currentHistoryIndex === this.actions.length - 1
+        ) {
+            this.stopHistoryPlayback()
+            this.exitHistoryMode()
+        }
+
+        if (
+            this.mode !== GameSessionMode.History ||
+            !this.historyGame ||
+            this.currentHistoryIndex >= this.actions.length - 1
+        ) {
+            return
+        }
+
+        const gameSnapshot = $state.snapshot(this.historyGame)
+        let nextAction: GameAction | undefined
+        do {
+            this.currentHistoryIndex += 1
+            nextAction = $state.snapshot(this.actions[this.currentHistoryIndex]) as GameAction
+            const { updatedState } = this.engine.run(nextAction, gameSnapshot, RunMode.Single)
+            gameSnapshot.state = updatedState
+        } while (
+            this.currentHistoryIndex < this.actions.length - 1 &&
+            ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
+                this.shouldAutoStepAction(nextAction))
+        )
+        await this.updateGameState(gameSnapshot.state, this.historyGame)
+        // this.historyGame.state = gameSnapshot.state
+        this.onHistoryAction(this.actions[this.currentHistoryIndex])
+
+        if (stopPlayback) {
+            this.stopHistoryPlayback()
+        }
+    }
+
+    private async gotoAction(actionIndex: number) {
         if (actionIndex < -1 || actionIndex > this.actions.length - 1) {
             return
         }
@@ -785,11 +822,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         } else if (actionIndex > this.currentHistoryIndex) {
             await this.stepForward({ toActionIndex: actionIndex })
         }
-    }
-
-    public async gotoCurrent() {
-        await this.gotoAction(this.actions.length - 1)
-        this.exitHistoryMode()
     }
 
     public async playHistory() {
@@ -814,6 +846,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             (action) => action.playerId === this.myPlayer?.id
         )
         if (
+            this.stepping ||
             this.actions.length === 0 ||
             myFirstActionIndex === -1 ||
             (this.mode === GameSessionMode.History &&
@@ -822,13 +855,18 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             return
         }
 
-        // Now find my last turn
-        do {
-            await this.stepBackward({ stopPlayback: true })
-        } while (
-            this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
-            this.currentHistoryIndex >= 0
-        )
+        this.stepping = true
+        try {
+            // Now find my last turn
+            do {
+                await this.stepBackward({ stopPlayback: true })
+            } while (
+                this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
+                this.currentHistoryIndex >= 0
+            )
+        } finally {
+            this.stepping = false
+        }
     }
 
     public async goToMyNextTurn() {
@@ -836,6 +874,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             (action) => action.playerId === this.myPlayer?.id
         )
         if (
+            this.stepping ||
             this.actions.length === 0 ||
             myLastActionIndex === -1 ||
             (this.mode === GameSessionMode.History && myLastActionIndex <= this.currentHistoryIndex)
@@ -844,12 +883,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
 
         // Now find my last turn
-        do {
-            await this.stepForward({ stopPlayback: true })
-        } while (
-            this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
-            this.mode === GameSessionMode.History
-        )
+        this.stepping = true
+        try {
+            do {
+                await this.stepForward({ stopPlayback: true })
+            } while (
+                this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
+                this.mode === GameSessionMode.History
+            )
+        } finally {
+            this.stepping = false
+        }
     }
 
     public stopHistoryPlayback() {

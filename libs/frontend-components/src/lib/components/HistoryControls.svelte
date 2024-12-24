@@ -67,7 +67,7 @@
     <div class="flex flex-row justify-center items-center space-x-2">
         <button
             aria-label="goto my last turn"
-            onclick={async () => await gameSession.gotoAction(-1)}
+            onclick={async () => await gameSession.goToBeginning()}
             ><svg
                 class="w-[25px] h-[25px] {gameSession.actions.length === 0 ||
                 gameSession.currentHistoryIndex === -1
@@ -87,7 +87,9 @@
                 ></path>
             </svg>
         </button>
-        <button aria-label="step backwards" onclick={async () => await gameSession.stepBackward()}
+        <button
+            aria-label="step backwards"
+            onclick={async () => await gameSession.goToPreviousAction()}
             ><svg
                 class="w-[24px] h-[24px] {gameSession.actions.length === 0 ||
                 gameSession.currentHistoryIndex === -1
@@ -150,7 +152,7 @@
                 ></path>
             </svg>
         </button>
-        <button onclick={async () => await gameSession.stepForward()}
+        <button onclick={async () => await gameSession.goToNextAction()}
             ><svg
                 class="w-[24px] h-[24px] {gameSession.mode !== GameSessionMode.History
                     ? disabledColor
@@ -171,7 +173,7 @@
                 ></path>
             </svg>
         </button>
-        <button onclick={async () => await gameSession.gotoCurrent()}>
+        <button onclick={async () => await gameSession.goToCurrent()}>
             <svg
                 class="w-[25px] h-[25px] {gameSession.mode !== GameSessionMode.History
                     ? disabledColor
