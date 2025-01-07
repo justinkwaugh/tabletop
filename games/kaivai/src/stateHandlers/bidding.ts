@@ -31,7 +31,9 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
             gameState.bids = {}
             gameState.phases.startPhase(PhaseName.Bidding, gameState.actionCount)
             // Set turn order for bidding.. lowest score, money, fish, boats, huts
-            gameState.turnManager.turnOrder = gameState.playersOrderedByAscendingWealth()
+            if (gameState.rounds.currentRound && gameState.rounds.currentRound.number > 1) {
+                gameState.turnManager.turnOrder = gameState.playersOrderedByAscendingWealth()
+            }
             nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
         } else {
             nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
