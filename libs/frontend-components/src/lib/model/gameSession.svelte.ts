@@ -119,10 +119,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
-        // No spectators, must have actions
+        // No spectators, must have actions, not viewing history
         if (
             (!this.authorizationService.actAsAdmin && !this.myPlayer) ||
-            this.actions.length === 0
+            this.actions.length === 0 ||
+            this.mode === GameSessionMode.History
         ) {
             return undefined
         }
@@ -556,7 +557,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async undo() {
-        if (!this.undoableAction || this.busy) {
+        if (!this.undoableAction || this.busy || this.mode === GameSessionMode.History) {
             return
         }
 

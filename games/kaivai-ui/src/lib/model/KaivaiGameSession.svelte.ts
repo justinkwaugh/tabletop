@@ -43,7 +43,8 @@ import {
     GameAction,
     Color,
     sameCoordinates,
-    type AxialCoordinates
+    type AxialCoordinates,
+    ActionSource
 } from '@tabletop/common'
 
 export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaivaiGameState> {
@@ -421,6 +422,8 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     override shouldAutoStepAction(action: GameAction) {
         return (
             action.type === ActionType.PlaceScoringBid ||
+            (action.type === ActionType.ChooseScoringIsland &&
+                action.source === ActionSource.System) ||
             (isPass(action) && action.metadata?.reason !== PassReason.DoneActions)
         )
     }
