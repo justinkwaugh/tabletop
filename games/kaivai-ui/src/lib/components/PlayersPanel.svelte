@@ -1,6 +1,10 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import type { HydratedKaivaiPlayerState, KaivaiPlayerState } from '@tabletop/kaivai'
+    import {
+        PhaseName,
+        type HydratedKaivaiPlayerState,
+        type KaivaiPlayerState
+    } from '@tabletop/kaivai'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
@@ -9,7 +13,9 @@
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let showBids = $derived(
-        gameSession.gameState.phases.currentPhase?.name !== 'Bidding' &&
+        (gameSession.gameState.phases.currentPhase?.name === PhaseName.TakingActions ||
+            gameSession.gameState.phases.currentPhase?.name === PhaseName.InitialHuts ||
+            gameSession.gameState.phases.currentPhase?.name === PhaseName.MoveGod) &&
             Object.entries(gameSession.gameState.bids).length > 0
     )
 

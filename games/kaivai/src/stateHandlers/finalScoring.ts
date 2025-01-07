@@ -61,6 +61,21 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
             case isScoreHuts(action): {
                 gameState.hutsScored = true
                 gameState.islandsToScore = Object.keys(gameState.board.islands)
+
+                const playersHaveInfluence = gameState.players.some(
+                    (player) => player.influence > 0
+                )
+
+                if (!playersHaveInfluence) {
+                    const chooseScoringIslandAction: ChooseScoringIsland = {
+                        type: ActionType.ChooseScoringIsland,
+                        id: nanoid(),
+                        gameId: action.gameId,
+                        islandId: gameState.islandsToScore[0],
+                        source: ActionSource.System
+                    }
+                    context.addPendingAction(chooseScoringIslandAction)
+                }
                 return MachineState.FinalScoring
             }
             case isChooseScoringIsland(action): {
