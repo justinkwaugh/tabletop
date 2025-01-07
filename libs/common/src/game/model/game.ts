@@ -12,6 +12,26 @@ export enum GameStatus {
     Archived = 'archived'
 }
 
+export enum GameStatusCategory {
+    Active = 'active',
+    Completed = 'completed',
+    Deleted = 'deleted',
+    Archived = 'archived'
+}
+
+export function getGameStatusesForCategory(category: GameStatusCategory): GameStatus[] {
+    switch (category) {
+        case GameStatusCategory.Active:
+            return [GameStatus.WaitingForPlayers, GameStatus.WaitingToStart, GameStatus.Started]
+        case GameStatusCategory.Completed:
+            return [GameStatus.Finished]
+        case GameStatusCategory.Deleted:
+            return [GameStatus.Deleted]
+        case GameStatusCategory.Archived:
+            return [GameStatus.Archived]
+    }
+}
+
 export enum GameSyncStatus {
     InSync = 'inSync',
     OutOfSync = 'outOfSync'

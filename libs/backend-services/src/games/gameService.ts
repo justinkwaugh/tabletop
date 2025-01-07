@@ -12,6 +12,7 @@ import {
     GameStartedNotification,
     GameState,
     GameStatus,
+    GameStatusCategory,
     GameSyncStatus,
     IsYourTurnNotification,
     NotificationCategory,
@@ -188,8 +189,19 @@ export class GameService {
         return await this.gameStore.findActionsForGame(game)
     }
 
-    async getGamesForUser(user: User): Promise<Game[]> {
-        return await this.gameStore.findGamesForUser(user)
+    async getActiveGamesForUser(user: User): Promise<Game[]> {
+        const games = await this.gameStore.findGamesForUser(user, GameStatusCategory.Active)
+        const filteredGames = games.filter(
+            (game) =>
+                game.status === GameStatus.Started ||
+                game.status === GameStatus.WaitingToStart ||
+                game.status === GameStatus.WaitingForPlayers
+        )
+        return filteredGames
+    }
+
+    async getCompletedGamesForUser(user: User): Promise<Game[]> {
+        return await this.gameStore.findGamesForUser(user, GameStatusCategory.Completed)
     }
 
     async checkSync({

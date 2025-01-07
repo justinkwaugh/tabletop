@@ -1,4 +1,4 @@
-import { GameAction, Game, GameState, User } from '@tabletop/common'
+import { GameAction, Game, GameState, User, GameStatusCategory } from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
 
 export type ActionUpdateValidator = (
@@ -22,7 +22,7 @@ export type ActionUndoValidator = (
 export interface GameStore {
     createGame(game: Game): Promise<Game>
     getGameEtag(gameId: string): Promise<string | undefined>
-    findGamesForUser(user: User): Promise<Game[]>
+    findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
     findActionById(game: Game, actionId: string): Promise<GameAction | undefined>
     findActionsForGame(game: Game): Promise<GameAction[]>

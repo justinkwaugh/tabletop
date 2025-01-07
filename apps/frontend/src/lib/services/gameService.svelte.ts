@@ -45,7 +45,7 @@ export class GameService {
                     (b.finishedAt ?? b.lastActionAt ?? b.createdAt).getTime() -
                     (a.finishedAt ?? a.lastActionAt ?? a.createdAt).getTime()
             )
-            .slice(0, 10)
+            .slice(0, 20)
     )
     private loading = false
     private loaded = false

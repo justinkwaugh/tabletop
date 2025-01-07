@@ -6,6 +6,7 @@ import {
     GameAction,
     GameChat,
     GameChatMessage,
+    GameStatusCategory,
     GameSyncStatus,
     User,
     UserPreferences

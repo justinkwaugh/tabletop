@@ -486,67 +486,6 @@
         }
         return cell.boat
     }
-
-    const borders = [
-        { x1: -25, y1: -43.5, x2: 25, y2: -43.5 },
-        { x1: 25, y1: -43.5, x2: 50, y2: 0 },
-        { x1: 50, y1: 0, x2: 25, y2: 43.5 },
-        { x1: 25, y1: 43.5, x2: -25, y2: 43.5 },
-        { x1: -25, y1: 43.5, x2: -50, y2: 0 },
-        { x1: -50, y1: 0, x2: -25, y2: -43.5 }
-    ]
-
-    const directions = [
-        Direction.N,
-        Direction.NE,
-        Direction.SE,
-        Direction.S,
-        Direction.SW,
-        Direction.NW
-    ]
-
-    let visibleBorders = $derived.by(() => {
-        if (!isIslandCell(cell)) {
-            return []
-        }
-
-        const board = gameSession.gameState.board
-
-        const borders = []
-        for (const [index, direction] of directions.entries()) {
-            const cell = board.getCellAt(board.getNeighborForDirection(hex, direction))
-            if (!cell || cell.type === CellType.Water) {
-                borders.push(index)
-            }
-        }
-
-        return borders
-    })
-
-    let showIslandBorders = $derived.by(() => {
-        if (!isIslandCell(cell)) {
-            return false
-        }
-        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
-            const action = gameSession.actions[gameSession.currentHistoryIndex]
-            return (
-                (isCelebrate(action) || isChooseScoringIsland(action) || isScoreIsland(action)) &&
-                cell.islandId === action.islandId
-            )
-        }
-
-        if (gameSession.chosenAction === ActionType.Celebrate) {
-            return gameSession.validCelebrationIslands.has(cell.islandId)
-        }
-
-        if (gameSession.gameState.machineState === MachineState.IslandBidding) {
-            return gameSession.gameState.chosenIsland === cell.islandId
-        }
-
-        if (gameSession.gameState.machineState === MachineState.FinalScoring) {
-            return gameSession.gameState.islandsToScore.includes(cell.islandId)
-        }
-    })
 </script>
 
 <g
@@ -743,21 +682,4 @@
     <!-- <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="30" fill="yellow">
         {hex.q}, {hex.r}
     </text> -->
-
-    {#if showIslandBorders}
-        {#each visibleBorders as border}
-            <line
-                class="z-50"
-                x1={borders[border].x1}
-                y1={borders[border].y1}
-                x2={borders[border].x2}
-                y2={borders[border].y2}
-                fill="none"
-                stroke="#FF5A1F"
-                stroke-width="4"
-                opacity="1"
-                stroke-linecap="round"
-            ></line>
-        {/each}
-    {/if}
 </g>

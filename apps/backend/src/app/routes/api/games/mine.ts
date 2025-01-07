@@ -13,7 +13,11 @@ export default async function (fastify: FastifyInstance) {
                 throw Error('No user found for create request')
             }
 
-            const games = await fastify.gameService.getGamesForUser(request.user)
+            const results = await Promise.all([
+                fastify.gameService.getActiveGamesForUser(request.user),
+                fastify.gameService.getCompletedGamesForUser(request.user)
+            ])
+            const games = results[0].concat(results[1])
 
             return { status: 'ok', payload: { games } }
         }

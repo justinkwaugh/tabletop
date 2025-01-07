@@ -1,7 +1,15 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { defineHex, Grid, spiral, Orientation } from 'honeycomb-grid'
+    import {
+        defineHex,
+        Grid,
+        spiral,
+        Orientation,
+        Direction,
+        type AxialCoordinates,
+        Hex
+    } from 'honeycomb-grid'
     import board from '$lib/images/board.png'
     import Cell from './Cell.svelte'
     import buildImg from '$lib/images/build.png'
@@ -15,18 +23,28 @@
     import influenceImg from '$lib/images/influence.png'
     import sacrificeImg from '$lib/images/sacrifice.png'
 
-    import { ActionType, MachineState } from '@tabletop/kaivai'
+    import {
+        ActionType,
+        CellType,
+        isCelebrate,
+        isChooseScoringIsland,
+        Island,
+        isScoreIsland,
+        MachineState
+    } from '@tabletop/kaivai'
     import { fade } from 'svelte/transition'
+    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { axialCoordinatesToNumber } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
-    const Hex = defineHex({
+    const KaivaiHex = defineHex({
         dimensions: { width: 100, height: 87 },
         orientation: Orientation.FLAT
     })
 
     const spiralTraverser = spiral({ radius: 6, start: [0, 0] })
-    const grid = new Grid(Hex, spiralTraverser)
+    const grid = new Grid(KaivaiHex, spiralTraverser)
     const yOffset = grid.pixelHeight / 2
     const xOffset = grid.pixelWidth / 2
 
@@ -124,6 +142,85 @@
             (!gameSession.chosenAction || gameSession.chosenAction === action)
         )
     }
+
+    let outlinedIslandCells = $derived.by(() => {
+        let islands: Island[] = []
+
+        if (gameSession.mode === GameSessionMode.Play) {
+            if (gameSession.chosenAction === ActionType.Celebrate) {
+                islands = Array.from(gameSession.validCelebrationIslands).map(
+                    (islandId) => gameSession.gameState.board.islands[islandId]
+                )
+            } else if (
+                gameSession.gameState.machineState === MachineState.IslandBidding &&
+                gameSession.gameState.chosenIsland !== undefined
+            ) {
+                islands = [gameSession.gameState.board.islands[gameSession.gameState.chosenIsland]]
+            } else if (gameSession.gameState.machineState === MachineState.FinalScoring) {
+                islands = gameSession.gameState.islandsToScore.map(
+                    (islandId) => gameSession.gameState.board.islands[islandId]
+                )
+            }
+        } else if (
+            gameSession.mode === GameSessionMode.History &&
+            gameSession.currentHistoryIndex >= 0
+        ) {
+            const action = gameSession.actions[gameSession.currentHistoryIndex]
+            if (isCelebrate(action) || isChooseScoringIsland(action) || isScoreIsland(action)) {
+                islands = [gameSession.gameState.board.islands[action.islandId]]
+            }
+        }
+
+        if (islands.length === 0) {
+            return []
+        }
+
+        return islands.flatMap((island) =>
+            island.coordList.map(
+                (coord) => gameSession.gameState.board.cells[axialCoordinatesToNumber(coord)]
+            )
+        )
+    })
+
+    const borders = [
+        { x1: -25, y1: -43.5, x2: 25, y2: -43.5 },
+        { x1: 25, y1: -43.5, x2: 50, y2: 0 },
+        { x1: 50, y1: 0, x2: 25, y2: 43.5 },
+        { x1: 25, y1: 43.5, x2: -25, y2: 43.5 },
+        { x1: -25, y1: 43.5, x2: -50, y2: 0 },
+        { x1: -50, y1: 0, x2: -25, y2: -43.5 }
+    ]
+
+    const directions = [
+        Direction.N,
+        Direction.NE,
+        Direction.SE,
+        Direction.S,
+        Direction.SW,
+        Direction.NW
+    ]
+
+    let outlineBorders = $derived.by(() => {
+        if (outlinedIslandCells.length === 0) {
+            return []
+        }
+
+        const board = gameSession.gameState.board
+        const borders: { hex: Hex; index: number }[] = []
+
+        for (const cell of outlinedIslandCells) {
+            for (const [index, direction] of directions.entries()) {
+                const neighbor = board.getNeighborForDirection(cell.coords, direction)
+                if (!neighbor || board.isWaterCell(neighbor)) {
+                    const hex = grid.getHex(cell.coords)
+                    if (hex) {
+                        borders.push({ hex, index })
+                    }
+                }
+            }
+        }
+        return borders
+    })
 </script>
 
 {#snippet actionDisk(actionType: ActionType, x: number, y: number, radius: number = 75)}
@@ -236,6 +333,20 @@
 
                     {#each grid as hex}
                         <Cell {hex} {origin} />
+                    {/each}
+                    {#each outlineBorders as border}
+                        <line
+                            class="z-50"
+                            x1={origin.x + border.hex.x + borders[border.index].x1}
+                            y1={origin.y + border.hex.y + borders[border.index].y1}
+                            x2={origin.x + border.hex.x + borders[border.index].x2}
+                            y2={origin.y + border.hex.y + borders[border.index].y2}
+                            fill="none"
+                            stroke="white"
+                            stroke-width="6"
+                            opacity="1"
+                            stroke-linecap="round"
+                        ></line>
                     {/each}
                 </g>
             </svg>

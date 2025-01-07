@@ -15,7 +15,9 @@ import {
     BaseError,
     PlayerStatus,
     GameStatus,
-    generateSeed
+    generateSeed,
+    GameStatusCategory,
+    getGameStatusesForCategory
 } from '@tabletop/common'
 import {
     AlreadyExistsError,
@@ -58,7 +60,9 @@ export class FirestoreGameStore implements GameStore {
         const gameCacheKey = this.makeGameCacheKey(game.id)
         const checksumCacheKey = `csum-${game.id}`
         const gameRevisionCacheKey = `etag-${game.id}`
-        const userCacheKeys = storedGame.players.map((player) => `games-${player.userId}`)
+        const userCacheKeys = storedGame.players.map(
+            (player) => `games-${GameStatusCategory.Active}-${player.userId}`
+        )
 
         try {
             await this.cacheService.lockWhileWriting(
@@ -83,15 +87,16 @@ export class FirestoreGameStore implements GameStore {
         const gameCacheKey = this.makeGameCacheKey(gameId)
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
-        const userCacheKeys = game.players.map((player) => `games-${player.userId}`)
+        const category =
+            game.status === GameStatus.Finished
+                ? GameStatusCategory.Completed
+                : GameStatusCategory.Active
+        const userCacheKeys = game.players.map((player) => `games-${category}-${player.userId}`)
 
         try {
             await this.cacheService.lockWhileWriting(
                 [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
                 async () => await this.games.firestore.recursiveDelete(this.games.doc(gameId))
-                // this.games.firestore.runTransaction(
-                //     async () => await this.games.doc(game.id).recursiveDelete()
-                // )
             )
         } catch (error) {
             this.handleError(error, gameId)
@@ -191,11 +196,23 @@ export class FirestoreGameStore implements GameStore {
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
 
-        // Only matters if players change
+        // Only matters if players change, even if the status goes to finished we can just lazily ignore it and
+        // filter after the fact when getting the active games until the cache is updated by a new game
         const userCacheKeys =
             fields.players !== undefined
-                ? game.players.map((player) => `games-${player.userId}`)
+                ? game.players.map(
+                      (player) => `games-${GameStatusCategory.Active}-${player.userId}`
+                  )
                 : []
+
+        // But if we think it is ending, we do need to update the completed cache
+        if (fields.status !== undefined && fields.status === GameStatus.Finished) {
+            userCacheKeys.push(
+                ...game.players.map(
+                    (player) => `games-${GameStatusCategory.Completed}-${player.userId}`
+                )
+            )
+        }
 
         try {
             const { updatedGame, updatedFields, existingGame } =
@@ -289,8 +306,8 @@ export class FirestoreGameStore implements GameStore {
     }
 
     // It would be nice to make the caching a little less manual here
-    async findGamesForUser(user: User): Promise<Game[]> {
-        const cacheKey = `games-${user.id}`
+    async findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]> {
+        const cacheKey = `games-${category}-${user.id}`
         const { value, cached } = await this.cacheService.cacheGet(cacheKey)
         if (cached) {
             return this.findGamesById(value as string[])
@@ -301,7 +318,16 @@ export class FirestoreGameStore implements GameStore {
             value: value
         })
 
-        const query = this.games.where('userIds', 'array-contains', user.id)
+        let query = this.games.where('userIds', 'array-contains', user.id)
+        if (category) {
+            const statuses = getGameStatusesForCategory(category)
+            if (statuses.length === 1) {
+                query = query.where('status', '==', statuses[0])
+            } else {
+                query = query.where('status', 'in', statuses)
+            }
+        }
+
         try {
             const querySnapshot = await query.get()
             const games = querySnapshot.docs.map((doc) => doc.data()) as Game[]

@@ -19,7 +19,7 @@ import {
 
 export function getHistoryDescriptionForAction(action?: GameAction, self?: boolean) {
     if (!action) {
-        return ''
+        return 'The game was started'
     }
     switch (true) {
         case isPlaceBid(action): {
