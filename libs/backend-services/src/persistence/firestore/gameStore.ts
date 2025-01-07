@@ -205,22 +205,13 @@ export class FirestoreGameStore implements GameStore {
                   )
                 : []
 
-        // But if we think it is ending, we do need to update the completed cache
-        if (fields.status !== undefined && fields.status === GameStatus.Finished) {
-            userCacheKeys.push(
-                ...game.players.map(
-                    (player) => `games-${GameStatusCategory.Completed}-${player.userId}`
-                )
-            )
-        }
-
         try {
             const { updatedGame, updatedFields, existingGame } =
                 await this.cacheService.lockWhileWriting(
                     [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
                     async () => this.games.firestore.runTransaction(transactionBody)
                 )
-
+            console.log('Updated fields', updatedFields)
             return [updatedGame, updatedFields, existingGame]
         } catch (error) {
             console.log(error)
@@ -481,14 +472,40 @@ export class FirestoreGameStore implements GameStore {
         const gameRevisionCacheKey = `etag-${gameId}`
 
         try {
-            return await this.cacheService.lockWhileWriting(
+            const results = await this.cacheService.lockWhileWriting(
                 [gameCacheKey, checksumCacheKey, gameRevisionCacheKey],
                 async () => this.games.firestore.runTransaction(transactionBody)
             )
+
+            // This is not properly transactional with the write.. it might fail to happen :/
+            if (results.updatedGame.status !== game.status) {
+                await this.clearUserCacheKeys(game)
+            }
+
+            return results
         } catch (error) {
             console.log(error)
+            await this.clearUserCacheKeys(game)
             this.handleError(error, gameId)
             throw Error('unreachable')
+        }
+    }
+
+    private async clearUserCacheKeys(game: Game) {
+        // This is not properly transactional with the write.. it might fail to happen :/
+        const userCacheKeys = []
+
+        userCacheKeys.push(
+            ...game.players.map(
+                (player) => `games-${GameStatusCategory.Completed}-${player.userId}`
+            )
+        )
+        userCacheKeys.push(
+            ...game.players.map((player) => `games-${GameStatusCategory.Active}-${player.userId}`)
+        )
+
+        if (userCacheKeys) {
+            await this.cacheService.lockWhileWriting(userCacheKeys, async () => {})
         }
     }
 
@@ -774,10 +791,12 @@ export class FirestoreGameStore implements GameStore {
         const gameRevisionCacheKey = `etag-${gameId}`
 
         try {
-            return await this.cacheService.lockWhileWriting(
+            const results = await this.cacheService.lockWhileWriting(
                 [gameCacheKey, checksumCacheKey, gameRevisionCacheKey],
                 async () => this.games.firestore.runTransaction(transactionBody)
             )
+
+            return results
         } catch (error) {
             this.handleError(error, gameId)
             throw Error('unreachable')
