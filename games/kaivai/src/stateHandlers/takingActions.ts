@@ -9,7 +9,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { HydratedBuild, isBuild } from '../actions/build.js'
-import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedPass, isPass, Pass } from '../actions/pass.js'
 import { HydratedFish, isFish } from '../actions/fish.js'
 import { HydratedDeliver, isDeliver } from '../actions/deliver.js'
 import { HydratedCelebrate, isCelebrate } from '../actions/celebrate.js'
@@ -166,8 +166,6 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                 }
             }
         }
-
-        console.log('Valid actions', validActions)
         return validActions
     }
 
@@ -191,6 +189,19 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
             gameState.activePlayerIds = [nextPlayerId]
             const playerState = gameState.getPlayerState(nextPlayerId)
             playerState.availableBoats = Object.keys(playerState.boatLocations)
+
+            const validActions = this.validActionsForPlayer(nextPlayerId, context)
+            if (validActions.length === 1 && validActions[0] === ActionType.Pass) {
+                const passAction: Pass = {
+                    type: ActionType.Pass,
+                    id: nanoid(),
+                    playerId: nextPlayerId,
+                    gameId: context.gameState.gameId,
+                    source: ActionSource.System
+                }
+
+                context.addPendingAction(passAction)
+            }
         }
     }
 

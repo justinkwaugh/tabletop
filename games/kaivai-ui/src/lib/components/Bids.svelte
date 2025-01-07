@@ -39,7 +39,7 @@
                 >
                     <div
                         class="w-[22px] h-[22px] {bidColor(i + 1)} rounded-full {!hasBid(i + 1)
-                            ? ''
+                            ? 'opacity-90'
                             : ''} flex justify-center items-center text-black"
                     >
                         {#if !hasBid(i + 1)}
