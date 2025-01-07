@@ -20,7 +20,7 @@ interface GameInvitationProps {
 }
 
 export const GameInvitation = ({ ownerName, title, gameName, url = `` }: GameInvitationProps) => {
-    const previewText = `Please goto ${url} to reset your password`
+    const previewText = `Join ${ownerName}'s game of ${title} at ${url}`
 
     return (
         <Html>
