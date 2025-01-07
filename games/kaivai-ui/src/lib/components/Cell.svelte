@@ -676,7 +676,7 @@
             points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5"
             class="z-40"
             fill="black"
-            opacity="0.5"
+            opacity="0.35"
         ></polygon>
     {/if}
     <!-- <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="30" fill="yellow">

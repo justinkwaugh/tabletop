@@ -176,10 +176,29 @@
         gameSession.chosenHutType = hutType
     }
 
+    let canChooseMeetingHut = $derived.by(() => canChooseHutType(HutType.Meeting))
+    let canChooseBoatHut = $derived.by(() => canChooseHutType(HutType.BoatBuilding))
+    let canChooseFishingHut = $derived.by(() => canChooseHutType(HutType.Fishing))
+
     function canChooseHutType(hutType: HutType) {
         if (gameSession.chosenHutType) {
             return false
         }
+
+        const playerState = gameSession.myPlayerState
+        if (!playerState) {
+            return false
+        }
+
+        if (
+            gameSession.gameState.machineState === MachineState.InitialHuts &&
+            playerState.initialHutsPlaced === 1 &&
+            playerState.boats.length === 4 &&
+            hutType !== HutType.BoatBuilding
+        ) {
+            return false
+        }
+
         switch (hutType) {
             case HutType.Meeting:
                 return true
@@ -282,7 +301,7 @@
         {/if}
         {#if gameSession.chosenAction === ActionType.Build && ((gameSession.chosenBoat && gameSession.chosenBoatLocation) || gameSession.gameState.machineState === MachineState.InitialHuts)}
             <div class="flex flex-row justify-center items-center space-x-2">
-                {#if canChooseHutType(HutType.Meeting) || gameSession.chosenHutType === HutType.Meeting}
+                {#if canChooseMeetingHut || gameSession.chosenHutType === HutType.Meeting}
                     <button
                         onclick={() => chooseHutType(HutType.Meeting)}
                         class="flex flex-col justify-center items-center"
@@ -297,7 +316,7 @@
                         {/if}
                     </button>
                 {/if}
-                {#if canChooseHutType(HutType.BoatBuilding) || gameSession.chosenHutType === HutType.BoatBuilding}
+                {#if canChooseBoatHut || gameSession.chosenHutType === HutType.BoatBuilding}
                     <button
                         onclick={() => chooseHutType(HutType.BoatBuilding)}
                         class="flex flex-col justify-center items-center"
@@ -315,7 +334,7 @@
                         {/if}
                     </button>
                 {/if}
-                {#if canChooseHutType(HutType.Fishing) || gameSession.chosenHutType === HutType.Fishing}
+                {#if canChooseFishingHut || gameSession.chosenHutType === HutType.Fishing}
                     <button
                         onclick={() => chooseHutType(HutType.Fishing)}
                         class="flex flex-col justify-center items-center"
