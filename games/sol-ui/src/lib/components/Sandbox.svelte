@@ -23,6 +23,7 @@
     import PurpleShip from '$lib/images/purpleShip.svelte'
     import BlackShip from '$lib/images/blackShip.svelte'
     import { CELL_LAYOUT_5P } from '$lib/utils/cellLayout5p.js'
+    import { CELL_LAYOUT_4P } from '$lib/utils/cellLayout4p.js'
 
     enum PieceType {
         Sundiver,
@@ -58,28 +59,28 @@
     }
 
     const diverLocs: { point: Point; quantity: number }[] = []
-    // for (const node of graph) {
-    //     const layoutKey = `${node.coords.row}-${node.coords.col}`
-    //     const cellLayouts = CELL_LAYOUT_5P[layoutKey] ?? {}
-    //     const layout = cellLayouts['t-g1-g2'] ?? cellLayouts['t-g1'] ?? cellLayouts['t']
-    //     if (layout) {
-    //         diverLocs.push(
-    //             ...layout.divers.map((diver: Point, index: number) => {
-    //                 return { point: diver, quantity: index + 1 }
-    //             })
-    //         )
-    //     }
-    // }
+    for (const node of graph) {
+        const layoutKey = `${node.coords.row}-${node.coords.col}`
+        const cellLayouts = CELL_LAYOUT_4P[layoutKey] ?? {}
+        const layout = cellLayouts['t-g1-g2'] ?? cellLayouts['t-g1'] ?? cellLayouts['t']
+        if (layout) {
+            diverLocs.push(
+                ...layout.divers.map((diver: Point, index: number) => {
+                    return { point: diver, quantity: index + 1 }
+                })
+            )
+        }
+    }
 
     const towerLocs: Point[] = []
-    // for (const node of graph) {
-    //     const layoutKey = `${node.coords.row}-${node.coords.col}`
-    //     const cellLayouts = CELL_LAYOUT_5P[layoutKey] ?? {}
-    //     const layout = cellLayouts['t-g1-g2'] ?? cellLayouts['t-g1'] ?? cellLayouts['t']
-    //     if (layout && layout.station) {
-    //         towerLocs.push(layout.station.point)
-    //     }
-    // }
+    for (const node of graph) {
+        const layoutKey = `${node.coords.row}-${node.coords.col}`
+        const cellLayouts = CELL_LAYOUT_4P[layoutKey] ?? {}
+        const layout = cellLayouts['t-g1-g2'] ?? cellLayouts['t-g1'] ?? cellLayouts['t']
+        if (layout && layout.station) {
+            towerLocs.push(layout.station.point)
+        }
+    }
 
     const blueOffsets = MOTHERSHIP_OFFSETS[Color.Blue]
     const grayOffsets = MOTHERSHIP_OFFSETS[Color.Gray]
