@@ -14,7 +14,8 @@
         getCirclePoint,
         getMothershipAngle,
         MOTHERSHIP_OFFSETS,
-        MOTHERSHIP_RADIUS
+        MOTHERSHIP_RADIUS,
+        toRadians
     } from '$lib/utils/boardGeometry.js'
     import { Color } from '@tabletop/common'
     import { rotate } from '$lib/utils/animations.js'
@@ -31,7 +32,7 @@
     let Mask = maskForColor(color)
     let shadowId = `shipshadow-${playerId}`
 
-    let locationIndex = $derived(gameSession.gameState.board.motherships[playerId])
+    let locationIndex = $state(gameSession.gameState.board.motherships[playerId])
 
     const offsets = MOTHERSHIP_OFFSETS[color]
     let shapeTransformation = `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${offsets.rotation}) translate(${offsets.x},${offsets.y}) `
@@ -41,7 +42,9 @@
 
     let shipElement: SVGElement
 
-    let outlined = $state(false)
+    let hovered = $state(false)
+    let selected = $derived(gameSession.chosenMothership === playerId)
+    let outlined = $derived(hovered || selected)
 
     let myMove = $derived(
         gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Move
@@ -66,7 +69,7 @@
 
     $effect(() => {
         if (!interactable) {
-            outlined = false
+            hovered = false
         }
     })
 
@@ -102,12 +105,12 @@
 
     function onMouseEnter() {
         if (interactable) {
-            outlined = true
+            hovered = true
         }
     }
 
     function onMouseLeave() {
-        outlined = false
+        hovered = false
     }
 
     function onMouseClick() {
@@ -116,26 +119,33 @@
         }
     }
 
-    // function moveShip() {
-    //     const endIndex = locationIndex === 0 ? 12 : locationIndex - 1
-    //     const startDegrees = getMothershipAngle(color, locationIndex)
-    //     const endDegrees = getMothershipAngle(color, endIndex)
-    //     const distanceDegrees =
-    //         startDegrees < endDegrees
-    //             ? 360 - Math.abs(startDegrees - endDegrees)
-    //             : startDegrees - endDegrees
-    //     rotate({
-    //         object: shipElement,
-    //         degrees: `-=${distanceDegrees}`,
-    //         svgOrigin: `${CENTER_POINT.x}, ${CENTER_POINT.y}`,
-    //         duration: 1
-    //     })
-    //     locationIndex = endIndex
-    // }
+    function moveShip() {
+        const endIndex = locationIndex === 0 ? 12 : locationIndex - 1
+        const startDegrees = getMothershipAngle(numPlayers, color, locationIndex)
+        const endDegrees = getMothershipAngle(numPlayers, color, endIndex)
+        const distanceDegrees =
+            startDegrees < endDegrees
+                ? 360 - Math.abs(startDegrees - endDegrees)
+                : startDegrees - endDegrees
+        rotate({
+            object: shipElement,
+            degrees: `-=${distanceDegrees}`,
+            svgOrigin: `${CENTER_POINT.x}, ${CENTER_POINT.y}`,
+            duration: 1,
+            onComplete: () => {
+                shipElement.setAttribute('transform', shapeTransformation)
+                locationIndex = endIndex
+            }
+        })
+    }
 
     let shadowOffset = $derived.by(() => {
-        const angle = getMothershipAngle(numPlayers, color, locationIndex) + offsets.rotation / 2
-        return getCirclePoint(40, angle)
+        const angleInDegrees =
+            (360 - getMothershipAngle(numPlayers, color, locationIndex) + 45 + offsets.rotation) %
+            360
+        const angle = toRadians(angleInDegrees)
+        const offset = getCirclePoint(45, angle)
+        return offset
     })
 </script>
 

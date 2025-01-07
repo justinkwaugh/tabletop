@@ -103,7 +103,6 @@ export function getMothershipTransformation(numPlayers: number, color: Color, in
     const radius = MOTHERSHIP_RADIUS
     const degrees = getMothershipAngle(numPlayers, color, index)
     const point = getCirclePoint(radius, toRadians(degrees))
-    //rotate(${degrees})
     return `translate(${point.x}, ${point.y}) `
 }
 

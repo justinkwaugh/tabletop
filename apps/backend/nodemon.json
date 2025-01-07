@@ -1,24 +1,12 @@
 {
-    "watch": ["src", "../../node_modules"],
+    "watch": [
+        "src",
+        "../../node_modules/@tabletop/common",
+        "../../node_modules/@tabletop/backend-services"
+    ],
     "ignoreRoot": [".git"],
     "ext": "ts,json,js",
-    "ignore": [
-        "../../node_modules/@tabletop/backend",
-        "../../node_modules/@tabletop/frontend",
-        "../../node_modules/@tabletop/frontend-components",
-        "../../node_modules/@tabletop/fresh-fish-ui",
-        "../../node_modules/@tabletop/bridges-of-shangri-la-ui",
-        "../../node_modules/@tabletop/kaivai-ui",
-        "../../node_modules/@tabletop/estates-ui",
-        "../../node_modules/@tabletop/fresh-fish",
-        "../../node_modules/@tabletop/bridges-of-shangri-la",
-        "../../node_modules/@tabletop/kaivai",
-        "../../node_modules/@tabletop/estates",
-        "../../node_modules/@tabletop/sol",
-        "../../node_modules/@tabletop/sol-ui",
-        "src/**/*.spec.ts",
-        "src/tests/**/*"
-    ],
+    "ignore": ["src/**/*.spec.ts", "src/tests/**/*"],
     "exec": "dotenvx run -f .env.local -- tsx src/main.ts",
     "delay": "3000"
 }

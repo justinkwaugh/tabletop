@@ -6,7 +6,7 @@
         "build": {
             "dependsOn": ["^build"],
             "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"],
-            "outputs": [".svelte-kit/**", "build/**/*", "dist/**/*"],
+            "outputs": [".svelte-kit/**", "build/**/*", "dist/**/*", "esm/**/*"],
             "env": [
                 "VERSION",
                 "DISCORD_CLIENT_ID",

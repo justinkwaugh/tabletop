@@ -6,6 +6,7 @@
     import DropShadow from '$lib/components/DropShadow.svelte'
     import boardImg5p from '$lib/images/board5p.jpg'
     import Sandbox from './Sandbox.svelte'
+    import Mothership from './Mothership.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let board = $derived(gameSession.gameState.board)
@@ -31,11 +32,11 @@
         {#each board as cell}
             <Cell {cell} />
         {/each}
-        <!-- 
+
         {#each gameSession.gameState.players as player}
             <Mothership playerId={player.playerId} />
-        {/each} -->
+        {/each}
 
-        <Sandbox />
+        <!-- <Sandbox /> -->
     </svg>
 </div>
