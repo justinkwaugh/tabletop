@@ -34,9 +34,9 @@
     )
 
     let activeTabClasses =
-        'py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border'
+        'relative py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border'
     let inactiveTabClasses =
-        'text-[#634a11] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#634a11] box-border'
+        'relative text-[#634a11] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#634a11] box-border'
 
     let showBidBoard = $derived.by(() => {
         if (gameSession.mode === GameSessionMode.Play) {
