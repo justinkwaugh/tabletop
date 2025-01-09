@@ -34,7 +34,7 @@
     } from '@tabletop/kaivai'
     import { fade } from 'svelte/transition'
     import { GameSessionMode } from '@tabletop/frontend-components'
-    import { axialCoordinatesToNumber } from '@tabletop/common'
+    import { coordinatesToNumber } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -177,7 +177,7 @@
 
         return islands.flatMap((island) =>
             island.coordList.map(
-                (coord) => gameSession.gameState.board.cells[axialCoordinatesToNumber(coord)]
+                (coord) => gameSession.gameState.board.cells[coordinatesToNumber(coord)]
             )
         )
     })

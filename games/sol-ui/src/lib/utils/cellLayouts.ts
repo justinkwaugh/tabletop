@@ -52,8 +52,11 @@ function layoutKeyHeirarchyForCell(cell: Cell, board: HydratedSolGameBoard): str
         layoutKey += '-g2'
     }
     keys.push(layoutKey)
+    keys.push(`${prefix}-g1`)
     keys.push(`${prefix}-g1-g2`)
     if (prefix !== 't') {
+        keys.push('t')
+        keys.push('t-g1')
         keys.push('t-g1-g2')
     }
     return keys

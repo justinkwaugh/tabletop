@@ -37,8 +37,8 @@
 {#if quantity > 1}
     <g transform={translateFromCenter(location.x, location.y)}>
         <text
-            class="select-none"
-            style="filter: url(#textshadow); fill: black"
+            class="select-none pointer-events-none"
+            style="filter: url(#textshadow); fill: black;"
             y="1"
             text-anchor="middle"
             dominant-baseline="middle"
@@ -51,7 +51,7 @@
         >
         <text
             y="1"
-            class="select-none"
+            class="select-none pointer-events-none"
             text-anchor="middle"
             dominant-baseline="middle"
             font-size="23"

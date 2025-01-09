@@ -34,6 +34,14 @@ export const GameAction = Type.Object({
     updatedAt: Type.Optional(Type.Date())
 })
 
+export type PlayerAction = Static<typeof PlayerAction>
+export const PlayerAction = Type.Composite([
+    Type.Omit(GameAction, ['playerId']),
+    Type.Object({
+        playerId: Type.String()
+    })
+])
+
 export const ToAPIAction = (schema: TSchema) =>
     Type.Composite([
         Type.Omit(schema, ['createdAt', 'updatedAt']),

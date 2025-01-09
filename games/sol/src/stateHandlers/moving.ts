@@ -6,12 +6,14 @@ import { HydratedLaunch, isLaunch } from '../actions/launch.js'
 import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
 
-// Transition from StartOfTurn(Launch) -> Moving | TakingActions
+// Transition from Moving(Launch) -> Moving | StartOfTurn
+// Transition from Moving(Fly) -> Moving | StartOfTurn
+// Transition from Moving(Hurl) -> Moving | StartOfTurn
 
-type StartOfTurnAction = HydratedLaunch | HydratedFly | HydratedHurl
+type MovingAction = HydratedLaunch | HydratedFly | HydratedHurl
 
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is StartOfTurnAction {
+export class MovingStateHandler implements MachineStateHandler<MovingAction> {
+    isValidAction(action: HydratedAction, _context: MachineContext): action is MovingAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.Launch ||
@@ -43,19 +45,13 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             }
         }
 
-        console.log('Valid actions', validActions)
+        console.log('Valid moving actions', validActions)
         return validActions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedSolGameState
-        const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
-        gameState.activePlayerIds = [nextPlayerId]
-        const playerState = gameState.getPlayerState(nextPlayerId)
-        playerState.movementPoints = playerState.movement
-    }
+    enter(_context: MachineContext) {}
 
-    onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
+    onAction(action: MovingAction, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedSolGameState
         const playerState = gameState.getPlayerState(action.playerId)
 

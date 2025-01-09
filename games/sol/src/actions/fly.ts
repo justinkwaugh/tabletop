@@ -14,7 +14,7 @@ export const Fly = Type.Composite([
     Type.Object({
         type: Type.Literal(ActionType.Fly),
         playerId: Type.String(),
-        pieceIds: Type.Array(Type.String()), // Array due to Cluster Effect, not sundiver specific due to Juggernaut Effect
+        pieceIds: Type.Array(Type.String()), // not sundiver specific due to Juggernaut Effect
         gates: Type.Array(SolarGate),
         start: OffsetCoordinates,
         destination: OffsetCoordinates,
@@ -43,5 +43,32 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
+    }
+
+    static isValidFlightDestination(
+        state: HydratedSolGameState,
+        playerId: string,
+        numSundivers: number,
+        station: boolean,
+        start: OffsetCoordinates,
+        destination: OffsetCoordinates
+    ): boolean {
+        const playerState = state.getPlayerState(playerId)
+
+        // Pathfind shortest distance and check movement points
+
+        // Check to see if destination can hold the pieces
+        if (
+            numSundivers > 0 &&
+            !state.board.canAddSundiversToCell(playerId, numSundivers, destination)
+        ) {
+            return false
+        }
+
+        if (station && !state.board.canAddStationToCell(destination)) {
+            return false
+        }
+
+        return false
     }
 }
