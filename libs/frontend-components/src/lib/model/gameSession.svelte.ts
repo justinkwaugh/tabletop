@@ -17,7 +17,8 @@ import {
     Color,
     RunMode,
     GameDeleteNotification,
-    type HydratedGameState
+    type HydratedGameState,
+    PlayerAction
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -436,7 +437,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.notificationService.stopListeningToGame(this.game.id)
     }
 
-    createBaseAction(type: string): GameAction {
+    createBaseAction(type: string): PlayerAction {
         if (!this.myPlayer) {
             throw new Error('Player not found')
         }
@@ -573,7 +574,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             return
         }
 
-        this.willUndo()
+        this.willUndo(this.undoableAction)
         try {
             // Block server actions while we are processing
             this.busy = true
@@ -971,7 +972,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         game.state = gameState
     }
 
-    willUndo() {}
+    willUndo(_action: GameAction) {}
 
     onHistoryAction(_action?: GameAction) {}
 

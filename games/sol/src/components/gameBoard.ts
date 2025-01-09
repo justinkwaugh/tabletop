@@ -58,6 +58,7 @@ export class HydratedSolGameBoard
 
     constructor(data: SolGameBoard) {
         super(data, SolGameBoardValidator)
+        this.internalGraph = undefined
     }
 
     public cellAt(coords: OffsetCoordinates): Cell {
@@ -127,6 +128,15 @@ export class HydratedSolGameBoard
         return this.sundiversForPlayer(playerId, cell).length + numSundivers <= 5
     }
 
+    public canAddStationToCell(coords: OffsetCoordinates): boolean {
+        if (!this.graph.contains(coords)) {
+            return false
+        }
+
+        const cell = this.cells[coordinatesToNumber(coords)]
+        return !cell || !cell.station
+    }
+
     public addSundiversToCell(sundivers: Sundiver[], coords: OffsetCoordinates) {
         const sundiversByPlayer: Record<string, Sundiver[]> = {}
         for (const sundiver of sundivers) {
@@ -160,7 +170,7 @@ export class HydratedSolGameBoard
             return []
         }
         const numMothershipPositions = this.numPlayers === 5 ? 16 : 13
-        const secondCol = (mothershipIndex + 1) % numMothershipPositions
+        const secondCol = (mothershipIndex + numMothershipPositions - 1) % numMothershipPositions
         return [
             { row: Ring.Outer, col: mothershipIndex },
             { row: Ring.Inner, col: mothershipIndex },
@@ -169,7 +179,7 @@ export class HydratedSolGameBoard
         ]
     }
 
-    private sundiversForPlayer(playerId: string, cell: Cell): Sundiver[] {
+    public sundiversForPlayer(playerId: string, cell: Cell): Sundiver[] {
         return cell.sundivers.filter((sundiver) => sundiver.playerId === playerId)
     }
 

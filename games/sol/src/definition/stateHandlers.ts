@@ -1,10 +1,11 @@
 import { HydratedAction, TerminalStateHandler, type MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
-import { StartOfTurnsStateHandler } from '../stateHandlers/startOfTurn.js'
+import { StartOfTurnStateHandler } from '../stateHandlers/startOfTurn.js'
+import { MovingStateHandler } from '../stateHandlers/moving.js'
 
 export const SolStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
-    [MachineState.StartOfTurn]: new StartOfTurnsStateHandler(),
-    [MachineState.Moving]: new TerminalStateHandler(),
+    [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
+    [MachineState.Moving]: new MovingStateHandler(),
     [MachineState.Activating]: new TerminalStateHandler(),
     [MachineState.EndOfGame]: new TerminalStateHandler()
 }

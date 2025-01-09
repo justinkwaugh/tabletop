@@ -52,17 +52,16 @@
 
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer
-        if (!myPlayer) {
+        if (!myPlayer || !myMove) {
             return false
         }
 
-        const canLaunch = HydratedLaunch.canLaunchFromMothership(
-            gameSession.gameState,
-            myPlayer.id,
-            playerId
-        )
+        const canChooseToLaunch = !gameSession.chosenMothership && !gameSession.chosenSource
+        if (!canChooseToLaunch) {
+            return false
+        }
 
-        return myMove && canLaunch
+        return HydratedLaunch.canLaunchFromMothership(gameSession.gameState, myPlayer.id, playerId)
     })
 
     let disabled = $derived(myMove && !interactable)

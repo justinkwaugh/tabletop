@@ -9,14 +9,7 @@
     import Mothership from './Mothership.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
-    let board = $derived(gameSession.gameState.board)
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
-    $effect(() => {
-        console.log('Cells:')
-        for (const cell of board) {
-            console.log(cell)
-        }
-    })
 </script>
 
 <div class="relative w-[1280px] h-[1280px]">
@@ -29,7 +22,7 @@
             <DropShadow id="divershadow" offset={{ x: 0, y: 0 }} amount={20} />
         </defs>
 
-        {#each board as cell}
+        {#each gameSession.gameState.board as cell}
             <Cell {cell} />
         {/each}
 
