@@ -9,8 +9,7 @@
     "private": true,
     "scripts": {
         "clean": "rimraf esm",
-        "build": "tsc",
-        "test": "jest"
+        "build": "tsc"
     },
     "dependencies": {
         "@sinclair/typebox": "^0.32.32",

@@ -1,5 +1,5 @@
 import { Coordinates, coordinatesToNumber } from '@tabletop/common'
-import { Node, Traverser } from './graph'
+import { Node, Traverser } from './graph.js'
 
 export function flood<T extends Node<U>, U extends Coordinates>(
     options: FloodOptions<T, U>
