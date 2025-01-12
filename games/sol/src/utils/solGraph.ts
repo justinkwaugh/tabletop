@@ -10,19 +10,20 @@ export enum Direction {
 }
 
 export enum Ring {
-    Core = 0,
-    Radiative = 1,
-    Convective = 2,
-    Inner = 3,
-    Outer = 4
+    Center = 0,
+    Core = 1,
+    Radiative = 2,
+    Convective = 3,
+    Inner = 4,
+    Outer = 5
 }
 
 export type SolNode = Node<OffsetCoordinates> & {
     neighbors: Record<Direction, OffsetCoordinates[]>
 }
 
-export const ONE_TO_FOUR_PLAYER_RING_COUNTS = [5, 8, 13, 13, 13]
-export const FIVE_PLAYER_RING_COUNTS = [5, 8, 13, 16, 16]
+export const ONE_TO_FOUR_PLAYER_RING_COUNTS = [1, 5, 8, 13, 13, 13]
+export const FIVE_PLAYER_RING_COUNTS = [1, 5, 8, 13, 16, 16]
 
 // prettier-ignore
 const IN_OUT_EDGES = [
@@ -57,7 +58,13 @@ const IN_OUT_EDGES = [
     [{ col: 3, row: Ring.Core },{ col: 6, row: Ring.Radiative }],
     [{ col: 4, row: Ring.Core },{ col: 6, row: Ring.Radiative }],
     [{ col: 4, row: Ring.Core },{ col: 7, row: Ring.Radiative }],
-    [{ col: 4, row: Ring.Core },{ col: 0, row: Ring.Radiative }]
+    [{ col: 4, row: Ring.Core },{ col: 0, row: Ring.Radiative }],
+    // Center to Core
+    [{ col: 0, row: Ring.Center },{ col: 0, row: Ring.Core }],
+    [{ col: 0, row: Ring.Center },{ col: 1, row: Ring.Core }],
+    [{ col: 0, row: Ring.Center },{ col: 2, row: Ring.Core }],
+    [{ col: 0, row: Ring.Center },{ col: 3, row: Ring.Core }],
+    [{ col: 0, row: Ring.Center },{ col: 4, row: Ring.Core }],
 ]
 
 export class SolGraph
@@ -149,20 +156,22 @@ export class SolGraph
     }
 
     private createRingNodes(fivePlayer: boolean) {
-        for (let ring = 0; ring < 5; ring++) {
+        for (let ring = Ring.Center; ring <= Ring.Outer; ring++) {
             const count = fivePlayer
                 ? FIVE_PLAYER_RING_COUNTS[ring]
                 : ONE_TO_FOUR_PLAYER_RING_COUNTS[ring]
             for (let col = 0; col < count; col++) {
                 const clockwise = (col + 1) % count
                 const counterClockwise = col === 0 ? count - 1 : col - 1
+
                 this.addNode({
                     coords: { col, row: ring },
                     neighbors: {
                         [Direction.Out]: [],
                         [Direction.In]: [],
-                        [Direction.Clockwise]: [{ col: clockwise, row: ring }],
-                        [Direction.CounterClockwise]: [{ col: counterClockwise, row: ring }],
+                        [Direction.Clockwise]: count > 1 ? [{ col: clockwise, row: ring }] : [],
+                        [Direction.CounterClockwise]:
+                            count > 1 ? [{ col: counterClockwise, row: ring }] : [],
                         [Direction.Portal]: []
                     }
                 })

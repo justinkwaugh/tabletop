@@ -5,6 +5,7 @@ export const CENTER_POINT = { x: 640, y: 640 }
 export const CENTER_TRANSLATION = `translate(${CENTER_POINT.x}, ${CENTER_POINT.y})`
 
 export const ONE_TO_FOUR_PLAYER_ANGLES: Record<number, number[]> = {
+    [Ring.Center]: [0],
     [Ring.Core]: [298, 15, 83, 150, 225.5],
     [Ring.Radiative]: [284, 331, 15, 59.5, 104.5, 149.5, 192.5, 239],
     [Ring.Convective]: [275.5, 303.5, 331, 359, 26.5, 54.5, 82, 109.5, 137, 165, 192.5, 220, 248],
@@ -17,6 +18,7 @@ export const ONE_TO_FOUR_PLAYER_ANGLES: Record<number, number[]> = {
 }
 
 export const FIVE_PLAYER_ANGLES: Record<number, number[]> = {
+    [Ring.Center]: [0],
     [Ring.Core]: [297, 14.5, 83, 150, 225],
     [Ring.Radiative]: [284, 331, 14.5, 59.5, 104.5, 149.5, 192.5, 239],
     [Ring.Convective]: [
@@ -33,6 +35,7 @@ export const FIVE_PLAYER_ANGLES: Record<number, number[]> = {
 }
 
 export const RING_RADII: Record<number, [number, number]> = {
+    [Ring.Center]: [0, 45],
     [Ring.Core]: [45, 148],
     [Ring.Radiative]: [148, 261],
     [Ring.Convective]: [261, 364],
