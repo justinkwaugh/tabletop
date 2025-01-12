@@ -9,8 +9,7 @@
     "private": true,
     "scripts": {
         "clean": "rimraf esm",
-        "build": "tsc",
-        "test": "jest"
+        "build": "tsc"
     },
     "dependencies": {
         "@sinclair/typebox": "^0.32.32",
@@ -22,11 +21,7 @@
         "@babel/core": "^7.25.2",
         "@babel/preset-env": "^7.25.3",
         "@tabletop/eslint-config": "*",
-        "@types/jest": "^29.5.12",
         "@types/uuid": "^9.0.8",
-        "babel-jest": "^29.7.0",
-        "jest": "^29.7.0",
-        "ts-jest": "^29.2.4",
         "rimraf": "^3.0.2",
         "typescript": "5.6.3"
     }
