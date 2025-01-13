@@ -76,6 +76,18 @@ export class HydratedSolGameBoard
         return !!this.gates[gateKey]
     }
 
+    public isGateBetween(
+        gate: SolarGate,
+        coordsA: OffsetCoordinates,
+        coordsB: OffsetCoordinates
+    ): boolean {
+        if (!gate.innerCoords || !gate.outerCoords) {
+            return false
+        }
+        const gateKey = this.gateKey(coordsA, coordsB)
+        return gateKey === this.gateKey(gate.innerCoords, gate.outerCoords)
+    }
+
     public gateChoicesForDestination(
         start: OffsetCoordinates,
         destination: OffsetCoordinates,
@@ -105,7 +117,12 @@ export class HydratedSolGameBoard
             const gateDestination =
                 start.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
 
-            const pathToGate = this.pathToDestination(start, gateDestination, range)
+            const pathToGate = this.pathToDestination({
+                start,
+                destination: gateDestination,
+                range,
+                requiredGates: [gate]
+            })
             if (!pathToGate) {
                 return false
             }
@@ -119,7 +136,11 @@ export class HydratedSolGameBoard
             }
 
             // Check path from gate to destination
-            const pathFromGate = this.pathToDestination(gateDestination, destination, range)
+            const pathFromGate = this.pathToDestination({
+                start: gateDestination,
+                destination,
+                range
+            })
             if (!pathFromGate) {
                 return false
             }
@@ -129,19 +150,59 @@ export class HydratedSolGameBoard
         })
     }
 
-    public pathToDestination(
-        start: OffsetCoordinates,
-        destination: OffsetCoordinates,
+    public pathToDestination({
+        start,
+        destination,
+        range,
+        requiredGates // Ordered list of gates to pass through
+    }: {
+        start: OffsetCoordinates
+        destination: OffsetCoordinates
         range?: number
-    ): OffsetCoordinates[] | undefined {
-        const pathFinder = solPathfinder({
-            board: this,
-            start,
-            end: destination,
-            range
-        })
-        const paths = this.graph.findPaths(pathFinder)
-        return paths.length > 0 ? paths[0].map((node) => node.coords) : undefined
+        requiredGates?: SolarGate[]
+    }): OffsetCoordinates[] | undefined {
+        const path = [start]
+        let current = start
+        let remainingRange = range
+        for (const gate of requiredGates || []) {
+            if (!gate.innerCoords || !gate.outerCoords) {
+                return undefined
+            }
+            const nextDestination =
+                current.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
+
+            const pathFinder = solPathfinder({
+                board: this,
+                start: current,
+                end: nextDestination,
+                allowedGates: [gate],
+                range: remainingRange
+            })
+            const segment = this.graph.findFirstPath(pathFinder)
+            if (!segment) {
+                return undefined
+            }
+            path.push(...segment.slice(1).map((node) => node.coords))
+            if (remainingRange !== undefined) {
+                remainingRange -= segment.length - 1
+            }
+            current = nextDestination
+        }
+
+        if (!sameCoordinates(current, destination)) {
+            const pathFinder = solPathfinder({
+                board: this,
+                start: current,
+                end: destination,
+                range: remainingRange
+            })
+            const finalSegment = this.graph.findFirstPath(pathFinder)
+            if (!finalSegment) {
+                return undefined
+            }
+            path.push(...finalSegment.slice(1).map((node) => node.coords))
+        }
+        return path.length > 0 ? path : undefined
     }
 
     public gatesForCell(
@@ -256,7 +317,7 @@ export class HydratedSolGameBoard
         return cell.sundivers.filter((sundiver) => sundiver.playerId === playerId)
     }
 
-    private gateKey(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates) {
+    public gateKey(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates) {
         const [innerCoords, outerCoords] =
             coordsA.row < coordsB.row ? [coordsA, coordsB] : [coordsB, coordsA]
         return szudzikPairSigned(coordinatesToNumber(innerCoords), coordinatesToNumber(outerCoords))

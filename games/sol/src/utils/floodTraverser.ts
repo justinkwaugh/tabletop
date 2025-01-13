@@ -1,8 +1,8 @@
-import { Node, Traverser } from './graph.js'
+import { Node, NodeIdentifier, Traverser } from './graph.js'
 
 export function flood<T extends Node>(options: FloodOptions<T>): Traverser<T> {
     return function floodTraverser(graph) {
-        const visitedNodes = new Map<number | string, T>()
+        const visitedNodes = new Map<NodeIdentifier, T>()
         const startNode = options.start
         let depth = 0
 

@@ -2,6 +2,7 @@ import { OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { flood } from './floodTraverser.js'
 import { Ring, SolNode } from './solGraph.js'
+import { SolarGate } from '../components/solarGate.js'
 
 export function solTraverser({
     board,
@@ -24,7 +25,7 @@ export function solTraverser({
     })
 }
 
-export function solTraverseChecker(board: HydratedSolGameBoard) {
+export function solTraverseChecker(board: HydratedSolGameBoard, allowedGates?: SolarGate[]) {
     return (from: SolNode, to: SolNode) => {
         // Traversing within a ring is always allowed
         if (from.coords.row === to.coords.row) {
@@ -40,6 +41,12 @@ export function solTraverseChecker(board: HydratedSolGameBoard) {
         }
 
         // Traversing between other rings is allowed if there is a gate between them
-        return board.hasGateBetween(from.coords, to.coords)
+        if (allowedGates) {
+            return allowedGates.some((gate) => {
+                return board.isGateBetween(gate, from.coords, to.coords)
+            })
+        } else {
+            return board.hasGateBetween(from.coords, to.coords)
+        }
     }
 }
