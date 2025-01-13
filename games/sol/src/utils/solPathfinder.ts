@@ -1,0 +1,86 @@
+import { OffsetCoordinates } from '@tabletop/common'
+import { HydratedSolGameBoard } from '../components/gameBoard.js'
+import { Graph, Node, NodeIdentifier, Pathfinder } from './graph.js'
+import { solTraverseChecker } from './solTraverser.js'
+
+export function solPathfinder({
+    board,
+    start,
+    end,
+    range
+}: {
+    board: HydratedSolGameBoard
+    start: OffsetCoordinates
+    end: OffsetCoordinates
+    range?: number
+}) {
+    const startNode = board.graph.nodeAt(start)
+    if (!startNode) {
+        return () => []
+    }
+
+    const endNode = board.graph.nodeAt(end)
+    if (!endNode) {
+        return () => []
+    }
+
+    return shortestPath({
+        start: startNode,
+        end: endNode,
+        range,
+        canTraverse: solTraverseChecker(board)
+    })
+}
+
+export function shortestPath<T extends Node>(options: ShortestPathOptions<T>): Pathfinder<T> {
+    return function breadthFirstSearch(graph: Graph<T>): T[][] {
+        const visitedNodes = new Map<number | string, T>()
+        let depth = 0
+
+        const startNode = options.start
+        const endNode = options.end
+        const parents: Map<NodeIdentifier, T> = new Map()
+        const queue: T[] = [startNode]
+        visitedNodes.set(startNode.id, startNode)
+
+        search: while (queue.length > 0 && (options.range === undefined || depth < options.range)) {
+            const numAtCurrentDepth = queue.length
+            for (let i = 0; i < numAtCurrentDepth; i++) {
+                const currentNode = queue.shift()!
+                for (const neighbor of graph.neighborsOf(currentNode)) {
+                    if (options.canTraverse && !options.canTraverse(currentNode, neighbor)) {
+                        continue
+                    }
+                    const neighborId = neighbor.id
+                    if (!visitedNodes.has(neighborId)) {
+                        visitedNodes.set(neighborId, neighbor)
+                        parents.set(neighborId, currentNode)
+
+                        if (neighbor.id === endNode.id) {
+                            break search
+                        }
+                        queue.push(neighbor)
+                    }
+                }
+            }
+            depth++
+        }
+
+        const path = []
+
+        let target = visitedNodes.get(endNode.id)
+        while (target) {
+            path.unshift(target)
+            target = parents.get(target.id)
+        }
+
+        return path.length > 0 ? [path] : []
+    }
+}
+
+export interface ShortestPathOptions<T extends Node> {
+    start: T
+    end: T
+    range?: number
+    canTraverse?: (from: T, to: T) => boolean
+}

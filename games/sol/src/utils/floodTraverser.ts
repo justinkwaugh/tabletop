@@ -1,28 +1,25 @@
-import { Coordinates, coordinatesToNumber } from '@tabletop/common'
 import { Node, Traverser } from './graph.js'
 
-export function flood<T extends Node<U>, U extends Coordinates>(
-    options: FloodOptions<T, U>
-): Traverser<T, U> {
+export function flood<T extends Node>(options: FloodOptions<T>): Traverser<T> {
     return function floodTraverser(graph) {
-        const visitedNodes = new Map<number, T>()
+        const visitedNodes = new Map<number | string, T>()
         const startNode = options.start
         let depth = 0
 
         const queue: T[] = [startNode]
-        visitedNodes.set(coordinatesToNumber(startNode.coords), startNode)
+        visitedNodes.set(startNode.id, startNode)
 
         while (queue.length > 0 && (options.range === undefined || depth < options.range)) {
             const numAtCurrentDepth = queue.length
             for (let i = 0; i < numAtCurrentDepth; i++) {
                 const currentNode = queue.shift()!
-                for (const neighbor of graph.neighborsOf(currentNode.coords)) {
+                for (const neighbor of graph.neighborsOf(currentNode)) {
                     if (options.canTraverse && !options.canTraverse(currentNode, neighbor)) {
                         continue
                     }
-                    const neighborKey = coordinatesToNumber(neighbor.coords)
-                    if (!visitedNodes.has(neighborKey)) {
-                        visitedNodes.set(neighborKey, neighbor)
+                    const neighborId = neighbor.id
+                    if (!visitedNodes.has(neighborId)) {
+                        visitedNodes.set(neighborId, neighbor)
                         queue.push(neighbor)
                     }
                 }
@@ -33,7 +30,7 @@ export function flood<T extends Node<U>, U extends Coordinates>(
     }
 }
 
-export interface FloodOptions<T extends Node<U>, U extends Coordinates> {
+export interface FloodOptions<T extends Node> {
     start: T
     range?: number
     canTraverse?: (from: T, to: T) => boolean
