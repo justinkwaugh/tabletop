@@ -4,14 +4,13 @@ import {
     coordinatesToNumber,
     Hydratable,
     OffsetCoordinates,
-    sameCoordinates,
     szudzikPairSigned
 } from '@tabletop/common'
 import { Station } from './stations.js'
 import { Sundiver } from './sundiver.js'
 import { SolarGate } from './solarGate.js'
-import { Direction, Ring, SolGraph, SolNode } from '../utils/solGraph.js'
-import { flood } from '../utils/floodTraverser.js'
+import { Direction, Ring, SolGraph } from '../utils/solGraph.js'
+import { createSolTraverser } from '../utils/solTraverser.js'
 
 export type Cell = Static<typeof Cell>
 export const Cell = Type.Object({
@@ -37,7 +36,7 @@ export class HydratedSolGameBoard
     declare numPlayers: number
     declare motherships: Record<string, number>
     declare cells: Record<number, Cell>
-    declare gates: Record<string, SolarGate>
+    declare gates: Record<number, SolarGate>
 
     private internalGraph?: SolGraph;
 
@@ -66,36 +65,13 @@ export class HydratedSolGameBoard
     }
 
     public reachableCoordinates(coords: OffsetCoordinates, range: number): OffsetCoordinates[] {
-        const startNode = this.graph.nodeAt(coords)
-        const floodTraverser = flood({
-            start: startNode,
-            range,
-            canTraverse: (from: SolNode, to: SolNode) => {
-                // Make sure gate exists if traversing in/out
-                if (
-                    from.neighbors[Direction.Out].includes(to.coords) ||
-                    from.neighbors[Direction.In].includes(to.coords)
-                ) {
-                    return this.hasGateBetween(from.coords, to.coords)
-                }
-                return true
-            }
-        })
+        const floodTraverser = createSolTraverser(this, coords, range)
         return this.graph.traverse(floodTraverser).map((node) => node.coords)
     }
 
     public hasGateBetween(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
-        for (const gate of Object.values(this.gates)) {
-            if (
-                (sameCoordinates(gate.innerCoords, coordsA) &&
-                    sameCoordinates(gate.outerCoords, coordsB)) ||
-                (sameCoordinates(gate.innerCoords, coordsB) &&
-                    sameCoordinates(gate.outerCoords, coordsA))
-            ) {
-                return true
-            }
-        }
-        return false
+        const gateKey = this.gateKey(coordsA, coordsB)
+        return !!this.gates[gateKey]
     }
 
     public gatesForCell(
@@ -104,9 +80,7 @@ export class HydratedSolGameBoard
     ): (SolarGate | undefined)[] {
         const node = this.graph.nodeAt(coords)
         return this.graph.neighborsOf(node.coords, direction).map((neighbor) => {
-            const innerCoords = direction === Direction.In ? neighbor.coords : coords
-            const outerCoords = direction === Direction.Out ? coords : neighbor.coords
-            const gateKey = this.gateKey(innerCoords, outerCoords)
+            const gateKey = this.gateKey(coords, neighbor.coords)
             return this.gates[gateKey]
         })
     }
@@ -183,7 +157,9 @@ export class HydratedSolGameBoard
         return cell.sundivers.filter((sundiver) => sundiver.playerId === playerId)
     }
 
-    private gateKey(innerCoords: OffsetCoordinates, outerCoords: OffsetCoordinates) {
+    private gateKey(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates) {
+        const [innerCoords, outerCoords] =
+            coordsA.row < coordsB.row ? [coordsA, coordsB] : [coordsB, coordsA]
         return szudzikPairSigned(coordinatesToNumber(innerCoords), coordinatesToNumber(outerCoords))
     }
 

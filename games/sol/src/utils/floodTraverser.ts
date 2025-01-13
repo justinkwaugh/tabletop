@@ -8,6 +8,7 @@ export function flood<T extends Node<U>, U extends Coordinates>(
         const visitedNodes = new Map<number, T>()
         const startNode = options.start
         let depth = 0
+
         const queue: T[] = [startNode]
         visitedNodes.set(coordinatesToNumber(startNode.coords), startNode)
 
@@ -16,7 +17,7 @@ export function flood<T extends Node<U>, U extends Coordinates>(
             for (let i = 0; i < numAtCurrentDepth; i++) {
                 const currentNode = queue.shift()!
                 for (const neighbor of graph.neighborsOf(currentNode.coords)) {
-                    if (options.canTraverse && !options.canTraverse(startNode, neighbor)) {
+                    if (options.canTraverse && !options.canTraverse(currentNode, neighbor)) {
                         continue
                     }
                     const neighborKey = coordinatesToNumber(neighbor.coords)
