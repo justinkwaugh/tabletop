@@ -2,16 +2,19 @@ import { OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { Graph, Node, NodeIdentifier, Pathfinder } from './graph.js'
 import { solTraverseChecker } from './solTraverser.js'
+import { SolarGate } from '../components/solarGate.js'
 
 export function solPathfinder({
     board,
     start,
     end,
+    allowedGates,
     range
 }: {
     board: HydratedSolGameBoard
     start: OffsetCoordinates
     end: OffsetCoordinates
+    allowedGates?: SolarGate[] //This allows us to only allow movement through certain gates
     range?: number
 }) {
     const startNode = board.graph.nodeAt(start)
@@ -28,13 +31,13 @@ export function solPathfinder({
         start: startNode,
         end: endNode,
         range,
-        canTraverse: solTraverseChecker(board)
+        canTraverse: solTraverseChecker(board, allowedGates)
     })
 }
 
 export function shortestPath<T extends Node>(options: ShortestPathOptions<T>): Pathfinder<T> {
     return function breadthFirstSearch(graph: Graph<T>): T[][] {
-        const visitedNodes = new Map<number | string, T>()
+        const visitedNodes = new Map<NodeIdentifier, T>()
         let depth = 0
 
         const startNode = options.start

@@ -81,6 +81,11 @@ export class BaseGraph<T extends Node> implements Graph<T> {
     public findPaths(pathfinder: Pathfinder<T>): T[][] {
         return pathfinder(this)
     }
+
+    public findFirstPath(pathfinder: Pathfinder<T>): T[] | undefined {
+        const paths = pathfinder(this)
+        return paths.length > 0 ? paths[0] : undefined
+    }
 }
 
 export class BaseCoordinatedGraph<T extends Node, U extends Coordinates> extends BaseGraph<T> {

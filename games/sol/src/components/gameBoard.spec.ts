@@ -1,6 +1,7 @@
 import { Ring } from '../utils/solGraph.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
+import { SolarGate } from './solarGate.js'
 
 interface LocalTestContext {
     board: HydratedSolGameBoard
@@ -95,5 +96,34 @@ describe('Sol Game Board Tests', () => {
         const gates = board.gateChoicesForDestination(start, end, 3)
         expect(gates.length).toEqual(1)
         expect(gates[0].id).toEqual(gate.id)
+    })
+
+    it<LocalTestContext>('calculates path through defined gates', ({ board }) => {
+        const gate: SolarGate = {
+            id: 'g1',
+            playerId: 'p1'
+        }
+        board.addGateAt(gate, { row: Ring.Convective, col: 0 }, { row: Ring.Inner, col: 0 })
+
+        const gate2 = {
+            id: 'g2',
+            playerId: 'p2'
+        }
+        board.addGateAt(gate2, { row: Ring.Convective, col: 2 }, { row: Ring.Inner, col: 2 })
+
+        const gate3 = {
+            id: 'g3',
+            playerId: 'p2'
+        }
+        board.addGateAt(gate3, { row: Ring.Radiative, col: 7 }, { row: Ring.Convective, col: 0 })
+
+        const start = { row: Ring.Inner, col: 0 }
+        const end = { row: Ring.Radiative, col: 4 }
+
+        const gates = [gate2, gate3]
+        const path = board.pathToDestination({ start, destination: end, requiredGates: gates })
+        expect(path).toBeDefined()
+        console.log('path', path)
+        expect(path!.length).toEqual(10)
     })
 })
