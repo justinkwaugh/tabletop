@@ -1,5 +1,5 @@
-import { OffsetCoordinates } from '@tabletop/common'
-import { BaseGraph, Graph, Node } from './graph.js'
+import { coordinatesToNumber, OffsetCoordinates } from '@tabletop/common'
+import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from './graph.js'
 
 export enum Direction {
     Out = 'O',
@@ -18,7 +18,7 @@ export enum Ring {
     Outer = 5
 }
 
-export type SolNode = Node<OffsetCoordinates> & {
+export type SolNode = CoordinatedNode<OffsetCoordinates> & {
     neighbors: Record<Direction, OffsetCoordinates[]>
 }
 
@@ -68,8 +68,8 @@ const IN_OUT_EDGES = [
 ]
 
 export class SolGraph
-    extends BaseGraph<SolNode, OffsetCoordinates>
-    implements Graph<SolNode, OffsetCoordinates>
+    extends BaseCoordinatedGraph<SolNode, OffsetCoordinates>
+    implements CoordinatedGraph<SolNode, OffsetCoordinates>
 {
     constructor(playerCount: number) {
         if (playerCount < 1 || playerCount > 5) {
@@ -94,23 +94,27 @@ export class SolGraph
         // Inner ring In
         for (let col = 0; col < ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Inner]; col++) {
             const node = this.nodeAt({ col, row: Ring.Inner })
-            node.neighbors[Direction.In].push(
-                ...[
-                    { col, row: Ring.Convective },
-                    { col: (col + 1) % 13, row: Ring.Convective }
-                ]
-            )
+            if (node) {
+                node.neighbors[Direction.In].push(
+                    ...[
+                        { col, row: Ring.Convective },
+                        { col: (col + 1) % 13, row: Ring.Convective }
+                    ]
+                )
+            }
         }
 
         // Convective Out
         for (let col = 0; col < ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Convective]; col++) {
             const node = this.nodeAt({ col, row: Ring.Convective })
-            node.neighbors[Direction.Out].push(
-                ...[
-                    { col: col === 0 ? 12 : col - 1, row: Ring.Inner },
-                    { col, row: Ring.Inner }
-                ]
-            )
+            if (node) {
+                node.neighbors[Direction.Out].push(
+                    ...[
+                        { col: col === 0 ? 12 : col - 1, row: Ring.Inner },
+                        { col, row: Ring.Inner }
+                    ]
+                )
+            }
         }
 
         // The rest
@@ -128,6 +132,9 @@ export class SolGraph
         let innerOffset = 0
         for (let col = 0; col < FIVE_PLAYER_RING_COUNTS[Ring.Inner]; col++) {
             const node = this.nodeAt({ col, row: Ring.Inner })
+            if (!node) {
+                continue
+            }
             if (col === 5 || col === 10 || col === 15) {
                 innerOffset -= 1
             }
@@ -144,6 +151,9 @@ export class SolGraph
         let convectiveOffset = 0
         for (let col = 0; col < FIVE_PLAYER_RING_COUNTS[Ring.Convective]; col++) {
             const node = this.nodeAt({ col, row: Ring.Convective })
+            if (!node) {
+                continue
+            }
             if (col === 5 || col === 9) {
                 convectiveOffset += 1
             }
@@ -163,9 +173,10 @@ export class SolGraph
             for (let col = 0; col < count; col++) {
                 const clockwise = (col + 1) % count
                 const counterClockwise = col === 0 ? count - 1 : col - 1
-
+                const coords = { col, row: ring }
                 this.addNode({
-                    coords: { col, row: ring },
+                    id: coordinatesToNumber(coords),
+                    coords: coords,
                     neighbors: {
                         [Direction.Out]: [],
                         [Direction.In]: [],
@@ -186,12 +197,18 @@ export class SolGraph
             : ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Outer]
         for (let col = 0; col < count; col++) {
             const node = this.nodeAt({ col, row: Ring.Outer })
+            if (!node) {
+                continue
+            }
             node.neighbors[Direction.In].push({ col, row: Ring.Inner })
         }
 
         // Inner ring Out
         for (let col = 0; col < count; col++) {
             const node = this.nodeAt({ col, row: Ring.Inner })
+            if (!node) {
+                continue
+            }
             node.neighbors[Direction.Out].push({ col, row: Ring.Outer })
         }
     }
@@ -201,28 +218,42 @@ export class SolGraph
             const [innerCoords, outerCoords] = edge
             const innerNode = this.nodeAt(innerCoords)
             const outerNode = this.nodeAt(outerCoords)
+            if (!innerNode || !outerNode) {
+                continue
+            }
             innerNode.neighbors[Direction.Out].push(outerCoords)
             outerNode.neighbors[Direction.In].push(innerCoords)
         }
     }
-
-    public override neighborsOf(coords: OffsetCoordinates, direction?: Direction): SolNode[] {
-        if (!this.contains(coords)) {
-            throw new Error('Invalid coordinates')
-        }
-
+    public override neighborsAt(coords: OffsetCoordinates, direction?: Direction): SolNode[] {
         const startNode = this.nodeAt(coords)
+        if (!startNode) {
+            return []
+        }
+        return this.neighborsOf(startNode, direction)
+    }
+    public override neighborsOf(node: SolNode, direction?: Direction): SolNode[] {
         if (direction) {
-            return startNode.neighbors[direction].map((coords) => this.nodeAt(coords))
+            return node.neighbors[direction]
+                .map((coords) => this.nodeAt(coords))
+                .filter((node) => node !== undefined)
         } else {
             return [
-                ...startNode.neighbors[Direction.Out].map((coords) => this.nodeAt(coords)),
-                ...startNode.neighbors[Direction.In].map((coords) => this.nodeAt(coords)),
-                ...startNode.neighbors[Direction.Clockwise].map((coords) => this.nodeAt(coords)),
-                ...startNode.neighbors[Direction.CounterClockwise].map((coords) =>
-                    this.nodeAt(coords)
-                ),
-                ...startNode.neighbors[Direction.Portal].map((coords) => this.nodeAt(coords))
+                ...node.neighbors[Direction.Out]
+                    .map((coords) => this.nodeAt(coords))
+                    .filter((node) => node !== undefined),
+                ...node.neighbors[Direction.In]
+                    .map((coords) => this.nodeAt(coords))
+                    .filter((node) => node !== undefined),
+                ...node.neighbors[Direction.Clockwise]
+                    .map((coords) => this.nodeAt(coords))
+                    .filter((node) => node !== undefined),
+                ...node.neighbors[Direction.CounterClockwise]
+                    .map((coords) => this.nodeAt(coords))
+                    .filter((node) => node !== undefined),
+                ...node.neighbors[Direction.Portal]
+                    .map((coords) => this.nodeAt(coords))
+                    .filter((node) => node !== undefined)
             ]
         }
     }

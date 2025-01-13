@@ -10,7 +10,7 @@ import { Station } from './stations.js'
 import { Sundiver } from './sundiver.js'
 import { SolarGate } from './solarGate.js'
 import { Direction, Ring, SolGraph } from '../utils/solGraph.js'
-import { createSolTraverser } from '../utils/solTraverser.js'
+import { solTraverser } from '../utils/solTraverser.js'
 
 export type Cell = Static<typeof Cell>
 export const Cell = Type.Object({
@@ -65,8 +65,8 @@ export class HydratedSolGameBoard
     }
 
     public reachableCoordinates(coords: OffsetCoordinates, range: number): OffsetCoordinates[] {
-        const floodTraverser = createSolTraverser(this, coords, range)
-        return this.graph.traverse(floodTraverser).map((node) => node.coords)
+        const traverser = solTraverser({ board: this, start: coords, range })
+        return this.graph.traverse(traverser).map((node) => node.coords)
     }
 
     public hasGateBetween(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
@@ -78,11 +78,32 @@ export class HydratedSolGameBoard
         coords: OffsetCoordinates,
         direction: Direction.In | Direction.Out
     ): (SolarGate | undefined)[] {
-        const node = this.graph.nodeAt(coords)
-        return this.graph.neighborsOf(node.coords, direction).map((neighbor) => {
+        return this.graph.neighborsAt(coords, direction).map((neighbor) => {
             const gateKey = this.gateKey(coords, neighbor.coords)
             return this.gates[gateKey]
         })
+    }
+
+    public addGateAt(
+        gate: SolarGate,
+        innerCoords: OffsetCoordinates,
+        outerCoords: OffsetCoordinates
+    ) {
+        // make sure coords are adjacent
+        const innerNode = this.graph.nodeAt(innerCoords)
+        const outerNode = this.graph.nodeAt(outerCoords)
+        if (
+            !innerNode ||
+            !outerNode ||
+            !this.graph.neighborsOf(innerNode, Direction.Out).includes(outerNode)
+        ) {
+            throw new Error('Invalid gate coordinates')
+        }
+
+        gate.innerCoords = innerCoords
+        gate.outerCoords = outerCoords
+        const gateKey = this.gateKey(gate.innerCoords, gate.outerCoords)
+        this.gates[gateKey] = gate
     }
 
     public canAddSundiversToCell(
@@ -90,7 +111,7 @@ export class HydratedSolGameBoard
         numSundivers: number,
         coords: OffsetCoordinates
     ): boolean {
-        if (!this.graph.contains(coords)) {
+        if (!this.graph.hasAt(coords)) {
             return false
         }
 
@@ -103,7 +124,7 @@ export class HydratedSolGameBoard
     }
 
     public canAddStationToCell(coords: OffsetCoordinates): boolean {
-        if (!this.graph.contains(coords)) {
+        if (!this.graph.hasAt(coords)) {
             return false
         }
 

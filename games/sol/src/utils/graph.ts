@@ -1,32 +1,39 @@
 import { Coordinates, coordinatesToNumber } from '@tabletop/common'
 
-export type Node<T extends Coordinates> = {
-    coords: T
+export type NodeIdentifier = string | number
+
+export interface Node {
+    id: NodeIdentifier
 }
+
+export type CoordinatedNode<T extends Coordinates> = {
+    coords: T
+} & Node
 
 export type Direction = string
 
 // Traverses a graph and returns a list of nodes
-export type Traverser<T extends Node<U>, U extends Coordinates, R extends Iterable<T> = T[]> = (
-    graph: Graph<T, U>
-) => R
+export type Traverser<T extends Node, R extends Iterable<T> = T[]> = (graph: Graph<T>) => R
 
 // Finds a path through a graph and returns a list of paths
-export type Pathfinder<
-    T extends Node<U>,
-    U extends Coordinates,
-    R extends Iterable<T[]> = T[][]
-> = (graph: Graph<T, U>) => R
+export type Pathfinder<T extends Node, R extends Iterable<T[]> = T[][]> = (graph: Graph<T>) => R
 
-export interface Graph<T extends Node<U>, U extends Coordinates> extends Iterable<T> {
-    nodeAt(coords: U): T | undefined
-    neighborsOf(coords: U, direction?: Direction): T[]
-    contains(coords: U): boolean
-    traverse(traverser: Traverser<T, U>): T[]
+export interface Graph<T extends Node> extends Iterable<T> {
+    getNode(id: NodeIdentifier): T | undefined
+    neighborsOf(node: T, direction?: Direction): T[]
+    contains(node: T): boolean
+    traverse(traverser: Traverser<T>): T[]
     nodeCount(): number
 }
 
-export class BaseGraph<T extends Node<U>, U extends Coordinates> implements Graph<T, U> {
+export interface CoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordinates>
+    extends Graph<T> {
+    nodeAt(coords: U): T | undefined
+    neighborsAt(coords: U, direction?: Direction): T[]
+    hasAt(coords: U): boolean
+}
+
+export class BaseGraph<T extends Node> implements Graph<T> {
     *[Symbol.iterator](): IterableIterator<T> {
         yield* Object.values(this.nodes)
     }
@@ -37,44 +44,60 @@ export class BaseGraph<T extends Node<U>, U extends Coordinates> implements Grap
         }
     }
 
-    private nodes: Record<number, T> = {}
+    private nodes: Record<NodeIdentifier, T> = {}
 
     public nodeCount(): number {
         return Object.keys(this.nodes).length
     }
 
+    public getNode(id: NodeIdentifier): T | undefined {
+        return this.nodes[id]
+    }
+
     public addNode(node: T) {
-        const nodeId = coordinatesToNumber(node.coords)
-        this.nodes[nodeId] = node
+        this.nodes[node.id] = node
     }
 
     public removeNode(node: T) {
-        const nodeId = coordinatesToNumber(node.coords)
-        delete this.nodes[nodeId]
+        this.removeNodeById(node.id)
     }
 
-    public removeNodeAt(coords: U) {
-        const nodeId = coordinatesToNumber(coords)
-        delete this.nodes[nodeId]
+    public removeNodeById(id: NodeIdentifier) {
+        delete this.nodes[id]
     }
 
-    public nodeAt(coords: U): T {
-        return this.nodes[coordinatesToNumber(coords)]
-    }
-
-    public neighborsOf(_coords: U, _direction?: Direction): T[] {
+    public neighborsOf(_node: T, _direction?: Direction): T[] {
         throw new Error('Not implemented')
     }
 
-    public contains(coords: U): boolean {
-        return !!this.nodeAt(coords)
+    public contains(node: T): boolean {
+        return !!this.nodes[node.id]
     }
 
-    public traverse(traverser: Traverser<T, U>): T[] {
+    public traverse(traverser: Traverser<T>): T[] {
         return traverser(this)
     }
 
-    public findPath(pathfinder: Pathfinder<T, U>): T[][] {
+    public findPaths(pathfinder: Pathfinder<T>): T[][] {
         return pathfinder(this)
+    }
+}
+
+export class BaseCoordinatedGraph<T extends Node, U extends Coordinates> extends BaseGraph<T> {
+    public removeNodeAt(coords: U) {
+        const nodeId = coordinatesToNumber(coords)
+        this.removeNodeById(nodeId)
+    }
+
+    public nodeAt(coords: U): T | undefined {
+        return this.getNode(coordinatesToNumber(coords))
+    }
+
+    public neighborsAt(_coords: U, _direction?: Direction): T[] {
+        throw new Error('Not implemented')
+    }
+
+    public hasAt(coords: U): boolean {
+        return !!this.nodeAt(coords)
     }
 }
