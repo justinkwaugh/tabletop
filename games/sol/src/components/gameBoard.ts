@@ -11,6 +11,7 @@ import { Sundiver } from './sundiver.js'
 import { SolarGate } from './solarGate.js'
 import { Direction, Ring, SolGraph } from '../utils/solGraph.js'
 import { solTraverser } from '../utils/solTraverser.js'
+import { solPathfinder } from '../utils/solPathfinder.js'
 
 export type Cell = Static<typeof Cell>
 export const Cell = Type.Object({
@@ -74,6 +75,66 @@ export class HydratedSolGameBoard
         return !!this.gates[gateKey]
     }
 
+    public gateChoicesForDestination(
+        start: OffsetCoordinates,
+        destination: OffsetCoordinates,
+        range: number
+    ): SolarGate[] {
+        const localGates = Object.values(this.gates).filter((gate) => {
+            if (
+                start.row >= Ring.Core &&
+                start.row <= Ring.Convective &&
+                gate.innerCoords!.row !== start.row &&
+                gate.outerCoords!.row !== start.row
+            ) {
+                return false
+            }
+            if (start.row >= Ring.Inner && gate.outerCoords!.row !== start.row) {
+                return false
+            }
+            return true
+        })
+
+        return localGates.filter((gate) => {
+            if (!gate.innerCoords || !gate.outerCoords) {
+                return false
+            }
+
+            // Check path to gate
+            const gateDestination =
+                start.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
+            const pathToGateFinder = solPathfinder({
+                board: this,
+                start,
+                end: gateDestination,
+                range
+            })
+            const pathsToGate = this.graph.findPaths(pathToGateFinder)
+            if (pathsToGate.length === 0) {
+                return false
+            }
+            const distanceTraveled = pathsToGate[0].length - 1
+            if (distanceTraveled >= range) {
+                return false
+            }
+
+            // Check path from gate to destination
+            const pathFromGateFinder = solPathfinder({
+                board: this,
+                start: gateDestination,
+                end: destination,
+                range: range - distanceTraveled
+            })
+            const pathsFromGate = this.graph.findPaths(pathFromGateFinder)
+            if (pathsFromGate.length === 0) {
+                return false
+            }
+
+            const totalDistance = distanceTraveled + pathsFromGate[0].length - 1
+            return totalDistance <= range
+        })
+    }
+
     public gatesForCell(
         coords: OffsetCoordinates,
         direction: Direction.In | Direction.Out
@@ -89,6 +150,13 @@ export class HydratedSolGameBoard
         innerCoords: OffsetCoordinates,
         outerCoords: OffsetCoordinates
     ) {
+        const gateKey = this.gateKey(innerCoords, outerCoords)
+        if (this.gates[gateKey]) {
+            throw new Error(
+                `Gate already exists at ${JSON.stringify(innerCoords)}, ${JSON.stringify(outerCoords)}`
+            )
+        }
+
         // make sure coords are adjacent
         const innerNode = this.graph.nodeAt(innerCoords)
         const outerNode = this.graph.nodeAt(outerCoords)
@@ -97,12 +165,13 @@ export class HydratedSolGameBoard
             !outerNode ||
             !this.graph.neighborsOf(innerNode, Direction.Out).includes(outerNode)
         ) {
-            throw new Error('Invalid gate coordinates')
+            throw new Error(
+                `Invalid gate coordinates: ${JSON.stringify(innerCoords)}, ${JSON.stringify(outerCoords)}`
+            )
         }
 
         gate.innerCoords = innerCoords
         gate.outerCoords = outerCoords
-        const gateKey = this.gateKey(gate.innerCoords, gate.outerCoords)
         this.gates[gateKey] = gate
     }
 
