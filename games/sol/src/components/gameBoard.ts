@@ -4,6 +4,7 @@ import {
     coordinatesToNumber,
     Hydratable,
     OffsetCoordinates,
+    sameCoordinates,
     szudzikPairSigned
 } from '@tabletop/common'
 import { Station } from './stations.js'
@@ -103,36 +104,44 @@ export class HydratedSolGameBoard
             // Check path to gate
             const gateDestination =
                 start.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
-            const pathToGateFinder = solPathfinder({
-                board: this,
-                start,
-                end: gateDestination,
-                range
-            })
-            const pathsToGate = this.graph.findPaths(pathToGateFinder)
-            if (pathsToGate.length === 0) {
+
+            const pathToGate = this.pathToDestination(start, gateDestination, range)
+            if (!pathToGate) {
                 return false
             }
-            const distanceTraveled = pathsToGate[0].length - 1
-            if (distanceTraveled >= range) {
+            const distanceTraveled = pathToGate.length - 1
+            if (distanceTraveled > range) {
                 return false
+            }
+
+            if (distanceTraveled === range) {
+                return sameCoordinates(destination, gateDestination)
             }
 
             // Check path from gate to destination
-            const pathFromGateFinder = solPathfinder({
-                board: this,
-                start: gateDestination,
-                end: destination,
-                range: range - distanceTraveled
-            })
-            const pathsFromGate = this.graph.findPaths(pathFromGateFinder)
-            if (pathsFromGate.length === 0) {
+            const pathFromGate = this.pathToDestination(gateDestination, destination, range)
+            if (!pathFromGate) {
                 return false
             }
 
-            const totalDistance = distanceTraveled + pathsFromGate[0].length - 1
+            const totalDistance = distanceTraveled + pathFromGate.length - 1
             return totalDistance <= range
         })
+    }
+
+    public pathToDestination(
+        start: OffsetCoordinates,
+        destination: OffsetCoordinates,
+        range?: number
+    ): OffsetCoordinates[] | undefined {
+        const pathFinder = solPathfinder({
+            board: this,
+            start,
+            end: destination,
+            range
+        })
+        const paths = this.graph.findPaths(pathFinder)
+        return paths.length > 0 ? paths[0].map((node) => node.coords) : undefined
     }
 
     public gatesForCell(

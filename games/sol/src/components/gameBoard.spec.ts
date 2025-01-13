@@ -82,4 +82,18 @@ describe('Sol Game Board Tests', () => {
         expect(gates.length).toEqual(1)
         expect(gates[0].id).toEqual(gate.id)
     })
+
+    it<LocalTestContext>('should find gate choice with target at gate', ({ board }) => {
+        const gate = {
+            id: 'g1',
+            playerId: 'p1'
+        }
+        board.addGateAt(gate, { row: Ring.Convective, col: 2 }, { row: Ring.Inner, col: 2 })
+
+        const start = { row: Ring.Convective, col: 0 }
+        const end = { row: Ring.Inner, col: 2 }
+        const gates = board.gateChoicesForDestination(start, end, 3)
+        expect(gates.length).toEqual(1)
+        expect(gates[0].id).toEqual(gate.id)
+    })
 })
