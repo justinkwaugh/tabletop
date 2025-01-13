@@ -19,10 +19,11 @@ export type Pathfinder<
 > = (graph: Graph<T, U>) => R
 
 export interface Graph<T extends Node<U>, U extends Coordinates> extends Iterable<T> {
-    nodeAt(coords: U): T
+    nodeAt(coords: U): T | undefined
     neighborsOf(coords: U, direction?: Direction): T[]
     contains(coords: U): boolean
     traverse(traverser: Traverser<T, U>): T[]
+    nodeCount(): number
 }
 
 export class BaseGraph<T extends Node<U>, U extends Coordinates> implements Graph<T, U> {
@@ -37,6 +38,10 @@ export class BaseGraph<T extends Node<U>, U extends Coordinates> implements Grap
     }
 
     private nodes: Record<number, T> = {}
+
+    public nodeCount(): number {
+        return Object.keys(this.nodes).length
+    }
 
     public addNode(node: T) {
         const nodeId = coordinatesToNumber(node.coords)
