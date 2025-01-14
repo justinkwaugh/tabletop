@@ -93,7 +93,7 @@
                 gameSession.launch()
             } else if (gameSession.chosenSource) {
                 gameSession.chosenDestination = cell.coords
-                // gameSession.fly()
+                gameSession.fly()
             } else {
                 gameSession.chosenSource = cell.coords
                 if (

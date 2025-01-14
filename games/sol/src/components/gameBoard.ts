@@ -294,8 +294,24 @@ export class HydratedSolGameBoard
             if (!this.canAddSundiversToCell(playerId, sundivers.length, coords)) {
                 throw new Error('Cannot add sundivers to cell')
             }
-            cell.sundivers.push(...sundivers)
+            cell.sundivers.push(...structuredClone(sundivers))
         }
+    }
+
+    public removeSundiversFromCell(sundiverIds: string[], coords: OffsetCoordinates): Sundiver[] {
+        const cell = this.cells[coordinatesToNumber(coords)]
+        if (!cell) {
+            throw new Error('No sundivers to remove')
+        }
+
+        const removedSundivers = structuredClone(
+            cell.sundivers.filter((sundiver) => sundiverIds.includes(sundiver.id))
+        )
+        if (removedSundivers.length !== sundiverIds.length) {
+            throw new Error(`Could not find sundivers to remove`)
+        }
+        cell.sundivers = cell.sundivers.filter((sundiver) => !sundiverIds.includes(sundiver.id))
+        return removedSundivers
     }
 
     public launchCoordinatesForMothership(playerId: string): OffsetCoordinates[] {
@@ -313,7 +329,15 @@ export class HydratedSolGameBoard
         ]
     }
 
-    public sundiversForPlayer(playerId: string, cell: Cell): Sundiver[] {
+    public sundiversForPlayerAt(playerId: string, coords: OffsetCoordinates): Sundiver[] {
+        const cell = this.cells[coordinatesToNumber(coords)]
+        return this.sundiversForPlayer(playerId, cell)
+    }
+
+    public sundiversForPlayer(playerId: string, cell: Cell | undefined): Sundiver[] {
+        if (!cell) {
+            return []
+        }
         return cell.sundivers.filter((sundiver) => sundiver.playerId === playerId)
     }
 
