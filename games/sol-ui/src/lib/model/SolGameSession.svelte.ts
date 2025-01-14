@@ -38,6 +38,28 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     })
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
 
+    numPlayerCanMoveFromSource(): number {
+        if (!this.isMyTurn || !this.myPlayerState) {
+            return 0
+        }
+
+        let availableFromSource = 0
+        if (this.chosenSource) {
+            const cell = this.gameState.board.cellAt(this.chosenSource)
+            if (!cell) {
+                return 0
+            }
+            availableFromSource = this.gameState.board.sundiversForPlayer(
+                this.myPlayerState.playerId,
+                cell
+            ).length
+        } else if (this.chosenMothership) {
+            availableFromSource = this.myPlayerState.numSundiversInHold()
+        }
+
+        return Math.min(this.myPlayerState.movementPoints, availableFromSource)
+    }
+
     cancel() {}
 
     override willUndo(action: GameAction) {
@@ -54,8 +76,18 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     back() {
         if (this.chosenNumDivers) {
             this.chosenNumDivers = undefined
+            if (this.numPlayerCanMoveFromSource() === 1) {
+                if (this.chosenMothership) {
+                    this.chosenMothership = undefined
+                } else if (this.chosenSource) {
+                    this.chosenSource = undefined
+                }
+            }
         } else if (this.chosenMothership) {
             this.chosenMothership = undefined
+            if (!this.myPlayerState?.hasSundiversOnTheBoard()) {
+                this.chosenActionCategory = undefined
+            }
         } else if (this.chosenSource) {
             this.chosenSource = undefined
         } else if (this.chosenActionCategory && !this.isMoving) {
@@ -69,6 +101,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.chosenAction = undefined
         this.chosenActionCategory = undefined
         this.chosenMothership = undefined
+        this.chosenSource = undefined
         this.chosenNumDivers = undefined
     }
 
@@ -143,14 +176,4 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.resetAction()
         }
     }
-
-    // async drawRoof(index: number) {
-    //     const action = {
-    //         ...this.createBaseAction(ActionType.DrawRoof),
-    //         visibleIndex: index,
-    //         revealsInfo: true
-    //     }
-
-    //     await this.doAction(action)
-    // }
 }

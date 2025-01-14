@@ -9,7 +9,7 @@
         translateFromCenter
     } from '$lib/utils/boardGeometry.js'
     import { getCellLayout } from '$lib/utils/cellLayouts.js'
-    import { Fly, HydratedFly, type Cell } from '@tabletop/sol'
+    import { HydratedFly, type Cell } from '@tabletop/sol'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
     import Sundiver from './Sundiver.svelte'
 
@@ -96,10 +96,8 @@
                 gameSession.fly()
             } else {
                 gameSession.chosenSource = cell.coords
-                if (
-                    gameSession.gameState.board.sundiversForPlayer(gameSession.myPlayer?.id, cell)
-                        .length === 1
-                ) {
+
+                if (gameSession.numPlayerCanMoveFromSource() === 1) {
                     gameSession.chosenNumDivers = 1
                 }
             }

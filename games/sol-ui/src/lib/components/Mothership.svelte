@@ -43,7 +43,9 @@
     let shipElement: SVGElement
 
     let hovered = $state(false)
-    let selected = $derived(gameSession.chosenMothership === playerId)
+    let selected = $derived(
+        gameSession.chosenMothership === playerId && !gameSession.chosenNumDivers
+    )
     let outlined = $derived(hovered || selected)
 
     let myMove = $derived(
@@ -115,6 +117,9 @@
     function onMouseClick() {
         if (interactable && !gameSession.chosenMothership) {
             gameSession.chosenMothership = playerId
+            if (gameSession.numPlayerCanMoveFromSource() === 1) {
+                gameSession.chosenNumDivers = 1
+            }
         }
     }
 

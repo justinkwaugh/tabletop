@@ -87,4 +87,8 @@ export class HydratedSolPlayerState
         }
         return this.reserveSundivers.splice(0, numSundivers)
     }
+
+    public hasSundiversOnTheBoard(): boolean {
+        return this.reserveSundivers.length + this.holdSundivers.length < 13
+    }
 }
