@@ -35,14 +35,9 @@
 
     function chooseMove() {
         gameSession.chosenActionCategory = ActionCategory.Move
-    }
-
-    function back() {
-        gameSession.back()
-    }
-
-    async function undo() {
-        await gameSession.undo()
+        if (gameSession.myPlayerState && !gameSession.myPlayerState.hasSundiversOnTheBoard()) {
+            gameSession.chosenMothership = gameSession.myPlayerState.playerId
+        }
     }
 
     let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
