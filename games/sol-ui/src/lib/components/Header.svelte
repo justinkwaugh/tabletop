@@ -21,34 +21,36 @@
     let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
 </script>
 
-<div
-    class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[42px] border-b border-[#ad9c80]"
->
-    {#if moveChosen || gameSession.isMoving}
-        <div class="inline-flex items-center gap-x-2">
-            <MoveArrows />
-            <div>MOVING</div>
-        </div>
+{#if gameSession.chosenActionCategory}
+    <div
+        class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[42px] border-b border-[#ad9c80]"
+    >
+        {#if moveChosen || gameSession.isMoving}
+            <div class="inline-flex items-center gap-x-2">
+                <MoveArrows />
+                <div>MOVING</div>
+            </div>
 
-        <div>
-            MOVEMENT REMAINING: {gameSession.myPlayerState?.movementPoints}
-        </div>
-    {/if}
-    <div>
-        {#if gameSession.midAction}
-            <button
-                onclick={back}
-                class="w-fit box-border flex items-center justify-center text-lg bg-transparent rounded-lg"
-            >
-                UNDO
-            </button>
-        {:else if gameSession.undoableAction}
-            <button
-                onclick={undo}
-                class="w-fit box-border flex items-center justify-center text-lg bg-transparent rounded-lg"
-            >
-                UNDO
-            </button>
+            <div>
+                MOVEMENT REMAINING: {gameSession.myPlayerState?.movementPoints}
+            </div>
         {/if}
+        <div>
+            {#if gameSession.midAction}
+                <button
+                    onclick={back}
+                    class="w-fit box-border flex items-center justify-center text-lg bg-transparent rounded-lg"
+                >
+                    UNDO
+                </button>
+            {:else if gameSession.undoableAction}
+                <button
+                    onclick={undo}
+                    class="w-fit box-border flex items-center justify-center text-lg bg-transparent rounded-lg"
+                >
+                    UNDO
+                </button>
+            {/if}
+        </div>
     </div>
-</div>
+{/if}
