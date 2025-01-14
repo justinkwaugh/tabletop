@@ -14,8 +14,9 @@ export const Fly = Type.Composite([
     Type.Object({
         type: Type.Literal(ActionType.Fly),
         playerId: Type.String(),
-        pieceIds: Type.Array(Type.String()), // not sundiver specific due to Juggernaut Effect
-        gates: Type.Array(SolarGate),
+        sundiverIds: Type.Array(Type.String()),
+        stationId: Type.Optional(Type.String()), // For juggernaut effect
+        gates: Type.Optional(Type.Array(SolarGate)), // Ordered list of required gates to pass through
         start: OffsetCoordinates,
         destination: OffsetCoordinates,
         metadata: Type.Optional(FlyMetadata)
@@ -31,7 +32,8 @@ export function isFly(action?: GameAction): action is Fly {
 export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     declare type: ActionType.Fly
     declare playerId: string
-    declare pieceIds: string[]
+    declare sundiverIds: string[]
+    declare stationId?: string
     declare gates: SolarGate[]
     declare start: OffsetCoordinates
     declare destination: OffsetCoordinates
@@ -43,6 +45,39 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
+
+        const distanceMoved = this.isValidFlight(state)
+        if (!distanceMoved) {
+            throw Error('Invalid flight')
+        }
+
+        const removedSundivers = state.board.removeSundiversFromCell(this.sundiverIds, this.start)
+        state.board.addSundiversToCell(removedSundivers, this.destination)
+        playerState.movementPoints -= distanceMoved * this.sundiverIds.length
+    }
+
+    isValidFlight(state: HydratedSolGameState): number {
+        const playerState = state.getPlayerState(this.playerId)
+        if (
+            !HydratedFly.isValidFlightDestination(
+                state,
+                this.playerId,
+                this.sundiverIds.length,
+                false,
+                this.start,
+                this.destination
+            )
+        ) {
+            return 0
+        }
+
+        const path = state.board.pathToDestination({
+            start: this.start,
+            destination: this.destination,
+            range: playerState.movementPoints / this.sundiverIds.length,
+            requiredGates: this.gates
+        })
+        return path ? path.length - 1 : 0
     }
 
     static isValidFlightDestination(
@@ -54,8 +89,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         destination: OffsetCoordinates
     ): boolean {
         const playerState = state.getPlayerState(playerId)
-
-        // Pathfind shortest distance and check movement points
 
         // Check to see if destination can hold the pieces
         if (
@@ -69,6 +102,13 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             return false
         }
 
-        return false
+        // Check range
+        const range = Math.floor(playerState.movementPoints / numSundivers)
+        const path = state.board.pathToDestination({ start, destination, range })
+        if (!path) {
+            return false
+        }
+
+        return true
     }
 }

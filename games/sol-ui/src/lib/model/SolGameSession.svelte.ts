@@ -1,6 +1,7 @@
 import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
 import {
     ActionType,
+    Fly,
     HydratedSolGameState,
     isLaunch,
     Launch,
@@ -95,6 +96,37 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
 
         this.chosenMothership = undefined
+        this.chosenNumDivers = undefined
+        this.chosenDestination = undefined
+    }
+
+    async fly() {
+        if (
+            !this.myPlayer ||
+            !this.chosenSource ||
+            !this.chosenNumDivers ||
+            !this.chosenDestination
+        ) {
+            throw new Error('Invalid flight')
+        }
+        const cell = this.gameState.board.cellAt(this.chosenSource)
+        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
+        if (playerDivers.length < this.chosenNumDivers) {
+            throw new Error('Not enough divers')
+        }
+        const diverIds = playerDivers.slice(0, this.chosenNumDivers).map((diver) => diver.id)
+
+        const action: Fly = {
+            ...this.createBaseAction(ActionType.Fly),
+            playerId: this.myPlayer.id,
+            sundiverIds: diverIds,
+            start: this.chosenSource,
+            destination: this.chosenDestination
+        }
+
+        await this.doAction(action)
+
+        this.chosenSource = undefined
         this.chosenNumDivers = undefined
         this.chosenDestination = undefined
     }
