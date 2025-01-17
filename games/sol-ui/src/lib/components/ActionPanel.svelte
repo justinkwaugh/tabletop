@@ -49,7 +49,7 @@
     <Header />
     {#if moveChosen || gameSession.isMoving}
         {#if !gameSession.chosenMothership && !gameSession.chosenSource}
-            <div class="ms-3 py-4 flex flex-row justify-center items-center">
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">
                 CHOOSE A MOVEMENT SOURCE
             </div>
         {/if}
