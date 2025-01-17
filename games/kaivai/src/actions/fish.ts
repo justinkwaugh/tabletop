@@ -135,7 +135,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
                 return currentTotal > bestTotal ? current : best
             })
             const numDice = bestIsland.numHuts + (bestIsland.hasGod ? 1 : 0)
-            const dieResults = this.rollDice(numDice, prng)
+            const dieResults = this.rollDice(Math.min(numDice, 4), prng)
 
             numFish = dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0)
             this.metadata = {
