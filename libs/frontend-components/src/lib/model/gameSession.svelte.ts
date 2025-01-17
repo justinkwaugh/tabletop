@@ -381,13 +381,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         return this.getBgColor(playerColor)
     }
 
-    getTextColor(color: Color): string {
-        return this.colorizer.getTextColor(color)
+    getTextColor(color: Color, asPlayerColor: boolean = false): string {
+        return this.colorizer.getTextColor(color, asPlayerColor)
     }
 
-    getPlayerTextColor(playerId?: string) {
+    getPlayerTextColor(playerId?: string, asPlayerColor: boolean = false) {
         const playerColor = this.getPlayerColor(playerId)
-        return this.getTextColor(playerColor)
+        return this.getTextColor(playerColor, asPlayerColor)
     }
 
     getBorderColor(color: Color): string {

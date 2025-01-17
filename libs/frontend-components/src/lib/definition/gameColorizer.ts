@@ -3,7 +3,7 @@ import { Color } from '@tabletop/common'
 export interface GameColorizer {
     getUiColor(color?: Color): string
     getBgColor(color?: Color): string
-    getTextColor(color?: Color): string
+    getTextColor(color?: Color, asPlayerColor?: boolean): string
     getBorderColor(color?: Color): string
     getBorderContrastColor(color?: Color): string
 }
@@ -50,6 +50,20 @@ const borderColorForColor = {
     [Color.White]: 'bg-white'
 }
 
+const textColorForColor = {
+    [Color.Red]: 'text-red-700',
+    [Color.Orange]: 'text-orange-500',
+    [Color.Yellow]: 'text-yellow-300',
+    [Color.Green]: 'text-green-600',
+    [Color.Blue]: 'text-blue-600',
+    [Color.Purple]: 'text-purple-600',
+    [Color.Pink]: 'text-pink-500',
+    [Color.Brown]: 'text-yellow-900',
+    [Color.Gray]: 'text-gray-500',
+    [Color.Black]: 'text-black',
+    [Color.White]: 'text-white'
+}
+
 export class DefaultColorizer implements GameColorizer {
     getUiColor(color?: Color): string {
         return uiColorForColor[color ?? Color.Black]
@@ -57,8 +71,12 @@ export class DefaultColorizer implements GameColorizer {
     getBgColor(color?: Color): string {
         return bgColorForColor[color ?? Color.Black]
     }
-    getTextColor(color?: Color): string {
-        return color === Color.Yellow ? 'text-black' : 'text-white'
+    getTextColor(color?: Color, asPlayerColor: boolean = false): string {
+        if (asPlayerColor) {
+            return textColorForColor[color ?? Color.Black]
+        } else {
+            return color === Color.Yellow ? 'text-black' : 'text-white'
+        }
     }
     getBorderColor(color?: Color): string {
         return borderColorForColor[color ?? Color.Black] ?? 'border-color-black'

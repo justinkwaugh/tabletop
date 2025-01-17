@@ -12,7 +12,7 @@
 
     let bidList = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
     let costList = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-    let movementList = ['1', '2', '3', '4', '5', '4', '3', '2', '1', '0']
+    let movementList = [1, 2, 3, 4, 5, 4, 3, 2, 1, 0]
 
     function bidColor(bid: number) {
         const playerId = playerIdsByBid.get(bid)
@@ -24,6 +24,24 @@
 
     function hasBid(bid: number) {
         return playerIdsByBid.has(bid)
+    }
+
+    function movement(bid: number) {
+        const biddingPlayerId = playerIdsByBid.get(bid)
+        const biddingPlayerState = biddingPlayerId
+            ? gameSession.gameState.getPlayerState(biddingPlayerId)
+            : undefined
+        return biddingPlayerState ? biddingPlayerState.movement() : movementList[bid - 1]
+    }
+
+    function movementColor(bid: number) {
+        const playerId = playerIdsByBid.get(bid)
+        if (!playerId) {
+            return 'text-white'
+        }
+        return movement(bid) !== movementList[bid - 1]
+            ? gameSession.getPlayerTextColor(playerId, true)
+            : 'text-white'
     }
 </script>
 
@@ -94,8 +112,8 @@
                 <div
                     class="w-[28px] h-[24px] kaivai-font text-[.9rem] flex justify-center items-center"
                 >
-                    <div class="p-1 rounded-full">
-                        {cost}
+                    <div class="p-1 rounded-full {movementColor(i + 1)}">
+                        {movement(i + 1)}
                     </div>
                 </div>
             {/each}

@@ -31,4 +31,23 @@ export class KaivaiGameColorizer extends DefaultColorizer {
                 return 'bg-[#555555]'
         }
     }
+
+    override getTextColor(color?: Color, asPlayerColor: boolean = false): string {
+        if (asPlayerColor) {
+            switch (color) {
+                case Color.Blue:
+                    return 'text-[#3d467c]'
+                case Color.Red:
+                    return 'text-[#c14239]'
+                case Color.Yellow:
+                    return 'text-[#ffee86]'
+                case Color.Green:
+                    return 'text-[#759329]'
+                default:
+                    return 'text-[#555555]'
+            }
+        } else {
+            return super.getTextColor(color)
+        }
+    }
 }
