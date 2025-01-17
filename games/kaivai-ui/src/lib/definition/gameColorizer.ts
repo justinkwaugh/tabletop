@@ -36,7 +36,7 @@ export class KaivaiGameColorizer extends DefaultColorizer {
         if (asPlayerColor) {
             switch (color) {
                 case Color.Blue:
-                    return 'text-[#3d467c]'
+                    return 'text-[#4d599e]'
                 case Color.Red:
                     return 'text-[#c14239]'
                 case Color.Yellow:
