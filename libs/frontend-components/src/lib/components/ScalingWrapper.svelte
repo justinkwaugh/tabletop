@@ -17,65 +17,80 @@
     let wrapperWidth = $state(0)
     let wrapperHeight = $state(0)
 
+    let contentWidth = $state(0)
+    let contentHeight = $state(0)
+
     let widthFits = $state(false)
+    let scaling = false
 
     let wrapper: HTMLElement
     let scroller: HTMLElement
     let content: HTMLElement
 
     $effect(() => {
-        performScale(wrapperWidth, wrapperHeight)
+        // Trigger on contentWidth or contentHeight change
+        let newContentWidth = contentWidth
+        let newContentHeight = contentHeight
+
+        if (!scaling) {
+            performScale(wrapperWidth, wrapperHeight)
+        }
     })
 
     function performScale(wrapperWidth: number, wrapperHeight: number) {
-        // Get the scaled content, and reset its scaling for an instant
-        content.style.transform = 'scale(1, 1)'
-        content.style.height = 'fit-content'
-        content.style.width = 'fit-content'
+        scaling = true
+        try {
+            // Get the scaled content, and reset its scaling for an instant
+            content.style.transform = 'scale(1, 1)'
+            content.style.height = 'fit-content'
+            content.style.width = 'fit-content'
 
-        let { width: cw, height: ch } = content.getBoundingClientRect()
-        let scaleAmt = Math.min(wrapperWidth / cw, wrapperHeight / ch)
+            let { width: cw, height: ch } = content.getBoundingClientRect()
+            let scaleAmt = Math.min(wrapperWidth / cw, wrapperHeight / ch)
 
-        // Check if the content fits the wrapper width regardless of scale
-        widthFits = cw <= wrapperWidth
+            // Check if the content fits the wrapper width regardless of scale
+            widthFits = cw <= wrapperWidth
 
-        // For zooming we scale the content in 15% increments, so we figure out
-        // how many increments we can fit in the range between 1 and the scale amount
-        let scaleRange = 1 - scaleAmt
-        if (scaleAmt === 1) {
-            zoomed = 0
-            zoomLevels = 0
-        } else {
-            zoomLevels = Math.floor(scaleRange / 0.15)
-            zoomed = Math.min(zoomLevels, zoomed)
-        }
-
-        // Apply the scale based on zoom level
-        scaleAmt = zoomed ? scaleAmt + (scaleRange / zoomLevels) * zoomed : scaleAmt
-        content.style.transform = `scale(${scaleAmt}, ${scaleAmt})`
-
-        if (zoomed) {
-            // This is complicated stuff to make the scaled content either centered or left justified...
-            let { width: scw, height: sch } = content.getBoundingClientRect()
-            if (scaleAmt < 1 && !widthFits) {
-                // If the scaled width is larger than the wrapper we set the width to 0
-                // in order to make it scroll correctly
-                if (scw > wrapperWidth) {
-                    content.style.width = '0'
-                } else {
-                    // To center it we have take the difference between the wrapper width and the scaled content width
-                    // and multiply it by the reciprocal of the difference between 1 and the scale amount
-                    const multiplier = 1 / (1 - scaleAmt)
-                    content.style.width = (wrapperWidth - scw) * multiplier + 'px'
-                }
+            // For zooming we scale the content in 15% increments, so we figure out
+            // how many increments we can fit in the range between 1 and the scale amount
+            let scaleRange = 1 - scaleAmt
+            if (scaleAmt === 1) {
+                zoomed = 0
+                zoomLevels = 0
             } else {
-                content.style.width = cw + 'px'
+                zoomLevels = Math.floor(scaleRange / 0.15)
+                zoomed = Math.min(zoomLevels, zoomed)
             }
 
-            // We do not want to center the height
-            if (scaleAmt < 1) {
-                content.style.height = '0'
+            // Apply the scale based on zoom level
+            scaleAmt = zoomed ? scaleAmt + (scaleRange / zoomLevels) * zoomed : scaleAmt
+            content.style.transform = `scale(${scaleAmt}, ${scaleAmt})`
+
+            if (zoomed) {
+                // This is complicated stuff to make the scaled content either centered or left justified...
+                let { width: scw, height: sch } = content.getBoundingClientRect()
+                if (scaleAmt < 1 && !widthFits) {
+                    // If the scaled width is larger than the wrapper we set the width to 0
+                    // in order to make it scroll correctly
+                    if (scw > wrapperWidth) {
+                        content.style.width = '0'
+                    } else {
+                        // To center it we have take the difference between the wrapper width and the scaled content width
+                        // and multiply it by the reciprocal of the difference between 1 and the scale amount
+                        const multiplier = 1 / (1 - scaleAmt)
+                        content.style.width = (wrapperWidth - scw) * multiplier + 'px'
+                    }
+                } else {
+                    content.style.width = cw + 'px'
+                }
+
+                // We do not want to center the height
+                if (scaleAmt < 1) {
+                    content.style.height = '0'
+                }
             }
+        } finally {
+            scaling = false
         }
     }
 
@@ -140,7 +155,12 @@
             ? 'overflow-auto justify-' + (widthFits ? justify : 'start')
             : 'overflow-hidden justify-' + justify}"
     >
-        <div bind:this={content} class="{origin} box-border">
+        <div
+            bind:this={content}
+            bind:clientWidth={contentWidth}
+            bind:clientHeight={contentHeight}
+            class="{origin} box-border"
+        >
             {@render children()}
         </div>
     </div>
