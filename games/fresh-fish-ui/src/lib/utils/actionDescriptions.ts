@@ -2,6 +2,7 @@ import type { GameAction } from '@tabletop/common'
 import {
     isDrawTile,
     isEndAuction,
+    isPass,
     isPlaceBid,
     isPlaceDisk,
     isPlaceMarket,
@@ -40,6 +41,8 @@ export function getDescriptionForAction(action: GameAction) {
             } else {
                 return `started an auction`
             }
+        case isPass(action):
+            return 'passed'
         default:
             return action.type
     }

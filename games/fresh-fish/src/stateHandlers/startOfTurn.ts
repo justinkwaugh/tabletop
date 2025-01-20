@@ -117,7 +117,11 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const gameState = context.gameState as HydratedFreshFishGameState
         const gameConfig = context.gameConfig as FreshFishGameConfig
 
-        if (actionType === ActionType.PlaceDisk && gameState.getPlayerState(playerId).hasDisk()) {
+        if (
+            actionType === ActionType.PlaceDisk &&
+            gameState.getPlayerState(playerId).hasDisk() &&
+            gameState.board.hasEmptyCell()
+        ) {
             return true
         }
 

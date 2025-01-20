@@ -14,6 +14,7 @@ import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedPlaceMarket, isPlaceMarket } from '../actions/placeMarket.js'
 import { HydratedPlaceStall, isPlaceStall } from '../actions/placeStall.js'
 import { HydratedEndAuction, isEndAuction } from '../actions/endAuction.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 
 export class FreshFishHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -38,6 +39,9 @@ export class FreshFishHydrator implements GameHydrator {
             }
             case isEndAuction(data): {
                 return new HydratedEndAuction(data)
+            }
+            case isPass(data): {
+                return new HydratedPass(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

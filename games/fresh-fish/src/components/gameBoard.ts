@@ -91,6 +91,15 @@ export class HydratedGameBoard
         }
     }
 
+    hasEmptyCell(): boolean {
+        for (const { cell } of this) {
+            if (cell.type === CellType.Empty) {
+                return true
+            }
+        }
+        return false
+    }
+
     getCell(coords: Coordinates): Cell | undefined {
         const [col, row] = coords
         return this.isInBounds(coords) ? this.cells[row][col] : undefined
