@@ -13,16 +13,18 @@ import { StartAuction } from '../actions/startAuction.js'
 import { nanoid } from 'nanoid'
 import { FreshFishGameConfig } from '../definition/gameConfig.js'
 import { ActionType } from '../definition/actions.js'
+import { isPass, Pass } from '../actions/pass.js'
 
 type StartOfTurnAction = HydratedPlaceDisk | HydratedDrawTile
 
 // Transition from StartOfTurn(PlaceDisk) -> StartOfTurn
 //                 StartOfTurn(DrawTile) -> MarketTileDrawn (when market tile drawn)
 //                 StartOfTurn(DrawTile) -> StallTileDrawn (when stall tile is drawn)
+//                 StartOfTurn(Pass) -> StartOfTurn (no possible moves)
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is StartOfTurnAction {
         if (!action.playerId) return false
-        return this.isValidActionType(action.type, action.playerId, context)
+        return this.isValidActionType(action.type, action.playerId, context) || isPass(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
@@ -35,6 +37,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             validActions.push(ActionType.DrawTile)
         }
 
+        if (validActions.length === 0) {
+            validActions.push(ActionType.Pass)
+        }
+
         return validActions
     }
 
@@ -45,6 +51,20 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         if (!gameState.turnManager.currentTurn()) {
             const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
             gameState.activePlayerIds = [nextPlayerId]
+
+            const validActions = this.validActionsForPlayer(nextPlayerId, context)
+
+            if (validActions.length === 1 && validActions[0] == ActionType.Pass) {
+                // Automatically pass if there are no valid actions
+                const passAction = <Pass>{
+                    type: ActionType.Pass,
+                    id: nanoid(),
+                    playerId: nextPlayerId,
+                    gameId: gameState.gameId,
+                    source: ActionSource.System
+                }
+                context.addPendingAction(passAction)
+            }
         }
     }
 
@@ -52,7 +72,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const gameState = context.gameState as HydratedFreshFishGameState
 
         switch (true) {
-            case isPlaceDisk(action): {
+            case isPlaceDisk(action) || isPass(action): {
                 gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.StartOfTurn
             }

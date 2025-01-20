@@ -5,5 +5,6 @@ export enum ActionType {
     PlaceDisk = 'placeDisk',
     PlaceMarket = 'placeMarket',
     PlaceStall = 'placeStall',
-    EndAuction = 'endAuction'
+    EndAuction = 'endAuction',
+    Pass = 'pass'
 }
