@@ -22,7 +22,7 @@ type StartOfTurnAction =
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is StartOfTurnAction {
         if (!action.playerId) return false
-        return this.isValidActionType(action.type, action.playerId, context)
+        return this.isValidActionType(action.type, action.playerId, context) || isPass(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
