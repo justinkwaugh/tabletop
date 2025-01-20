@@ -79,7 +79,7 @@ export abstract class BaseTaskService implements TaskService {
         await this.createPushTask({
             queue: 'turn-notification',
             path: '/notification/sendTurnNotification',
-            inSeconds: 60,
+            inSeconds: inSeconds,
             payload: { userId, gameId, notificationId, delay: inSeconds }
         })
     }
