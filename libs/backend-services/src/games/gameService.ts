@@ -64,6 +64,7 @@ import { GameStore } from '../persistence/stores/gameStore.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
 import { RedisCacheService } from '../cache/cacheService.js'
+import { EnvService } from '../env/envService.js'
 
 const FreshFish = FreshFishDefinition
 const BridgesOfShangrila = BridgesDefinition
@@ -690,19 +691,7 @@ export class GameService {
                     continue
                 }
 
-                const notificationId = nanoid()
-                const cacheKey = this.makeTurnNotificationCacheKey(activeUser.id, updatedGame.id)
-
-                await this.cacheService.set(cacheKey, notificationId, 60 * 2)
-                this.taskService
-                    .sendTurnNotification({
-                        userId: activeUser.id,
-                        gameId: updatedGame.id,
-                        notificationId
-                    })
-                    .catch((e) => {
-                        console.error('Failed to send turn notification', e)
-                    })
+                await this.scheduleTurnNotification(activeUser.id, updatedGame.id)
             }
         }
 
@@ -1029,7 +1018,39 @@ export class GameService {
         })
     }
 
-    async notifyIsYourTurn(userId: string, gameId: string, notificationId: string): Promise<void> {
+    async scheduleTurnNotification(
+        userId: string,
+        gameId: string,
+        inSeconds?: number
+    ): Promise<void> {
+        if (inSeconds === undefined) {
+            inSeconds = 60
+        }
+        const notificationId = nanoid()
+        const cacheKey = this.makeTurnNotificationCacheKey(userId, gameId)
+        await this.cacheService.set(cacheKey, notificationId, inSeconds + 60)
+        this.taskService
+            .sendTurnNotification({
+                userId: userId,
+                gameId: gameId,
+                notificationId,
+                inSeconds
+            })
+            .catch((e) => {
+                console.error('Failed to send turn notification', e)
+            })
+    }
+
+    async notifyIsYourTurn(
+        userId: string,
+        gameId: string,
+        notificationId: string,
+        delay?: number
+    ): Promise<void> {
+        if (delay === undefined) {
+            delay = 60
+        }
+
         const cacheKey = this.makeTurnNotificationCacheKey(userId, gameId)
         const { value } = await this.cacheService.get(cacheKey)
         if (value !== notificationId) {
@@ -1047,6 +1068,8 @@ export class GameService {
 
         try {
             const playerId = this.findValidPlayerForUser({ user, game }).id
+
+            // Make sure it's still the user's turn
             if (!game.activePlayerIds?.includes(playerId)) {
                 return
             }
@@ -1067,9 +1090,29 @@ export class GameService {
                 }
             }
             await this.notifyUser(notification)
+            const newDelay = this.calculateNextTurnNotificationDelay(delay)
+            if (newDelay > 0) {
+                console.log('Scheduling a turn notificatoin')
+                await this.scheduleTurnNotification(userId, gameId, newDelay)
+            }
         } catch (e) {
             console.log('error in notifyIsYourTurn', e)
         }
+    }
+
+    private calculateNextTurnNotificationDelay(lastDelay: number): number {
+        let newDelay = -1
+        if (EnvService.isLocal()) {
+            console.log('local so returning -1')
+            return newDelay
+        }
+
+        if (lastDelay <= 60) {
+            newDelay = 4 * 60 * 60 // 4 hours
+        } else if (lastDelay <= 4 * 60 * 60) {
+            newDelay = 12 * 60 * 60 // 12 hours
+        }
+        return newDelay
     }
 
     private async notifyWasInvited(user: User, owner: User, game: Game): Promise<void> {

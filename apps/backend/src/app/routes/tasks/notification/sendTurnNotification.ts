@@ -6,7 +6,8 @@ const SendTurnNotificationRequest = Type.Object(
     {
         userId: Type.String(),
         gameId: Type.String(),
-        notificationId: Type.String()
+        notificationId: Type.String(),
+        delay: Type.Optional(Type.Number())
     },
     { additionalProperties: false }
 )
@@ -18,8 +19,8 @@ export default async function (fastify: FastifyInstance) {
             schema: { body: SendTurnNotificationRequest }
         },
         async function (request, reply) {
-            const { userId, gameId, notificationId } = request.body
-            await fastify.gameService.notifyIsYourTurn(userId, gameId, notificationId)
+            const { userId, gameId, notificationId, delay } = request.body
+            await fastify.gameService.notifyIsYourTurn(userId, gameId, notificationId, delay)
             await reply.code(200).send()
         }
     )

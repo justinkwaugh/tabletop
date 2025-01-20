@@ -54,6 +54,11 @@ export class RedisCacheService {
         }
     }
 
+    // Simple remove from the cache without any locking
+    public async delete(key: string): Promise<void> {
+        await this.client.del(key)
+    }
+
     // This method will do a cached get, but on a miss will call the provided
     // function to produce the correct value and then will attempt to cache it
     public async cachingGet<T>(

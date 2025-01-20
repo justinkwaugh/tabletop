@@ -36,10 +36,12 @@ export interface TaskService {
     sendTurnNotification({
         userId,
         gameId,
-        notificationId
+        notificationId,
+        inSeconds
     }: {
         userId: string
         gameId: string
         notificationId: string
+        inSeconds?: number
     }): Promise<void>
 }
