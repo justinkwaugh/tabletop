@@ -1,3 +1,4 @@
+import { Pass } from '../actions/pass.js'
 import { DrawTile } from '../actions/drawTile.js'
 import { PlaceBid } from '../actions/placeBid.js'
 import { PlaceDisk } from '../actions/placeDisk.js'
@@ -10,5 +11,6 @@ export const FreshFishApiActions = {
     [ActionType.PlaceBid]: PlaceBid,
     [ActionType.PlaceDisk]: PlaceDisk,
     [ActionType.PlaceMarket]: PlaceMarket,
-    [ActionType.PlaceStall]: PlaceStall
+    [ActionType.PlaceStall]: PlaceStall,
+    [ActionType.Pass]: Pass
 }
