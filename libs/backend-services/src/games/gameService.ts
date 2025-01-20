@@ -1092,7 +1092,6 @@ export class GameService {
             await this.notifyUser(notification)
             const newDelay = this.calculateNextTurnNotificationDelay(delay)
             if (newDelay > 0) {
-                console.log('Scheduling a turn notificatoin')
                 await this.scheduleTurnNotification(userId, gameId, newDelay)
             }
         } catch (e) {
@@ -1103,7 +1102,6 @@ export class GameService {
     private calculateNextTurnNotificationDelay(lastDelay: number): number {
         let newDelay = -1
         if (EnvService.isLocal()) {
-            console.log('local so returning -1')
             return newDelay
         }
 

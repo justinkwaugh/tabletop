@@ -90,7 +90,6 @@ export class DefaultNotificationService implements NotificationService {
         topics: string[]
         channels: NotificationDistributionMethod[]
     }) {
-        console.log('topics', topics)
         for (const topic of topics) {
             if (channels.includes(NotificationDistributionMethod.Topical)) {
                 for (const topicTransport of Object.values(this.topicTransports)) {
@@ -105,14 +104,12 @@ export class DefaultNotificationService implements NotificationService {
                     const subscriptions =
                         await this.notificationStore.findNotificationSubscriptions(topic)
 
-                    console.log('num subscriptions', subscriptions.length)
                     for (const subscription of subscriptions) {
                         const transport = this.transports[subscription.transport]
                         if (!transport) {
                             console.log('No transport found for', subscription.transport)
                             continue
                         }
-                        console.log('sending subscription', subscription)
                         transport
                             .sendNotification(structuredClone(subscription), notification)
                             .then(async (result) => {
