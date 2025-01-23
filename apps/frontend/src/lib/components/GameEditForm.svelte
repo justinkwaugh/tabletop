@@ -109,10 +109,19 @@
         return defaultConfig
     }
     function onOptionChange(option: ConfigOption, event: Event) {
+        let value: string | boolean | undefined = undefined
         if (isBooleanConfigOption(option)) {
-            config[option.id] = (event.target as HTMLInputElement).checked
+            value = (event.target as HTMLInputElement).checked
         } else if (isListConfigOption(option)) {
-            config[option.id] = (event.target as HTMLSelectElement).value
+            value = (event.target as HTMLSelectElement).value
+        }
+        if (value === undefined) {
+            return
+        }
+        if (title?.configHandler) {
+            title.configHandler.updateConfig(config, { id: option.id, value })
+        } else {
+            config[option.id] = value
         }
     }
 
@@ -239,7 +248,7 @@
     <Toggle
         onchange={(event: Event) => onOptionChange(option, event)}
         id={option.id}
-        checked={option.default}
+        checked={(config[option.id] as boolean) ?? option.default}
         ><div class="flex flex-col leading-tight justify-center items-start">
             {option.name}
             <Helper class="text-[.65rem] dark:text-gray-400 leading-tight">

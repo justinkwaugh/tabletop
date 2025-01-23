@@ -29,4 +29,8 @@ export class Prng {
     randRange = (min: number, max: number): number => {
         return Math.floor(this.random() * (max - min + 1)) + min
     }
+
+    dieRoll = (sides: number): number => {
+        return 1 + this.randInt(sides)
+    }
 }

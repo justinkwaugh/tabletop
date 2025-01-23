@@ -135,7 +135,9 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
                 return currentTotal > bestTotal ? current : best
             })
             const numDice = bestIsland.numHuts + (bestIsland.hasGod ? 1 : 0)
-            const dieResults = this.rollDice(Math.min(numDice, 4), prng)
+            const dieResults = config?.lessluckFishing
+                ? this.evBasedDice(Math.min(numDice, 4), prng)
+                : this.rollDice(Math.min(numDice, 4), prng)
 
             numFish = dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0)
             this.metadata = {
@@ -157,7 +159,9 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
                 }
                 return best
             })
-            const dieResults = this.rollDice(Math.min(bestIsland.numHuts, 4), prng)
+            const dieResults = config?.lessluckFishing
+                ? this.evBasedDice(Math.min(bestIsland.numHuts, 4), prng)
+                : this.rollDice(Math.min(bestIsland.numHuts, 4), prng)
 
             numFish =
                 dieResults.reduce((acc, result) => acc + (result ? 1 : 0), 0) +
@@ -175,6 +179,29 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         playerState.fish[config?.ruleset === Ruleset.SecondEdition ? 3 : 4] += numFish
     }
 
+    private evBasedDice(numDice: number, prng: Prng): boolean[] {
+        if (numDice === 1) {
+            // EV of 5/6
+            return [prng.dieRoll(6) < 6]
+        }
+
+        if (numDice === 2) {
+            // EV == 1.5
+            return [true, prng.dieRoll(6) < 4]
+        }
+
+        if (numDice === 3) {
+            // EV == 2
+            return [true, true, false]
+        }
+
+        if (numDice === 4) {
+            // EV == 2.33
+            return [true, true, prng.dieRoll(6) < 3, false]
+        }
+        return []
+    }
+
     private rollDice(numDice: number, prng: Prng): boolean[] {
         const results = []
         if (numDice > 0) {
@@ -190,14 +217,6 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
         }
 
         if (numDice > 3) {
-            results.push(prng.randInt(6) < 2)
-        }
-
-        if (numDice > 4) {
-            results.push(prng.randInt(6) < 2)
-        }
-
-        if (numDice > 5) {
             results.push(prng.randInt(6) < 2)
         }
 

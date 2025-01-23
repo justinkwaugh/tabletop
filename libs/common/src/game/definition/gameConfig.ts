@@ -52,3 +52,7 @@ export const GameConfig = Type.Record(
     Type.String(),
     Type.Union([Type.Boolean(), Type.String(), Type.Number()])
 )
+
+export interface ConfigHandler {
+    updateConfig(config: GameConfig, update: { id: string; value: string | boolean }): void
+}

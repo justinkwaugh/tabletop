@@ -1,6 +1,6 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
+import { ConfigOptionType, GameConfigOptions, ConfigHandler, GameConfig } from '@tabletop/common'
 
 export enum Ruleset {
     FirstEdition = 'FirstEdition',
@@ -10,7 +10,8 @@ export enum Ruleset {
 export type KaivaiGameConfig = Static<typeof KaivaiGameConfig>
 export const KaivaiGameConfig = Type.Object({
     ruleset: Type.Enum(Ruleset),
-    lucklessFishing: Type.Boolean()
+    lucklessFishing: Type.Boolean(),
+    lessluckFishing: Type.Optional(Type.Boolean({ default: false }))
 })
 
 export const KaivaiGameConfigValidator = TypeCompiler.Compile(KaivaiGameConfig)
@@ -28,10 +29,30 @@ export const KaivaiGameConfigOptions: GameConfigOptions = [
         ]
     },
     {
+        id: 'lessluckFishing',
+        type: ConfigOptionType.Boolean,
+        name: 'Less Luck Fishing',
+        description:
+            'Results are based on the expected value of a fishing roll.  You automatically receive the integer value (rounded down) and the remainder is rolled for',
+        default: false
+    },
+    {
         id: 'lucklessFishing',
         type: ConfigOptionType.Boolean,
         name: 'Luckless Fishing',
-        description: 'Whether or not to roll dice when fishing',
+        description:
+            'Every fishing hut and god present on an island will automatically provide one fish',
         default: false
     }
 ]
+
+export class KaivaiConfigHandler implements ConfigHandler {
+    updateConfig(config: KaivaiGameConfig, update: { id: string; value: string | boolean }) {
+        ;(config as GameConfig)[update.id] = update.value
+        if (update.id === 'lucklessFishing' && update.value) {
+            config.lessluckFishing = false
+        } else if (update.id === 'lessluckFishing' && update.value) {
+            config.lucklessFishing = false
+        }
+    }
+}

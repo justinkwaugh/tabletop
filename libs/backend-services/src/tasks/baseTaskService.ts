@@ -76,6 +76,7 @@ export abstract class BaseTaskService implements TaskService {
         if (inSeconds === undefined) {
             inSeconds = 60
         }
+        console.log('Sending turn notification', notificationId, 'in', inSeconds, 'seconds')
         await this.createPushTask({
             queue: 'turn-notification',
             path: '/notification/sendTurnNotification',
