@@ -36,19 +36,23 @@ export class GameService {
             return []
         }
 
-        return Array.from(
-            this.gamesById.values().filter((game) => game.status === GameStatus.Started)
-        ).toSorted((a, b) => {
-            const myBPlayerId = b.players.find((player) => player.userId === sessionUser?.id)?.id
-            const myAPlayerId = a.players.find((player) => player.userId === sessionUser?.id)?.id
-            const isMyBTurn = myBPlayerId ? b.activePlayerIds?.includes(myBPlayerId) : false
-            const isMyATurn = myAPlayerId ? a.activePlayerIds?.includes(myAPlayerId) : false
-            return (
-                (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
-                (b.lastActionAt ?? b.createdAt).getTime() -
-                    (a.lastActionAt ?? a.createdAt).getTime()
-            )
-        })
+        return Array.from(this.gamesById.values())
+            .filter((game) => game.status === GameStatus.Started)
+            .toSorted((a, b) => {
+                const myBPlayerId = b.players.find(
+                    (player) => player.userId === sessionUser?.id
+                )?.id
+                const myAPlayerId = a.players.find(
+                    (player) => player.userId === sessionUser?.id
+                )?.id
+                const isMyBTurn = myBPlayerId ? b.activePlayerIds?.includes(myBPlayerId) : false
+                const isMyATurn = myAPlayerId ? a.activePlayerIds?.includes(myAPlayerId) : false
+                return (
+                    (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
+                    (b.lastActionAt ?? b.createdAt).getTime() -
+                        (a.lastActionAt ?? a.createdAt).getTime()
+                )
+            })
     })
 
     waitingGames: Game[] = $derived(
