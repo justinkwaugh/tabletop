@@ -37,7 +37,6 @@ import type { GameColorizer } from '$lib/definition/gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import { goto } from '$app/navigation'
 import { gsap } from 'gsap'
-import { tick } from 'svelte'
 
 export enum GameSessionMode {
     Play = 'play',
