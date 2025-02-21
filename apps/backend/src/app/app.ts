@@ -50,7 +50,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         if (typeof payload !== 'string' && !(payload instanceof String)) {
             return payload
         }
-        const newPayload = payload.replace('<', '\\u003c')
+        const newPayload = payload.replace(/</g, '\\u003c')
         return newPayload
     })
 
