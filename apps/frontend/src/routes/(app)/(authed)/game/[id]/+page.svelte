@@ -49,10 +49,10 @@
             data.gameSession.goToMyPreviousTurn()
         } else if (event.key === 'ArrowLeft') {
             event.preventDefault()
-            data.gameSession.stepBackward()
+            data.gameSession.goToPreviousAction()
         } else if (event.key === 'ArrowRight') {
             event.preventDefault()
-            data.gameSession.stepForward()
+            data.gameSession.goToNextAction()
         }
     }
 </script>

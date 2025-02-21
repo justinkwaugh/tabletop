@@ -37,6 +37,7 @@ import type { GameColorizer } from '$lib/definition/gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import { goto } from '$app/navigation'
 import { gsap } from 'gsap'
+import { tick } from 'svelte'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -59,6 +60,8 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
     from?: U
     timeline: gsap.core.Timeline
 }) => Promise<void>
+
+type StepDirection = 'forward' | 'backward'
 
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     public definition: GameUiDefinition
@@ -843,56 +846,64 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public async goToMyPreviousTurn() {
-        const myFirstActionIndex = this.actions.findIndex(
-            (action) => action.playerId === this.myPlayer?.id
-        )
-        if (
-            this.stepping ||
-            this.actions.length === 0 ||
-            myFirstActionIndex === -1 ||
-            (this.mode === GameSessionMode.History &&
-                myFirstActionIndex >= this.currentHistoryIndex)
-        ) {
+        if (this.stepping || this.actions.length === 0 || this.currentHistoryIndex === -1) {
             return
         }
 
-        this.stepping = true
-        try {
-            // Now find my last turn
-            do {
-                await this.stepBackward({ stopPlayback: true })
-            } while (
-                this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
-                this.currentHistoryIndex >= 0
-            )
-        } finally {
-            this.stepping = false
+        if (this.myPlayer) {
+            this.stepping = true
+            await this.stepUntil('backward', () => {
+                return (
+                    this.currentHistoryIndex === -1 ||
+                    this.actions[this.currentHistoryIndex].playerId === this.myPlayer?.id
+                )
+            })
         }
     }
 
     public async goToMyNextTurn() {
-        const myLastActionIndex = this.actions.findLastIndex(
-            (action) => action.playerId === this.myPlayer?.id
-        )
-        if (
-            this.stepping ||
-            this.actions.length === 0 ||
-            myLastActionIndex === -1 ||
-            (this.mode === GameSessionMode.History && myLastActionIndex <= this.currentHistoryIndex)
-        ) {
+        if (this.stepping || this.actions.length === 0 || this.mode !== GameSessionMode.History) {
             return
         }
 
-        // Now find my last turn
-        this.stepping = true
-        try {
-            do {
-                await this.stepForward({ stopPlayback: true })
-            } while (
-                this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
-                this.mode === GameSessionMode.History
-            )
-        } finally {
+        // Now find my next turn
+        if (this.myPlayer) {
+            this.stepping = true
+            await this.stepUntil('forward', () => {
+                return (
+                    this.actions[this.currentHistoryIndex].playerId === this.myPlayer?.id ||
+                    this.mode !== GameSessionMode.History
+                )
+            })
+        }
+    }
+
+    private async stepUntil(direction: StepDirection, predicate: () => boolean) {
+        if (direction === 'backward') {
+            await this.stepBackward({ stopPlayback: true })
+        } else {
+            await this.stepForward({ stopPlayback: true })
+        }
+
+        if (predicate()) {
+            this.stepping = false
+        } else {
+            setTimeout(() => {
+                void this.stepUntil(direction, predicate)
+            })
+        }
+    }
+
+    private async stepForwardUntilPlayerTurn(playerId: string) {
+        await this.stepForward({ stopPlayback: true })
+        if (
+            this.actions[this.currentHistoryIndex].playerId !== this.myPlayer?.id &&
+            this.mode === GameSessionMode.History
+        ) {
+            setTimeout(() => {
+                void this.stepForwardUntilPlayerTurn(playerId)
+            })
+        } else {
             this.stepping = false
         }
     }
