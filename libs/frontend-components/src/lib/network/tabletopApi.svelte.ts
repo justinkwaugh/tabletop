@@ -6,7 +6,6 @@ import {
     GameAction,
     GameChat,
     GameChatMessage,
-    GameStatusCategory,
     GameSyncStatus,
     User,
     UserPreferences
@@ -462,12 +461,7 @@ export class TabletopApi {
     async getSseToken(): Promise<string> {
         const response = await this.wretch
             .get('/sse/token')
-            .unauthorized(() => {
-                throw new APIError({
-                    name: 'Unauthorized',
-                    message: 'You are not authorized'
-                })
-            })
+            .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<TokenResponse>()
 
@@ -477,12 +471,7 @@ export class TabletopApi {
     async getAblyToken(): Promise<Ably.TokenRequest> {
         const response = await this.wretch
             .get('/auth/ably/token')
-            .unauthorized(() => {
-                throw new APIError({
-                    name: 'Unauthorized',
-                    message: 'You are not authorized'
-                })
-            })
+            .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<AblyTokenResponse>()
 

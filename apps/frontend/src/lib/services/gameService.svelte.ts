@@ -25,10 +25,33 @@ import { NotificationService } from './notificationService.svelte'
 export class GameService {
     private gamesById: Map<string, Game> = new SvelteMap()
 
-    private activeGames: Game[] = $derived(
-        Array.from(this.gamesById.values()).filter((game) => game.status === GameStatus.Started)
-    )
-    private waitingGames: Game[] = $derived(
+    loading = $state(false)
+    private loadingPromise: Promise<void> | null = null
+
+    currentGameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
+
+    activeGames: Game[] = $derived.by(() => {
+        const sessionUser = this.authorizationService.getSessionUser()
+        if (!sessionUser) {
+            return []
+        }
+
+        return Array.from(
+            this.gamesById.values().filter((game) => game.status === GameStatus.Started)
+        ).toSorted((a, b) => {
+            const myBPlayerId = b.players.find((player) => player.userId === sessionUser?.id)?.id
+            const myAPlayerId = a.players.find((player) => player.userId === sessionUser?.id)?.id
+            const isMyBTurn = myBPlayerId ? b.activePlayerIds?.includes(myBPlayerId) : false
+            const isMyATurn = myAPlayerId ? a.activePlayerIds?.includes(myAPlayerId) : false
+            return (
+                (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
+                (b.lastActionAt ?? b.createdAt).getTime() -
+                    (a.lastActionAt ?? a.createdAt).getTime()
+            )
+        })
+    })
+
+    waitingGames: Game[] = $derived(
         Array.from(this.gamesById.values())
             .filter(
                 (game) =>
@@ -37,7 +60,8 @@ export class GameService {
             )
             .toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     )
-    private finishedGames: Game[] = $derived(
+
+    finishedGames: Game[] = $derived(
         Array.from(this.gamesById.values())
             .filter((game) => game.status === GameStatus.Finished)
             .toSorted(
@@ -47,11 +71,6 @@ export class GameService {
             )
             .slice(0, 20)
     )
-    private loading = false
-    private loaded = false
-    private loadingPromise: Promise<void> | null = null
-
-    currentGameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
 
     constructor(
         private readonly authorizationService: AuthorizationService,
@@ -61,19 +80,21 @@ export class GameService {
         notificationService.addListener(this.NotificationListener)
     }
 
+    // Only allow a single async load at a time
     async loadGames() {
-        if (this.loaded) {
-            return
-        }
         if (!this.loadingPromise) {
             this.loading = true
-            this.gamesById.clear()
             this.loadingPromise = this.api.getMyGames().then((games) => {
+                const ids = games.map((game) => game.id)
                 games.forEach((game) => {
                     this.gamesById.set(game.id, game)
                 })
+                this.gamesById.forEach((game, id) => {
+                    if (!ids.includes(id)) {
+                        this.gamesById.delete(id)
+                    }
+                })
                 this.loading = false
-                this.loaded = true
                 this.loadingPromise = null
             })
         }
@@ -123,39 +144,8 @@ export class GameService {
         return game
     }
 
-    getActiveGames(): Game[] {
-        const sessionUser = this.authorizationService.getSessionUser()
-
-        return this.activeGames.toSorted((a, b) => {
-            const myBPlayerId = b.players.find((player) => player.userId === sessionUser?.id)?.id
-            const myAPlayerId = a.players.find((player) => player.userId === sessionUser?.id)?.id
-            const isMyBTurn = myBPlayerId ? b.activePlayerIds?.includes(myBPlayerId) : false
-            const isMyATurn = myAPlayerId ? a.activePlayerIds?.includes(myAPlayerId) : false
-            return (
-                (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
-                (b.lastActionAt ?? b.createdAt).getTime() -
-                    (a.lastActionAt ?? a.createdAt).getTime()
-            )
-        })
-    }
-
-    getWaitingGames(): Game[] {
-        this.waitingGames.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        return this.waitingGames
-    }
-
-    getFinishedGames(): Game[] {
-        this.finishedGames.sort(
-            (a, b) =>
-                (b.finishedAt?.getTime() ?? new Date().getTime()) -
-                (a.finishedAt?.getTime() ?? new Date().getTime())
-        )
-        return this.finishedGames
-    }
-
     clear() {
         this.gamesById.clear()
-        this.loaded = false
     }
 
     private NotificationListener = async (event: NotificationEvent) => {
@@ -175,7 +165,6 @@ export class GameService {
                 this.gamesById.delete(game.id)
             }
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
-            this.loaded = false
             await this.loadGames()
         }
     }

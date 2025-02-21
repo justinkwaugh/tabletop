@@ -4,8 +4,9 @@
     import { onMount } from 'svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import AdminPanel from '$lib/components/AdminPanel.svelte'
+    import type { GameState, HydratedGameState } from '@tabletop/common'
 
-    let { data }: { data: { gameSession: GameSession } } = $props()
+    let { data }: { data: { gameSession: GameSession<GameState, HydratedGameState> } } = $props()
     setContext('gameSession', data.gameSession)
 
     let { gameService, notificationService, authorizationService, chatService } = getContext(
@@ -16,7 +17,7 @@
     onMount(() => {
         const gameSession = data.gameSession
         gameService.currentGameSession = gameSession
-        gameSession.definition.getTableComponent().then((tableComponent) => {
+        gameSession.definition.getTableComponent().then((tableComponent: Component) => {
             Table = tableComponent
         })
 

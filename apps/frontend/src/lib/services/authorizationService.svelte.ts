@@ -61,7 +61,7 @@ export class AuthorizationService {
     }: {
         category: AuthorizationCategory
         intendedUrl: URL
-    }) {
+    }): Promise<boolean> {
         await this.initialize()
         const user = this.getSessionUser()
 
@@ -86,7 +86,9 @@ export class AuthorizationService {
 
         if (shouldRedirect) {
             this.redirect({ user, url: intendedUrl })
+            return false
         }
+        return true
     }
 
     public getSessionUser(): User | undefined {

@@ -871,6 +871,7 @@ export class GameService {
             action: actionToUndo,
             redoneActions: processedRedoneActions
         })
+        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
 
         return {
             undoneActions,
