@@ -5,6 +5,7 @@
     import {
         ActionType,
         isCelebrate,
+        isChooseScoringIsland,
         isDeliver,
         isFish,
         isMove,
@@ -45,7 +46,8 @@
             .filter(
                 (action) =>
                     action.type !== ActionType.PlaceScoringBid &&
-                    (!isPass(action) || action.metadata?.reason === PassReason.DoneActions)
+                    (!isPass(action) || action.metadata?.reason === PassReason.DoneActions) &&
+                    (!isChooseScoringIsland(action) || action.playerId)
             )
             .toReversed()
             .toSorted(

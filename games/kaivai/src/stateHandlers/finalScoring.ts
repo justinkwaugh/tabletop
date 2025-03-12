@@ -62,16 +62,13 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
                 gameState.hutsScored = true
                 gameState.islandsToScore = Object.keys(gameState.board.islands)
 
-                const playersHaveInfluence = gameState.players.some(
-                    (player) => player.influence > 0
-                )
-
-                if (!playersHaveInfluence) {
+                const autoChosenIsland = this.autoChooseIsland(gameState)
+                if (autoChosenIsland) {
                     const chooseScoringIslandAction: ChooseScoringIsland = {
                         type: ActionType.ChooseScoringIsland,
                         id: nanoid(),
                         gameId: action.gameId,
-                        islandId: gameState.islandsToScore[0],
+                        islandId: autoChosenIsland,
                         source: ActionSource.System
                     }
                     context.addPendingAction(chooseScoringIslandAction)
@@ -80,14 +77,18 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
             }
             case isChooseScoringIsland(action): {
                 gameState.bids = {}
+
+                const isUncontested = gameState.board.isUncontestableForScoring(
+                    gameState.players,
+                    action.islandId
+                )
+
                 // Check to see if anyone has influence to bid
                 const playersWithInfluence = gameState.players
                     .filter((player) => player.influence > 0)
                     .map((player) => player.playerId)
-                if (playersWithInfluence.length > 0) {
-                    gameState.bidders = playersWithInfluence
-                    return MachineState.IslandBidding
-                } else {
+
+                if (isUncontested || playersWithInfluence.length === 0) {
                     // Score the island
                     const scoreIslandAction: ScoreIsland = {
                         type: ActionType.ScoreIsland,
@@ -99,6 +100,9 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
 
                     context.addPendingAction(scoreIslandAction)
                     return MachineState.FinalScoring
+                } else {
+                    gameState.bidders = playersWithInfluence
+                    return MachineState.IslandBidding
                 }
             }
             case isScoreIsland(action): {
@@ -109,16 +113,13 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
                     return MachineState.EndOfGame
                 }
 
-                const playersHaveInfluence = gameState.players.some(
-                    (player) => player.influence > 0
-                )
-
-                if (gameState.islandsToScore.length === 1 || !playersHaveInfluence) {
+                const autoChosenIsland = this.autoChooseIsland(gameState)
+                if (autoChosenIsland) {
                     const chooseScoringIslandAction: ChooseScoringIsland = {
                         type: ActionType.ChooseScoringIsland,
                         id: nanoid(),
                         gameId: action.gameId,
-                        islandId: gameState.islandsToScore[0],
+                        islandId: autoChosenIsland,
                         source: ActionSource.System
                     }
                     context.addPendingAction(chooseScoringIslandAction)
@@ -130,5 +131,27 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
                 throw Error('Invalid action type')
             }
         }
+    }
+
+    autoChooseIsland(gameState: HydratedKaivaiGameState): string | undefined {
+        if (gameState.islandsToScore.length === 1) {
+            return gameState.islandsToScore[0]
+        }
+
+        const playersHaveInfluence = gameState.players.some((player) => player.influence > 0)
+        if (!playersHaveInfluence) {
+            return gameState.islandsToScore[0]
+        }
+
+        const uncontestableIsland = gameState.board.findUncontestableIsland(
+            gameState.players,
+            gameState.islandsToScore
+        )
+
+        if (uncontestableIsland) {
+            return uncontestableIsland
+        }
+
+        return undefined
     }
 }

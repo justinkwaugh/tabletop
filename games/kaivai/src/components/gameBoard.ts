@@ -334,6 +334,21 @@ export class HydratedKaivaiGameBoard
         }, 0)
     }
 
+    isNeighborToCultSiteOfIsland(coords: AxialCoordinates, islandId: string) {
+        const island = this.islands[islandId]
+        if (!island) {
+            return false
+        }
+
+        return island.coordList.some((islandCoords) => {
+            const cell = this.getCellAt(islandCoords)
+            if (!isCultCell(cell)) {
+                return false
+            }
+            return this.isNeighborTo(coords, (hex) => sameCoordinates(hex, islandCoords))
+        })
+    }
+
     numBoatsAtIslandCultSites(islandId: string, playerId: string) {
         const island = this.islands[islandId]
         if (!island) {
@@ -385,6 +400,62 @@ export class HydratedKaivaiGameBoard
         const boats = this.numBoatsAtIslandCultSites(islandId, playerId)
 
         return huts + boats
+    }
+
+    isUncontestableForScoring(playerStates: HydratedKaivaiPlayerState[], islandId: string) {
+        const island = this.islands[islandId]
+        if (!island) {
+            return false
+        }
+
+        const initialInfluencePerPlayer: Record<string, number> = {}
+        playerStates.forEach((player) => {
+            initialInfluencePerPlayer[player.playerId] = this.playerInfluenceOnIsland(
+                player.playerId,
+                islandId
+            )
+        })
+
+        const maxValue = Math.max(...Object.values(initialInfluencePerPlayer))
+
+        const initialWinners = Object.entries(initialInfluencePerPlayer)
+            .filter(([, islandInfluence]) => islandInfluence === maxValue)
+            .map(([playerId]) => playerId)
+
+        if (initialWinners.length > 1) {
+            return false
+        }
+
+        const initialWinner = initialWinners[0]
+        // Add in influence
+        playerStates.forEach((player) => {
+            if (player.playerId !== initialWinner) {
+                initialInfluencePerPlayer[player.playerId] += player.influence
+            }
+        })
+
+        const newMaxValue = Math.max(...Object.values(initialInfluencePerPlayer))
+
+        if (newMaxValue !== maxValue) {
+            return false
+        }
+
+        const newWinners = Object.entries(initialInfluencePerPlayer)
+            .filter(([, islandInfluence]) => islandInfluence === newMaxValue)
+            .map(([playerId]) => playerId)
+
+        if (newWinners.length > 1 || newWinners[0] !== initialWinner) {
+            return false
+        }
+
+        return true
+    }
+
+    findUncontestableIsland(
+        playerStates: HydratedKaivaiPlayerState[],
+        islandIds: string[]
+    ): string | undefined {
+        return islandIds.find((islandId) => this.isUncontestableForScoring(playerStates, islandId))
     }
 
     get grid(): Grid<Hex> {

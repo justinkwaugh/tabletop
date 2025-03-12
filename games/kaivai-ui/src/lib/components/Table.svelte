@@ -175,10 +175,11 @@
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
                 <Phase />
-                {#if gameSession.gameState.result}
-                    <EndOfGamePanel />
-                {:else if gameSession.mode === GameSessionMode.History}
+
+                {#if gameSession.mode === GameSessionMode.History}
                     <LastHistoryDescription />
+                {:else if gameSession.gameState.result}
+                    <EndOfGamePanel />
                 {:else if gameSession.mode === GameSessionMode.Play}
                     <LastHistoryDescription />
                     {#if gameSession.isMyTurn}
