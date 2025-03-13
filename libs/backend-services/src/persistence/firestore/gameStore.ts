@@ -5,7 +5,9 @@ import {
     QueryDocumentSnapshot,
     PartialWithFieldValue,
     Transaction,
-    Filter
+    Filter,
+    FieldValue,
+    DocumentData
 } from '@google-cloud/firestore'
 import {
     GameAction,
@@ -182,7 +184,10 @@ export class FirestoreGameStore implements GameStore {
                 updatedGame.updatedAt = fieldsToUpdate.updatedAt
                 updatedFields.push('updatedAt')
 
-                transaction.update(this.games.doc(updatedGame.id), fieldsToUpdate)
+                transaction.update(
+                    this.games.doc(updatedGame.id),
+                    this.createUpdateDocument(fieldsToUpdate)
+                )
             }
 
             if (stateToUpdate) {
@@ -418,8 +423,10 @@ export class FirestoreGameStore implements GameStore {
                 this.addActionsToChunks(storedActions, existingChunks, existingGame.actionChunkSize)
             }
 
+            const updateDate = new Date()
+
             const updatedGame = structuredClone(existingGame)
-            gameUpdates.updatedAt = new Date()
+            gameUpdates.updatedAt = updateDate
             gameUpdates.lastActionAt = gameUpdates.updatedAt
 
             if (existingState.result !== state.result) {
@@ -439,7 +446,6 @@ export class FirestoreGameStore implements GameStore {
             Object.assign(updatedGame, gameUpdates)
             updatedGame.state = state
 
-            const updateDate = new Date()
             storedActions.forEach((action) => {
                 action.createdAt = updateDate
                 action.updatedAt = updateDate
@@ -461,7 +467,7 @@ export class FirestoreGameStore implements GameStore {
                 }
             }
 
-            transaction.update(this.games.doc(gameId), gameUpdates)
+            transaction.update(this.games.doc(gameId), this.createUpdateDocument(gameUpdates))
             transaction.set(stateCollection.doc(gameId), state)
 
             return { storedActions, updatedGame, relatedActions, priorState: existingState }
@@ -775,7 +781,7 @@ export class FirestoreGameStore implements GameStore {
                 })
             }
 
-            transaction.update(this.games.doc(gameId), gameUpdates)
+            transaction.update(this.games.doc(gameId), this.createUpdateDocument(updatedGame))
             transaction.set(stateCollection.doc(gameId), state)
 
             return {
@@ -1047,6 +1053,16 @@ export class FirestoreGameStore implements GameStore {
 
     private makeGameCacheKey(gameId: string): string {
         return `game-${gameId}`
+    }
+
+    private createUpdateDocument<T>(data: T): DocumentData {
+        const result = structuredClone(data) as DocumentData
+        for (const key in result) {
+            if (result[key] === undefined) {
+                result[key] = FieldValue.delete()
+            }
+        }
+        return result
     }
 }
 

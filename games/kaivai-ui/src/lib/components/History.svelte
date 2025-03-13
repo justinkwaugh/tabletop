@@ -57,6 +57,18 @@
         return reversed
     })
 
+    let roundIndices = $derived.by(() => {
+        let roundIndices: Record<number, number> = []
+        for (const round of gameSession.gameState.rounds.series) {
+            roundIndices[round.start - 1] = round.number
+        }
+        return roundIndices
+    })
+
+    function getRoundNumber(index: number): number | undefined {
+        return roundIndices[index]
+    }
+
     function highlight(action: GameAction) {}
 
     function unhighlight() {
@@ -79,7 +91,7 @@
 >
     <div class="overflow-auto h-full">
         <Timeline class="ms-1 dark:border-[#cabb7a]">
-            {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
+            {#if gameSession.game.finishedAt && gameSession.game.result && gameSession.mode !== GameSessionMode.History}
                 <TimelineItem
                     classTime="dark:text-[#8d794d]"
                     classLi="mb-5 text-left"
@@ -99,7 +111,6 @@
                     onkeypress={() => {}}
                     in:fade={{ duration: 200, easing: quartIn }}
                     out:fade={{ duration: 50 }}
-                    animate:flip={{ duration: 100 }}
                     onmouseover={() => highlight(action)}
                     onmouseleave={() => unhighlight()}
                 >
@@ -143,6 +154,21 @@
                         </p>
                     </TimelineItem>
                 </div>
+                {#if getRoundNumber(action.index ?? 0)}
+                    <TimelineItem
+                        classTime="dark:text-[#8d794d]"
+                        classLi="mb-5 text-left"
+                        classDiv="dark:bg-transparent border-0"
+                    >
+                        <div class="flex flex-row justify-center items-center">
+                            <p
+                                class="dark:text-[#cabb7a] mt-1 text-center text-[1.5rem] text-base font-normal kaivai-font"
+                            >
+                                {'\u2191'} ROUND {getRoundNumber(action.index ?? 0)} STARTED {'\u2191'}
+                            </p>
+                        </div>
+                    </TimelineItem>
+                {/if}
             {/each}
             <TimelineItem
                 classTime="dark:text-[#8d794d]"
