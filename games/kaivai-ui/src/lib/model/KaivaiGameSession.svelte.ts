@@ -43,8 +43,7 @@ import {
     GameAction,
     Color,
     sameCoordinates,
-    type AxialCoordinates,
-    ActionSource
+    type AxialCoordinates
 } from '@tabletop/common'
 
 export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaivaiGameState> {
