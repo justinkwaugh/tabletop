@@ -804,8 +804,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         // this.historyGame.state = gameSnapshot.state
         this.onHistoryAction(this.actions[this.currentHistoryIndex])
 
-        if (stopPlayback) {
+        const skippableLastAction = this.shouldAutoStepAction(nextAction)
+        if (stopPlayback || skippableLastAction) {
             this.stopHistoryPlayback()
+        }
+
+        if (skippableLastAction) {
+            this.exitHistoryMode()
         }
     }
 

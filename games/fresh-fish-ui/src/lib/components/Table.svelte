@@ -13,7 +13,7 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
-    import { getContext, onMount } from 'svelte'
+    import { getContext, onMount, type ComponentType } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import GameDataPanel from '$lib/components/GameDataPanel.svelte'
@@ -61,7 +61,7 @@
 
     async function chatListener(event: ChatEvent) {
         if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            toast.custom(ChatToast, {
+            toast.custom(ChatToast as unknown as ComponentType, {
                 duration: 3000,
                 position: 'bottom-left',
                 componentProps: {
@@ -111,10 +111,7 @@
             >
                 <HistoryControls />
             </div>
-            <Tabs
-                tabStyle="pill"
-                contentClass="p-0 bg-transparent h-full overflow-auto rounded-lg"
-            >
+            <Tabs tabStyle="pill" contentClass="p-0 bg-transparent h-full overflow-auto rounded-lg">
                 <TabItem
                     open
                     onclick={onNonChatClick}

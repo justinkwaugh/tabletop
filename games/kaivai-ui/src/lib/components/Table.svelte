@@ -10,7 +10,7 @@
         GameChat
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    import { getContext, onMount } from 'svelte'
+    import { getContext, onMount, type ComponentType } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
@@ -66,7 +66,7 @@
 
     async function chatListener(event: ChatEvent) {
         if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            toast.custom(ChatToast, {
+            toast.custom(ChatToast as unknown as ComponentType, {
                 duration: 3000,
                 position: 'bottom-left',
                 componentProps: {

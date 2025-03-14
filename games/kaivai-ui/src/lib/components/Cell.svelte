@@ -291,8 +291,10 @@
     }
 
     let disabled = $derived.by(() => {
+        const state = gameSession.gameState
         if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
             const action = gameSession.actions[gameSession.currentHistoryIndex]
+
             switch (true) {
                 case isFish(action):
                     return !sameCoordinates(hex, action.boatCoords)
@@ -314,6 +316,12 @@
                     return !isIslandCell(cell) || cell.islandId !== action.islandId
 
                 case isScoreIsland(action):
+                    if (isBoatCell(cell) && !isBoatBuildingCell(cell) && cell.boat) {
+                        return !state.board.isNeighborToCultSiteOfIsland(
+                            cell.coords,
+                            action.islandId
+                        )
+                    }
                     return !isIslandCell(cell) || cell.islandId !== action.islandId
 
                 case isMoveGod(action):
@@ -325,7 +333,6 @@
             return false
         }
 
-        const state = gameSession.gameState
         if (gameSession.highlightedHexes.size > 0) {
             if (!gameSession.highlightedHexes.has(axialCoordinatesToNumber(hex))) {
                 return true

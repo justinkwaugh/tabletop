@@ -143,15 +143,6 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
             return gameState.islandsToScore[0]
         }
 
-        const uncontestableIsland = gameState.board.findUncontestableIsland(
-            gameState.players,
-            gameState.islandsToScore
-        )
-
-        if (uncontestableIsland) {
-            return uncontestableIsland
-        }
-
         return undefined
     }
 }

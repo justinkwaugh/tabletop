@@ -432,8 +432,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     override shouldAutoStepAction(action: GameAction) {
         return (
             action.type === ActionType.PlaceScoringBid ||
-            (action.type === ActionType.ChooseScoringIsland &&
-                action.source === ActionSource.System) ||
+            action.type === ActionType.ChooseScoringIsland ||
             (isPass(action) && action.metadata?.reason !== PassReason.DoneActions)
         )
     }
