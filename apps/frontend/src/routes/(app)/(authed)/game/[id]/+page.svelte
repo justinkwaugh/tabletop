@@ -50,6 +50,7 @@
             data.gameSession.goToMyPreviousTurn()
         } else if (event.key === 'ArrowLeft') {
             event.preventDefault()
+            console.log('going back')
             data.gameSession.goToPreviousAction()
         } else if (event.key === 'ArrowRight') {
             event.preventDefault()

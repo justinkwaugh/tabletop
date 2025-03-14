@@ -712,7 +712,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         try {
             await this.stepBackward()
         } finally {
-            this.stepping = false
+            // This allows stupid flip animations to finish
+            setTimeout(() => {
+                this.stepping = false
+            })
         }
     }
 
@@ -724,7 +727,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         try {
             await this.stepForward()
         } finally {
-            this.stepping = false
+            // This allows stupid flip animations to finish
+            setTimeout(() => {
+                this.stepping = false
+            })
         }
     }
 
@@ -889,13 +895,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             await this.stepForward({ stopPlayback: true })
         }
 
-        if (predicate()) {
-            this.stepping = false
-        } else {
-            setTimeout(() => {
+        setTimeout(() => {
+            if (predicate()) {
+                this.stepping = false
+            } else {
                 void this.stepUntil(direction, predicate)
-            })
-        }
+            }
+        })
     }
 
     private async stepForwardUntilPlayerTurn(playerId: string) {
