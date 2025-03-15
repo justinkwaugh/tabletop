@@ -781,7 +781,7 @@ export class FirestoreGameStore implements GameStore {
                 })
             }
 
-            transaction.update(this.games.doc(gameId), this.createUpdateDocument(updatedGame))
+            transaction.update(this.games.doc(gameId), this.createUpdateDocument(gameUpdates))
             transaction.set(stateCollection.doc(gameId), state)
 
             return {
