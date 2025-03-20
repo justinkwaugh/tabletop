@@ -36,7 +36,7 @@
             email = ''
 
             if (updatedUser.status === UserStatus.Active) {
-                goto('/dashboard')
+                goto('/activeGamesCheck')
             }
         } catch (e) {
             if (e instanceof Error && e.name === 'AlreadyExistsError') {
@@ -70,7 +70,7 @@
             verificationToken = ''
 
             if (updatedUser.status === UserStatus.Active) {
-                goto('/dashboard')
+                goto('/activeGamesCheck')
             }
         } catch (e) {
             verificationError = true

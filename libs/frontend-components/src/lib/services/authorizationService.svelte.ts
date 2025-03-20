@@ -18,7 +18,7 @@ export type AuthorizationService = {
     }: {
         category: AuthorizationCategory
         intendedUrl: URL
-    }): Promise<void>
+    }): Promise<boolean>
 
     getSessionUser(): User | undefined
     setSessionUser(user: User): void

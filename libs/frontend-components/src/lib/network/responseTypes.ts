@@ -47,6 +47,14 @@ export const GameWithActionsResponse = Type.Composite([
     })
 ])
 
+export type HasActiveGamesResponse = Static<typeof HasActiveGamesResponse>
+export const HasActiveGamesResponse = Type.Composite([
+    Type.Omit(Response, ['payload']),
+    Type.Object({
+        payload: Type.Object({ hasActive: Type.Boolean() })
+    })
+])
+
 export type GamesResponse = Static<typeof GamesResponse>
 export const GamesResponse = Type.Composite([
     Type.Omit(Response, ['payload']),

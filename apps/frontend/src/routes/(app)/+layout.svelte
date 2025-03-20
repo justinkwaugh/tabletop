@@ -167,7 +167,7 @@
     <div class="flex flex-col w-full">
         <div class="flex flex-row justify-between items-center w-full">
             <div class="flex justify-center items-center">
-                <NavBrand href="/" class="shrink-0 cursor-pointer">
+                <NavBrand href="/library" class="shrink-0 cursor-pointer">
                     <img src={darkLogo} alt="Board Together" class="h-8 w-auto" />
                 </NavBrand>
 

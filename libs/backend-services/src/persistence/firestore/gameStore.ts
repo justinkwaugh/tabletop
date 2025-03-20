@@ -300,6 +300,12 @@ export class FirestoreGameStore implements GameStore {
 
         return games.map((game) => Value.Convert(Game, game) as Game)
     }
+    async hasCachedActiveGames(user: User): Promise<boolean> {
+        const category = GameStatusCategory.Active
+        const cacheKey = `games-${category}-${user.id}`
+        const { value, cached } = await this.cacheService.cacheGet(cacheKey)
+        return cached && (value as string[]).length > 0
+    }
 
     // It would be nice to make the caching a little less manual here
     async findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]> {
