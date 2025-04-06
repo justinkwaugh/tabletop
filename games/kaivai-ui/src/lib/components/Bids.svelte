@@ -16,7 +16,7 @@
     let movementList = [1, 2, 3, 4, 5, 4, 3, 2, 1, 0]
 
     let bidOrder = $derived.by(() => {
-        return gameSession.gameState.playersOrderedByAscendingWealth()
+        return gameSession.gameState.playersOrderedByAscendingWealth(true)
     })
 
     function bidColor(bid: number) {

@@ -91,6 +91,10 @@ export class HydratedKaivaiPlayerState
         return this.fish.reduce((sum, fish) => sum + fish, 0)
     }
 
+    devaluedFish(): number {
+        return this.numFish() - this.fish[0]
+    }
+
     removeFish(amount: number) {
         let remaining = amount
         for (let i = 0; i < this.fish.length && remaining > 0; i++) {
@@ -111,6 +115,10 @@ export class HydratedKaivaiPlayerState
 
     money(): number {
         return this.shells.reduce((sum, shells, index) => sum + shells * (index + 1), 0)
+    }
+
+    devaluedMoney(): number {
+        return this.shells.reduce((sum, shells, index) => sum + shells * index, 0)
     }
 
     pay(amount: number) {

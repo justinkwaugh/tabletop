@@ -88,17 +88,24 @@ export class HydratedKaivaiGameState
         super(data, KaivaiGameStateValidator, hydratedProperties)
     }
 
-    playersOrderedByAscendingWealth(): string[] {
+    playersOrderedByAscendingWealth(afterDevalue: boolean = false): string[] {
         return this.players
             .sort((a, b) => {
                 if (a.score !== b.score) {
                     return a.score - b.score
                 }
-                if (a.money() !== b.money()) {
-                    return a.money() - b.money()
+
+                const aMoney = afterDevalue ? a.devaluedMoney() : a.money()
+                const bMoney = afterDevalue ? b.devaluedMoney() : b.money()
+
+                if (aMoney !== bMoney) {
+                    return aMoney - bMoney
                 }
-                if (a.numFish() !== b.numFish()) {
-                    return a.numFish() - b.numFish()
+
+                const aFish = afterDevalue ? a.devaluedFish() : a.numFish()
+                const bFish = afterDevalue ? b.devaluedFish() : b.numFish()
+                if (aFish !== bFish) {
+                    return aFish - bFish
                 }
 
                 if (
