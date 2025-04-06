@@ -1,6 +1,6 @@
 <script lang="ts">
     import { range, type Player } from '@tabletop/common'
-    import { HydratedKaivaiPlayerState } from '@tabletop/kaivai'
+    import { HydratedKaivaiPlayerState, MachineState } from '@tabletop/kaivai'
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
 
@@ -37,11 +37,21 @@
             <div class="flex flex-row justify-center items-center kaivai-font space-x-2">
                 <div class="flex flex-col justify-center items-center">
                     <div class="uppercase" style="font-size:.7rem; line-height:.8rem">move</div>
-                    <div class="text-xl">{playerState.movement()}</div>
+                    <div class="text-xl">
+                        {gameSession.gameState.machineState === MachineState.Bidding &&
+                        gameSession.gameState.bids[playerState.playerId] === undefined
+                            ? '-'
+                            : playerState.movement()}
+                    </div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
                     <div class="uppercase" style="font-size:.7rem; line-height:.8rem">build</div>
-                    <div class="text-xl">{playerState.buildingCost}</div>
+                    <div class="text-xl">
+                        {gameSession.gameState.machineState === MachineState.Bidding &&
+                        gameSession.gameState.bids[playerState.playerId] === undefined
+                            ? '-'
+                            : playerState.buildingCost}
+                    </div>
                 </div>
                 <div class="flex flex-col justify-center items-center">
                     <div class="uppercase" style="font-size:.7rem; line-height:.8rem">infl.</div>
