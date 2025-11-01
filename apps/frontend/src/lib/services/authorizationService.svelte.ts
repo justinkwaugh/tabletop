@@ -110,7 +110,7 @@ export class AuthorizationService {
             await goto(this.continueUrl)
             this.continueUrl = undefined
         } else {
-            await goto('/library')
+            await goto('/activeGamesCheck')
         }
     }
 
@@ -140,7 +140,7 @@ export class AuthorizationService {
                 redirect(302, '/onboarding')
                 break
             case UserStatus.Active:
-                redirect(302, '/dashboard')
+                redirect(302, '/activeGamesCheck')
                 break
             default:
                 // If we are trying to go somewhere but get sent to login due to the user

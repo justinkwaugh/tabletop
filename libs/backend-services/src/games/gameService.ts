@@ -193,6 +193,10 @@ export class GameService {
         return await this.gameStore.findActionsForGame(game)
     }
 
+    async userHasCachedActiveGames(user: User): Promise<boolean> {
+        return await this.gameStore.hasCachedActiveGames(user)
+    }
+
     async getActiveGamesForUser(user: User): Promise<Game[]> {
         const games = await this.gameStore.findGamesForUser(user, GameStatusCategory.Active)
         const filteredGames = games.filter(

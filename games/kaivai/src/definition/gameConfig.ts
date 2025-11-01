@@ -22,7 +22,7 @@ export const KaivaiGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.List,
         name: 'Ruleset',
         description: '1st or 2nd edition rules',
-        default: Ruleset.SecondEdition,
+        default: Ruleset.FirstEdition,
         options: [
             { name: '1st Edition', value: Ruleset.FirstEdition },
             { name: '2nd Edition', value: Ruleset.SecondEdition }

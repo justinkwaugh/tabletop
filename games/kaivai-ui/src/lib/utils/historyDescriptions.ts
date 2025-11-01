@@ -75,7 +75,7 @@ export function getHistoryDescriptionForAction(action?: GameAction, self?: boole
             if (action.playerId) {
                 return 'chose an island to score'
             } else {
-                return 'The last island is being scored'
+                return ''
             }
         }
         case isScoreHuts(action): {

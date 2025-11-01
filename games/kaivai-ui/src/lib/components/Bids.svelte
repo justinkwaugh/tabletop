@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import { flip } from 'svelte/animate'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
     let playerIdsByBid = $derived.by(() => {
@@ -13,6 +14,10 @@
     let bidList = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
     let costList = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
     let movementList = [1, 2, 3, 4, 5, 4, 3, 2, 1, 0]
+
+    let bidOrder = $derived.by(() => {
+        return gameSession.gameState.playersOrderedByAscendingWealth(true)
+    })
 
     function bidColor(bid: number) {
         const playerId = playerIdsByBid.get(bid)
@@ -117,6 +122,19 @@
                     </div>
                 </div>
             {/each}
+        </div>
+        <div class="flex flex-row justify-end items-center gap-x-2">
+            <div class="kaivai-font">NEXT BID ORDER</div>
+            <div class="flex flex-row gap-x-1">
+                {#each bidOrder as playerId (playerId)}
+                    <div
+                        animate:flip={{ duration: 200 }}
+                        class="w-[24px] h-[24px] flex flex-row justify-center items-center rounded-lg border border-gray-800 {gameSession.getPlayerTextColor(
+                            playerId
+                        )} {gameSession.getPlayerBgColor(playerId)}"
+                    ></div>
+                {/each}
+            </div>
         </div>
     </div>
 </div>

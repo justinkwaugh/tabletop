@@ -20,6 +20,7 @@ import type {
     GameResponse,
     GamesResponse,
     GameWithActionsResponse,
+    HasActiveGamesResponse,
     TokenResponse,
     UndoActionResponse,
     UsernameSearchResponse,
@@ -226,6 +227,16 @@ export class TabletopApi {
             .json<UserResponse>()
 
         return response.payload.user
+    }
+
+    async hasActiveGames(): Promise<boolean> {
+        const response = await this.wretch
+            .get('/games/hasActive')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<HasActiveGamesResponse>()
+
+        return response.payload.hasActive
     }
 
     async getMyGames(): Promise<Game[]> {

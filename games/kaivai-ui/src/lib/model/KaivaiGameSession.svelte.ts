@@ -1,4 +1,4 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
 import yellowHut from '$lib/images/yellowhut.png'
 import yellowHut2 from '$lib/images/yellowhut2.png'
 import blueHut from '$lib/images/bluehut.png'
@@ -43,8 +43,7 @@ import {
     GameAction,
     Color,
     sameCoordinates,
-    type AxialCoordinates,
-    ActionSource
+    type AxialCoordinates
 } from '@tabletop/common'
 
 export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaivaiGameState> {
@@ -56,6 +55,16 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     chosenBoatLocation: AxialCoordinates | undefined = $state(undefined)
     chosenDeliveries: Delivery[] = $state([])
     currentDeliveryLocation: AxialCoordinates | undefined = $state(undefined)
+
+    lastAction = $derived.by(() => {
+        let action
+        if (this.mode === GameSessionMode.History && this.currentHistoryIndex >= 0) {
+            action = this.actions[this.currentHistoryIndex]
+        } else if (this.mode === GameSessionMode.Play) {
+            action = this.actions[this.actions.length - 1]
+        }
+        return action
+    })
 
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
@@ -422,8 +431,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     override shouldAutoStepAction(action: GameAction) {
         return (
             action.type === ActionType.PlaceScoringBid ||
-            (action.type === ActionType.ChooseScoringIsland &&
-                action.source === ActionSource.System) ||
+            action.type === ActionType.ChooseScoringIsland ||
             (isPass(action) && action.metadata?.reason !== PassReason.DoneActions)
         )
     }

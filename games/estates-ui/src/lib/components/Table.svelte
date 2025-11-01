@@ -9,7 +9,7 @@
         GameChat
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    import { getContext, onMount } from 'svelte'
+    import { getContext, onMount, type ComponentType } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { TabItem, Tabs, Indicator } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
@@ -46,7 +46,7 @@
 
     async function chatListener(event: ChatEvent) {
         if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            toast.custom(ChatToast, {
+            toast.custom(ChatToast as unknown as ComponentType, {
                 duration: 3000,
                 position: 'bottom-left',
                 componentProps: {

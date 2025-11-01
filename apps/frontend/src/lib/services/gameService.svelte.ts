@@ -84,6 +84,10 @@ export class GameService {
         notificationService.addListener(this.NotificationListener)
     }
 
+    async hasActiveGames() {
+        return this.api.hasActiveGames()
+    }
+
     // Only allow a single async load at a time
     async loadGames() {
         if (!this.loadingPromise) {

@@ -41,7 +41,7 @@
             const newUser = await api.createUser(data)
             form.reset()
             authorizationService.setSessionUser(newUser)
-            goto('/dashboard')
+            goto('/library')
         } catch (e) {
             if (e instanceof Error && e.name === 'AlreadyExistsError') {
                 if (e.message.includes('username')) {

@@ -723,7 +723,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         try {
             await this.stepBackward()
         } finally {
-            this.stepping = false
+            // This allows stupid flip animations to finish
+            setTimeout(() => {
+                this.stepping = false
+            })
         }
     }
 
@@ -735,7 +738,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         try {
             await this.stepForward()
         } finally {
-            this.stepping = false
+            // This allows stupid flip animations to finish
+            setTimeout(() => {
+                this.stepping = false
+            })
         }
     }
 
@@ -815,8 +821,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         // this.historyGame.state = gameSnapshot.state
         this.onHistoryAction(this.actions[this.currentHistoryIndex])
 
-        if (stopPlayback) {
+        const skippableLastAction = this.shouldAutoStepAction(nextAction)
+        if (stopPlayback || skippableLastAction) {
             this.stopHistoryPlayback()
+        }
+
+        if (skippableLastAction) {
+            this.exitHistoryMode()
         }
     }
 
@@ -895,13 +906,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             await this.stepForward({ stopPlayback: true })
         }
 
-        if (predicate()) {
-            this.stepping = false
-        } else {
-            setTimeout(() => {
+        setTimeout(() => {
+            if (predicate()) {
+                this.stepping = false
+            } else {
                 void this.stepUntil(direction, predicate)
-            })
-        }
+            }
+        })
     }
 
     private async stepForwardUntilPlayerTurn(playerId: string) {
@@ -1152,6 +1163,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         ) as GameAction[]
 
         await this.applyServerActions(actions)
+
+        const game = Value.Convert(Game, notification.data.game) as Game
+        this.updateGame(game)
     }
 
     private async handleUndoNotification(notification: GameUndoActionNotification) {
@@ -1171,6 +1185,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.undoToIndex(gameSnapshot, targetIndex)
         await this.updateGameState(gameSnapshot.state)
         await this.applyServerActions(redoneActions)
+
+        const game = Value.Convert(Game, notification.data.game) as Game
+        this.updateGame(game)
     }
 
     private async handleDeleteNotification(notification: GameDeleteNotification) {
@@ -1213,6 +1230,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         try {
             const { game, actions } = await this.api.getGame(this.game.id)
             await this.updateGameState(game.state)
+            this.updateGame(game)
             this.initializeActions(actions)
         } catch (e) {
             console.log('Error during full resync', e)
@@ -1261,6 +1279,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         // Once all the actions are processed, update the game state
         await this.applyActionResults(allActionResults)
+    }
+
+    private updateGame(game: Game) {
+        const newGame = structuredClone(game)
+        newGame.state = this.game.state
+        this.game = newGame
     }
 
     private isGameAddActionsNotification(

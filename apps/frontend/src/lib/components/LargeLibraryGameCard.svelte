@@ -18,7 +18,6 @@
     async function onGameCreate() {
         await closeCreateModal()
         goto('/dashboard')
-        // notificationService.showPrompt()
     }
 
     function splitLines(text: string) {

@@ -2,5 +2,5 @@ import { redirect } from '@sveltejs/kit'
 
 // Provide a redirect for the root path
 export async function load() {
-    redirect(302, '/library')
+    redirect(302, '/activeGamesCheck')
 }
