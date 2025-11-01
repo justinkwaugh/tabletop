@@ -15,6 +15,6 @@
         "@tabletop/backend-services": "*",
         "@tabletop/eslint-config": "*",
         "rimraf": "^6.1.0",
-        "typescript": "5.6.3"
+        "typescript": "5.9.3"
     }
 }
