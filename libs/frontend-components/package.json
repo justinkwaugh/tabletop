@@ -29,13 +29,13 @@
         "!dist/**/*.spec.*"
     ],
     "peerDependencies": {
-        "@sveltejs/kit": "^2.7.2",
+        "@sveltejs/kit": "^2.48.4",
         "svelte": "^5.0.0"
     },
     "dependencies": {
         "@joeattardi/emoji-button": "github:justinkwaugh/picmo#emoji-button",
         "@sinclair/typebox": "^0.32.32",
-        "@sveltejs/package": "^2.3.2",
+        "@sveltejs/package": "^2.5.4",
         "@tabletop/common": "*",
         "compare-versions": "^6.1.1",
         "emoji-regex": "^10.4.0",
@@ -47,7 +47,7 @@
     },
     "devDependencies": {
         "@playwright/test": "^1.42.1",
-        "@sveltejs/kit": "^2.7.2",
+        "@sveltejs/kit": "^2.48.4",
         "@sveltejs/vite-plugin-svelte": "^6.2.1",
         "@tabletop/eslint-config": "*",
         "@typescript-eslint/eslint-plugin": "^7.1.0",

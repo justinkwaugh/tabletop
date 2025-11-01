@@ -40,7 +40,7 @@
     "devDependencies": {
         "@playwright/test": "^1.42.1",
         "@sveltejs/adapter-static": "^3.0.2",
-        "@sveltejs/kit": "^2.7.2",
+        "@sveltejs/kit": "^2.48.4",
         "@sveltejs/vite-plugin-svelte": "^6.2.1",
         "@tabletop/eslint-config": "*",
         "@types/google.accounts": "^0.0.14",

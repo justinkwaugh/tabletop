@@ -30,7 +30,7 @@
     ],
     "peerDependencies": {
         "svelte": "^5.0.0",
-        "@sveltejs/kit": "^2.7.2"
+        "@sveltejs/kit": "^2.48.4"
     },
     "dependencies": {
         "@tabletop/common": "*",
@@ -41,9 +41,9 @@
         "svelte-json-tree": "^2.2.0"
     },
     "devDependencies": {
-        "@sveltejs/package": "^2.3.2",
+        "@sveltejs/package": "^2.5.4",
         "@playwright/test": "^1.42.1",
-        "@sveltejs/kit": "^2.7.2",
+        "@sveltejs/kit": "^2.48.4",
         "@sveltejs/vite-plugin-svelte": "^6.2.1",
         "@tabletop/eslint-config": "*",
         "@typescript-eslint/eslint-plugin": "^7.1.0",
