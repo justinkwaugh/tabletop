@@ -28,7 +28,7 @@ export class ResendEmailService implements EmailService {
     }
 
     async sendVerificationEmail(token: string, toEmail: string): Promise<void> {
-        const emailHTML = render(EmailVerification({ token }))
+        const emailHTML = await render(EmailVerification({ token }))
         await this.resend.emails.send({
             from: 'noreply@boardtogether.games',
             to: toEmail,
@@ -41,7 +41,7 @@ export class ResendEmailService implements EmailService {
     }
 
     async sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void> {
-        const emailHTML = render(PasswordReset({ url }))
+        const emailHTML = await render(PasswordReset({ url }))
         await this.resend.emails.send({
             from: 'noreply@boardtogether.games',
             to: toEmail,
@@ -58,7 +58,7 @@ export class ResendEmailService implements EmailService {
         timestamp: Date,
         toEmail: string
     ): Promise<void> {
-        const emailHTML = render(AccountChangeNotification({ changeType, timestamp }))
+        const emailHTML = await render(AccountChangeNotification({ changeType, timestamp }))
         await this.resend.emails.send({
             from: 'noreply@boardtogether.games',
             to: toEmail,
@@ -83,7 +83,7 @@ export class ResendEmailService implements EmailService {
         url: string
         toEmail: string
     }): Promise<void> {
-        const emailHTML = render(
+        const emailHTML = await render(
             GameInvitation({
                 ownerName: owner.username ?? 'someone',
                 gameName: game.name,

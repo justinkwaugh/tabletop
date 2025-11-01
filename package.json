@@ -7,6 +7,7 @@
         "test": "vitest"
     },
     "devDependencies": {
+        "@types/react": "^19.2.2",
         "eslint": "^8.56.0",
         "prettier": "^3.3.3",
         "ts-node": "^10.9.2",

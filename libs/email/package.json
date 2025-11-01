@@ -13,10 +13,11 @@
         "dev": "email dev -p 3001"
     },
     "dependencies": {
-        "@react-email/components": "0.0.19"
+        "@react-email/components": "0.3.1"
     },
     "devDependencies": {
-        "react-email": "2.1.4",
+        "@react-email/preview-server": "^4.3.2",
+        "react-email": "4.3.2",
         "rimraf": "^3.0.2",
         "typescript": "5.6.3"
     }

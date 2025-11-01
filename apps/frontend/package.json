@@ -30,7 +30,7 @@
         "@tabletop/frontend-components": "*",
         "ably": "^2.3.1",
         "javascript-time-ago": "^2.5.10",
-        "nanoid": "^3.3.7",
+        "nanoid": "^5.1.6",
         "svelte-json-tree": "github:justinkwaugh/svelte-json-tree",
         "svelte-sonner": "^0.3.27",
         "wretch": "^2.9.0",
