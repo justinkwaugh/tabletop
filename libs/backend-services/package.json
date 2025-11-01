@@ -37,7 +37,7 @@
         "@tabletop/eslint-config": "*",
         "@types/glob-to-regexp": "^0.4.4",
         "@types/web-push": "^3.6.3",
-        "rimraf": "^3.0.2",
+        "rimraf": "^6.1.0",
         "typescript": "5.6.3"
     }
 }

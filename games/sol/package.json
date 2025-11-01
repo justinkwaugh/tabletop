@@ -19,7 +19,7 @@
         "@babel/core": "^7.25.2",
         "@babel/preset-env": "^7.25.3",
         "@tabletop/eslint-config": "*",
-        "rimraf": "^3.0.2",
+        "rimraf": "^6.1.0",
         "typescript": "5.6.3"
     }
 }

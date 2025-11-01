@@ -14,7 +14,7 @@
     "devDependencies": {
         "@tabletop/backend-services": "*",
         "@tabletop/eslint-config": "*",
-        "rimraf": "^3.0.2",
+        "rimraf": "^6.1.0",
         "typescript": "5.6.3"
     }
 }
