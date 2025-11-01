@@ -25,6 +25,7 @@
         "games/*"
     ],
     "dependencies": {
-        "svelte": "^5.0.0"
+        "svelte": "^5.0.0",
+        "three": "^0.181.0"
     }
 }
