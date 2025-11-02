@@ -116,7 +116,7 @@
                     </TimelineItem>
                 </div>
             {/each}
-            <TimelineItem title="" liClass="mb-5" date={timeAgo.format(gameSession.game.createdAt)}>
+            <TimelineItem title="" class="mb-5" date={timeAgo.format(gameSession.game.createdAt)}>
                 {#snippet orientationSlot()}
                     <div class="flex items-center">
                         <div

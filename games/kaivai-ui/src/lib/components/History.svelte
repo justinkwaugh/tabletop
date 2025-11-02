@@ -153,7 +153,7 @@
     class="rounded-lg border-2 border-[#634a11] text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden bg-[#302408]"
 >
     <div class="overflow-auto h-full">
-        <Timeline class="ms-1 dark:border-[#cabb7a]">
+        <Timeline class="ms-1 text-left dark:border-[#cabb7a]">
             {#each historyItems as historyItem (historyItem.id)}
                 <div
                     in:fade={{ duration: 200, easing: quartIn }}
@@ -161,12 +161,15 @@
                     animate:flip={{ duration: 100 }}
                 >
                     <TimelineItem
-                        classTime="dark:text-[#8d794d]"
-                        classLi="mb-5 text-left"
-                        classDiv={historyItem.date
-                            ? 'dark:bg-[#cabb7a] border-[#cabb7a]'
-                            : 'dark:bg-transparent border-0'}
-                        date={historyItem.date ? timeAgo.format(historyItem.date) : undefined}
+                        timeClass="dark:text-[#8d794d]"
+                        classes={{
+                            div: historyItem.date
+                                ? 'dark:bg-[#cabb7a] border-[#cabb7a]'
+                                : 'dark:bg-transparent border-0'
+                        }}
+                        title=""
+                        class="mb-5"
+                        date={historyItem.date ? timeAgo.format(historyItem.date) : ''}
                     >
                         {#if historyItem.type === HistoryItemType.Default}
                             {@render defaultHistoryItem(historyItem.description)}

@@ -25,7 +25,7 @@
 </script>
 
 <Button
-    class="flex items-center bg-[#5865F2] shadow-md {mode === 'login'
+    class="flex items-center dark:bg-[#5865F2] dark:hover:bg-[#5865F2] shadow-md {mode === 'login'
         ? 'px-6'
         : 'px-2'} py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 {mode ===
     'login'

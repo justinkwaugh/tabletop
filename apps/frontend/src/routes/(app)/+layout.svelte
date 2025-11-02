@@ -15,7 +15,8 @@
         NavLi,
         Toggle,
         Heading,
-        Alert
+        Alert,
+        DropdownGroup
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
     import { goto } from '$app/navigation'
@@ -192,33 +193,44 @@
 
                     <Avatar id="user-drop" class="cursor-pointer" />
                     <Dropdown triggeredBy="#user-drop">
-                        <DropdownHeader>
-                            <span class="block text-sm"
-                                >{sessionUser.username || 'username not assigned'}</span
+                        <DropdownGroup class="py-1">
+                            <DropdownHeader class="py-2">
+                                <span class="block text-sm"
+                                    >{sessionUser.username || 'username not assigned'}</span
+                                >
+                            </DropdownHeader>
+                            <DropdownDivider />
+                            <DropdownItem class="w-full text-left" onclick={gotoProfile}
+                                >Profile</DropdownItem
                             >
-                        </DropdownHeader>
-                        <DropdownItem onclick={gotoProfile}>Profile</DropdownItem>
-                        <DropdownItem onclick={gotoPreferences}>Preferences</DropdownItem>
-                        <DropdownDivider />
-                        <DropdownItem onclick={gotoAbout} class="md:hidden">About us</DropdownItem>
-                        <DropdownDivider class="md:hidden" />
-                        {#if authorizationService.isAdmin}
-                            <li>
-                                <Toggle
-                                    bind:checked={authorizationService.debugViewEnabled}
-                                    class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                    >Debug</Toggle
-                                >
-                            </li>
-                            <li>
-                                <Toggle
-                                    bind:checked={authorizationService.adminCapabilitiesEnabled}
-                                    class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                    >Admin</Toggle
-                                >
-                            </li>
-                        {/if}
-                        <DropdownItem onclick={logout}>Sign out</DropdownItem>
+                            <DropdownItem class="w-full text-left" onclick={gotoPreferences}
+                                >Preferences</DropdownItem
+                            >
+                            <DropdownDivider />
+                            <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
+                                >About us</DropdownItem
+                            >
+                            <DropdownDivider class="md:hidden" />
+                            {#if authorizationService.isAdmin}
+                                <li>
+                                    <Toggle
+                                        bind:checked={authorizationService.debugViewEnabled}
+                                        class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        >Debug</Toggle
+                                    >
+                                </li>
+                                <li>
+                                    <Toggle
+                                        bind:checked={authorizationService.adminCapabilitiesEnabled}
+                                        class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        >Admin</Toggle
+                                    >
+                                </li>
+                            {/if}
+                            <DropdownItem class="w-full text-left" onclick={logout}
+                                >Sign out</DropdownItem
+                            >
+                        </DropdownGroup>
                     </Dropdown>
                 {/if}
             </div>

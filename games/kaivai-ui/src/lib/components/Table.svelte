@@ -34,9 +34,9 @@
     )
 
     let activeTabClasses =
-        'relative py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border'
+        'relative py-1 px-3 bg-[#634a11] border-2 border-transparent rounded-lg text-gray-200 box-border text-md'
     let inactiveTabClasses =
-        'relative text-[#634a11] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#634a11] box-border'
+        'relative text-[#634a11] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#634a11] box-border text-md'
 
     let showBidBoard = $derived.by(() => {
         if (gameSession.mode === GameSessionMode.Play) {
@@ -111,53 +111,57 @@
             </div>
             <Tabs
                 tabStyle="pill"
-                defaultClass="flex flex-wrap space-x-1 rtl:space-x-reverse"
-                contentClass="p-0 bg-transparent h-full overflow-auto rounded-lg"
+                classes={{
+                    content: 'p-0 mt-0 dark:bg-transparent h-full overflow-auto rounded-lg'
+                }}
             >
                 <TabItem
                     open
                     onclick={onNonChatClick}
-                    defaultClass="uppercase kaivai-font"
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
+                    activeClass={activeTabClasses}
+                    inactiveClass={inactiveTabClasses}
                 >
-                    <div slot="title" class="flex items-center gap-2">
-                        <UserCircleSolid size="md" />
-                        Players
-                    </div>
+                    {#snippet titleSlot()}
+                        <div class="flex items-center gap-2 uppercase kaivai-font">
+                            <UserCircleSolid size="md" />
+                            Players
+                        </div>
+                    {/snippet}
 
                     <PlayersPanel />
                 </TabItem>
                 <TabItem
                     onclick={onNonChatClick}
-                    defaultClass="uppercase kaivai-font"
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
+                    activeClass={activeTabClasses}
+                    inactiveClass={inactiveTabClasses}
                 >
-                    <div slot="title" class="flex items-center gap-2">
-                        <ClockSolid size="md" />
-                        History
-                    </div>
+                    {#snippet titleSlot()}
+                        <div class="flex items-center gap-2 uppercase kaivai-font">
+                            <ClockSolid size="md" />
+                            History
+                        </div>
+                    {/snippet}
                     <History />
                 </TabItem>
                 <TabItem
                     onclick={onChatClick}
-                    defaultClass="uppercase kaivai-font"
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
+                    activeClass={activeTabClasses}
+                    inactiveClass={inactiveTabClasses}
                 >
-                    <div slot="title" class="flex items-center gap-2">
-                        <AnnotationSolid size="md" />
-                        Chat
-                        {#if showNewMessageIndicator}
-                            <Indicator
-                                color="red"
-                                size="lg"
-                                placement="top-right"
-                                class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
-                            ></Indicator>
-                        {/if}
-                    </div>
+                    {#snippet titleSlot()}
+                        <div class="flex items-center gap-2 uppercase kaivai-font">
+                            <AnnotationSolid size="md" />
+                            Chat
+                            {#if showNewMessageIndicator}
+                                <Indicator
+                                    color="red"
+                                    size="lg"
+                                    placement="top-right"
+                                    class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
+                                ></Indicator>
+                            {/if}
+                        </div>
+                    {/snippet}
 
                     <GameChat
                         height={'h-[calc(100dvh-202px)] sm:h-[calc(100dvh-178px)]'}
