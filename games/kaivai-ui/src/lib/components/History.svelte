@@ -160,6 +160,11 @@
                     out:fade={{ duration: 50 }}
                     animate:flip={{ duration: 100 }}
                 >
+                    {#if !isRoundStartHistoryItem(historyItem)}
+                        <div
+                            class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border dark:border-gray-900 dark:bg-[#cabb7a] border-[#cabb7a]"
+                        ></div>
+                    {/if}
                     <TimelineItem
                         timeClass="dark:text-[#8d794d]"
                         classes={{

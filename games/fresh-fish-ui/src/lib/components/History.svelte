@@ -70,6 +70,9 @@
     <div class="overflow-auto h-full">
         <Timeline class="ms-1 text-left">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
+                <div
+                    class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+                ></div>
                 <TimelineItem
                     title=""
                     class="mb-5"
@@ -92,6 +95,9 @@
                     onmouseover={() => highlight(action)}
                     onmouseleave={() => unhighlight()}
                 >
+                    <div
+                        class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+                    ></div>
                     <TimelineItem
                         title=""
                         class="mb-5"
@@ -116,6 +122,9 @@
                     </TimelineItem>
                 </div>
             {/each}
+            <div
+                class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+            ></div>
             <TimelineItem title="" class="mb-5" date={timeAgo.format(gameSession.game.createdAt)}>
                 {#snippet orientationSlot()}
                     <div class="flex items-center">

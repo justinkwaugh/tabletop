@@ -39,8 +39,11 @@
     class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden min-h-[300px]"
 >
     <div class="overflow-auto h-full">
-        <Timeline class="ms-1">
+        <Timeline class="ms-1 text-left">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
+                <div
+                    class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+                ></div>
                 <TimelineItem
                     title=""
                     class="mb-5"
@@ -61,6 +64,9 @@
                     out:fade={{ duration: 50 }}
                     animate:flip={{ duration: 100 }}
                 >
+                    <div
+                        class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+                    ></div>
                     <TimelineItem
                         title=""
                         class="mb-5"
@@ -72,6 +78,9 @@
                     </TimelineItem>
                 </div>
             {/each}
+            <div
+                class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+            ></div>
             <TimelineItem title="" class="mb-5" date={timeAgo.format(gameSession.game.createdAt)}>
                 <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                     The game was started
