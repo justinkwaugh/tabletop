@@ -187,9 +187,8 @@
 </script>
 
 <Card
-    on:click={toggleExpand}
+    onclick={toggleExpand}
     class="mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none"
-    padding="none"
     size="sm"
 >
     <div class="flex flex-col">
@@ -348,7 +347,7 @@
         </div>
         {#if isExpanded}
             <div
-                class="pt-4 ps-4 pe-4"
+                class="pt-4 ps-4 pe-4 text-gray-400"
                 in:slide={{ axis: 'y', duration: 400 }}
                 out:slide={{ axis: 'y', duration: 400 }}
             >
@@ -357,7 +356,7 @@
                         <div class="flex flex-row justify-between">
                             <div class="text-xs font-semibold">PLAYERS</div>
                         </div>
-                        <Hr hrClass="mt-1 mb-1" />
+                        <Hr class="mt-1 mb-1" />
                         {#each sortedPlayers as player (player.id)}
                             <div class="flex flex-row justify-between">
                                 <div
@@ -375,7 +374,7 @@
                     </div>
 
                     {#if canJoin || canStart || canEdit || canDecline || canPlay || canWatch || canRevisit || canDelete}
-                        <Hr hrClass="mt-2 mb-0" />
+                        <Hr class="mt-2 mb-0" />
                         <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
                             {#if canDecline}
                                 <Button size="xs" color="red" class="mx-2" onclick={declineGame}

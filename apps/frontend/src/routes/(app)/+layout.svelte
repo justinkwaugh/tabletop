@@ -23,7 +23,6 @@
     import GameEditForm from '$lib/components/GameEditForm.svelte'
     import { UserStatus } from '@tabletop/common'
     import type { AppContext } from '$lib/stores/appContext.svelte'
-    import { BellSolid, InfoCircleSolid } from 'flowbite-svelte-icons'
     import { VersionChange } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
@@ -156,14 +155,13 @@
     {#if gameService.currentGameSession}
         <Heading
             class="text-nowrap text-center mt-2 sm:mt-0 max-w-[320px] dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
-            customSize=""
             style=""
             tag="h4">{gameService.currentGameSession.game.name}</Heading
         >
     {/if}
 {/snippet}
 
-<Navbar fluid={true} class="bg-gray-100">
+<Navbar fluid={true} class="dark:bg-gray-800">
     <div class="flex flex-col w-full">
         <div class="flex flex-row justify-between items-center w-full">
             <div class="flex justify-center items-center">
@@ -179,7 +177,9 @@
             </div>
             <div class="flex items-center">
                 <NavUl
-                    ulClass="flex flex-col py-0 px-4 mt-4 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:text-sm md:font-medium"
+                    classes={{
+                        ul: 'flex flex-col py-0 px-4 mt-4 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:text-sm md:font-medium'
+                    }}
                 >
                     <NavLi href="/about">About Us</NavLi>
                 </NavUl>
@@ -190,7 +190,7 @@
                         >
                     {/if}
 
-                    <Avatar id="user-drop" class="cursor-pointer" rounded />
+                    <Avatar id="user-drop" class="cursor-pointer" />
                     <Dropdown triggeredBy="#user-drop">
                         <DropdownHeader>
                             <span class="block text-sm"
@@ -271,7 +271,7 @@
     </Alert>
 </Modal>
 {#if notificationService.shouldShowPrompt()}
-    <Banner
+    <!-- <Banner
         id="default-banner"
         position="relative"
         bannerType="info"
@@ -307,6 +307,6 @@
                 >
             </div>
         </div></Banner
-    >
+    > -->
 {/if}
 {@render children()}

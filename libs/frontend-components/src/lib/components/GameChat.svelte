@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { GameSession } from '$lib/model/gameSession.svelte'
-    import { GameChatMessage } from '@tabletop/common'
+    import { GameChatMessage, GameState, type HydratedGameState } from '@tabletop/common'
     import { Button } from 'flowbite-svelte'
     import { nanoid } from 'nanoid'
     import { getContext, onMount } from 'svelte'
@@ -13,7 +13,7 @@
     import emojiRegex from 'emoji-regex'
 
     let {
-        height = 'h-[calc(100dvh-198px)] sm:h-[calc(100dvh-174px)]',
+        height = 'h-[calc(100dvh-198px)] sm:h-[calc(100dvh-176px)]',
         timeColor = 'text-gray-600',
         bgColor = 'bg-transparent',
         inputBgColor = 'bg-gray-700',
@@ -27,7 +27,7 @@
     } = $props()
     const timeAgo = new TimeAgo('en-US')
 
-    let gameSession = getContext('gameSession') as GameSession
+    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
     let chatService = gameSession.chatService
     let text: string = $state('')
     let input: HTMLTextAreaElement

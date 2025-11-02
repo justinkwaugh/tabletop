@@ -91,27 +91,27 @@
 
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
     {#if user && user.email && !user.emailVerified}
-        <Card>
+        <Card class="p-4 sm:p-6">
             <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300">
                 Verify your email...
             </h1>
-            <Hr hrClass="my-4" />
+            <Hr class="my-4" />
             {#if unexpectedError}
-                <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+                <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
                     <span class="font-bold text-lg">Oops...</span><br />
                     An unexpected error occurred. Please try again and hopefully it will be better next
                     time.
                 </Alert>
             {/if}
             {#if verificationError}
-                <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+                <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
                     <span class="font-bold text-lg">Verification Failed</span><br />
                     Please check to make sure you entered the correct token, and that the token was not
                     created more than 30 minutes ago.
                 </Alert>
             {/if}
             {#if newEmailSent}
-                <Alert color="none" class="dark:bg-green-200 dark:text-green-700 mb-4">
+                <Alert class="dark:bg-green-200 dark:text-green-700 mb-4">
                     <span class="font-bold text-lg">Email Sent</span><br />
                     Please check your email for a new verification token.
                 </Alert>
@@ -122,29 +122,27 @@
                 > with a verification token. Please enter the token below to verify your email address.</P
             >
             <form class="flex flex-col space-y-6 mt-4" action="/" onsubmit={verifyToken}>
-                <Label class="space-y-2">
-                    <Input
-                        bind:value={verificationToken}
-                        on:input={trim}
-                        type="text"
-                        name="verificationToken"
-                        placeholder="aBCdef"
-                        required
-                    />
-                </Label>
+                <Input
+                    bind:value={verificationToken}
+                    oninput={trim}
+                    type="text"
+                    name="verificationToken"
+                    placeholder="aBCdef"
+                    required
+                />
                 <div class="flex flex-row justify-between">
-                    <Button on:click={sendVerificationEmail} color="light">Send New Token</Button
+                    <Button onclick={sendVerificationEmail} color="light">Send New Token</Button
                     ><Button type="submit">Submit</Button>
                 </div>
             </form>
         </Card>
     {:else}
-        <Card>
+        <Card class="p-4 sm:p-6">
             <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">
                 Complete your profile...
             </h1>
             {#if unexpectedError}
-                <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+                <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
                     <span class="font-bold text-lg">Oops...</span><br />
                     An unexpected error occurred. Please try again and hopefully it will be better next
                     time.
@@ -152,44 +150,40 @@
             {/if}
             <form class="flex flex-col space-y-6" action="/" onsubmit={updateUser}>
                 {#if user && !user.username}
-                    <Label class="space-y-2">
-                        <span>Username</span>
-                        <Input
-                            bind:value={username}
-                            on:input={trim}
-                            type="text"
-                            name="username"
-                            placeholder="choose a username"
-                            required
-                        />
-                        {#if errors?.username}
-                            {#each errors.username as error}
-                                <Helper class="mb-2" color="red"
-                                    ><span class="font-medium">{error}</span></Helper
-                                >
-                            {/each}
-                        {/if}
-                    </Label>
+                    <Label class="mb-2">Username</Label>
+                    <Input
+                        bind:value={username}
+                        oninput={trim}
+                        type="text"
+                        name="username"
+                        placeholder="choose a username"
+                        required
+                    />
+                    {#if errors?.username}
+                        {#each errors.username as error}
+                            <Helper class="mb-2" color="red"
+                                ><span class="font-medium">{error}</span></Helper
+                            >
+                        {/each}
+                    {/if}
                 {/if}
                 {#if user && !user.email}
-                    <Label class="space-y-2">
-                        <span>Email</span>
-                        <Input
-                            bind:value={email}
-                            on:input={trim}
-                            type="email"
-                            name="email"
-                            placeholder="name@company.com"
-                            required
-                        />
-                        {#if errors?.email}
-                            {#each errors.email as error}
-                                <Helper class="mb-2" color="red"
-                                    ><span class="font-medium">{error}</span></Helper
-                                >
-                            {/each}
-                        {/if}
-                    </Label>
+                    <Label class="mb-2">Email</Label>
+                    <Input
+                        bind:value={email}
+                        oninput={trim}
+                        type="email"
+                        name="email"
+                        placeholder="name@company.com"
+                        required
+                    />
+                    {#if errors?.email}
+                        {#each errors.email as error}
+                            <Helper class="mb-2" color="red"
+                                ><span class="font-medium">{error}</span></Helper
+                            >
+                        {/each}
+                    {/if}
                     <Helper class="text-sm mt-2">
                         We’ll never share your email publicly. It is only used for account recovery
                         and notifications.

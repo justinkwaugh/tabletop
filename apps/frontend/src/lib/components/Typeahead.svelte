@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import { trim } from '$lib/utils/trimInput'
-    import { Dropdown, DropdownItem, Input } from 'flowbite-svelte'
+    import { Dropdown, DropdownGroup, DropdownItem, Input, type InputProps } from 'flowbite-svelte'
     import { nanoid } from 'nanoid'
     import { getContext, type Snippet } from 'svelte'
 
@@ -18,22 +18,23 @@
         exclude: string[]
         oninput: (event: InputEvent) => void
         children: Snippet
-    } = $props()
+    } & InputProps = $props()
 
     let { api } = getContext('appContext') as AppContext
 
     let inputId = $state(`in-${id}`)
     let hiddenTriggerId = $derived(`no-${inputId}`)
 
-    let open: boolean = $state(false)
+    let isOpen: boolean = $state(false)
     let lastRequestId: string | undefined = $state(undefined)
     let items: string[] = $state([])
     let highlightIndex: number = $state(-1)
 
     let delay = 100
     let inputDelayTimeout: ReturnType<typeof setTimeout>
+    let inputWidth: number = $state(0)
 
-    function onInput(event: InputEvent) {
+    function onInput(event: Event) {
         trim(event)
         text = (event.target as HTMLInputElement).value
 
@@ -47,7 +48,7 @@
             processInput()
         }
 
-        oninput(event)
+        oninput(event as InputEvent)
     }
 
     async function processInput() {
@@ -59,12 +60,12 @@
     }
 
     function openDropdown() {
-        open = true
+        isOpen = true
     }
 
     function closeDropdown() {
         highlightIndex = -1
-        open = false
+        isOpen = false
     }
 
     async function search() {
@@ -149,27 +150,35 @@
     })
 </script>
 
-<div class="relative">
+<div bind:clientWidth={inputWidth} class="relative">
     <div id={hiddenTriggerId} class="hidden"></div>
     <Input id={inputId} bind:value={text} oninput={onInput} onkeydown={onKeyDown} {...others}>
-        <div slot="right">{@render children()}</div>
+        {#snippet right()}
+            <div>{@render children()}</div>
+        {/snippet}
     </Input>
     <Dropdown
-        bind:open
+        bind:isOpen
         reference={`#${inputId}`}
         triggeredBy={`#${hiddenTriggerId}`}
-        trigger={'focus'}
+        trigger={'click'}
         color="dropdown"
-        classContainer="w-full border-2 dark:border-gray-700 dark:bg-gray-800"
+        offset={0}
+        class="mt-2 border-2 dark:border-gray-700 dark:bg-gray-800"
+        strategy="fixed"
     >
-        {#each items as item, i}
-            <DropdownItem
-                onclick={onItemClick}
-                onmouseenter={() => highlight(i)}
-                defaultClass="font-medium py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600
+        <div style="width: {inputWidth}px">
+            <DropdownGroup class="py-1">
+                {#each items as item, i}
+                    <DropdownItem
+                        onclick={onItemClick}
+                        onmouseenter={() => highlight(i)}
+                        class="w-full text-left font-medium py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600
                 {highlightIndex === i ? 'dark:bg-gray-600' : ''} "
-                >{item}
-            </DropdownItem>
-        {/each}
+                        >{item}
+                    </DropdownItem>
+                {/each}
+            </DropdownGroup>
+        </div>
     </Dropdown>
 </div>

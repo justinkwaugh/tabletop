@@ -29,30 +29,28 @@
 </script>
 
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
-    <Card>
+    <Card class="p-4 sm:p-6">
         <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300">
             Enter your email address...
         </h1>
         {#if newEmailSent}
-            <Alert color="none" class="dark:bg-green-200 dark:text-green-700 my-4">
+            <Alert class="dark:bg-green-200 dark:text-green-700 my-4">
                 <span class="font-bold text-lg">Email Sent</span><br />
                 If your email address is associated with a user in our system, an email with a password
                 reset link was sent to it.
             </Alert>
         {/if}
         <form class="flex flex-col space-y-6 mt-4" action="/" onsubmit={sendForgotPasswordEmail}>
-            <Label class="space-y-2">
-                <Input
-                    bind:value={email}
-                    on:input={trim}
-                    type="text"
-                    name="email"
-                    placeholder="name@company.com"
-                    required
-                />
-            </Label>
+            <Input
+                bind:value={email}
+                oninput={trim}
+                type="text"
+                name="email"
+                placeholder="name@company.com"
+                required
+            />
             <div class="flex flex-row justify-between">
-                <Button color="light" on:click={gotoLogin}>Back to Login</Button><Button
+                <Button color="light" onclick={gotoLogin}>Back to Login</Button><Button
                     type="submit">Submit</Button
                 >
             </div>

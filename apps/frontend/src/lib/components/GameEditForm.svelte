@@ -259,17 +259,18 @@
 {/snippet}
 
 {#snippet listOption(option: ListConfigOption)}
-    <Label class="space-y-2">
-        <span>{option.name}</span>
-        <Select
-            onchange={(event: Event) => onOptionChange(option, event)}
-            id={option.id}
-            size="sm"
-            items={option.options}
-            value={option.default}
-            required
-        />
+    <Label class="mb-2">
+        {option.name}
     </Label>
+    <Select
+        onchange={(event: Event) => onOptionChange(option, event)}
+        id={option.id}
+        size="sm"
+        items={option.options}
+        value={option.default}
+        required
+        class="w-fit"
+    />
 {/snippet}
 
 <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200 mb-4">
@@ -280,62 +281,59 @@
     {/if}
 </h1>
 {#if unexpectedError}
-    <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+    <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
         <span class="font-bold text-lg">Oops...</span><br />
         An unexpected error occurred. Please try again and hopefully it will be better next time.
     </Alert>
 {/if}
 <form class="flex flex-col space-y-4 text-left" action="/" onsubmit={submit}>
     {#if mode === EditMode.Create && !title}
-        <Label class="space-y-2">
-            <span>Title</span>
-            <Select
-                id="selectedTitle"
-                onchange={onTitleChosen}
-                bind:value={selectedTitle}
-                items={availableTitles}
-                placeholder="choose a game..."
-                required
-            />
-        </Label>
+        <Label class="space-y-2">Title</Label>
+        <Select
+            id="selectedTitle"
+            onchange={onTitleChosen}
+            bind:value={selectedTitle}
+            items={availableTitles}
+            placeholder="choose a game..."
+            required
+        />
     {/if}
     {#if selectedTitle}
-        <Label class="space-y-2">
-            <span>Name</span>
-            <Input
-                type="text"
-                name="name"
-                bind:value={name}
-                placeholder="choose a name for your game"
-                required
-            />
-            {#if errors?.name}
-                {#each errors.name as error}
-                    <Helper class="mb-2" color="red"
-                        ><span class="font-medium">{error}</span></Helper
-                    >
-                {/each}
-            {/if}
-        </Label>
-        <Label class="space-y-2">
+        <Label class="mb-2">Name</Label>
+        <Input
+            type="text"
+            name="name"
+            bind:value={name}
+            placeholder="choose a name for your game"
+            required
+        />
+        {#if errors?.name}
+            {#each errors.name as error}
+                <Helper class="mb-2" color="red"><span class="font-medium">{error}</span></Helper>
+            {/each}
+        {/if}
+        <Label class="mb-2">
             <span>Player Count</span>
-            <div>
-                <ButtonGroup>
-                    {#each range(minPlayers, maxPlayers - minPlayers + 1) as i}
-                        <RadioButton value={i} bind:group={numPlayers}>{i}</RadioButton>
-                    {/each}
-                </ButtonGroup>
-            </div>
         </Label>
-        <Label>Players</Label>
-        {#each players as player, i (player.id)}
-            <Label class="space-y-2">
+        <ButtonGroup>
+            {#each range(minPlayers, maxPlayers - minPlayers + 1) as i}
+                <RadioButton
+                    value={i}
+                    checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
+                    bind:group={numPlayers}>{i}</RadioButton
+                >
+            {/each}
+        </ButtonGroup>
+
+        <Label class="mb-2">Players</Label>
+        <div class="flex flex-col space-y-2">
+            {#each players as player, i (player.id)}
                 <Typeahead
                     id={player.id}
                     oninput={(event: InputEvent) => handleNameInput(player, event)}
                     bind:text={player.name}
                     exclude={players.map((p) => p.name)}
-                    size="sm"
+                    size="md"
                     type="text"
                     name={player.id}
                     placeholder="player name"
@@ -343,7 +341,7 @@
                         ? 'red'
                         : isJoinedNonOwner(player)
                           ? 'green'
-                          : 'base'}
+                          : 'default'}
                     readonly={isOwner(player)}
                     disabled={isOwner(player)}
                     required={!isPublic}
@@ -408,8 +406,8 @@
                         <Helper color="red"><span class="font-medium">{error}</span></Helper>
                     {/each}
                 {/if}
-            </Label>
-        {/each}
+            {/each}
+        </div>
         <!-- <Toggle bind:checked={isPublic}>Public</Toggle> -->
         {#if selectedTitle.configOptions.length > 0}
             <div

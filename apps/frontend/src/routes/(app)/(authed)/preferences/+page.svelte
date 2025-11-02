@@ -95,19 +95,19 @@
 </div>
 
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
-    <Card class="bg-gray-300">
+    <Card class="bg-gray-300 p-4 sm:p-6">
         <form class="flex flex-col space-y-6" action="/" onsubmit={submit}>
             <h3 class="text-xl font-medium text-gray-900 dark:text-white">
                 Set your preferences...
             </h3>
             {#if errorMessage}
-                <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+                <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
                     <span class="font-bold text-lg">Update Failed</span><br />
                     {errorMessage}
                 </Alert>
             {/if}
             {#if success}
-                <Alert color="none" class="dark:bg-green-200 dark:text-green-700 my-4">
+                <Alert class="dark:bg-green-200 dark:text-green-700 mb-4">
                     <span class="font-bold text-lg">Preferences Updated</span><br />
                 </Alert>
             {/if}
@@ -115,20 +115,6 @@
             <Toggle bind:checked={preferences.preventWebNotificationPrompt}
                 >Prevent Web Notifications Prompt</Toggle
             >
-            <!-- <Input
-                    bind:value={email}
-                    type="email"
-                    name="email"
-                    placeholder="name@company.com"
-                    required
-                />
-                {#if errors?.email}
-                    {#each errors.email as error}
-                        <Helper class="mb-2" color="red"
-                            ><span class="font-medium">{error}</span></Helper
-                        >
-                    {/each}
-                {/if} -->
             <Toggle bind:checked={preferences.colorBlindPalette}>Colorblind Friendly Palette</Toggle
             >
             <div>

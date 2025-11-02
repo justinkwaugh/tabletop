@@ -68,11 +68,11 @@
     class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden min-h-[300px]"
 >
     <div class="overflow-auto h-full">
-        <Timeline class="ms-1">
+        <Timeline class="ms-1 text-left">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
                 <TimelineItem
-                    classTime=""
-                    classLi="mb-5 text-left"
+                    title=""
+                    class="mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
                     <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
@@ -93,10 +93,17 @@
                     onmouseleave={() => unhighlight()}
                 >
                     <TimelineItem
-                        classTime=""
-                        classLi="mb-5 text-left"
+                        title=""
+                        class="mb-5"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
                     >
+                        {#snippet orientationSlot()}
+                            <div class="flex items-center">
+                                <div
+                                    class="dark:bg-gray-700 z-10 flex h-2 w-2 shrink-0 items-center justify-center rounded-full"
+                                ></div>
+                            </div>
+                        {/snippet}
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                             {#if action.playerId}
                                 <PlayerName playerId={action.playerId} />
@@ -109,11 +116,15 @@
                     </TimelineItem>
                 </div>
             {/each}
-            <TimelineItem
-                classTime=""
-                classLi="mb-5 text-left"
-                date={timeAgo.format(gameSession.game.createdAt)}
-            >
+            <TimelineItem title="" liClass="mb-5" date={timeAgo.format(gameSession.game.createdAt)}>
+                {#snippet orientationSlot()}
+                    <div class="flex items-center">
+                        <div
+                            class="bg-primary-200 dark:bg-primary-900 z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-0 ring-white sm:ring-8 dark:ring-gray-900"
+                        ></div>
+                        <div class="hidden h-0.5 w-full bg-gray-200 sm:flex dark:bg-gray-700"></div>
+                    </div>
+                {/snippet}
                 <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                     The game was started
                 </p>

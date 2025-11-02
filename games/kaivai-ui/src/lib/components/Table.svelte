@@ -105,7 +105,7 @@
             class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] max-sm:h-[calc(100vh-158px)]"
         >
             <div
-                class="max-sm:hidden shrink-0 grow-0 p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[42px]"
+                class="max-sm:hidden shrink-0 grow-0 p-2 rounded-lg border-2 border-[#634a11] bg-transparent h-[44px]"
             >
                 <HistoryControls enabledColor="text-[#634a11]" disabledColor="text-[#cabb7a]" />
             </div>

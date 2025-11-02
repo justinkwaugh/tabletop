@@ -15,7 +15,7 @@
             we would love to hear it!
         </P>
     </div>
-    <Card>
+    <Card class="p-4 sm:p-6">
         <Heading class="text-center" tag="h2">Talk to us...</Heading>
         <P class="mt-4 text-gray-600 dark:text-gray-300">
             If you have any complements, complaints, or suggestions, or have found something that
@@ -32,7 +32,7 @@
             > project on GitHub.
         </P>
         <div class="flex flex-col justify-center items-center mt-4">
-            <Card class="mt-4 text-gray-600 dark:text-gray-300 fit-content"
+            <Card class="p-4 sm:p-6 mt-4 text-gray-600 dark:text-gray-300 fit-content"
                 ><Heading tag="h6" class="mb-2">There are lots of ways to contribute:</Heading>
                 <List>
                     <Li icon class="gap-3"

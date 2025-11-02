@@ -62,52 +62,47 @@
             Enter your new password...
         </h1>
         {#if resetFailed}
-            <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+            <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
                 <span class="font-bold text-lg">Password Reset Failed</span><br />
                 An unknown error occurred. Please try again.
             </Alert>
         {/if}
         {#if resetSuccess}
-            <Alert color="none" class="dark:bg-green-200 dark:text-green-700 my-4">
+            <Alert class="dark:bg-green-200 dark:text-green-700 my-4">
                 <span class="font-bold text-lg">Success!</span><br />
                 <div class="flex justify-center mt-4">
-                    <Button color="green" on:click={gotoDashboard} class="mt-4"
+                    <Button color="green" onclick={gotoDashboard} class="mt-4"
                         >Continue to Dashboard</Button
                     >
                 </div>
             </Alert>
         {:else}
             <form class="flex flex-col space-y-4" action="/" onsubmit={submit}>
-                <Label class="space-y-2">
-                    <span>New Password</span>
-                    <Input
-                        on:input={trim}
-                        type={passwordToggle ? 'text' : 'password'}
-                        name="password"
-                        placeholder=""
-                        required
-                    >
-                        <button
-                            type="button"
-                            slot="right"
-                            onclick={togglePassword}
-                            class="pointer-events-auto"
-                        >
+                <Label class="mb-2">New Password</Label>
+                <Input
+                    oninput={trim}
+                    type={passwordToggle ? 'text' : 'password'}
+                    name="password"
+                    placeholder=""
+                    required
+                >
+                    {#snippet right()}
+                        <button type="button" onclick={togglePassword} class="pointer-events-auto">
                             {#if passwordToggle}
                                 <EyeSlashSolid class="w-5 h-5" />
                             {:else}
                                 <EyeSolid class="w-5 h-5" />
                             {/if}
                         </button>
-                    </Input>
-                    {#if errors?.password}
-                        {#each errors.password as error}
-                            <Helper class="mb-2" color="red"
-                                ><span class="font-medium">{error}</span></Helper
-                            >
-                        {/each}
-                    {/if}
-                </Label>
+                    {/snippet}
+                </Input>
+                {#if errors?.password}
+                    {#each errors.password as error}
+                        <Helper class="mb-2" color="red"
+                            ><span class="font-medium">{error}</span></Helper
+                        >
+                    {/each}
+                {/if}
                 <div class="flex justify-end mt-6">
                     <div><Button type="submit">Submit</Button></div>
                 </div>

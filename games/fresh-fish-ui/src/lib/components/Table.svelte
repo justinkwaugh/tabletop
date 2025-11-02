@@ -86,7 +86,7 @@
 
 <!-- Full Height and Width with 8px padding-->
 <div
-    class="sm:hidden shrink-0 grow-0 p-2 h-[42px] flex flex-col justify-center items-center border-gray-700 border-b-2"
+    class="sm:hidden shrink-0 grow-0 p-2 h-[44px] flex flex-col justify-center items-center border-gray-700 border-b-2"
 >
     <HistoryControls />
 </div>
@@ -107,53 +107,62 @@
                 </div>
             {/if}
             <div
-                class="shrink-0 grow-0 p-2 rounded-lg border-2 border-gray-700 bg-transparent h-[42px] max-sm:hidden"
+                class="shrink-0 grow-0 p-2 rounded-lg border-2 border-gray-700 bg-transparent h-[44px] max-sm:hidden"
             >
                 <HistoryControls />
             </div>
-            <Tabs tabStyle="pill" contentClass="p-0 bg-transparent h-full overflow-auto rounded-lg">
+            <Tabs
+                tabStyle="pill"
+                classes={{
+                    content: 'p-0 mt-0 dark:bg-transparent h-full overflow-auto rounded-lg'
+                }}
+            >
                 <TabItem
                     open
                     onclick={onNonChatClick}
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
+                    activeClass={activeTabClasses}
+                    inactiveClass={inactiveTabClasses}
                 >
-                    <div slot="title" class="flex items-center gap-2">
-                        <UserCircleSolid size="md" />
-                        Players
-                    </div>
-
+                    {#snippet titleSlot()}
+                        <div class="flex items-center gap-2">
+                            <UserCircleSolid size="md" />
+                            Players
+                        </div>
+                    {/snippet}
                     <PlayersPanel />
                 </TabItem>
                 <TabItem
                     onclick={onNonChatClick}
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
+                    activeClass={activeTabClasses}
+                    inactiveClass={inactiveTabClasses}
                 >
-                    <div slot="title" class="flex items-center gap-2">
-                        <ClockSolid size="md" />
-                        History
-                    </div>
+                    {#snippet titleSlot()}
+                        <div class="flex items-center gap-2">
+                            <ClockSolid size="md" />
+                            History
+                        </div>
+                    {/snippet}
                     <History />
                 </TabItem>
                 <TabItem
                     onclick={onChatClick}
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
+                    activeClass={activeTabClasses}
+                    inactiveClass={inactiveTabClasses}
                 >
-                    <div slot="title" class="flex items-center gap-2">
-                        <AnnotationSolid size="md" />
-                        Chat
-                        {#if showNewMessageIndicator}
-                            <Indicator
-                                color="red"
-                                size="lg"
-                                placement="top-right"
-                                class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
-                            ></Indicator>
-                        {/if}
-                    </div>
-
+                    {#snippet titleSlot()}
+                        <div class="flex items-center gap-2">
+                            <AnnotationSolid size="md" />
+                            Chat
+                            {#if showNewMessageIndicator}
+                                <Indicator
+                                    color="red"
+                                    size="lg"
+                                    placement="top-right"
+                                    class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
+                                ></Indicator>
+                            {/if}
+                        </div>
+                    {/snippet}
                     <GameChat />
                 </TabItem>
             </Tabs>

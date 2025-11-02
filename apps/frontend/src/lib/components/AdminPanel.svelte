@@ -1,9 +1,10 @@
 <script lang="ts">
+    import type { GameState, HydratedGameState } from '@tabletop/common'
     import type { GameSession } from '@tabletop/frontend-components'
     import { Button, Select } from 'flowbite-svelte'
     import { getContext } from 'svelte'
 
-    let gameSession = getContext('gameSession') as GameSession
+    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
 
     async function undo() {
         gameSession.undo()

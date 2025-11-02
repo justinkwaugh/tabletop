@@ -38,48 +38,40 @@
 </script>
 
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center">
-    <Card>
+    <Card class="p-4 sm:p-6">
         <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-300 mb-4">Please login...</h1>
         {#if loginFailed}
-            <Alert color="none" class="dark:bg-red-200 dark:text-red-700 mb-4">
+            <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
                 <span class="font-bold text-lg">Login Failed</span><br />
                 Invalid username or password
             </Alert>
         {/if}
         <form class="flex flex-col space-y-4" action="/" onsubmit={submit}>
-            <Label class="space-y-2">
-                <span>Username</span>
-                <Input on:input={trim} type="text" name="username" placeholder="" required />
-            </Label>
-            <Label class="space-y-2">
-                <span>Password</span>
-                <Input
-                    on:input={trim}
-                    type={passwordToggle ? 'text' : 'password'}
-                    name="password"
-                    placeholder=""
-                    required
-                >
-                    <button
-                        type="button"
-                        slot="right"
-                        onclick={togglePassword}
-                        class="pointer-events-auto"
-                    >
+            <Label class="mb-2">Username</Label>
+            <Input oninput={trim} type="text" name="username" placeholder="" required />
+            <Label class="mb-2">Password</Label>
+            <Input
+                oninput={trim}
+                type={passwordToggle ? 'text' : 'password'}
+                name="password"
+                placeholder=""
+                required
+            >
+                {#snippet right()}
+                    <button type="button" onclick={togglePassword} class="pointer-events-auto">
                         {#if passwordToggle}
                             <EyeSlashSolid class="w-5 h-5" />
                         {:else}
                             <EyeSolid class="w-5 h-5" />
                         {/if}
                     </button>
-                </Input>
-                <Helper align="right"
-                    ><a
-                        href="/forgot/password"
-                        class="font-medium hover:underline dark:text-orange-300">Forgot password?</a
-                    ></Helper
-                >
-            </Label>
+                {/snippet}
+            </Input>
+            <Helper class="text-right"
+                ><a href="/forgot/password" class="font-medium hover:underline dark:text-orange-300"
+                    >Forgot password?</a
+                ></Helper
+            >
             <div class="flex justify-between mt-6">
                 <div><Button color="light" onclick={backToLogin}>Back</Button></div>
                 <div><Button type="submit">Submit</Button></div>

@@ -71,8 +71,8 @@
         <Timeline class="ms-1">
             {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
                 <TimelineItem
-                    classTime=""
-                    classLi="mb-5 text-left"
+                    title=""
+                    class="mb-5 text-left"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
                     <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
@@ -93,8 +93,8 @@
                     onmouseleave={() => unhighlight()}
                 >
                     <TimelineItem
-                        classTime=""
-                        classLi="mb-5 text-left"
+                        title=""
+                        class="mb-5 text-left"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
@@ -107,8 +107,8 @@
                 </div>
             {/each}
             <TimelineItem
-                classTime=""
-                classLi="mb-5 text-left"
+                title=""
+                class="mb-5 text-left"
                 date={timeAgo.format(gameSession.game.createdAt)}
             >
                 <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
