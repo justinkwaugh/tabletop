@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+    cache:
+        image: redis:8.2-alpine
+        restart: always
+        ports:
+            - '6379:6379'
+        command: redis-server --save 20 1 --loglevel warning
+        volumes:
+            - cache:/data
+
+    firebase:
+        build:
+            context: ./firebase
+            dockerfile: Dockerfile
+            args:
+                - FIREBASE_VERSION=14.23.0
+        stop_grace_period: 1m
+        environment:
+            FIRESTORE_EMULATOR_HOST: 'localhost:8080'
+            FIREBASE_PROJECT: 'demo-tabletop'
+            GCLOUD_PROJECT: 'demo-tabletop'
+            FORCE_COLOR: 'true'
+            DATA_DIRECTORY: 'data'
+            CHOKIDAR_USEPOLLING: 'true'
+        ports:
+            - '4000:4000' # ui
+            - '4400:4400' # hub
+            - '4500:4500' # logging
+            - '8080:8080' # firestore
+        volumes:
+            - ./firebase:/srv/firebase:rw
+            - ./firebase/data:/srv/firebase/data:rw
+volumes:
+    cache:
+        driver: local
