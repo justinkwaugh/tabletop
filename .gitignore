@@ -40,6 +40,7 @@ out
 dist
 esm
 firebase/data/export/*
+!firebase/data/export/.gitkeep
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
