@@ -41,6 +41,9 @@
         "docker-build": {
             "dependsOn": ["@tabletop/backend#build", "@tabletop/frontend#build", "^build"],
             "cache": false
+        },
+        "init-project": {
+            "cache": false
         }
     }
 }

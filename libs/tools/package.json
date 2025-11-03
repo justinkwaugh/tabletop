@@ -4,12 +4,14 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "deploy-discord": "dotenvx run -f .env.local -- tsx src/deployDiscord.ts"
+        "deploy-discord": "dotenvx run -f .env.local -- tsx src/deployDiscord.ts",
+        "init-project": "tsx src/initProject.ts"
     },
     "dependencies": {
         "@dotenvx/dotenvx": "^0.44.6",
         "@tabletop/backend-services": "*",
-        "discord.js": "^14.15.3"
+        "discord.js": "^14.15.3",
+        "web-push": "3.6.7"
     },
     "devDependencies": {
         "@tabletop/backend-services": "*",
