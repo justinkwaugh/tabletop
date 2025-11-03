@@ -9,9 +9,7 @@
         "clean": "rimraf dist",
         "start": "dotenvx run -f .env.local -- tsx src/main.ts",
         "build": "tsc",
-        "docker-build": "docker build ../.. -f ./Dockerfile -t backend --platform=linux/amd64",
-        "firestore": "firebase emulators:start --import firestore --export-on-exit",
-        "redis": "docker run --rm -p 6379:6379 --name redis redis:7.2.5-alpine redis-server"
+        "docker-build": "docker build ../.. -f ./Dockerfile -t backend --platform=linux/amd64"
     },
     "dependencies": {
         "@dotenvx/dotenvx": "^0.44.6",
