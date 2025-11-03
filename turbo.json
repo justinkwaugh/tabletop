@@ -38,10 +38,6 @@
             "dependsOn": ["^clean"],
             "cache": false
         },
-        "redis": {
-            "cache": false,
-            "persistent": true
-        },
         "docker-build": {
             "dependsOn": ["@tabletop/backend#build", "@tabletop/frontend#build", "^build"],
             "cache": false

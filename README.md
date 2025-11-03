@@ -30,7 +30,6 @@ The frontend is run as a separate Vite process during development but for deploy
 ### Prerequisites
 
 1. [Node](https://nodejs.org/en) / NPM - The latest should do
-1. Firebase Emulator Tools - specifically and only the Firestore emulator. Follow these [installation instructions](https://firebase.google.com/docs/emulator-suite/install_and_configure)
 1. [Docker](https://www.docker.com/)
 1. Turbo - `npm install -g turbo`
 
@@ -81,10 +80,8 @@ PUBLIC_VAPID_KEY=
 
 ### Running Locally
 
-1. In a terminal window navigate to apps/backend and run `npm run firestore` to start the firestore emulator.
-1. In another terminal window at the root of the project run
-   `turbo redis` to start a local redis instance in a container
-1. In yet another terminal window, run `turbo watch dev` to build and run the actual project locally.
+1. In a terminal window navigate to the root of the project and run `docker compose up` to start redis and the firestore emulator
+1. In another terminal window, run `turbo watch dev` to build and run the actual project locally.
 1. If all has gone well, you can now go to http://localhost:5173 to view the site. The backend API will be running at http://localhost:3000 and the email preview site will be running at http://localhost:3001.
 
 ## Architecture
