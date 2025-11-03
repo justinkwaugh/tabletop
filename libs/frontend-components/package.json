@@ -41,7 +41,7 @@
         "emoji-regex": "^10.4.0",
         "gsap": "^3.12.5",
         "nanoid": "^5.1.6",
-        "svelte-json-tree": "^2.2.0",
+        "svelte-json-tree": "github:justinkwaugh/svelte-json-tree",
         "svelte-sonner": "^0.3.27",
         "wretch": "^2.9.0"
     },

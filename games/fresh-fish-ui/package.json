@@ -37,8 +37,7 @@
         "@tabletop/fresh-fish": "*",
         "@tabletop/frontend-components": "*",
         "javascript-time-ago": "^2.5.10",
-        "nanoid": "^5.1.6",
-        "svelte-json-tree": "^2.2.0"
+        "nanoid": "^5.1.6"
     },
     "devDependencies": {
         "@sveltejs/package": "^2.5.4",
