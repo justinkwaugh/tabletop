@@ -7,7 +7,8 @@
         "vscode": {
             "extensions": [
                 "1YiB.svelte-bundle",
-                "esbenp.prettier-vscode"
+                "esbenp.prettier-vscode",
+                "Vercel.turbo-vsc"
             ]
         }
     }

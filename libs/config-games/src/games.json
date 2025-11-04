@@ -1,0 +1,9 @@
+{
+    "games": [
+        "@tabletop/bridges-of-shangri-la",
+        "@tabletop/estates",
+        "@tabletop/fresh-fish",
+        "@tabletop/kaivai",
+        "@tabletop/sol"
+    ]
+}

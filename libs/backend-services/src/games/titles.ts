@@ -1,9 +1,9 @@
 import { GameDefinition } from '@tabletop/common'
-import { games } from '@tabletop/games-config'
+import { AvailableGames } from '@tabletop/games-config'
 
 const definitions: GameDefinition[] = []
-for (const game of games) {
-    const gameModule = await import(`@tabletop/${game}`)
+for (const [name, scope] of AvailableGames) {
+    const gameModule = await import(`${scope ? scope + '/' : ''}${name}`)
     const gameDefinition = gameModule[`Definition` as keyof typeof gameModule] as GameDefinition
     definitions.push(gameDefinition)
 }
