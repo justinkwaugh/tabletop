@@ -5,7 +5,7 @@ import { EstatesApiActions } from './apiActions.js'
 import { EstatesStateHandlers } from './stateHandlers.js'
 import { EstatesGameConfigOptions } from './gameConfig.js'
 
-export const EstatesDefinition = <GameDefinition>{
+export const Definition = <GameDefinition>{
     id: 'estates',
 
     metadata: {

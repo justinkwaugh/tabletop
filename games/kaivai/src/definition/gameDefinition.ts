@@ -6,7 +6,7 @@ import { KaivaiStateHandlers } from './stateHandlers.js'
 import { KaivaiColors } from './colors.js'
 import { KaivaiConfigHandler, KaivaiGameConfigOptions } from './gameConfig.js'
 
-export const KaivaiDefinition = <GameDefinition>{
+export const Definition = <GameDefinition>{
     id: 'kaivai',
 
     metadata: {

@@ -54,11 +54,7 @@ import {
     UserAlreadyJoinedError,
     UserIsNotAllowedPlayerError
 } from './errors.js'
-import { FreshFishDefinition } from '@tabletop/fresh-fish'
-import { BridgesDefinition } from '@tabletop/bridges-of-shangri-la'
-import { KaivaiDefinition } from '@tabletop/kaivai'
-import { EstatesDefinition } from '@tabletop/estates'
-import { SolDefinition } from '@tabletop/sol'
+
 import { GameInvitationTokenData } from '../tokens/tokenData.js'
 import { nanoid } from 'nanoid'
 import { GameStore } from '../persistence/stores/gameStore.js'
@@ -66,20 +62,7 @@ import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
-
-const FreshFish = FreshFishDefinition
-const BridgesOfShangrila = BridgesDefinition
-const Kaivai = KaivaiDefinition
-const Estates = EstatesDefinition
-const Sol = SolDefinition
-
-export const AVAILABLE_TITLES: Record<string, GameDefinition> = {
-    [FreshFish.id]: FreshFish,
-    [BridgesOfShangrila.id]: BridgesOfShangrila,
-    [EstatesDefinition.id]: Estates,
-    [Kaivai.id]: Kaivai,
-    [Sol.id]: Sol
-}
+import { AVAILABLE_TITLES } from './titles.js'
 
 export class GameService {
     constructor(

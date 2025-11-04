@@ -21,6 +21,7 @@
         "@tabletop/common": "*",
         "@tabletop/estates": "*",
         "@tabletop/fresh-fish": "*",
+        "@tabletop/games-config": "*",
         "@tabletop/kaivai": "*",
         "@tabletop/sol": "*",
         "ably": "^2.3.1",

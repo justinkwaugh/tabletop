@@ -6,7 +6,7 @@ import { SolStateHandlers } from './stateHandlers.js'
 import { SolColors } from './colors.js'
 import { SolGameConfigOptions } from './gameConfig.js'
 
-export const SolDefinition = <GameDefinition>{
+export const Definition = <GameDefinition>{
     id: 'sol',
 
     metadata: {

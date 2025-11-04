@@ -1,9 +1,9 @@
 import { type GameUiDefinition } from '@tabletop/frontend-components'
-import { EstatesDefinition } from '@tabletop/estates'
+import { Definition } from '@tabletop/estates'
 import { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte.js'
 import { EstatesGameColorizer } from './gameColorizer.js'
 
-export const EstatesUiDefinition: GameUiDefinition = Object.assign({}, EstatesDefinition, {
+export const UiDefinition: GameUiDefinition = Object.assign({}, Definition, {
     getTableComponent: async () => {
         return (await import('../components/Table.svelte')).default
     },

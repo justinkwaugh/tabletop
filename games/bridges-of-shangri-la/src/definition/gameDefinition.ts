@@ -5,7 +5,7 @@ import { BridgesApiActions } from './apiActions.js'
 import { BridgesStateHandlers } from './stateHandlers.js'
 import { BridgesColors } from './colors.js'
 
-export const BridgesDefinition = <GameDefinition>{
+export const Definition = <GameDefinition>{
     id: 'bridges',
 
     metadata: {

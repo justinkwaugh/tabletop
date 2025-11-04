@@ -1,9 +1,9 @@
 import { type GameUiDefinition } from '@tabletop/frontend-components'
-import { SolDefinition } from '@tabletop/sol'
+import { Definition } from '@tabletop/sol'
 import { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { SolGameColorizer } from './gameColorizer.js'
 
-export const SolUiDefinition: GameUiDefinition = Object.assign({}, SolDefinition, {
+export const UiDefinition: GameUiDefinition = Object.assign({}, Definition, {
     getTableComponent: async () => {
         return (await import('../components/Table.svelte')).default
     },

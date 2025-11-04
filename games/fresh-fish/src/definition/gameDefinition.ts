@@ -7,7 +7,7 @@ import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
 import { FreshFishGameConfigOptions } from './gameConfig.js'
 
-export const FreshFishDefinition = <GameDefinition>{
+export const Definition = <GameDefinition>{
     id: 'freshfish',
 
     metadata: {

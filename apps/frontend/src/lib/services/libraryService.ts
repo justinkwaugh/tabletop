@@ -1,26 +1,16 @@
-import { FreshFishUiDefinition } from '@tabletop/fresh-fish-ui'
-import { BridgesUiDefinition } from '@tabletop/bridges-of-shangri-la-ui'
-import { KaivaiUiDefinition } from '@tabletop/kaivai-ui'
-import { EstatesUiDefinition } from '@tabletop/estates-ui'
-import { SolUiDefinition } from '@tabletop/sol-ui'
 import { type GameUiDefinition } from '@tabletop/frontend-components'
+import { AVAILABLE_TITLES } from './titles.js'
 import type { AuthorizationService } from './authorizationService.svelte'
 import { Role } from '@tabletop/common'
 
 export class LibraryService {
-    private readonly titles = new Map<string, GameUiDefinition>([
-        [BridgesUiDefinition.id, BridgesUiDefinition],
-        [FreshFishUiDefinition.id, FreshFishUiDefinition],
-        [EstatesUiDefinition.id, EstatesUiDefinition],
-        [KaivaiUiDefinition.id, KaivaiUiDefinition],
-        [SolUiDefinition.id, SolUiDefinition]
-    ])
+    private readonly titles = AVAILABLE_TITLES
 
     constructor(private readonly authorizationService: AuthorizationService) {}
 
     getTitles(): GameUiDefinition[] {
         const user = this.authorizationService.getSessionUser()
-        return Array.from(this.titles.values())
+        return Object.values(this.titles)
             .filter(
                 (title) =>
                     !title.metadata.beta ||
@@ -31,14 +21,14 @@ export class LibraryService {
     }
 
     getTitle(id: string): GameUiDefinition | undefined {
-        return this.titles.get(id)
+        return this.titles[id]
     }
 
     getNameForTitle(id: string): string {
-        return this.titles.get(id)?.metadata.name ?? 'Unknown Game'
+        return this.titles[id]?.metadata.name ?? 'Unknown Game'
     }
 
     getThumbnailForTitle(id: string): string {
-        return this.titles.get(id)?.thumbnailUrl ?? ''
+        return this.titles[id]?.thumbnailUrl ?? ''
     }
 }
