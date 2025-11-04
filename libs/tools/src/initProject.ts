@@ -7,30 +7,43 @@ async function replaceFileString(toReplace: string, replaceWith: string, fileNam
     await fs.writeFile(fileName, fileContent, 'utf8')
 }
 
+async function fileExists(path: string): Promise<boolean> {
+    try {
+        await fs.access(path)
+        console.log('File exists.')
+        return true
+    } catch (error) {
+        console.log('File does not exist.')
+        return false
+    }
+}
+
 export const initProject = async () => {
     try {
+        // Go to root
+        process.chdir('../../')
+
+        const exists = await fileExists('apps/backend/.env.local')
+        if (exists) {
+            console.log(
+                `It looks like your project has already been initialized. If you want to re-initialize, please delete apps/backend/.env.local and apps/frontend/.env.development.local and run this script again.`
+            )
+            return
+        }
+
         console.log(`Generating VAPID keys for Web Push notifications...`)
         const vapidKeys = WebPush.generateVAPIDKeys()
         console.log(`VAPID Public Key: ${vapidKeys.publicKey}`)
         console.log(`VAPID Private Key: ${vapidKeys.privateKey}`)
 
-        // Go to root
-        process.chdir('../../')
-
         // Copy env files
         console.log(`Copying backend .env.example to .env.local...`)
-        await import('fs/promises').then((fs) =>
-            fs.copyFile('apps/backend/.env.example', 'apps/backend/.env.local')
-        )
+        await fs.copyFile('apps/backend/.env.example', 'apps/backend/.env.local')
 
         console.log(`Copying frontend .env.example to .env.development.local...`)
-        await import('fs/promises').then((fs) =>
-            fs.copyFile('apps/frontend/.env.example', 'apps/frontend/.env.development.local')
-        )
+        await fs.copyFile('apps/frontend/.env.example', 'apps/frontend/.env.development.local')
 
-        await import('fs/promises').then((fs) =>
-            fs.copyFile('apps/frontend/.env.example', 'apps/frontend/.env.production')
-        )
+        await fs.copyFile('apps/frontend/.env.example', 'apps/frontend/.env.production')
 
         console.log(`Updating .env files with generated VAPID keys...`)
         await replaceFileString(
