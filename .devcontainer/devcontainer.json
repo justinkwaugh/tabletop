@@ -3,7 +3,7 @@
     "service": "tabletop",
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
-    "postCreateCommand": "sudo chown -R node:node /workspace/node_modules; npm install",
+    "postCreateCommand": "sudo chown -R node:node /workspace/node_modules; npm install; turbo init-project",
     "features": {
         "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
     },
