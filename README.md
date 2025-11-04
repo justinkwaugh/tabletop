@@ -17,10 +17,13 @@ The project is setup as a monorepo using [npm workspaces](https://docs.npmjs.com
 |--/fresh-fish-ui - The Svelte UI for Fresh Fish
 /libs
 |--/backend-services - A variety of services used by the backend
+|--/backend-games - A module used purely to define the game logic module dependencies
 |--/common - Shared game engine objects and types
 |--/config-eslint - Lint config
+|--/config-games - A module used to define which games are available
 |--/email - React Email project for email editing / previewing
 |--/frontend-components - Shared frontend components
+|--/frontend-games - A module used purely to define the game UI module dependencies
 ```
 
 The frontend is run as a separate Vite process during development but for deployment is compiled into a static SPA and served by the backend. Game implementations are modular and could even be imported from external repositories.
@@ -31,58 +34,38 @@ The frontend is run as a separate Vite process during development but for deploy
 
 1. [Node](https://nodejs.org/en) / NPM - The latest should do
 1. [Docker](https://www.docker.com/)
-1. Turbo - `npm install -g turbo`
 
-### Setup
+### Setup For Dev Containers
+
+1. Clone the repository
+1. Open the repository in VSCode and then choose "Reopen in container" when prompted.
+1. Open a terminal in VSCode and run `turbo watch dev`
+1. Navigate to http://localhost:5173
+
+### Running Locally In A Dev Container
+
+1. Open a terminal in VSCode and run `turbo watch dev`
+1. If all has gone well, you can now go to http://localhost:5173 to view the site. The backend API will be running at http://localhost:3000 and the email preview site will be running at http://localhost:3001.
+
+### Setup Without Dev Containers
 
 1. Clone the repository
 1. Run `npm install` from the root.
-1. Run `npx web-push generate-vapid-keys` to generate private and public vapid keys
-1. In the root of the backend workspace `/apps/backend` add a file named `.env.local` and populate it as shown below, adding the vapid keys where appropriate. Note that in order to support Google and Discord login you will need to provide appropriate ids/secrets as indicated. More details will be provided later in this document. Likewise in order to have the project send emails you will need a Resend account and it's API key:
-
-```
-FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"
-GCLOUD_PROJECT="demo-tabletop"
-FRONTEND_HOST="http://localhost:5173"
-TASKS_HOST="http://localhost:3000"
-
-SESSION_SECRET=
-SESSION_SALT=
-
-REDIS_HOST="localhost"
-REDIS_PORT="6379"
-REDIS_USERNAME=
-REDIS_PASSWORD=
-
-GOOGLE_CLIENT_ID=
-
-DISCORD_CLIENT_ID=
-DISCORD_PUBLIC_KEY=
-DISCORD_SECRET=
-DISCORD_BOT_TOKEN=
-
-ABLY_API_KEY=
-RESEND_API_KEY=
-
-VAPID_PUBLIC_KEY=
-VAPID_PRIVATE_KEY=
-```
-
-4. In the root of the frontend workspace `/apps/frontend` add a file named `.env.development.local` and populate it as follows, again adding the public vapid key where appropriate:
-
-```
-PUBLIC_API_HOST="http://localhost:3000"
-PUBLIC_SSE_HOST="http://localhost:3000"
-
-PUBLIC_GOOGLE_CLIENT_ID=
-PUBLIC_VAPID_KEY=
-```
+1. Run `npm install -g turbo`
+1. Run `turbo init-project` from the root
 
 ### Running Locally
 
 1. In a terminal window navigate to the root of the project and run `docker compose up` to start redis and the firestore emulator
 1. In another terminal window, run `turbo watch dev` to build and run the actual project locally.
 1. If all has gone well, you can now go to http://localhost:5173 to view the site. The backend API will be running at http://localhost:3000 and the email preview site will be running at http://localhost:3001.
+
+### First Time Running Notes
+
+The first time the site is run locally, there are no users at all. You will be presented with the login screen and can use
+the sign up link to navigate to the sign up form. After entering your information you will be prompted to entire a confirmation code that was emailed to you. If you have not signed up for an account with Resend and added your API
+key to the apps/backend/.env.local file you will not receive any email. That said, if you look in the logs of the backend
+process you will the confirmation code logged there and can enter it. The first user created is automatically created as a site admin.
 
 ## Architecture
 
