@@ -1,0 +1,23 @@
+{
+    "name": "@tabletop/frontend-games",
+    "version": "0.0.0",
+    "type": "module",
+    "exports": {
+        "import": "./esm/index.js",
+        "types": "./src/index.ts"
+    },
+    "private": true,
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsc",
+        "update-games": "tsx src/updateDependencies.ts"
+    },
+    "dependencies": {
+        "@tabletop/fresh-fish-ui": "*"
+    },
+    "devDependencies": {
+        "@tabletop/games-config": "*",
+        "@npmcli/package-json": "^7.0.1",
+        "@types/npmcli__package-json": "^4.0.4"
+    }
+}

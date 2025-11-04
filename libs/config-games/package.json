@@ -10,12 +10,5 @@
     "scripts": {
         "clean": "rimraf esm",
         "build": "tsc"
-    },
-    "dependencies": {
-        "@tabletop/fresh-fish": "*",
-        "@tabletop/kaivai": "*",
-        "@tabletop/bridges-of-shangri-la": "*",
-        "@tabletop/estates": "*",
-        "@tabletop/sol": "*"
     }
 }

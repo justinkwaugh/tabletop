@@ -9,7 +9,7 @@
     },
     "customizations": {
         "vscode": {
-            "extensions": ["1YiB.svelte-bundle", "esbenp.prettier-vscode", "Vercel.turbo-vsc"]
+            "extensions": ["1YiB.svelte-bundle", "esbenp.prettier-vscode"]
         }
     }
 }

@@ -1,5 +1,5 @@
 import { GameDefinition } from '@tabletop/common'
-import { AvailableGames } from '@tabletop/games-config'
+import { AvailableGames } from '@tabletop/backend-games'
 
 const definitions: GameDefinition[] = []
 for (const [name, scope] of AvailableGames) {

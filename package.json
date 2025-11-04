@@ -22,5 +22,9 @@
         "libs/*",
         "games/*",
         "apps/*"
-    ]
+    ],
+    "dependencies": {
+        "@tabletop/backend-games": "^0.0.0",
+        "@tabletop/frontend-games": "^0.0.0"
+    }
 }

@@ -1,5 +1,5 @@
 import type { GameUiDefinition } from '@tabletop/frontend-components'
-import { AvailableGames } from '@tabletop/games-config'
+import { AvailableGames } from '@tabletop/frontend-games'
 
 const definitions: GameUiDefinition[] = []
 for (const [name, scope] of AvailableGames) {

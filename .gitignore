@@ -38,6 +38,7 @@ out
 !.env.example
 
 dist
+build
 esm
 firebase/data/export/*
 !firebase/data/export/.gitkeep
