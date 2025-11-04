@@ -16,18 +16,13 @@
         "test:unit": "vitest"
     },
     "dependencies": {
-        "@tabletop/bridges-of-shangri-la": "*",
         "@tabletop/bridges-of-shangri-la-ui": "*",
         "@tabletop/common": "*",
-        "@tabletop/estates": "*",
         "@tabletop/estates-ui": "*",
-        "@tabletop/fresh-fish": "*",
         "@tabletop/fresh-fish-ui": "*",
         "@tabletop/frontend-components": "*",
         "@tabletop/games-config": "*",
-        "@tabletop/kaivai": "*",
         "@tabletop/kaivai-ui": "*",
-        "@tabletop/sol": "*",
         "@tabletop/sol-ui": "*",
         "ably": "^2.3.1",
         "javascript-time-ago": "^2.5.10",

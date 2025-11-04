@@ -1,0 +1,21 @@
+{
+    "name": "@tabletop/games-config",
+    "version": "0.0.0",
+    "type": "module",
+    "exports": {
+        "import": "./esm/index.js",
+        "types": "./src/index.ts"
+    },
+    "private": true,
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@tabletop/fresh-fish": "*",
+        "@tabletop/kaivai": "*",
+        "@tabletop/bridges-of-shangri-la": "*",
+        "@tabletop/estates": "*",
+        "@tabletop/sol": "*"
+    }
+}
