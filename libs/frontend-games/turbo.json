@@ -1,0 +1,12 @@
+{
+    "extends": ["//"],
+    "tasks": {
+        "build": {
+            "dependsOn": ["update-games", "^build"],
+            "outputs": ["esm/**/*"]
+        },
+        "update-games": {
+            "outputs": ["package.json"]
+        }
+    }
+}

@@ -5,7 +5,6 @@ export function flood<T extends Hex>(options: FloodOptions): Traverser<T> {
     return function floodTraverser(createHex, _cursor) {
         const visitedHexes = new Map<number, T>()
 
-        console.log('Starting flood traversdddal  from', options.start)
         const startHex = createHex(options.start)
         const directions = startHex.isPointy ? POINTY_NEIGHBORS : FLAT_NEIGHBORS
 
