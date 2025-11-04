@@ -3,13 +3,10 @@
     "service": "tabletop",
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
+    "postCreateCommand": "sudo chown -R node:node /workspace/node_modules",
     "customizations": {
         "vscode": {
-            "extensions": [
-                "1YiB.svelte-bundle",
-                "esbenp.prettier-vscode",
-                "Vercel.turbo-vsc"
-            ]
+            "extensions": ["1YiB.svelte-bundle", "esbenp.prettier-vscode", "Vercel.turbo-vsc"]
         }
     }
 }
