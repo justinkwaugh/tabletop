@@ -3,7 +3,10 @@
     "service": "tabletop",
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
-    "postCreateCommand": "sudo chown -R node:node /workspace/node_modules",
+    "postCreateCommand": "sudo chown -R node:node /workspace/node_modules; npm install",
+    "features": {
+        "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
+    },
     "customizations": {
         "vscode": {
             "extensions": ["1YiB.svelte-bundle", "esbenp.prettier-vscode", "Vercel.turbo-vsc"]

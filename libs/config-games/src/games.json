@@ -1,9 +1,10 @@
 {
-    "games": [
+    "installedGames": [
         "@tabletop/bridges-of-shangri-la",
         "@tabletop/estates",
         "@tabletop/fresh-fish",
         "@tabletop/kaivai",
         "@tabletop/sol"
-    ]
+    ],
+    "availableGames": ["@tabletop/fresh-fish"]
 }
