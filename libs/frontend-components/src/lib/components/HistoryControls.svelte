@@ -112,6 +112,7 @@
             </svg>
         </button>
         <button
+            aria-label="play history"
             onclick={async () => await gameSession.playHistory()}
             class={gameSession.playingHistory ? 'hidden' : ''}
             ><svg
@@ -133,6 +134,7 @@
             </svg>
         </button>
         <button
+            aria-label="stop history playback"
             onclick={async () => await gameSession.stopHistoryPlayback()}
             class={!gameSession.playingHistory ? 'hidden' : ''}
         >
@@ -152,7 +154,7 @@
                 ></path>
             </svg>
         </button>
-        <button onclick={async () => await gameSession.goToNextAction()}
+        <button aria-label="step forwards" onclick={async () => await gameSession.goToNextAction()}
             ><svg
                 class="w-[24px] h-[24px] {gameSession.mode !== GameSessionMode.History
                     ? disabledColor
@@ -173,7 +175,7 @@
                 ></path>
             </svg>
         </button>
-        <button onclick={async () => await gameSession.goToCurrent()}>
+        <button aria-label="go to current" onclick={async () => await gameSession.goToCurrent()}>
             <svg
                 class="w-[25px] h-[25px] {gameSession.mode !== GameSessionMode.History
                     ? disabledColor

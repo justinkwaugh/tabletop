@@ -169,7 +169,7 @@
             ? ''
             : 'hidden'} absolute flex flex-row justify-center items-center {controlsPosition} bg-black/70 border-gray-700 border-2 px-2 py-1 rounded-lg text-gray-300"
     >
-        <button onclick={() => zoomIn()}
+        <button aria-label="Zoom in" onclick={() => zoomIn()}
             ><svg
                 class="w-[24px] h-[24px] {zoomed < zoomLevels ? 'text-gray-300' : 'text-gray-700'}"
                 aria-hidden="true"
@@ -186,7 +186,7 @@
                     d="m21 21-3.5-3.5M10 7v6m-3-3h6m4 0a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
                 ></path>
             </svg>
-        </button><button onclick={() => zoomOut()} class="ms-2"
+        </button><button aria-label="Zoom out" onclick={() => zoomOut()} class="ms-2"
             ><svg
                 class="w-[24px] h-[24px] {zoomed > 0 ? 'text-gray-300' : 'text-gray-700'}"
                 aria-hidden="true"
