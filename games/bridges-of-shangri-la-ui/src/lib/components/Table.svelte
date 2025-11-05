@@ -94,7 +94,7 @@
             </div>
             <Tabs
                 tabStyle="pill"
-                classes={{ content: 'p-0 bg-transparent h-full overflow-auto rounded-lg' }}
+                classes={{ content: 'p-0 dark:bg-transparent h-full overflow-auto rounded-lg' }}
             >
                 <TabItem
                     open
