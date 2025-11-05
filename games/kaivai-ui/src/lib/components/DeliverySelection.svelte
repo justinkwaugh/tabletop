@@ -52,7 +52,7 @@
     <button onclick={() => setDeliveryAmount(amount)} class="relative fit-content">
         <img src={fishtoken} alt="fishtoken" class="w-[50px] h-[50px]" />
         <div
-            class="rounded-full absolute top-0 left-0 w-full h-full flex justify-center items-center font-bold text-4xl text-white bg-black bg-opacity-10 kaivai-font text-shadow"
+            class="rounded-full absolute top-0 left-0 w-full h-full flex justify-center items-center font-bold text-4xl text-white bg-black/10 kaivai-font text-shadow"
         >
             {amount}
         </div>

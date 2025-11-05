@@ -13,7 +13,7 @@
         "update-games": "tsx src/updateDependencies.ts"
     },
     "dependencies": {
-        "@tabletop/fresh-fish-ui": "*"
+        "@tabletop/kaivai-ui": "*"
     },
     "devDependencies": {
         "@tabletop/games-config": "*",

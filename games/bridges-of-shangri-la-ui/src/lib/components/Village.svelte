@@ -200,7 +200,7 @@
             </div>
             {#if village.hasStudent(masterType)}
                 <div
-                    class="absolute top-0 left-0 w-[48px] h-[48px] bg-opacity-30 bg-gray-900 text-white flex flex-col justify-center items-center z-20"
+                    class="absolute top-0 left-0 w-[48px] h-[48px] bg-gray-900/30 text-white flex flex-col justify-center items-center z-20"
                 >
                     <h1 class="text-3xl text-shadow">S</h1>
                 </div>
@@ -268,13 +268,13 @@
 
     {#if disabled && !isSourceVillageForJourney}
         <div
-            class="absolute rounded-full w-[200px] h-[200px] top-[-25px] left-[-25px] bg-black bg-opacity-50 z-40 shadow-[0_0_40px_0] shadow-black"
+            class="absolute rounded-full w-[200px] h-[200px] top-[-25px] left-[-25px] bg-black/50 z-40 shadow-[0_0_40px_0] shadow-black"
         ></div>
     {/if}
 
     {#if isSourceVillageForJourney}
         <div
-            class="absolute rounded-full w-[150px] h-[150px] top-0 left-0 bg-green-500 bg-opacity-60 z-0 shadow-[0_0_40px_0] shadow-green-500"
+            class="absolute rounded-full w-[150px] h-[150px] top-0 left-0 bg-green-500/60 z-0 shadow-[0_0_40px_0] shadow-green-500"
         ></div>
     {/if}
 </div>
