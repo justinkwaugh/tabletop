@@ -2,10 +2,12 @@
     "private": true,
     "scripts": {
         "build": "turbo run build",
-        "dev": "turbo watch dev --filter=@tabletop/frontend --filter=@tabletop/backend",
+        "watch": "turbo watch dev --filter=@tabletop/frontend --filter=@tabletop/backend",
+        "dev": "turbo dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "lint": "turbo run lint",
         "test": "vitest",
-        "dev:backend": "turbo watch dev --filter=@tabletop/backend"
+        "watch:backend": "turbo watch dev --filter=@tabletop/backend",
+        "update-games": "turbo update-games"
     },
     "devDependencies": {
         "@types/react": "^19.2.2",
