@@ -2,9 +2,10 @@
     "private": true,
     "scripts": {
         "build": "turbo run build",
-        "dev": "turbo run dev",
+        "dev": "turbo watch dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "lint": "turbo run lint",
-        "test": "vitest"
+        "test": "vitest",
+        "dev:backend": "turbo watch dev --filter=@tabletop/backend"
     },
     "devDependencies": {
         "@types/react": "^19.2.2",
