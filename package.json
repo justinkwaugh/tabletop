@@ -5,6 +5,7 @@
         "clean": "turbo run clean",
         "watch": "turbo watch dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "dev": "turbo dev --filter=@tabletop/frontend --filter=@tabletop/backend",
+        "email": "turbo watch dev --filter=@tabletop/email",
         "lint": "turbo run lint",
         "test": "vitest",
         "watch:backend": "turbo watch dev --filter=@tabletop/backend",
