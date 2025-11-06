@@ -2,6 +2,7 @@
     "private": true,
     "scripts": {
         "build": "turbo run build",
+        "clean": "turbo run clean",
         "watch": "turbo watch dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "dev": "turbo dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "lint": "turbo run lint",
