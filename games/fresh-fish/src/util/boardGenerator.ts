@@ -382,8 +382,8 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
         let x = 0
         let y = 0
         while (cell?.type !== CellType.Empty) {
-            x = Math.floor(Math.random() * xMid)
-            y = Math.floor(Math.random() * yMid)
+            x = Math.floor(random() * xMid)
+            y = Math.floor(random() * yMid)
             cell = board.getCell([x, y])
         }
         board.setCell([x, y], truckCells[0])
@@ -397,8 +397,8 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
         let x = 0
         let y = 0
         while (cell?.type !== CellType.Empty) {
-            x = Math.floor(Math.random() * xMid) + xMid
-            y = Math.floor(Math.random() * yMid)
+            x = Math.floor(random() * xMid) + xMid
+            y = Math.floor(random() * yMid)
             cell = board.getCell([x, y])
         }
         board.setCell([x, y], truckCells[1])
@@ -412,8 +412,8 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
         let x = 0
         let y = 0
         while (cell?.type !== CellType.Empty) {
-            x = Math.floor(Math.random() * xMid) + xMid
-            y = Math.floor(Math.random() * yMid) + yMid
+            x = Math.floor(random() * xMid) + xMid
+            y = Math.floor(random() * yMid) + yMid
             cell = board.getCell([x, y])
         }
         board.setCell([x, y], truckCells[2])
@@ -427,8 +427,8 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
         let x = 0
         let y = 0
         while (cell?.type !== CellType.Empty) {
-            x = Math.floor(Math.random() * xMid)
-            y = Math.floor(Math.random() * yMid) + yMid
+            x = Math.floor(random() * xMid)
+            y = Math.floor(random() * yMid) + yMid
             cell = board.getCell([x, y])
         }
         board.setCell([x, y], truckCells[3])

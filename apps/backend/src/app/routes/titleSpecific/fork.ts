@@ -5,7 +5,7 @@ import { GameDefinition } from '@tabletop/common'
 type GameForkRequest = Static<typeof GameForkRequest>
 const GameForkRequest = Type.Object({
     gameId: Type.String(),
-    actionIndex: Type.Number({ minimum: 0 })
+    actionIndex: Type.Number({ minimum: -1 })
 })
 
 export default async function (definition: GameDefinition, fastify: FastifyInstance) {

@@ -218,6 +218,9 @@ export class GameService {
         if (lastAction) {
             forkedGame.lastActionAt = lastAction.createdAt
             forkedGame.lastActionPlayerId = lastAction.playerId
+        } else {
+            forkedGame.lastActionAt = undefined
+            forkedGame.lastActionPlayerId = undefined
         }
 
         // Store the forked data
@@ -226,6 +229,7 @@ export class GameService {
         // Send notifications
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
 
+        console.log(`Forked game ${game.id} with seed ${storedGame.state?.prng?.seed}`)
         return storedGame
     }
 
