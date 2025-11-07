@@ -123,6 +123,12 @@ export class GameService {
         return newGame
     }
 
+    async forkGame(game: Partial<Game>, actionIndex: number): Promise<Game> {
+        const newGame = await this.api.forkGame(game, actionIndex)
+        this.gamesById.set(newGame.id, newGame)
+        return newGame
+    }
+
     async updateGame(game: Partial<Game>): Promise<Game> {
         const updatedGame = await this.api.updateGame(game)
         this.gamesById.set(updatedGame.id, updatedGame)

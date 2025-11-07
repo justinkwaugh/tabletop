@@ -7,6 +7,7 @@ export type GameService = {
     loadGame(id: string): Promise<{ game: Game; actions: GameAction[] }>
 
     createGame(game: Partial<Game>): Promise<Game>
+    forkGame(game: Partial<Game>, actionIndex: number): Promise<Game>
     updateGame(game: Partial<Game>): Promise<Game>
     deleteGame(gameId: string): Promise<void>
     startGame(game: Game): Promise<Game>

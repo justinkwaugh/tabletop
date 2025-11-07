@@ -21,6 +21,13 @@ export type ActionUndoValidator = (
 
 export interface GameStore {
     createGame(game: Game): Promise<Game>
+    writeFullGameData(
+        game: Game,
+        actions: GameAction[]
+    ): Promise<{
+        storedGame: Game
+        storedActions: GameAction[]
+    }>
     getGameEtag(gameId: string): Promise<string | undefined>
     hasCachedActiveGames(user: User): Promise<boolean>
     findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>

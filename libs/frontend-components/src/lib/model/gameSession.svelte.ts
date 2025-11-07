@@ -38,6 +38,7 @@ import type { GameColorizer } from '$lib/definition/gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import { goto } from '$app/navigation'
 import { gsap } from 'gsap'
+import type { GameService } from '$lib/services/gameService.svelte'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -81,6 +82,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
 
     chatService: ChatService
+    gameService: GameService
 
     // This is very much cheating, but there is no way to tell the compiler
     // that this will be initialized in the constructor
@@ -326,6 +328,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     mode: GameSessionMode = $state(GameSessionMode.Play)
 
     constructor({
+        gameService,
         authorizationService,
         notificationService,
         chatService,
@@ -335,6 +338,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         actions,
         debug = false
     }: {
+        gameService: GameService
         authorizationService: AuthorizationService
         notificationService: NotificationService
         chatService: ChatService
@@ -347,6 +351,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.authorizationService = authorizationService
         this.notificationService = notificationService
         this.chatService = chatService
+        this.gameService = gameService
         this.api = api
         this.definition = definition
         this.engine = new GameEngine(definition)

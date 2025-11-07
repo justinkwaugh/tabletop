@@ -21,7 +21,7 @@ export enum RunMode {
 export class GameEngine {
     constructor(private readonly definition: GameDefinition) {}
 
-    startGame(game: Game): Game {
+    startGame(game: Game, seed?: number): Game {
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
         }
@@ -29,7 +29,7 @@ export class GameEngine {
         const startedGame = structuredClone(game)
         startedGame.startedAt = new Date()
 
-        const initialState = this.definition.initializer.initializeGameState(game)
+        const initialState = this.definition.initializer.initializeGameState(game, seed)
 
         const machineContext = new MachineContext({
             gameConfig: game.config,

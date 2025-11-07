@@ -4,11 +4,11 @@ import { Value } from '@sinclair/typebox/value'
 
 export interface GameInitializer {
     initializeGame(game: Partial<Game>): Game
-    initializeGameState(game: Game): HydratedGameState
+    initializeGameState(game: Game, seed?: number): HydratedGameState
 }
 
 export abstract class BaseGameInitializer implements GameInitializer {
-    abstract initializeGameState(game: Game): HydratedGameState
+    abstract initializeGameState(game: Game, seed?: number): HydratedGameState
     initializeGame(game: Partial<Game>): Game {
         const newGame: Game = <Game>{
             id: game.id,

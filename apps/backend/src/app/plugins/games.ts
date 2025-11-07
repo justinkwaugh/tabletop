@@ -6,6 +6,7 @@ import CreateGame from '../routes/titleSpecific/create.js'
 import StartGame from '../routes/titleSpecific/start.js'
 import ApplyAction from '../routes/titleSpecific/action.js'
 import UndoAction from '../routes/titleSpecific/undo.js'
+import ForkGame from '../routes/titleSpecific/fork.js'
 
 import { AppOptions } from '../app.js'
 
@@ -19,6 +20,7 @@ async function registerGame(
     await fastify.register(CreateGame.bind(null, definition), { prefix })
     await fastify.register(StartGame.bind(null, definition), { prefix })
     await fastify.register(UndoAction.bind(null, definition), { prefix })
+    await fastify.register(ForkGame.bind(null, definition), { prefix })
 
     // Register all the actions
     for (const actionType of Object.keys(definition.apiActions)) {

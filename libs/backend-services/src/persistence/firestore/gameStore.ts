@@ -106,6 +106,65 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    async writeFullGameData(
+        game: Game,
+        actions: GameAction[]
+    ): Promise<{
+        storedGame: Game
+        storedActions: GameAction[]
+    }> {
+        const storedGame = structuredClone(game) as StoredGame
+        const date = new Date()
+        storedGame.createdAt = date
+        storedGame.updatedAt = date
+
+        const gameId = storedGame.id
+
+        const gameCacheKey = this.makeGameCacheKey(gameId)
+        const checksumCacheKey = `csum-${gameId}`
+        const gameRevisionCacheKey = `etag-${gameId}`
+        const userCacheKeys = storedGame.players.map(
+            (player) => `games-${GameStatusCategory.Active}-${player.userId}`
+        )
+
+        const stateCollection = this.getStateCollection(gameId)
+        const stateToUpdate = storedGame.state
+        delete storedGame.state
+
+        const actionChunkCollection = this.getActionChunkCollection(gameId)
+        const storedActions = actions.map((action) => structuredClone(action)) as StoredAction[]
+
+        const chunks: ActionChunk[] = []
+        this.addActionsToChunks(storedActions, chunks, storedGame.actionChunkSize)
+
+        try {
+            return await this.cacheService.lockWhileWriting(
+                [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
+                async () =>
+                    this.games.firestore.runTransaction(async (transaction: Transaction) => {
+                        // Write Game
+                        await this.games.doc(game.id).create(storedGame)
+
+                        // Write GameState
+                        transaction.create(stateCollection.doc(gameId), stateToUpdate)
+
+                        // Write Actions
+                        for (const chunk of chunks) {
+                            chunk.updatedAt = date
+                            chunk.createdAt = date
+                            transaction.create(actionChunkCollection.doc(chunk.id), chunk)
+                        }
+
+                        storedGame.state = stateToUpdate
+                        return { storedGame, storedActions }
+                    })
+            )
+        } catch (error) {
+            this.handleError(error, game.id)
+            throw Error('unreachable')
+        }
+    }
+
     async updateGame({
         game,
         fields,
@@ -383,10 +442,12 @@ export class FirestoreGameStore implements GameStore {
                 await transaction.get(stateCollection.doc(gameId))
             ).data() as GameState
             this.recordRead('state')
+
             const existingGame = (
                 await transaction.get(this.games.doc(gameId))
             ).data() as StoredGame
             this.recordRead('game')
+
             if (!existingGame) {
                 throw new NotFoundError({ type: 'Game', id: gameId })
             }

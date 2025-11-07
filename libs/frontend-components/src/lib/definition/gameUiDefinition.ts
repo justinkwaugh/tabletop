@@ -2,13 +2,21 @@ import { GameSession } from '$lib/model/gameSession.svelte'
 import type { TabletopApi } from '$lib/network/tabletopApi.svelte'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import type { NotificationService } from '$lib/services/notificationService.svelte'
-import { Game, GameAction, type GameDefinition } from '@tabletop/common'
+import {
+    Game,
+    GameAction,
+    GameState,
+    type GameDefinition,
+    type HydratedGameState
+} from '@tabletop/common'
 import type { Component } from 'svelte'
 import type { GameColorizer } from './gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
+import type { GameService } from '$lib/services/gameService.svelte'
 
 export interface GameSessionConstructor {
     new ({
+        gameService,
         authorizationService,
         notificationService,
         chatService,
@@ -18,6 +26,7 @@ export interface GameSessionConstructor {
         actions,
         debug
     }: {
+        gameService: GameService
         authorizationService: AuthorizationService
         notificationService: NotificationService
         chatService: ChatService
@@ -26,7 +35,7 @@ export interface GameSessionConstructor {
         game: Game
         actions: GameAction[]
         debug?: boolean
-    }): GameSession
+    }): GameSession<GameState, HydratedGameState>
 }
 
 export interface GameUiDefinition extends GameDefinition {

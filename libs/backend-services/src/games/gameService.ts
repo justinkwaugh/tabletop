@@ -21,6 +21,7 @@ import {
     PlayerJoinedNotification,
     PlayerStatus,
     Role,
+    RunMode,
     User,
     UserNotification,
     UserNotificationAction,
@@ -82,6 +83,7 @@ export class GameService {
     getTitles(): GameDefinition[] {
         return Object.values(this.availableTitles)
     }
+
     async createGame({
         definition,
         game,
@@ -156,6 +158,75 @@ export class GameService {
 
         await this.gameStore.deleteGame(game)
         await this.notifyGamePlayers(GameNotificationAction.Delete, { game })
+    }
+
+    async forkGame({
+        definition,
+        gameId,
+        actionIndex,
+        owner
+    }: {
+        definition: GameDefinition
+        gameId: string
+        actionIndex: number
+        owner: User
+    }): Promise<Game> {
+        // Currently we have to get the state because the seed is on the state.
+        // We probably should move that to the game
+        const game = await this.getGame({ gameId, withState: true })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+        const seed = game.state?.prng?.seed
+        const actions = await this.getGameActions(game)
+
+        // Delete state so we don't clone it
+        game.state = undefined
+
+        // Now clone it
+        let forkedGame = structuredClone(game)
+        forkedGame.id = nanoid()
+        forkedGame.ownerId = owner.id
+        forkedGame.startedAt = undefined
+        forkedGame.status = GameStatus.Started
+        delete forkedGame.result
+        delete forkedGame.finishedAt
+        forkedGame.winningPlayerIds = []
+
+        // Generate initial state
+        const engine = new GameEngine(definition)
+        forkedGame = engine.startGame(forkedGame, seed)
+
+        // Copy the entire action history up to the specified index
+        const actionSubset = actions
+            .slice(0, actionIndex + 1)
+            .map((action) => structuredClone(action))
+
+        // Run the game to the desired index
+        for (const action of actionSubset) {
+            // Copy and adjust
+            action.gameId = forkedGame.id
+
+            // Apply each action to the forked game state
+            const { updatedState } = engine.run(action, forkedGame, RunMode.Single)
+            forkedGame.state = updatedState
+        }
+
+        // Update some relevant fields on the game
+        forkedGame.activePlayerIds = forkedGame.state?.activePlayerIds || []
+        const lastAction = actionSubset.at(-1)
+        if (lastAction) {
+            forkedGame.lastActionAt = lastAction.createdAt
+            forkedGame.lastActionPlayerId = lastAction.playerId
+        }
+
+        // Store the forked data
+        const { storedGame } = await this.gameStore.writeFullGameData(forkedGame, actionSubset)
+
+        // Send notifications
+        await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
+
+        return storedGame
     }
 
     async getGameEtag(gameId: string): Promise<string | undefined> {

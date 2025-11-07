@@ -34,6 +34,7 @@ export async function load({ params, url }) {
 
         return {
             gameSession: new definition.sessionClass({
+                gameService: appContext.gameService,
                 authorizationService: appContext.authorizationService,
                 notificationService: appContext.notificationService,
                 chatService: appContext.chatService,
