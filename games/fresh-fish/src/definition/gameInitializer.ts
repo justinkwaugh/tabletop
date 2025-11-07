@@ -1,10 +1,9 @@
 import {
     BaseGameInitializer,
     GameInitializer,
-    generateSeed,
     Prng,
-    PrngState,
-    RandomFunction
+    RandomFunction,
+    UninitializedGameState
 } from '@tabletop/common'
 import {
     Game,
@@ -13,11 +12,10 @@ import {
     HydratedSimpleTurnManager,
     shuffle
 } from '@tabletop/common'
-import { HydratedFreshFishGameState } from '../model/gameState.js'
+import { FreshFishGameState, HydratedFreshFishGameState } from '../model/gameState.js'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from '../model/playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
 
-import { nanoid } from 'nanoid'
 import { GoodsType } from './goodsType.js'
 
 import { MachineState } from './states.js'
@@ -26,10 +24,8 @@ import { generateBoard } from '../util/boardGenerator.js'
 import { FreshFishColors } from './colors.js'
 
 export class FreshFishGameInitializer extends BaseGameInitializer implements GameInitializer {
-    initializeGameState(game: Game, seed?: number): HydratedGameState {
-        seed = seed === undefined ? generateSeed() : seed
-        const prngState: PrngState = { seed, invocations: 0 }
-        const prng = new Prng(prngState)
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+        const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)
         const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
         const finalStalls = Object.values(GoodsType).map(
@@ -39,25 +35,18 @@ export class FreshFishGameInitializer extends BaseGameInitializer implements Gam
 
         const { board, numMarketTiles } = generateBoard(game.players.length, prng.random)
 
-        const state = new HydratedFreshFishGameState({
-            id: nanoid(),
-            gameId: game.id,
-            prng: prngState,
-            activePlayerIds: [],
-            turnManager: turnManager,
-            actionCount: 0,
-            actionChecksum: 0,
+        const freshFishState: FreshFishGameState = Object.assign(state, {
             players: players,
+            turnManager: turnManager,
             machineState: MachineState.StartOfTurn,
-            winningPlayerIds: [],
             tileBag: this.initializeTileBag(game, numMarketTiles, prng.random),
             board,
             finalStalls: finalStalls
         })
 
-        state.score()
-
-        return state
+        const initialState = new HydratedFreshFishGameState(freshFishState)
+        initialState.score()
+        return initialState
     }
 
     private initializePlayers(game: Game, random: RandomFunction): FreshFishPlayerState[] {

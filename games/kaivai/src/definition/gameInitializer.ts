@@ -1,6 +1,5 @@
 import {
     GameInitializer,
-    generateSeed,
     RandomFunction,
     BaseGameInitializer,
     range,
@@ -9,8 +8,8 @@ import {
     pickRandom,
     HydratedRoundManager,
     HydratedPhaseManager,
-    PrngState,
-    Prng
+    Prng,
+    UninitializedGameState
 } from '@tabletop/common'
 import {
     Game,
@@ -19,7 +18,7 @@ import {
     HydratedSimpleTurnManager,
     shuffle
 } from '@tabletop/common'
-import { HydratedKaivaiGameState } from '../model/gameState.js'
+import { HydratedKaivaiGameState, KaivaiGameState } from '../model/gameState.js'
 import { KaivaiPlayerState } from '../model/playerState.js'
 
 import { nanoid } from 'nanoid'
@@ -40,28 +39,19 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         return super.initializeGame(game)
     }
 
-    initializeGameState(game: Game, seed?: number): HydratedGameState {
-        seed = seed === undefined ? generateSeed() : seed
-        const prngState: PrngState = { seed, invocations: 0 }
-        const prng = new Prng(prngState)
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+        const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length
         const config = game.config as KaivaiGameConfig
         const board = this.initializeBoard(numPlayers, config.ruleset, prng.random)
 
-        const state = new HydratedKaivaiGameState({
-            id: nanoid(),
-            gameId: game.id,
-            prng: prngState,
-            activePlayerIds: [],
+        const kaivaiState: KaivaiGameState = Object.assign(state, {
+            players: players,
+            machineState: MachineState.Bidding,
             turnManager: HydratedSimpleTurnManager.generate(players, prng.random),
             rounds: HydratedRoundManager.generate(),
             phases: HydratedPhaseManager.generate(),
-            actionCount: 0,
-            actionChecksum: 0,
-            players: players,
-            machineState: MachineState.Bidding,
-            winningPlayerIds: [],
             board,
             influence: {},
             bidders: [],
@@ -73,7 +63,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             chosenIsland: undefined
         })
 
-        return state
+        return new HydratedKaivaiGameState(kaivaiState)
     }
 
     private initializePlayers(game: Game, random: RandomFunction): KaivaiPlayerState[] {

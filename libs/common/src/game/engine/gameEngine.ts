@@ -1,11 +1,13 @@
 import jsonpatch, { Operation } from 'fast-json-patch'
 import { GameAction, HydratedAction, Patch } from './gameAction.js'
 import { Game } from '../model/game.js'
-import { GameState, HydratedGameState } from '../model/gameState.js'
+import { GameState, HydratedGameState, UninitializedGameState } from '../model/gameState.js'
 import { MachineContext } from './machineContext.js'
 import { MachineStateHandler } from './machineStateHandler.js'
 import { GameDefinition } from '../definition/gameDefinition.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
+import { nanoid } from 'nanoid'
+import { generateSeed } from '../../util/prng.js'
 
 export type ActionResult = {
     processedActions: GameAction[]
@@ -21,7 +23,22 @@ export enum RunMode {
 export class GameEngine {
     constructor(private readonly definition: GameDefinition) {}
 
-    startGame(game: Game, seed?: number): Game {
+    generateUnitializedState(game: Game): UninitializedGameState {
+        const seed = game.seed ?? generateSeed()
+        return {
+            id: nanoid(),
+            gameId: game.id,
+            seed,
+            prng: { seed, invocations: 0 },
+            activePlayerIds: [],
+            winningPlayerIds: [],
+            actionCount: 0,
+            actionChecksum: 0,
+            result: undefined
+        }
+    }
+
+    startGame(game: Game): Game {
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
         }
@@ -29,7 +46,11 @@ export class GameEngine {
         const startedGame = structuredClone(game)
         startedGame.startedAt = new Date()
 
-        const initialState = this.definition.initializer.initializeGameState(game, seed)
+        const uninitializedState = this.generateUnitializedState(game)
+        const initialState = this.definition.initializer.initializeGameState(
+            game,
+            uninitializedState
+        )
 
         const machineContext = new MachineContext({
             gameConfig: game.config,

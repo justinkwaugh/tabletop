@@ -59,5 +59,6 @@ export const Game = Type.Object({
     lastActionPlayerId: Type.Optional(Type.String()),
     lastActionAt: Type.Optional(Type.Date()),
     result: Type.Optional(Type.Enum(GameResult)),
-    winningPlayerIds: Type.Array(Type.String())
+    winningPlayerIds: Type.Array(Type.String()),
+    seed: Type.Optional(Type.Number())
 })

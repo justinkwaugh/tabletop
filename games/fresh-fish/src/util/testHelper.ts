@@ -1,4 +1,4 @@
-import { Game, range } from '@tabletop/common'
+import { Game, GameEngine, range } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { v4 as uuid } from 'uuid'
 import { FreshFishGameConfig } from '../definition/gameConfig.js'
@@ -27,7 +27,11 @@ export function generateTestState(config: TestStateConfig = {}): HydratedFreshFi
     }
 
     const definition = Definition
+    const engine = new GameEngine(definition)
     const game = definition.initializer.initializeGame(newGame)
-    const state = definition.initializer.initializeGameState(game) as HydratedFreshFishGameState
+    const state = definition.initializer.initializeGameState(
+        game,
+        engine.generateUnitializedState(game)
+    ) as HydratedFreshFishGameState
     return state
 }

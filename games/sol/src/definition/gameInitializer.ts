@@ -1,11 +1,10 @@
 import {
     GameInitializer,
-    generateSeed,
     RandomFunction,
     BaseGameInitializer,
-    PrngState,
     Prng,
-    PlayerState
+    PlayerState,
+    UninitializedGameState
 } from '@tabletop/common'
 import {
     Game,
@@ -14,7 +13,7 @@ import {
     HydratedSimpleTurnManager,
     shuffle
 } from '@tabletop/common'
-import { HydratedSolGameState } from '../model/gameState.js'
+import { HydratedSolGameState, SolGameState } from '../model/gameState.js'
 import { HydratedSolPlayerState, SolPlayerState } from '../model/playerState.js'
 
 import { nanoid } from 'nanoid'
@@ -40,10 +39,8 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         return super.initializeGame(game)
     }
 
-    initializeGameState(game: Game, seed?: number): HydratedGameState {
-        seed = seed === undefined ? generateSeed() : seed
-        const prngState: PrngState = { seed, invocations: 0 }
-        const prng = new Prng(prngState)
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+        const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)
         const nonFlareSuits = [
             Suit.Condensation,
@@ -68,17 +65,10 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         // const config = game.config as SolGameConfig
         const board = this.initializeBoard(players, prng.random)
 
-        const state = new HydratedSolGameState({
-            id: nanoid(),
-            gameId: game.id,
-            prng: prngState,
-            activePlayerIds: [],
-            turnManager: HydratedSimpleTurnManager.generate(players, prng.random),
-            actionCount: 0,
-            actionChecksum: 0,
+        const solState: SolGameState = Object.assign(state, {
             players: players,
             machineState: MachineState.StartOfTurn,
-            winningPlayerIds: [],
+            turnManager: HydratedSimpleTurnManager.generate(players, prng.random),
             board,
             deck,
             effects,
@@ -86,7 +76,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             energyCubes: 89
         })
 
-        return state
+        return new HydratedSolGameState(solState)
     }
 
     private initializePlayers(game: Game, random: RandomFunction): SolPlayerState[] {

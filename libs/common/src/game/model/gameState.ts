@@ -28,6 +28,8 @@ export const GameState = Type.Object({
     winningPlayerIds: Type.Array(Type.String())
 })
 
+export type UninitializedGameState = Omit<GameState, 'players' | 'turnManager' | 'machineState'>
+
 export interface HydratedGameState extends GameState {
     isActivePlayer(playerId: string): boolean
     recordAction(action: GameAction): void

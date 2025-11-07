@@ -1,10 +1,9 @@
 import {
     GameInitializer,
-    generateSeed,
     RandomFunction,
     BaseGameInitializer,
-    PrngState,
-    Prng
+    Prng,
+    UninitializedGameState
 } from '@tabletop/common'
 import {
     Game,
@@ -13,10 +12,9 @@ import {
     HydratedSimpleTurnManager,
     shuffle
 } from '@tabletop/common'
-import { HydratedBridgesGameState } from '../model/gameState.js'
+import { BridgesGameState, HydratedBridgesGameState } from '../model/gameState.js'
 import { BridgesPlayerState } from '../model/playerState.js'
 
-import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { BridgesGameBoard } from '../components/gameBoard.js'
 import { MasterType } from './masterType.js'
@@ -24,32 +22,23 @@ import { Village } from '../components/village.js'
 import { BridgesColors } from './colors.js'
 
 export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {
-    initializeGameState(game: Game, seed?: number): HydratedGameState {
-        seed = seed === undefined ? generateSeed() : seed
-        const prngState: PrngState = { seed, invocations: 0 }
-        const prng = new Prng(prngState)
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+        const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length
         const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
 
         const board = this.initializeBoard(numPlayers)
 
-        const state = new HydratedBridgesGameState({
-            id: nanoid(),
-            gameId: game.id,
-            prng: prngState,
-            activePlayerIds: [],
-            turnManager: turnManager,
-            actionCount: 0,
-            actionChecksum: 0,
+        const bridgesState: BridgesGameState = Object.assign(state, {
             players: players,
+            turnManager: turnManager,
             machineState: MachineState.StartOfTurn,
-            winningPlayerIds: [],
             board,
             stones: numPlayers === 3 ? 10 : 11
         })
 
-        return state
+        return new HydratedBridgesGameState(bridgesState)
     }
 
     private initializePlayers(game: Game, random: RandomFunction): BridgesPlayerState[] {

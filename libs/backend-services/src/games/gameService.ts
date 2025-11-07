@@ -173,18 +173,21 @@ export class GameService {
     }): Promise<Game> {
         // Currently we have to get the state because the seed is on the state.
         // We probably should move that to the game
-        const game = await this.getGame({ gameId, withState: true })
+        const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
-        const seed = game.state?.prng?.seed
         const actions = await this.getGameActions(game)
 
-        // Delete state so we don't clone it
-        game.state = undefined
-
-        // Now clone it
         let forkedGame = structuredClone(game)
+
+        if (!forkedGame.seed) {
+            // We have to look up the state, because we did not always store the seed on the game
+            const gameWithState = await this.getGame({ gameId, withState: true })
+            forkedGame.seed = gameWithState?.state?.prng?.seed
+        }
+
+        // Reset fields
         forkedGame.id = nanoid()
         forkedGame.ownerId = owner.id
         forkedGame.startedAt = undefined
@@ -195,7 +198,7 @@ export class GameService {
 
         // Generate initial state
         const engine = new GameEngine(definition)
-        forkedGame = engine.startGame(forkedGame, seed)
+        forkedGame = engine.startGame(forkedGame)
 
         // Copy the entire action history up to the specified index
         const actionSubset = actions

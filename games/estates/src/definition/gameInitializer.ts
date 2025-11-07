@@ -1,11 +1,10 @@
 import {
     GameInitializer,
-    generateSeed,
     RandomFunction,
     BaseGameInitializer,
-    PrngState,
     Prng,
-    Color
+    Color,
+    UninitializedGameState
 } from '@tabletop/common'
 import {
     Game,
@@ -14,39 +13,28 @@ import {
     HydratedSimpleTurnManager,
     shuffle
 } from '@tabletop/common'
-import { HydratedEstatesGameState } from '../model/gameState.js'
+import { EstatesGameState, HydratedEstatesGameState } from '../model/gameState.js'
 import { EstatesPlayerState } from '../model/playerState.js'
 
-import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { BoardRow, EstatesGameBoard, Site } from '../components/gameBoard.js'
 import { Company } from './companies.js'
 import { HydratedRoofBag } from '../components/roofBag.js'
 import { Cube } from '../components/cube.js'
 import { PieceType } from '../components/pieceType.js'
-// import { BridgesPlayerColors } from './colors.js'
 
 export class EstatesGameInitializer extends BaseGameInitializer implements GameInitializer {
-    initializeGameState(game: Game, seed?: number): HydratedGameState {
-        seed = seed === undefined ? generateSeed() : seed
-        const prngState: PrngState = { seed, invocations: 0 }
-        const prng = new Prng(prngState)
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+        const prng = new Prng(state.prng)
         const players = this.initializePlayers(game)
         const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
 
         const board = this.initializeBoard()
 
-        const state = new HydratedEstatesGameState({
-            id: nanoid(),
-            gameId: game.id,
-            prng: prngState,
-            activePlayerIds: [],
-            turnManager: turnManager,
-            actionCount: 0,
-            actionChecksum: 0,
+        const estatesState: EstatesGameState = Object.assign(state, {
             players: players,
+            turnManager: turnManager,
             machineState: MachineState.StartOfTurn,
-            winningPlayerIds: [],
             board,
             certificates: [
                 Company.Skyline,
@@ -68,7 +56,7 @@ export class EstatesGameInitializer extends BaseGameInitializer implements GameI
             auction: undefined
         })
 
-        return state
+        return new HydratedEstatesGameState(estatesState)
     }
 
     private initializePlayers(game: Game): EstatesPlayerState[] {

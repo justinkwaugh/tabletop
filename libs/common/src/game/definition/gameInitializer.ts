@@ -1,14 +1,15 @@
+import { generateSeed } from '../../util/prng.js'
 import { Game, GameStatus } from '../model/game.js'
-import { HydratedGameState } from '../model/gameState.js'
+import { HydratedGameState, UninitializedGameState } from '../model/gameState.js'
 import { Value } from '@sinclair/typebox/value'
 
 export interface GameInitializer {
     initializeGame(game: Partial<Game>): Game
-    initializeGameState(game: Game, seed?: number): HydratedGameState
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState
 }
 
 export abstract class BaseGameInitializer implements GameInitializer {
-    abstract initializeGameState(game: Game, seed?: number): HydratedGameState
+    abstract initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState
     initializeGame(game: Partial<Game>): Game {
         const newGame: Game = <Game>{
             id: game.id,
@@ -22,6 +23,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
             config: game.config ?? {},
             hotseat: false,
             winningPlayerIds: [],
+            seed: generateSeed(),
             createdAt: new Date() // This will be updated by the db
         }
 
