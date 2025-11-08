@@ -31,7 +31,7 @@ export function generateTestState(config: TestStateConfig = {}): HydratedFreshFi
     const game = definition.initializer.initializeGame(newGame)
     const state = definition.initializer.initializeGameState(
         game,
-        engine.generateUnitializedState(game)
+        engine.generateUninitializedState(game)
     ) as HydratedFreshFishGameState
     return state
 }

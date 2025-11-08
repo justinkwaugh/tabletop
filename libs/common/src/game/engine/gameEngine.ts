@@ -23,7 +23,7 @@ export enum RunMode {
 export class GameEngine {
     constructor(private readonly definition: GameDefinition) {}
 
-    generateUnitializedState(game: Game): UninitializedGameState {
+    generateUninitializedState(game: Game): UninitializedGameState {
         const seed = game.seed ?? generateSeed()
         return {
             id: nanoid(),
@@ -46,7 +46,7 @@ export class GameEngine {
         const startedGame = structuredClone(game)
         startedGame.startedAt = new Date()
 
-        const uninitializedState = this.generateUnitializedState(game)
+        const uninitializedState = this.generateUninitializedState(game)
         const initialState = this.definition.initializer.initializeGameState(
             game,
             uninitializedState
