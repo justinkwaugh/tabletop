@@ -281,6 +281,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     })
 
     myPlayer: Player | undefined = $derived.by(() => {
+        if (this.game.hotseat) {
+            return this.activePlayers.at(0)
+        }
+
         const sessionUser = this.authorizationService.getSessionUser()
         if (!sessionUser) {
             return undefined
@@ -294,7 +298,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     })
 
     isMyTurn: boolean = $derived.by(() => {
-        if (this.authorizationService.actAsAdmin) {
+        if (this.game.hotseat || this.authorizationService.actAsAdmin) {
             return true
         }
 
@@ -483,7 +487,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             // Don't update the local state if the action reveals info, instead wait for the server to validate.
             // This is because the server may reject the action due to undo or any other reason and we
             // do not want to show the player the revealed info.
-            if (!actionResults.revealing) {
+            if (this.game.hotseat || !actionResults.revealing) {
                 await this.applyActionResults(actionResults)
             }
 
@@ -495,76 +499,80 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             action.index = processedAction.index
 
             // Now send the action to the server
-            try {
-                if (this.debug) {
-                    console.log(`Sending ${action.type} ${action.id} to server: `, action)
-                }
+            if (this.game.hotseat) {
+                // Store the actions locally
+            } else {
+                try {
+                    if (this.debug) {
+                        console.log(`Sending ${action.type} ${action.id} to server: `, action)
+                    }
 
-                // Send the actions to the server and receive the updated actions back
-                const { actions: serverActions, missingActions } = await this.api.applyAction(
-                    this.game,
-                    action
-                )
+                    // Send the actions to the server and receive the updated actions back
+                    const { actions: serverActions, missingActions } = await this.api.applyAction(
+                        this.game,
+                        action
+                    )
 
-                let applyServerActions = actionResults.revealing
+                    let applyServerActions = actionResults.revealing
 
-                // Check to see if our server assigned index is less than what we calculated
-                // If so, then that means our action was accepted but something was undone that we did
-                // not know about so we we need to undo to the correct point and re-apply
-                const serverAction = serverActions.find((a) => a.id === action.id)
-                if (
-                    serverAction &&
-                    serverAction.index !== undefined &&
-                    serverAction.index < (action.index ?? 0)
-                ) {
-                    // Rollback our local action and any deferred results
-                    await this.rollbackActions(priorState)
+                    // Check to see if our server assigned index is less than what we calculated
+                    // If so, then that means our action was accepted but something was undone that we did
+                    // not know about so we we need to undo to the correct point and re-apply
+                    const serverAction = serverActions.find((a) => a.id === action.id)
+                    if (
+                        serverAction &&
+                        serverAction.index !== undefined &&
+                        serverAction.index < (action.index ?? 0)
+                    ) {
+                        // Rollback our local action and any deferred results
+                        await this.rollbackActions(priorState)
 
-                    // Undo to the server's index
-                    this.undoToIndex(gameSnapshot, serverAction.index - 1)
-                    priorState = structuredClone(gameSnapshot.state) as GameState
+                        // Undo to the server's index
+                        this.undoToIndex(gameSnapshot, serverAction.index - 1)
+                        priorState = structuredClone(gameSnapshot.state) as GameState
 
-                    applyServerActions = true
-                }
+                        applyServerActions = true
+                    }
 
-                // Check to see if the server told us we missed some actions
-                // If the server says so, that means our action was accepted, and these need to be processed
-                // prior to the action we sent
-                if (missingActions && missingActions.length > 0) {
-                    // Sort the actions by index to be sure, though the server should have done this
-                    // There should never be an index not provided
-                    missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+                    // Check to see if the server told us we missed some actions
+                    // If the server says so, that means our action was accepted, and these need to be processed
+                    // prior to the action we sent
+                    if (missingActions && missingActions.length > 0) {
+                        // Sort the actions by index to be sure, though the server should have done this
+                        // There should never be an index not provided
+                        missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
 
-                    // Rollback our local action and any deferred results
-                    await this.rollbackActions(priorState)
+                        // Rollback our local action and any deferred results
+                        await this.rollbackActions(priorState)
 
-                    // Prepend the missing actions
-                    serverActions.unshift(...missingActions)
+                        // Prepend the missing actions
+                        serverActions.unshift(...missingActions)
 
-                    applyServerActions = true
-                }
+                        applyServerActions = true
+                    }
 
-                // Apply the server provided actions
-                if (applyServerActions) {
-                    for (const action of serverActions) {
-                        if (action.source === ActionSource.User) {
-                            const actionResults = this.applyActionToGame(action, gameSnapshot)
-                            gameSnapshot.state = actionResults.updatedState
-                            await this.applyActionResults(actionResults)
+                    // Apply the server provided actions
+                    if (applyServerActions) {
+                        for (const action of serverActions) {
+                            if (action.source === ActionSource.User) {
+                                const actionResults = this.applyActionToGame(action, gameSnapshot)
+                                gameSnapshot.state = actionResults.updatedState
+                                await this.applyActionResults(actionResults)
+                            }
                         }
                     }
+
+                    // Overwrite the local ones if necessary so we have canonical data
+                    serverActions.forEach((action) => {
+                        this.upsertAction(action)
+                    })
+
+                    this.verifyFullChecksum()
+                } catch (e) {
+                    console.log(e)
+                    toast.error('An error occurred talking to the server, resyncing')
+                    throw e
                 }
-
-                // Overwrite the local ones if necessary so we have canonical data
-                serverActions.forEach((action) => {
-                    this.upsertAction(action)
-                })
-
-                this.verifyFullChecksum()
-            } catch (e) {
-                console.log(e)
-                toast.error('An error occurred talking to the server, resyncing')
-                throw e
             }
         } catch (e) {
             console.log(e)
@@ -631,30 +639,34 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
                 await this.updateGameState(gameSnapshot.state)
 
-                // Undo on the server
-                const { redoneActions, checksum } = await this.api.undoAction(
-                    this.game,
-                    targetActionId
-                )
+                if (this.game.hotseat) {
+                    // Store updates locally
+                } else {
+                    // Undo on the server
+                    const { redoneActions, checksum } = await this.api.undoAction(
+                        this.game,
+                        targetActionId
+                    )
 
-                if (checksum !== this.game.state?.actionChecksum) {
-                    // We must not have known about something, but we did succeed so let's see if we can align
-                    // by removing our redos and adding the backend's instead
-                    localRedoneActions.splice(0, localRedoneActions.length)
-                    await this.rollbackActions(preRedoState)
+                    if (checksum !== this.game.state?.actionChecksum) {
+                        // We must not have known about something, but we did succeed so let's see if we can align
+                        // by removing our redos and adding the backend's instead
+                        localRedoneActions.splice(0, localRedoneActions.length)
+                        await this.rollbackActions(preRedoState)
 
-                    for (const action of redoneActions) {
-                        const results = this.applyActionToGame(action, gameSnapshot)
-                        localRedoneActions.push(...results.processedActions)
-                        gameSnapshot.state = results.updatedState
-                        await this.applyActionResults(results)
+                        for (const action of redoneActions) {
+                            const results = this.applyActionToGame(action, gameSnapshot)
+                            localRedoneActions.push(...results.processedActions)
+                            gameSnapshot.state = results.updatedState
+                            await this.applyActionResults(results)
+                        }
                     }
-                }
 
-                // Overwrite the local ones if necessary so we have canonical data
-                redoneActions.forEach((action) => {
-                    this.upsertAction(action)
-                })
+                    // Overwrite the local ones if necessary so we have canonical data
+                    redoneActions.forEach((action) => {
+                        this.upsertAction(action)
+                    })
+                }
 
                 this.verifyFullChecksum()
             } catch (e) {
