@@ -427,7 +427,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         const playerColor = this.getPlayerColor(playerId)
         return this.getBorderContrastColor(playerColor)
     }
-    F
+
     listenToGame() {
         if (this.debug) {
             console.log(`listening to game ${this.game.id}`)
