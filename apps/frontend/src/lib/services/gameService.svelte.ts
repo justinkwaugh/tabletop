@@ -133,7 +133,7 @@ export class GameService {
         })
     }
 
-    async loadGame(id: string): Promise<{ game: Game; actions: GameAction[] }> {
+    async loadGame(id: string): Promise<{ game?: Game; actions: GameAction[] }> {
         // First check local hotseat games
         if (!this.hotseatGamesById.has(id)) {
             const localGame = await this.localGameStore.findGameById(id)
@@ -144,13 +144,7 @@ export class GameService {
 
         const localGame = this.hotseatGamesById.get(id)
         if (localGame) {
-            const state = await this.localGameStore.findStateByGameId(id)
-            if (!state) {
-                throw new Error('Local hotseat game state not found')
-            }
-            localGame.state = state
-            const actions = await this.localGameStore.findActionsForGame(localGame)
-            return { game: localGame, actions }
+            return await this.localGameStore.loadGameData(id)
         }
 
         // Check remote games
@@ -186,11 +180,12 @@ export class GameService {
             const startedGame = engine.startGame(initializedGame)
 
             newGame = await this.localGameStore.createGame(startedGame)
+            this.hotseatGamesById.set(newGame.id, newGame)
         } else {
             newGame = await this.api.createGame(game)
+            this.gamesById.set(newGame.id, newGame)
         }
 
-        this.gamesById.set(newGame.id, newGame)
         return newGame
     }
 
@@ -223,12 +218,12 @@ export class GameService {
         const lastAction = actions.at(-1)
         gameData.lastActionAt = lastAction?.createdAt || gameData.lastActionAt
         gameData.lastActionPlayerId = lastAction?.playerId || gameData.lastActionPlayerId
-        await this.localGameStore.storeLocalGameData({
+        await this.localGameStore.storeGameData({
             game: gameData,
             actions: actionsData,
             state: stateData
         })
-        this.gamesById.set(gameData.id, gameData)
+        this.hotseatGamesById.set(gameData.id, gameData)
     }
 
     async undoActionsFromLocalGame({
@@ -256,16 +251,17 @@ export class GameService {
             state: stateData
         })
 
-        this.gamesById.set(gameData.id, gameData)
+        this.hotseatGamesById.set(gameData.id, gameData)
     }
 
     async deleteGame(gameId: string): Promise<void> {
         if (this.hotseatGamesById.has(gameId)) {
             await this.localGameStore.deleteGame(gameId)
+            this.hotseatGamesById.delete(gameId)
         } else {
             await this.api.deleteGame(gameId)
+            this.gamesById.delete(gameId)
         }
-        this.gamesById.delete(gameId)
     }
 
     async startGame(game: Game): Promise<Game> {
