@@ -31,6 +31,7 @@
         const placeBidAction = gameSession.createPlaceBidAction(bidValue)
         gameSession.applyAction(placeBidAction)
         cancelAction()
+        bidValue = 0
     }
 
     let showCancel = $derived(

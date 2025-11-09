@@ -1,10 +1,8 @@
 import { Game, GameAction, GameState } from '@tabletop/common'
 
 export type GameService = {
-    isLoading(): boolean
-
     loadGames(): Promise<void>
-    loadGame(id: string): Promise<{ game: Game; actions: GameAction[] }>
+    loadGame(gameId: string): Promise<{ game?: Game; actions: GameAction[] }>
 
     createGame(game: Partial<Game>): Promise<Game>
     forkGame(game: Partial<Game>, actionIndex: number): Promise<Game>
@@ -33,8 +31,5 @@ export type GameService = {
     startGame(game: Game): Promise<Game>
     joinGame(gameId: string): Promise<Game>
     declineGame(gameId: string): Promise<Game>
-    getActiveGames(): Game[]
-    getWaitingGames(): Game[]
-    getFinishedGames(): Game[]
     clear(): void
 }

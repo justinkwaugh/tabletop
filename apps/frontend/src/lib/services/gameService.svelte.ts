@@ -1,5 +1,6 @@
 import {
     GameSession,
+    type GameService as GameServiceInterface,
     TabletopApi,
     type AuthorizationService,
     type NotificationEvent,
@@ -25,7 +26,7 @@ import { NotificationService } from './notificationService.svelte'
 import { IndexedDbGameStore } from '$lib/persistence/indexedDbGameStore.js'
 import type { LibraryService } from './libraryService.js'
 
-export class GameService {
+export class GameService implements GameServiceInterface {
     private gamesById: Map<string, Game> = new SvelteMap()
     private hotseatGamesById: Map<string, Game> = new SvelteMap()
 

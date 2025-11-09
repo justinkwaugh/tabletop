@@ -1,6 +1,6 @@
 <script lang="ts">
     import { setContext, getContext, type Component } from 'svelte'
-    import { GameSession } from '@tabletop/frontend-components'
+    import { GameSession, HotseatPanel } from '@tabletop/frontend-components'
     import { onMount } from 'svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import AdminPanel from '$lib/components/AdminPanel.svelte'
@@ -65,6 +65,9 @@
 <div class="flex flex-col w-screen overflow-auto">
     {#if authorizationService.actAsAdmin}
         <AdminPanel />
+    {/if}
+    {#if data.gameSession.game.hotseat}
+        <HotseatPanel />
     {/if}
     <Table />
 </div>
