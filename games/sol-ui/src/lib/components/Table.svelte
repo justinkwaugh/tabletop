@@ -123,26 +123,28 @@
                     </div>
                     <History />
                 </TabItem>
-                <TabItem
-                    onclick={onChatClick}
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
-                >
-                    <div slot="title" class="flex items-center gap-2">
-                        <AnnotationSolid size="md" />
-                        Chat
-                        {#if showNewMessageIndicator}
-                            <Indicator
-                                color="red"
-                                size="lg"
-                                placement="top-right"
-                                class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
-                            ></Indicator>
-                        {/if}
-                    </div>
+                {#if !gameSession.game.hotseat}
+                    <TabItem
+                        onclick={onChatClick}
+                        activeClasses={activeTabClasses}
+                        inactiveClasses={inactiveTabClasses}
+                    >
+                        <div slot="title" class="flex items-center gap-2">
+                            <AnnotationSolid size="md" />
+                            Chat
+                            {#if showNewMessageIndicator}
+                                <Indicator
+                                    color="red"
+                                    size="lg"
+                                    placement="top-right"
+                                    class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
+                                ></Indicator>
+                            {/if}
+                        </div>
 
-                    <GameChat />
-                </TabItem>
+                        <GameChat />
+                    </TabItem>
+                {/if}
             </Tabs>
         </div>
         <div

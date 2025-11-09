@@ -378,7 +378,9 @@
                                     {player.name ?? ''}
                                 </div>
                                 <div>
-                                    {game.hotseat ? '' : playerStatusDisplay(player, game.ownerId)}
+                                    {game.hotseat
+                                        ? 'local'
+                                        : playerStatusDisplay(player, game.ownerId)}
                                 </div>
                             </div>
                         {/each}

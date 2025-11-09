@@ -143,34 +143,36 @@
                     {/snippet}
                     <History />
                 </TabItem>
-                <TabItem
-                    onclick={onChatClick}
-                    activeClass={activeTabClasses}
-                    inactiveClass={inactiveTabClasses}
-                >
-                    {#snippet titleSlot()}
-                        <div class="flex items-center gap-2 uppercase kaivai-font">
-                            <AnnotationSolid size="md" />
-                            Chat
-                            {#if showNewMessageIndicator}
-                                <Indicator
-                                    color="red"
-                                    size="lg"
-                                    placement="top-right"
-                                    class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
-                                ></Indicator>
-                            {/if}
-                        </div>
-                    {/snippet}
+                {#if !gameSession.game.hotseat}
+                    <TabItem
+                        onclick={onChatClick}
+                        activeClass={activeTabClasses}
+                        inactiveClass={inactiveTabClasses}
+                    >
+                        {#snippet titleSlot()}
+                            <div class="flex items-center gap-2 uppercase kaivai-font">
+                                <AnnotationSolid size="md" />
+                                Chat
+                                {#if showNewMessageIndicator}
+                                    <Indicator
+                                        color="red"
+                                        size="lg"
+                                        placement="top-right"
+                                        class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
+                                    ></Indicator>
+                                {/if}
+                            </div>
+                        {/snippet}
 
-                    <GameChat
-                        height={'h-[calc(100dvh-202px)] sm:h-[calc(100dvh-178px)]'}
-                        timeColor={'text-[#8d794d]'}
-                        bgColor={'bg-[#302408]'}
-                        inputBgColor={'bg-[#634a11]'}
-                        inputBorderColor={'border-[#302408]'}
-                    />
-                </TabItem>
+                        <GameChat
+                            height={'h-[calc(100dvh-202px)] sm:h-[calc(100dvh-178px)]'}
+                            timeColor={'text-[#8d794d]'}
+                            bgColor={'bg-[#302408]'}
+                            inputBgColor={'bg-[#634a11]'}
+                            inputBorderColor={'border-[#302408]'}
+                        />
+                    </TabItem>
+                {/if}
             </Tabs>
         </div>
         <div
