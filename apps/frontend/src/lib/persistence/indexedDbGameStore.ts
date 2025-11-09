@@ -107,10 +107,36 @@ export class IndexedDbGameStore implements GameStore {
     }): Promise<[Game, string[], Game]> {
         throw new Error('Method not implemented.')
     }
-    async deleteGame(game: Game): Promise<void> {
-        throw new Error('Method not implemented.')
+
+    async deleteGame(gameId: string): Promise<void> {
+        const db = await this.getDatabase()
+        const tx = db.transaction(
+            [
+                IndexedDbGameStore.GAME_STORE_NAME,
+                IndexedDbGameStore.ACTION_STORE_NAME,
+                IndexedDbGameStore.STATE_STORE_NAME
+            ],
+            'readwrite'
+        )
+
+        let [cursor] = await Promise.all([
+            tx
+                .objectStore(IndexedDbGameStore.ACTION_STORE_NAME)
+                .index('by-game')
+                .openCursor(IDBKeyRange.only(gameId)),
+            tx.objectStore(IndexedDbGameStore.GAME_STORE_NAME).delete(gameId),
+            tx.objectStore(IndexedDbGameStore.STATE_STORE_NAME).delete(gameId)
+        ])
+
+        while (cursor) {
+            await cursor?.delete()
+            cursor = await cursor?.continue()
+        }
+
+        await tx.done
     }
-    async addActionsToGame({
+
+    async storeLocalGameData({
         game,
         actions,
         state
@@ -118,48 +144,72 @@ export class IndexedDbGameStore implements GameStore {
         game: Game
         actions: GameAction[]
         state: GameState
-    }): Promise<{
-        storedActions: GameAction[]
-        updatedGame: Game
-        relatedActions: GameAction[]
-        priorState: GameState
-    }> {
-        throw new Error('Method not implemented.')
+    }): Promise<void> {
+        const gameData: Game = structuredClone(game)
+        gameData.updatedAt = new Date()
+        delete gameData.state
+
+        const db = await this.getDatabase()
+        const tx = db.transaction(
+            [
+                IndexedDbGameStore.GAME_STORE_NAME,
+                IndexedDbGameStore.ACTION_STORE_NAME,
+                IndexedDbGameStore.STATE_STORE_NAME
+            ],
+            'readwrite'
+        )
+        await Promise.all([
+            tx.objectStore(IndexedDbGameStore.GAME_STORE_NAME).put(gameData),
+            ...actions.map((action) =>
+                tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).add(action)
+            ),
+            tx.objectStore(IndexedDbGameStore.STATE_STORE_NAME).put(state),
+            tx.done
+        ])
     }
-    async undoActionsFromGame({
-        gameId,
-        actions,
+    async storeUndoData({
+        game,
+        undoneActions,
         redoneActions,
         state
     }: {
-        gameId: string
-        actions: GameAction[]
+        game: Game
+        undoneActions: GameAction[]
         redoneActions: GameAction[]
         state: GameState
-    }): Promise<{
-        undoneActions: GameAction[]
-        updatedGame: Game
-        redoneActions: GameAction[]
-        priorState: GameState
-    }> {
-        throw new Error('Method not implemented.')
+    }): Promise<void> {
+        const gameData: Game = structuredClone(game)
+        gameData.updatedAt = new Date()
+        delete gameData.state
+
+        const db = await this.getDatabase()
+        const tx = db.transaction(
+            [
+                IndexedDbGameStore.GAME_STORE_NAME,
+                IndexedDbGameStore.ACTION_STORE_NAME,
+                IndexedDbGameStore.STATE_STORE_NAME
+            ],
+            'readwrite'
+        )
+        await Promise.all([
+            tx.objectStore(IndexedDbGameStore.GAME_STORE_NAME).put(gameData),
+            ...undoneActions.map((action) =>
+                tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).delete(action.id)
+            ),
+            ...redoneActions.map((action) =>
+                tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).add(action)
+            ),
+            tx.objectStore(IndexedDbGameStore.STATE_STORE_NAME).put(state),
+            tx.done
+        ])
     }
-    async findActionById(game: Game, actionId: string): Promise<GameAction | undefined> {
-        throw new Error('Method not implemented.')
-    }
+
     async findActionsForGame(game: Game): Promise<GameAction[]> {
-        return []
-    }
-    async storeCompleteGame(
-        game: Game, // should include state
-        actions: GameAction[]
-    ): Promise<{
-        storedGame: Game
-        storedActions: GameAction[]
-    }> {
-        throw new Error('Method not implemented.')
-    }
-    async getActionChecksum(gameId: string): Promise<number | undefined> {
-        throw new Error('Method not implemented.')
+        const db = await this.getDatabase()
+        const tx = db.transaction(IndexedDbGameStore.ACTION_STORE_NAME, 'readonly')
+        const index = tx.store.index('by-game')
+        const [actions] = await Promise.all([index.getAll(IDBKeyRange.only(game.id)), tx.done])
+        actions.sort((a, b) => a.index - b.index)
+        return actions
     }
 }

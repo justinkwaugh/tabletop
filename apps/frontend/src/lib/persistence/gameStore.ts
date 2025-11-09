@@ -11,9 +11,9 @@ export interface GameStore {
         game: Game
         fields: Partial<Game>
     }): Promise<[Game, string[], Game]>
-    deleteGame(game: Game): Promise<void>
+    deleteGame(gameId: string): Promise<void>
 
-    addActionsToGame({
+    storeLocalGameData({
         game,
         actions,
         state
@@ -21,40 +21,19 @@ export interface GameStore {
         game: Game
         actions: GameAction[]
         state: GameState
-    }): Promise<{
-        storedActions: GameAction[]
-        updatedGame: Game
-        relatedActions: GameAction[]
-        priorState: GameState
-    }>
+    }): Promise<void>
 
-    undoActionsFromGame({
-        gameId,
-        actions,
+    storeUndoData({
+        game,
+        undoneActions,
         redoneActions,
         state
     }: {
-        gameId: string
-        actions: GameAction[]
+        game: Game
+        undoneActions: GameAction[]
         redoneActions: GameAction[]
         state: GameState
-    }): Promise<{
-        undoneActions: GameAction[]
-        updatedGame: Game
-        redoneActions: GameAction[]
-        priorState: GameState
-    }>
+    }): Promise<void>
 
-    findActionById(game: Game, actionId: string): Promise<GameAction | undefined>
     findActionsForGame(game: Game): Promise<GameAction[]>
-
-    storeCompleteGame(
-        game: Game, // should include state
-        actions: GameAction[]
-    ): Promise<{
-        storedGame: Game
-        storedActions: GameAction[]
-    }>
-
-    getActionChecksum(gameId: string): Promise<number | undefined>
 }

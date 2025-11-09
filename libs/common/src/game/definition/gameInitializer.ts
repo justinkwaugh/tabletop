@@ -24,6 +24,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
             hotseat: game.hotseat ?? false,
             winningPlayerIds: [],
             seed: generateSeed(),
+            activePlayerIds: [],
             createdAt: new Date() // This will be updated by the db
         }
 

@@ -98,7 +98,7 @@ export class GameService {
 
     // Only allow a single async load at a time
     async loadGames() {
-        await this.loadHotseatGames()
+        await this.loadLocalGames()
 
         if (!this.loadingPromise) {
             this.loading = true
@@ -119,8 +119,7 @@ export class GameService {
         return this.loadingPromise
     }
 
-    async loadHotseatGames() {
-        console.log('Loading hotseat games from local store')
+    async loadLocalGames() {
         const sessionUser = this.authorizationService.getSessionUser()
         if (!sessionUser) {
             console.log('No session user, clearing hotseat games')
@@ -132,7 +131,6 @@ export class GameService {
         games.forEach((game) => {
             this.hotseatGamesById.set(game.id, game)
         })
-        console.log(`Loaded ${games.length} hotseat games from local store`)
     }
 
     async loadGame(id: string): Promise<{ game: Game; actions: GameAction[] }> {
@@ -208,8 +206,65 @@ export class GameService {
         return updatedGame
     }
 
+    async addActionsToLocalGame({
+        game,
+        actions,
+        state
+    }: {
+        game: Game
+        actions: GameAction[]
+        state: GameState
+    }): Promise<void> {
+        const gameData = structuredClone(game)
+        const stateData = structuredClone(state)
+        const actionsData = actions.map((action) => structuredClone(action))
+
+        gameData.activePlayerIds = state.activePlayerIds
+        const lastAction = actions.at(-1)
+        gameData.lastActionAt = lastAction?.createdAt || gameData.lastActionAt
+        gameData.lastActionPlayerId = lastAction?.playerId || gameData.lastActionPlayerId
+        await this.localGameStore.storeLocalGameData({
+            game: gameData,
+            actions: actionsData,
+            state: stateData
+        })
+        this.gamesById.set(gameData.id, gameData)
+    }
+
+    async undoActionsFromLocalGame({
+        game,
+        undoneActions,
+        redoneActions,
+        state
+    }: {
+        game: Game
+        undoneActions: GameAction[]
+        redoneActions: GameAction[]
+        state: GameState
+    }): Promise<void> {
+        const gameData = structuredClone(game)
+        const stateData = structuredClone(state)
+        const redoneActionsData = redoneActions.map((action) => structuredClone(action))
+
+        gameData.activePlayerIds = stateData.activePlayerIds
+        // Need to figure out last action
+
+        await this.localGameStore.storeUndoData({
+            game: gameData,
+            undoneActions,
+            redoneActions: redoneActionsData,
+            state: stateData
+        })
+
+        this.gamesById.set(gameData.id, gameData)
+    }
+
     async deleteGame(gameId: string): Promise<void> {
-        await this.api.deleteGame(gameId)
+        if (this.hotseatGamesById.has(gameId)) {
+            await this.localGameStore.deleteGame(gameId)
+        } else {
+            await this.api.deleteGame(gameId)
+        }
         this.gamesById.delete(gameId)
     }
 

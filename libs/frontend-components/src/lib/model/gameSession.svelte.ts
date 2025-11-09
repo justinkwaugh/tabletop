@@ -158,7 +158,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 continue
             }
 
-            if (this.authorizationService.actAsAdmin) {
+            if (this.game.hotseat || this.authorizationService.actAsAdmin) {
                 undoableUserAction = action
                 break
             }
@@ -251,6 +251,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     private getPreferredColor(user?: User): Color | undefined {
         if (
+            this.game.hotseat ||
             !user ||
             !user.preferences ||
             !user.preferences.preferredColorsEnabled ||
@@ -281,6 +282,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     })
 
     myPlayer: Player | undefined = $derived.by(() => {
+        // In hotseat games, we are just always the first active player
         if (this.game.hotseat) {
             return this.activePlayers.at(0)
         }
@@ -433,6 +435,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     listenToGame() {
+        if (this.game.hotseat) {
+            return
+        }
+
         if (this.debug) {
             console.log(`listening to game ${this.game.id}`)
         }
@@ -498,10 +504,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
             action.index = processedAction.index
 
-            // Now send the action to the server
             if (this.game.hotseat) {
-                // Store the actions locally
+                // In hotseat mode, just store the action locally
+                await this.gameService.addActionsToLocalGame({
+                    game: gameSnapshot,
+                    actions: actionResults.processedActions,
+                    state: actionResults.updatedState
+                })
             } else {
+                // Now send the action to the server
                 try {
                     if (this.debug) {
                         console.log(`Sending ${action.type} ${action.id} to server: `, action)
@@ -641,6 +652,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
                 if (this.game.hotseat) {
                     // Store updates locally
+                    await this.gameService.undoActionsFromLocalGame({
+                        game: gameSnapshot,
+                        undoneActions: localUndoneActions,
+                        redoneActions: localRedoneActions,
+                        state: gameSnapshot.state
+                    })
                 } else {
                     // Undo on the server
                     const { redoneActions, checksum } = await this.api.undoAction(
@@ -1218,6 +1235,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     private async checkSync() {
+        if (this.game.hotseat) {
+            return
+        }
+
         const { status, actions, checksum } = await this.api.checkSync(
             this.game.id,
             this.game.state?.actionChecksum ?? 0,

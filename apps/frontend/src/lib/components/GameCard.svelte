@@ -297,8 +297,17 @@
                                 </div>
                             </div>
                         {/if}
-
-                        {#if game.status === GameStatus.Started && game.lastActionAt}
+                        {#if game.hotseat}
+                            <div class="flex flex-col justify-center items-end">
+                                <div
+                                    class="text-gray-600"
+                                    style="font-size:.7rem; line-height:.8rem"
+                                >
+                                    Mode
+                                </div>
+                                <div class="text-xs text-green-400">Hotseat</div>
+                            </div>
+                        {:else if game.status === GameStatus.Started && game.lastActionAt}
                             <div class="flex flex-col justify-center items-end">
                                 <div
                                     class="text-gray-600"
@@ -368,7 +377,9 @@
                                 >
                                     {player.name ?? ''}
                                 </div>
-                                <div>{playerStatusDisplay(player, game.ownerId)}</div>
+                                <div>
+                                    {game.hotseat ? '' : playerStatusDisplay(player, game.ownerId)}
+                                </div>
                             </div>
                         {/each}
                     </div>
