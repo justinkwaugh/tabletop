@@ -33,7 +33,7 @@
 
     type EditableGame = Pick<
         Game,
-        'id' | 'typeId' | 'name' | 'players' | 'isPublic' | 'ownerId' | 'config'
+        'id' | 'typeId' | 'name' | 'players' | 'isPublic' | 'hotseat' | 'ownerId' | 'config'
     >
     enum EditMode {
         Create = 'create',
@@ -78,6 +78,7 @@
                   }
               ],
               isPublic: false,
+              hotseat: false,
               ownerId: sessionUser?.id,
               config: {}
           }
@@ -90,6 +91,7 @@
     let numPlayers = $state(editedGame.players.length)
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
+    let isHotseat: boolean = $state(editedGame.hotseat)
 
     let selectedTitle = $state(libraryService.getTitle(game?.typeId ?? editedGame.typeId) ?? title)
 
@@ -173,7 +175,7 @@
         const playersToUpload = $state.snapshot(players)
         for (const player of Object.values(playersToUpload)) {
             if (player.name) {
-                player.status = PlayerStatus.Reserved
+                player.status = isHotseat ? PlayerStatus.Joined : PlayerStatus.Reserved
             }
         }
 
@@ -186,6 +188,8 @@
             name: (formData.get('name') as string).trim(),
             players: playersToUpload,
             isPublic,
+            hotseat: isHotseat,
+            ownerId: editedGame.ownerId,
             config: mergedConfig
         }
 
@@ -273,13 +277,22 @@
     />
 {/snippet}
 
-<h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200 mb-4">
-    {#if mode === EditMode.Create && !selectedTitle}
-        Create a game...
-    {:else}
-        {selectedTitle?.metadata.name}
-    {/if}
-</h1>
+<div class="flex flex-row w-full justify-between items-center mb-4">
+    <div>
+        <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200">
+            {#if mode === EditMode.Create && !selectedTitle}
+                Create a game...
+            {:else}
+                {selectedTitle?.metadata.name}
+            {/if}
+        </h1>
+    </div>
+    <div>
+        <Toggle bind:checked={isHotseat} classes={{ span: 'me-0' }}
+            >{#snippet offLabel()}Hotseat{/snippet}</Toggle
+        >
+    </div>
+</div>
 {#if unexpectedError}
     <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
         <span class="font-bold text-lg">Oops...</span><br />
@@ -330,6 +343,7 @@
             {#each players as player, i (player.id)}
                 <Typeahead
                     id={player.id}
+                    active={!isHotseat}
                     oninput={(event: InputEvent) => handleNameInput(player, event)}
                     bind:text={player.name}
                     exclude={players.map((p) => p.name)}
@@ -344,7 +358,7 @@
                           : 'default'}
                     readonly={isOwner(player)}
                     disabled={isOwner(player)}
-                    required={!isPublic}
+                    required={isHotseat || !isPublic}
                 >
                     <div class="flex flex-row justify-center align-center">
                         {#if isOwner(player)}

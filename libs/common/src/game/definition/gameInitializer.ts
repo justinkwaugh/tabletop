@@ -21,7 +21,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
             ownerId: game.ownerId,
             players: game.players,
             config: game.config ?? {},
-            hotseat: false,
+            hotseat: game.hotseat ?? false,
             winningPlayerIds: [],
             seed: generateSeed(),
             createdAt: new Date() // This will be updated by the db

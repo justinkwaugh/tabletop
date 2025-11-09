@@ -2,6 +2,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { Player } from './player.js'
 import { GameResult, GameState } from './gameState.js'
 import { GameConfig } from '../definition/gameConfig.js'
+import { TypeCompiler } from '@sinclair/typebox/compiler'
 
 export enum GameStatus {
     WaitingForPlayers = 'waitingForPlayers',
@@ -62,3 +63,5 @@ export const Game = Type.Object({
     winningPlayerIds: Type.Array(Type.String()),
     seed: Type.Optional(Type.Number())
 })
+
+export const GameValidator = TypeCompiler.Compile(Game)

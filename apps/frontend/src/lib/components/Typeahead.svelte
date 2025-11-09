@@ -8,6 +8,7 @@
     let {
         id = nanoid(),
         text = $bindable(),
+        active = true,
         exclude = [],
         oninput = () => {},
         children,
@@ -15,6 +16,7 @@
     }: {
         id: string
         text: string
+        active: boolean
         exclude: string[]
         oninput: (event: InputEvent) => void
         children: Snippet
@@ -38,16 +40,17 @@
         trim(event)
         text = (event.target as HTMLInputElement).value
 
-        if (inputDelayTimeout) {
-            clearTimeout(inputDelayTimeout)
-        }
+        if (active) {
+            if (inputDelayTimeout) {
+                clearTimeout(inputDelayTimeout)
+            }
 
-        if (delay) {
-            inputDelayTimeout = setTimeout(processInput, delay)
-        } else {
-            processInput()
+            if (delay) {
+                inputDelayTimeout = setTimeout(processInput, delay)
+            } else {
+                processInput()
+            }
         }
-
         oninput(event as InputEvent)
     }
 
@@ -162,7 +165,6 @@
         reference={`#${inputId}`}
         triggeredBy={`#${hiddenTriggerId}`}
         trigger={'click'}
-        color="dropdown"
         offset={0}
         class="mt-2 border-2 dark:border-gray-700 dark:bg-gray-800"
         strategy="fixed"

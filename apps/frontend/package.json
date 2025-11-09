@@ -20,6 +20,7 @@
         "@tabletop/frontend-components": "*",
         "@tabletop/frontend-games": "*",
         "ably": "^2.3.1",
+        "idb": "^8.0.3",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^5.1.6",
         "svelte-json-tree": "github:justinkwaugh/svelte-json-tree",

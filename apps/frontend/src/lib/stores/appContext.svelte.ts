@@ -48,7 +48,7 @@ const appContext: AppContext = {
     libraryService,
     authorizationService,
     notificationService,
-    gameService: new GameService(authorizationService, notificationService, api),
+    gameService: new GameService(libraryService, authorizationService, notificationService, api),
     chatService: chatService,
     visibilityService,
     api

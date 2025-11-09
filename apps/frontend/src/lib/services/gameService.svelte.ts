@@ -16,14 +16,20 @@ import {
     NotificationCategory,
     GameAction,
     GameState,
-    type HydratedGameState
+    type HydratedGameState,
+    GameEngine
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
+import { IndexedDbGameStore } from '$lib/persistence/indexedDbGameStore.js'
+import type { LibraryService } from './libraryService.js'
 
 export class GameService {
     private gamesById: Map<string, Game> = new SvelteMap()
+    private hotseatGamesById: Map<string, Game> = new SvelteMap()
+
+    localGameStore: IndexedDbGameStore
 
     loading = $state(false)
     private loadingPromise: Promise<void> | null = null
@@ -36,7 +42,7 @@ export class GameService {
             return []
         }
 
-        return Array.from(this.gamesById.values())
+        return [...this.gamesById.values(), ...this.hotseatGamesById.values()]
             .filter((game) => game.status === GameStatus.Started)
             .toSorted((a, b) => {
                 const myBPlayerId = b.players.find(
@@ -77,11 +83,13 @@ export class GameService {
     )
 
     constructor(
+        private readonly libraryService: LibraryService,
         private readonly authorizationService: AuthorizationService,
         private readonly notificationService: NotificationService,
         private readonly api: TabletopApi
     ) {
         notificationService.addListener(this.NotificationListener)
+        this.localGameStore = new IndexedDbGameStore()
     }
 
     async hasActiveGames() {
@@ -90,6 +98,8 @@ export class GameService {
 
     // Only allow a single async load at a time
     async loadGames() {
+        await this.loadHotseatGames()
+
         if (!this.loadingPromise) {
             this.loading = true
             this.loadingPromise = this.api.getMyGames().then((games) => {
@@ -109,7 +119,43 @@ export class GameService {
         return this.loadingPromise
     }
 
+    async loadHotseatGames() {
+        console.log('Loading hotseat games from local store')
+        const sessionUser = this.authorizationService.getSessionUser()
+        if (!sessionUser) {
+            console.log('No session user, clearing hotseat games')
+            this.hotseatGamesById.clear()
+            return
+        }
+
+        const games = await this.localGameStore.findGamesForUser(sessionUser)
+        games.forEach((game) => {
+            this.hotseatGamesById.set(game.id, game)
+        })
+        console.log(`Loaded ${games.length} hotseat games from local store`)
+    }
+
     async loadGame(id: string): Promise<{ game: Game; actions: GameAction[] }> {
+        // First check local hotseat games
+        if (!this.hotseatGamesById.has(id)) {
+            const localGame = await this.localGameStore.findGameById(id)
+            if (localGame) {
+                this.hotseatGamesById.set(localGame.id, localGame)
+            }
+        }
+
+        const localGame = this.hotseatGamesById.get(id)
+        if (localGame) {
+            const state = await this.localGameStore.findStateByGameId(id)
+            if (!state) {
+                throw new Error('Local hotseat game state not found')
+            }
+            localGame.state = state
+            const actions = await this.localGameStore.findActionsForGame(localGame)
+            return { game: localGame, actions }
+        }
+
+        // Check remote games
         const { game, actions } = await this.api.getGame(id)
         if (game) {
             this.gamesById.set(game.id, game)
@@ -118,7 +164,34 @@ export class GameService {
     }
 
     async createGame(game: Partial<Game>): Promise<Game> {
-        const newGame = await this.api.createGame(game)
+        let newGame: Game
+        if (!game.typeId) {
+            throw new Error('Game typeId is required to create a game')
+        }
+
+        if (game.hotseat) {
+            console.log('Creating local hotseat game for typeId', game.typeId)
+            console.log('Game data:', game)
+
+            const definition = this.libraryService.getTitle(game.typeId)
+            if (!definition) {
+                throw new Error(`Game definition not found for typeId ${game.typeId}`)
+            }
+
+            for (const player of game.players ?? []) {
+                player.userId = game.ownerId
+            }
+
+            const initializedGame = definition.initializer.initializeGame(game)
+
+            const engine = new GameEngine(definition)
+            const startedGame = engine.startGame(initializedGame)
+
+            newGame = await this.localGameStore.createGame(startedGame)
+        } else {
+            newGame = await this.api.createGame(game)
+        }
+
         this.gamesById.set(newGame.id, newGame)
         return newGame
     }

@@ -357,7 +357,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.engine = new GameEngine(definition)
         this.game = game
         this.debug = debug
-        this.chatService.setGameId(game.id)
+        if (!game.hotseat) {
+            this.chatService.setGameId(game.id)
+        }
         this.initializeActions(actions)
     }
 
@@ -425,7 +427,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         const playerColor = this.getPlayerColor(playerId)
         return this.getBorderContrastColor(playerColor)
     }
-
+    F
     listenToGame() {
         if (this.debug) {
             console.log(`listening to game ${this.game.id}`)

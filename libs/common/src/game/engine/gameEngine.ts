@@ -1,6 +1,6 @@
 import jsonpatch, { Operation } from 'fast-json-patch'
 import { GameAction, HydratedAction, Patch } from './gameAction.js'
-import { Game } from '../model/game.js'
+import { Game, GameStatus } from '../model/game.js'
 import { GameState, HydratedGameState, UninitializedGameState } from '../model/gameState.js'
 import { MachineContext } from './machineContext.js'
 import { MachineStateHandler } from './machineStateHandler.js'
@@ -45,6 +45,7 @@ export class GameEngine {
 
         const startedGame = structuredClone(game)
         startedGame.startedAt = new Date()
+        startedGame.status = GameStatus.Started
 
         const uninitializedState = this.generateUninitializedState(game)
         const initialState = this.definition.initializer.initializeGameState(

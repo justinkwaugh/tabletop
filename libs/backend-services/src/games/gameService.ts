@@ -171,8 +171,6 @@ export class GameService {
         actionIndex: number
         owner: User
     }): Promise<Game> {
-        // Currently we have to get the state because the seed is on the state.
-        // We probably should move that to the game
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })

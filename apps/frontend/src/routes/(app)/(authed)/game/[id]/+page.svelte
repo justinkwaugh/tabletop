@@ -21,11 +21,13 @@
             Table = tableComponent
         })
 
-        setTimeout(() => {
-            notificationService.showPrompt()
-        }, 2000)
+        if (!gameSession.game.hotseat) {
+            setTimeout(() => {
+                notificationService.showPrompt()
+            }, 2000)
 
-        gameSession.listenToGame()
+            gameSession.listenToGame()
+        }
         return () => {
             gameSession.stopListeningToGame()
             gameService.currentGameSession = undefined
