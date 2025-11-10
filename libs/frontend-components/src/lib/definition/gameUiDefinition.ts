@@ -23,6 +23,7 @@ export interface GameSessionConstructor {
         api,
         definition,
         game,
+        state,
         actions,
         debug
     }: {

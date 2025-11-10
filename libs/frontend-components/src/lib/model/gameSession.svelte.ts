@@ -371,7 +371,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         api: TabletopApi
         definition: GameUiDefinition
         game: Game
-        state: T
+        state: GameState
         actions: GameAction[]
         debug?: boolean
     }) {
@@ -387,7 +387,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         this.debug = debug
 
-        this.gameContext = new GameContext<T, U>(game, state, actions, this.engine)
+        this.gameContext = new GameContext<T, U>(game, state as T, actions, this.engine)
         this.history = new GameHistory(this.gameContext, {
             onHistoryEnter: () => {
                 this.mode = GameSessionMode.History
