@@ -418,10 +418,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                     })
 
                     void (async () => {
-                        console.log('Calling listeners for change: ', {
-                            from: oldState?.actionChecksum,
-                            to: newState.actionChecksum
-                        })
                         for (const listener of this.gameStateChangeListeners) {
                             await listener({ to: newState, from: oldState, timeline })
                         }
