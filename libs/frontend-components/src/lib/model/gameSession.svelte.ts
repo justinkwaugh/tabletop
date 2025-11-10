@@ -66,7 +66,7 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
 // type StepDirection = 'forward' | 'backward'
 
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
-    public definition: GameUiDefinition
+    public definition: GameUiDefinition<T, U>
     private debug? = false
     private authorizationService: AuthorizationService
     private notificationService: NotificationService
@@ -369,9 +369,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         notificationService: NotificationService
         chatService: ChatService
         api: TabletopApi
-        definition: GameUiDefinition
+        definition: GameUiDefinition<T, U>
         game: Game
-        state: GameState
+        state: T
         actions: GameAction[]
         debug?: boolean
     }) {
@@ -387,7 +387,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         this.debug = debug
 
-        this.gameContext = new GameContext<T, U>(game, state as T, actions, this.engine)
+        this.gameContext = new GameContext<T, U>(game, state, actions, this.engine)
         this.history = new GameHistory(this.gameContext, {
             onHistoryEnter: () => {
                 this.mode = GameSessionMode.History

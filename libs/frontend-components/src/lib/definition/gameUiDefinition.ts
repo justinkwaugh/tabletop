@@ -14,7 +14,7 @@ import type { GameColorizer } from './gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.svelte'
 
-export interface GameSessionConstructor {
+export interface GameSessionConstructor<T extends GameState, U extends HydratedGameState & T> {
     new ({
         gameService,
         authorizationService,
@@ -32,17 +32,18 @@ export interface GameSessionConstructor {
         notificationService: NotificationService
         chatService: ChatService
         api: TabletopApi
-        definition: GameUiDefinition
+        definition: GameUiDefinition<T, U>
         game: Game
-        state: GameState
+        state: T
         actions: GameAction[]
         debug?: boolean
-    }): GameSession<GameState, HydratedGameState>
+    }): GameSession<T, U>
 }
 
-export interface GameUiDefinition extends GameDefinition {
+export interface GameUiDefinition<T extends GameState, U extends HydratedGameState & T>
+    extends GameDefinition {
     getTableComponent: () => Promise<Component>
-    sessionClass: GameSessionConstructor
+    sessionClass: GameSessionConstructor<T, U>
     colorizer: GameColorizer
     thumbnailUrl: string
 }
