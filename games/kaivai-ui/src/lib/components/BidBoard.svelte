@@ -92,7 +92,7 @@
                 }
             }}
             class="absolute z-10 cursor-pointer rounded-full {bid.playerId
-                ? `${gameSession.getPlayerBgColor(bid.playerId)}`
+                ? `${gameSession.colors.getPlayerBgColor(bid.playerId)}`
                 : 'bg-transparent'} top-[30px] {bid.left} w-[60px] h-[60px] flex flex-col justify-center items-center"
         ></div>
     {/each}

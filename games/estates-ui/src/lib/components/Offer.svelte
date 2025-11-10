@@ -112,7 +112,9 @@
                             tabindex="-1"
                             onclick={() => chooseCube(cube, { row, col })}
                             class="flex justify-center items-center text-[#EEEEEE] rounded-sm w-6 h-6 font-bold text-xl select-none {cube
-                                ? gameSession.getBgColor(gameSession.getCompanyColor(cube.company))
+                                ? gameSession.colors.getBgColor(
+                                      gameSession.getCompanyColor(cube.company)
+                                  )
                                 : 'bg-transparent'} {canPlace &&
                             !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
                                 ? 'opacity-30 cursor-default'

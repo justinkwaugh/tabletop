@@ -17,7 +17,7 @@
 </script>
 
 <span
-    class="rounded px-2 {gameSession.getPlayerBgColor(
+    class="rounded px-2 {gameSession.colors.getPlayerBgColor(
         playerId
-    )} font-medium {gameSession.getPlayerTextColor(playerId)}">{text}</span
+    )} font-medium {gameSession.colors.getPlayerTextColor(playerId)}">{text}</span
 >

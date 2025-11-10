@@ -24,7 +24,7 @@
         if (!playerId) {
             return 'bg-white'
         }
-        return gameSession.getPlayerBgColor(playerId)
+        return gameSession.colors.getPlayerBgColor(playerId)
     }
 
     function hasBid(bid: number) {
@@ -45,7 +45,7 @@
             return 'text-white'
         }
         return movement(bid) !== movementList[bid - 1]
-            ? gameSession.getPlayerTextColor(playerId, true)
+            ? gameSession.colors.getPlayerTextColor(playerId, true)
             : 'text-white'
     }
 </script>
@@ -129,9 +129,9 @@
                 {#each bidOrder as playerId (playerId)}
                     <div
                         animate:flip={{ duration: 200 }}
-                        class="w-[24px] h-[24px] flex flex-row justify-center items-center rounded-lg border border-gray-800 {gameSession.getPlayerTextColor(
+                        class="w-[24px] h-[24px] flex flex-row justify-center items-center rounded-lg border border-gray-800 {gameSession.colors.getPlayerTextColor(
                             playerId
-                        )} {gameSession.getPlayerBgColor(playerId)}"
+                        )} {gameSession.colors.getPlayerBgColor(playerId)}"
                     ></div>
                 {/each}
             </div>

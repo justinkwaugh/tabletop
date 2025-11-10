@@ -9,8 +9,8 @@
     let { player, playerState }: { player: Player; playerState: EstatesPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(playerState.playerId))
-    let bgColor = $derived(gameSession.getPlayerBgColor(playerState.playerId))
-    let textColor = $derived(gameSession.getPlayerTextColor(playerState.playerId))
+    let bgColor = $derived(gameSession.colors.getPlayerBgColor(playerState.playerId))
+    let textColor = $derived(gameSession.colors.getPlayerTextColor(playerState.playerId))
 
     function certWidthForCount(certCount: number) {
         return 'w-[70px]'

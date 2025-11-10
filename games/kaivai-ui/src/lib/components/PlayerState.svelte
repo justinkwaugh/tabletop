@@ -9,7 +9,7 @@
         $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
-    let bgColor = $derived(gameSession.getPlayerBgColor(player.id))
+    let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
 
     let movementBonusList = ['+1', '+2', '+2', '+3', '+3', '+4', '+4', '+5']
 
@@ -18,7 +18,7 @@
 
 <div class="relative">
     <div
-        class="rounded-lg {bgColor} py-[3px] px-4 text-center {gameSession.getPlayerTextColor(
+        class="rounded-lg {bgColor} py-[3px] px-4 text-center {gameSession.colors.getPlayerTextColor(
             playerState.playerId
         )} {isPassed ? 'opacity-40' : ''} font-medium flex flex-col justify-between {isTurn
             ? 'border-2 pulse-border'
@@ -104,7 +104,7 @@
                     style="font-size:.7rem; line-height:.8rem"
                 ></div>
                 <div
-                    class="text-lg w-[40px] h-[25px] flex justify-center items-center border-e-2 {gameSession.getPlayerBorderContrastColor(
+                    class="text-lg w-[40px] h-[25px] flex justify-center items-center border-e-2 {gameSession.colors.getPlayerBorderContrastColor(
                         playerState.playerId
                     )}"
                 >
@@ -122,7 +122,7 @@
                     </svg>
                 </div>
                 <div
-                    class="text-lg w-[40px] h-[25px] flex justify-center items-center border-e-2 {gameSession.getPlayerBorderContrastColor(
+                    class="text-lg w-[40px] h-[25px] flex justify-center items-center border-e-2 {gameSession.colors.getPlayerBorderContrastColor(
                         playerState.playerId
                     )}"
                 >
@@ -154,14 +154,14 @@
                         {i + 1}
                     </div>
                     <div
-                        class="text-lg w-[40px] h-[25px] kaivai-font border-e-2 {gameSession.getPlayerBorderContrastColor(
+                        class="text-lg w-[40px] h-[25px] kaivai-font border-e-2 {gameSession.colors.getPlayerBorderContrastColor(
                             playerState.playerId
                         )}"
                     >
                         {playerState.shells[i] ? playerState.shells[i] : ''}
                     </div>
                     <div
-                        class="text-lg w-[40px] h-[25px] kaivai-font border-e-2 {gameSession.getPlayerBorderContrastColor(
+                        class="text-lg w-[40px] h-[25px] kaivai-font border-e-2 {gameSession.colors.getPlayerBorderContrastColor(
                             playerState.playerId
                         )}"
                     >

@@ -178,7 +178,7 @@
             xmlns="http://www.w3.org/2000/svg"
         >
             <circle
-                fill={gameSession.getPlayerUiColor(cell.playerId)}
+                fill={gameSession.colors.getPlayerUiColor(cell.playerId)}
                 stroke="#333333"
                 stroke-width=".5"
                 cx="15"

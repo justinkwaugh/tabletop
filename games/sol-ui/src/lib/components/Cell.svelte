@@ -118,7 +118,7 @@
 {#each [...sundiversPerPlayer] as [playerId, quantity], i}
     <Sundiver
         location={cellLayout.divers[i] ?? { x: 0, y: 0 }}
-        color={gameSession.getPlayerColor(playerId)}
+        color={gameSession.colors.getPlayerColor(playerId)}
         {quantity}
     />
 {/each}

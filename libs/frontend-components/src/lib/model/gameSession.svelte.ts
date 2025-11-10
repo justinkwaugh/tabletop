@@ -12,8 +12,6 @@ import {
     GameSyncStatus,
     findLastIndex,
     GameUndoActionNotification,
-    User,
-    Color,
     GameDeleteNotification,
     type HydratedGameState,
     PlayerAction
@@ -40,17 +38,13 @@ import { gsap } from 'gsap'
 import type { GameService } from '$lib/services/gameService.svelte'
 import { GameContext } from './gameContext.svelte.js'
 import { GameHistory } from './gameHistory.svelte.js'
+import { GameActionResults } from './gameActionResults.svelte.js'
+import { GameColors } from './gameColors.svelte.js'
 
 export enum GameSessionMode {
     Play = 'play',
-    Spectate = 'spectate',
+    Explore = 'explore',
     History = 'history'
-}
-
-type ActionResults<T extends GameState> = {
-    processedActions: GameAction[]
-    updatedState: T
-    revealing: boolean
 }
 
 export type GameStateChangeListener<U extends HydratedGameState> = ({
@@ -63,28 +57,30 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
     timeline: gsap.core.Timeline
 }) => Promise<void>
 
-// type StepDirection = 'forward' | 'backward'
-
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
-    public definition: GameUiDefinition<T, U>
     private debug? = false
     private authorizationService: AuthorizationService
     private notificationService: NotificationService
 
+    public definition: GameUiDefinition<T, U>
     private engine: GameEngine
     private api: TabletopApi
 
     private actionsToProcess: GameAction[] = []
 
-    private busy = false
     private processingActions = false
     private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
 
     private gameContext: GameContext<T, U>
+    private explorationContext?: GameContext<T, U>
+
     history: GameHistory<T, U>
+    colors: GameColors<T, U>
 
     chatService: ChatService
     gameService: GameService
+
+    mode: GameSessionMode = $state(GameSessionMode.Play)
 
     // Exposed directly for the UI
     game: Game = $derived.by(() => {
@@ -141,7 +137,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         return sessionUser.preferences.colorBlindPalette === true
     })
 
-    colorizer: GameColorizer = $derived.by(() => {
+    private colorizer: GameColorizer = $derived.by(() => {
         return this.colorBlind && !this.isActingAdmin
             ? new ColorblindColorizer()
             : this.definition.colorizer
@@ -229,63 +225,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         new Map(this.game.players.map((player) => [player.id, player.name]))
     )
 
-    private playerColorsById = $derived.by(() => {
-        const state = this.gameContext.state
-        if (!state) {
-            return new Map()
-        }
-
-        const sessionUser = this.authorizationService.getSessionUser()
-        const preferredColor = this.getPreferredColor(sessionUser)
-
-        const playerCopies = structuredClone(state.players)
-
-        const conflictingPlayer = playerCopies.find(
-            (player) =>
-                preferredColor &&
-                player.color === preferredColor &&
-                player.playerId !== this.myPlayer?.id
-        )
-        const myPlayer = playerCopies.find((player) => player.playerId === this.myPlayer?.id)
-
-        if (preferredColor && myPlayer && myPlayer.color !== preferredColor) {
-            const myOriginalColor = myPlayer.color
-            myPlayer.color = preferredColor
-            if (conflictingPlayer) {
-                conflictingPlayer.color = myOriginalColor
-            }
-        }
-        return new Map(
-            playerCopies.map((player) => {
-                return [player.playerId, player.color]
-            })
-        )
-    })
-
-    private getPreferredColor(user?: User): Color | undefined {
-        if (
-            this.gameContext.game.hotseat ||
-            !user ||
-            !user.preferences ||
-            !user.preferences.preferredColorsEnabled ||
-            this.isActingAdmin
-        ) {
-            return undefined
-        }
-
-        const preferredColors = user.preferences.preferredColors
-        let preferredColor: Color | undefined
-        let bestRank = 999
-        for (const color of this.definition.playerColors) {
-            const rank = preferredColors.indexOf(color)
-            if (rank >= 0 && rank < bestRank) {
-                preferredColor = color
-                bestRank = rank
-            }
-        }
-        return preferredColor
-    }
-
     activePlayers: Player[] = $derived.by(() => {
         const state = this.gameContext.state
         if (!state) {
@@ -350,8 +289,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         return this.authorizationService.actAsAdmin
     })
 
-    mode: GameSessionMode = $state(GameSessionMode.Play)
-
     constructor({
         gameService,
         authorizationService,
@@ -387,7 +324,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         this.debug = debug
 
-        this.gameContext = new GameContext<T, U>(game, state, actions, this.engine)
+        this.gameContext = new GameContext<T, U>({
+            definition,
+            game,
+            state,
+            actions
+        })
         this.history = new GameHistory(this.gameContext, {
             onHistoryEnter: () => {
                 this.mode = GameSessionMode.History
@@ -402,6 +344,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         // Need an initial value
         this.gameState = this.definition.hydrator.hydrateState(state) as U
+        this.colors = new GameColors(this.authorizationService, this.gameContext)
 
         if (!game.hotseat) {
             this.chatService.setGameId(game.id)
@@ -436,55 +379,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     getPlayerName(playerId?: string): string {
         if (!playerId) return 'Someone'
         return this.playerNamesById.get(playerId) ?? 'Someone'
-    }
-
-    getPlayerColor(playerId?: string): Color {
-        return this.playerColorsById.get(playerId ?? 'unknown') ?? Color.Gray
-    }
-
-    getUiColor(color: Color): string {
-        return this.colorizer.getUiColor(color)
-    }
-
-    getPlayerUiColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.getUiColor(playerColor)
-    }
-
-    getBgColor(color: Color): string {
-        return this.colorizer.getBgColor(color)
-    }
-
-    getPlayerBgColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.getBgColor(playerColor)
-    }
-
-    getTextColor(color: Color, asPlayerColor: boolean = false): string {
-        return this.colorizer.getTextColor(color, asPlayerColor)
-    }
-
-    getPlayerTextColor(playerId?: string, asPlayerColor: boolean = false) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.getTextColor(playerColor, asPlayerColor)
-    }
-
-    getBorderColor(color: Color): string {
-        return this.colorizer.getBorderColor(color)
-    }
-
-    getPlayerBorderColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.getBorderColor(playerColor)
-    }
-
-    getBorderContrastColor(color: Color): string {
-        return this.colorizer.getBorderContrastColor(color)
-    }
-
-    getPlayerBorderContrastColor(playerId?: string) {
-        const playerColor = this.getPlayerColor(playerId)
-        return this.getBorderContrastColor(playerColor)
     }
 
     listenToGame() {
@@ -657,7 +551,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async undo() {
-        if (!this.undoableAction || this.busy || this.mode === GameSessionMode.History) {
+        if (
+            !this.undoableAction ||
+            this.processingActions ||
+            this.mode === GameSessionMode.History
+        ) {
             return
         }
 
@@ -666,7 +564,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.willUndo(targetAction)
         try {
             // Block server actions while we are processing
-            this.busy = true
             this.processingActions = true
 
             const targetActionId = targetAction.id
@@ -761,7 +658,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
         } finally {
             this.processingActions = false
-            this.busy = false
             await this.applyQueuedActions()
         }
     }
@@ -802,13 +698,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.gameContext.restore(context)
     }
 
-    private applyActionToGame(action: GameAction, game: Game, state: T): ActionResults<T> {
+    private applyActionToGame(action: GameAction, game: Game, state: T): GameActionResults<T> {
         const { processedActions, updatedState } = this.engine.run(action, state, game)
         const revealing = processedActions.some((action) => action.revealsInfo)
-        return { processedActions, updatedState: updatedState as T, revealing }
+        return new GameActionResults(processedActions, updatedState as T, revealing)
     }
 
-    private applyActionResults(actionResults: ActionResults<T>) {
+    private applyActionResults(actionResults: GameActionResults<T>) {
         this.gameContext.updateGameState(actionResults.updatedState)
         actionResults.processedActions.forEach((action) => {
             this.gameContext.addAction(action)
@@ -982,7 +878,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             if (!game.state) {
                 throw new Error('Game state is missing from server')
             }
-            const newContext = new GameContext<T, U>(game, game.state as T, actions, this.engine)
+            const newContext = new GameContext<T, U>({
+                definition: this.definition,
+                game,
+                state: game.state as T,
+                actions
+            })
             this.gameContext.restore(newContext)
         } catch (e) {
             console.log('Error during full resync', e)
@@ -1004,11 +905,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         const gameSnapshot = structuredClone(this.gameContext.game)
         let stateSnapshot = structuredClone(this.gameContext.state) as T
 
-        const allActionResults: ActionResults<T> = {
-            processedActions: [],
-            updatedState: stateSnapshot,
-            revealing: false
-        }
+        const allActionResults = new GameActionResults<T>([], stateSnapshot, false)
 
         for (const action of actions) {
             // Make sure we have not already processed this action
@@ -1025,10 +922,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 console.log(`Applying ${action.type} ${action.id} from server`, action)
             }
             const actionResults = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
-            allActionResults.processedActions.push(...actionResults.processedActions)
-            allActionResults.updatedState = actionResults.updatedState
+            allActionResults.add(actionResults)
 
-            stateSnapshot = actionResults.updatedState
+            stateSnapshot = allActionResults.updatedState
         }
 
         // Once all the actions are processed, update the game state

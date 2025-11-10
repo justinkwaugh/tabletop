@@ -8,12 +8,12 @@
     let { player, playerState }: { player: Player; playerState: BridgesPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
-    let bgColor = $derived(gameSession.getPlayerBgColor(player.id))
+    let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
 </script>
 
 <div class="relative">
     <div
-        class="rounded-lg {bgColor} py-[3px] px-4 text-center {gameSession.getPlayerTextColor(
+        class="rounded-lg {bgColor} py-[3px] px-4 text-center {gameSession.colors.getPlayerTextColor(
             playerState.playerId
         )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
     >

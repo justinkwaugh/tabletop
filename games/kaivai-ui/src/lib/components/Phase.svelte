@@ -95,9 +95,9 @@
             {#each playersByScore as player (player.playerId)}
                 <div
                     animate:flip={{ duration: 200 }}
-                    class="px-2 flex flex-row justify-center items-center rounded-lg border border-gray-800 {gameSession.getPlayerTextColor(
+                    class="px-2 flex flex-row justify-center items-center rounded-lg border border-gray-800 {gameSession.colors.getPlayerTextColor(
                         player.playerId
-                    )} {gameSession.getPlayerBgColor(player.playerId)}"
+                    )} {gameSession.colors.getPlayerBgColor(player.playerId)}"
                 >
                     <span class="uppercase text-2xl text-nowrap select-none kaivai-font"
                         >{player.score}</span

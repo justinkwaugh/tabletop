@@ -132,7 +132,7 @@
 
     let tabIndex = $derived(interactable ? 0 : -1)
     function bgColorForMaster(masterType: MasterType) {
-        return gameSession.getPlayerBgColor(village.spaces[masterType]?.playerId)
+        return gameSession.colors.getPlayerBgColor(village.spaces[masterType]?.playerId)
     }
 
     function imageForMaster(masterType: MasterType) {

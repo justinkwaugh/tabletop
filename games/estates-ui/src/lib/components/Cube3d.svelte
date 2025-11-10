@@ -32,7 +32,7 @@
     <T.Mesh {castShadow} name="outlineMesh">
         <RoundedBoxGeometry args={[1, 1, 1]} />
         <T.MeshPhysicalMaterial
-            color={gameSession.getUiColor(gameSession.getCompanyColor(cube.company))}
+            color={gameSession.colors.getUiColor(gameSession.getCompanyColor(cube.company))}
             transparent={opacity !== 1}
             {opacity}
             clearcoat={1}

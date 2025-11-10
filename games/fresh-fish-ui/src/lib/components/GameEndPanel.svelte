@@ -48,9 +48,9 @@
             <div class="flex flex-row m-auto">
                 {#each gameSession.gameState.players as player}
                     <div
-                        class="mt-2 mx-1 min-w-[140px] rounded-lg {gameSession.getPlayerBgColor(
+                        class="mt-2 mx-1 min-w-[140px] rounded-lg {gameSession.colors.getPlayerBgColor(
                             player.playerId
-                        )} py-[3px] px-4 text-center {gameSession.getPlayerTextColor(
+                        )} py-[3px] px-4 text-center {gameSession.colors.getPlayerTextColor(
                             player.playerId
                         )} font-medium flex flex-col justify-center"
                     >

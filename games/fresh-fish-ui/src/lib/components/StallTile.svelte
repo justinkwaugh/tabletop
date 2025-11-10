@@ -21,8 +21,10 @@
     let gameSession = getContext('gameSession') as FreshFishGameSession
 
     let sizePx = $derived(`${size}px`)
-    let stallBgColor = $derived(playerId ? gameSession.getPlayerBgColor(playerId) : 'bg-[#555555]')
-    let playerColor = $derived(gameSession.getPlayerColor(playerId))
+    let stallBgColor = $derived(
+        playerId ? gameSession.colors.getPlayerBgColor(playerId) : 'bg-[#555555]'
+    )
+    let playerColor = $derived(gameSession.colors.getPlayerColor(playerId))
     let stallImg = $derived.by(() => {
         switch (goodsType) {
             case GoodsType.Cheese:

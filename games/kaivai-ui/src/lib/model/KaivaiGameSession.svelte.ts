@@ -234,35 +234,35 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     })
 
     getPlayerSvgColor(playerId?: string) {
-        return this.getPlayerColor(playerId) === 'yellow' ? 'black' : 'white'
+        return this.colors.getPlayerColor(playerId) === 'yellow' ? 'black' : 'white'
     }
 
     getHutImage(hutType: HutType, playerId?: string) {
-        const color = this.getPlayerColor(playerId)
+        const color = this.colors.getPlayerColor(playerId)
         switch (hutType) {
             case HutType.Meeting:
                 switch (color) {
                     case Color.Yellow:
-                        return this.colorBlind ? yellowHut2Cb : yellowHut2
+                        return this.colors.colorBlind ? yellowHut2Cb : yellowHut2
                     case Color.Blue:
-                        return this.colorBlind ? blueHut2Cb : blueHut2
+                        return this.colors.colorBlind ? blueHut2Cb : blueHut2
                     case Color.Green:
-                        return this.colorBlind ? greenHut2Cb : greenHut2
+                        return this.colors.colorBlind ? greenHut2Cb : greenHut2
                     case Color.Red:
-                        return this.colorBlind ? redHut2Cb : redHut2
+                        return this.colors.colorBlind ? redHut2Cb : redHut2
                 }
                 break
             case HutType.BoatBuilding:
             case HutType.Fishing:
                 switch (color) {
                     case Color.Yellow:
-                        return this.colorBlind ? yellowHutCb : yellowHut
+                        return this.colors.colorBlind ? yellowHutCb : yellowHut
                     case Color.Blue:
-                        return this.colorBlind ? blueHutCb : blueHut
+                        return this.colors.colorBlind ? blueHutCb : blueHut
                     case Color.Green:
-                        return this.colorBlind ? greenHutCb : greenHut
+                        return this.colors.colorBlind ? greenHutCb : greenHut
                     case Color.Red:
-                        return this.colorBlind ? redHutCb : redHut
+                        return this.colors.colorBlind ? redHutCb : redHut
                 }
                 break
         }

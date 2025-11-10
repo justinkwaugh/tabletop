@@ -195,9 +195,9 @@
 {#snippet chatMessage(message: GameChatMessage)}
     <div class="flex flex-row justify-start items-start gap-x-2 hover:bg-gray-800 py-2">
         <div
-            class="shrink-0 grow-0 flex justify-center items-center rounded-full {gameSession.getPlayerBgColor(
+            class="shrink-0 grow-0 flex justify-center items-center rounded-full {gameSession.colors.getPlayerBgColor(
                 message.playerId
-            )} {gameSession.getPlayerTextColor(
+            )} {gameSession.colors.getPlayerTextColor(
                 message.playerId
             )} w-[36px] h-[36px] text-xl font-bold"
         >

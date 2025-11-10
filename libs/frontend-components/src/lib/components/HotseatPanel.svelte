@@ -4,8 +4,12 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
-    let hotseatPlayerBgColor = $derived(gameSession.getPlayerBgColor(gameSession.myPlayer?.id))
-    let hotseatPlayerTextColor = $derived(gameSession.getPlayerTextColor(gameSession.myPlayer?.id))
+    let hotseatPlayerBgColor = $derived(
+        gameSession.colors.getPlayerBgColor(gameSession.myPlayer?.id)
+    )
+    let hotseatPlayerTextColor = $derived(
+        gameSession.colors.getPlayerTextColor(gameSession.myPlayer?.id)
+    )
 </script>
 
 {#if gameSession.myPlayer}

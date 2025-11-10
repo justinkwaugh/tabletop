@@ -11,8 +11,8 @@
     let playerState = $derived(gameSession.gameState.players.find((p) => p.playerId === playerId))
 
     let isTurn = $derived(player && gameSession.game.state?.activePlayerIds.includes(player.id))
-    let bgColor = $derived(gameSession.getPlayerBgColor(player?.id))
-    let textColor = $derived(gameSession.getPlayerTextColor(player?.id))
+    let bgColor = $derived(gameSession.colors.getPlayerBgColor(player?.id))
+    let textColor = $derived(gameSession.colors.getPlayerTextColor(player?.id))
 
     function certWidthForCount(certCount: number) {
         if (certCount === 1) {

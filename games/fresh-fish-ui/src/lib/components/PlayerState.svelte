@@ -8,8 +8,8 @@
     let { player, playerState }: { player: Player; playerState: FreshFishPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
-    let bgColor = $derived(gameSession.getPlayerBgColor(player.id))
-    let textColor = $derived(gameSession.getPlayerTextColor(player.id))
+    let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
+    let textColor = $derived(gameSession.colors.getPlayerTextColor(player.id))
 
     function letterForGoodsType(goodsType: string) {
         switch (goodsType) {

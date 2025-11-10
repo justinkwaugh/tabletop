@@ -1,8 +1,9 @@
+import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
 import {
     calculateActionChecksum,
     type Game,
     type GameAction,
-    type GameEngine,
+    GameEngine,
     type GameState,
     type HydratedGameState
 } from '@tabletop/common'
@@ -10,6 +11,7 @@ import {
 // This class holds everything needed to represent the current context of a game
 // for the UI.  It is UI specific because it uses Svelte's $state for reactivity.
 export class GameContext<T extends GameState, U extends HydratedGameState & T> {
+    definition: GameUiDefinition<T, U>
     game: Game = $state.raw({} as Game)
     state: T = $state.raw({} as T)
     actions: GameAction[] = $state([] as GameAction[])
@@ -17,21 +19,32 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
 
     private actionsById: Map<string, GameAction> = new Map([])
 
-    constructor(game: Game, state: T, actions: GameAction[], engine: GameEngine) {
+    constructor({
+        definition,
+        game,
+        state,
+        actions
+    }: {
+        definition: GameUiDefinition<T, U>
+        game: Game
+        state: T
+        actions: GameAction[]
+    }) {
+        this.definition = definition
         this.game = game
         this.state = state
         this.actions = actions
-        this.engine = engine
+        this.engine = new GameEngine(definition)
         this.initializeActions(actions)
     }
 
     clone(): GameContext<T, U> {
-        return new GameContext(
-            structuredClone(this.game),
-            structuredClone(this.state) as T,
-            this.actions.map((action) => structuredClone($state.snapshot(action))),
-            this.engine
-        )
+        return new GameContext({
+            definition: this.definition,
+            game: structuredClone(this.game),
+            state: structuredClone(this.state) as T,
+            actions: this.actions.map((action) => structuredClone($state.snapshot(action)))
+        })
     }
 
     restore(context: GameContext<T, U>) {
