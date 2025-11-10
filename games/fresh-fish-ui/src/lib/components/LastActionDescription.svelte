@@ -13,8 +13,8 @@
 
     let lastAction = $derived.by(() => {
         let action
-        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
-            action = gameSession.actions[gameSession.currentHistoryIndex]
+        if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
+            action = gameSession.actions[gameSession.history.actionIndex]
         } else if (gameSession.mode === GameSessionMode.Play) {
             let actionIndex = gameSession.actions.length - 1
             do {

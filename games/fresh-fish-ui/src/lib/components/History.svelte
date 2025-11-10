@@ -22,7 +22,7 @@
 
         if (gameSession.mode === GameSessionMode.History) {
             actions = actions.filter(
-                (action) => (action.index ?? 0) <= gameSession.currentHistoryIndex
+                (action) => (action.index ?? 0) <= gameSession.history.actionIndex
             )
         }
 

@@ -23,15 +23,7 @@
         )
     })
 
-    let lastAction = $derived.by(() => {
-        let action
-        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
-            action = gameSession.actions[gameSession.currentHistoryIndex]
-        } else if (gameSession.mode === GameSessionMode.Play) {
-            action = gameSession.actions[gameSession.actions.length - 1]
-        }
-        return action
-    })
+    let lastAction = $derived(gameSession.currentAction)
 
     function getBidStringForPlayer(playerId: string): string | undefined {
         let auction: OnceAroundAuction | undefined = gameSession.gameState.auction

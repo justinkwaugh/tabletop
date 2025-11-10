@@ -108,9 +108,11 @@ export class FirestoreGameStore implements GameStore {
 
     async writeFullGameData(
         game: Game,
+        state: GameState,
         actions: GameAction[]
     ): Promise<{
         storedGame: Game
+        storedGameState: GameState
         storedActions: GameAction[]
     }> {
         const storedGame = structuredClone(game) as StoredGame
@@ -128,7 +130,8 @@ export class FirestoreGameStore implements GameStore {
         )
 
         const stateCollection = this.getStateCollection(gameId)
-        const stateToUpdate = storedGame.state
+        const stateToUpdate = state
+
         delete storedGame.state
 
         const actionChunkCollection = this.getActionChunkCollection(gameId)
@@ -155,8 +158,7 @@ export class FirestoreGameStore implements GameStore {
                             transaction.create(actionChunkCollection.doc(chunk.id), chunk)
                         }
 
-                        storedGame.state = stateToUpdate
-                        return { storedGame, storedActions }
+                        return { storedGame, storedGameState: stateToUpdate, storedActions }
                     })
             )
         } catch (error) {

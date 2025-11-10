@@ -1,4 +1,4 @@
-import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
+import { GameSession } from '@tabletop/frontend-components'
 import yellowHut from '$lib/images/yellowhut.png'
 import yellowHut2 from '$lib/images/yellowhut2.png'
 import blueHut from '$lib/images/bluehut.png'
@@ -56,15 +56,8 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     chosenDeliveries: Delivery[] = $state([])
     currentDeliveryLocation: AxialCoordinates | undefined = $state(undefined)
 
-    lastAction = $derived.by(() => {
-        let action
-        if (this.mode === GameSessionMode.History && this.currentHistoryIndex >= 0) {
-            action = this.actions[this.currentHistoryIndex]
-        } else if (this.mode === GameSessionMode.Play) {
-            action = this.actions[this.actions.length - 1]
-        }
-        return action
-    })
+    // Not really needed now
+    lastAction = $derived(this.currentAction)
 
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)

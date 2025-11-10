@@ -19,7 +19,7 @@
         </TabItem>
         <TabItem title="State">
             <div style="--json-tree-font-size: 14px;">
-                <JSONTree value={gameSession.visibleGameState} />
+                <JSONTree value={gameSession.gameState} />
             </div>
         </TabItem>
         <TabItem title="Actions">

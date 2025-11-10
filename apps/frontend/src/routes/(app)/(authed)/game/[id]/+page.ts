@@ -23,6 +23,14 @@ export async function load({ params, url }) {
             return
         }
 
+        if (!game.state) {
+            onceMounted(() => {
+                toast.error('The specified game has not been started')
+            })
+            await goto('/dashboard')
+            return
+        }
+
         const definition = appContext.libraryService.getTitle(game.typeId)
         if (!definition) {
             onceMounted(() => {
@@ -41,6 +49,7 @@ export async function load({ params, url }) {
                 api: appContext.api,
                 definition,
                 game,
+                state: game.state,
                 actions
             })
         }

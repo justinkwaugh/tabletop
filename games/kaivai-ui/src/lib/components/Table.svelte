@@ -44,8 +44,7 @@
         }
         if (gameSession.mode === GameSessionMode.History) {
             return (
-                gameSession.currentHistoryIndex >= 0 &&
-                gameSession.actions[gameSession.currentHistoryIndex].type === ActionType.PlaceBid
+                gameSession.currentAction && gameSession.currentAction.type === ActionType.PlaceBid
             )
         }
 

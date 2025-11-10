@@ -6,16 +6,7 @@
     import ActionDescription from '$lib/components/ActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
-
-    let lastAction = $derived.by(() => {
-        let action
-        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
-            action = gameSession.actions[gameSession.currentHistoryIndex]
-        } else if (gameSession.mode === GameSessionMode.Play) {
-            action = gameSession.actions[gameSession.actions.length - 1]
-        }
-        return action
-    })
+    let lastAction = $derived(gameSession.currentAction)
 </script>
 
 <div

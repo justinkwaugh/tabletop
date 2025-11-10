@@ -55,14 +55,11 @@ export class IndexedDbGameStore implements GameStore {
         return this.db
     }
 
-    async createGame(game: Game): Promise<Game> {
+    async createGame(game: Game, state: GameState): Promise<Game> {
         const gameData: Game = structuredClone(game)
         const now = new Date()
         gameData.createdAt = now
         gameData.updatedAt = now
-
-        const state = gameData.state
-        delete gameData.state
 
         const db = await this.getDatabase()
         const tx = db.transaction(['games', 'states'], 'readwrite')

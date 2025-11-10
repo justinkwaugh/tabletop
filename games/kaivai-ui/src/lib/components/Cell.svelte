@@ -292,8 +292,8 @@
 
     let disabled = $derived.by(() => {
         const state = gameSession.gameState
-        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
-            const action = gameSession.actions[gameSession.currentHistoryIndex]
+        if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
+            const action = gameSession.actions[gameSession.history.actionIndex]
 
             switch (true) {
                 case isFish(action):
@@ -382,8 +382,8 @@
         }
 
         const islandsToCheck = $state.snapshot(state.islandsToScore)
-        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
-            const action = gameSession.actions[gameSession.currentHistoryIndex]
+        if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
+            const action = gameSession.actions[gameSession.history.actionIndex]
             if (isScoreIsland(action)) {
                 islandsToCheck.push(action.islandId)
             }

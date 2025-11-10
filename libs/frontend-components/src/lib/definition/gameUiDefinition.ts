@@ -33,6 +33,7 @@ export interface GameSessionConstructor {
         api: TabletopApi
         definition: GameUiDefinition
         game: Game
+        state: GameState
         actions: GameAction[]
         debug?: boolean
     }): GameSession<GameState, HydratedGameState>

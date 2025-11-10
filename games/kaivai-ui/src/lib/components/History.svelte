@@ -45,7 +45,7 @@
         return gameSession.actions.filter((action) => {
             if (
                 gameSession.mode === GameSessionMode.History &&
-                (action.index ?? 0) > gameSession.currentHistoryIndex
+                (action.index ?? 0) > gameSession.history.actionIndex
             ) {
                 return false
             }

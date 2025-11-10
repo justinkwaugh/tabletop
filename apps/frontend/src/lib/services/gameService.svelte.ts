@@ -178,9 +178,9 @@ export class GameService implements GameServiceInterface {
             const initializedGame = definition.initializer.initializeGame(game)
 
             const engine = new GameEngine(definition)
-            const startedGame = engine.startGame(initializedGame)
+            const { startedGame, initialState } = engine.startGame(initializedGame)
 
-            newGame = await this.localGameStore.createGame(startedGame)
+            newGame = await this.localGameStore.createGame(startedGame, initialState)
             this.hotseatGamesById.set(newGame.id, newGame)
         } else {
             newGame = await this.api.createGame(game)

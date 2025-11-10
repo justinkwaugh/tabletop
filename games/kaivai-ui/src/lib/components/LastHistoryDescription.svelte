@@ -25,8 +25,8 @@
 
     let lastAction = $derived.by(() => {
         let actionIndex = -1
-        if (gameSession.mode === GameSessionMode.History && gameSession.currentHistoryIndex >= 0) {
-            actionIndex = gameSession.currentHistoryIndex
+        if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
+            actionIndex = gameSession.history.actionIndex
         } else if (gameSession.mode === GameSessionMode.Play) {
             actionIndex = gameSession.actions.length - 1
         }
@@ -45,7 +45,7 @@
     })
 </script>
 
-{#if lastAction || gameSession.currentHistoryIndex == -1}
+{#if lastAction || gameSession.history.actionIndex == -1}
     <div
         class="rounded-lg bg-transparent p-2 text-center flex flex-row flex-wrap justify-center items-center"
     >

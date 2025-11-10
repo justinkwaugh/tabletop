@@ -23,9 +23,11 @@ export interface GameStore {
     createGame(game: Game): Promise<Game>
     writeFullGameData(
         game: Game,
+        state: GameState,
         actions: GameAction[]
     ): Promise<{
         storedGame: Game
+        storedGameState: GameState
         storedActions: GameAction[]
     }>
     getGameEtag(gameId: string): Promise<string | undefined>

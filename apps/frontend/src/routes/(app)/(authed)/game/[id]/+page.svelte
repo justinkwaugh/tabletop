@@ -16,6 +16,7 @@
 
     onMount(() => {
         const gameSession = data.gameSession
+
         gameService.currentGameSession = gameSession
         gameSession.definition.getTableComponent().then((tableComponent: Component) => {
             Table = tableComponent
@@ -46,16 +47,20 @@
 
         if (event.key === 'ArrowUp') {
             event.preventDefault()
-            data.gameSession.goToMyNextTurn()
+            if (data.gameSession.myPlayer) {
+                data.gameSession.history.goToPlayersNextTurn(data.gameSession.myPlayer.id)
+            }
         } else if (event.key === 'ArrowDown') {
             event.preventDefault()
-            data.gameSession.goToMyPreviousTurn()
+            if (data.gameSession.myPlayer) {
+                data.gameSession.history.goToPlayersPreviousTurn(data.gameSession.myPlayer.id)
+            }
         } else if (event.key === 'ArrowLeft') {
             event.preventDefault()
-            data.gameSession.goToPreviousAction()
+            data.gameSession.history.goToPreviousAction()
         } else if (event.key === 'ArrowRight') {
             event.preventDefault()
-            data.gameSession.goToNextAction()
+            data.gameSession.history.goToNextAction()
         }
     }
 </script>

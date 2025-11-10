@@ -177,7 +177,7 @@ export class GameService {
         }
         const actions = await this.getGameActions(game)
 
-        let forkedGame = structuredClone(game)
+        const forkedGame = structuredClone(game)
 
         if (!forkedGame.seed) {
             // We have to look up the state, because we did not always store the seed on the game
@@ -196,41 +196,46 @@ export class GameService {
 
         // Generate initial state
         const engine = new GameEngine(definition)
-        forkedGame = engine.startGame(forkedGame)
+        const { startedGame, initialState } = engine.startGame(forkedGame)
 
         // Copy the entire action history up to the specified index
         const actionSubset = actions
             .slice(0, actionIndex + 1)
             .map((action) => structuredClone(action))
 
+        let state = initialState
         // Run the game to the desired index
         for (const action of actionSubset) {
             // Copy and adjust
             action.gameId = forkedGame.id
 
             // Apply each action to the forked game state
-            const { updatedState } = engine.run(action, forkedGame, RunMode.Single)
-            forkedGame.state = updatedState
+            const { updatedState } = engine.run(action, state, startedGame, RunMode.Single)
+            state = updatedState
         }
 
         // Update some relevant fields on the game
-        forkedGame.activePlayerIds = forkedGame.state?.activePlayerIds || []
+        startedGame.activePlayerIds = state.activePlayerIds || []
         const lastAction = actionSubset.at(-1)
         if (lastAction) {
-            forkedGame.lastActionAt = lastAction.createdAt
-            forkedGame.lastActionPlayerId = lastAction.playerId
+            startedGame.lastActionAt = lastAction.createdAt
+            startedGame.lastActionPlayerId = lastAction.playerId
         } else {
-            forkedGame.lastActionAt = undefined
-            forkedGame.lastActionPlayerId = undefined
+            startedGame.lastActionAt = undefined
+            startedGame.lastActionPlayerId = undefined
         }
 
         // Store the forked data
-        const { storedGame } = await this.gameStore.writeFullGameData(forkedGame, actionSubset)
+        const { storedGame } = await this.gameStore.writeFullGameData(
+            startedGame,
+            state,
+            actionSubset
+        )
 
         // Send notifications
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
 
-        console.log(`Forked game ${game.id} with seed ${storedGame.state?.prng?.seed}`)
+        console.log(`Forked game ${game.id} with seed ${state.prng?.seed}`)
         return storedGame
     }
 
@@ -298,7 +303,7 @@ export class GameService {
         const actions = await this.gameStore.findActionRangeForGame({
             game,
             startIndex: index + 1,
-            endIndex: game.state.actionCount
+            endIndex: state.actionCount
         })
 
         const calculatedChecksum = calculateActionChecksum(checksum, actions)
@@ -590,17 +595,18 @@ export class GameService {
             throw new UnauthorizedAccessError({ user, gameId })
         }
 
-        const startedGame = new GameEngine(definition).startGame(game)
+        const { startedGame, initialState } = new GameEngine(definition).startGame(game)
+        startedGame.state = initialState
 
         const [updatedGame] = await this.gameStore.updateGame({
             game,
-            fields: { startedAt: new Date(), status: GameStatus.Started, state: startedGame.state },
+            fields: { startedAt: new Date(), status: GameStatus.Started, state: initialState },
             validator: (existingGame, fieldsToUpdate) => {
                 if (existingGame.status !== GameStatus.WaitingToStart) {
                     throw new GameNotWaitingToStartError({ id: gameId })
                 }
 
-                fieldsToUpdate.activePlayerIds = startedGame.state?.activePlayerIds ?? []
+                fieldsToUpdate.activePlayerIds = initialState?.activePlayerIds ?? []
 
                 return UpdateValidationResult.Proceed
             }
@@ -633,7 +639,7 @@ export class GameService {
     }> {
         const gameId = action.gameId
         const game = await this.getGame({ gameId, withState: true })
-        if (!game) {
+        if (!game || !game.state) {
             throw new GameNotFoundError({ id: gameId })
         }
 
@@ -658,7 +664,11 @@ export class GameService {
         const initialIndex = action.index
 
         const gameEngine = new GameEngine(definition)
-        const { processedActions, updatedState, indexOffset } = gameEngine.run(action, game)
+        const { processedActions, updatedState, indexOffset } = gameEngine.run(
+            action,
+            game.state,
+            game
+        )
 
         // write the action and the updated state
         const { storedActions, updatedGame, relatedActions, priorState } =
@@ -789,7 +799,7 @@ export class GameService {
             userPlayer = this.findValidPlayerForUser({ user, game })
         }
 
-        const gameState = game.state
+        let gameState = game.state
         if (!gameState) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
         }
@@ -872,19 +882,21 @@ export class GameService {
 
         const gameEngine = new GameEngine(definition)
         actions.reverse()
+
         for (const action of actions) {
-            game.state = gameEngine.undoAction(game, action)
+            gameState = gameEngine.undoAction(gameState, action)
         }
 
         const redoneActions: GameAction[] = []
         for (const redoAction of redoActions) {
-            const { processedActions, updatedState } = gameEngine.run(redoAction, game)
+            const { processedActions, updatedState } = gameEngine.run(redoAction, gameState, game)
             redoneActions.push(...processedActions)
-            game.state = updatedState
+            gameState = updatedState
         }
 
         // store the updated state
-        const updatedState = game.state
+        const updatedState = gameState
+
         const {
             undoneActions,
             updatedGame,
@@ -928,7 +940,7 @@ export class GameService {
                 return UpdateValidationResult.Proceed
             }
         })
-        const checksum = updatedGame.state?.actionChecksum ?? 0
+        const checksum = gameState?.actionChecksum ?? 0
         delete updatedGame.state
 
         // send out notifications

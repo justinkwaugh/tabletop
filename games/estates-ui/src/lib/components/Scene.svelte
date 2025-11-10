@@ -109,7 +109,7 @@
                 cameraControls.update(delta)
             }
         },
-        { autoInvalidate: false }
+        { autoInvalidate: true }
     )
 
     const certPositions: [number, number, number][] = [

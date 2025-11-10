@@ -163,9 +163,9 @@
             }
         } else if (
             gameSession.mode === GameSessionMode.History &&
-            gameSession.currentHistoryIndex >= 0
+            gameSession.history.actionIndex >= 0
         ) {
-            const action = gameSession.actions[gameSession.currentHistoryIndex]
+            const action = gameSession.actions[gameSession.history.actionIndex]
             if (isCelebrate(action) || isChooseScoringIsland(action) || isScoreIsland(action)) {
                 islands = [gameSession.gameState.board.islands[action.islandId]]
             }

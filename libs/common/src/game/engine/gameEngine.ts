@@ -21,7 +21,7 @@ export enum RunMode {
 }
 
 export class GameEngine {
-    constructor(private readonly definition: GameDefinition) {}
+    constructor(public readonly definition: GameDefinition) {}
 
     generateUninitializedState(game: Game): UninitializedGameState {
         const seed = game.seed ?? generateSeed()
@@ -38,7 +38,7 @@ export class GameEngine {
         }
     }
 
-    startGame(game: Game): Game {
+    startGame(game: Game): { startedGame: Game; initialState: GameState } {
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
         }
@@ -61,17 +61,10 @@ export class GameEngine {
         const initialHandler = this.getStateHandler(initialState)
         initialHandler.enter(machineContext)
 
-        startedGame.state = initialState.dehydrate()
-        return startedGame
+        return { startedGame, initialState: initialState.dehydrate() }
     }
 
-    getValidActionTypesForPlayer(game: Game, playerId: string): string[] {
-        if (!game.state) {
-            return []
-        }
-
-        const state = game.state
-
+    getValidActionTypesForPlayer(game: Game, state: GameState, playerId: string): string[] {
         const hydratedState = this.definition.hydrator.hydrateState(state)
         if (!hydratedState.isActivePlayer(playerId)) {
             return []
@@ -86,15 +79,16 @@ export class GameEngine {
         return stateHandler.validActionsForPlayer(playerId, machineContext)
     }
 
-    run(action: GameAction, game: Game, mode: RunMode = RunMode.Multiple): ActionResult {
-        if (!game.state) {
-            throw Error('Game has no state')
-        }
-
+    run(
+        action: GameAction,
+        state: GameState,
+        game: Game,
+        mode: RunMode = RunMode.Multiple
+    ): ActionResult {
         const processedActions: GameAction[] = []
-        let updatedState = game.state
+        let updatedState = structuredClone(state)
 
-        const hydratedState = this.definition.hydrator.hydrateState(structuredClone(updatedState))
+        const hydratedState = this.definition.hydrator.hydrateState(updatedState)
         const machineContext = new MachineContext({
             action: action,
             gameConfig: game.config,
@@ -152,6 +146,7 @@ export class GameEngine {
 
             const stateBeforeAction = updatedState
             updatedState = hydratedState.dehydrate()
+
             const undoPatch = jsonpatch.compare(updatedState, stateBeforeAction)
 
             const dehydratedAction = hydratedAction.dehydrate()
@@ -163,20 +158,20 @@ export class GameEngine {
         return { processedActions, updatedState, indexOffset }
     }
 
-    undoAction(game: Game, action: GameAction): GameState {
-        const state = structuredClone(game.state) as GameState
+    undoAction(state: GameState, action: GameAction): GameState {
+        const stateCopy = structuredClone(state)
         const initialChecksum = state.actionChecksum
         const undoPatch = action.undoPatch
         if (!undoPatch) {
             throw Error('Action has no undo patch')
         }
-        jsonpatch.applyPatch(state, undoPatch as Operation[])
-        if (state.actionChecksum === initialChecksum) {
+        jsonpatch.applyPatch(stateCopy, undoPatch as Operation[])
+        if (stateCopy.actionChecksum === initialChecksum) {
             console.log('Undoing an old action, calculating checksum manually')
             // This is only for games created when undo was not a thing
-            state.actionChecksum = calculateActionChecksum(state.actionChecksum, [action])
+            stateCopy.actionChecksum = calculateActionChecksum(stateCopy.actionChecksum, [action])
         }
-        return state
+        return stateCopy
     }
 
     private isPlayerAllowed(action: GameAction, state: HydratedGameState): boolean {

@@ -9,7 +9,7 @@ export abstract class Hydratable<T extends TSchema> {
             throw Error(JSON.stringify([...validator.Errors(data)]))
         }
 
-        Object.assign(this, data, nested)
+        Object.assign(this, structuredClone(data), nested)
     }
 
     dehydrate() {
