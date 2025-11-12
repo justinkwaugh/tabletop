@@ -16,7 +16,6 @@ import {
 import { HydratedSolGameState, SolGameState } from '../model/gameState.js'
 import { HydratedSolPlayerState, SolPlayerState } from '../model/playerState.js'
 
-import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { SolColors } from './colors.js'
 import { SolGameConfigValidator } from './gameConfig.js'
@@ -41,7 +40,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
 
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
         const prng = new Prng(state.prng)
-        const players = this.initializePlayers(game, prng.random)
+        const players = this.initializePlayers(game, prng)
         const nonFlareSuits = [
             Suit.Condensation,
             Suit.Expansion,
@@ -79,16 +78,16 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         return new HydratedSolGameState(solState)
     }
 
-    private initializePlayers(game: Game, random: RandomFunction): SolPlayerState[] {
+    private initializePlayers(game: Game, prng: Prng): SolPlayerState[] {
         const colors = structuredClone(SolColors)
 
-        shuffle(colors, random)
+        shuffle(colors, prng.random)
 
         const players = game.players.map((player: Player, index: number) => {
             const holdSundivers: Sundiver[] = []
             for (let i = 0; i < 8; i++) {
                 holdSundivers.push({
-                    id: nanoid(),
+                    id: prng.randId(),
                     playerId: player.id
                 })
             }
@@ -96,7 +95,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             const reserveSundivers: Sundiver[] = []
             for (let i = 0; i < 5; i++) {
                 reserveSundivers.push({
-                    id: nanoid(),
+                    id: prng.randId(),
                     playerId: player.id
                 })
             }
@@ -104,7 +103,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             const solarGates: SolarGate[] = []
             for (let i = 0; i < 5; i++) {
                 solarGates.push({
-                    id: nanoid(),
+                    id: prng.randId(),
                     playerId: player.id
                 })
             }
@@ -113,7 +112,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             for (let i = 0; i < 3; i++) {
                 energyNodes.push({
                     type: StationType.EnergyNode,
-                    id: nanoid(),
+                    id: prng.randId(),
                     playerId: player.id
                 })
             }
@@ -122,7 +121,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             for (let i = 0; i < 3; i++) {
                 sundiverFoundries.push({
                     type: StationType.SundiverFoundry,
-                    id: nanoid(),
+                    id: prng.randId(),
                     playerId: player.id
                 })
             }
@@ -131,7 +130,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             for (let i = 0; i < 3; i++) {
                 transmitTowers.push({
                     type: StationType.TransmitTower,
-                    id: nanoid(),
+                    id: prng.randId(),
                     playerId: player.id
                 })
             }

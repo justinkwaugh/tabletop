@@ -1,8 +1,10 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import { GameSessionMode, type GameSession } from '$lib/model/gameSession.svelte'
+    import { type GameSession } from '$lib/model/gameSession.svelte'
     import { UserSolid } from 'flowbite-svelte-icons'
     import type { GameState, HydratedGameState } from '@tabletop/common'
+    import ForkModal from './ForkModal.svelte'
+    import { goto } from '$app/navigation'
 
     let {
         enabledColor = 'text-white',
@@ -17,6 +19,25 @@
     } = $props()
 
     let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+
+    let forkRequested = $state(false)
+
+    function requestFork() {
+        if (gameSession.isExploring) {
+            return
+        }
+        forkRequested = true
+    }
+
+    function onForkCancel() {
+        forkRequested = false
+    }
+
+    async function onForkConfirm(newGameName: string) {
+        forkRequested = false
+        await gameSession.forkGame(newGameName)
+        goto('/dashboard')
+    }
 
     let hasPriorPlayerAction = $derived.by(() => {
         if (!gameSession.myPlayer) {
@@ -49,7 +70,7 @@
 
 <div class="shrink-0 grow-0 w-full p-2 h-[44px] {borderClass} {bgClass}">
     <div class="w-full flex flex-row justify-between items-center">
-        <button aria-label="start exploring" onclick={async () => {}}>
+        <button aria-label="start exploring" onclick={requestFork}>
             <svg
                 class="w-[22px] h-[22px] {!gameSession.isExploring ? enabledColor : disabledColor}"
                 aria-hidden="true"
@@ -296,3 +317,7 @@
         </button>
     </div>
 </div>
+
+{#if forkRequested}
+    <ForkModal bind:open={forkRequested} oncancel={onForkCancel} onconfirm={onForkConfirm} />
+{/if}

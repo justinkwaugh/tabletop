@@ -275,9 +275,9 @@ export class TabletopApi {
         return Value.Convert(Game, response.payload.game) as Game
     }
 
-    async forkGame(game: Partial<Game>, actionIndex: number): Promise<Game> {
+    async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
         const response = await this.wretch
-            .post({ gameId: game.id, actionIndex }, `/game/${game.typeId}/fork`)
+            .post({ gameId: game.id, actionIndex, name }, `/game/${game.typeId}/fork`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()

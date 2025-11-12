@@ -20,13 +20,15 @@ import {
     type HydratedGameState,
     GameEngine,
     GameStorage,
-    GameCategory
+    GameCategory,
+    RunMode
 } from '@tabletop/common'
 import { Value } from '@sinclair/typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
 import { IndexedDbGameStore } from '$lib/persistence/indexedDbGameStore.js'
 import type { LibraryService } from './libraryService.js'
+import { nanoid } from 'nanoid'
 
 export class GameService implements GameServiceInterface {
     private gamesById: Map<string, Game> = new SvelteMap()
@@ -206,10 +208,88 @@ export class GameService implements GameServiceInterface {
         return newGame
     }
 
-    async forkGame(game: Partial<Game>, actionIndex: number): Promise<Game> {
-        const newGame = await this.api.forkGame(game, actionIndex)
-        this.gamesById.set(newGame.id, newGame)
-        return newGame
+    async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
+        if (game.storage === GameStorage.Local) {
+            if (!game.id) {
+                throw new Error('Game ID is required to fork a local game')
+            }
+
+            const { game: actualGame, actions } = await this.loadGame(game.id)
+            if (!actualGame) {
+                throw new Error(`Local game not found for id ${game.id}`)
+            }
+
+            const definition = this.libraryService.getTitle(actualGame.typeId)
+            if (!definition) {
+                throw new Error(`Game definition not found for typeId ${actualGame.typeId}`)
+            }
+
+            const forkedGame = structuredClone(actualGame)
+
+            // Reset fields
+            forkedGame.id = nanoid()
+            if (name && name.trim().length > 0) {
+                forkedGame.name = name
+            }
+            forkedGame.startedAt = undefined
+            forkedGame.status = GameStatus.Started
+            delete forkedGame.result
+            delete forkedGame.finishedAt
+            forkedGame.winningPlayerIds = []
+
+            // Generate initial state
+            const engine = new GameEngine(definition)
+            const { startedGame, initialState } = engine.startGame(forkedGame)
+
+            // Copy the entire action history up to the specified index
+            const actionSubset = actions
+                .slice(0, actionIndex + 1)
+                .map((action) => structuredClone(action))
+
+            let state = initialState
+            const updatedActions = []
+            // Run the game to the desired index
+            for (const action of actionSubset) {
+                // Copy and adjust
+                action.id = nanoid()
+                action.gameId = forkedGame.id
+                action.undoPatch = undefined
+
+                // Apply each action to the forked game state
+                const { processedActions, updatedState } = engine.run(
+                    action,
+                    state,
+                    startedGame,
+                    RunMode.Single
+                )
+                state = updatedState
+                updatedActions.push(...processedActions)
+            }
+
+            // Update some relevant fields on the game
+            startedGame.activePlayerIds = state.activePlayerIds || []
+            const lastAction = updatedActions.at(-1)
+            if (lastAction) {
+                startedGame.lastActionAt = lastAction.createdAt
+                startedGame.lastActionPlayerId = lastAction.playerId
+            } else {
+                startedGame.lastActionAt = undefined
+                startedGame.lastActionPlayerId = undefined
+            }
+
+            await this.saveGameLocally({
+                game: startedGame,
+                state,
+                actions: updatedActions
+            })
+            this.localGamesById.set(startedGame.id, startedGame)
+
+            return startedGame
+        } else {
+            const newGame = await this.api.forkGame(game, actionIndex, name)
+            this.gamesById.set(newGame.id, newGame)
+            return newGame
+        }
     }
 
     async updateGame(game: Partial<Game>): Promise<Game> {

@@ -715,6 +715,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
+    async forkGame(newGameName: string): Promise<void> {
+        await this.gameService.forkGame(this.primaryGame, this.currentActionIndex, newGameName)
+    }
+
     addGameStateChangeListener(listener: GameStateChangeListener<U>) {
         this.gameStateChangeListeners.add(listener)
     }

@@ -5,7 +5,8 @@ import { GameDefinition } from '@tabletop/common'
 type GameForkRequest = Static<typeof GameForkRequest>
 const GameForkRequest = Type.Object({
     gameId: Type.String(),
-    actionIndex: Type.Number({ minimum: -1 })
+    actionIndex: Type.Number({ minimum: -1 }),
+    name: Type.Optional(Type.String())
 })
 
 export default async function (definition: GameDefinition, fastify: FastifyInstance) {
@@ -20,12 +21,13 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
                 throw Error('No user found for create request')
             }
 
-            const { gameId, actionIndex } = request.body
+            const { gameId, actionIndex, name } = request.body
 
             const forkedGame = await fastify.gameService.forkGame({
                 definition,
                 gameId,
                 actionIndex,
+                name,
                 owner: request.user
             })
 

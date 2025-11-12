@@ -1,5 +1,6 @@
 import { Static, Type } from '@sinclair/typebox'
 import { getPrng, RandomFunction } from '../../util/prng.js'
+import { customRandom } from 'nanoid'
 
 export type PrngState = Static<typeof PrngState>
 export const PrngState = Type.Object({
@@ -9,12 +10,21 @@ export const PrngState = Type.Object({
 
 export class Prng {
     private prng: RandomFunction
+    private nanoid: () => string
 
     constructor(private state: PrngState) {
         this.prng = getPrng(state.seed)
         for (let i = 0; i < state.invocations; i++) {
             this.prng()
         }
+
+        this.nanoid = customRandom(
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+            21,
+            (size) => {
+                return new Uint8Array(size).map(() => 256 * this.random())
+            }
+        )
     }
 
     random = (): number => {
@@ -28,6 +38,10 @@ export class Prng {
 
     randRange = (min: number, max: number): number => {
         return Math.floor(this.random() * (max - min + 1)) + min
+    }
+
+    randId = (): string => {
+        return this.nanoid()
     }
 
     dieRoll = (sides: number): number => {

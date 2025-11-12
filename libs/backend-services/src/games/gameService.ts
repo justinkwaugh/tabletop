@@ -167,11 +167,13 @@ export class GameService {
         definition,
         gameId,
         actionIndex,
+        name,
         owner
     }: {
         definition: GameDefinition
         gameId: string
         actionIndex: number
+        name?: string
         owner: User
     }): Promise<Game> {
         const game = await this.getGame({ gameId })
@@ -190,6 +192,9 @@ export class GameService {
 
         // Reset fields
         forkedGame.id = nanoid()
+        if (name && name.trim().length > 0) {
+            forkedGame.name = name
+        }
         forkedGame.ownerId = owner.id
         forkedGame.startedAt = undefined
         forkedGame.status = GameStatus.Started

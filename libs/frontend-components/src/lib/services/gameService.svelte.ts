@@ -5,7 +5,7 @@ export type GameService = {
     loadGame(gameId: string): Promise<{ game?: Game; actions: GameAction[] }>
 
     createGame(game: Partial<Game>): Promise<Game>
-    forkGame(game: Partial<Game>, actionIndex: number): Promise<Game>
+    forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game>
     updateGame(game: Partial<Game>): Promise<Game>
     saveGameLocally({
         game,

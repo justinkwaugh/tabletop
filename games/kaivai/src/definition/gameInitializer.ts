@@ -1,6 +1,5 @@
 import {
     GameInitializer,
-    RandomFunction,
     BaseGameInitializer,
     range,
     AxialCoordinates,
@@ -21,7 +20,6 @@ import {
 import { HydratedKaivaiGameState, KaivaiGameState } from '../model/gameState.js'
 import { KaivaiPlayerState } from '../model/playerState.js'
 
-import { nanoid } from 'nanoid'
 import { MachineState } from './states.js'
 import { KaivaiGameBoard } from '../components/gameBoard.js'
 import { KaivaiColors } from './colors.js'
@@ -41,10 +39,10 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
         const prng = new Prng(state.prng)
-        const players = this.initializePlayers(game, prng.random)
+        const players = this.initializePlayers(game, prng)
         const numPlayers = game.players.length
         const config = game.config as KaivaiGameConfig
-        const board = this.initializeBoard(numPlayers, config.ruleset, prng.random)
+        const board = this.initializeBoard(numPlayers, config.ruleset, prng)
 
         const kaivaiState: KaivaiGameState = Object.assign(state, {
             players: players,
@@ -66,10 +64,10 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         return new HydratedKaivaiGameState(kaivaiState)
     }
 
-    private initializePlayers(game: Game, random: RandomFunction): KaivaiPlayerState[] {
+    private initializePlayers(game: Game, prng: Prng): KaivaiPlayerState[] {
         const colors = structuredClone(KaivaiColors)
 
-        shuffle(colors, random)
+        shuffle(colors, prng.random)
 
         const config = game.config as KaivaiGameConfig
 
@@ -79,7 +77,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
                 color: colors[index],
                 boats: range(1, 4).map(() => {
                     return {
-                        id: nanoid(),
+                        id: prng.randId(),
                         owner: player.id
                     }
                 }),
@@ -101,11 +99,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         return players
     }
 
-    private initializeBoard(
-        numPlayers: number,
-        ruleset: Ruleset,
-        random: RandomFunction
-    ): KaivaiGameBoard {
+    private initializeBoard(numPlayers: number, ruleset: Ruleset, prng: Prng): KaivaiGameBoard {
         const cells: Record<number, Cell> = {}
         const islands: Record<string, Island> = {}
         const initialCoords: AxialCoordinates[] = [
@@ -119,7 +113,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
         // Mark initial islands
         for (const coords of initialCoords) {
-            const islandId = nanoid()
+            const islandId = prng.randId()
             islands[islandId] = { id: islandId, coordList: [coords] }
         }
 
@@ -130,17 +124,12 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
 
         const singleIsland = ruleset === Ruleset.FirstEdition
 
-        const island = this.createAdditionalIsland(hexGrid, initialCoords, singleIsland, random)
+        const island = this.createAdditionalIsland(hexGrid, initialCoords, singleIsland, prng)
         initialCoords.push(...island.coordList)
         islands[island.id] = island
 
         if (ruleset !== Ruleset.FirstEdition || numPlayers === 4) {
-            const island2 = this.createAdditionalIsland(
-                hexGrid,
-                initialCoords,
-                singleIsland,
-                random
-            )
+            const island2 = this.createAdditionalIsland(hexGrid, initialCoords, singleIsland, prng)
             initialCoords.push(...island2.coordList)
             islands[island2.id] = island2
         }
@@ -167,7 +156,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         grid: Grid<T>,
         initialCoords: AxialCoordinates[],
         singleIsland: boolean,
-        random: RandomFunction
+        prng: Prng
     ): Island {
         const ringTraverser = ring<T>({ center: [0, 0], radius: 6 })
 
@@ -196,6 +185,6 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             }
         }
 
-        return { id: nanoid(), coordList: pickRandom(validPositions, random) }
+        return { id: prng.randId(), coordList: pickRandom(validPositions, prng.random) }
     }
 }

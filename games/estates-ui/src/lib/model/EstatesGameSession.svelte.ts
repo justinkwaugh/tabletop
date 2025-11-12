@@ -1,4 +1,4 @@
-import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
+import { GameSession } from '@tabletop/frontend-components'
 import {
     HydratedEstatesGameState,
     EstatesGameState,
