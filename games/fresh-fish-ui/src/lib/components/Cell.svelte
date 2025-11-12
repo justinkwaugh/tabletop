@@ -50,8 +50,7 @@
 
     let interacting = $derived(
         gameSession.isMyTurn &&
-            (gameSession.mode === GameSessionMode.Play ||
-                gameSession.mode === GameSessionMode.Explore) &&
+            gameSession.isPlayable &&
             (gameSession.chosenAction === ActionType.PlaceDisk ||
                 gameSession.chosenAction === ActionType.PlaceStall ||
                 gameSession.chosenAction === ActionType.PlaceMarket)

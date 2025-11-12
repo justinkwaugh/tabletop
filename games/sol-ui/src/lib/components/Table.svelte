@@ -99,7 +99,7 @@
     const innerTableHeightDesktopExploration = 'h-[calc(100vh-144px)]'
 
     const tableHeight = $derived.by(() => {
-        if (gameSession.mode === GameSessionMode.Explore) {
+        if (gameSession.isExploring) {
             return `${tableHeightMobileExploration} ${tableHeightDesktopExploration}`
         }
         if (gameSession.game.hotseat) {
@@ -109,7 +109,7 @@
     })
 
     const innerTableHeight = $derived.by(() => {
-        if (gameSession.mode === GameSessionMode.Explore) {
+        if (gameSession.isExploring) {
             return `${innerTableHeightMobileExploration} ${innerTableHeightDesktopExploration}`
         }
         if (gameSession.game.hotseat) {
@@ -191,9 +191,9 @@
             <div class="shrink-0">
                 {#if gameSession.gameState.result}
                     <!-- <GameEndPanel /> -->
-                {:else if gameSession.mode === GameSessionMode.History}
+                {:else if gameSession.isViewingHistory}
                     <!-- <LastActionDescription /> -->
-                {:else if gameSession.mode === GameSessionMode.Play}
+                {:else if gameSession.isPlayable}
                     <!-- <LastActionDescription /> -->
                     {#if gameSession.isMyTurn}
                         <ActionPanel />

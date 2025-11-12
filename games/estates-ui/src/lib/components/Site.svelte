@@ -205,7 +205,7 @@
     let dims = $derived(site.cubes.length === 0 ? 1.6 : 1)
 
     let canPreview = $derived.by(() => {
-        if (!gameSession.isMyTurn || gameSession.mode !== GameSessionMode.Play) {
+        if (!gameSession.isMyTurn || !gameSession.isPlayable) {
             return false
         }
         if (gameSession.gameState.machineState !== MachineState.PlacingPiece) {
@@ -375,7 +375,7 @@
 
                 // Only scale in on create in history mode because regularly
                 // we are replacing the hover cube and do not want to animate
-                if (gameSession.mode === GameSessionMode.History) {
+                if (gameSession.isViewingHistory) {
                     ref.scale.x = 0.1
                     ref.scale.y = 0.1
                     ref.scale.z = 0.1
@@ -401,7 +401,7 @@
 
                 // Only scale in on create in history mode because regularly
                 // we are replacing the hover roof and do not want to animate
-                if (gameSession.mode === GameSessionMode.History) {
+                if (gameSession.isViewingHistory) {
                     ref.scale.x = 0.1
                     ref.scale.y = 0.1
                     ref.scale.z = 0.1

@@ -129,7 +129,7 @@
     })
 
     let interacting = $derived.by(() => {
-        if (gameSession.mode !== GameSessionMode.Play) {
+        if (!gameSession.isPlayable) {
             return false
         }
 
@@ -164,7 +164,7 @@
     })
 
     let interactable = $derived.by(() => {
-        if (gameSession.mode !== GameSessionMode.Play) {
+        if (!gameSession.isPlayable) {
             return false
         }
 
@@ -292,7 +292,7 @@
 
     let disabled = $derived.by(() => {
         const state = gameSession.gameState
-        if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
+        if (gameSession.isViewingHistory && gameSession.history.actionIndex >= 0) {
             const action = gameSession.actions[gameSession.history.actionIndex]
 
             switch (true) {
@@ -373,7 +373,7 @@
         }
 
         if (
-            gameSession.mode === GameSessionMode.History &&
+            gameSession.isViewingHistory &&
             (!gameSession.lastAction ||
                 (!isScoreIsland(gameSession.lastAction) &&
                     !isChooseScoringIsland(gameSession.lastAction)))
@@ -382,7 +382,7 @@
         }
 
         const islandsToCheck = $state.snapshot(state.islandsToScore)
-        if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
+        if (gameSession.isViewingHistory && gameSession.history.actionIndex >= 0) {
             const action = gameSession.actions[gameSession.history.actionIndex]
             if (isScoreIsland(action)) {
                 islandsToCheck.push(action.islandId)

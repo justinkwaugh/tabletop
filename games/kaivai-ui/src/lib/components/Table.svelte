@@ -23,10 +23,10 @@
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let showBidBoard = $derived.by(() => {
-        if (gameSession.mode === GameSessionMode.Play) {
+        if (gameSession.isPlayable) {
             return gameSession.gameState.machineState === MachineState.Bidding
         }
-        if (gameSession.mode === GameSessionMode.History) {
+        if (gameSession.isViewingHistory) {
             return (
                 gameSession.currentAction && gameSession.currentAction.type === ActionType.PlaceBid
             )
@@ -83,11 +83,11 @@
             <div class="shrink-0">
                 <Phase />
 
-                {#if gameSession.mode === GameSessionMode.History}
+                {#if gameSession.isViewingHistory}
                     <LastHistoryDescription />
                 {:else if gameSession.gameState.result}
                     <EndOfGamePanel />
-                {:else if gameSession.mode === GameSessionMode.Play}
+                {:else if gameSession.isPlayable}
                     <LastHistoryDescription />
                     {#if gameSession.isMyTurn}
                         <ActionPanel />

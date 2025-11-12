@@ -146,7 +146,7 @@
     let outlinedIslandCells = $derived.by(() => {
         let islands: Island[] = []
 
-        if (gameSession.mode === GameSessionMode.Play) {
+        if (gameSession.isPlayable) {
             if (gameSession.chosenAction === ActionType.Celebrate) {
                 islands = Array.from(gameSession.validCelebrationIslands).map(
                     (islandId) => gameSession.gameState.board.islands[islandId]
@@ -161,10 +161,7 @@
                     (islandId) => gameSession.gameState.board.islands[islandId]
                 )
             }
-        } else if (
-            gameSession.mode === GameSessionMode.History &&
-            gameSession.history.actionIndex >= 0
-        ) {
+        } else if (gameSession.isViewingHistory && gameSession.history.actionIndex >= 0) {
             const action = gameSession.actions[gameSession.history.actionIndex]
             if (isCelebrate(action) || isChooseScoringIsland(action) || isScoreIsland(action)) {
                 islands = [gameSession.gameState.board.islands[action.islandId]]

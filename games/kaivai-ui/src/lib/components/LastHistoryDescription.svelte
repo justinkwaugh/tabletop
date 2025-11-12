@@ -17,19 +17,14 @@
     import FishingResults from './FishingResults.svelte'
     import IslandScoringResults from './IslandScoringResults.svelte'
     import HutScoringResults from './HutScoringResults.svelte'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { PlayerName } from '@tabletop/frontend-components'
     import CelebrateResults from './CelebrateResults.svelte'
     import MoveGodResults from './MoveGodResults.svelte'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let lastAction = $derived.by(() => {
-        let actionIndex = -1
-        if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
-            actionIndex = gameSession.history.actionIndex
-        } else if (gameSession.mode === GameSessionMode.Play) {
-            actionIndex = gameSession.actions.length - 1
-        }
+        const actionIndex = gameSession.currentActionIndex
         if (actionIndex < 0) {
             return undefined
         }

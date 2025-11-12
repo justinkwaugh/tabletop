@@ -82,6 +82,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     gameService: GameService
 
     mode: GameSessionMode = $state(GameSessionMode.Play)
+    isPlayable = $derived(
+        this.mode === GameSessionMode.Play || this.mode === GameSessionMode.Explore
+    )
+    isExploring = $derived(this.mode === GameSessionMode.Explore)
+    isViewingHistory = $derived.by(() => this.history.inHistory)
 
     primaryGame: Game = $derived.by(() => {
         return this.gameContext.game
@@ -132,7 +137,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     // Switches between the contexts that can be modified
     private currentModifiableContext: GameContext<T, U> = $derived.by(() => {
-        if (this.mode === GameSessionMode.Explore && this.explorationContext) {
+        if (this.isExploring && this.explorationContext) {
             return this.explorationContext
         } else {
             return this.gameContext
@@ -160,11 +165,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             const action = this.currentModifiableContext.actions[i]
 
             // Cannot undo beyond revealed info
-            if (
-                this.mode != GameSessionMode.Explore &&
-                action.revealsInfo &&
-                !this.authorizationService.actAsAdmin
-            ) {
+            if (!this.isExploring && action.revealsInfo && !this.authorizationService.actAsAdmin) {
                 break
             }
 
@@ -174,7 +175,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
 
             if (
-                this.mode === GameSessionMode.Explore ||
+                this.isExploring ||
                 this.currentModifiableContext.game.hotseat ||
                 this.authorizationService.actAsAdmin
             ) {
@@ -242,7 +243,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     myPlayer: Player | undefined = $derived.by(() => {
         // In hotseat games, we are just always the first active player
-        if (this.mode == GameSessionMode.Explore || this.gameContext.game.hotseat) {
+        if (this.isExploring || this.gameContext.game.hotseat) {
             return this.activePlayers.at(0)
         }
 
@@ -260,7 +261,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     isMyTurn: boolean = $derived.by(() => {
         if (
-            this.mode == GameSessionMode.Explore ||
+            this.isExploring ||
             this.gameContext.game.hotseat ||
             this.authorizationService.actAsAdmin
         ) {
@@ -342,13 +343,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         })
 
         this.history = new GameHistory(this.gameContext, {
-            onHistoryEnter: () => {
-                this.mode = GameSessionMode.History
-            },
             onHistoryAction: (action) => this.onHistoryAction(action),
             shouldAutoStepAction: (action) => this.shouldAutoStepAction(action),
             onHistoryExit: () => {
-                this.mode = GameSessionMode.Play
                 this.onHistoryExit()
             }
         })
@@ -449,7 +446,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async startExploring() {
-        if (this.mode !== GameSessionMode.Play) {
+        if (this.isExploring || this.isViewingHistory) {
+            // Could change to explore from point in history?
             return
         }
         await this.explorations.startExploring(this.gameContext)
@@ -459,7 +457,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     // internally, rather than having to pass it in.  No server generated actions go through
     // here.
     async applyAction(action: GameAction) {
-        if (this.mode !== GameSessionMode.Play && this.mode !== GameSessionMode.Explore) {
+        if (!this.isPlayable) {
             return
         }
 
@@ -489,11 +487,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             // Don't update the local state if the action reveals info, instead wait for the server to validate.
             // This is because the server may reject the action due to undo or any other reason and we
             // do not want to show the player the revealed info.
-            if (
-                this.mode === GameSessionMode.Explore ||
-                this.gameContext.game.hotseat ||
-                !actionResults.revealing
-            ) {
+            if (this.isExploring || this.gameContext.game.hotseat || !actionResults.revealing) {
                 relevantContext.applyActionResults(actionResults)
             }
 
@@ -612,7 +606,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         if (
             !this.undoableAction ||
             (this.processingActions && this.mode === GameSessionMode.Play) ||
-            this.mode === GameSessionMode.History
+            this.isViewingHistory
         ) {
             return
         }
@@ -890,7 +884,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     // For primary game context only
     private async checkSync() {
-        if (this.mode === GameSessionMode.Explore || this.gameContext.game.hotseat) {
+        if (this.isExploring || this.gameContext.game.hotseat) {
             return
         }
 

@@ -35,7 +35,7 @@
     let tableHeightOffset = $derived.by(() => {
         let offset = 68 // Navbar
 
-        if (gameSession.mode === GameSessionMode.Explore) {
+        if (gameSession.isExploring) {
             offset += 44 // Exploration Banner
         } else if (gameSession.game.hotseat) {
             offset += 44 // Hotseat Banner

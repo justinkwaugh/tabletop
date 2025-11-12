@@ -72,7 +72,7 @@
     {#if authorizationService.actAsAdmin}
         <AdminPanel />
     {/if}
-    {#if data.gameSession.mode === GameSessionMode.Explore}
+    {#if data.gameSession.isExploring}
         <ExplorationPanel />
     {:else if data.gameSession.game.hotseat}
         <HotseatPanel />

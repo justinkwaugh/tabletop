@@ -62,6 +62,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     updateSourceGameContext(gameContext: GameContext<T, U>) {
+        this.exitHistory()
         this.gameContext = gameContext
     }
 

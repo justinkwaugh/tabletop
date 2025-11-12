@@ -42,9 +42,9 @@
             <div class="shrink-0">
                 {#if gameSession.gameState.result}
                     <GameEndPanel />
-                {:else if gameSession.mode === GameSessionMode.History}
+                {:else if gameSession.isViewingHistory}
                     <LastActionDescription />
-                {:else if gameSession.mode === GameSessionMode.Play || gameSession.mode === GameSessionMode.Explore}
+                {:else if gameSession.isPlayable}
                     <LastActionDescription />
                     {#if gameSession.isMyTurn}
                         <ActionPanel />

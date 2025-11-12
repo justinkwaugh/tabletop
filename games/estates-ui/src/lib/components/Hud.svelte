@@ -71,7 +71,7 @@
     })
 </script>
 
-{#if ready && gameSession.gameState.machineState === MachineState.Auctioning && gameSession.mode === GameSessionMode.Play}
+{#if ready && gameSession.gameState.machineState === MachineState.Auctioning && gameSession.isPlayable}
     <HTML position.y={$viewport.height / 2 - 0.6} center>
         <div
             bind:this={auctionControls}
@@ -93,7 +93,7 @@
     </HTML>
 {/if}
 
-{#if gameSession.isMyTurn && gameSession.mode === GameSessionMode.Play}
+{#if gameSession.isMyTurn && gameSession.isPlayable}
     {#if gameSession.gameState.machineState !== MachineState.Auctioning}
         <HTML position.y={instructionY} center>
             <Instructions hidden={gameSession.shouldHideHud} />
@@ -103,7 +103,7 @@
     <HTML position.y={$viewport.height / 2 - 1} distanceFactor={5} center transform>
         <GameEndPanel hidden={gameSession.shouldHideHud} />
     </HTML>
-{:else if gameSession.mode === GameSessionMode.Play}
+{:else if gameSession.isPlayable}
     <HTML position.y={instructionY} distanceFactor={5} center transform>
         <WaitingInstructions hidden={gameSession.shouldHideHud} />
     </HTML>

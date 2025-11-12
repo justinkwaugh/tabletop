@@ -165,7 +165,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async doAction(action: GameAction) {
-        if (this.mode !== GameSessionMode.Play) {
+        if (!this.isPlayable) {
             return
         }
 

@@ -92,7 +92,7 @@
             return true
         }
 
-        if (gameSession.mode === GameSessionMode.History) {
+        if (gameSession.isViewingHistory) {
             const currentAction = gameSession.currentAction
             if (isPlaceMaster(currentAction) || isRecruitStudents(currentAction)) {
                 return currentAction.placement.village !== index
@@ -110,7 +110,7 @@
     })
 
     let highlightedType = $derived.by(() => {
-        if (gameSession.mode !== GameSessionMode.History) {
+        if (!gameSession.isViewingHistory) {
             return gameSession.highlightedVillages.length > 0 &&
                 gameSession.highlightedVillages.includes(index)
                 ? gameSession.highlightedMasterType

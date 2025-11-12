@@ -39,12 +39,11 @@
     const timeAgo = new TimeAgo('en-US')
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
-    let unhighlightTimeout: ReturnType<typeof setTimeout>
 
     let filteredActions = $derived.by(() => {
         return gameSession.actions.filter((action) => {
             if (
-                gameSession.mode === GameSessionMode.History &&
+                gameSession.isViewingHistory &&
                 (action.index ?? 0) > gameSession.history.actionIndex
             ) {
                 return false

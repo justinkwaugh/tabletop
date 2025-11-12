@@ -51,9 +51,7 @@
     <div class="w-full flex flex-row justify-between items-center">
         <button aria-label="start exploring" onclick={async () => {}}>
             <svg
-                class="w-[22px] h-[22px] {gameSession.mode !== GameSessionMode.Explore
-                    ? enabledColor
-                    : disabledColor}"
+                class="w-[22px] h-[22px] {!gameSession.isExploring ? enabledColor : disabledColor}"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -256,15 +254,12 @@
         <button
             aria-label="start exploring"
             onclick={async () =>
-                gameSession.mode === GameSessionMode.Explore
+                gameSession.isExploring
                     ? gameSession.explorations.endExploring()
                     : gameSession.startExploring()}
         >
             <svg
-                class="w-[22px] h-[22px] {enabledColor} {gameSession.mode !==
-                GameSessionMode.Explore
-                    ? 'hidden'
-                    : ''}"
+                class="w-[22px] h-[22px] {enabledColor} {!gameSession.isExploring ? 'hidden' : ''}"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -282,10 +277,7 @@
             </svg>
 
             <svg
-                class="w-[22px] h-[22px] {enabledColor} {gameSession.mode ===
-                GameSessionMode.Explore
-                    ? 'hidden'
-                    : ''}"
+                class="w-[22px] h-[22px] {enabledColor} {gameSession.isExploring ? 'hidden' : ''}"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"

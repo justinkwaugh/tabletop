@@ -24,7 +24,7 @@
             </h1>
         </div>
 
-        {#if gameSession.undoableAction && gameSession.mode !== GameSessionMode.History}
+        {#if gameSession.undoableAction && !gameSession.isViewingHistory}
             <Button
                 onclick={async () => {
                     gameSession.chosenAction = undefined

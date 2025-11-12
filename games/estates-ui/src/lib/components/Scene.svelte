@@ -370,7 +370,7 @@
             <TopHat
                 onloaded={(ref: Object3D) => {
                     currentMayor = ref
-                    if (gameSession.mode === GameSessionMode.History) {
+                    if (gameSession.isViewingHistory) {
                         hideInstant(ref)
                         ref.scale.x = 0.1
                         ref.scale.y = 0.1

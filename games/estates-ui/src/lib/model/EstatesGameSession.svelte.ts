@@ -177,7 +177,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
     }
 
     async doAction(action: GameAction) {
-        if (this.mode !== GameSessionMode.Play) {
+        if (!this.isPlayable) {
             return
         }
 

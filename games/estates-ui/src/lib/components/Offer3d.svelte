@@ -74,7 +74,7 @@
         from?: HydratedEstatesGameState
         timeline: gsap.core.Timeline
     }) {
-        if (gameSession.mode !== GameSessionMode.History) {
+        if (!gameSession.isViewingHistory) {
             return
         }
 

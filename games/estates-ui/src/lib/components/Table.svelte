@@ -33,7 +33,7 @@
             </DefaultSideContent>
         {/snippet}
         {#snippet gameContent()}
-            {#if gameSession.mode === GameSessionMode.History || gameSession.mode === GameSessionMode.Play}
+            {#if gameSession.isViewingHistory || gameSession.isPlayable}
                 <LastActionDescription />
             {/if}
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.

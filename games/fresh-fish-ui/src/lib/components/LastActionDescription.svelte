@@ -13,12 +13,9 @@
 
     let lastAction = $derived.by(() => {
         let action
-        if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
+        if (gameSession.isViewingHistory && gameSession.history.actionIndex >= 0) {
             action = gameSession.actions[gameSession.history.actionIndex]
-        } else if (
-            gameSession.mode === GameSessionMode.Play ||
-            gameSession.mode === GameSessionMode.Explore
-        ) {
+        } else if (gameSession.isPlayable) {
             let actionIndex = gameSession.actions.length - 1
             do {
                 action = gameSession.actions[actionIndex]
@@ -48,7 +45,7 @@
             {/if}
         </div>
 
-        {#if gameSession.undoableAction && gameSession.mode !== GameSessionMode.History}
+        {#if gameSession.undoableAction && gameSession.isPlayable}
             <Button
                 onclick={async () => {
                     gameSession.chosenAction = undefined

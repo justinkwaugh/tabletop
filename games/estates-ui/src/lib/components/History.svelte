@@ -18,7 +18,7 @@
     let reversedActions = $derived.by(() => {
         let actions = gameSession.actions
 
-        if (gameSession.mode === GameSessionMode.History) {
+        if (gameSession.isViewingHistory) {
             actions = actions.filter(
                 (action: GameAction) => (action.index ?? 0) <= gameSession.history.actionIndex
             )
@@ -40,7 +40,7 @@
 >
     <div class="overflow-auto h-full">
         <Timeline class="ms-1 text-left">
-            {#if gameSession.game.finishedAt && gameSession.mode !== GameSessionMode.History}
+            {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
                 <div
                     class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
                 ></div>
