@@ -1,11 +1,6 @@
 <script lang="ts">
     import { setContext, getContext, type Component } from 'svelte'
-    import {
-        GameSession,
-        GameSessionMode,
-        HistoryControls,
-        HotseatPanel
-    } from '@tabletop/frontend-components'
+    import { GameSession, GameSessionMode, HotseatPanel } from '@tabletop/frontend-components'
     import { onMount } from 'svelte'
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import AdminPanel from '$lib/components/AdminPanel.svelte'
@@ -82,10 +77,5 @@
     {:else if data.gameSession.game.hotseat}
         <HotseatPanel />
     {/if}
-    <div
-        class="sm:hidden shrink-0 grow-0 p-2 h-[44px] flex flex-col justify-center items-center border-gray-700 border-b-2"
-    >
-        <HistoryControls />
-    </div>
     <Table />
 </div>

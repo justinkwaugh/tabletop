@@ -14,7 +14,7 @@
 
 {#if gameSession.myPlayer}
     <div
-        class=" {hotseatPlayerBgColor} {hotseatPlayerTextColor} shrink-0 grow-0 p-2 h-[30px] flex flex-row justify-center items-center text-lg"
+        class=" {hotseatPlayerBgColor} {hotseatPlayerTextColor} shrink-0 grow-0 p-2 h-[44px] flex flex-row justify-center items-center text-lg"
     >
         <span class="font-bold">{gameSession.myPlayer?.name}</span>&nbsp;- It's your turn
     </div>

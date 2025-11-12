@@ -13,7 +13,7 @@
     import emojiRegex from 'emoji-regex'
 
     let {
-        height = 'h-[calc(100dvh-198px)] sm:h-[calc(100dvh-176px)]',
+        height = 'max-sm:h-[calc(100vh-16px-44px-44px-8px-24px-var(--table-height-offset))] sm:h-[calc(100vh-16px-44px-44px-8px-var(--table-height-offset))]',
         timeColor = 'text-gray-600',
         bgColor = 'bg-transparent',
         inputBgColor = 'bg-gray-700',

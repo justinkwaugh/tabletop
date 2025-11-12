@@ -235,7 +235,7 @@
                 {/if}
             </div>
         </div>
-        <div class="flex justify-center sm:hidden w-fulloverflow-hidden">
+        <div class="flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
             {@render gameName()}
         </div>
     </div>
