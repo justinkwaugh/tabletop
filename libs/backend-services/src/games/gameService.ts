@@ -266,11 +266,10 @@ export class GameService {
         // Update some relevant fields on the game
         startedGame.activePlayerIds = newState.activePlayerIds || []
         const lastAction = appliedActions.at(-1)
+        startedGame.lastActionAt = undefined
         if (lastAction) {
-            startedGame.lastActionAt = lastAction.createdAt
             startedGame.lastActionPlayerId = lastAction.playerId
         } else {
-            startedGame.lastActionAt = undefined
             startedGame.lastActionPlayerId = undefined
         }
 
