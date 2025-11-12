@@ -27,6 +27,7 @@
     import { VersionChange } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
+    import { BellSolid } from 'flowbite-svelte-icons'
 
     let { api, authorizationService, gameService, notificationService, visibilityService } =
         getContext('appContext') as AppContext
@@ -260,7 +261,7 @@
     dismissable={false}
     onclick={(e) => e.stopPropagation()}
 >
-    <Alert color="blue">
+    <Alert color="blue" class="dark:bg-transparent dark:text-blue-400">
         <div class="flex items-center gap-3">
             <span class="text-lg font-medium">Just so you know...</span>
         </div>
@@ -283,13 +284,7 @@
     </Alert>
 </Modal>
 {#if notificationService.shouldShowPrompt()}
-    <!-- <Banner
-        id="default-banner"
-        position="relative"
-        bannerType="info"
-        dismissable={false}
-        classInner="w-full"
-    >
+    <Banner id="default-banner" class="relative" type="top" dismissable={false}>
         <div class="flex items-center justify-between w-full">
             <div class="flex items-center">
                 <p class="flex items-center text-sm font-normal text-gray-500 dark:text-gray-400">
@@ -319,6 +314,6 @@
                 >
             </div>
         </div></Banner
-    > -->
+    >
 {/if}
 {@render children()}
