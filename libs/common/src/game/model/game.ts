@@ -38,6 +38,17 @@ export enum GameSyncStatus {
     OutOfSync = 'outOfSync'
 }
 
+export enum GameStorage {
+    Local = 'local',
+    Remote = 'remote',
+    None = 'none'
+}
+
+export enum GameCategory {
+    Standard = 'standard',
+    Exploration = 'exploration'
+}
+
 export type Game = Static<typeof Game>
 export const Game = Type.Object({
     id: Type.String(),
@@ -61,7 +72,10 @@ export const Game = Type.Object({
     lastActionAt: Type.Optional(Type.Date()),
     result: Type.Optional(Type.Enum(GameResult)),
     winningPlayerIds: Type.Array(Type.String()),
-    seed: Type.Optional(Type.Number())
+    seed: Type.Optional(Type.Number()),
+    storage: Type.Optional(Type.Enum(GameStorage, { default: GameStorage.Remote })),
+    parentId: Type.Optional(Type.String()),
+    category: Type.Optional(Type.String({ default: GameCategory.Standard }))
 })
 
 export const GameValidator = TypeCompiler.Compile(Game)

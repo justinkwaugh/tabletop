@@ -2,6 +2,12 @@ import type { Game, GameAction, GameState, User } from '@tabletop/common'
 import { type GameStore } from './gameStore.js'
 import { openDB, type IDBPDatabase } from 'idb'
 
+type GameActions = {
+    id: string
+    gameId: string
+    actions: GameAction[]
+}
+
 export class IndexedDbGameStore implements GameStore {
     static VERSION = 1
     static DB_NAME = 'tabletop-local'
@@ -25,7 +31,7 @@ export class IndexedDbGameStore implements GameStore {
                     objectStore.createIndex('by-status', 'status', { multiEntry: false })
 
                     const actionStore = db.createObjectStore(IndexedDbGameStore.ACTION_STORE_NAME, {
-                        keyPath: 'id'
+                        keyPath: 'gameId'
                     })
                     actionStore.createIndex('by-game', 'gameId', { multiEntry: false })
 
@@ -99,21 +105,12 @@ export class IndexedDbGameStore implements GameStore {
             'readwrite'
         )
 
-        let [cursor] = await Promise.all([
-            tx
-                .objectStore(IndexedDbGameStore.ACTION_STORE_NAME)
-                .index('by-game')
-                .openCursor(IDBKeyRange.only(gameId)),
+        await Promise.all([
+            tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).delete(gameId),
             tx.objectStore(IndexedDbGameStore.GAME_STORE_NAME).delete(gameId),
-            tx.objectStore(IndexedDbGameStore.STATE_STORE_NAME).delete(gameId)
+            tx.objectStore(IndexedDbGameStore.STATE_STORE_NAME).delete(gameId),
+            tx.done
         ])
-
-        while (cursor) {
-            await cursor?.delete()
-            cursor = await cursor?.continue()
-        }
-
-        await tx.done
     }
 
     async storeGameData({
@@ -138,47 +135,16 @@ export class IndexedDbGameStore implements GameStore {
             ],
             'readwrite'
         )
-        await Promise.all([
-            tx.objectStore(IndexedDbGameStore.GAME_STORE_NAME).put(gameData),
-            ...actions.map((action) =>
-                tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).add(action)
-            ),
-            tx.objectStore(IndexedDbGameStore.STATE_STORE_NAME).put(state),
-            tx.done
-        ])
-    }
-    async storeUndoData({
-        game,
-        undoneActions,
-        redoneActions,
-        state
-    }: {
-        game: Game
-        undoneActions: GameAction[]
-        redoneActions: GameAction[]
-        state: GameState
-    }): Promise<void> {
-        const gameData: Game = structuredClone(game)
-        gameData.updatedAt = new Date()
-        delete gameData.state
 
-        const db = await this.getDatabase()
-        const tx = db.transaction(
-            [
-                IndexedDbGameStore.GAME_STORE_NAME,
-                IndexedDbGameStore.ACTION_STORE_NAME,
-                IndexedDbGameStore.STATE_STORE_NAME
-            ],
-            'readwrite'
-        )
+        const gameActions: GameActions = {
+            id: game.id,
+            gameId: game.id,
+            actions: actions
+        }
+
         await Promise.all([
             tx.objectStore(IndexedDbGameStore.GAME_STORE_NAME).put(gameData),
-            ...undoneActions.map((action) =>
-                tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).delete(action.id)
-            ),
-            ...redoneActions.map((action) =>
-                tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).add(action)
-            ),
+            tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).put(gameActions),
             tx.objectStore(IndexedDbGameStore.STATE_STORE_NAME).put(state),
             tx.done
         ])
@@ -199,13 +165,10 @@ export class IndexedDbGameStore implements GameStore {
         )
 
         const gamePromise = tx.objectStore(IndexedDbGameStore.GAME_STORE_NAME).get(gameId)
-        const actionsPromise = tx
-            .objectStore(IndexedDbGameStore.ACTION_STORE_NAME)
-            .index('by-game')
-            .getAll(IDBKeyRange.only(gameId))
+        const actionsPromise = tx.objectStore(IndexedDbGameStore.ACTION_STORE_NAME).get(gameId)
         const statePromise = tx.objectStore(IndexedDbGameStore.STATE_STORE_NAME).get(gameId)
 
-        const [game, actions, state] = await Promise.all([
+        const [game, gameActions, state] = await Promise.all([
             gamePromise,
             actionsPromise,
             statePromise
@@ -214,7 +177,9 @@ export class IndexedDbGameStore implements GameStore {
         if (game) {
             game.state = state
         }
-        actions.sort((a, b) => a.index - b.index)
+
+        const actions = gameActions ? gameActions.actions : []
+        actions.sort((a: GameAction, b: GameAction) => (a.index ?? -1) - (b.index ?? -1))
         return { game, actions }
     }
 }

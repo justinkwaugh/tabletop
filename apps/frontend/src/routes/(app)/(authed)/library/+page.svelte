@@ -7,12 +7,13 @@
     import { Button, Heading } from 'flowbite-svelte'
     import { type GameUiDefinition } from '@tabletop/frontend-components'
     import { fade } from 'svelte/transition'
+    import type { GameState, HydratedGameState } from '@tabletop/common'
 
     let { libraryService } = getContext('appContext') as AppContext
 
-    let selectedTitle: GameUiDefinition | undefined = $state()
+    let selectedTitle: GameUiDefinition<GameState, HydratedGameState> | undefined = $state()
 
-    function selectTitle(title: GameUiDefinition) {
+    function selectTitle(title: GameUiDefinition<GameState, HydratedGameState>) {
         if (title.id !== selectedTitle?.id) {
             selectedTitle = title
         }

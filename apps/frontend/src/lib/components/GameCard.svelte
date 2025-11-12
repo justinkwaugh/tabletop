@@ -8,6 +8,7 @@
     import TimeAgo from 'javascript-time-ago'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
+    import { TrashBinSolid } from 'flowbite-svelte-icons'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -86,6 +87,7 @@
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
     )
     let totalSeats = $derived(game.players.length)
+    let explorations = gameService.getExplorations(game.id)
 
     function toggleExpand() {
         if (!canToggle) {
@@ -385,7 +387,26 @@
                             </div>
                         {/each}
                     </div>
-
+                    {#if explorations.length > 0}
+                        <div class="flex flex-col text-sm mt-4">
+                            <div class="flex flex-row justify-between">
+                                <div class="text-xs font-semibold">EXPLORATIONS</div>
+                            </div>
+                            <Hr class="mt-1 mb-1" />
+                            {#each explorations as exploration (exploration.id)}
+                                <div class="flex flex-row justify-between items-center">
+                                    <div>
+                                        {exploration.name ?? ''}
+                                    </div>
+                                    <div>
+                                        <TrashBinSolid
+                                            class="w-4 h-4 hover:text-red-600 cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
                     {#if canJoin || canStart || canEdit || canDecline || canPlay || canWatch || canRevisit || canDelete}
                         <Hr class="mt-2 mb-0" />
                         <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">

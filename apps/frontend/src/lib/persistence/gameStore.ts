@@ -16,16 +16,4 @@ export interface GameStore {
         actions: GameAction[]
         state: GameState
     }): Promise<void>
-
-    storeUndoData({
-        game,
-        undoneActions,
-        redoneActions,
-        state
-    }: {
-        game: Game
-        undoneActions: GameAction[]
-        redoneActions: GameAction[]
-        state: GameState
-    }): Promise<void>
 }

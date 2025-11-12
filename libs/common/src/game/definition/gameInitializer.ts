@@ -1,5 +1,5 @@
 import { generateSeed } from '../../util/prng.js'
-import { Game, GameStatus } from '../model/game.js'
+import { Game, GameCategory, GameStatus } from '../model/game.js'
 import { HydratedGameState, UninitializedGameState } from '../model/gameState.js'
 import { Value } from '@sinclair/typebox/value'
 
@@ -25,7 +25,10 @@ export abstract class BaseGameInitializer implements GameInitializer {
             winningPlayerIds: [],
             seed: generateSeed(),
             activePlayerIds: [],
-            createdAt: new Date() // This will be updated by the db
+            createdAt: new Date(), // This will be updated by the db
+            storage: game.storage ?? Game.Storage.Remote,
+            parentId: game.parentId,
+            category: game.category ?? GameCategory.Standard
         }
 
         if (!Value.Check(Game, newGame)) {

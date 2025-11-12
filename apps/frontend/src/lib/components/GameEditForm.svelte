@@ -16,12 +16,15 @@
         ConfigOption,
         Game,
         GameConfig,
+        GameState,
+        GameStorage,
         isBooleanConfigOption,
         isListConfigOption,
         ListConfigOption,
         Player,
         PlayerStatus,
-        range
+        range,
+        type HydratedGameState
     } from '@tabletop/common'
     import { nanoid } from 'nanoid'
     import { getContext } from 'svelte'
@@ -47,7 +50,7 @@
         onsave
     }: {
         game?: Game
-        title?: GameUiDefinition
+        title?: GameUiDefinition<GameState, HydratedGameState>
         oncancel: () => void
         onsave: (game: Game) => void
     } = $props()
@@ -189,6 +192,7 @@
             players: playersToUpload,
             isPublic,
             hotseat: isHotseat,
+            storage: isHotseat ? GameStorage.Local : GameStorage.Remote,
             ownerId: editedGame.ownerId,
             config: mergedConfig
         }
@@ -227,6 +231,8 @@
                     }
                     unexpectedError = false
                 }
+            } else {
+                console.log(e)
             }
         }
     }

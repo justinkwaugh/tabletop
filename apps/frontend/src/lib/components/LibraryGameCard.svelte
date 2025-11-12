@@ -1,12 +1,17 @@
 <script lang="ts">
+    import type { GameState, HydratedGameState } from '@tabletop/common'
     import type { GameUiDefinition } from '@tabletop/frontend-components'
     import { Card } from 'flowbite-svelte'
 
-    let { title, onclick }: { title: GameUiDefinition; onclick?: (event: Event) => void } = $props()
+    let {
+        title,
+        onclick
+    }: { title: GameUiDefinition<GameState, HydratedGameState>; onclick?: (event: Event) => void } =
+        $props()
 </script>
 
 <Card
-    onclick={(event) => onclick?.(event)}
+    onclick={(event: Event) => onclick?.(event)}
     class="cursor-pointer  p-0 pe-2 sm:p-0 sm:pe-2 overflow-hidden"
 >
     <div class="flex gap-x-4 text-gray-200">

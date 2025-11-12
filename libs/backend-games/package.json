@@ -13,7 +13,7 @@
         "update-games": "tsx src/updateDependencies.ts"
     },
     "dependencies": {
-        "@tabletop/estates": "*",
+        "@tabletop/bridges-of-shangri-la": "*",
         "@tabletop/fresh-fish": "*"
     },
     "devDependencies": {

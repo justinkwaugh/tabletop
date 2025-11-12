@@ -61,6 +61,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
+    updateSourceGameContext(gameContext: GameContext<T, U>) {
+        this.gameContext = gameContext
+    }
+
     public async goToBeginning() {
         if (this.stepping) {
             return

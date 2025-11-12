@@ -14,7 +14,8 @@ import {
     GameUndoActionNotification,
     GameDeleteNotification,
     type HydratedGameState,
-    PlayerAction
+    PlayerAction,
+    GameStorage
 } from '@tabletop/common'
 import { watch } from 'runed'
 import { Value } from '@sinclair/typebox/value'
@@ -30,8 +31,6 @@ import {
     type NotificationService
 } from '$lib/services/notificationService.svelte'
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
-import { ColorblindColorizer } from '$lib/utils/colorblindPalette'
-import type { GameColorizer } from '$lib/definition/gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import { goto } from '$app/navigation'
 import { gsap } from 'gsap'
@@ -40,6 +39,7 @@ import { GameContext } from './gameContext.svelte.js'
 import { GameHistory } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
+import { GameExplorations } from './gameExplorations.svelte.js'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -72,9 +72,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
 
     private gameContext: GameContext<T, U>
-    private explorationContext?: GameContext<T, U>
+    explorationContext?: GameContext<T, U> = $state()
 
     history: GameHistory<T, U>
+    explorations: GameExplorations<T, U>
     colors: GameColors<T, U>
 
     chatService: ChatService
@@ -82,9 +83,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     mode: GameSessionMode = $state(GameSessionMode.Play)
 
+    primaryGame: Game = $derived.by(() => {
+        return this.gameContext.game
+    })
+
     // Exposed directly for the UI
     game: Game = $derived.by(() => {
-        return this.currentContext.game
+        return this.currentVisibleContext.game
     })
 
     // Exposed directly / hydrated for the UI
@@ -94,7 +99,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     // Exposed directly for the UI
     // Should these be hydrated?
     actions: GameAction[] = $derived.by(() => {
-        return this.currentContext.actions
+        return this.currentVisibleContext.actions
     })
 
     // Expose the current action and index for the relevant context
@@ -103,7 +108,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             return this.history.currentAction
         }
 
-        return this.gameContext.actions.at(-1)
+        return this.currentVisibleContext.actions.at(-1)
     })
 
     currentActionIndex = $derived.by(() => {
@@ -111,36 +116,32 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             return this.history.actionIndex
         }
 
-        return this.gameContext.actions.length - 1
+        return this.currentVisibleContext.actions.length - 1
     })
 
-    // Switches between the contexts (currently main and history)
-    private currentContext: GameContext<T, U> = $derived.by(() => {
+    // Switches between the contexts to show in the UI
+    private currentVisibleContext: GameContext<T, U> = $derived.by(() => {
         if (this.history.historyContext) {
             return this.history.historyContext
+        } else if (this.explorationContext) {
+            return this.explorationContext
+        } else {
+            return this.gameContext
+        }
+    })
+
+    // Switches between the contexts that can be modified
+    private currentModifiableContext: GameContext<T, U> = $derived.by(() => {
+        if (this.mode === GameSessionMode.Explore && this.explorationContext) {
+            return this.explorationContext
         } else {
             return this.gameContext
         }
     })
 
     // Used to trigger an effect to call the state change listening callbacks and then update the exposed gameState
-    private currentGameState: U = $derived.by(() => {
-        return this.definition.hydrator.hydrateState(this.currentContext.state) as U
-    })
-
-    colorBlind: boolean = $derived.by(() => {
-        const sessionUser = this.authorizationService.getSessionUser()
-        if (!sessionUser || !sessionUser.preferences) {
-            return false
-        }
-
-        return sessionUser.preferences.colorBlindPalette === true
-    })
-
-    private colorizer: GameColorizer = $derived.by(() => {
-        return this.colorBlind && !this.isActingAdmin
-            ? new ColorblindColorizer()
-            : this.definition.colorizer
+    private currentVisibleGameState: U = $derived.by(() => {
+        return this.definition.hydrator.hydrateState(this.currentVisibleContext.state) as U
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
@@ -148,18 +149,22 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         if (
             this.history.inHistory ||
             (!this.authorizationService.actAsAdmin && !this.myPlayer) ||
-            this.gameContext.actions.length === 0
+            this.currentModifiableContext.actions.length === 0
         ) {
             return undefined
         }
 
         let currentSimultaneousGroup: string | undefined
         let undoableUserAction: GameAction | undefined
-        for (let i = this.gameContext.actions.length - 1; i >= 0; i--) {
-            const action = this.gameContext.actions[i]
+        for (let i = this.currentModifiableContext.actions.length - 1; i >= 0; i--) {
+            const action = this.currentModifiableContext.actions[i]
 
             // Cannot undo beyond revealed info
-            if (action.revealsInfo && !this.authorizationService.actAsAdmin) {
+            if (
+                this.mode != GameSessionMode.Explore &&
+                action.revealsInfo &&
+                !this.authorizationService.actAsAdmin
+            ) {
                 break
             }
 
@@ -168,7 +173,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 continue
             }
 
-            if (this.gameContext.game.hotseat || this.authorizationService.actAsAdmin) {
+            if (
+                this.mode === GameSessionMode.Explore ||
+                this.currentModifiableContext.game.hotseat ||
+                this.authorizationService.actAsAdmin
+            ) {
                 undoableUserAction = action
                 break
             }
@@ -226,18 +235,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     )
 
     activePlayers: Player[] = $derived.by(() => {
-        const state = this.gameContext.state
-        if (!state) {
-            return []
-        }
-        return this.gameContext.game.players.filter((player) =>
-            state.activePlayerIds.includes(player.id)
+        return this.currentModifiableContext.game.players.filter((player) =>
+            this.currentModifiableContext.state.activePlayerIds.includes(player.id)
         )
     })
 
     myPlayer: Player | undefined = $derived.by(() => {
         // In hotseat games, we are just always the first active player
-        if (this.gameContext.game.hotseat) {
+        if (this.mode == GameSessionMode.Explore || this.gameContext.game.hotseat) {
             return this.activePlayers.at(0)
         }
 
@@ -254,7 +259,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     })
 
     isMyTurn: boolean = $derived.by(() => {
-        if (this.gameContext.game.hotseat || this.authorizationService.actAsAdmin) {
+        if (
+            this.mode == GameSessionMode.Explore ||
+            this.gameContext.game.hotseat ||
+            this.authorizationService.actAsAdmin
+        ) {
             return true
         }
 
@@ -274,8 +283,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
 
         return this.engine.getValidActionTypesForPlayer(
-            this.gameContext.game,
-            this.gameContext.state,
+            this.currentModifiableContext.game,
+            this.currentModifiableContext.state,
             this.myPlayer.id
         )
     })
@@ -324,12 +333,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         this.debug = debug
 
+        delete game.state
         this.gameContext = new GameContext<T, U>({
             definition,
             game,
             state,
             actions
         })
+
         this.history = new GameHistory(this.gameContext, {
             onHistoryEnter: () => {
                 this.mode = GameSessionMode.History
@@ -341,6 +352,27 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 this.onHistoryExit()
             }
         })
+
+        this.explorations = new GameExplorations<T, U>(
+            this.authorizationService,
+            this.gameService,
+            this.definition,
+            {
+                onExplorationEnter: (context) => {
+                    this.mode = GameSessionMode.Explore
+                    this.explorationContext = context
+                    this.history.updateSourceGameContext(this.explorationContext)
+                },
+                onExplorationEnd: () => {
+                    this.mode = GameSessionMode.Play
+                    this.history.updateSourceGameContext(this.gameContext)
+                    this.explorationContext = undefined
+                },
+                onExplorationSwitched: (context) => {
+                    this.explorationContext = context
+                }
+            }
+        )
 
         // Need an initial value
         this.gameState = this.definition.hydrator.hydrateState(state) as U
@@ -354,7 +386,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         // finally updates the exposed gameState so that the UI can react to the change
         $effect.root(() => {
             watch(
-                () => this.currentGameState,
+                () => this.currentVisibleGameState,
                 (newState, oldState) => {
                     const timeline = gsap.timeline({
                         autoRemoveChildren: true
@@ -416,23 +448,36 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
-    async applyAction(action: GameAction) {
+    async startExploring() {
         if (this.mode !== GameSessionMode.Play) {
             return
         }
+        await this.explorations.startExploring(this.gameContext)
+    }
+
+    // This will only be triggered by the UI and as such we can use the current context
+    // internally, rather than having to pass it in.  No server generated actions go through
+    // here.
+    async applyAction(action: GameAction) {
+        if (this.mode !== GameSessionMode.Play && this.mode !== GameSessionMode.Explore) {
+            return
+        }
+
+        const relevantContext = this.currentModifiableContext
 
         // Clone to avoid mutation issues
         action = structuredClone($state.snapshot(action))
 
-        const gameSnapshot = structuredClone(this.gameContext.game)
-        let stateSnapshot = structuredClone(this.gameContext.state) as T
+        const gameSnapshot = structuredClone(relevantContext.game)
+        let stateSnapshot = structuredClone(relevantContext.state) as T
 
         // Make copy of original state to allow rollback
-        let priorContext = this.gameContext.clone()
-
+        let priorContext = relevantContext.clone()
         try {
             // Block server actions while we are processing
-            this.processingActions = true
+            if (this.mode === GameSessionMode.Play) {
+                this.processingActions = true
+            }
 
             if (this.debug) {
                 console.log(`Applying ${action.type} ${action.id} from UI: `, action)
@@ -444,8 +489,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             // Don't update the local state if the action reveals info, instead wait for the server to validate.
             // This is because the server may reject the action due to undo or any other reason and we
             // do not want to show the player the revealed info.
-            if (this.gameContext.game.hotseat || !actionResults.revealing) {
-                this.applyActionResults(actionResults)
+            if (
+                this.mode === GameSessionMode.Explore ||
+                this.gameContext.game.hotseat ||
+                !actionResults.revealing
+            ) {
+                relevantContext.applyActionResults(actionResults)
             }
 
             // Our processed action has the updated index so grab it
@@ -455,14 +504,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
             action.index = processedAction.index
 
-            if (this.gameContext.game.hotseat) {
-                // In hotseat mode, just store the action locally
-                await this.gameService.addActionsToLocalGame({
-                    game: gameSnapshot,
-                    actions: actionResults.processedActions,
-                    state: actionResults.updatedState
+            // Now handle local or remote persistence
+            if (relevantContext.game.storage === GameStorage.Local) {
+                await this.gameService.saveGameLocally({
+                    game: relevantContext.game,
+                    actions: $state.snapshot(relevantContext.actions),
+                    state: relevantContext.state
                 })
-            } else {
+            } else if (relevantContext.game.storage === GameStorage.Remote) {
                 // Now send the action to the server
                 try {
                     if (this.debug) {
@@ -487,11 +536,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                         serverAction.index < (action.index ?? 0)
                     ) {
                         // Rollback our local action and any deferred results
-                        await this.rollback(priorContext)
+                        relevantContext.restoreFrom(priorContext)
 
                         // Undo to the server's index
-                        stateSnapshot = this.undoToIndex(stateSnapshot, serverAction.index - 1)
-                        priorContext = this.gameContext.clone()
+                        stateSnapshot = this.undoToIndex(
+                            stateSnapshot,
+                            serverAction.index - 1,
+                            relevantContext
+                        )
+                        priorContext = relevantContext.clone()
 
                         applyServerActions = true
                     }
@@ -505,7 +558,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                         missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
 
                         // Rollback our local action and any deferred results
-                        await this.rollback(priorContext)
+                        relevantContext.restoreFrom(priorContext)
 
                         // Prepend the missing actions
                         serverActions.unshift(...missingActions)
@@ -523,17 +576,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                                     stateSnapshot
                                 )
                                 stateSnapshot = actionResults.updatedState
-                                this.applyActionResults(actionResults)
+                                relevantContext.applyActionResults(actionResults)
                             }
                         }
                     }
 
                     // Overwrite the local ones if necessary so we have canonical data
                     serverActions.forEach((action) => {
-                        this.gameContext.upsertAction(action)
+                        relevantContext.upsertAction(action)
                     })
 
-                    this.gameContext.verifyFullChecksum()
+                    relevantContext.verifyFullChecksum()
                 } catch (e) {
                     console.log(e)
                     toast.error('An error occurred talking to the server, resyncing')
@@ -542,37 +595,45 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
         } catch (e) {
             console.log(e)
-            await this.rollback(priorContext)
+            relevantContext.restoreFrom(priorContext)
             await this.checkSync()
         } finally {
-            this.processingActions = false
-            await this.applyQueuedActions()
+            if (this.mode === GameSessionMode.Play) {
+                this.processingActions = false
+                await this.applyQueuedActions()
+            }
         }
     }
 
+    // This will only be triggered by the UI and as such we can use the current context
+    // internally, rather than having to pass it in.  No server generated actions go through
+    // here.
     async undo() {
         if (
             !this.undoableAction ||
-            this.processingActions ||
+            (this.processingActions && this.mode === GameSessionMode.Play) ||
             this.mode === GameSessionMode.History
         ) {
             return
         }
 
+        const relevantContext = this.currentModifiableContext
         const targetAction = structuredClone($state.snapshot(this.undoableAction))
 
         this.willUndo(targetAction)
         try {
-            // Block server actions while we are processing
-            this.processingActions = true
+            // Block server actions while we are processing primary actions
+            if (this.mode === GameSessionMode.Play) {
+                this.processingActions = true
+            }
 
             const targetActionId = targetAction.id
 
             // Preserve state in case we need to roll back
-            const gameSnapshot = structuredClone(this.gameContext.game)
-            let stateSnapshot = structuredClone(this.gameContext.state) as T
+            const gameSnapshot = structuredClone(relevantContext.game)
+            let stateSnapshot = structuredClone(relevantContext.state) as T
 
-            const priorContext = this.gameContext.clone()
+            const priorContext = relevantContext.clone()
 
             const localUndoneActions = []
             const localRedoneActions = []
@@ -582,7 +643,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 const redoActions: GameAction[] = []
                 let actionToUndo
                 do {
-                    actionToUndo = $state.snapshot(this.gameContext.popAction()) as GameAction
+                    actionToUndo = $state.snapshot(relevantContext.popAction()) as GameAction
                     if (
                         actionToUndo.playerId &&
                         actionToUndo.playerId !== targetAction.playerId &&
@@ -598,39 +659,36 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                     stateSnapshot = this.engine.undoAction(stateSnapshot, actionToUndo) as T
                 } while (actionToUndo.id !== targetActionId)
 
-                this.gameContext.updateGameState(stateSnapshot)
-                const preRedoContext = this.gameContext.clone()
+                relevantContext.updateGameState(stateSnapshot)
+                const preRedoContext = relevantContext.clone()
 
                 for (const action of redoActions) {
                     const results = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
                     localRedoneActions.push(...results.processedActions)
                     stateSnapshot = results.updatedState
-                    this.applyActionResults(results)
+                    relevantContext.applyActionResults(results)
                 }
 
-                this.gameContext.updateGameState(stateSnapshot)
+                relevantContext.updateGameState(stateSnapshot)
 
-                if (this.gameContext.game.hotseat) {
-                    // Store updates locally
-                    await this.gameService.undoActionsFromLocalGame({
-                        game: gameSnapshot,
-                        undoneActions: localUndoneActions,
-                        redoneActions: localRedoneActions,
-                        state: stateSnapshot
+                if (relevantContext.game.storage === GameStorage.Local) {
+                    await this.gameService.saveGameLocally({
+                        game: relevantContext.game,
+                        actions: $state.snapshot(relevantContext.actions),
+                        state: relevantContext.state
                     })
-                } else {
+                } else if (relevantContext.game.storage === GameStorage.Remote) {
                     // Undo on the server
                     const { redoneActions, checksum } = await this.api.undoAction(
-                        this.gameContext.game,
+                        relevantContext.game,
                         targetActionId
                     )
 
-                    if (checksum !== this.gameContext.state?.actionChecksum) {
+                    if (checksum !== relevantContext.state?.actionChecksum) {
                         // We must not have known about something, but we did succeed so let's see if we can align
                         // by removing our redos and adding the backend's instead
                         localRedoneActions.splice(0, localRedoneActions.length)
-                        await this.rollback(preRedoContext)
-
+                        relevantContext.restoreFrom(preRedoContext)
                         for (const action of redoneActions) {
                             const results = this.applyActionToGame(
                                 action,
@@ -639,26 +697,28 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                             )
                             localRedoneActions.push(...results.processedActions)
                             stateSnapshot = results.updatedState
-                            this.applyActionResults(results)
+                            relevantContext.applyActionResults(results)
                         }
                     }
 
                     // Overwrite the local ones if necessary so we have canonical data
                     redoneActions.forEach((action) => {
-                        this.gameContext.upsertAction(action)
+                        relevantContext.upsertAction(action)
                     })
                 }
 
-                this.gameContext.verifyFullChecksum()
+                relevantContext.verifyFullChecksum()
             } catch (e) {
                 console.log(e)
                 toast.error('An error occurred while undoing an action')
-                await this.rollback(priorContext)
+                relevantContext.restoreFrom(priorContext)
                 await this.checkSync()
             }
         } finally {
-            this.processingActions = false
-            await this.applyQueuedActions()
+            if (this.mode === GameSessionMode.Play) {
+                this.processingActions = false
+                await this.applyQueuedActions()
+            }
         }
     }
 
@@ -694,31 +754,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     onHistoryExit() {}
 
-    private async rollback(context: GameContext<T, U>) {
-        this.gameContext.restore(context)
-    }
-
     private applyActionToGame(action: GameAction, game: Game, state: T): GameActionResults<T> {
         const { processedActions, updatedState } = this.engine.run(action, state, game)
         const revealing = processedActions.some((action) => action.revealsInfo)
         return new GameActionResults(processedActions, updatedState as T, revealing)
     }
 
-    private applyActionResults(actionResults: GameActionResults<T>) {
-        this.gameContext.updateGameState(actionResults.updatedState)
-        actionResults.processedActions.forEach((action) => {
-            this.gameContext.addAction(action)
-        })
-    }
-
-    private undoToIndex(stateSnapshot: T, index: number): T {
+    private undoToIndex(stateSnapshot: T, index: number, context: GameContext<T, U>): T {
         const undoneActions: GameAction[] = []
 
-        while (
-            this.gameContext.actions.length > 0 &&
-            this.gameContext.actions.length - 1 !== index
-        ) {
-            const actionToUndo = $state.snapshot(this.gameContext.popAction()) as GameAction
+        while (context.actions.length > 0 && context.actions.length - 1 !== index) {
+            const actionToUndo = $state.snapshot(context.popAction()) as GameAction
             undoneActions.push(actionToUndo)
 
             const updatedState = this.engine.undoAction(stateSnapshot, actionToUndo) as T
@@ -751,7 +797,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             matchedActionIndex >= 0 ? (serverActions[matchedActionIndex].index ?? -1) : -1
         const gameSnapshot = structuredClone(this.gameContext.game)
         let stateSnapshot = structuredClone(this.gameContext.state) as T
-        stateSnapshot = this.undoToIndex(stateSnapshot, rollbackIndex)
+        stateSnapshot = this.undoToIndex(stateSnapshot, rollbackIndex, this.gameContext)
         this.gameContext.updateGameState(stateSnapshot)
 
         // Apply the actions from the server
@@ -760,7 +806,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             for (const action of actionsToApply) {
                 const actionResults = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
                 stateSnapshot = actionResults.updatedState
-                this.applyActionResults(actionResults)
+                this.gameContext.applyActionResults(actionResults)
             }
         }
 
@@ -795,6 +841,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
+    // For primary game context only
     private async handleAddActionsNotification(notification: GameAddActionsNotification) {
         if (notification.data.game.id !== this.gameContext.game.id) {
             return
@@ -810,6 +857,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.gameContext.updateGame(game)
     }
 
+    // For primary game context only
     private async handleUndoNotification(notification: GameUndoActionNotification) {
         if (notification.data.action.index === undefined) {
             return
@@ -824,7 +872,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         ) as GameAction[]
 
         let stateSnapshot = structuredClone(this.gameContext.state) as T
-        stateSnapshot = this.undoToIndex(stateSnapshot, targetIndex)
+        stateSnapshot = this.undoToIndex(stateSnapshot, targetIndex, this.gameContext)
         this.gameContext.updateGameState(stateSnapshot)
         await this.applyServerActions(redoneActions)
 
@@ -840,8 +888,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
+    // For primary game context only
     private async checkSync() {
-        if (this.gameContext.game.hotseat) {
+        if (this.mode === GameSessionMode.Explore || this.gameContext.game.hotseat) {
             return
         }
 
@@ -871,6 +920,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
+    // For primary game context only... we can just drop out of the other modes if they get messed up
     private async doFullResync() {
         console.log('DOING FULL RESYNC')
         try {
@@ -884,13 +934,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 state: game.state as T,
                 actions
             })
-            this.gameContext.restore(newContext)
+            this.gameContext.restoreFrom(newContext)
         } catch (e) {
             console.log('Error during full resync', e)
             toast.error('Unable to load game, try refreshing')
         }
     }
 
+    // For primary game context only
     private async applyServerActions(actions: GameAction[]) {
         if (actions.length === 0) {
             return
@@ -928,7 +979,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
 
         // Once all the actions are processed, update the game state
-        this.applyActionResults(allActionResults)
+        this.gameContext.applyActionResults(allActionResults)
     }
 
     private isGameAddActionsNotification(

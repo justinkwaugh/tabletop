@@ -246,7 +246,9 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GamesResponse>()
 
-        return response.payload.games.map((game) => Value.Convert(Game, game) as Game)
+        return response.payload.games.map(
+            (game) => Value.Default(Game, Value.Convert(Game, game)) as Game
+        )
     }
 
     async getGame(gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
@@ -256,7 +258,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameWithActionsResponse>()
 
-        const game = Value.Convert(Game, response.payload.game) as Game
+        const game = Value.Default(Game, Value.Convert(Game, response.payload.game)) as Game
         const actions = response.payload.actions.map((action) =>
             Value.Convert(GameAction, action)
         ) as GameAction[]

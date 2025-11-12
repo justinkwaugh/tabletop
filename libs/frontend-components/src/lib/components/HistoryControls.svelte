@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import type { GameSession } from '$lib/model/gameSession.svelte'
+    import { GameSessionMode, type GameSession } from '$lib/model/gameSession.svelte'
     import { UserSolid } from 'flowbite-svelte-icons'
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
@@ -41,6 +41,27 @@
 </script>
 
 <div class="w-full flex flex-row justify-between items-center">
+    <button aria-label="start exploring" onclick={async () => {}}>
+        <svg
+            class="w-[22px] h-[22px] {gameSession.mode !== GameSessionMode.Explore
+                ? enabledColor
+                : disabledColor}"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+        >
+            <path
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 12v4m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM8 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 0v2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8m0 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+            ></path>
+        </svg>
+    </button>
     <button
         onclick={async () => await goToMyPreviousTurn()}
         class="flex flex-row justify-center items-center {hasPriorPlayerAction
@@ -202,7 +223,7 @@
         </button>
     </div>
     <button
-        onclick={async () => await goToMyNextTurn()}
+        onclick={async () => goToMyNextTurn()}
         class="flex flex-row justify-center items-center {hasFuturePlayerAction
             ? enabledColor
             : disabledColor}"
@@ -221,6 +242,53 @@
                 fill-rule="evenodd"
                 d="M8.6 5.2A1 1 0 0 0 7 6v12a1 1 0 0 0 1.6.8l8-6a1 1 0 0 0 0-1.6l-8-6Z"
                 clip-rule="evenodd"
+            ></path>
+        </svg>
+    </button>
+    <button
+        aria-label="start exploring"
+        onclick={async () =>
+            gameSession.mode === GameSessionMode.Explore
+                ? gameSession.explorations.endExploring()
+                : gameSession.startExploring()}
+    >
+        <svg
+            class="w-[22px] h-[22px] {enabledColor} {gameSession.mode !== GameSessionMode.Explore
+                ? 'hidden'
+                : ''}"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+        >
+            <path
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M14.5 8.046H11V6.119c0-.921-.9-1.446-1.524-.894l-5.108 4.49a1.2 1.2 0 0 0 0 1.739l5.108 4.49c.624.556 1.524.027 1.524-.893v-1.928h2a3.023 3.023 0 0 1 3 3.046V19a5.593 5.593 0 0 0-1.5-10.954Z"
+            ></path>
+        </svg>
+
+        <svg
+            class="w-[22px] h-[22px] {enabledColor} {gameSession.mode === GameSessionMode.Explore
+                ? 'hidden'
+                : ''}"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+        >
+            <path
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 9a3 3 0 0 1 3-3m-2 15h4m0-3c0-4.1 4-4.9 4-9A6 6 0 1 0 6 9c0 4 4 5 4 9h4Z"
             ></path>
         </svg>
     </button>

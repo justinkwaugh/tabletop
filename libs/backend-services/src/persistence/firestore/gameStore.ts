@@ -19,7 +19,8 @@ import {
     GameStatus,
     generateSeed,
     GameStatusCategory,
-    getGameStatusesForCategory
+    getGameStatusesForCategory,
+    GameStorage
 } from '@tabletop/common'
 import {
     AlreadyExistsError,
@@ -316,7 +317,7 @@ export class FirestoreGameStore implements GameStore {
             return undefined
         }
 
-        const game = Value.Convert(Game, cachedGame) as Game
+        const game = Value.Default(Game, Value.Convert(Game, cachedGame)) as Game
         if (game && includeState) {
             try {
                 const stateCollection = this.getStateCollection(gameId)
@@ -359,7 +360,7 @@ export class FirestoreGameStore implements GameStore {
 
         const games = await this.cacheService.cachingGetMulti(cacheKeys, getGames)
 
-        return games.map((game) => Value.Convert(Game, game) as Game)
+        return games.map((game) => Value.Default(Game, Value.Convert(Game, game)) as Game)
     }
     async hasCachedActiveGames(user: User): Promise<boolean> {
         const category = GameStatusCategory.Active
@@ -1171,6 +1172,9 @@ const gameConverter = {
         data.lastActionAt = data.lastActionAt
             ? (data.lastActionAt as Timestamp).toDate()
             : undefined
+
+        // Default this for older records
+        data.storage = GameStorage.Remote
 
         // data.state = data.state ? JSON.parse(data.state) : undefined
         return data as Game

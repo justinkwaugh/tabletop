@@ -13,6 +13,7 @@ import {
     GameState,
     GameStatus,
     GameStatusCategory,
+    GameStorage,
     GameSyncStatus,
     IsYourTurnNotification,
     NotificationCategory,
@@ -94,6 +95,8 @@ export class GameService {
         owner: User
     }): Promise<Game> {
         game.ownerId = owner.id // Don't trust client
+        game.storage = GameStorage.Remote // Has to be remote here on the backend
+
         const newGame = definition.initializer.initializeGame(game)
 
         // Check the specified players and populate them with user data
@@ -190,6 +193,7 @@ export class GameService {
         forkedGame.ownerId = owner.id
         forkedGame.startedAt = undefined
         forkedGame.status = GameStatus.Started
+        forkedGame.storage = GameStorage.Remote
         delete forkedGame.result
         delete forkedGame.finishedAt
         forkedGame.winningPlayerIds = []

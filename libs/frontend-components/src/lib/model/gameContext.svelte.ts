@@ -7,9 +7,17 @@ import {
     type GameState,
     type HydratedGameState
 } from '@tabletop/common'
+import type { GameActionResults } from './gameActionResults.svelte.js'
 
 // This class holds everything needed to represent the current context of a game
 // for the UI.  It is UI specific because it uses Svelte's $state for reactivity.
+
+export type CloneInterceptor<T extends GameState> = {
+    interceptGame?: (game: Game) => void
+    interceptState?: (state: T) => void
+    interceptActions?: (actions: GameAction[]) => void
+}
+
 export class GameContext<T extends GameState, U extends HydratedGameState & T> {
     definition: GameUiDefinition<T, U>
     game: Game = $state.raw({} as Game)
@@ -38,16 +46,30 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
         this.initializeActions(actions)
     }
 
-    clone(): GameContext<T, U> {
+    clone(interceptor?: CloneInterceptor<T>): GameContext<T, U> {
+        const game = structuredClone(this.game)
+        const state = structuredClone(this.state) as T
+        const actions = this.actions.map((action) => structuredClone($state.snapshot(action)))
+
+        if (interceptor?.interceptGame) {
+            interceptor.interceptGame(game)
+        }
+        if (interceptor?.interceptState) {
+            interceptor.interceptState(state)
+        }
+        if (interceptor?.interceptActions) {
+            interceptor.interceptActions(actions)
+        }
+
         return new GameContext({
             definition: this.definition,
-            game: structuredClone(this.game),
-            state: structuredClone(this.state) as T,
-            actions: this.actions.map((action) => structuredClone($state.snapshot(action)))
+            game,
+            state,
+            actions
         })
     }
 
-    restore(context: GameContext<T, U>) {
+    restoreFrom(context: GameContext<T, U>) {
         this.game = context.game
         this.actions = context.actions
         this.actionsById = new Map(context.actionsById)
@@ -107,6 +129,13 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
             return
         }
         this.state = structuredClone(gameState)
+    }
+
+    applyActionResults(actionResults: GameActionResults<T>) {
+        this.updateGameState(actionResults.updatedState)
+        actionResults.processedActions.forEach((action) => {
+            this.addAction(action)
+        })
     }
 
     verifyFullChecksum() {

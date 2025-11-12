@@ -3,8 +3,14 @@
     import { Card, Button, Modal } from 'flowbite-svelte'
     import GameEditForm from './GameEditForm.svelte'
     import { goto } from '$app/navigation'
+    import {
+        GameStorage,
+        type Game,
+        type GameState,
+        type HydratedGameState
+    } from '@tabletop/common'
 
-    let { title }: { title: GameUiDefinition } = $props()
+    let { title }: { title: GameUiDefinition<GameState, HydratedGameState> } = $props()
 
     let showCreateModal = $state(false)
     function createGame() {
@@ -15,9 +21,13 @@
         showCreateModal = false
     }
 
-    async function onGameCreate() {
+    async function onGameCreate(game: Game) {
         await closeCreateModal()
-        goto('/dashboard')
+        if (game.storage === GameStorage.Local) {
+            goto(`/game/${game.id}`)
+        } else {
+            goto('/dashboard')
+        }
     }
 
     function splitLines(text: string) {
@@ -38,7 +48,7 @@
         <GameEditForm
             {title}
             oncancel={() => closeCreateModal()}
-            onsave={(game) => onGameCreate()}
+            onsave={(game) => onGameCreate(game)}
         />
     </Modal>
 {/if}

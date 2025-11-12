@@ -7,29 +7,20 @@ export type GameService = {
     createGame(game: Partial<Game>): Promise<Game>
     forkGame(game: Partial<Game>, actionIndex: number): Promise<Game>
     updateGame(game: Partial<Game>): Promise<Game>
-    addActionsToLocalGame({
+    saveGameLocally({
         game,
-        actions,
-        state
+        state,
+        actions
     }: {
         game: Game
+        state: GameState
         actions: GameAction[]
-        state: GameState
     }): Promise<void>
-    undoActionsFromLocalGame({
-        game,
-        undoneActions,
-        redoneActions,
-        state
-    }: {
-        game: Game
-        undoneActions: GameAction[]
-        redoneActions: GameAction[]
-        state: GameState
-    }): Promise<void>
+
     deleteGame(gameId: string): Promise<void>
     startGame(game: Game): Promise<Game>
     joinGame(gameId: string): Promise<Game>
     declineGame(gameId: string): Promise<Game>
     clear(): void
+    getExplorations(gameId: string): Game[]
 }

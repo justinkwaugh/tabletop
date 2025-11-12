@@ -15,7 +15,10 @@
         let action
         if (gameSession.mode === GameSessionMode.History && gameSession.history.actionIndex >= 0) {
             action = gameSession.actions[gameSession.history.actionIndex]
-        } else if (gameSession.mode === GameSessionMode.Play) {
+        } else if (
+            gameSession.mode === GameSessionMode.Play ||
+            gameSession.mode === GameSessionMode.Explore
+        ) {
             let actionIndex = gameSession.actions.length - 1
             do {
                 action = gameSession.actions[actionIndex]

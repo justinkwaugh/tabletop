@@ -67,19 +67,57 @@
             chatService.removeListener(chatListener)
         }
     })
+
+    // Heights used in CSS calculations:
+    // Not Mobile(sm and up):
+    // - Navbar: 68px
+    // - Hotseat Banner: 30px
+    // - Exploration Banner: 44px
+    // Mobile (max-sm):
+    // - Navbar: 142px
+    // - Hotseat Banner: 30px
+    // - Exploration Banner: 44px
+
+    const tableHeightMobile = 'max-sm:h-[calc(100vh-142px)]'
+    const tableHeightMobileHotseat = 'max-sm:h-[calc(100vh-172px)]'
+    const tableHeightMobileExploration = 'max-sm:h-[calc(100vh-186px)]'
+    const tableHeightDesktop = 'h-[calc(100vh-84px)]'
+    const tableHeightDesktopHotseat = 'h-[calc(100vh-114px)]'
+    const tableHeightDesktopExploration = 'h-[calc(100vh-128px)]'
+    const innerTableHeightMobile = 'max-sm:h-[calc(100vh-158px)]'
+    const innerTableHeightMobileHotseat = 'max-sm:h-[calc(100vh-188px)]'
+    const innerTableHeightMobileExploration = 'max-sm:h-[calc(100vh-202px)]'
+    const innerTableHeightDesktop = 'h-[calc(100vh-100px)]'
+    const innerTableHeightDesktopHotseat = 'h-[calc(100vh-130px)]'
+    const innerTableHeightDesktopExploration = 'h-[calc(100vh-144px)]'
+
+    const tableHeight = $derived.by(() => {
+        if (gameSession.mode === GameSessionMode.Explore) {
+            return `${tableHeightMobileExploration} ${tableHeightDesktopExploration}`
+        }
+        if (gameSession.game.hotseat) {
+            return `${tableHeightMobileHotseat} ${tableHeightDesktopHotseat}`
+        }
+        return `${tableHeightMobile} ${tableHeightDesktop}`
+    })
+
+    const innerTableHeight = $derived.by(() => {
+        if (gameSession.mode === GameSessionMode.Explore) {
+            return `${innerTableHeightMobileExploration} ${innerTableHeightDesktopExploration}`
+        }
+        if (gameSession.game.hotseat) {
+            return `${innerTableHeightMobileHotseat} ${innerTableHeightDesktopHotseat}`
+        }
+        return `${innerTableHeightMobile} ${innerTableHeightDesktop}`
+    })
 </script>
 
-<div
-    class="sm:hidden shrink-0 grow-0 p-2 h-[42px] flex flex-col justify-center items-center border-b-2"
->
-    <HistoryControls />
-</div>
-<div bind:this={table} class="flex w-screen overflow-auto max-sm:h-[calc(100vh-142px)]">
+<div bind:this={table} class="flex w-screen overflow-auto {tableHeight}">
     <!-- Full Height and Width with 8px padding-->
     <div class="p-2 w-full h-full flex flex-row justify-between items-start">
         <!--  Panels have screen minus the height of navbar plus padding -->
         <div
-            class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] sm:h-[calc(100vh-84px)] max-sm:h-[calc(100vh-158px)]"
+            class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {innerTableHeight}"
         >
             <div
                 class="shrink-0 grow-0 p-2 rounded-lg border-2 border-gray-700 bg-transparent h-[44px] max-sm:hidden"
@@ -148,7 +186,7 @@
             </Tabs>
         </div>
         <div
-            class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] sm:h-[calc(100vh-84px)] max-sm:h-[calc(100vh-158px)] flex flex-col"
+            class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] {innerTableHeight} flex flex-col"
         >
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">

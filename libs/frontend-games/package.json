@@ -13,6 +13,7 @@
         "update-games": "tsx src/updateDependencies.ts"
     },
     "dependencies": {
+        "@tabletop/bridges-of-shangri-la-ui": "*",
         "@tabletop/fresh-fish-ui": "*"
     },
     "devDependencies": {
