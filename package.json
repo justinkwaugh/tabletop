@@ -13,10 +13,11 @@
     },
     "devDependencies": {
         "@types/react": "^19.2.2",
-        "eslint": "^8.56.0",
+        "eslint": "^9.39.1",
         "prettier": "^3.3.3",
         "turbo": "^2.6.0",
-        "vitest": "^4.0.6"
+        "vitest": "^4.0.6",
+        "rimraf": "^6.1.0"
     },
     "engines": {
         "node": ">=18"

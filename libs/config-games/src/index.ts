@@ -1,4 +1,4 @@
-import gamesJson from './games.json'
+import gamesJson from './games.json' with { type: 'json' }
 
 type GamePackage = [name: string, scope?: string]
 
