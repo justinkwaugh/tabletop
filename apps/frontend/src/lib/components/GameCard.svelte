@@ -58,6 +58,7 @@
     )
     let canEdit = $derived(
         isOwnedByMe &&
+            !game.parentId &&
             (game.status === GameStatus.WaitingForPlayers ||
                 game.status === GameStatus.WaitingToStart)
     )

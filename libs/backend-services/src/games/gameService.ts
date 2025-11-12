@@ -201,15 +201,26 @@ export class GameService {
         }
         forkedGame.ownerId = owner.id
         forkedGame.startedAt = undefined
-        forkedGame.status = GameStatus.Started
         forkedGame.storage = GameStorage.Remote
         delete forkedGame.result
         delete forkedGame.finishedAt
         forkedGame.winningPlayerIds = []
+        forkedGame.parentId = game.id
+
+        for (const player of forkedGame.players) {
+            if (player.userId === owner.id) {
+                player.status = PlayerStatus.Joined
+            } else {
+                player.status = PlayerStatus.Reserved
+            }
+        }
 
         // Generate initial state
         const engine = new GameEngine(definition)
         const { startedGame, initialState } = engine.startGame(forkedGame)
+
+        // Reset state to waiting
+        startedGame.status = GameStatus.WaitingForPlayers
 
         let newState = initialState
 
@@ -633,25 +644,39 @@ export class GameService {
             throw new UnauthorizedAccessError({ user, gameId })
         }
 
-        const { startedGame, initialState } = new GameEngine(definition).startGame(game)
-        startedGame.state = initialState
+        let updatedGame: Game
 
-        const [updatedGame] = await this.gameStore.updateGame({
-            game,
-            fields: { startedAt: new Date(), status: GameStatus.Started, state: initialState },
-            validator: (existingGame, fieldsToUpdate) => {
-                if (existingGame.status !== GameStatus.WaitingToStart) {
-                    throw new GameNotWaitingToStartError({ id: gameId })
+        if (game.parentId) {
+            // Forked games just need the status to be updated
+            ;[updatedGame] = await this.gameStore.updateGame({
+                game,
+                fields: { startedAt: new Date(), status: GameStatus.Started },
+                validator: (existingGame) => {
+                    if (existingGame.status !== GameStatus.WaitingToStart) {
+                        throw new GameNotWaitingToStartError({ id: gameId })
+                    }
+                    return UpdateValidationResult.Proceed
                 }
+            })
+        } else {
+            const { startedGame, initialState } = new GameEngine(definition).startGame(game)
+            startedGame.state = initialState
+            ;[updatedGame] = await this.gameStore.updateGame({
+                game,
+                fields: { startedAt: new Date(), status: GameStatus.Started, state: initialState },
+                validator: (existingGame, fieldsToUpdate) => {
+                    if (existingGame.status !== GameStatus.WaitingToStart) {
+                        throw new GameNotWaitingToStartError({ id: gameId })
+                    }
 
-                fieldsToUpdate.activePlayerIds = initialState?.activePlayerIds ?? []
+                    fieldsToUpdate.activePlayerIds = initialState?.activePlayerIds ?? []
 
-                return UpdateValidationResult.Proceed
-            }
-        })
+                    return UpdateValidationResult.Proceed
+                }
+            })
+        }
 
         //TODO: Send game started email
-
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
         await this.notifyGameStarted(updatedGame)
 
