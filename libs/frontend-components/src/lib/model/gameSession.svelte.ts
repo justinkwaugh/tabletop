@@ -446,8 +446,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async startExploring() {
-        if (this.isExploring || this.isViewingHistory) {
-            // Could change to explore from point in history?
+        if (this.isExploring) {
             return
         }
         await this.explorations.startExploring(this.gameContext)

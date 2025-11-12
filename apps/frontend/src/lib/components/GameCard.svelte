@@ -398,11 +398,7 @@
                                     <div>
                                         {exploration.name ?? ''}
                                     </div>
-                                    <div>
-                                        <TrashBinSolid
-                                            class="w-4 h-4 hover:text-red-600 cursor-pointer"
-                                        />
-                                    </div>
+                                    <div></div>
                                 </div>
                             {/each}
                         </div>
