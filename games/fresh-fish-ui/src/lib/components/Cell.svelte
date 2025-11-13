@@ -17,6 +17,7 @@
     import MarketTile from '$lib/components/MarketTile.svelte'
     import TruckTile from '$lib/components/TruckTile.svelte'
     import { fadeScale, GameSessionMode } from '@tabletop/frontend-components'
+    import type { GameAction } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
     let { cell, coords }: { cell: Cell; coords: Coordinates } = $props()
@@ -125,28 +126,33 @@
         if (!interactable) {
             return
         }
+
+        let action: GameAction | undefined = undefined
+
         if (gameSession.chosenAction === ActionType.PlaceDisk) {
-            const placeDiskAction = gameSession.createPlaceDiskAction(coords)
-            await gameSession.applyAction(placeDiskAction)
-            gameSession.chosenAction = undefined
-            showBorder = false
+            action = gameSession.createPlaceDiskAction(coords)
         } else if (gameSession.chosenAction === ActionType.PlaceStall) {
             const goodsType = gameSession.gameState.getChosenStallType()
             if (!goodsType) {
                 return
             }
-            const placeStallAction = gameSession.createPlaceStallAction(coords, goodsType)
-            await gameSession.applyAction(placeStallAction)
-            gameSession.chosenAction = undefined
-            gameSession.clearExpropriationPreview()
-            showBorder = false
+            action = gameSession.createPlaceStallAction(coords, goodsType)
         } else if (gameSession.chosenAction === ActionType.PlaceMarket) {
-            const placeMarketAction = gameSession.createPlaceMarketAction(coords)
-            await gameSession.applyAction(placeMarketAction)
-            gameSession.chosenAction = undefined
-            gameSession.clearExpropriationPreview()
-            showBorder = false
+            action = gameSession.createPlaceMarketAction(coords)
         }
+
+        if (!action) {
+            return
+        }
+
+        // Clear before apply, because effects may trigger before apply completes
+        // and the clearing will overwrite what they did
+
+        gameSession.chosenAction = undefined
+        showBorder = false
+        gameSession.clearExpropriationPreview()
+
+        await gameSession.applyAction(action)
     }
 
     // Note that tabindex has to be used or interactable is not evaluated... why?

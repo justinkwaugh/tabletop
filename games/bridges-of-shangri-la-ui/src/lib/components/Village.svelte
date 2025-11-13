@@ -161,8 +161,8 @@
 
         if (gameSession.chosenAction === ActionType.PlaceMaster && gameSession.chosenMasterType) {
             const action = gameSession.createPlaceMasterAction(index, gameSession.chosenMasterType)
-            await gameSession.applyAction(action)
             gameSession.resetAction()
+            await gameSession.applyAction(action)
         } else if (
             gameSession.chosenAction === ActionType.RecruitStudents &&
             gameSession.chosenMasterType
@@ -171,8 +171,8 @@
                 index,
                 gameSession.chosenMasterType
             )
-            await gameSession.applyAction(action)
             gameSession.resetAction()
+            await gameSession.applyAction(action)
         } else if (gameSession.chosenAction === ActionType.BeginJourney) {
             if (gameSession.chosenVillage === undefined) {
                 gameSession.chosenVillage = index
@@ -181,8 +181,8 @@
                     gameSession.chosenVillage,
                     index
                 )
-                await gameSession.applyAction(action)
                 gameSession.resetAction()
+                await gameSession.applyAction(action)
             }
         }
     }

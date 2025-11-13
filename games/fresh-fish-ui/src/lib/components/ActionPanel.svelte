@@ -18,10 +18,11 @@
         switch (action) {
             case ActionType.DrawTile:
                 const drawTileAction = gameSession.createDrawTileAction()
-                await gameSession.applyAction(drawTileAction)
                 cancelAction()
+                await gameSession.applyAction(drawTileAction)
                 break
             default:
+                console.log('choosing action:', action)
                 gameSession.chosenAction = action
                 break
         }
@@ -74,7 +75,7 @@
     }
 
     $effect(() => {
-        if (gameSession.validActionTypes.length === 1) {
+        if (gameSession.isMyTurn && gameSession.validActionTypes.length === 1) {
             const singleAction = gameSession.validActionTypes[0]
             // Don't force a draw tile as that reveals info and makes the prior player unable to quickly undo
             if (singleAction !== ActionType.DrawTile) {
