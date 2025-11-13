@@ -8,7 +8,6 @@
     import TimeAgo from 'javascript-time-ago'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
-    import { TrashBinSolid } from 'flowbite-svelte-icons'
 
     const timeAgo = new TimeAgo('en-US')
 

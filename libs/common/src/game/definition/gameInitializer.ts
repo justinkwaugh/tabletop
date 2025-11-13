@@ -1,6 +1,10 @@
 import { generateSeed } from '../../util/prng.js'
 import { Game, GameCategory, GameStatus } from '../model/game.js'
-import { GameState, HydratedGameState, UninitializedGameState } from '../model/gameState.js'
+import {
+    GameState,
+    type HydratedGameState,
+    type UninitializedGameState
+} from '../model/gameState.js'
 import { Value } from '@sinclair/typebox/value'
 
 export interface GameInitializer {

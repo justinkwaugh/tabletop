@@ -1,10 +1,14 @@
-import jsonpatch, { Operation } from 'fast-json-patch'
-import { GameAction, HydratedAction, Patch } from './gameAction.js'
+import jsonpatch, { type Operation } from 'fast-json-patch'
+import { GameAction, type HydratedAction, Patch } from './gameAction.js'
 import { Game, GameStatus } from '../model/game.js'
-import { GameState, HydratedGameState, UninitializedGameState } from '../model/gameState.js'
+import {
+    GameState,
+    type HydratedGameState,
+    type UninitializedGameState
+} from '../model/gameState.js'
 import { MachineContext } from './machineContext.js'
-import { MachineStateHandler } from './machineStateHandler.js'
-import { GameDefinition } from '../definition/gameDefinition.js'
+import { type MachineStateHandler } from './machineStateHandler.js'
+import { type GameDefinition } from '../definition/gameDefinition.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'

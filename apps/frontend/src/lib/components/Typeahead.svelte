@@ -18,7 +18,7 @@
         text: string
         active: boolean
         exclude: string[]
-        oninput: (event: InputEvent) => void
+        oninput: (event: Event) => void
         children: Snippet
     } & InputProps = $props()
 

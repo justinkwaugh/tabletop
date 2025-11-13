@@ -1,11 +1,11 @@
 import { type TSchema } from '@sinclair/typebox'
 import { type GameHydrator } from './gameHydrator.js'
 import { type GameMetadata } from './gameMetadata.js'
-import { GameInitializer } from './gameInitializer.js'
-import { MachineStateHandler } from '../engine/machineStateHandler.js'
-import { HydratedAction } from '../engine/gameAction.js'
-import { GameStateLogger } from './gameStateLogger.js'
-import { ConfigHandler, GameConfigOptions } from './gameConfig.js'
+import { type GameInitializer } from './gameInitializer.js'
+import { type MachineStateHandler } from '../engine/machineStateHandler.js'
+import { type HydratedAction } from '../engine/gameAction.js'
+import { type GameStateLogger } from './gameStateLogger.js'
+import { type ConfigHandler, GameConfigOptions } from './gameConfig.js'
 import { Color } from '../model/colors.js'
 
 export interface GameDefinition {

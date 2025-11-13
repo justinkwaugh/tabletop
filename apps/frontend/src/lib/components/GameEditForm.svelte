@@ -237,7 +237,7 @@
         }
     }
 
-    async function handleNameInput(player: Player, event: InputEvent) {
+    async function handleNameInput(player: Player, event: Event) {
         trim(event)
         player.status = !player.name ? PlayerStatus.Open : PlayerStatus.Reserved
     }
@@ -350,7 +350,7 @@
                 <Typeahead
                     id={player.id}
                     active={!isHotseat}
-                    oninput={(event: InputEvent) => handleNameInput(player, event)}
+                    oninput={(event: Event) => handleNameInput(player, event)}
                     bind:text={player.name}
                     exclude={players.map((p) => p.name)}
                     size="md"

@@ -1,4 +1,4 @@
-import { Hex, HexCoordinates, Traverser, Direction, neighborOf } from 'honeycomb-grid'
+import { Hex, type HexCoordinates, type Traverser, Direction, neighborOf } from 'honeycomb-grid'
 import { coordinatesToNumber } from './coordinates.js'
 
 export function flood<T extends Hex>(options: FloodOptions): Traverser<T> {

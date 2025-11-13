@@ -1,5 +1,5 @@
-import { Static, Type } from '@sinclair/typebox'
-import { getPrng, RandomFunction } from '../../util/prng.js'
+import { type Static, Type } from '@sinclair/typebox'
+import { getPrng, type RandomFunction } from '../../util/prng.js'
 import { customRandom } from 'nanoid'
 
 export type PrngState = Static<typeof PrngState>

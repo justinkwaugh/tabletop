@@ -1,4 +1,4 @@
-import { TSchema, Type, type Static } from '@sinclair/typebox'
+import { type TSchema, Type, type Static } from '@sinclair/typebox'
 import { TurnManager } from '../components/turnManager.js'
 import { Hydratable } from '../../util/hydration.js'
 import { calculateActionChecksum } from '../../util/checksum.js'

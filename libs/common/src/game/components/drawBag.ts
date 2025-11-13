@@ -1,7 +1,7 @@
 import { Type, type TSchema, type Static } from '@sinclair/typebox'
 import { shuffle } from '../../util/shuffle.js'
 import { Hydratable } from '../../util/hydration.js'
-import { RandomFunction } from '../../util/prng.js'
+import { type RandomFunction } from '../../util/prng.js'
 
 export const DrawBag = <T extends TSchema>(T: T) =>
     Type.Object({

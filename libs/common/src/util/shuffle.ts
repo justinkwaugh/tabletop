@@ -1,4 +1,4 @@
-import { RandomFunction } from './prng'
+import type { RandomFunction } from './prng'
 
 export function shuffle(array: unknown[], randomFunction?: RandomFunction) {
     if (randomFunction === undefined) {
