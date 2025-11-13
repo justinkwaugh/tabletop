@@ -2,7 +2,7 @@ import { type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { GoodsType } from '../definition/goodsType.js'
 import { Tile, generateMarketTile, generateStallTile } from './tiles.js'
-import { HydratedDrawBag, DrawBag, RandomFunction } from '@tabletop/common'
+import { HydratedDrawBag, DrawBag, type RandomFunction } from '@tabletop/common'
 
 export type TileBag = Static<typeof TileBag>
 export const TileBag = DrawBag(Tile)

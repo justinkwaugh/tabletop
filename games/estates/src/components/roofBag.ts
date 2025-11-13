@@ -1,7 +1,7 @@
 import { type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Roof } from './roof.js'
-import { HydratedDrawBag, DrawBag, RandomFunction } from '@tabletop/common'
+import { HydratedDrawBag, DrawBag, type RandomFunction } from '@tabletop/common'
 import { PieceType } from './pieceType.js'
 
 export type RoofBag = Static<typeof RoofBag>

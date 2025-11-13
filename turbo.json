@@ -38,6 +38,10 @@
             "dependsOn": ["^clean"],
             "cache": false
         },
+        "check": {
+            "dependsOn": ["^check"],
+            "cache": false
+        },
         "docker-build": {
             "dependsOn": ["@tabletop/backend#build", "@tabletop/frontend#build", "^build"],
             "cache": false

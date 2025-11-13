@@ -1,5 +1,5 @@
 import {
-    GameInitializer,
+    type GameInitializer,
     BaseGameInitializer,
     range,
     AxialCoordinates,
@@ -8,7 +8,7 @@ import {
     HydratedRoundManager,
     HydratedPhaseManager,
     Prng,
-    UninitializedGameState,
+    type UninitializedGameState,
     GameState
 } from '@tabletop/common'
 import {

@@ -3,7 +3,7 @@ import { GoodsType } from '../definition/goodsType.js'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Coordinates } from '../components/gameBoard.js'
-import { ScoringInfo } from '../util/scoring.js'
+import { type ScoringInfo } from '../util/scoring.js'
 import { Color } from '@tabletop/common'
 
 export type PlayerStall = Static<typeof PlayerStall>

@@ -1,6 +1,6 @@
 import {
     ActionSource,
-    HydratedAction,
+    type HydratedAction,
     MachineContext,
     type MachineStateHandler,
     remove

@@ -1,6 +1,11 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { ConfigOptionType, GameConfigOptions, ConfigHandler, GameConfig } from '@tabletop/common'
+import {
+    ConfigOptionType,
+    GameConfigOptions,
+    type ConfigHandler,
+    GameConfig
+} from '@tabletop/common'
 
 export enum Ruleset {
     FirstEdition = 'FirstEdition',

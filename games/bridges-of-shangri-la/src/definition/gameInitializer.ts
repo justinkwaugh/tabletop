@@ -1,9 +1,9 @@
 import {
-    GameInitializer,
-    RandomFunction,
+    type GameInitializer,
+    type RandomFunction,
     BaseGameInitializer,
     Prng,
-    UninitializedGameState,
+    type UninitializedGameState,
     GameState
 } from '@tabletop/common'
 import {

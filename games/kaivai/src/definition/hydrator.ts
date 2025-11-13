@@ -1,6 +1,6 @@
 import {
     GameAction,
-    GameHydrator,
+    type GameHydrator,
     GameState,
     type HydratedAction,
     type HydratedGameState
