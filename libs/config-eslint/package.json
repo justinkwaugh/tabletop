@@ -2,11 +2,11 @@
     "name": "@tabletop/eslint-config",
     "version": "0.0.0",
     "dependencies": {
-        "@typescript-eslint/eslint-plugin": "^7.17.0",
-        "@typescript-eslint/parser": "^7.17.0",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-config-turbo": "^2.0.0",
-        "eslint-plugin-svelte": "^2.43.0"
+        "@typescript-eslint/eslint-plugin": "^8.46.4",
+        "@typescript-eslint/parser": "^8.46.4",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-config-turbo": "^2.6.0",
+        "eslint-plugin-svelte": "^3.13.0"
     },
     "publishConfig": {
         "access": "public"
