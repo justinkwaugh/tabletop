@@ -44,7 +44,7 @@
             node.coords.row === Ring.Convective ||
             node.coords.row === Ring.Radiative
         ) {
-            for (const neighbor of graph.neighborsOf(node.coords, Direction.In)) {
+            for (const neighbor of graph.neighborsOf(node, Direction.In)) {
                 gatePositions.push(getGatePosition(numPlayers, neighbor.coords, node.coords))
             }
         }
@@ -131,7 +131,7 @@
     const tempDiversLocations: { id: string; point: Point }[] = $state([])
     const tempTowersLocations: { id: string; point: Point }[] = $state([])
 
-    function onClick(event) {
+    function onClick(event: MouseEvent) {
         if (currentType === PieceType.Sundiver) {
             tempDiversLocations.push({
                 id: nanoid(),

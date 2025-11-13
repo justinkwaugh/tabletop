@@ -1,4 +1,4 @@
-import { Static, Type } from '@sinclair/typebox'
+import { type Static, Type } from '@sinclair/typebox'
 import { OffsetCoordinates } from '@tabletop/common'
 
 export type SolarGate = Static<typeof SolarGate>

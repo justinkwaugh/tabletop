@@ -1,4 +1,4 @@
-import { Node, NodeIdentifier, Traverser } from './graph.js'
+import { type Node, type NodeIdentifier, type Traverser } from './graph.js'
 
 export function flood<T extends Node>(options: FloodOptions<T>): Traverser<T> {
     return function floodTraverser(graph) {

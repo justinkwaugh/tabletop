@@ -1,7 +1,7 @@
 import { type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { Card, Suit } from './cards.js'
-import { HydratedDrawBag, DrawBag, RandomFunction } from '@tabletop/common'
+import { HydratedDrawBag, DrawBag, type RandomFunction } from '@tabletop/common'
 
 export type Deck = Static<typeof Deck>
 export const Deck = DrawBag(Card)

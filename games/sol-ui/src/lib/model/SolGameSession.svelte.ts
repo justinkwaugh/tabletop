@@ -119,7 +119,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('Invalid launch')
         }
 
-        const action: Launch = {
+        const action = {
             ...this.createBaseAction(ActionType.Launch),
             mothership: this.myPlayer.id,
             numSundivers: this.chosenNumDivers,
@@ -149,7 +149,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
         const diverIds = playerDivers.slice(0, this.chosenNumDivers).map((diver) => diver.id)
 
-        const action: Fly = {
+        const action = {
             ...this.createBaseAction(ActionType.Fly),
             playerId: this.myPlayer.id,
             sundiverIds: diverIds,

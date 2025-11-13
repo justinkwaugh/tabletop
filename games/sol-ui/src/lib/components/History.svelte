@@ -49,9 +49,12 @@
     <div class="overflow-auto h-full">
         <Timeline class="ms-1">
             {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
+                <div
+                    class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+                ></div>
                 <TimelineItem
-                    classTime=""
-                    classLi="mb-5 text-left"
+                    title=""
+                    class="mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
                     <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
@@ -71,9 +74,12 @@
                     onmouseover={() => highlight(action)}
                     onmouseleave={() => unhighlight()}
                 >
+                    <div
+                        class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+                    ></div>
                     <TimelineItem
-                        classTime=""
-                        classLi="mb-5 text-left"
+                        title=""
+                        class="mb-5"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
@@ -85,11 +91,10 @@
                     </TimelineItem>
                 </div>
             {/each}
-            <TimelineItem
-                classTime=""
-                classLi="mb-5 text-left"
-                date={timeAgo.format(gameSession.game.createdAt)}
-            >
+            <div
+                class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
+            ></div>
+            <TimelineItem title="" class="mb-5" date={timeAgo.format(gameSession.game.createdAt)}>
                 <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                     The game was started
                 </p>

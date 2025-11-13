@@ -86,23 +86,24 @@
               config: {}
           }
 
+    title = game?.typeId ? libraryService.getTitle(game.typeId) : title
+
     // State
     let unexpectedError = $state(false)
     let errors: Record<string, string[]> = $state({})
     let name = $state(editedGame.name)
     let config = $state(editedGame.config)
-    let numPlayers = $state(editedGame.players.length)
+    let numPlayers = $state(
+        mode === EditMode.Edit
+            ? editedGame.players.length
+            : (title?.metadata.defaultPlayerCount ?? 1)
+    )
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
     let isHotseat: boolean = $state(editedGame.hotseat)
 
-    let selectedTitle = $state(libraryService.getTitle(game?.typeId ?? editedGame.typeId) ?? title)
+    let selectedTitle = $state(title)
 
-    if (selectedTitle) {
-        numPlayers = selectedTitle.metadata.defaultPlayerCount
-    }
-
-    // let selectedTitle = $state(editedGame.typeId ? libraryService.getTitle(editedGame.typeId) : undefined)
     let minPlayers = $derived<number>(selectedTitle?.metadata.minPlayers ?? 1)
     let maxPlayers = $derived<number>(selectedTitle?.metadata.maxPlayers ?? 1)
 

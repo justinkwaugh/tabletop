@@ -1,20 +1,21 @@
 <script lang="ts">
     import {
-        GameSessionMode,
         ScalingWrapper,
         AdminPanel,
         HistoryControls,
         GameChat,
         type ChatEvent,
         ChatEventType,
-        ChatToast
+        ChatToast,
+        DefaultTableLayout,
+        DefaultSideContent
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
-    import { getContext, onMount } from 'svelte'
+    import { getContext, onMount, type ComponentType } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     // import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     // import GameEndPanel from '$lib/components/GameEndPanel.svelte'
@@ -49,7 +50,7 @@
 
     async function chatListener(event: ChatEvent) {
         if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            toast.custom(ChatToast, {
+            toast.custom(ChatToast as unknown as ComponentType, {
                 duration: 3000,
                 position: 'bottom-left',
                 componentProps: {
@@ -120,73 +121,19 @@
 </script>
 
 <!-- Full Height and Width with 8px padding-->
-<div
-    bind:this={table}
-    class="flex w-screen overflow-auto {tableHeight} bg-repeat"
-    style="background-image: url('{starsBg}')"
->
-    <div class="p-2 w-full h-full flex flex-row justify-between items-start">
-        <!--  Panels have screen minus the height of navbar plus padding -->
-        <div
-            class="flex flex-col space-y-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {innerTableHeight}"
-        >
-            <div
-                class="shrink-0 grow-0 p-2 rounded-lg border-2 border-gray-700 bg-transparent h-[42px] max-sm:hidden"
-            >
-                <HistoryControls />
-            </div>
-            <Tabs tabStyle="pill" contentClass="p-0 bg-transparent h-full overflow-auto rounded-lg">
-                <TabItem
-                    open
-                    onclick={onNonChatClick}
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
-                >
-                    <div slot="title" class="flex items-center gap-2">
-                        <UserCircleSolid size="md" />
-                        Players
-                    </div>
-
+<div bind:this={table} class="bg-repeat" style="background-image: url('{starsBg}')">
+    <DefaultTableLayout>
+        {#snippet sideContent()}
+            <DefaultSideContent>
+                {#snippet playersPanel()}
                     <PlayersPanel />
-                </TabItem>
-                <TabItem
-                    onclick={onNonChatClick}
-                    activeClasses={activeTabClasses}
-                    inactiveClasses={inactiveTabClasses}
-                >
-                    <div slot="title" class="flex items-center gap-2">
-                        <ClockSolid size="md" />
-                        History
-                    </div>
+                {/snippet}
+                {#snippet history()}
                     <History />
-                </TabItem>
-                {#if !gameSession.game.hotseat}
-                    <TabItem
-                        onclick={onChatClick}
-                        activeClasses={activeTabClasses}
-                        inactiveClasses={inactiveTabClasses}
-                    >
-                        <div slot="title" class="flex items-center gap-2">
-                            <AnnotationSolid size="md" />
-                            Chat
-                            {#if showNewMessageIndicator}
-                                <Indicator
-                                    color="red"
-                                    size="lg"
-                                    placement="top-right"
-                                    class="-end-0.5 text-xs font-bold text-white w-4 h-4 border border-gray-200"
-                                ></Indicator>
-                            {/if}
-                        </div>
-
-                        <GameChat />
-                    </TabItem>
-                {/if}
-            </Tabs>
-        </div>
-        <div
-            class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] {innerTableHeight} flex flex-col"
-        >
+                {/snippet}
+            </DefaultSideContent>
+        {/snippet}
+        {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
                 {#if gameSession.gameState.result}
@@ -209,13 +156,8 @@
                     <Board />
                 </ScalingWrapper>
             </div>
-        </div>
-        {#if gameSession.showDebug}
-            <div class="flex flex-col space-y-2 shrink-0 grow-0 w-[400px]">
-                <AdminPanel />
-            </div>
-        {/if}
-    </div>
+        {/snippet}
+    </DefaultTableLayout>
 </div>
 
 <style global>

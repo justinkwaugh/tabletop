@@ -1,6 +1,6 @@
 import { OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
-import { Graph, Node, NodeIdentifier, Pathfinder } from './graph.js'
+import { type Graph, type Node, type NodeIdentifier, type Pathfinder } from './graph.js'
 import { solTraverseChecker } from './solTraverser.js'
 import { SolarGate } from '../components/solarGate.js'
 
