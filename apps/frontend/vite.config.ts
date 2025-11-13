@@ -7,6 +7,13 @@ export default defineConfig({
     plugins: [sveltekit(), devtoolsJson()],
     test: { include: ['src/**/*.{test,spec}.{js,ts}'] },
     build: {
-        commonjsOptions: { include: [/node_modules/] }
+        commonjsOptions: { include: [/node_modules/] },
+        rollupOptions: {
+            output: {
+                manualChunks: (id) => {
+                    return 'my-app'
+                }
+            }
+        }
     }
 })
