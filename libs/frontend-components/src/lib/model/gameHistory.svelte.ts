@@ -19,9 +19,24 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     private gameContext: GameContext<T, U>
 
     // This holds a clone of the game context when entering history mode
-    historyContext?: GameContext<T, U> = $state(undefined)
-    actionIndex: number = $state(0)
+    private historyContext?: GameContext<T, U> = $state(undefined)
+
     inHistory: boolean = $derived.by(() => this.historyContext !== undefined)
+    actionIndex: number = $state(0)
+
+    // This context represents the history navigated game with actions filtered by the action index
+    visibleContext: GameContext<T, U> = $derived.by(() => {
+        if (!this.historyContext) {
+            return this.gameContext
+        }
+
+        const visibleContext = this.historyContext.clone({
+            interceptActions: (actions) => {
+                actions.splice(this.actionIndex + 1)
+            }
+        })
+        return visibleContext
+    })
 
     currentAction: GameAction | undefined = $derived.by(() => {
         if (!this.historyContext || this.actionIndex < 0) {

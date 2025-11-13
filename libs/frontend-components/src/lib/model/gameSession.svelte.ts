@@ -15,7 +15,8 @@ import {
     GameDeleteNotification,
     type HydratedGameState,
     PlayerAction,
-    GameStorage
+    GameStorage,
+    GameStatus
 } from '@tabletop/common'
 import { watch } from 'runed'
 import { Value } from '@sinclair/typebox/value'
@@ -126,8 +127,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     // Switches between the contexts to show in the UI
     private currentVisibleContext: GameContext<T, U> = $derived.by(() => {
-        if (this.history.historyContext) {
-            return this.history.historyContext
+        if (this.history.inHistory) {
+            return this.history.visibleContext
         } else if (this.explorationContext) {
             return this.explorationContext
         } else {
@@ -446,10 +447,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async startExploring() {
-        if (this.isExploring) {
+        if (this.isExploring || this.gameState.result) {
             return
         }
-        await this.explorations.startExploring(this.gameContext)
+
+        await this.explorations.startExploring(this.currentVisibleContext)
     }
 
     // This will only be triggered by the UI and as such we can use the current context
@@ -753,8 +755,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     private applyActionToGame(action: GameAction, game: Game, state: T): GameActionResults<T> {
         const { processedActions, updatedState } = this.engine.run(action, state, game)
-        const revealing = processedActions.some((action) => action.revealsInfo)
-        return new GameActionResults(processedActions, updatedState as T, revealing)
+        return new GameActionResults(processedActions, updatedState as T)
     }
 
     private undoToIndex(stateSnapshot: T, index: number, context: GameContext<T, U>): T {
@@ -953,7 +954,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         const gameSnapshot = structuredClone(this.gameContext.game)
         let stateSnapshot = structuredClone(this.gameContext.state) as T
 
-        const allActionResults = new GameActionResults<T>([], stateSnapshot, false)
+        const allActionResults = new GameActionResults<T>([], stateSnapshot)
 
         for (const action of actions) {
             // Make sure we have not already processed this action

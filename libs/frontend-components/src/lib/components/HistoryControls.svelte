@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import { type GameSession } from '$lib/model/gameSession.svelte'
     import { UserSolid } from 'flowbite-svelte-icons'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import { GameStatus, type GameState, type HydratedGameState } from '@tabletop/common'
     import ForkModal from './ForkModal.svelte'
     import { goto } from '$app/navigation'
 
@@ -298,7 +298,9 @@
             </svg>
 
             <svg
-                class="w-[22px] h-[22px] {enabledColor} {gameSession.isExploring ? 'hidden' : ''}"
+                class="w-[22px] h-[22px] {gameSession.gameState.result
+                    ? disabledColor
+                    : enabledColor} {gameSession.isExploring ? 'hidden' : ''}"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"

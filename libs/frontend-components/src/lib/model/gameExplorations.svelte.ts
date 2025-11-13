@@ -172,6 +172,16 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState &
             }
         })
 
+        // Sometimes when given a context with a history of actions, we are given as our last action an action that produces
+        // additional actions, like drawing a stall tile in Fresh Fish produces a Start Auction action.
+        // This leaves us in a weird state where we are missing those follow-up actions.
+
+        // This maybe should be done in the history itself, but we will just do it here for now.
+        const lastAction = newExplorationContext.undoLastAction()
+        if (lastAction) {
+            newExplorationContext.applyAction(lastAction)
+        }
+
         return newExplorationContext
     }
 

@@ -7,7 +7,7 @@ import {
     type GameState,
     type HydratedGameState
 } from '@tabletop/common'
-import type { GameActionResults } from './gameActionResults.svelte.js'
+import { GameActionResults } from './gameActionResults.svelte.js'
 
 // This class holds everything needed to represent the current context of a game
 // for the UI.  It is UI specific because it uses Svelte's $state for reactivity.
@@ -22,7 +22,7 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
     definition: GameUiDefinition<T, U>
     game: Game = $state.raw({} as Game)
     state: T = $state.raw({} as T)
-    actions: GameAction[] = $state([] as GameAction[])
+    actions: GameAction[] = $state.raw([] as GameAction[])
     engine: GameEngine
 
     private actionsById: Map<string, GameAction> = new Map([])
@@ -41,7 +41,6 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
         this.definition = definition
         this.game = game
         this.state = state
-        this.actions = actions
         this.engine = new GameEngine(definition)
         this.initializeActions(actions)
     }
@@ -76,12 +75,26 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
         this.updateGameState(context.state)
     }
 
+    addActions(actions: GameAction[]) {
+        console.log('Adding actions', actions)
+        actions.forEach((action) => {
+            if (
+                action.index === undefined ||
+                action.index < 0 ||
+                action.index > this.actions.length
+            ) {
+                throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
+            }
+            this.actions.splice(action.index, 0, action)
+            this.actionsById.set(action.id, action)
+        })
+
+        // Make it reactive
+        this.actions = structuredClone(this.actions)
+    }
+
     addAction(action: GameAction) {
-        if (action.index === undefined || action.index < 0 || action.index > this.actions.length) {
-            throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
-        }
-        this.actions.splice(action.index, 0, action)
-        this.actionsById.set(action.id, action)
+        this.addActions([action])
     }
 
     upsertAction(action: GameAction) {
@@ -99,6 +112,9 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
             this.actions[action.index] = action
             this.actionsById.set(action.id, action)
         }
+
+        // Make it reactive
+        this.actions = structuredClone(this.actions)
     }
 
     popAction(): GameAction | undefined {
@@ -109,6 +125,10 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
         if (action) {
             this.actionsById.delete(action.id)
         }
+
+        // Make it reactive
+        this.actions = structuredClone(this.actions)
+
         return action
     }
 
@@ -133,9 +153,7 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
 
     applyActionResults(actionResults: GameActionResults<T>) {
         this.updateGameState(actionResults.updatedState)
-        actionResults.processedActions.forEach((action) => {
-            this.addAction(action)
-        })
+        this.addActions(actionResults.processedActions)
     }
 
     verifyFullChecksum() {
@@ -148,6 +166,25 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
                     this.state?.actionChecksum
             )
         }
+    }
+
+    undoLastAction(): GameAction | undefined {
+        const action = this.popAction()
+        if (!action) {
+            return undefined
+        }
+
+        const updatedState = this.engine.undoAction(this.state, action) as T
+        this.updateGameState(updatedState)
+
+        return action
+    }
+
+    applyAction(action: GameAction): GameActionResults<T> {
+        const result = this.engine.run(action, this.state, this.game)
+        this.updateGameState(result.updatedState as T)
+        this.addActions(result.processedActions)
+        return new GameActionResults(result.processedActions, result.updatedState as T)
     }
 
     private initializeActions(actions: GameAction[]) {

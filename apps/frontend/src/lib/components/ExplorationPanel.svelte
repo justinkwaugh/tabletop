@@ -3,7 +3,6 @@
     import { GameStorage, type GameState, type HydratedGameState } from '@tabletop/common'
     import { Button, Dropdown, DropdownDivider, DropdownGroup, DropdownItem } from 'flowbite-svelte'
     import {
-        ReplySolid,
         FloppyDiskAltOutline,
         ChevronDownOutline,
         TrashBinSolid,
@@ -95,88 +94,91 @@
     }
 </script>
 
-{#if gameSession.myPlayer}
-    <div
-        class=" {playerBgColor} {playerTextColor} shrink-0 grow-0 p-2 h-[44px] flex flex-row justify-between items-center text-lg overflow-hidden"
-    >
-        <div class="max-sm:hidden">
+<div
+    class=" {playerBgColor} {playerTextColor} shrink-0 grow-0 p-2 h-[44px] flex flex-row justify-between items-center text-lg overflow-hidden"
+>
+    <div class="max-sm:hidden">
+        <Button
+            onclick={() => gameSession.explorations.endExploring()}
+            size="xs"
+            class="h-[24px] sm:h-[28px] grow-0"
+            color="light"
+            ><ReplyOutline class="inline-block w-5 h-5 sm:me-1" /><span class="max-sm:hidden"
+                >Back to game</span
+            ></Button
+        >
+    </div>
+    <div class="flex flex-col justify-center sm:items-center min-w-0 pe-2">
+        <div class="text-xs font-bold whitespace-nowrap overflow-hidden text-ellipsis">
+            EXPLORATION<span class="max-sm:hidden">&nbsp;MODE</span> -
+            <div id="exploration-drop" class="inline cursor-pointer">
+                {currentExploration?.game.name ??
+                    'Unknown'}{#if explorations.length > 0}<ChevronDownOutline
+                        class="inline h-4 w-4"
+                    />{/if}
+            </div>
+        </div>
+        <div class="text-md leading-tight">
+            {#if gameSession.gameState.result}
+                End of Game
+            {:else if gameSession.isViewingHistory}
+                Viewing History
+            {:else}
+                Acting as&nbsp;<span class="font-bold">{gameSession.myPlayer?.name}</span>
+            {/if}
+        </div>
+        {#if explorations.length > 0}
+            <Dropdown
+                bind:isOpen={dropdownOpen}
+                triggeredBy="#exploration-drop"
+                placement="bottom"
+                class=""
+            >
+                <DropdownGroup class="py-1">
+                    {#each explorationList as item, i}
+                        <DropdownItem
+                            onclick={() => switchToExploration(item.id)}
+                            class="w-full text-left font-medium py-2 px-4 text-xs hover:bg-gray-100 dark:hover:bg-gray-600"
+                        >
+                            {item.name}
+                        </DropdownItem>
+                    {/each}
+                    {#if currentExploration?.game.storage !== GameStorage.None || gameSession.explorations.hasUnsavedChanges()}
+                        {#if explorationList.length > 0}
+                            <DropdownDivider />
+                        {/if}
+                        <DropdownItem
+                            onclick={() => createNewExploration()}
+                            class="w-full text-left font-medium py-2 px-4 text-xs hover:bg-gray-100 dark:hover:bg-gray-600"
+                            >New Exploration...
+                        </DropdownItem>
+                    {/if}
+                </DropdownGroup>
+            </Dropdown>
+        {/if}
+    </div>
+    <div class="shrink-0">
+        {#if currentExploration?.game.storage === GameStorage.None}
             <Button
-                onclick={() => gameSession.explorations.endExploring()}
+                onclick={() => {
+                    saveRequested = true
+                }}
                 size="xs"
                 class="h-[24px] sm:h-[28px] grow-0"
-                color="light"
-                ><ReplyOutline class="inline-block w-5 h-5 sm:me-1" /><span class="max-sm:hidden"
-                    >Back to game</span
-                ></Button
+                color="light"><FloppyDiskAltOutline class="inline-block w-4 h-4 me-1" />Save</Button
             >
-        </div>
-        <div class="flex flex-col justify-center sm:items-center min-w-0 pe-2">
-            <div class="text-xs font-bold whitespace-nowrap overflow-hidden text-ellipsis">
-                EXPLORATION<span class="max-sm:hidden">&nbsp;MODE</span> -
-                <div id="exploration-drop" class="inline cursor-pointer">
-                    {currentExploration?.game.name ??
-                        'Unknown'}{#if explorations.length > 0}<ChevronDownOutline
-                            class="inline h-4 w-4"
-                        />{/if}
-                </div>
-            </div>
-            <div class="text-md leading-tight">
-                Acting as&nbsp;<span class="font-bold">{gameSession.myPlayer?.name}</span>
-            </div>
-            {#if explorations.length > 0}
-                <Dropdown
-                    bind:isOpen={dropdownOpen}
-                    triggeredBy="#exploration-drop"
-                    placement="bottom"
-                    class=""
-                >
-                    <DropdownGroup class="py-1">
-                        {#each explorationList as item, i}
-                            <DropdownItem
-                                onclick={() => switchToExploration(item.id)}
-                                class="w-full text-left font-medium py-2 px-4 text-xs hover:bg-gray-100 dark:hover:bg-gray-600"
-                            >
-                                {item.name}
-                            </DropdownItem>
-                        {/each}
-                        {#if currentExploration?.game.storage !== GameStorage.None || gameSession.explorations.hasUnsavedChanges()}
-                            {#if explorationList.length > 0}
-                                <DropdownDivider />
-                            {/if}
-                            <DropdownItem
-                                onclick={() => createNewExploration()}
-                                class="w-full text-left font-medium py-2 px-4 text-xs hover:bg-gray-100 dark:hover:bg-gray-600"
-                                >New Exploration...
-                            </DropdownItem>
-                        {/if}
-                    </DropdownGroup>
-                </Dropdown>
-            {/if}
-        </div>
-        <div class="shrink-0">
-            {#if currentExploration?.game.storage === GameStorage.None}
-                <Button
-                    onclick={() => {
-                        saveRequested = true
-                    }}
-                    size="xs"
-                    class="h-[24px] sm:h-[28px] grow-0"
-                    color="light"
-                    ><FloppyDiskAltOutline class="inline-block w-4 h-4 me-1" />Save</Button
-                >
-            {:else}
-                <Button
-                    onclick={() => {
-                        deleteRequested = true
-                    }}
-                    size="xs"
-                    class="h-[24px] sm:h-[28px] grow-0 max-sm:px-2"
-                    color="light"><TrashBinSolid class="inline-block w-4 h-4 me-1" />Delete</Button
-                >
-            {/if}
-        </div>
+        {:else}
+            <Button
+                onclick={() => {
+                    deleteRequested = true
+                }}
+                size="xs"
+                class="h-[24px] sm:h-[28px] grow-0 max-sm:px-2"
+                color="light"><TrashBinSolid class="inline-block w-4 h-4 me-1" />Delete</Button
+            >
+        {/if}
     </div>
-{/if}
+</div>
 
 {#if saveRequested}
     <SaveExplorationModal

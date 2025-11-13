@@ -7,11 +7,14 @@ export type ActionResults<T extends GameState> = {
 }
 
 export class GameActionResults<T extends GameState> implements ActionResults<T> {
+    revealing: boolean
+
     constructor(
         public processedActions: GameAction[],
-        public updatedState: T,
-        public revealing: boolean
-    ) {}
+        public updatedState: T
+    ) {
+        this.revealing = processedActions.some((action) => action.revealsInfo)
+    }
 
     add(other: GameActionResults<T>) {
         this.processedActions.push(...other.processedActions)
