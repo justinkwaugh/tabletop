@@ -1,7 +1,10 @@
 import {
+    ActionSource,
     GameAction,
     GameCategory,
     GameStorage,
+    ResetPrng,
+    SystemActionType,
     type Game,
     type GameState,
     type HydratedGameState
@@ -161,6 +164,18 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState &
                 }
             }
         })
+
+        // I should add one rng action to the new exploration to ensure different random sequences
+        const resetPrngAction: ResetPrng = {
+            id: nanoid(),
+            gameId: newGameId,
+            type: SystemActionType.ResetPrng,
+            source: ActionSource.System,
+            createdAt: new Date(),
+            index: newExplorationContext.actions.length,
+            invocations: Math.floor(Math.random() * 500)
+        }
+        newExplorationContext.applyAction(resetPrngAction)
 
         return newExplorationContext
     }

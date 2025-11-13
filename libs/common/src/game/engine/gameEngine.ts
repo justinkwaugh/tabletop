@@ -8,6 +8,7 @@ import { GameDefinition } from '../definition/gameDefinition.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
+import { hydrateSystemAction, isSystemAction } from './systemActions.js'
 
 export type ActionResult = {
     processedActions: GameAction[]
@@ -120,29 +121,36 @@ export class GameEngine {
                 throw Error(`Player ${currentAction.playerId} is not an active player`)
             }
 
-            const hydratedAction = this.definition.hydrator.hydrateAction(
-                structuredClone(currentAction)
-            )
+            const isSystem = isSystemAction(currentAction)
+
+            const hydratedAction = isSystem
+                ? hydrateSystemAction(currentAction)
+                : this.definition.hydrator.hydrateAction(structuredClone(currentAction))
+
             if (!hydratedAction.createdAt) {
                 hydratedAction.createdAt = new Date()
             }
 
-            const stateHandler = this.getStateHandler(hydratedState)
-            if (!stateHandler.isValidAction(hydratedAction, machineContext)) {
-                throw Error(
-                    `Action of type ${hydratedAction.type} is not valid for the current machine state: ${hydratedState.machineState}`
-                )
+            if (!isSystem) {
+                const stateHandler = this.getStateHandler(hydratedState)
+                if (!stateHandler.isValidAction(hydratedAction, machineContext)) {
+                    throw Error(
+                        `Action of type ${hydratedAction.type} is not valid for the current machine state: ${hydratedState.machineState}`
+                    )
+                }
+                hydratedAction.apply(hydratedState, machineContext)
+
+                const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
+                hydratedState.recordAction(hydratedAction)
+                hydratedState.machineState = nextMachineState
+
+                const nextHandler = this.getStateHandler(hydratedState)
+                nextHandler.enter(machineContext)
+            } else {
+                hydratedAction.apply(hydratedState, machineContext)
+                hydratedState.recordAction(hydratedAction)
+                // State does not change and no handlers are called for pure system actions
             }
-
-            hydratedAction.apply(hydratedState, machineContext)
-
-            const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
-
-            hydratedState.recordAction(hydratedAction)
-            hydratedState.machineState = nextMachineState
-
-            const nextHandler = this.getStateHandler(hydratedState)
-            nextHandler.enter(machineContext)
 
             const stateBeforeAction = updatedState
             updatedState = hydratedState.dehydrate()

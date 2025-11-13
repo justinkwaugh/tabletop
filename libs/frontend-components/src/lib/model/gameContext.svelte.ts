@@ -7,7 +7,7 @@ import {
     type GameState,
     type HydratedGameState
 } from '@tabletop/common'
-import type { GameActionResults } from './gameActionResults.svelte.js'
+import { GameActionResults } from './gameActionResults.svelte.js'
 
 // This class holds everything needed to represent the current context of a game
 // for the UI.  It is UI specific because it uses Svelte's $state for reactivity.
@@ -136,6 +136,18 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
         actionResults.processedActions.forEach((action) => {
             this.addAction(action)
         })
+    }
+
+    // Currently only used by exploration to add system action
+    applyAction(action: GameAction) {
+        const { processedActions, updatedState } = this.engine.run(action, this.state, this.game)
+        const gameActionResults = new GameActionResults<T>(
+            processedActions,
+            updatedState as T,
+            false
+        )
+        console.log('AApplied action results:', gameActionResults)
+        this.applyActionResults(gameActionResults)
     }
 
     verifyFullChecksum() {

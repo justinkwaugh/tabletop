@@ -1,4 +1,10 @@
-import { GameState, RunMode, type GameAction, type HydratedGameState } from '@tabletop/common'
+import {
+    GameState,
+    isSystemAction,
+    RunMode,
+    type GameAction,
+    type HydratedGameState
+} from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
 
 export type StepDirection = 'forward' | 'backward'
@@ -152,6 +158,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         } while (
             this.actionIndex >= 0 &&
             ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
+                isSystemAction(lastAction) ||
                 this.shouldAutoStepAction(this.historyContext.actions[this.actionIndex]))
         )
         this.historyContext.updateGameState(stateSnapshot)
@@ -201,6 +208,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         } while (
             this.actionIndex < this.historyContext.actions.length - 1 &&
             ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
+                isSystemAction(nextAction) ||
                 this.shouldAutoStepAction(nextAction))
         )
         this.historyContext.updateGameState(stateSnapshot)

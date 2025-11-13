@@ -15,7 +15,8 @@ import {
     GameDeleteNotification,
     type HydratedGameState,
     PlayerAction,
-    GameStorage
+    GameStorage,
+    isSystemAction
 } from '@tabletop/common'
 import { watch } from 'runed'
 import { Value } from '@sinclair/typebox/value'
@@ -104,7 +105,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     // Exposed directly for the UI
     // Should these be hydrated?
     actions: GameAction[] = $derived.by(() => {
-        return this.currentVisibleContext.actions
+        return this.currentVisibleContext.actions.filter((action) => !isSystemAction(action))
     })
 
     // Expose the current action and index for the relevant context
