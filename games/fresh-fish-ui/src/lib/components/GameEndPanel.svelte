@@ -18,7 +18,6 @@
 </script>
 
 <div
-    transition:fade={{ duration: 75 }}
     class="mb-2 rounded-lg bg-gray-300 px-2 pt-2 pb-4 text-center flex flex-row flex-wrap justify-center items-center"
 >
     <div class="flex flex-col justify-center items-center mx-4 w-full">

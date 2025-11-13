@@ -76,7 +76,6 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
     }
 
     addActions(actions: GameAction[]) {
-        console.log('Adding actions', actions)
         actions.forEach((action) => {
             if (
                 action.index === undefined ||

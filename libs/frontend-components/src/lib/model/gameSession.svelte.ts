@@ -151,10 +151,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
+        const superUserAccess = this.authorizationService.actAsAdmin || this.isExploring
+
         // No spectators, must have actions, not viewing history
         if (
             this.history.inHistory ||
-            (!this.authorizationService.actAsAdmin && !this.myPlayer) ||
+            (!superUserAccess && !this.myPlayer) ||
             this.currentModifiableContext.actions.length === 0
         ) {
             return undefined
@@ -166,7 +168,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             const action = this.currentModifiableContext.actions[i]
 
             // Cannot undo beyond revealed info
-            if (!this.isExploring && action.revealsInfo && !this.authorizationService.actAsAdmin) {
+            if (!superUserAccess && action.revealsInfo) {
                 break
             }
 
@@ -175,11 +177,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 continue
             }
 
-            if (
-                this.isExploring ||
-                this.currentModifiableContext.game.hotseat ||
-                this.authorizationService.actAsAdmin
-            ) {
+            if (superUserAccess || this.currentModifiableContext.game.hotseat) {
                 undoableUserAction = action
                 break
             }
@@ -447,7 +445,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async startExploring() {
-        if (this.isExploring || this.gameState.result) {
+        if (this.isExploring) {
             return
         }
 

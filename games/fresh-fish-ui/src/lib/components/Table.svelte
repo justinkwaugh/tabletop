@@ -41,6 +41,9 @@
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
                 {#if gameSession.gameState.result}
+                    {#if gameSession.undoableAction}
+                        <LastActionDescription />
+                    {/if}
                     <GameEndPanel />
                 {:else if gameSession.isViewingHistory}
                     <LastActionDescription />

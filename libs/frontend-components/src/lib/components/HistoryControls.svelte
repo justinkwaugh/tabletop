@@ -298,9 +298,7 @@
             </svg>
 
             <svg
-                class="w-[22px] h-[22px] {gameSession.gameState.result
-                    ? disabledColor
-                    : enabledColor} {gameSession.isExploring ? 'hidden' : ''}"
+                class="w-[22px] h-[22px] {enabledColor} {gameSession.isExploring ? 'hidden' : ''}"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
