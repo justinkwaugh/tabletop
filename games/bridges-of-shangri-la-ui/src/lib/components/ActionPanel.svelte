@@ -71,10 +71,10 @@
         })
     })
 
-    function chooseAction(action: string) {
+    async function chooseAction(action: string) {
         switch (action) {
             case ActionType.Pass:
-                gameSession.applyAction(gameSession.createPassAction())
+                await gameSession.applyAction(gameSession.createPassAction())
                 gameSession.resetAction()
                 break
             default:
@@ -119,7 +119,9 @@
     $effect(() => {
         if (gameSession.validActionTypes.length === 1) {
             const singleAction = gameSession.validActionTypes[0]
-            chooseAction(singleAction)
+            chooseAction(singleAction).catch((error) => {
+                console.error('Error choosing action:', error)
+            })
         } else if (gameSession.validActionTypes.length === 0) {
             gameSession.resetAction()
         }
@@ -195,8 +197,11 @@
             {/if}
             {#if showActions}
                 {#each gameSession.validActionTypes as action}
-                    <Button onclick={() => chooseAction(action)} size="xs" class="m-1" color="blue"
-                        >{gameSession.nameForActionType(action)}</Button
+                    <Button
+                        onclick={async () => chooseAction(action)}
+                        size="xs"
+                        class="m-1"
+                        color="blue">{gameSession.nameForActionType(action)}</Button
                     >
                 {/each}
             {/if}

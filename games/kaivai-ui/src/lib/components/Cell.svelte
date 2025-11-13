@@ -410,7 +410,7 @@
             boatId: gameSession.chosenBoat,
             boatCoords: gameSession.chosenBoatLocation
         })
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
@@ -423,7 +423,7 @@
             boatId: gameSession.chosenBoat,
             boatCoords: gameSession.chosenBoatLocation
         })
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
@@ -436,7 +436,7 @@
             boatId: gameSession.chosenBoat,
             boatCoords: gameSession.chosenBoatLocation
         })
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
@@ -445,13 +445,13 @@
             return
         }
         const action = gameSession.createCelebrateAction(cell.islandId)
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
     async function moveGod() {
         const action = gameSession.createMoveGodAction({ q: hex.q, r: hex.r })
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
@@ -460,7 +460,7 @@
             return
         }
         const action = gameSession.createChooseScoringIslandAction(cell.islandId)
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 

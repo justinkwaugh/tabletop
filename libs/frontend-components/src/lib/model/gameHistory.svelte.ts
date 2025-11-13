@@ -46,7 +46,6 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     })
 
     hasPreviousAction: boolean = $derived.by(() => {
-        console.log('deriving has previous')
         return this.inHistory ? this.actionIndex >= 0 : this.gameContext.actions.length > 0
     })
 

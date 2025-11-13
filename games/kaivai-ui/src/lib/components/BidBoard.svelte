@@ -67,7 +67,7 @@
             return
         }
         const action = gameSession.createPlaceBidAction(bid)
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 </script>

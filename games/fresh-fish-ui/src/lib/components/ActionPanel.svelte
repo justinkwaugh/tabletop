@@ -14,11 +14,11 @@
 
     let windowHeight: number | null | undefined = $state()
 
-    function chooseAction(action: string) {
+    async function chooseAction(action: string) {
         switch (action) {
             case ActionType.DrawTile:
                 const drawTileAction = gameSession.createDrawTileAction()
-                gameSession.applyAction(drawTileAction)
+                await gameSession.applyAction(drawTileAction)
                 cancelAction()
                 break
             default:
@@ -27,9 +27,9 @@
         }
     }
 
-    function placeBid() {
+    async function placeBid() {
         const placeBidAction = gameSession.createPlaceBidAction(bidValue)
-        gameSession.applyAction(placeBidAction)
+        await gameSession.applyAction(placeBidAction)
         cancelAction()
         bidValue = 0
     }
@@ -78,7 +78,9 @@
             const singleAction = gameSession.validActionTypes[0]
             // Don't force a draw tile as that reveals info and makes the prior player unable to quickly undo
             if (singleAction !== ActionType.DrawTile) {
-                chooseAction(gameSession.validActionTypes[0])
+                chooseAction(gameSession.validActionTypes[0]).catch((error) => {
+                    console.error('Error choosing action:', error)
+                })
             }
         } else if (gameSession.validActionTypes.length === 0) {
             cancelAction()
@@ -127,13 +129,16 @@
             {/if}
             {#if showActions}
                 {#each gameSession.validActionTypes as action}
-                    <Button onclick={() => chooseAction(action)} size="xs" class="m-1" color="blue"
-                        >{gameSession.nameForActionType(action)}</Button
+                    <Button
+                        onclick={async () => chooseAction(action)}
+                        size="xs"
+                        class="m-1"
+                        color="blue">{gameSession.nameForActionType(action)}</Button
                     >
                 {/each}
             {/if}
             {#if gameSession.chosenAction === ActionType.PlaceBid}
-                <Button onclick={() => placeBid()} size="xs" class="m-1" color="blue"
+                <Button onclick={async () => placeBid()} size="xs" class="m-1" color="blue"
                     >Bid ${bidValue}</Button
                 >
             {/if}

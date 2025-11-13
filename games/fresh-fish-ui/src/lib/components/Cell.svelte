@@ -121,13 +121,13 @@
         }
     }
 
-    function handleClick() {
+    async function handleClick() {
         if (!interactable) {
             return
         }
         if (gameSession.chosenAction === ActionType.PlaceDisk) {
             const placeDiskAction = gameSession.createPlaceDiskAction(coords)
-            gameSession.applyAction(placeDiskAction)
+            await gameSession.applyAction(placeDiskAction)
             gameSession.chosenAction = undefined
             showBorder = false
         } else if (gameSession.chosenAction === ActionType.PlaceStall) {
@@ -136,13 +136,13 @@
                 return
             }
             const placeStallAction = gameSession.createPlaceStallAction(coords, goodsType)
-            gameSession.applyAction(placeStallAction)
+            await gameSession.applyAction(placeStallAction)
             gameSession.chosenAction = undefined
             gameSession.clearExpropriationPreview()
             showBorder = false
         } else if (gameSession.chosenAction === ActionType.PlaceMarket) {
             const placeMarketAction = gameSession.createPlaceMarketAction(coords)
-            gameSession.applyAction(placeMarketAction)
+            await gameSession.applyAction(placeMarketAction)
             gameSession.chosenAction = undefined
             gameSession.clearExpropriationPreview()
             showBorder = false
@@ -156,8 +156,8 @@
     role="button"
     tabindex="-1"
     onfocus={() => {}}
-    onclick={() => handleClick()}
-    onkeypress={() => handleClick()}
+    onclick={async () => handleClick()}
+    onkeypress={async () => handleClick()}
     onmouseover={() => handleMouseOver()}
     onmouseleave={() => handleMouseLeave()}
     class="relative w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center align-center bg-contain bg-origin-border dark:{cellBgColor} {showBorder

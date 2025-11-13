@@ -50,7 +50,7 @@
 
     async function increase() {
         const action = gameSession.createIncreaseAction()
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
@@ -209,7 +209,7 @@
         }
     }
 
-    function deliverFish() {
+    async function deliverFish() {
         if (
             !gameSession.chosenBoat ||
             !gameSession.chosenBoatLocation ||
@@ -223,7 +223,7 @@
             boatCoords: $state.snapshot(gameSession.chosenBoatLocation),
             deliveries: $state.snapshot(gameSession.chosenDeliveries)
         })
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
@@ -248,7 +248,7 @@
 
     async function placeScoringBid() {
         const action = gameSession.createPlaceScoringBidAction(bidValue)
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 </script>
@@ -367,7 +367,7 @@
                 {/if}
                 {#if gameSession.chosenAction === ActionType.Deliver && gameSession.chosenDeliveries.length > 0}
                     <button
-                        onclick={() => deliverFish()}
+                        onclick={async () => deliverFish()}
                         class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
                         >Deliver the fish! {'\u21c0'}</button
                     >

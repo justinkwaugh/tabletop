@@ -106,19 +106,19 @@
 
     async function increase() {
         const action = gameSession.createIncreaseAction()
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
     async function pass() {
         const action = gameSession.createPassAction()
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
     async function sacrifice() {
         const action = gameSession.createSacrificeAction()
-        gameSession.applyAction(action)
+        await gameSession.applyAction(action)
         gameSession.resetAction()
     }
 
