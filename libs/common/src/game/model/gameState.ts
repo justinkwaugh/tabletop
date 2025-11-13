@@ -12,6 +12,12 @@ export enum GameResult {
     Win = 'Win'
 }
 
+export type ExplorationState = Static<typeof ExplorationState>
+export const ExplorationState = Type.Object({
+    actionCount: Type.Number(),
+    invocations: Type.Number()
+})
+
 export type GameState = Static<typeof GameState>
 export const GameState = Type.Object({
     id: Type.String(),
@@ -25,7 +31,8 @@ export const GameState = Type.Object({
     machineState: Type.String(),
     turnManager: TurnManager,
     result: Type.Optional(Type.Enum(GameResult)),
-    winningPlayerIds: Type.Array(Type.String())
+    winningPlayerIds: Type.Array(Type.String()),
+    explorationState: Type.Optional(ExplorationState)
 })
 
 export type UninitializedGameState = Omit<GameState, 'players' | 'turnManager' | 'machineState'>

@@ -1,4 +1,5 @@
 import {
+    ExplorationState,
     GameAction,
     GameCategory,
     GameStorage,
@@ -150,10 +151,19 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState &
                 state.id = nanoid()
                 state.gameId = newGameId
 
+                // Allow the game to address any random initialization it needs
                 const initializedState = this.definition.initializer.initializeExplorationState(
                     state
                 ) as T
                 Object.assign(state, initializedState)
+
+                // Set our state so we can adjust the prng
+                const explorationState: ExplorationState = {
+                    actionCount: state.actionCount,
+                    invocations: Math.floor(Math.random() * 500)
+                }
+                state.explorationState = explorationState
+                state.prng.invocations = explorationState.invocations
             },
             interceptActions: (actions: GameAction[]) => {
                 for (const action of actions) {

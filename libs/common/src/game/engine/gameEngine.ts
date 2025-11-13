@@ -151,6 +151,13 @@ export class GameEngine {
             const stateBeforeAction = updatedState
             updatedState = hydratedState.dehydrate()
 
+            if (
+                updatedState.explorationState &&
+                updatedState.actionCount === updatedState.explorationState.actionCount
+            ) {
+                updatedState.prng.invocations = updatedState.explorationState.invocations
+            }
+
             const undoPatch = jsonpatch.compare(updatedState, stateBeforeAction)
 
             const dehydratedAction = hydratedAction.dehydrate()
