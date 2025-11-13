@@ -16,15 +16,7 @@
     let gameSession = getContext('gameSession') as EstatesGameSession
 
     let reversedActions = $derived.by(() => {
-        let actions = gameSession.actions
-
-        if (gameSession.isViewingHistory) {
-            actions = actions.filter(
-                (action: GameAction) => (action.index ?? 0) <= gameSession.history.actionIndex
-            )
-        }
-
-        const reversed = actions
+        const reversed = gameSession.actions
             .filter((action: GameAction) => !isDrawRoof(action))
             .toReversed()
             .toSorted(

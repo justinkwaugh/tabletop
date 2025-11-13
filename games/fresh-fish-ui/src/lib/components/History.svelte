@@ -18,15 +18,7 @@
     let unhighlightTimeout: ReturnType<typeof setTimeout>
 
     let reversedActions = $derived.by(() => {
-        let actions = gameSession.actions
-
-        if (gameSession.isViewingHistory) {
-            actions = actions.filter(
-                (action) => (action.index ?? 0) <= gameSession.history.actionIndex
-            )
-        }
-
-        const reversed = actions
+        const reversed = gameSession.actions
             .filter(
                 (action) =>
                     ![ActionType.PlaceBid as string, ActionType.StartAuction as string].includes(

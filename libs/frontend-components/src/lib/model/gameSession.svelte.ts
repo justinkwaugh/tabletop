@@ -15,8 +15,7 @@ import {
     GameDeleteNotification,
     type HydratedGameState,
     PlayerAction,
-    GameStorage,
-    GameStatus
+    GameStorage
 } from '@tabletop/common'
 import { watch } from 'runed'
 import { Value } from '@sinclair/typebox/value'
@@ -110,19 +109,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     // Expose the current action and index for the relevant context
     currentAction = $derived.by(() => {
-        if (this.history.inHistory) {
-            return this.history.currentAction
-        }
-
-        return this.currentVisibleContext.actions.at(-1)
+        return this.actions.at(-1)
     })
 
     currentActionIndex = $derived.by(() => {
-        if (this.history.inHistory) {
-            return this.history.actionIndex
-        }
-
-        return this.currentVisibleContext.actions.length - 1
+        return this.actions.length - 1
     })
 
     // Switches between the contexts to show in the UI
@@ -501,7 +492,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             if (relevantContext.game.storage === GameStorage.Local) {
                 await this.gameService.saveGameLocally({
                     game: relevantContext.game,
-                    actions: $state.snapshot(relevantContext.actions),
+                    actions: relevantContext.actions,
                     state: relevantContext.state
                 })
             } else if (relevantContext.game.storage === GameStorage.Remote) {
@@ -636,7 +627,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 const redoActions: GameAction[] = []
                 let actionToUndo
                 do {
-                    actionToUndo = $state.snapshot(relevantContext.popAction()) as GameAction
+                    actionToUndo = relevantContext.popAction() as GameAction
                     if (
                         actionToUndo.playerId &&
                         actionToUndo.playerId !== targetAction.playerId &&
@@ -667,7 +658,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 if (relevantContext.game.storage === GameStorage.Local) {
                     await this.gameService.saveGameLocally({
                         game: relevantContext.game,
-                        actions: $state.snapshot(relevantContext.actions),
+                        actions: relevantContext.actions,
                         state: relevantContext.state
                     })
                 } else if (relevantContext.game.storage === GameStorage.Remote) {
@@ -760,7 +751,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         const undoneActions: GameAction[] = []
 
         while (context.actions.length > 0 && context.actions.length - 1 !== index) {
-            const actionToUndo = $state.snapshot(context.popAction()) as GameAction
+            const actionToUndo = context.popAction() as GameAction
             undoneActions.push(actionToUndo)
 
             const updatedState = this.engine.undoAction(stateSnapshot, actionToUndo) as T

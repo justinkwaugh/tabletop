@@ -16,7 +16,7 @@ export type HistoryCallbacks = {
 }
 
 export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
-    private gameContext: GameContext<T, U>
+    private gameContext: GameContext<T, U> = $state({} as GameContext<T, U>)
 
     // This holds a clone of the game context when entering history mode
     private historyContext?: GameContext<T, U> = $state(undefined)
@@ -46,6 +46,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     })
 
     hasPreviousAction: boolean = $derived.by(() => {
+        console.log('deriving has previous')
         return this.inHistory ? this.actionIndex >= 0 : this.gameContext.actions.length > 0
     })
 
@@ -157,7 +158,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         let stateSnapshot = this.historyContext.state as T
         let lastAction: GameAction | undefined
         do {
-            lastAction = $state.snapshot(this.historyContext.actions[this.actionIndex])
+            lastAction = this.historyContext.actions[this.actionIndex]
             const updatedState = this.historyContext.engine.undoAction(
                 stateSnapshot,
                 lastAction
@@ -197,15 +198,13 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
             return
         }
 
-        const gameSnapshot = $state.snapshot(this.historyContext.game)
+        const gameSnapshot = this.historyContext.game
         let stateSnapshot = this.historyContext.state as T
 
         let nextAction: GameAction | undefined
         do {
             this.actionIndex += 1
-            nextAction = $state.snapshot(
-                this.historyContext.actions[this.actionIndex]
-            ) as GameAction
+            nextAction = this.historyContext.actions[this.actionIndex] as GameAction
             const { updatedState } = this.historyContext.engine.run(
                 nextAction,
                 stateSnapshot,

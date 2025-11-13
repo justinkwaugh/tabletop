@@ -20,7 +20,7 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
     import FishingResults from './FishingResults.svelte'
     import IslandScoringResults from './IslandScoringResults.svelte'
@@ -41,20 +41,12 @@
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let filteredActions = $derived.by(() => {
-        return gameSession.actions.filter((action) => {
-            if (
-                gameSession.isViewingHistory &&
-                (action.index ?? 0) > gameSession.history.actionIndex
-            ) {
-                return false
-            }
-
-            return (
+        return gameSession.actions.filter(
+            (action) =>
                 action.type !== ActionType.PlaceScoringBid &&
                 (!isPass(action) || action.metadata?.reason === PassReason.DoneActions) &&
                 !isChooseScoringIsland(action)
-            )
-        })
+        )
     })
 
     let roundIndices = $derived.by(() => {

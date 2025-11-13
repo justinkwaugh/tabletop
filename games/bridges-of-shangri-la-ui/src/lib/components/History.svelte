@@ -21,15 +21,7 @@
     let unhighlightTimeout: ReturnType<typeof setTimeout>
 
     let reversedActions = $derived.by(() => {
-        let actions = gameSession.actions
-
-        if (gameSession.isViewingHistory) {
-            actions = actions.filter(
-                (action) => (action.index ?? 0) <= gameSession.history.actionIndex
-            )
-        }
-
-        const reversed = actions
+        const reversed = gameSession.actions
             .toReversed()
             .toSorted(
                 (a, b) =>
