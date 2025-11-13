@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
     import AuctionResults from './AuctionResults.svelte'
     import { isEndAuction, isPlaceBid } from '@tabletop/fresh-fish'
@@ -12,17 +12,13 @@
     let windowHeight: number | null | undefined = $state()
 
     let lastAction = $derived.by(() => {
-        let action
-        if (gameSession.isViewingHistory && gameSession.history.actionIndex >= 0) {
-            action = gameSession.actions[gameSession.history.actionIndex]
-        } else if (gameSession.isPlayable) {
-            let actionIndex = gameSession.actions.length - 1
-            do {
-                action = gameSession.actions[actionIndex]
-                actionIndex -= 1
-            } while (actionIndex > 0 && action && isPlaceBid(action))
+        const actions = gameSession.actions.toReversed()
+        for (const action of actions) {
+            if (!isPlaceBid(action)) {
+                return action
+            }
         }
-        return action
+        return undefined
     })
 </script>
 
