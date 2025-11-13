@@ -1,6 +1,7 @@
 import {
     BaseGameInitializer,
     GameInitializer,
+    GameState,
     Prng,
     RandomFunction,
     UninitializedGameState
@@ -24,6 +25,12 @@ import { generateBoard } from '../util/boardGenerator.js'
 import { FreshFishColors } from './colors.js'
 
 export class FreshFishGameInitializer extends BaseGameInitializer implements GameInitializer {
+    initializeExplorationState(state: GameState): GameState {
+        const hydratedState = new HydratedFreshFishGameState(state as FreshFishGameState)
+        hydratedState.tileBag.shuffle()
+        return hydratedState.dehydrate()
+    }
+
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)

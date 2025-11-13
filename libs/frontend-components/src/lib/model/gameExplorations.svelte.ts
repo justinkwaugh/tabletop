@@ -149,6 +149,11 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState &
             interceptState: (state: T) => {
                 state.id = nanoid()
                 state.gameId = newGameId
+
+                const initializedState = this.definition.initializer.initializeExplorationState(
+                    state
+                ) as T
+                Object.assign(state, initializedState)
             },
             interceptActions: (actions: GameAction[]) => {
                 for (const action of actions) {

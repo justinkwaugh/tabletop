@@ -8,7 +8,8 @@ import {
     HydratedRoundManager,
     HydratedPhaseManager,
     Prng,
-    UninitializedGameState
+    UninitializedGameState,
+    GameState
 } from '@tabletop/common'
 import {
     Game,
@@ -29,6 +30,9 @@ import { Island } from '../components/island.js'
 import { KaivaiGameConfig, KaivaiGameConfigValidator, Ruleset } from './gameConfig.js'
 
 export class KaivaiGameInitializer extends BaseGameInitializer implements GameInitializer {
+    initializeExplorationState(state: GameState): GameState {
+        return state
+    }
     override initializeGame(game: Partial<Game>): Game {
         const config = game.config
         if (!KaivaiGameConfigValidator.Check(config)) {

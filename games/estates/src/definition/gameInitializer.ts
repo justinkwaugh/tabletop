@@ -4,7 +4,8 @@ import {
     BaseGameInitializer,
     Prng,
     Color,
-    UninitializedGameState
+    UninitializedGameState,
+    GameState
 } from '@tabletop/common'
 import {
     Game,
@@ -24,6 +25,12 @@ import { Cube } from '../components/cube.js'
 import { PieceType } from '../components/pieceType.js'
 
 export class EstatesGameInitializer extends BaseGameInitializer implements GameInitializer {
+    initializeExplorationState(state: GameState): GameState {
+        const hydratedState = new HydratedEstatesGameState(state as EstatesGameState)
+        hydratedState.roofs.shuffle()
+        return hydratedState.dehydrate()
+    }
+
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game)

@@ -12,15 +12,15 @@
         "build": "tsc",
         "update-games": "tsx src/updateDependencies.ts"
     },
+    "devDependencies": {
+        "@tabletop/games-config": "*",
+        "@npmcli/package-json": "^7.0.1",
+        "@types/npmcli__package-json": "^4.0.4"
+    },
     "dependencies": {
         "@tabletop/bridges-of-shangri-la-ui": "*",
         "@tabletop/estates-ui": "*",
         "@tabletop/fresh-fish-ui": "*",
         "@tabletop/kaivai-ui": "*"
-    },
-    "devDependencies": {
-        "@tabletop/games-config": "*",
-        "@npmcli/package-json": "^7.0.1",
-        "@types/npmcli__package-json": "^4.0.4"
     }
 }

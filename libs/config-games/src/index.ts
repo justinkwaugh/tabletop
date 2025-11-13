@@ -3,7 +3,7 @@ import gamesJson from './games.json' with { type: 'json' }
 type GamePackage = [name: string, scope?: string]
 
 function loadGamePackages(): GamePackage[] {
-    const packages: GamePackage[] = gamesJson.availableGames.map((fullName) => {
+    const packages: GamePackage[] = gamesJson.availableGames.map((fullName: string) => {
         const parts = fullName.split('/')
         if (parts.length === 2) {
             return [parts[1], parts[0]] as GamePackage

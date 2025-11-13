@@ -3,7 +3,8 @@ import {
     RandomFunction,
     BaseGameInitializer,
     Prng,
-    UninitializedGameState
+    UninitializedGameState,
+    GameState
 } from '@tabletop/common'
 import {
     Game,
@@ -22,6 +23,10 @@ import { Village } from '../components/village.js'
 import { BridgesColors } from './colors.js'
 
 export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {
+    initializeExplorationState(state: GameState): GameState {
+        return state
+    }
+
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)
