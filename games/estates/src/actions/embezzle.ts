@@ -1,20 +1,22 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { GameAction, HydratableAction } from '@tabletop/common'
 
 import { HydratedEstatesGameState } from '../model/gameState.js'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
 
 export type Embezzle = Static<typeof Embezzle>
-export const Embezzle = Type.Composite([
-    Type.Omit(GameAction, ['playerId', 'type']),
-    Type.Object({
-        type: Type.Literal(ActionType.Embezzle),
-        playerId: Type.String()
-    })
-])
+export const Embezzle = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId', 'type']),
+        Type.Object({
+            type: Type.Literal(ActionType.Embezzle),
+            playerId: Type.String()
+        })
+    ])
+)
 
-export const EmbezzleValidator = TypeCompiler.Compile(Embezzle)
+export const EmbezzleValidator = Compile(Embezzle)
 
 export function isEmbezzle(action: GameAction): action is Embezzle {
     return action.type === ActionType.Embezzle

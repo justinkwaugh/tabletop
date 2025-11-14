@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { GameAction } from '@tabletop/common'
 
 export type ActionChunk = Static<typeof ActionChunk>
@@ -13,11 +13,13 @@ export const ActionChunk = Type.Object({
 })
 
 export type StoredActionChunk = Static<typeof StoredActionChunk>
-export const StoredActionChunk = Type.Composite([
-    Type.Omit(ActionChunk, ['actions']),
-    Type.Object({
-        actions: Type.Optional(Type.Array(GameAction)),
-        actionsData: Type.String(), // JSON stringified array of GameAction
-        actionIds: Type.Array(Type.String())
-    })
-])
+export const StoredActionChunk = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ActionChunk, ['actions']),
+        Type.Object({
+            actions: Type.Optional(Type.Array(GameAction)),
+            actionsData: Type.String(), // JSON stringified array of GameAction
+            actionIds: Type.Array(Type.String())
+        })
+    ])
+)

@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 
 type SendVerificationEmailRequest = Static<typeof SendVerificationEmailRequest>
 const SendVerificationEmailRequest = Type.Object(

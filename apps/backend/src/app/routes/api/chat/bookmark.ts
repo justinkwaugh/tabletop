@@ -1,12 +1,13 @@
+import { DateType } from '@tabletop/common'
 import { FastifyInstance } from 'fastify'
-import { Kind, Type, type Static } from '@sinclair/typebox'
-import { Value } from '@sinclair/typebox/value'
+import { Type, type Static } from 'typebox'
+import { Value } from 'typebox/value'
 
 type BookmarkPostRequest = Static<typeof BookmarkPostRequest>
 const BookmarkPostRequest = Type.Object(
     {
         gameId: Type.String(),
-        lastReadTimestamp: Type.Unsafe<Date>({ [Kind]: 'Date', format: 'date-time' })
+        lastReadTimestamp: DateType()
     },
     { additionalProperties: false }
 )

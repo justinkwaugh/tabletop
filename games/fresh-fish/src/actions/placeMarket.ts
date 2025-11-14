@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
@@ -7,15 +7,17 @@ import { CellType } from '../components/cells.js'
 import { Coordinates } from '../components/gameBoard.js'
 
 export type PlaceMarket = Static<typeof PlaceMarket>
-export const PlaceMarket = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.PlaceMarket),
-        coords: Coordinates
-    })
-])
+export const PlaceMarket = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceMarket),
+            coords: Coordinates
+        })
+    ])
+)
 
-export const PlaceMarketValidator = TypeCompiler.Compile(PlaceMarket)
+export const PlaceMarketValidator = Compile(PlaceMarket)
 
 export function isPlaceMarket(action: GameAction): action is PlaceMarket {
     return action.type === ActionType.PlaceMarket

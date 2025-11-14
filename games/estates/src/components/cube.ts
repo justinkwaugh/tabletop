@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { Company } from '../definition/companies.js'
 import { PieceType } from './pieceType.js'
 

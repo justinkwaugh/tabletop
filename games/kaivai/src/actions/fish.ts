@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     AxialCoordinates,
     GameAction,
@@ -25,18 +25,20 @@ export const FishMetadata = Type.Object({
 })
 
 export type Fish = Static<typeof Fish>
-export const Fish = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Fish),
-        playerId: Type.String(),
-        boatId: Type.String(),
-        boatCoords: AxialCoordinates,
-        metadata: Type.Optional(FishMetadata)
-    })
-])
+export const Fish = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Fish),
+            playerId: Type.String(),
+            boatId: Type.String(),
+            boatCoords: AxialCoordinates,
+            metadata: Type.Optional(FishMetadata)
+        })
+    ])
+)
 
-export const FishValidator = TypeCompiler.Compile(Fish)
+export const FishValidator = Compile(Fish)
 
 export function isFish(action?: GameAction): action is Fish {
     return action?.type === ActionType.Fish

@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { UserPreferences } from '@tabletop/common'
 
 type UserPreferencesUpdateRequest = Static<typeof UserPreferencesUpdateRequest>

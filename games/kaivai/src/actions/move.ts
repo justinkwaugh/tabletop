@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
@@ -14,18 +14,20 @@ export const MoveMetadata = Type.Object({
 })
 
 export type Move = Static<typeof Move>
-export const Move = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Move),
-        playerId: Type.String(),
-        boatId: Type.String(),
-        boatCoords: AxialCoordinates,
-        metadata: Type.Optional(MoveMetadata)
-    })
-])
+export const Move = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Move),
+            playerId: Type.String(),
+            boatId: Type.String(),
+            boatCoords: AxialCoordinates,
+            metadata: Type.Optional(MoveMetadata)
+        })
+    ])
+)
 
-export const MoveValidator = TypeCompiler.Compile(Move)
+export const MoveValidator = Compile(Move)
 
 export function isMove(action?: GameAction): action is Move {
     return action?.type === ActionType.Move

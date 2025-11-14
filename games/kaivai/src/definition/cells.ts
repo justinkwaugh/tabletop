@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { AxialCoordinates } from '@tabletop/common'
 import { Boat } from '../components/boat.js'
 import { HutType } from './huts.js'

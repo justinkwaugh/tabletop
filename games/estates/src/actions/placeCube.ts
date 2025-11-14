@@ -1,22 +1,24 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, OffsetCoordinates } from '@tabletop/common'
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Cube } from '../components/cube.js'
 
 export type PlaceCube = Static<typeof PlaceCube>
-export const PlaceCube = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.PlaceCube),
-        playerId: Type.String(),
-        cube: Cube,
-        coords: Type.Optional(OffsetCoordinates)
-    })
-])
+export const PlaceCube = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceCube),
+            playerId: Type.String(),
+            cube: Cube,
+            coords: Type.Optional(OffsetCoordinates)
+        })
+    ])
+)
 
-export const PlaceCubeValidator = TypeCompiler.Compile(PlaceCube)
+export const PlaceCubeValidator = Compile(PlaceCube)
 
 export function isPlaceCube(action: GameAction): action is PlaceCube {
     return action.type === ActionType.PlaceCube

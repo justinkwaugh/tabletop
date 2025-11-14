@@ -1,22 +1,24 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedBridgesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedVillage } from '../components/village.js'
 
 export type BeginJourney = Static<typeof BeginJourney>
-export const BeginJourney = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.BeginJourney),
-        playerId: Type.String(),
-        from: Type.Number(),
-        to: Type.Number()
-    })
-])
+export const BeginJourney = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.BeginJourney),
+            playerId: Type.String(),
+            from: Type.Number(),
+            to: Type.Number()
+        })
+    ])
+)
 
-export const BeginJourneyValidator = TypeCompiler.Compile(BeginJourney)
+export const BeginJourneyValidator = Compile(BeginJourney)
 
 export function isBeginJourney(action?: GameAction): action is BeginJourney {
     return action?.type === ActionType.BeginJourney

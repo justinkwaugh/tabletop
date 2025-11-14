@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { AxialCoordinates, GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
@@ -16,20 +16,22 @@ export const BuildMetadata = Type.Object({
 })
 
 export type Build = Static<typeof Build>
-export const Build = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Build),
-        coords: AxialCoordinates,
-        playerId: Type.String(),
-        hutType: Type.Enum(HutType),
-        boatId: Type.Optional(Type.String()),
-        boatCoords: Type.Optional(AxialCoordinates),
-        metadata: Type.Optional(BuildMetadata)
-    })
-])
+export const Build = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Build),
+            coords: AxialCoordinates,
+            playerId: Type.String(),
+            hutType: Type.Enum(HutType),
+            boatId: Type.Optional(Type.String()),
+            boatCoords: Type.Optional(AxialCoordinates),
+            metadata: Type.Optional(BuildMetadata)
+        })
+    ])
+)
 
-export const BuildValidator = TypeCompiler.Compile(Build)
+export const BuildValidator = Compile(Build)
 
 export function isBuild(action?: GameAction): action is Build {
     return action?.type === ActionType.Build

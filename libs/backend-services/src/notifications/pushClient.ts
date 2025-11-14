@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { TransportType } from './transports/notificationTransport.js'
 
 export type PushClient = Static<typeof PushClient>

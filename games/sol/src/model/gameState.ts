@@ -6,28 +6,30 @@ import {
     PrngState
 } from '@tabletop/common'
 import { SolPlayerState, HydratedSolPlayerState } from './playerState.js'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
 import { Effect } from '../components/effects.js'
 import { Deck, HydratedDeck } from '../components/deck.js'
 
 export type SolGameState = Static<typeof SolGameState>
-export const SolGameState = Type.Composite([
-    Type.Omit(GameState, ['players', 'machineState']),
-    Type.Object({
-        players: Type.Array(SolPlayerState),
-        machineState: Type.Enum(MachineState),
-        board: SolGameBoard,
-        deck: Deck,
-        effects: Type.Record(Type.String(), Effect),
-        instability: Type.Number(),
-        energyCubes: Type.Number()
-    })
-])
+export const SolGameState = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameState, ['players', 'machineState']),
+        Type.Object({
+            players: Type.Array(SolPlayerState),
+            machineState: Type.Enum(MachineState),
+            board: SolGameBoard,
+            deck: Deck,
+            effects: Type.Record(Type.String(), Effect),
+            instability: Type.Number(),
+            energyCubes: Type.Number()
+        })
+    ])
+)
 
-const SolGameStateValidator = TypeCompiler.Compile(SolGameState)
+const SolGameStateValidator = Compile(SolGameState)
 
 type HydratedProperties = {
     turnManager: HydratedSimpleTurnManager

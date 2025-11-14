@@ -1,22 +1,24 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 export type PlaceBid = Static<typeof PlaceBid>
-export const PlaceBid = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.PlaceBid),
-        playerId: Type.String(),
-        amount: Type.Number()
-    })
-])
+export const PlaceBid = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceBid),
+            playerId: Type.String(),
+            amount: Type.Number()
+        })
+    ])
+)
 
 const movementList = [1, 2, 3, 4, 5, 4, 3, 2, 1, 0]
 
-export const PlaceBidValidator = TypeCompiler.Compile(PlaceBid)
+export const PlaceBidValidator = Compile(PlaceBid)
 
 export function isPlaceBid(action?: GameAction): action is PlaceBid {
     return action?.type === ActionType.PlaceBid

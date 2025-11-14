@@ -1,20 +1,22 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 export type PlaceMayor = Static<typeof PlaceMayor>
-export const PlaceMayor = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.PlaceMayor),
-        playerId: Type.String(),
-        row: Type.Optional(Type.Number())
-    })
-])
+export const PlaceMayor = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceMayor),
+            playerId: Type.String(),
+            row: Type.Optional(Type.Number())
+        })
+    ])
+)
 
-export const PlaceMayorValidator = TypeCompiler.Compile(PlaceMayor)
+export const PlaceMayorValidator = Compile(PlaceMayor)
 
 export function isPlaceMayor(action: GameAction): action is PlaceMayor {
     return action.type === ActionType.PlaceMayor

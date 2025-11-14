@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { CellType } from '../components/cells.js'
@@ -7,16 +7,18 @@ import { Coordinates } from '../components/gameBoard.js'
 import { ActionType } from '../definition/actions.js'
 
 export type PlaceDisk = Static<typeof PlaceDisk>
-export const PlaceDisk = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.PlaceDisk),
-        playerId: Type.String(),
-        coords: Coordinates
-    })
-])
+export const PlaceDisk = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceDisk),
+            playerId: Type.String(),
+            coords: Coordinates
+        })
+    ])
+)
 
-export const PlaceDiskValidator = TypeCompiler.Compile(PlaceDisk)
+export const PlaceDiskValidator = Compile(PlaceDisk)
 
 export function isPlaceDisk(action?: GameAction): action is PlaceDisk {
     return action?.type === ActionType.PlaceDisk

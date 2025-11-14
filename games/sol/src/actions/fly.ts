@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
@@ -9,21 +9,23 @@ export type FlyMetadata = Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({})
 
 export type Fly = Static<typeof Fly>
-export const Fly = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Fly),
-        playerId: Type.String(),
-        sundiverIds: Type.Array(Type.String()),
-        stationId: Type.Optional(Type.String()), // For juggernaut effect
-        gates: Type.Optional(Type.Array(SolarGate)), // Ordered list of required gates to pass through
-        start: OffsetCoordinates,
-        destination: OffsetCoordinates,
-        metadata: Type.Optional(FlyMetadata)
-    })
-])
+export const Fly = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Fly),
+            playerId: Type.String(),
+            sundiverIds: Type.Array(Type.String()),
+            stationId: Type.Optional(Type.String()), // For juggernaut effect
+            gates: Type.Optional(Type.Array(SolarGate)), // Ordered list of required gates to pass through
+            start: OffsetCoordinates,
+            destination: OffsetCoordinates,
+            metadata: Type.Optional(FlyMetadata)
+        })
+    ])
+)
 
-export const FlyValidator = TypeCompiler.Compile(Fly)
+export const FlyValidator = Compile(Fly)
 
 export function isFly(action?: GameAction): action is Fly {
     return action?.type === ActionType.Fly

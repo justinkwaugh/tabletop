@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Auction, AuctionParticipant, AuctionType, HydratedAuction } from './auction.js'
 import { findLast } from '../../../util/findLast.js'
 
@@ -9,16 +9,18 @@ export enum TieResolutionStrategy {
 }
 
 export type SimultaneousAuction = Static<typeof SimultaneousAuction>
-export const SimultaneousAuction = Type.Composite([
-    Auction,
-    Type.Object({
-        type: Type.Literal(AuctionType.Simultaneous),
-        tie: Type.Boolean(),
-        tieResolution: Type.Enum(TieResolutionStrategy)
-    })
-])
+export const SimultaneousAuction = Type.Evaluate(
+    Type.Intersect([
+        Auction,
+        Type.Object({
+            type: Type.Literal(AuctionType.Simultaneous),
+            tie: Type.Boolean(),
+            tieResolution: Type.Enum(TieResolutionStrategy)
+        })
+    ])
+)
 
-export const SimultaneousAuctionValidator = TypeCompiler.Compile(SimultaneousAuction)
+export const SimultaneousAuctionValidator = Compile(SimultaneousAuction)
 
 export class HydratedSimultaneousAuction
     extends HydratedAuction<typeof SimultaneousAuction>

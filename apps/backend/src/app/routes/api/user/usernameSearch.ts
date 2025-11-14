@@ -1,4 +1,4 @@
-import { type Static, Type } from '@sinclair/typebox'
+import { type Static, Type } from 'typebox'
 import { FastifyInstance } from 'fastify'
 
 type SearchQueryType = Static<typeof SearchQueryType>

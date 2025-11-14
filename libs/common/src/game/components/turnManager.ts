@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Turn } from '../model/turn.js'
 import { findLast } from '../../util/findLast.js'
 import { Hydratable } from '../../util/hydration.js'
@@ -14,7 +14,7 @@ export const TurnManager = Type.Object({
     turnCounts: Type.Record(Type.String(), Type.Number())
 })
 
-export const TurnManagerValidator = TypeCompiler.Compile(TurnManager)
+export const TurnManagerValidator = Compile(TurnManager)
 
 export class HydratedSimpleTurnManager
     extends Hydratable<typeof TurnManager>

@@ -34,7 +34,7 @@
     },
     "dependencies": {
         "@joeattardi/emoji-button": "github:justinkwaugh/picmo#emoji-button",
-        "@sinclair/typebox": "^0.32.32",
+        "typebox": "^1.0.53",
         "@sveltejs/package": "^2.5.4",
         "@tabletop/common": "*",
         "compare-versions": "^6.1.1",

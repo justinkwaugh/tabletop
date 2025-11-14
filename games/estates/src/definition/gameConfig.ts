@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
 
 export type EstatesGameConfig = Static<typeof EstatesGameConfig>
@@ -8,7 +8,7 @@ export const EstatesGameConfig = Type.Object({
     sneakyBuildings: Type.Boolean()
 })
 
-export const EstatesGameConfigValidator = TypeCompiler.Compile(EstatesGameConfig)
+export const EstatesGameConfigValidator = Compile(EstatesGameConfig)
 
 export const EstatesGameConfigOptions: GameConfigOptions = [
     {

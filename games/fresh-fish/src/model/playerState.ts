@@ -1,7 +1,7 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
 import { GoodsType } from '../definition/goodsType.js'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Coordinates } from '../components/gameBoard.js'
 import { type ScoringInfo } from '../util/scoring.js'
 import { Color } from '@tabletop/common'
@@ -16,17 +16,19 @@ export const PlayerStall = Type.Object({
 })
 
 export type FreshFishPlayerState = Static<typeof FreshFishPlayerState>
-export const FreshFishPlayerState = Type.Composite([
-    PlayerState,
-    Type.Object({
-        money: Type.Number(),
-        score: Type.Number(),
-        stalls: Type.Array(PlayerStall),
-        disks: Type.Number()
-    })
-])
+export const FreshFishPlayerState = Type.Evaluate(
+    Type.Intersect([
+        PlayerState,
+        Type.Object({
+            money: Type.Number(),
+            score: Type.Number(),
+            stalls: Type.Array(PlayerStall),
+            disks: Type.Number()
+        })
+    ])
+)
 
-export const FreshFishPlayerStateValidator = TypeCompiler.Compile(FreshFishPlayerState)
+export const FreshFishPlayerStateValidator = Compile(FreshFishPlayerState)
 
 export class HydratedFreshFishPlayerState
     extends Hydratable<typeof FreshFishPlayerState>

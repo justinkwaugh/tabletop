@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { addToChecksum, GameChatMessage } from '@tabletop/common'
-import { Value } from '@sinclair/typebox/value'
+import { Value } from 'typebox/value'
 
 type MessageRequest = Static<typeof MessageRequest>
 const MessageRequest = Type.Object(

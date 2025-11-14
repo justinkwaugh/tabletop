@@ -9,8 +9,8 @@ import {
     PrngState
 } from '@tabletop/common'
 import { EstatesPlayerState, HydratedEstatesPlayerState } from './playerState.js'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { EstatesGameBoard, HydratedEstatesGameBoard } from '../components/gameBoard.js'
 import { Cube } from '../components/cube.js'
@@ -22,29 +22,31 @@ export type OptionalCube = Static<typeof OptionalCube>
 export const OptionalCube = Type.Union([Type.Undefined(), Type.Null(), Cube])
 
 export type EstatesGameState = Static<typeof EstatesGameState>
-export const EstatesGameState = Type.Composite([
-    Type.Omit(GameState, ['players', 'machineState']),
-    Type.Object({
-        players: Type.Array(EstatesPlayerState),
-        machineState: Type.Enum(MachineState),
-        board: EstatesGameBoard,
-        certificates: Type.Array(Type.Enum(Company)),
-        cubes: Type.Array(Type.Array(OptionalCube)), // 3x8 array of cubes
-        roofs: RoofBag,
-        visibleRoofs: Type.Array(Type.Boolean()),
-        mayor: Type.Boolean(),
-        barrierOne: Type.Boolean(),
-        barrierTwo: Type.Boolean(),
-        barrierThree: Type.Boolean(),
-        cancelCube: Type.Boolean(),
-        chosenPiece: Type.Optional(Piece),
-        auction: Type.Optional(OnceAroundAuction),
-        recipient: Type.Optional(Type.String()),
-        embezzled: Type.Optional(Type.Boolean())
-    })
-])
+export const EstatesGameState = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameState, ['players', 'machineState']),
+        Type.Object({
+            players: Type.Array(EstatesPlayerState),
+            machineState: Type.Enum(MachineState),
+            board: EstatesGameBoard,
+            certificates: Type.Array(Type.Enum(Company)),
+            cubes: Type.Array(Type.Array(OptionalCube)), // 3x8 array of cubes
+            roofs: RoofBag,
+            visibleRoofs: Type.Array(Type.Boolean()),
+            mayor: Type.Boolean(),
+            barrierOne: Type.Boolean(),
+            barrierTwo: Type.Boolean(),
+            barrierThree: Type.Boolean(),
+            cancelCube: Type.Boolean(),
+            chosenPiece: Type.Optional(Piece),
+            auction: Type.Optional(OnceAroundAuction),
+            recipient: Type.Optional(Type.String()),
+            embezzled: Type.Optional(Type.Boolean())
+        })
+    ])
+)
 
-const EstatesGameStateValidator = TypeCompiler.Compile(EstatesGameState)
+const EstatesGameStateValidator = Compile(EstatesGameState)
 
 type HydratedProperties = {
     turnManager: HydratedSimpleTurnManager

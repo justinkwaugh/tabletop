@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Hydratable } from '../../util/hydration.js'
 import { Phase } from '../model/phase.js'
 import { findLast } from '../../util/findLast.js'
@@ -9,7 +9,7 @@ export const PhaseManager = Type.Object({
     series: Type.Array(Phase)
 })
 
-export const PhaseManagerValidator = TypeCompiler.Compile(PhaseManager)
+export const PhaseManagerValidator = Compile(PhaseManager)
 
 export class HydratedPhaseManager extends Hydratable<typeof PhaseManager> implements PhaseManager {
     declare series: Phase[]

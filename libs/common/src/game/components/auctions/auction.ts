@@ -1,4 +1,4 @@
-import { Type, type Static, type TSchema } from '@sinclair/typebox'
+import { Type, type Static, type TSchema } from 'typebox'
 import { Hydratable } from '../../../util/hydration.js'
 import { range } from '../../../util/range.js'
 

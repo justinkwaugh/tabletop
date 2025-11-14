@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { PushClient } from './pushClient.js'
 
 export type PushTopic = Static<typeof PushTopic>

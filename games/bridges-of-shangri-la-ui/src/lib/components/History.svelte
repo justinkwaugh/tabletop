@@ -12,7 +12,7 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
 
     const timeAgo = new TimeAgo('en-US')

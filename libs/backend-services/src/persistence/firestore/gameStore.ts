@@ -37,7 +37,7 @@ import { ActionUndoValidator, ActionUpdateValidator, GameStore } from '../stores
 import { RedisCacheService } from '../../cache/cacheService.js'
 import { nanoid } from 'nanoid'
 import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
-import { Value } from '@sinclair/typebox/value'
+import { Value } from 'typebox/value'
 
 const ACTION_CHUNK_SIZE = 200
 

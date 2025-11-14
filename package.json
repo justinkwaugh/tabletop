@@ -15,9 +15,9 @@
         "@types/react": "^19.2.2",
         "eslint": "^9.39.1",
         "prettier": "^3.3.3",
+        "rimraf": "^6.1.0",
         "turbo": "^2.6.0",
-        "vitest": "^4.0.6",
-        "rimraf": "^6.1.0"
+        "vitest": "^4.0.6"
     },
     "engines": {
         "node": ">=18"

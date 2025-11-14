@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 
 export type ActionGroup = Static<typeof ActionGroup>
 export const ActionGroup = Type.Object({

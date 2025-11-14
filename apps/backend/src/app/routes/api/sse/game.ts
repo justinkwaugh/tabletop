@@ -4,7 +4,7 @@ import {
     TokenType
 } from '@tabletop/backend-services'
 import { FastifyInstance } from 'fastify'
-import { Type, Static } from '@sinclair/typebox'
+import { Type, Static } from 'typebox'
 import { nanoid } from 'nanoid'
 
 type ParamsType = Static<typeof ParamsType>

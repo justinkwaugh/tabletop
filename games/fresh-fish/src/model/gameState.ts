@@ -10,8 +10,8 @@ import {
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from './playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
 import { isStallTile, StallTile, Tile } from '../components/tiles.js'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameBoard, HydratedGameBoard } from '../components/gameBoard.js'
 import { MachineState } from '../definition/states.js'
 import { GoodsType } from '../definition/goodsType.js'
@@ -20,21 +20,23 @@ import { CellType, RoadCell } from '../components/cells.js'
 import { Scorer } from '../util/scoring.js'
 
 export type FreshFishGameState = Static<typeof FreshFishGameState>
-export const FreshFishGameState = Type.Composite([
-    Type.Omit(GameState, ['players', 'machineState']),
-    Type.Object({
-        players: Type.Array(FreshFishPlayerState),
-        machineState: Type.Enum(MachineState),
-        tileBag: TileBag,
-        board: GameBoard,
-        finalStalls: Type.Array(StallTile),
-        chosenTile: Type.Optional(Tile),
-        currentAuction: Type.Optional(SimultaneousAuction),
-        boardSeed: Type.Optional(Type.Number())
-    })
-])
+export const FreshFishGameState = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameState, ['players', 'machineState']),
+        Type.Object({
+            players: Type.Array(FreshFishPlayerState),
+            machineState: Type.Enum(MachineState),
+            tileBag: TileBag,
+            board: GameBoard,
+            finalStalls: Type.Array(StallTile),
+            chosenTile: Type.Optional(Tile),
+            currentAuction: Type.Optional(SimultaneousAuction),
+            boardSeed: Type.Optional(Type.Number())
+        })
+    ])
+)
 
-const FreshFishGameStateValidator = TypeCompiler.Compile(FreshFishGameState)
+const FreshFishGameStateValidator = Compile(FreshFishGameState)
 
 type HydratedProperties = {
     tileBag: HydratedTileBag

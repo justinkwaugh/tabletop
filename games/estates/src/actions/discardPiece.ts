@@ -1,22 +1,24 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { GameAction, HydratableAction } from '@tabletop/common'
 
 import { HydratedEstatesGameState } from '../model/gameState.js'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
 import { isBarrier, isCancelCube, isMayor, Piece } from '../components/pieces.js'
 
 export type DiscardPiece = Static<typeof DiscardPiece>
-export const DiscardPiece = Type.Composite([
-    Type.Omit(GameAction, ['playerId', 'type']),
-    Type.Object({
-        type: Type.Literal(ActionType.DiscardPiece),
-        playerId: Type.String(),
-        piece: Piece
-    })
-])
+export const DiscardPiece = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId', 'type']),
+        Type.Object({
+            type: Type.Literal(ActionType.DiscardPiece),
+            playerId: Type.String(),
+            piece: Piece
+        })
+    ])
+)
 
-export const DiscardPieceValidator = TypeCompiler.Compile(DiscardPiece)
+export const DiscardPieceValidator = Compile(DiscardPiece)
 
 export function isDiscardPiece(action: GameAction): action is DiscardPiece {
     return action.type === ActionType.DiscardPiece

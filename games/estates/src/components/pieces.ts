@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { Cube } from './cube.js'
 import { Roof } from './roof.js'
 import { Barrier } from './barrier.js'

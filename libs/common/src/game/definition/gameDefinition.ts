@@ -1,4 +1,4 @@
-import { type TSchema } from '@sinclair/typebox'
+import { type TSchema } from 'typebox'
 import { type GameHydrator } from './gameHydrator.js'
 import { type GameMetadata } from './gameMetadata.js'
 import { type GameInitializer } from './gameInitializer.js'

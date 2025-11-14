@@ -1,4 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
+import { DateType } from '../util/typebox/customTypes.js'
 import { Color } from '../game/model/colors.js'
 
 export enum Role {
@@ -34,7 +35,7 @@ export const User = Type.Object({
     id: Type.String(),
     status: Type.Enum(UserStatus),
     deleted: Type.Optional(Type.Boolean()),
-    deletedAt: Type.Optional(Type.Date()),
+    deletedAt: Type.Optional(DateType()),
     username: Type.Optional(Type.String()),
     hasPassword: Type.Optional(Type.Boolean()),
     email: Type.Optional(Type.String()),
@@ -43,6 +44,6 @@ export const User = Type.Object({
     roles: Type.Array(Type.Enum(Role)),
     externalIds: Type.Array(Type.String()),
     preferences: Type.Optional(UserPreferences),
-    createdAt: Type.Optional(Type.Date()),
-    updatedAt: Type.Optional(Type.Date())
+    createdAt: Type.Optional(DateType()),
+    updatedAt: Type.Optional(DateType())
 })

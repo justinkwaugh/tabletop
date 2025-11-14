@@ -1,18 +1,20 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { User } from '@tabletop/common'
 
 type UserUpdateRequest = Static<typeof UserUpdateRequest>
-const UserUpdateRequest = Type.Composite(
-    [
-        Type.Pick(User, ['username', 'email']),
-        Type.Object({
-            password: Type.Optional(Type.String()),
-            currentPassword: Type.Optional(Type.String()),
-            token: Type.Optional(Type.String())
-        })
-    ],
-    { additionalProperties: false }
+const UserUpdateRequest = Type.Evaluate(
+    Type.Intersect(
+        [
+            Type.Pick(User, ['username', 'email']),
+            Type.Object({
+                password: Type.Optional(Type.String()),
+                currentPassword: Type.Optional(Type.String()),
+                token: Type.Optional(Type.String())
+            })
+        ],
+        { additionalProperties: false }
+    )
 )
 export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: UserUpdateRequest }>(

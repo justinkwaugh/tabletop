@@ -1,24 +1,26 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedBridgesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 export type Pass = Static<typeof Pass>
-export const Pass = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Pass),
-        playerId: Type.String(),
-        metadata: Type.Optional(
-            Type.Object({
-                recruiting: Type.Boolean()
-            })
-        )
-    })
-])
+export const Pass = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Pass),
+            playerId: Type.String(),
+            metadata: Type.Optional(
+                Type.Object({
+                    recruiting: Type.Boolean()
+                })
+            )
+        })
+    ])
+)
 
-export const PassValidator = TypeCompiler.Compile(Pass)
+export const PassValidator = Compile(Pass)
 
 export function isPass(action?: GameAction): action is Pass {
     return action?.type === ActionType.Pass

@@ -23,7 +23,7 @@ import {
     GameCategory,
     RunMode
 } from '@tabletop/common'
-import { Value } from '@sinclair/typebox/value'
+import { Value } from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
 import { IndexedDbGameStore } from '$lib/persistence/indexedDbGameStore.js'

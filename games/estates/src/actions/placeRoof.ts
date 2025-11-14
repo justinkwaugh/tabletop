@@ -1,22 +1,24 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, OffsetCoordinates } from '@tabletop/common'
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Roof } from '../components/roof.js'
 
 export type PlaceRoof = Static<typeof PlaceRoof>
-export const PlaceRoof = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.PlaceRoof),
-        playerId: Type.String(),
-        roof: Roof,
-        coords: Type.Optional(OffsetCoordinates)
-    })
-])
+export const PlaceRoof = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceRoof),
+            playerId: Type.String(),
+            roof: Roof,
+            coords: Type.Optional(OffsetCoordinates)
+        })
+    ])
+)
 
-export const PlaceRoofValidator = TypeCompiler.Compile(PlaceRoof)
+export const PlaceRoofValidator = Compile(PlaceRoof)
 
 export function isPlaceRoof(action: GameAction): action is PlaceRoof {
     return action.type === ActionType.PlaceRoof

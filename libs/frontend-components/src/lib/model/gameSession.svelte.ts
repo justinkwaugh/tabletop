@@ -18,7 +18,7 @@ import {
     GameStorage
 } from '@tabletop/common'
 import { watch } from 'runed'
-import { Value } from '@sinclair/typebox/value'
+import { Value } from 'typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { TabletopApi } from '$lib/network/tabletopApi.svelte'
 import { toast } from 'svelte-sonner'

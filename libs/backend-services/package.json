@@ -16,7 +16,7 @@
         "@google-cloud/secret-manager": "^5.6.0",
         "@google-cloud/tasks": "^5.4.0",
         "@leeoniya/ufuzzy": "^1.0.14",
-        "@sinclair/typebox": "^0.32.34",
+        "typebox": "^1.0.53",
         "@tabletop/backend-games": "*",
         "@tabletop/common": "*",
         "ably": "^2.3.1",

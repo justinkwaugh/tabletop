@@ -1,6 +1,6 @@
 import { Coordinates } from '../components/gameBoard.js'
 import { Cell, CellType, isStallCell, isTruckCell } from '../components/cells.js'
-import { Record } from '@sinclair/typebox'
+import { Record } from 'typebox'
 import { GoodsType } from '../definition/goodsType.js'
 import { FreshFishPlayerState } from '../model/playerState.js'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
