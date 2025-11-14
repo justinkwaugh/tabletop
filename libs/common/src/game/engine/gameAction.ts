@@ -1,5 +1,5 @@
 import { Type, type Static, type TSchema } from 'typebox'
-import { DateType, IsoDate } from '../../util/typebox/customTypes.js'
+import { DateType } from '../../util/typebox/customTypes.js'
 import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
 import { MachineContext } from './machineContext.js'
@@ -31,8 +31,8 @@ export const GameAction = Type.Object({
     index: Type.Optional(Type.Number()),
     simultaneousGroupId: Type.Optional(Type.String()),
     revealsInfo: Type.Optional(Type.Boolean()),
-    createdAt: Type.Optional(IsoDate),
-    updatedAt: Type.Optional(IsoDate)
+    createdAt: Type.Optional(DateType()),
+    updatedAt: Type.Optional(DateType())
 })
 
 export type PlayerAction = Static<typeof PlayerAction>

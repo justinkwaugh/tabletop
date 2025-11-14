@@ -34,7 +34,7 @@ export default async function (
             }
 
             // convert dates
-            const action = Value.Encode(actionSchema, request.body.action) as GameAction
+            const action = Value.Convert(actionSchema, request.body.action) as GameAction
             action.source = ActionSource.User // Don't trust client
 
             const { processedActions, updatedGame, missingActions } =

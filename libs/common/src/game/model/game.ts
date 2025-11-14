@@ -1,5 +1,5 @@
 import { Type, type Static } from 'typebox'
-import { DateType, IsoDate } from '../../util/typebox/customTypes.js'
+import { DateType } from '../../util/typebox/customTypes.js'
 import { Player } from './player.js'
 import { GameResult, GameState } from './gameState.js'
 import { GameConfig } from '../definition/gameConfig.js'
@@ -57,20 +57,20 @@ export const Game = Type.Object({
     status: Type.Enum(GameStatus),
     isPublic: Type.Boolean(),
     deleted: Type.Boolean(),
-    deletedAt: Type.Optional(IsoDate),
+    deletedAt: Type.Optional(DateType()),
     ownerId: Type.String(),
     name: Type.String(),
     players: Type.Array(Player),
     config: GameConfig,
     hotseat: Type.Boolean(),
     state: Type.Optional(GameState),
-    startedAt: Type.Optional(IsoDate),
-    finishedAt: Type.Optional(IsoDate),
-    createdAt: IsoDate,
-    updatedAt: Type.Optional(IsoDate),
+    startedAt: Type.Optional(DateType()),
+    finishedAt: Type.Optional(DateType()),
+    createdAt: DateType(),
+    updatedAt: Type.Optional(DateType()),
     activePlayerIds: Type.Optional(Type.Array(Type.String())),
     lastActionPlayerId: Type.Optional(Type.String()),
-    lastActionAt: Type.Optional(IsoDate),
+    lastActionAt: Type.Optional(DateType()),
     result: Type.Optional(Type.Enum(GameResult)),
     winningPlayerIds: Type.Array(Type.String()),
     seed: Type.Optional(Type.Number()),
