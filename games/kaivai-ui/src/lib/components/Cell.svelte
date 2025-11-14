@@ -410,8 +410,8 @@
             boatId: gameSession.chosenBoat,
             boatCoords: gameSession.chosenBoatLocation
         })
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     async function fish() {
@@ -423,8 +423,8 @@
             boatId: gameSession.chosenBoat,
             boatCoords: gameSession.chosenBoatLocation
         })
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     async function move() {
@@ -436,8 +436,8 @@
             boatId: gameSession.chosenBoat,
             boatCoords: gameSession.chosenBoatLocation
         })
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     async function celebrate() {
@@ -445,14 +445,14 @@
             return
         }
         const action = gameSession.createCelebrateAction(cell.islandId)
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     async function moveGod() {
         const action = gameSession.createMoveGodAction({ q: hex.q, r: hex.r })
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     async function chooseScoringIsland() {
@@ -460,8 +460,8 @@
             return
         }
         const action = gameSession.createChooseScoringIslandAction(cell.islandId)
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     async function onClick() {

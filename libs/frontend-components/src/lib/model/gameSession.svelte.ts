@@ -40,6 +40,7 @@ import { GameHistory } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
 import { GameExplorations } from './gameExplorations.svelte.js'
+import { on } from 'svelte/events'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -148,15 +149,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         if (
             this.history.inHistory ||
             (!superUserAccess && !this.myPlayer) ||
-            this.currentModifiableContext.actions.length === 0
+            this.actions.length === 0
         ) {
             return undefined
         }
 
         let currentSimultaneousGroup: string | undefined
         let undoableUserAction: GameAction | undefined
-        for (let i = this.currentModifiableContext.actions.length - 1; i >= 0; i--) {
-            const action = this.currentModifiableContext.actions[i]
+        for (let i = this.actions.length - 1; i >= 0; i--) {
+            const action = this.actions[i]
 
             // Cannot undo beyond revealed info
             if (!superUserAccess && action.revealsInfo) {
@@ -168,7 +169,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 continue
             }
 
-            if (superUserAccess || this.currentModifiableContext.game.hotseat) {
+            if (superUserAccess || this.game.hotseat) {
                 undoableUserAction = action
                 break
             }
@@ -226,8 +227,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     )
 
     activePlayers: Player[] = $derived.by(() => {
-        return this.currentModifiableContext.game.players.filter((player) =>
-            this.currentModifiableContext.state.activePlayerIds.includes(player.id)
+        return this.game.players.filter((player) =>
+            this.gameState.activePlayerIds.includes(player.id)
         )
     })
 
@@ -274,8 +275,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
 
         return this.engine.getValidActionTypesForPlayer(
-            this.currentModifiableContext.game,
-            this.currentModifiableContext.state,
+            this.primaryGame,
+            this.gameState,
             this.myPlayer.id
         )
     })
@@ -369,6 +370,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             this.chatService.setGameId(game.id)
         }
 
+        // Add self as a listener for game state changes for subclasses to override
+        this.addGameStateChangeListener(this.onGameStateChange.bind(this))
+
         // This effect watches for changes to the current game state, then calls the listeners and
         // finally updates the exposed gameState so that the UI can react to the change
         $effect.root(() => {
@@ -393,6 +397,18 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 }
             )
         })
+    }
+
+    async onGameStateChange({
+        to,
+        from,
+        timeline
+    }: {
+        to: U
+        from?: U
+        timeline: gsap.core.Timeline
+    }) {
+        // Default implementation does nothing
     }
 
     getPlayerName(playerId?: string): string {

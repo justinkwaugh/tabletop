@@ -106,24 +106,24 @@
 
     async function increase() {
         const action = gameSession.createIncreaseAction()
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     async function pass() {
         const action = gameSession.createPassAction()
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     async function sacrifice() {
         const action = gameSession.createSacrificeAction()
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     function isEnabled(action: ActionType) {
-        if (!gameSession.isMyTurn) {
+        if (!gameSession.isMyTurn || gameSession.isViewingHistory) {
             return true
         }
 

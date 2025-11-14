@@ -50,8 +50,8 @@
 
     async function increase() {
         const action = gameSession.createIncreaseAction()
+        // gameSession.resetAction()
         await gameSession.applyAction(action)
-        gameSession.resetAction()
     }
 
     const instructions = $derived.by(() => {
@@ -148,7 +148,7 @@
             const singleAction = gameSession.validActionTypes[0]
             chooseAction(singleAction)
         } else if (gameSession.validActionTypes.length === 0) {
-            gameSession.resetAction()
+            // gameSession.resetAction()
         } else if (
             gameSession.gameState.machineState === MachineState.Building &&
             gameSession.validActionTypes.includes(ActionType.Build)
@@ -223,8 +223,8 @@
             boatCoords: $state.snapshot(gameSession.chosenBoatLocation),
             deliveries: $state.snapshot(gameSession.chosenDeliveries)
         })
-        await gameSession.applyAction(action)
-        gameSession.resetAction()
+        gameSession.applyAction(action)
+        // gameSession.resetAction()
     }
 
     function incrementBid() {
@@ -248,8 +248,8 @@
 
     async function placeScoringBid() {
         const action = gameSession.createPlaceScoringBidAction(bidValue)
-        await gameSession.applyAction(action)
-        gameSession.resetAction()
+        gameSession.applyAction(action)
+        // gameSession.resetAction()
     }
 </script>
 

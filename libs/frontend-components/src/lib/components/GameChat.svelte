@@ -84,7 +84,7 @@
             text
         }
         try {
-            chatService.sendGameChatMessage(message, gameSession.game.id)
+            chatService.sendGameChatMessage(message, gameSession.primaryGame.id)
 
             input.value = ''
             text = ''
