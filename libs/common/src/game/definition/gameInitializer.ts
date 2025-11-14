@@ -6,6 +6,7 @@ import {
     type UninitializedGameState
 } from '../model/gameState.js'
 import { Value } from '@sinclair/typebox/value'
+import { GameConfig } from './gameConfig.js'
 
 export interface GameInitializer {
     initializeGame(game: Partial<Game>): Game
@@ -29,7 +30,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
             config: game.config ?? {},
             hotseat: game.hotseat ?? false,
             winningPlayerIds: [],
-            seed: generateSeed(),
+            seed: game.seed ?? generateSeed(),
             activePlayerIds: [],
             createdAt: new Date(), // This will be updated by the db
             storage: game.storage ?? Game.Storage.Remote,

@@ -52,7 +52,10 @@ export const KaivaiGameConfigOptions: GameConfigOptions = [
 ]
 
 export class KaivaiConfigHandler implements ConfigHandler {
-    updateConfig(config: KaivaiGameConfig, update: { id: string; value: string | boolean }) {
+    updateConfig(
+        config: KaivaiGameConfig,
+        update: { id: string; value: string | boolean | number | null }
+    ) {
         ;(config as GameConfig)[update.id] = update.value
         if (update.id === 'lucklessFishing' && update.value) {
             config.lessluckFishing = false

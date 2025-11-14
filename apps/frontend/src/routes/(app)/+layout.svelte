@@ -22,7 +22,7 @@
     import { goto } from '$app/navigation'
     import { getContext, onMount } from 'svelte'
     import GameEditForm from '$lib/components/GameEditForm.svelte'
-    import { UserStatus } from '@tabletop/common'
+    import { GameStatus, UserStatus } from '@tabletop/common'
     import type { AppContext } from '$lib/stores/appContext.svelte'
     import { VersionChange } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
@@ -37,6 +37,20 @@
     let sessionUser = $derived(authorizationService.getSessionUser())
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
+
+    let seed = $derived.by(() => {
+        if (!gameService.currentGameSession) {
+            return undefined
+        }
+
+        const game = gameService.currentGameSession.primaryGame
+
+        if (!authorizationService.isAdmin) {
+            return undefined
+        }
+
+        return game.seed
+    })
 
     async function onLogout() {
         await api.logout()
@@ -163,6 +177,17 @@
     {/if}
 {/snippet}
 
+{#snippet gameSeed()}
+    {#if seed}
+        <div
+            class="text-nowrap text-center mb-2 sm:mb-0 max-w-[320px] dark:text-gray-400 font-mono text-xs overflow-clip text-ellipsis"
+            style=""
+        >
+            Seed: {seed}
+        </div>
+    {/if}
+{/snippet}
+
 <Navbar fluid={true} class="dark:bg-gray-800">
     <div class="flex flex-col w-full">
         <div class="flex flex-row justify-between items-center w-full">
@@ -211,6 +236,7 @@
                             <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
                                 >About us</DropdownItem
                             >
+
                             <DropdownDivider class="md:hidden" />
                             {#if authorizationService.isAdmin}
                                 <li>
@@ -231,6 +257,12 @@
                             <DropdownItem class="w-full text-left" onclick={logout}
                                 >Sign out</DropdownItem
                             >
+                            {#if seed}
+                                <DropdownDivider />
+                                <DropdownItem class="w-full text-left"
+                                    >{@render gameSeed()}</DropdownItem
+                                >
+                            {/if}
                         </DropdownGroup>
                     </Dropdown>
                 {/if}

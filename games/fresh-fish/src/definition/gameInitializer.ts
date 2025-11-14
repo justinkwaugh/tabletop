@@ -23,6 +23,7 @@ import { MachineState } from './states.js'
 import { StallTile, TileType } from '../components/tiles.js'
 import { generateBoard } from '../util/boardGenerator.js'
 import { FreshFishColors } from './colors.js'
+import { FreshFishGameConfig } from './gameConfig.js'
 
 export class FreshFishGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeExplorationState(state: GameState): GameState {
@@ -33,6 +34,12 @@ export class FreshFishGameInitializer extends BaseGameInitializer implements Gam
 
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
         const prng = new Prng(state.prng)
+        const config = game.config as FreshFishGameConfig
+
+        const boardSeed = config.boardSeed ? config.boardSeed : state.prng.seed
+        const boardPrng = new Prng({ seed: boardSeed, invocations: 0 })
+        const { board, numMarketTiles } = generateBoard(game.players.length, boardPrng.random)
+
         const players = this.initializePlayers(game, prng.random)
         const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
         const finalStalls = Object.values(GoodsType).map(
@@ -40,15 +47,14 @@ export class FreshFishGameInitializer extends BaseGameInitializer implements Gam
         )
         shuffle(finalStalls, prng.random)
 
-        const { board, numMarketTiles } = generateBoard(game.players.length, prng.random)
-
         const freshFishState: FreshFishGameState = Object.assign(state, {
             players: players,
             turnManager: turnManager,
             machineState: MachineState.StartOfTurn,
             tileBag: this.initializeTileBag(game, numMarketTiles, prng.random),
             board,
-            finalStalls: finalStalls
+            finalStalls: finalStalls,
+            boardSeed: boardSeed
         })
 
         const initialState = new HydratedFreshFishGameState(freshFishState)

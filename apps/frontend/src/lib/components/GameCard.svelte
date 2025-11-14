@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Card, Hr, Button } from 'flowbite-svelte'
-    import { GameStatus, PlayerStatus, type Game, GameResult } from '@tabletop/common'
+    import { Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
     import { getContext } from 'svelte'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import type { AppContext } from '$lib/stores/appContext.svelte'
@@ -88,6 +88,14 @@
     )
     let totalSeats = $derived(game.players.length)
     let explorations = gameService.getExplorations(game.id)
+
+    let seed = $derived.by(() => {
+        if (!authorizationService.isAdmin) {
+            return undefined
+        }
+
+        return game.seed
+    })
 
     function toggleExpand() {
         if (!canToggle) {
@@ -403,8 +411,9 @@
                             {/each}
                         </div>
                     {/if}
+
                     {#if canJoin || canStart || canEdit || canDecline || canPlay || canWatch || canRevisit || canDelete}
-                        <Hr class="mt-2 mb-0" />
+                        <Hr class="mt-1 mb-1" />
                         <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
                             {#if canDecline}
                                 <Button size="xs" color="red" class="mx-2" onclick={declineGame}
@@ -448,6 +457,14 @@
                                     >Delete</Button
                                 >
                             {/if}
+                        </div>
+                    {/if}
+                    {#if seed}
+                        <div
+                            class="mt-4 flex flex-row justify-center items-center text-nowrap text-center mb-1 sm:mb-0 max-w-[320px] dark:text-gray-400 font-mono text-xs overflow-clip text-ellipsis"
+                            style=""
+                        >
+                            <span class="font-semibold">SEED</span>: {seed}
                         </div>
                     {/if}
                     {#if authorizationService.showDebug}

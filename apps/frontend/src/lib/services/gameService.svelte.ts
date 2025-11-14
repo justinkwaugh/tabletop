@@ -179,9 +179,6 @@ export class GameService implements GameServiceInterface {
         }
 
         if (game.storage === GameStorage.Local) {
-            console.log('Creating local game for typeId', game.typeId)
-            console.log('Game data:', game)
-
             const definition = this.libraryService.getTitle(game.typeId)
             if (!definition) {
                 throw new Error(`Game definition not found for typeId ${game.typeId}`)

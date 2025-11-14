@@ -29,7 +29,8 @@ export const FreshFishGameState = Type.Composite([
         board: GameBoard,
         finalStalls: Type.Array(StallTile),
         chosenTile: Type.Optional(Tile),
-        currentAuction: Type.Optional(SimultaneousAuction)
+        currentAuction: Type.Optional(SimultaneousAuction),
+        boardSeed: Type.Optional(Type.Number())
     })
 ])
 
@@ -63,6 +64,7 @@ export class HydratedFreshFishGameState
     declare finalStalls: StallTile[]
     declare chosenTile?: Tile
     declare currentAuction?: HydratedSimultaneousAuction
+    declare boardSeed?: number
 
     constructor(data: FreshFishGameState) {
         const hydratedProperties: HydratedProperties = {

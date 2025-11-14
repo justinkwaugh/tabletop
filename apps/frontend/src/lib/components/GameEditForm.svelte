@@ -20,10 +20,14 @@
         GameStorage,
         isBooleanConfigOption,
         isListConfigOption,
+        isNumberInputConfigOption,
+        isStringInputConfigOption,
         ListConfigOption,
+        NumberInputConfigOption,
         Player,
         PlayerStatus,
         range,
+        StringInputConfigOption,
         type HydratedGameState
     } from '@tabletop/common'
     import { nanoid } from 'nanoid'
@@ -93,6 +97,7 @@
     let errors: Record<string, string[]> = $state({})
     let name = $state(editedGame.name)
     let config = $state(editedGame.config)
+    let seed = $state('')
     let numPlayers = $state(
         mode === EditMode.Edit
             ? editedGame.players.length
@@ -110,16 +115,21 @@
     function generateDefaultOptions() {
         const defaultConfig: GameConfig = {}
         for (const option of selectedTitle?.configOptions ?? []) {
-            defaultConfig[option.id] = option.default
+            defaultConfig[option.id] = option.default ?? null
         }
         return defaultConfig
     }
     function onOptionChange(option: ConfigOption, event: Event) {
-        let value: string | boolean | undefined = undefined
+        let value: string | boolean | number | null | undefined = undefined
         if (isBooleanConfigOption(option)) {
             value = (event.target as HTMLInputElement).checked
         } else if (isListConfigOption(option)) {
             value = (event.target as HTMLSelectElement).value
+        } else if (isStringInputConfigOption(option)) {
+            value = (event.target as HTMLInputElement).value
+        } else if (isNumberInputConfigOption(option)) {
+            const val = (event.target as HTMLInputElement).value
+            value = val ? parseInt(val) : null
         }
         if (value === undefined) {
             return
@@ -200,6 +210,14 @@
 
         if (mode === EditMode.Create) {
             gameData.typeId = selectedTitle?.id
+            if (seed.trim().length > 0) {
+                try {
+                    gameData.seed = parseInt(seed.trim())
+                } catch {
+                    errors['seed'] = ['The seed must be a valid number']
+                    return
+                }
+            }
         }
 
         try {
@@ -254,6 +272,30 @@
         errors = {}
     }
 </script>
+
+{#snippet stringInputOption(option: StringInputConfigOption)}
+    <Label class="mb-2">
+        {option.name}
+    </Label>
+    <Input
+        onchange={(event: Event) => onOptionChange(option, event)}
+        id={option.id}
+        placeholder={option.placeholder}
+        value={`${config[option.id] ?? option.default ?? ''}`}
+    ></Input>
+{/snippet}
+
+{#snippet numberInputOption(option: NumberInputConfigOption)}
+    <Label class="mb-2">
+        {option.name}
+    </Label>
+    <Input
+        type="number"
+        onchange={(event: Event) => onOptionChange(option, event)}
+        id={option.id}
+        value={`${config[option.id] ?? option.default ?? ''}`}
+    ></Input>
+{/snippet}
 
 {#snippet booleanOption(option: BooleanConfigOption)}
     <Toggle
@@ -439,9 +481,17 @@
                         {@render booleanOption(option)}
                     {:else if isListConfigOption(option)}
                         {@render listOption(option)}
+                    {:else if isNumberInputConfigOption(option)}
+                        {@render numberInputOption(option)}
+                    {:else if isStringInputConfigOption(option)}
+                        {@render stringInputOption(option)}
                     {/if}
                 {/each}
             </div>
+        {/if}
+        {#if authorizationService.isAdmin && mode === EditMode.Create}
+            <Label class="mb-2">Seed</Label>
+            <Input type="text" name="seed" bind:value={seed} placeholder="optional game seed" />
         {/if}
     {/if}
 
