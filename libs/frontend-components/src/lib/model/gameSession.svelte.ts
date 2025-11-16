@@ -232,6 +232,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         )
     })
 
+    myPrimaryPlayer: Player | undefined = $derived.by(() => {
+        const sessionUser = this.authorizationService.getSessionUser()
+        if (!sessionUser) {
+            return undefined
+        }
+        return this.primaryGame.players.find((player) => player.userId === sessionUser.id)
+    })
+
     myPlayer: Player | undefined = $derived.by(() => {
         // In hotseat games, we are just always the first active player
         if (this.isExploring || this.gameContext.game.hotseat) {
