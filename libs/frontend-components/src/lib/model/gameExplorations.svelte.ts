@@ -78,7 +78,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState &
         if (!context) {
             return
         }
-        const game = context.game
+        const game = structuredClone(context.game)
         game.name = gameName
         game.storage = GameStorage.Local
         context.updateGame(game)
@@ -86,7 +86,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState &
         await this.gameService.saveGameLocally({
             game: context.game,
             state: context.state,
-            actions: $state.snapshot(context.actions)
+            actions: context.actions
         })
     }
 

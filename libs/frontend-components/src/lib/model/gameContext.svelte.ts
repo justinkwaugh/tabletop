@@ -5,7 +5,8 @@ import {
     type GameAction,
     GameEngine,
     type GameState,
-    type HydratedGameState
+    type HydratedGameState,
+    deepFreeze
 } from '@tabletop/common'
 import { GameActionResults } from './gameActionResults.svelte.js'
 
@@ -20,9 +21,9 @@ export type CloneInterceptor<T extends GameState> = {
 
 export class GameContext<T extends GameState, U extends HydratedGameState & T> {
     definition: GameUiDefinition<T, U>
-    game: Game = $state.raw({} as Game)
-    state: T = $state.raw({} as T)
-    actions: GameAction[] = $state.raw([] as GameAction[])
+    game: Game
+    state: T
+    actions: GameAction[]
     engine: GameEngine
 
     private actionsById: Map<string, GameAction> = new Map([])
@@ -39,16 +40,19 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
         actions: GameAction[]
     }) {
         this.definition = definition
-        this.game = game
-        this.state = state
+        this.game = $state.raw(game)
+        this.state = $state.raw(state)
+        this.actions = $state.raw(this.initializeActions(actions))
+        this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
         this.engine = new GameEngine(definition)
-        this.initializeActions(actions)
+
+        this.verifyFullChecksum()
     }
 
     clone(interceptor?: CloneInterceptor<T>): GameContext<T, U> {
         const game = structuredClone(this.game)
         const state = structuredClone(this.state) as T
-        const actions = this.actions.map((action) => structuredClone($state.snapshot(action)))
+        const actions = this.actions.map((action) => structuredClone(action))
 
         if (interceptor?.interceptGame) {
             interceptor.interceptGame(game)
@@ -58,6 +62,12 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
         }
         if (interceptor?.interceptActions) {
             interceptor.interceptActions(actions)
+        }
+
+        deepFreeze(game)
+        deepFreeze(state)
+        for (const action of actions) {
+            deepFreeze(action)
         }
 
         return new GameContext({
@@ -84,6 +94,7 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
             ) {
                 throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
             }
+            deepFreeze(action)
             this.actions.splice(action.index, 0, action)
             this.actionsById.set(action.id, action)
         })
@@ -97,19 +108,24 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
     }
 
     upsertAction(action: GameAction) {
-        if (action.index === undefined || action.index < 0 || action.index > this.actions.length) {
-            throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
+        const actionClone = deepFreeze(structuredClone(action))
+        if (
+            actionClone.index === undefined ||
+            actionClone.index < 0 ||
+            actionClone.index > this.actions.length
+        ) {
+            throw new Error(`Action ${actionClone.id} has an invalid index ${actionClone.index}`)
         }
 
-        if (action.index === this.actions.length) {
-            this.actions.push(action)
+        if (actionClone.index === this.actions.length) {
+            this.actions.push(actionClone)
         } else {
-            const priorAction = this.actions[action.index]
-            if (priorAction.id !== action.id) {
+            const priorAction = this.actions[actionClone.index]
+            if (priorAction.id !== actionClone.id) {
                 this.actionsById.delete(priorAction.id)
             }
-            this.actions[action.index] = action
-            this.actionsById.set(action.id, action)
+            this.actions[actionClone.index] = actionClone
+            this.actionsById.set(actionClone.id, actionClone)
         }
 
         // Make it reactive
@@ -140,14 +156,14 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
     }
 
     updateGame(game: Game) {
-        this.game = structuredClone(game)
+        this.game = deepFreeze(structuredClone(game))
     }
 
     updateGameState(gameState?: T) {
         if (!gameState) {
             return
         }
-        this.state = structuredClone(gameState)
+        this.state = deepFreeze(structuredClone(gameState))
     }
 
     applyActionResults(actionResults: GameActionResults<T>) {
@@ -186,14 +202,12 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
         return new GameActionResults(result.processedActions, result.updatedState as T)
     }
 
-    private initializeActions(actions: GameAction[]) {
+    private initializeActions(actions: GameAction[]): GameAction[] {
         // all actions must have an index
         if (actions.find((action) => action.index === undefined)) {
             throw new Error('All actions must have an index')
         }
 
-        this.actions = actions.toSorted((a, b) => a.index! - b.index!)
-        this.verifyFullChecksum()
-        this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
+        return actions.toSorted((a, b) => a.index! - b.index!)
     }
 }
