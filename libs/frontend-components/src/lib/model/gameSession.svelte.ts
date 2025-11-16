@@ -100,7 +100,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     // Exposed directly / hydrated for the UI
     // Only updated after game state change listeners complete
-    gameState: U = $state.raw({} as U)
+    gameState: U
 
     // Exposed directly for the UI
     // Should these be hydrated?
@@ -371,7 +371,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         )
 
         // Need an initial value
-        this.gameState = this.definition.hydrator.hydrateState(state) as U
+        this.gameState = $state.raw(this.definition.hydrator.hydrateState(state) as U)
         this.colors = new GameColors(this.authorizationService, this.gameContext)
 
         if (!game.hotseat) {
