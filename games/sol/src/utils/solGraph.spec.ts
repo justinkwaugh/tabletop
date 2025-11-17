@@ -48,7 +48,7 @@ describe('Sol Graph Tests', () => {
             nodes4p.push(node)
         }
 
-        expect(nodes4p.length).toEqual(graph4p.nodeCount())
+        expect(nodes4p.length).toEqual(graph4p.size())
 
         const graph5p = new SolGraph(5)
         const nodes5p = []
@@ -56,17 +56,17 @@ describe('Sol Graph Tests', () => {
             nodes5p.push(node)
         }
 
-        expect(nodes5p.length).toEqual(graph5p.nodeCount())
+        expect(nodes5p.length).toEqual(graph5p.size())
     })
 
     it('has the correct node count', () => {
         const graph = new SolGraph(4)
-        expect(graph.nodeCount()).toEqual(
+        expect(graph.size()).toEqual(
             ONE_TO_FOUR_PLAYER_RING_COUNTS.reduce((acc, count) => acc + count, 0)
         )
 
         const graph5p = new SolGraph(5)
-        expect(graph5p.nodeCount()).toEqual(
+        expect(graph5p.size()).toEqual(
             FIVE_PLAYER_RING_COUNTS.reduce((acc, count) => acc + count, 0)
         )
     })

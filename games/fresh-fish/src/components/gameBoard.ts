@@ -97,7 +97,7 @@ export class HydratedGameBoard
     }
 
     isInBounds(coords: OffsetTupleCoordinates): boolean {
-        return this.graph.isInDimensions(offsetTupleToOffset(coords))
+        return this.graph.isWithinDimensions(offsetTupleToOffset(coords))
     }
 
     isEmptyCell(cell?: Cell): cell is EmptyCell {

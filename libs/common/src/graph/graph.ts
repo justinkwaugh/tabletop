@@ -1,14 +1,11 @@
-import { Coordinates, coordinatesToNumber } from './coordinates.js'
-
 export type NodeIdentifier = string | number
+export function isNodeIdentifier(value: unknown): value is NodeIdentifier {
+    return typeof value === 'string' || typeof value === 'number'
+}
 
 export interface Node {
     id: NodeIdentifier
 }
-
-export type CoordinatedNode<T extends Coordinates> = {
-    coords: T
-} & Node
 
 export type Direction = string
 
@@ -20,20 +17,19 @@ export type Pathfinder<T extends Node, R extends Iterable<T[]> = T[][]> = (graph
 
 export interface Graph<T extends Node> extends Iterable<T> {
     getNode(id: NodeIdentifier): T | undefined
+    addNode(node: T): void
+    removeNode(id: NodeIdentifier): void
+    removeNode(node: T): void
+    findPaths(pathfinder: Pathfinder<T>): T[][]
+    findFirstPath(pathfinder: Pathfinder<T>): T[] | undefined
     neighborsOf(node: T, direction?: Direction): T[]
+    contains(id: NodeIdentifier): boolean
     contains(node: T): boolean
     traverse(traverser: Traverser<T>): T[]
     size(): number
 }
 
-export interface CoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordinates>
-    extends Graph<T> {
-    nodeAt(coords: U): T | undefined
-    neighborsAt(coords: U, direction?: Direction): T[]
-    hasAt(coords: U): boolean
-}
-
-export class BaseGraph<T extends Node> implements Graph<T> {
+export abstract class BaseGraph<T extends Node> implements Graph<T> {
     *[Symbol.iterator](): IterableIterator<T> {
         yield* Object.values(this.nodes)
     }
@@ -58,20 +54,18 @@ export class BaseGraph<T extends Node> implements Graph<T> {
         this.nodes[node.id] = node
     }
 
-    public removeNode(node: T) {
-        this.removeNodeById(node.id)
-    }
-
-    public removeNodeById(id: NodeIdentifier) {
+    public removeNode(nodeOrId: T | NodeIdentifier): T | undefined {
+        const id = isNodeIdentifier(nodeOrId) ? nodeOrId : nodeOrId.id
+        const node = this.nodes[id]
         delete this.nodes[id]
+        return node
     }
 
-    public neighborsOf(_node: T, _direction?: Direction): T[] {
-        throw new Error('Not implemented')
-    }
+    public abstract neighborsOf(_node: T, _direction?: Direction): T[]
 
-    public contains(node: T): boolean {
-        return !!this.nodes[node.id]
+    public contains(nodeOrId: T | NodeIdentifier): boolean {
+        const id = isNodeIdentifier(nodeOrId) ? nodeOrId : nodeOrId.id
+        return !!this.nodes[id]
     }
 
     public traverse(traverser: Traverser<T>): T[] {
@@ -85,27 +79,5 @@ export class BaseGraph<T extends Node> implements Graph<T> {
     public findFirstPath(pathfinder: Pathfinder<T>): T[] | undefined {
         const paths = pathfinder(this)
         return paths.length > 0 ? paths[0] : undefined
-    }
-}
-
-export class BaseCoordinatedGraph<
-    T extends CoordinatedNode<U>,
-    U extends Coordinates
-> extends BaseGraph<T> {
-    public removeNodeAt(coords: U) {
-        const nodeId = coordinatesToNumber(coords)
-        this.removeNodeById(nodeId)
-    }
-
-    public nodeAt(coords: U): T | undefined {
-        return this.getNode(coordinatesToNumber(coords))
-    }
-
-    public neighborsAt(_coords: U, _direction?: Direction): T[] {
-        throw new Error('Not implemented')
-    }
-
-    public hasAt(coords: U): boolean {
-        return !!this.nodeAt(coords)
     }
 }

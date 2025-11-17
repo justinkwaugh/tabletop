@@ -33,6 +33,7 @@ export * from './hexGrid/floodTraverser.js'
 
 export * from './graph/coordinates.js'
 export * from './graph/graph.js'
+export * from './graph/coordinatedGraph.js'
 export * from './graph/orthogonalGrid.js'
 export * from './graph/directions.js'
 export * from './graph/traversers/breadthFirst.js'

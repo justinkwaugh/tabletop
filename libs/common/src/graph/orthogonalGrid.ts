@@ -1,6 +1,7 @@
+import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from './coordinatedGraph.js'
 import { OffsetCoordinates } from './coordinates.js'
-import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from './graph.js'
 import { CardinalDirection } from './directions.js'
+import { isNodeIdentifier, NodeIdentifier } from './graph.js'
 
 export type OrthogonalGridNode = CoordinatedNode<OffsetCoordinates> & {
     neighbors: Record<CardinalDirection, OffsetCoordinates | undefined>
@@ -43,6 +44,37 @@ export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
         }
     }
 
+    override removeNode(nodeOrId: T | NodeIdentifier): T | undefined {
+        const node = super.removeNode(nodeOrId)
+
+        if (node) {
+            const { row, col } = node.coords
+            if (
+                row === this.minRow ||
+                row === this.maxRow ||
+                col === this.minCol ||
+                col === this.maxCol
+            ) {
+                for (const n of this) {
+                    const { row: nRow, col: nCol } = n.coords
+                    if (nRow < this.minRow) {
+                        this.minRow = nRow
+                    }
+                    if (nRow > this.maxRow) {
+                        this.maxRow = nRow
+                    }
+                    if (nCol < this.minCol) {
+                        this.minCol = nCol
+                    }
+                    if (nCol > this.maxCol) {
+                        this.maxCol = nCol
+                    }
+                }
+            }
+        }
+        return node
+    }
+
     dimensions(): { rows: number; cols: number } {
         return {
             rows: this.maxRow - this.minRow + 1,
@@ -50,7 +82,7 @@ export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
         }
     }
 
-    isInDimensions(coords: OffsetCoordinates): boolean {
+    isWithinDimensions(coords: OffsetCoordinates): boolean {
         const { row, col } = coords
         return row >= this.minRow && row <= this.maxRow && col >= this.minCol && col <= this.maxCol
     }
