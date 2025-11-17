@@ -120,26 +120,18 @@ export class Scorer {
     }
 
     private findShortestPath(start: OffsetCoordinates, end: OffsetCoordinates): Path {
-        const pathfinder = this.pathfinder({ start, end })
-        return (this.graph.findFirstPath(pathfinder) ?? []).map((node) => node.coords)
-    }
-
-    private pathfinder({ start, end }: { start: OffsetCoordinates; end: OffsetCoordinates }) {
         const startNode = this.graph.nodeAt(start)
-        if (!startNode) {
-            return () => []
-        }
-
         const endNode = this.graph.nodeAt(end)
-        if (!endNode) {
-            return () => []
+        if (!startNode || !endNode) {
+            return []
         }
 
-        return shortestPath({
+        const pathfinder = shortestPath({
             start: startNode,
             end: endNode,
             canTraverse: this.canTraverse.bind(this, endNode.coords)
         })
+        return (this.graph.findFirstPath(pathfinder) ?? []).map((node) => node.coords)
     }
 
     private canTraverse(end: OffsetCoordinates, from: OrthogonalGridNode, to: OrthogonalGridNode) {
