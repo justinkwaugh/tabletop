@@ -18,9 +18,8 @@
         "@types/npmcli__package-json": "^4.0.4"
     },
     "dependencies": {
-        "@tabletop/bridges-of-shangri-la": "*",
-        "@tabletop/estates": "*",
         "@tabletop/fresh-fish": "*",
-        "@tabletop/kaivai": "*"
+        "@tabletop/kaivai": "*",
+        "@tabletop/sol": "*"
     }
 }

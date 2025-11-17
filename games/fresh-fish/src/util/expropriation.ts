@@ -1,162 +1,107 @@
-import { Cell, CellType, isDiskCell, MarketCell } from '../components/cells.js'
-import { Coordinates, HydratedGameBoard } from '../components/gameBoard.js'
+import {
+    breadthFirst,
+    OffsetCoordinates,
+    OffsetTupleCoordinates,
+    OrthogonalGridNode,
+    sameCoordinates,
+    offsetTupleToOffset,
+    offsetToOffsetTuple
+} from '@tabletop/common'
+import { canBeBlocked, Cell, isDiskCell, isTraversable } from '../components/cells.js'
+import { HydratedGameBoard } from '../components/gameBoard.js'
+import { FreshFishGraph } from './freshFishGraph.js'
 
 export type ReturnedDisks = Record<string, number>
-export class Expropriator {
-    nodes: Node[] = []
 
-    constructor(
-        private board: HydratedGameBoard,
-        testCoords?: Coordinates
-    ) {
-        this.createGraph(testCoords)
+type TraversalOptions = {
+    blocked: OffsetCoordinates
+    placement?: OffsetCoordinates
+}
+
+export class Expropriator {
+    graph: FreshFishGraph
+    constructor(private readonly board: HydratedGameBoard) {
+        this.graph = board.graph
     }
 
-    calculateExpropriation(): {
-        expropriatedCoords: Coordinates[]
+    calculateExpropriation(placement?: OffsetTupleCoordinates): {
+        expropriatedCoords: OffsetTupleCoordinates[]
         returnedDisks: ReturnedDisks
     } {
-        const expectedCount = this.nodes.length - 1
-        const expropriated: Node[] = []
-        for (const node of this.nodes) {
-            // Only check nodes we can block
-            if (!node.isBlockable()) {
+        const expectedCount = this.graph.size()
+        const expropriated: { cell: Cell; coords: OffsetTupleCoordinates }[] = []
+        for (const node of this.graph) {
+            const cell = this.board.cellAt(node.coords)
+
+            if (!cell || !canBeBlocked(cell)) {
                 continue
             }
 
-            // Temporarily set the cell to be non-traversable
-            const originalCellType = node.cell.type
-            node.cell.type = CellType.OffBoard // Any non-traversable cell type will work
+            const traverser = this.traverser({
+                blocked: node.coords,
+                placement: placement ? offsetTupleToOffset(placement) : undefined
+            })
+            const traversedNodes = this.graph.traverse(traverser)
 
-            // See if we can traverse the whole graph without this node, otherwise expropriate
-            const { numTraversed } = this.traverseGraph()
-            if (numTraversed !== expectedCount) {
-                expropriated.push(node)
+            if (traversedNodes.length !== expectedCount) {
+                expropriated.push({ cell, coords: offsetToOffsetTuple(node.coords) })
             }
-            // Restore it
-            node.cell.type = originalCellType
         }
-        const expropriatedCoords = expropriated.map((n) => n.coords)
+
+        const expropriatedCoords = expropriated.map((location) => location.coords)
         const returnedDisks: ReturnedDisks = {}
-        for (const node of expropriated) {
-            if (isDiskCell(node.cell)) {
-                returnedDisks[node.cell.playerId] = (returnedDisks[node.cell.playerId] ?? 0) + 1
+        for (const location of expropriated) {
+            if (isDiskCell(location.cell)) {
+                returnedDisks[location.cell.playerId] =
+                    (returnedDisks[location.cell.playerId] ?? 0) + 1
             }
         }
         return { expropriatedCoords, returnedDisks }
     }
 
-    private createGraph(testCoords?: Coordinates): void {
-        const nodeIndex = new Map<string, Node>()
-        for (const boardCell of this.board) {
-            const cell = this.isTestCell(boardCell.coords, testCoords)
-                ? <MarketCell>{ type: CellType.Market }
-                : boardCell.cell
-            const node = new Node(boardCell.coords, cell)
-            if (node.isRequiredToReach()) {
-                this.nodes.push(node)
-                nodeIndex.set(node.id, node)
-            }
-        }
+    private traverser(options: TraversalOptions) {
+        const startNode = Iterator.from(this.graph).find((node) => {
+            const cell = this.board.cellAt(node.coords)
+            return this.isValidStartCell(node.coords, options, cell)
+        })
 
-        for (const node of this.nodes) {
-            for (const neighborId of node.neighborIds()) {
-                const neighborNode = nodeIndex.get(neighborId)
-                if (neighborNode !== undefined) {
-                    node.addNeighbor(neighborNode)
-                }
-            }
-        }
-    }
-
-    private isTestCell(coords: Coordinates, testCoords?: Coordinates): boolean {
-        return (
-            testCoords !== undefined && coords[0] === testCoords[0] && coords[1] === testCoords[1]
-        )
-    }
-
-    private traverseGraph(): { numTraversed: number } {
-        const startNode = this.nodes.find((n) => n.isTraversable())
         if (!startNode) {
-            throw new Error('Could not find a traversable node to start on')
-        }
-        const queue: Node[] = [startNode]
-        const visitedNodeIds = new Set<string>()
-
-        while (queue.length > 0) {
-            const currentNode = queue.pop()! // It is impossible for queue to be empty here
-            visitedNodeIds.add(currentNode.id)
-            if (!currentNode.isTraversable()) {
-                continue
-            }
-            for (const neighbor of currentNode.getNeighbors()) {
-                if (!visitedNodeIds.has(neighbor.id)) {
-                    if (neighbor.isTraversable()) {
-                        queue.push(neighbor)
-                    } else if (neighbor.isRequiredToReach()) {
-                        visitedNodeIds.add(neighbor.id)
-                    }
-                }
-            }
+            return () => []
         }
 
-        return { numTraversed: visitedNodeIds.size }
+        return breadthFirst({
+            start: startNode,
+            canTraverse: this.canTraverse.bind(this, options)
+        })
     }
-}
 
-class Node {
-    id: string
-    cell: Cell
-    private neighbors: Node[] = []
+    private isValidStartCell(coords: OffsetCoordinates, options: TraversalOptions, cell?: Cell) {
+        return (
+            cell &&
+            isTraversable(cell) &&
+            !sameCoordinates(coords, options.blocked) &&
+            (!options.placement || !sameCoordinates(coords, options.placement))
+        )
+    }
 
-    constructor(
-        public readonly coords: Coordinates,
-        cell: Cell
+    private canTraverse(
+        options: TraversalOptions,
+        from: OrthogonalGridNode,
+        to: OrthogonalGridNode
     ) {
-        this.cell = cell
-        this.id = Node.coordsToId(coords)
-    }
+        if (
+            sameCoordinates(from.coords, options.blocked) ||
+            (options.placement && sameCoordinates(from.coords, options.placement))
+        ) {
+            return false
+        }
 
-    addNeighbor(node: Node): void {
-        this.neighbors.push(node)
-    }
-
-    getNeighbors(): Node[] {
-        return this.neighbors
-    }
-
-    isTraversable(): boolean {
-        return (
-            this.cell.type === CellType.Empty ||
-            this.cell.type === CellType.Road ||
-            this.cell.type === CellType.Disk
-        )
-    }
-
-    isRequiredToReach(): boolean {
-        return (
-            this.cell.type === CellType.Empty ||
-            this.cell.type === CellType.Road ||
-            this.cell.type === CellType.Disk ||
-            this.cell.type === CellType.Stall ||
-            this.cell.type === CellType.Truck
-        )
-    }
-
-    isBlockable(): boolean {
-        return this.cell.type === CellType.Empty || this.cell.type === CellType.Disk
-    }
-
-    neighborIds(): string[] {
-        return [
-            Node.coordsToId([this.coords[0] + 1, this.coords[1]]),
-            Node.coordsToId([this.coords[0] - 1, this.coords[1]]),
-            Node.coordsToId([this.coords[0], this.coords[1] + 1]),
-            Node.coordsToId([this.coords[0], this.coords[1] - 1])
-        ]
-    }
-
-    static coordsToId(coords: Coordinates): string {
-        return `${coords[0]},${coords[1]}`
+        const fromCell = this.board.cellAt(from.coords)
+        const toCell = this.board.cellAt(to.coords)
+        if (!fromCell || !toCell) {
+            return false
+        }
+        const traversable = isTraversable(fromCell)
+        return traversable
     }
 }

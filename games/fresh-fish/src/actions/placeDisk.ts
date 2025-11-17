@@ -1,9 +1,8 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction, HydratableAction, OffsetTupleCoordinates } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { CellType } from '../components/cells.js'
-import { Coordinates } from '../components/gameBoard.js'
 import { ActionType } from '../definition/actions.js'
 
 export type PlaceDisk = Static<typeof PlaceDisk>
@@ -12,7 +11,7 @@ export const PlaceDisk = Type.Composite([
     Type.Object({
         type: Type.Literal(ActionType.PlaceDisk),
         playerId: Type.String(),
-        coords: Coordinates
+        coords: OffsetTupleCoordinates
     })
 ])
 
@@ -25,7 +24,7 @@ export function isPlaceDisk(action?: GameAction): action is PlaceDisk {
 export class HydratedPlaceDisk extends HydratableAction<typeof PlaceDisk> implements PlaceDisk {
     declare type: ActionType.PlaceDisk
     declare playerId: string
-    declare coords: Coordinates
+    declare coords: OffsetTupleCoordinates
 
     constructor(data: PlaceDisk) {
         super(data, PlaceDiskValidator)
@@ -61,7 +60,7 @@ export class HydratedPlaceDisk extends HydratableAction<typeof PlaceDisk> implem
 
     static isValidCellForPlacement(
         state: HydratedFreshFishGameState,
-        coords: Coordinates,
+        coords: OffsetTupleCoordinates,
         playerId: string
     ): boolean {
         const board = state.board

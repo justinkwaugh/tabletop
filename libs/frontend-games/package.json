@@ -18,9 +18,8 @@
         "@types/npmcli__package-json": "^4.0.4"
     },
     "dependencies": {
-        "@tabletop/bridges-of-shangri-la-ui": "*",
-        "@tabletop/estates-ui": "*",
         "@tabletop/fresh-fish-ui": "*",
-        "@tabletop/kaivai-ui": "*"
+        "@tabletop/kaivai-ui": "*",
+        "@tabletop/sol-ui": "*"
     }
 }

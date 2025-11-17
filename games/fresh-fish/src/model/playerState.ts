@@ -1,8 +1,7 @@
-import { Hydratable, PlayerState } from '@tabletop/common'
+import { Hydratable, OffsetTupleCoordinates, PlayerState } from '@tabletop/common'
 import { GoodsType } from '../definition/goodsType.js'
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { Coordinates } from '../components/gameBoard.js'
 import { type ScoringInfo } from '../util/scoring.js'
 import { Color } from '@tabletop/common'
 
@@ -10,9 +9,9 @@ export type PlayerStall = Static<typeof PlayerStall>
 export const PlayerStall = Type.Object({
     goodsType: Type.Enum(GoodsType),
     placed: Type.Boolean({ default: false }),
-    path: Type.Optional(Type.Array(Coordinates)),
+    path: Type.Optional(Type.Array(OffsetTupleCoordinates)),
     distance: Type.Optional(Type.Number()),
-    coords: Type.Optional(Coordinates)
+    coords: Type.Optional(OffsetTupleCoordinates)
 })
 
 export type FreshFishPlayerState = Static<typeof FreshFishPlayerState>
@@ -70,7 +69,7 @@ export class HydratedFreshFishPlayerState
         return stall.placed === false
     }
 
-    placeStall(goodsType: GoodsType, coords?: Coordinates) {
+    placeStall(goodsType: GoodsType, coords?: OffsetTupleCoordinates) {
         const stall = this.findStall(goodsType)
         if (stall.placed) {
             throw Error(`${goodsType} stall for player ${this.playerId} was already placed`)

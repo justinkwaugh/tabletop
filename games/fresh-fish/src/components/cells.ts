@@ -87,3 +87,23 @@ export const PopulatedCellTypes = [
 
 export type PopulatedCell = Static<typeof PopulatedCell>
 export const PopulatedCell = Type.Union([MarketCell, DiskCell, StallCell, TruckCell, RoadCell])
+
+export function isTraversable(cell: Cell): boolean {
+    return (
+        cell.type === CellType.Empty || cell.type === CellType.Road || cell.type === CellType.Disk
+    )
+}
+
+export function mustBeReachable(cell: Cell): boolean {
+    return (
+        cell.type === CellType.Empty ||
+        cell.type === CellType.Road ||
+        cell.type === CellType.Disk ||
+        cell.type === CellType.Stall ||
+        cell.type === CellType.Truck
+    )
+}
+
+export function canBeBlocked(cell: Cell): boolean {
+    return cell.type === CellType.Empty || cell.type === CellType.Disk
+}

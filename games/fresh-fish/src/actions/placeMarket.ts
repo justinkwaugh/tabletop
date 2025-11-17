@@ -1,17 +1,16 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction, HydratableAction, OffsetTupleCoordinates } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { CellType } from '../components/cells.js'
-import { Coordinates } from '../components/gameBoard.js'
 
 export type PlaceMarket = Static<typeof PlaceMarket>
 export const PlaceMarket = Type.Composite([
     Type.Omit(GameAction, ['playerId']),
     Type.Object({
         type: Type.Literal(ActionType.PlaceMarket),
-        coords: Coordinates
+        coords: OffsetTupleCoordinates
     })
 ])
 
@@ -26,7 +25,7 @@ export class HydratedPlaceMarket
 {
     declare type: ActionType.PlaceMarket
     declare playerId: string
-    declare coords: Coordinates
+    declare coords: OffsetTupleCoordinates
 
     constructor(data: PlaceMarket) {
         super(data, PlaceMarketValidator)
@@ -52,7 +51,7 @@ export class HydratedPlaceMarket
 
     static isValidCellForPlacement(
         state: HydratedFreshFishGameState,
-        coords: Coordinates,
+        coords: OffsetTupleCoordinates,
         playerId: string
     ): boolean {
         const board = state.board

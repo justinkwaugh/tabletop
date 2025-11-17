@@ -1,7 +1,6 @@
 import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
-    Coordinates,
     HydratedFreshFishGameState,
     PlaceDisk,
     DrawTile,
@@ -17,15 +16,15 @@ import {
     isPlaceMarket,
     isPlaceStall
 } from '@tabletop/fresh-fish'
-import { type GameAction } from '@tabletop/common'
+import { OffsetTupleCoordinates, type GameAction } from '@tabletop/common'
 
 export class FreshFishGameSession extends GameSession<
     FreshFishGameState,
     HydratedFreshFishGameState
 > {
     chosenAction: string | undefined = $state(undefined)
-    previewExpropriateCoords: Coordinates[] = $state([])
-    highlightedCoords: Coordinates | undefined = $state()
+    previewExpropriateCoords: OffsetTupleCoordinates[] = $state([])
+    highlightedCoords: OffsetTupleCoordinates | undefined = $state()
 
     nameForActionType(actionType: string) {
         switch (actionType) {
@@ -44,9 +43,9 @@ export class FreshFishGameSession extends GameSession<
         }
     }
 
-    previewExpropriation(coords: Coordinates) {
-        const expropriator = new Expropriator(this.gameState.board, coords)
-        const { expropriatedCoords } = expropriator.calculateExpropriation()
+    previewExpropriation(coords: OffsetTupleCoordinates) {
+        const expropriator = new Expropriator(this.gameState.board)
+        const { expropriatedCoords } = expropriator.calculateExpropriation(coords)
         this.previewExpropriateCoords = expropriatedCoords
     }
 
@@ -54,7 +53,7 @@ export class FreshFishGameSession extends GameSession<
         this.previewExpropriateCoords = []
     }
 
-    isExpropriationPreviewed(coords: Coordinates) {
+    isExpropriationPreviewed(coords: OffsetTupleCoordinates) {
         for (const expCoords of this.previewExpropriateCoords) {
             if (expCoords[0] === coords[0] && expCoords[1] === coords[1]) {
                 return true
@@ -86,7 +85,7 @@ export class FreshFishGameSession extends GameSession<
         this.clearHighlightedCoords()
     }
 
-    highlightCoords(coords: Coordinates) {
+    highlightCoords(coords: OffsetTupleCoordinates) {
         this.highlightedCoords = coords
     }
 
@@ -102,7 +101,7 @@ export class FreshFishGameSession extends GameSession<
         )
     }
 
-    createPlaceDiskAction(coords: Coordinates): PlaceDisk {
+    createPlaceDiskAction(coords: OffsetTupleCoordinates): PlaceDisk {
         return { ...this.createBaseAction(ActionType.PlaceDisk), coords } as PlaceDisk
     }
 
@@ -118,11 +117,11 @@ export class FreshFishGameSession extends GameSession<
         } as PlaceBid
     }
 
-    createPlaceStallAction(coords: Coordinates, goodsType: GoodsType): PlaceStall {
+    createPlaceStallAction(coords: OffsetTupleCoordinates, goodsType: GoodsType): PlaceStall {
         return { ...this.createBaseAction(ActionType.PlaceStall), coords, goodsType } as PlaceStall
     }
 
-    createPlaceMarketAction(coords: Coordinates): PlaceMarket {
+    createPlaceMarketAction(coords: OffsetTupleCoordinates): PlaceMarket {
         return { ...this.createBaseAction(ActionType.PlaceMarket), coords } as PlaceMarket
     }
 }

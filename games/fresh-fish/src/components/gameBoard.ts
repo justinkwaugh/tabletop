@@ -9,22 +9,24 @@ import {
     OffBoardCell,
     EmptyCell
 } from '../components/cells.js'
-import { Hydratable } from '@tabletop/common'
-
-// This should be made more common
-export type Coordinates = Static<typeof Coordinates>
-export const Coordinates = Type.Tuple([Type.Number(), Type.Number()])
+import {
+    Hydratable,
+    OffsetCoordinates,
+    offsetToOffsetTuple,
+    OffsetTupleCoordinates,
+    offsetTupleToOffset
+} from '@tabletop/common'
+import { FreshFishGraph } from '../util/freshFishGraph.js'
 
 export type GameBoard = Static<typeof GameBoard>
 export const GameBoard = Type.Object({
     cells: Type.Array(Type.Array(Cell))
 })
 
-export type Point = { x: number; y: number }
 export type Dimensions = [number, number]
 
 export type InternalCorner = {
-    coords: Coordinates
+    coords: OffsetTupleCoordinates
     direction: Direction
     dimensions: Dimensions
 }
@@ -54,41 +56,41 @@ export const DirectionName = {
 
 export interface BoardCell {
     cell: Cell
-    coords: Coordinates
+    coords: OffsetTupleCoordinates
 }
 
 export class HydratedGameBoard
     extends Hydratable<typeof GameBoard>
     implements GameBoard, Iterable<BoardCell>
 {
+    // I think it would have been better to represent cells as a dict internally
+    // with each cell having its coordinates, but this is what was done initially
     declare cells: Cell[][]
+
+    private internalGraph?: FreshFishGraph = undefined
 
     constructor(data: GameBoard) {
         super(data, GameBoardValidator)
     }
 
-    [Symbol.iterator](): Iterator<BoardCell> {
-        let row = 0
-        let col = 0
-        return {
-            next: () => {
-                if (row >= this.cells.length) {
-                    return { done: true, value: undefined }
-                }
-                const coords: Coordinates = [col, row]
-                const cell = this.getCell([col, row])
+    *[Symbol.iterator](): IterableIterator<BoardCell> {
+        yield* this.graph.map((node) => {
+            const coords = offsetToOffsetTuple(node.coords)
+            const cell = this.getCell(coords)
 
-                if (!cell) {
-                    throw Error(`Cell at ${col},${row} is undefined`)
-                }
-                col += 1
-                if (col >= this.cells[row].length) {
-                    col = 0
-                    row += 1
-                }
-                return { done: false, value: { cell, coords } }
+            if (cell) {
+                return { cell, coords }
             }
+
+            throw Error(`Cell at ${node.coords} is undefined`)
+        })
+    }
+
+    get graph(): FreshFishGraph {
+        if (!this.internalGraph) {
+            this.internalGraph = new FreshFishGraph(this.cells)
         }
+        return this.internalGraph
     }
 
     hasEmptyCell(): boolean {
@@ -100,22 +102,22 @@ export class HydratedGameBoard
         return false
     }
 
-    getCell(coords: Coordinates): Cell | undefined {
+    cellAt(coords: OffsetCoordinates): Cell | undefined {
+        return this.getCell(offsetToOffsetTuple(coords))
+    }
+
+    getCell(coords: OffsetTupleCoordinates): Cell | undefined {
         const [col, row] = coords
         return this.isInBounds(coords) ? this.cells[row][col] : undefined
     }
 
     dimensions(): Dimensions {
-        return [this.cells.length > 0 ? this.cells[0].length : 0, this.cells.length]
+        const { rows, cols } = this.graph.dimensions()
+        return [cols, rows]
     }
 
-    isInBounds(coords: Coordinates): boolean {
-        return (
-            coords[1] >= 0 &&
-            coords[1] < this.cells.length &&
-            coords[0] >= 0 &&
-            coords[0] < this.cells[0].length
-        )
+    isInBounds(coords: OffsetTupleCoordinates): boolean {
+        return this.graph.isInDimensions(offsetTupleToOffset(coords))
     }
 
     isEmptyCell(cell?: Cell): cell is EmptyCell {
@@ -150,12 +152,12 @@ export class HydratedGameBoard
         return cell.type === CellType.Disk
     }
 
-    isCellReservedForPlayer(coords: Coordinates, playerId: string): boolean {
+    isCellReservedForPlayer(coords: OffsetTupleCoordinates, playerId: string): boolean {
         const cell = this.getCell(coords)
         return cell !== undefined && this.isDiskCell(cell) && cell.playerId === playerId
     }
 
-    setCell(coords: Coordinates, cell: Cell) {
+    setCell(coords: OffsetTupleCoordinates, cell: Cell) {
         if (!this.isInBounds(coords)) {
             throw Error(`Coordinates ${coords[0]},${coords[1]} are not in bounds`)
         }
@@ -163,7 +165,7 @@ export class HydratedGameBoard
         this.cells[row][col] = cell
     }
 
-    hasOrthogonalTile(coords: Coordinates) {
+    hasOrthogonalTile(coords: OffsetTupleCoordinates) {
         return (
             [Direction.North, Direction.East, Direction.South, Direction.West].find((direction) => {
                 return this.isPopulatedCell(this.getNeighbor(coords, direction))
@@ -171,7 +173,7 @@ export class HydratedGameBoard
         )
     }
 
-    getNeighbor(coords: Coordinates, direction: Direction): Cell | undefined {
+    getNeighbor(coords: OffsetTupleCoordinates, direction: Direction): Cell | undefined {
         const neighborCoords = this.getNeighborCoords(coords, direction)
         if (!neighborCoords) {
             return undefined
@@ -179,7 +181,10 @@ export class HydratedGameBoard
         return this.getCell(neighborCoords)
     }
 
-    getNeighborCoords(coords: Coordinates, direction: Direction): Coordinates | undefined {
+    getNeighborCoords(
+        coords: OffsetTupleCoordinates,
+        direction: Direction
+    ): OffsetTupleCoordinates | undefined {
         if (!this.isInBounds(coords)) {
             return undefined
         }
@@ -205,12 +210,13 @@ export class HydratedGameBoard
     }
 
     getContiguousSide(direction: Direction): {
-        start: Coordinates
-        end: Coordinates
+        start: OffsetTupleCoordinates
+        end: OffsetTupleCoordinates
         length: number
     } {
-        let side: { start: Coordinates; end: Coordinates; length: number } | undefined
-
+        let side:
+            | { start: OffsetTupleCoordinates; end: OffsetTupleCoordinates; length: number }
+            | undefined
         switch (direction) {
             case Direction.North:
                 side = this.getRowSide(0)
@@ -259,7 +265,7 @@ export class HydratedGameBoard
                 if (cell.type !== CellType.OffBoard) {
                     continue
                 }
-                const coords: Coordinates = [x, y]
+                const coords: OffsetTupleCoordinates = [x, y]
 
                 const neighbors = {
                     [Direction.North]: this.getNeighbor(coords, Direction.North),
@@ -331,7 +337,7 @@ export class HydratedGameBoard
         return corners
     }
 
-    getMostSquareExternalCorner(): { coords: Coordinates; direction: Direction } {
+    getMostSquareExternalCorner(): { coords: OffsetTupleCoordinates; direction: Direction } {
         const xMid = Math.floor(this.dimensions()[0] / 2)
         const yMid = Math.floor(this.dimensions()[1] / 2)
         const eastLimit = xMid
@@ -339,7 +345,7 @@ export class HydratedGameBoard
         const northLimit = this.dimensions()[1] - yMid - 1
         const westLimit = this.dimensions()[0] - xMid - 1
 
-        const corners: { direction: Direction; coords: Coordinates }[] = [
+        const corners: { direction: Direction; coords: OffsetTupleCoordinates }[] = [
             { direction: Direction.NorthWest, coords: [0, 0] },
             { direction: Direction.NorthEast, coords: [this.dimensions()[0] - 1, 0] },
             { direction: Direction.SouthWest, coords: [0, this.dimensions()[1] - 1] },
@@ -348,7 +354,7 @@ export class HydratedGameBoard
                 coords: [this.dimensions()[0] - 1, this.dimensions()[1] - 1]
             }
         ]
-        let mostSquareCorner: Coordinates | undefined
+        let mostSquareCorner: OffsetTupleCoordinates | undefined
         let direction = Direction.NorthWest
         let xLen = 0
         let yLen = 0
@@ -513,10 +519,10 @@ export class HydratedGameBoard
     }
 
     private findOnboardCell(
-        coords: Coordinates,
+        coords: OffsetTupleCoordinates,
         direction: Direction,
         limit: number
-    ): Coordinates | undefined {
+    ): OffsetTupleCoordinates | undefined {
         let [x, y] = coords
         let cell = this.getCell([x, y])
         while (this.isOffboardCell(cell)) {
@@ -553,7 +559,7 @@ export class HydratedGameBoard
     }
 
     private getOnboardCount(
-        coords: Coordinates,
+        coords: OffsetTupleCoordinates,
         direction: Direction,
         edge: Direction,
         limit: number
@@ -598,7 +604,7 @@ export class HydratedGameBoard
         return distance
     }
 
-    private getOffboardDistance(coords: Coordinates, direction: Direction): number {
+    private getOffboardDistance(coords: OffsetTupleCoordinates, direction: Direction): number {
         let distance = 0
         let [x, y] = coords
         let cell = this.getCell([x, y])
@@ -625,10 +631,10 @@ export class HydratedGameBoard
 
     private getColumnSide(
         col: number
-    ): { start: Coordinates; end: Coordinates; length: number } | undefined {
+    ): { start: OffsetTupleCoordinates; end: OffsetTupleCoordinates; length: number } | undefined {
         let length = 0
-        let start: Coordinates | undefined
-        let end: Coordinates | undefined
+        let start: OffsetTupleCoordinates | undefined
+        let end: OffsetTupleCoordinates | undefined
 
         for (let i = 0; i < this.cells.length; i++) {
             const cell = this.cells[i][col]
@@ -662,10 +668,10 @@ export class HydratedGameBoard
 
     private getRowSide(
         row: number
-    ): { start: Coordinates; end: Coordinates; length: number } | undefined {
+    ): { start: OffsetTupleCoordinates; end: OffsetTupleCoordinates; length: number } | undefined {
         let length = 0
-        let start: Coordinates | undefined
-        let end: Coordinates | undefined
+        let start: OffsetTupleCoordinates | undefined
+        let end: OffsetTupleCoordinates | undefined
 
         if (this.cells.length === 0) {
             return

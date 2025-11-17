@@ -1,13 +1,13 @@
-import { Coordinates } from '../components/gameBoard.js'
 import { Cell, CellType, isStallCell, isTruckCell } from '../components/cells.js'
 import { Record } from '@sinclair/typebox'
 import { GoodsType } from '../definition/goodsType.js'
 import { FreshFishPlayerState } from '../model/playerState.js'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
+import { OffsetTupleCoordinates } from '@tabletop/common'
 
 export type Scores = Record<string, ScoringInfo>
 export type ScoringInfo = {
-    paths: Record<GoodsType, Coordinates[]>
+    paths: Record<GoodsType, OffsetTupleCoordinates[]>
     score: number
 }
 type Path = Node[]
@@ -140,7 +140,7 @@ export class Scorer {
         return { distances, parents }
     }
 
-    private createGraph(_testCoords?: Coordinates): void {
+    private createGraph(_testCoords?: OffsetTupleCoordinates): void {
         const nodeIndex = new Map<string, Node>()
         for (const boardCell of this.gameState.board) {
             const node = new Node(boardCell.coords, boardCell.cell)
@@ -167,7 +167,7 @@ class Node {
     private neighbors: Node[] = []
 
     constructor(
-        public readonly coords: Coordinates,
+        public readonly coords: OffsetTupleCoordinates,
         cell: Cell
     ) {
         this.cell = cell
@@ -213,7 +213,7 @@ class Node {
         ]
     }
 
-    static coordsToId(coords: Coordinates): string {
+    static coordsToId(coords: OffsetTupleCoordinates): string {
         return `${coords[0]},${coords[1]}`
     }
 }

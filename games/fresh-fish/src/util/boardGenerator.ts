@@ -1,10 +1,9 @@
-import { type RandomFunction, shuffle } from '@tabletop/common'
+import { type RandomFunction, shuffle, Point } from '@tabletop/common'
 import { Cell, CellType, RoadCell, TruckCell } from '../components/cells.js'
 import {
     Direction,
     HydratedGameBoard,
     type InternalCorner,
-    type Point,
     type Dimensions,
     DirectionName
 } from '../components/gameBoard.js'
