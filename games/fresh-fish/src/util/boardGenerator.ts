@@ -1,12 +1,12 @@
-import { type RandomFunction, shuffle, Point } from '@tabletop/common'
-import { Cell, CellType, RoadCell, TruckCell } from '../components/cells.js'
 import {
-    Direction,
-    HydratedGameBoard,
-    type InternalCorner,
-    type Dimensions,
-    DirectionName
-} from '../components/gameBoard.js'
+    type RandomFunction,
+    shuffle,
+    Point,
+    OrdinalDirection,
+    CardinalDirection
+} from '@tabletop/common'
+import { Cell, CellType, RoadCell, TruckCell } from '../components/cells.js'
+import { HydratedGameBoard, type InternalCorner, type Dimensions } from '../components/gameBoard.js'
 import { GoodsType } from '../definition/goodsType.js'
 import chalk from 'chalk'
 import { LogColorizer } from './logColorizer.js'
@@ -167,7 +167,7 @@ export function layoutBoard(
 
         if (i >= 1) {
             const longestSide = findLongestSide(currentBoard, random)
-            console.log('Longest Side: ', DirectionName[longestSide])
+            console.log('Longest Side: ', longestSide)
             const regularDimensions: Dimensions = [tile.dimensions[0], tile.dimensions[1]]
             const allowNegative = i < chosenTiles.length - 1
             const startPoint = getStartPointForEdge(
@@ -374,7 +374,7 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
     const { coords, direction } = board.getMostSquareExternalCorner()
 
     //NW
-    if (direction === Direction.NorthWest) {
+    if (direction === OrdinalDirection.Northwest) {
         board.setCell(coords, truckCells[0])
     } else {
         let cell: Cell | undefined
@@ -389,7 +389,7 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
     }
 
     //NE
-    if (direction === Direction.NorthEast) {
+    if (direction === OrdinalDirection.Northeast) {
         board.setCell(coords, truckCells[1])
     } else {
         let cell: Cell | undefined
@@ -404,7 +404,7 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
     }
 
     //SE
-    if (direction === Direction.SouthEast) {
+    if (direction === OrdinalDirection.Southeast) {
         board.setCell(coords, truckCells[2])
     } else {
         let cell: Cell | undefined
@@ -419,7 +419,7 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
     }
 
     //SW
-    if (direction === Direction.SouthWest) {
+    if (direction === OrdinalDirection.Southwest) {
         board.setCell(coords, truckCells[3])
     } else {
         let cell: Cell | undefined
@@ -434,8 +434,13 @@ function placeTrucks(board: HydratedGameBoard, random: RandomFunction) {
     }
 }
 
-function findLongestSide(board: HydratedGameBoard, random: RandomFunction): Direction {
-    const directions = [Direction.North, Direction.East, Direction.South, Direction.West]
+function findLongestSide(board: HydratedGameBoard, random: RandomFunction): CardinalDirection {
+    const directions = [
+        CardinalDirection.North,
+        CardinalDirection.East,
+        CardinalDirection.South,
+        CardinalDirection.West
+    ]
     shuffle(directions, random)
 
     const longestSide = directions
@@ -450,7 +455,7 @@ function findLongestSide(board: HydratedGameBoard, random: RandomFunction): Dire
 
 function getStartPointForEdge(
     board: HydratedGameBoard,
-    edge: Direction,
+    edge: CardinalDirection,
     tileDimensions: Dimensions,
     allowNegative: boolean = true,
     random: RandomFunction
@@ -459,25 +464,25 @@ function getStartPointForEdge(
     const newStartPoint = { x: 0, y: 0 }
     const neg = Math.round(random())
     switch (edge) {
-        case Direction.North: {
+        case CardinalDirection.North: {
             const offset = Math.floor(random() * (side.length - tileDimensions[0]))
             newStartPoint.y = -tileDimensions[1]
             newStartPoint.x = allowNegative && neg ? side.start[0] - offset : side.start[0] + offset
             break
         }
-        case Direction.East: {
+        case CardinalDirection.East: {
             const offset = Math.floor(random() * (side.length - tileDimensions[1]))
             newStartPoint.y = allowNegative && neg ? side.start[1] - offset : side.start[1] + offset
             newStartPoint.x = side.start[0] + 1
             break
         }
-        case Direction.South: {
+        case CardinalDirection.South: {
             const offset = Math.floor(random() * (side.length - tileDimensions[0]))
             newStartPoint.y = side.start[1] + 1
             newStartPoint.x = allowNegative && neg ? side.start[0] - offset : side.start[0] + offset
             break
         }
-        case Direction.West: {
+        case CardinalDirection.West: {
             const offset = Math.floor(random() * (side.length - tileDimensions[1]))
             newStartPoint.y = allowNegative && neg ? side.start[1] - offset : side.start[1] + offset
             newStartPoint.x = -tileDimensions[0]
@@ -492,21 +497,21 @@ function getStartPointForCorner(deepestCorner: InternalCorner, tileDimensions: D
     let startPoint: Point = { x: 0, y: 0 }
 
     switch (deepestCorner.direction) {
-        case Direction.NorthWest: {
+        case OrdinalDirection.Northwest: {
             startPoint = {
                 x: deepestCorner.coords[0],
                 y: deepestCorner.coords[1]
             }
             break
         }
-        case Direction.NorthEast: {
+        case OrdinalDirection.Northeast: {
             startPoint = {
                 x: deepestCorner.coords[0] - (tileDimensions[0] - 1),
                 y: deepestCorner.coords[1]
             }
             break
         }
-        case Direction.SouthEast: {
+        case OrdinalDirection.Southeast: {
             startPoint = {
                 x: deepestCorner.coords[0] - (tileDimensions[0] - 1),
                 y: deepestCorner.coords[1] - (tileDimensions[1] - 1)
@@ -514,7 +519,7 @@ function getStartPointForCorner(deepestCorner: InternalCorner, tileDimensions: D
 
             break
         }
-        case Direction.SouthWest: {
+        case OrdinalDirection.Southwest: {
             startPoint = {
                 x: deepestCorner.coords[0],
                 y: deepestCorner.coords[1] - (tileDimensions[1] - 1)

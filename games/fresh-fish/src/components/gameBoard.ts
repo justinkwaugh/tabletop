@@ -10,11 +10,13 @@ import {
     EmptyCell
 } from '../components/cells.js'
 import {
+    CardinalDirection,
     Hydratable,
     OffsetCoordinates,
     offsetToOffsetTuple,
     OffsetTupleCoordinates,
-    offsetTupleToOffset
+    offsetTupleToOffset,
+    OrdinalDirection
 } from '@tabletop/common'
 import { FreshFishGraph } from '../util/freshFishGraph.js'
 
@@ -27,32 +29,10 @@ export type Dimensions = [number, number]
 
 export type InternalCorner = {
     coords: OffsetTupleCoordinates
-    direction: Direction
+    direction: OrdinalDirection
     dimensions: Dimensions
 }
 export const GameBoardValidator = TypeCompiler.Compile(GameBoard)
-
-export enum Direction {
-    North = 0,
-    NorthEast = 1,
-    East = 2,
-    SouthEast = 3,
-    South = 4,
-    SouthWest = 5,
-    West = 6,
-    NorthWest = 7
-}
-
-export const DirectionName = {
-    [Direction.North]: 'North',
-    [Direction.NorthEast]: 'NorthEast',
-    [Direction.East]: 'East',
-    [Direction.SouthEast]: 'SouthEast',
-    [Direction.South]: 'South',
-    [Direction.SouthWest]: 'SouthWest',
-    [Direction.West]: 'West',
-    [Direction.NorthWest]: 'NorthWest'
-}
 
 export interface BoardCell {
     cell: Cell
@@ -167,49 +147,21 @@ export class HydratedGameBoard
 
     hasOrthogonalTile(coords: OffsetTupleCoordinates) {
         return (
-            [Direction.North, Direction.East, Direction.South, Direction.West].find((direction) => {
+            Object.values(CardinalDirection).find((direction) => {
                 return this.isPopulatedCell(this.getNeighbor(coords, direction))
             }) != undefined
         )
     }
 
-    getNeighbor(coords: OffsetTupleCoordinates, direction: Direction): Cell | undefined {
-        const neighborCoords = this.getNeighborCoords(coords, direction)
+    getNeighbor(coords: OffsetTupleCoordinates, direction: CardinalDirection): Cell | undefined {
+        const neighborCoords = this.graph.neighborCoords(offsetTupleToOffset(coords), direction)
         if (!neighborCoords) {
             return undefined
         }
-        return this.getCell(neighborCoords)
+        return this.cellAt(neighborCoords)
     }
 
-    getNeighborCoords(
-        coords: OffsetTupleCoordinates,
-        direction: Direction
-    ): OffsetTupleCoordinates | undefined {
-        if (!this.isInBounds(coords)) {
-            return undefined
-        }
-
-        const [col, row] = coords
-        switch (direction) {
-            case Direction.North: {
-                return [col, row - 1]
-            }
-            case Direction.East: {
-                return [col + 1, row]
-            }
-            case Direction.South: {
-                return [col, row + 1]
-            }
-            case Direction.West: {
-                return [col - 1, row]
-            }
-            default: {
-                throw Error(`Invalid direction ${direction}`)
-            }
-        }
-    }
-
-    getContiguousSide(direction: Direction): {
+    getContiguousSide(direction: CardinalDirection): {
         start: OffsetTupleCoordinates
         end: OffsetTupleCoordinates
         length: number
@@ -218,18 +170,18 @@ export class HydratedGameBoard
             | { start: OffsetTupleCoordinates; end: OffsetTupleCoordinates; length: number }
             | undefined
         switch (direction) {
-            case Direction.North:
+            case CardinalDirection.North:
                 side = this.getRowSide(0)
                 break
-            case Direction.South:
+            case CardinalDirection.South:
                 side = this.getRowSide(this.cells.length - 1)
                 break
-            case Direction.East:
+            case CardinalDirection.East:
                 if (this.cells[0].length > 0) {
                     side = this.getColumnSide(this.cells[0].length - 1)
                 }
                 break
-            case Direction.West:
+            case CardinalDirection.West:
                 if (this.cells[0].length > 0) {
                     side = this.getColumnSide(0)
                 }
@@ -268,67 +220,63 @@ export class HydratedGameBoard
                 const coords: OffsetTupleCoordinates = [x, y]
 
                 const neighbors = {
-                    [Direction.North]: this.getNeighbor(coords, Direction.North),
-                    [Direction.East]: this.getNeighbor(coords, Direction.East),
-                    [Direction.South]: this.getNeighbor(coords, Direction.South),
-                    [Direction.West]: this.getNeighbor(coords, Direction.West)
+                    [CardinalDirection.North]: this.getNeighbor(coords, CardinalDirection.North),
+                    [CardinalDirection.East]: this.getNeighbor(coords, CardinalDirection.East),
+                    [CardinalDirection.South]: this.getNeighbor(coords, CardinalDirection.South),
+                    [CardinalDirection.West]: this.getNeighbor(coords, CardinalDirection.West)
                 }
 
                 let xLen = 0
                 let yLen = 0
-                let direction = Direction.North
+
                 let dimensions: Dimensions = [0, 0]
                 switch (true) {
-                    case this.isOnboardCell(neighbors[Direction.North]) &&
-                        this.isOnboardCell(neighbors[Direction.West]) &&
-                        (this.isOffboardCell(neighbors[Direction.South]) ||
-                            !neighbors[Direction.South]) &&
-                        (this.isOffboardCell(neighbors[Direction.East]) ||
-                            !neighbors[Direction.East]): {
-                        xLen = this.getOffboardDistance(coords, Direction.East)
-                        yLen = this.getOffboardDistance(coords, Direction.South)
-                        direction = Direction.NorthWest
+                    case this.isOnboardCell(neighbors[CardinalDirection.North]) &&
+                        this.isOnboardCell(neighbors[CardinalDirection.West]) &&
+                        (this.isOffboardCell(neighbors[CardinalDirection.South]) ||
+                            !neighbors[CardinalDirection.South]) &&
+                        (this.isOffboardCell(neighbors[CardinalDirection.East]) ||
+                            !neighbors[CardinalDirection.East]): {
+                        xLen = this.getOffboardDistance(coords, CardinalDirection.East)
+                        yLen = this.getOffboardDistance(coords, CardinalDirection.South)
                         dimensions = [xLen, yLen]
-                        corners.push({ coords, direction, dimensions })
+                        corners.push({ coords, direction: OrdinalDirection.Northwest, dimensions })
                         break
                     }
-                    case this.isOnboardCell(neighbors[Direction.North]) &&
-                        this.isOnboardCell(neighbors[Direction.East]) &&
-                        (this.isOffboardCell(neighbors[Direction.South]) ||
-                            !neighbors[Direction.South]) &&
-                        (this.isOffboardCell(neighbors[Direction.West]) ||
-                            !neighbors[Direction.West]): {
-                        xLen = this.getOffboardDistance(coords, Direction.West)
-                        yLen = this.getOffboardDistance(coords, Direction.South)
-                        direction = Direction.NorthEast
+                    case this.isOnboardCell(neighbors[CardinalDirection.North]) &&
+                        this.isOnboardCell(neighbors[CardinalDirection.East]) &&
+                        (this.isOffboardCell(neighbors[CardinalDirection.South]) ||
+                            !neighbors[CardinalDirection.South]) &&
+                        (this.isOffboardCell(neighbors[CardinalDirection.West]) ||
+                            !neighbors[CardinalDirection.West]): {
+                        xLen = this.getOffboardDistance(coords, CardinalDirection.West)
+                        yLen = this.getOffboardDistance(coords, CardinalDirection.South)
                         dimensions = [xLen, yLen]
-                        corners.push({ coords, direction, dimensions })
+                        corners.push({ coords, direction: OrdinalDirection.Northeast, dimensions })
                         break
                     }
-                    case this.isOnboardCell(neighbors[Direction.South]) &&
-                        this.isOnboardCell(neighbors[Direction.East]) &&
-                        (this.isOffboardCell(neighbors[Direction.North]) ||
-                            !neighbors[Direction.North]) &&
-                        (this.isOffboardCell(neighbors[Direction.West]) ||
-                            !neighbors[Direction.West]): {
-                        xLen = this.getOffboardDistance(coords, Direction.West)
-                        yLen = this.getOffboardDistance(coords, Direction.North)
-                        direction = Direction.SouthEast
+                    case this.isOnboardCell(neighbors[CardinalDirection.South]) &&
+                        this.isOnboardCell(neighbors[CardinalDirection.East]) &&
+                        (this.isOffboardCell(neighbors[CardinalDirection.North]) ||
+                            !neighbors[CardinalDirection.North]) &&
+                        (this.isOffboardCell(neighbors[CardinalDirection.West]) ||
+                            !neighbors[CardinalDirection.West]): {
+                        xLen = this.getOffboardDistance(coords, CardinalDirection.West)
+                        yLen = this.getOffboardDistance(coords, CardinalDirection.North)
                         dimensions = [xLen, yLen]
-                        corners.push({ coords, direction, dimensions })
+                        corners.push({ coords, direction: OrdinalDirection.Southeast, dimensions })
                         break
                     }
-                    case this.isOnboardCell(neighbors[Direction.South]) &&
-                        this.isOnboardCell(neighbors[Direction.West]) &&
-                        (this.isOffboardCell(neighbors[Direction.North]) ||
-                            !neighbors[Direction.North]) &&
-                        (this.isOffboardCell(neighbors[Direction.East]) ||
-                            !neighbors[Direction.East]): {
-                        xLen = this.getOffboardDistance(coords, Direction.East)
-                        yLen = this.getOffboardDistance(coords, Direction.North)
-                        direction = Direction.SouthWest
+                    case this.isOnboardCell(neighbors[CardinalDirection.South]) &&
+                        this.isOnboardCell(neighbors[CardinalDirection.West]) &&
+                        (this.isOffboardCell(neighbors[CardinalDirection.North]) ||
+                            !neighbors[CardinalDirection.North]) &&
+                        (this.isOffboardCell(neighbors[CardinalDirection.East]) ||
+                            !neighbors[CardinalDirection.East]): {
+                        xLen = this.getOffboardDistance(coords, CardinalDirection.East)
+                        yLen = this.getOffboardDistance(coords, CardinalDirection.North)
                         dimensions = [xLen, yLen]
-                        corners.push({ coords, direction, dimensions })
+                        corners.push({ coords, direction: OrdinalDirection.Southwest, dimensions })
                         break
                     }
                 }
@@ -337,7 +285,7 @@ export class HydratedGameBoard
         return corners
     }
 
-    getMostSquareExternalCorner(): { coords: OffsetTupleCoordinates; direction: Direction } {
+    getMostSquareExternalCorner(): { coords: OffsetTupleCoordinates; direction: OrdinalDirection } {
         const xMid = Math.floor(this.dimensions()[0] / 2)
         const yMid = Math.floor(this.dimensions()[1] / 2)
         const eastLimit = xMid
@@ -345,32 +293,32 @@ export class HydratedGameBoard
         const northLimit = this.dimensions()[1] - yMid - 1
         const westLimit = this.dimensions()[0] - xMid - 1
 
-        const corners: { direction: Direction; coords: OffsetTupleCoordinates }[] = [
-            { direction: Direction.NorthWest, coords: [0, 0] },
-            { direction: Direction.NorthEast, coords: [this.dimensions()[0] - 1, 0] },
-            { direction: Direction.SouthWest, coords: [0, this.dimensions()[1] - 1] },
+        const corners: { direction: OrdinalDirection; coords: OffsetTupleCoordinates }[] = [
+            { direction: OrdinalDirection.Northwest, coords: [0, 0] },
+            { direction: OrdinalDirection.Northeast, coords: [this.dimensions()[0] - 1, 0] },
+            { direction: OrdinalDirection.Southwest, coords: [0, this.dimensions()[1] - 1] },
             {
-                direction: Direction.SouthEast,
+                direction: OrdinalDirection.Southeast,
                 coords: [this.dimensions()[0] - 1, this.dimensions()[1] - 1]
             }
         ]
         let mostSquareCorner: OffsetTupleCoordinates | undefined
-        let direction = Direction.NorthWest
+        let direction = OrdinalDirection.Northwest
         let xLen = 0
         let yLen = 0
 
         // Almost always there is one in the actual corner
         for (const corner of corners) {
             switch (corner.direction) {
-                case Direction.NorthWest: {
+                case OrdinalDirection.Northwest: {
                     const eastCoords = this.findOnboardCell(
                         corner.coords,
-                        Direction.East,
+                        CardinalDirection.East,
                         eastLimit
                     )
                     const southCoords = this.findOnboardCell(
                         corner.coords,
-                        Direction.South,
+                        CardinalDirection.South,
                         southLimit
                     )
 
@@ -379,14 +327,14 @@ export class HydratedGameBoard
                     )) {
                         const eastLen = this.getOnboardCount(
                             cornerCoords!,
-                            Direction.East,
-                            Direction.North,
+                            CardinalDirection.East,
+                            CardinalDirection.North,
                             eastLimit
                         )
                         const southLen = this.getOnboardCount(
                             cornerCoords!,
-                            Direction.South,
-                            Direction.West,
+                            CardinalDirection.South,
+                            CardinalDirection.West,
                             southLimit
                         )
                         if (eastLen >= xLen && southLen >= yLen) {
@@ -398,15 +346,15 @@ export class HydratedGameBoard
                     }
                     break
                 }
-                case Direction.NorthEast: {
+                case OrdinalDirection.Northeast: {
                     const westCoords = this.findOnboardCell(
                         corner.coords,
-                        Direction.West,
+                        CardinalDirection.West,
                         westLimit
                     )
                     const southCoords = this.findOnboardCell(
                         corner.coords,
-                        Direction.South,
+                        CardinalDirection.South,
                         southLimit
                     )
 
@@ -415,14 +363,14 @@ export class HydratedGameBoard
                     )) {
                         const westLen = this.getOnboardCount(
                             cornerCoords!,
-                            Direction.West,
-                            Direction.North,
+                            CardinalDirection.West,
+                            CardinalDirection.North,
                             westLimit
                         )
                         const southLen = this.getOnboardCount(
                             cornerCoords!,
-                            Direction.South,
-                            Direction.East,
+                            CardinalDirection.South,
+                            CardinalDirection.East,
                             southLimit
                         )
 
@@ -435,15 +383,15 @@ export class HydratedGameBoard
                     }
                     break
                 }
-                case Direction.SouthWest: {
+                case OrdinalDirection.Southwest: {
                     const eastCoords = this.findOnboardCell(
                         corner.coords,
-                        Direction.East,
+                        CardinalDirection.East,
                         eastLimit
                     )
                     const northCoords = this.findOnboardCell(
                         corner.coords,
-                        Direction.North,
+                        CardinalDirection.North,
                         northLimit
                     )
 
@@ -452,14 +400,14 @@ export class HydratedGameBoard
                     )) {
                         const eastLen = this.getOnboardCount(
                             cornerCoords!,
-                            Direction.East,
-                            Direction.South,
+                            CardinalDirection.East,
+                            CardinalDirection.South,
                             eastLimit
                         )
                         const northLen = this.getOnboardCount(
                             cornerCoords!,
-                            Direction.North,
-                            Direction.West,
+                            CardinalDirection.North,
+                            CardinalDirection.West,
                             northLimit
                         )
 
@@ -472,15 +420,15 @@ export class HydratedGameBoard
                     }
                     break
                 }
-                case Direction.SouthEast: {
+                case OrdinalDirection.Southeast: {
                     const westCoords = this.findOnboardCell(
                         corner.coords,
-                        Direction.West,
+                        CardinalDirection.West,
                         westLimit
                     )
                     const northCoords = this.findOnboardCell(
                         corner.coords,
-                        Direction.North,
+                        CardinalDirection.North,
                         northLimit
                     )
 
@@ -489,14 +437,14 @@ export class HydratedGameBoard
                     )) {
                         const westLen = this.getOnboardCount(
                             cornerCoords!,
-                            Direction.West,
-                            Direction.South,
+                            CardinalDirection.West,
+                            CardinalDirection.South,
                             westLimit
                         )
                         const northLen = this.getOnboardCount(
                             cornerCoords!,
-                            Direction.North,
-                            Direction.East,
+                            CardinalDirection.North,
+                            CardinalDirection.East,
                             northLimit
                         )
 
@@ -520,7 +468,7 @@ export class HydratedGameBoard
 
     private findOnboardCell(
         coords: OffsetTupleCoordinates,
-        direction: Direction,
+        direction: CardinalDirection,
         limit: number
     ): OffsetTupleCoordinates | undefined {
         let [x, y] = coords
@@ -528,25 +476,25 @@ export class HydratedGameBoard
         while (this.isOffboardCell(cell)) {
             cell = this.getNeighbor([x, y], direction)
             switch (direction) {
-                case Direction.North:
+                case CardinalDirection.North:
                     y -= 1
                     if (y <= limit) {
                         return
                     }
                     break
-                case Direction.East:
+                case CardinalDirection.East:
                     x += 1
                     if (x >= limit) {
                         return
                     }
                     break
-                case Direction.South:
+                case CardinalDirection.South:
                     y += 1
                     if (y >= limit) {
                         return
                     }
                     break
-                case Direction.West:
+                case CardinalDirection.West:
                     x -= 1
                     if (x <= limit) {
                         return
@@ -560,8 +508,8 @@ export class HydratedGameBoard
 
     private getOnboardCount(
         coords: OffsetTupleCoordinates,
-        direction: Direction,
-        edge: Direction,
+        direction: CardinalDirection,
+        edge: CardinalDirection,
         limit: number
     ): number {
         let distance = 0
@@ -573,25 +521,25 @@ export class HydratedGameBoard
             distance += 1
             cell = this.getNeighbor([x, y], direction)
             switch (direction) {
-                case Direction.North:
+                case CardinalDirection.North:
                     y -= 1
                     if (y <= limit) {
                         atLimit = true
                     }
                     break
-                case Direction.East:
+                case CardinalDirection.East:
                     x += 1
                     if (x >= limit) {
                         atLimit = true
                     }
                     break
-                case Direction.South:
+                case CardinalDirection.South:
                     y += 1
                     if (y >= limit) {
                         atLimit = true
                     }
                     break
-                case Direction.West:
+                case CardinalDirection.West:
                     x -= 1
                     if (x <= limit) {
                         atLimit = true
@@ -604,7 +552,10 @@ export class HydratedGameBoard
         return distance
     }
 
-    private getOffboardDistance(coords: OffsetTupleCoordinates, direction: Direction): number {
+    private getOffboardDistance(
+        coords: OffsetTupleCoordinates,
+        direction: CardinalDirection
+    ): number {
         let distance = 0
         let [x, y] = coords
         let cell = this.getCell([x, y])
@@ -612,16 +563,16 @@ export class HydratedGameBoard
             distance += 1
             cell = this.getNeighbor([x, y], direction)
             switch (direction) {
-                case Direction.North:
+                case CardinalDirection.North:
                     y -= 1
                     break
-                case Direction.East:
+                case CardinalDirection.East:
                     x += 1
                     break
-                case Direction.South:
+                case CardinalDirection.South:
                     y += 1
                     break
-                case Direction.West:
+                case CardinalDirection.West:
                     x -= 1
                     break
             }
