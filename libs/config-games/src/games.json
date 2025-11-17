@@ -1,3 +1,8 @@
 {
-    "availableGames": ["@tabletop/fresh-fish", "@tabletop/kaivai", "@tabletop/sol"]
+    "availableGames": [
+        "@tabletop/fresh-fish",
+        "@tabletop/kaivai",
+        "@tabletop/estates",
+        "@tabletop/bridges-of-shangri-la"
+    ]
 }
