@@ -29,9 +29,9 @@ export * from './game/model/round.js'
 export * from './game/model/phase.js'
 export * from './game/model/colors.js'
 
-export * from './grid/coordinates.js'
-export * from './grid/floodTraverser.js'
+export * from './hexGrid/floodTraverser.js'
 
+export * from './graph/coordinates.js'
 export * from './graph/graph.js'
 export * from './graph/orthogonalGrid.js'
 export * from './graph/directions.js'

@@ -1,4 +1,4 @@
-import { OffsetCoordinates } from '../grid/coordinates.js'
+import { OffsetCoordinates } from './coordinates.js'
 import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from './graph.js'
 import { CardinalDirection } from './directions.js'
 

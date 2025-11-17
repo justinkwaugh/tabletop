@@ -1,4 +1,4 @@
-import { Coordinates, coordinatesToNumber } from '../grid/coordinates.js'
+import { Coordinates, coordinatesToNumber } from './coordinates.js'
 
 export type NodeIdentifier = string | number
 

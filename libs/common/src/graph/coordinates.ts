@@ -15,7 +15,9 @@ export const OffsetCoordinates = Type.Object({
     row: Type.Number()
 })
 
-// Deprecated: use OffsetCoordinates instead
+/**
+ * @deprecated It is recommended to use OffsetCoordinates instead
+ */
 export type OffsetTupleCoordinates = Static<typeof OffsetTupleCoordinates>
 export const OffsetTupleCoordinates = Type.Tuple([Type.Number(), Type.Number()])
 
@@ -43,6 +45,7 @@ export const AxialCoordinates = Type.Object({
     r: Type.Number()
 })
 
+// Should this even be offered?
 export type HexTupleCoordinates = Static<typeof HexTupleCoordinates>
 export const HexTupleCoordinates = Type.Tuple([
     Type.Number(),
