@@ -36,6 +36,7 @@ export * from './graph/graph.js'
 export * from './graph/orthogonalGrid.js'
 export * from './graph/directions.js'
 export * from './graph/traversers/breadthFirst.js'
+export * from './graph/pathfinders/shortestPath.js'
 
 export * from './site/notifications/notification.js'
 export * from './site/notifications/gameNotification.js'

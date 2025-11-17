@@ -1,5 +1,5 @@
 import { generateSeed } from '../../util/prng.js'
-import { Game, GameCategory, GameStatus } from '../model/game.js'
+import { Game, GameCategory, GameStatus, GameStorage } from '../model/game.js'
 import {
     GameState,
     type HydratedGameState,
@@ -20,7 +20,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
     initializeGame(game: Partial<Game>): Game {
         const newGame: Game = <Game>{
             id: game.id,
-            isPublic: game.isPublic,
+            isPublic: game.isPublic || false,
             status: GameStatus.WaitingForPlayers,
             typeId: game.typeId,
             deleted: false,
@@ -33,7 +33,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
             seed: game.seed ?? generateSeed(),
             activePlayerIds: [],
             createdAt: new Date(), // This will be updated by the db
-            storage: game.storage ?? Game.Storage.Remote,
+            storage: game.storage ?? GameStorage.Remote,
             parentId: game.parentId,
             category: game.category ?? GameCategory.Standard
         }

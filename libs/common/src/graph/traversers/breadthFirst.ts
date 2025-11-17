@@ -1,5 +1,11 @@
 import { type Node, type NodeIdentifier, type Traverser } from '../graph.js'
 
+export interface BreadthFirstOptions<T extends Node> {
+    start: T
+    range?: number
+    canTraverse?: (from: T, to: T) => boolean
+}
+
 export function breadthFirst<T extends Node>(options: BreadthFirstOptions<T>): Traverser<T> {
     return function breadthFirstTraverser(graph) {
         const visitedNodes = new Map<NodeIdentifier, T>()
@@ -28,10 +34,4 @@ export function breadthFirst<T extends Node>(options: BreadthFirstOptions<T>): T
         }
         return [...visitedNodes.values()]
     }
-}
-
-export interface BreadthFirstOptions<T extends Node> {
-    start: T
-    range?: number
-    canTraverse?: (from: T, to: T) => boolean
 }

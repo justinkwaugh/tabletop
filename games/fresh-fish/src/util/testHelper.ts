@@ -1,4 +1,4 @@
-import { Game, GameEngine, range } from '@tabletop/common'
+import { Game, GameEngine, PlayerStatus, range } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { v4 as uuid } from 'uuid'
 import { FreshFishGameConfig } from '../definition/gameConfig.js'
@@ -12,7 +12,8 @@ export function generateTestState(config: TestStateConfig = {}): HydratedFreshFi
     const players = range(1, config.numPlayers ?? 3).map((playerNum) => ({
         id: `p${playerNum}`,
         name: `P${playerNum}`,
-        isHuman: false
+        isHuman: false,
+        status: PlayerStatus.Joined
     }))
 
     const newGame = <Partial<Game>>{
