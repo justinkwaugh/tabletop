@@ -144,13 +144,7 @@
             return
         }
 
-        // Clear before apply, because effects may trigger before apply completes
-        // and the clearing will overwrite what they did
-
-        gameSession.chosenAction = undefined
         showBorder = false
-        gameSession.clearExpropriationPreview()
-
         await gameSession.applyAction(action)
     }
 

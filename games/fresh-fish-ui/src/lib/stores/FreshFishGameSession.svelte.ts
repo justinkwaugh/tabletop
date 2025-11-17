@@ -26,6 +26,20 @@ export class FreshFishGameSession extends GameSession<
     previewExpropriateCoords: OffsetTupleCoordinates[] = $state([])
     highlightedCoords: OffsetTupleCoordinates | undefined = $state()
 
+    override async onGameStateChange({
+        to,
+        from,
+        timeline
+    }: {
+        to: FreshFishGameState
+        from?: FreshFishGameState
+        timeline: unknown
+    }) {
+        this.chosenAction = undefined
+        this.clearExpropriationPreview()
+        this.clearHighlightedCoords()
+    }
+
     nameForActionType(actionType: string) {
         switch (actionType) {
             case ActionType.DrawTile:

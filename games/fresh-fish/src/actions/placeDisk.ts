@@ -47,7 +47,7 @@ export class HydratedPlaceDisk extends HydratableAction<typeof PlaceDisk> implem
 
         if (
             state.turnManager.turnCount(this.playerId) > 0 &&
-            !board.hasOrthogonalTile(this.coords)
+            !board.hasOrthogonalPiece(this.coords)
         ) {
             throw Error(
                 `Disk at must be placed orthogonal to an populated space after the first turn`
@@ -67,7 +67,7 @@ export class HydratedPlaceDisk extends HydratableAction<typeof PlaceDisk> implem
         return (
             board.isInBounds(coords) &&
             board.isEmptyCell(board.getCell(coords)) &&
-            (state.turnManager.turnCount(playerId) === 0 || board.hasOrthogonalTile(coords))
+            (state.turnManager.turnCount(playerId) === 0 || board.hasOrthogonalPiece(coords))
         )
     }
 }

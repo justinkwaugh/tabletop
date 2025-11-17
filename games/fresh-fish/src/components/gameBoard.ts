@@ -145,7 +145,7 @@ export class HydratedGameBoard
         this.cells[row][col] = cell
     }
 
-    hasOrthogonalTile(coords: OffsetTupleCoordinates) {
+    hasOrthogonalPiece(coords: OffsetTupleCoordinates) {
         return (
             Object.values(CardinalDirection).find((direction) => {
                 return this.isPopulatedCell(this.getNeighbor(coords, direction))
