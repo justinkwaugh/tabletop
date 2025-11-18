@@ -1,21 +1,24 @@
 import { describe, expect, it } from 'vitest'
 import { RectilinearGrid } from '../grids/rectilinear.js'
-import { coordinatesToNumber } from '../coordinates.js'
+import { coordinatesToNumber, OffsetCoordinates } from '../coordinates.js'
 import { line } from '../patterns/line.js'
 import { patternTraverser } from './pattern.js'
 import { CardinalDirection } from '../directions.js'
+import { patternGenerator } from '../generator.js'
+import { rectangle } from '../patterns/rectangle.js'
+
+function createTestNode(coords: OffsetCoordinates) {
+    return { id: coordinatesToNumber(coords), coords }
+}
 
 describe('Pattern Traverser Tests', () => {
     it('Traverses a line pattern', () => {
         const graph = new RectilinearGrid()
-        for (let i = 0; i < 5; i++) {
-            for (let j = 0; j < 5; j++) {
-                graph.addNode({
-                    id: coordinatesToNumber({ row: i, col: j }),
-                    coords: { row: i, col: j }
-                })
-            }
-        }
+        const nodeGenerator = patternGenerator(
+            rectangle({ start: { row: 0, col: 0 }, width: 5, height: 5 }),
+            createTestNode
+        )
+        graph.addNodes(nodeGenerator)
 
         const linePattern = line({
             start: { row: 0, col: 0 },
@@ -32,14 +35,11 @@ describe('Pattern Traverser Tests', () => {
 
     it('Traverses multiple patterns', () => {
         const graph = new RectilinearGrid()
-        for (let i = 0; i < 5; i++) {
-            for (let j = 0; j < 5; j++) {
-                graph.addNode({
-                    id: coordinatesToNumber({ row: i, col: j }),
-                    coords: { row: i, col: j }
-                })
-            }
-        }
+        const generator = patternGenerator(
+            rectangle({ start: { row: 0, col: 0 }, width: 5, height: 5 }),
+            createTestNode
+        )
+        graph.addNodes(generator)
 
         const linePattern = line({
             start: { row: 0, col: 0 },

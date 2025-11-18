@@ -7,17 +7,21 @@ export interface Node {
     id: NodeIdentifier
 }
 
-export type Direction = string
+// Generates a list of nodes
+export type NodeGenerator<T extends Node> = () => Iterable<T>
 
-// Traverses a graph and returns a list of nodes
+// Traverses a graph and returns an iterable of nodes
 export type Traverser<G extends Graph<T>, T extends Node> = (graph: G) => Iterable<T>
 
 // Finds a path through a graph and returns a list of paths
 export type Pathfinder<T extends Node, R extends Iterable<T[]> = T[][]> = (graph: Graph<T>) => R
 
+export type Direction = string
+
 export interface Graph<T extends Node> extends Iterable<T> {
     getNode(id: NodeIdentifier): T | undefined
     addNode(node: T): void
+    addNodes(nodes: T[] | NodeGenerator<T>): void
     removeNode(id: NodeIdentifier): void
     removeNode(node: T): void
     findPaths(pathfinder: Pathfinder<T>): T[][]
@@ -52,6 +56,18 @@ export abstract class BaseGraph<T extends Node> implements Graph<T> {
 
     public addNode(node: T) {
         this.nodes[node.id] = node
+    }
+
+    public addNodes(nodes: T[] | NodeGenerator<T>) {
+        if (Array.isArray(nodes)) {
+            for (const node of nodes) {
+                this.addNode(node)
+            }
+        } else {
+            for (const node of nodes()) {
+                this.addNode(node)
+            }
+        }
     }
 
     public removeNode(nodeOrId: T | NodeIdentifier): T | undefined {
