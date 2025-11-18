@@ -1,11 +1,15 @@
-import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from './coordinatedGraph.js'
-import { OffsetCoordinates } from './coordinates.js'
-import { CardinalDirection } from './directions.js'
-import { NodeIdentifier } from './graph.js'
+import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from '../coordinatedGraph.js'
+import { OffsetCoordinates } from '../coordinates.js'
+import { CardinalDirection, OrdinalDirection } from '../directions.js'
+import { NodeIdentifier } from '../graph.js'
 
-export type OrthogonalGridNode = CoordinatedNode<OffsetCoordinates>
+export type RectilinearGridNode = CoordinatedNode<OffsetCoordinates>
 
-export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
+export function areOrthogonal(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
+    return coordsA.row === coordsB.row || coordsA.col === coordsB.col
+}
+
+export class RectilinearGrid<T extends RectilinearGridNode = RectilinearGridNode>
     extends BaseCoordinatedGraph<T, OffsetCoordinates>
     implements CoordinatedGraph<T, OffsetCoordinates>
 {
@@ -85,7 +89,10 @@ export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
         return row >= this.minRow && row <= this.maxRow && col >= this.minCol && col <= this.maxCol
     }
 
-    neighborAt(coords: OffsetCoordinates, direction: CardinalDirection): T | undefined {
+    neighborAt(
+        coords: OffsetCoordinates,
+        direction: CardinalDirection | OrdinalDirection
+    ): T | undefined {
         const node = this.nodeAt(coords)
         if (!node) {
             return undefined
@@ -93,12 +100,15 @@ export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
         return this.neighborOf(node, direction)
     }
 
-    neighborOf(node: T, direction: CardinalDirection): T | undefined {
+    neighborOf(node: T, direction: CardinalDirection | OrdinalDirection): T | undefined {
         const neighborCoords = this.neighborCoords(node.coords, direction)
         return this.nodeAt(neighborCoords)
     }
 
-    override neighborsAt(coords: OffsetCoordinates, direction?: CardinalDirection): T[] {
+    override neighborsAt(
+        coords: OffsetCoordinates,
+        direction?: CardinalDirection | OrdinalDirection
+    ): T[] {
         const node = this.nodeAt(coords)
         if (!node) {
             return []
@@ -106,20 +116,23 @@ export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
         return this.neighborsOf(node, direction)
     }
 
-    override neighborsOf(node: T, direction?: CardinalDirection): T[] {
+    override neighborsOf(node: T, direction?: CardinalDirection | OrdinalDirection): T[] {
         if (direction) {
             const neighborCoords = this.neighborCoords(node.coords, direction)
             const neighbor = this.nodeAt(neighborCoords)
             return neighbor ? [neighbor] : []
         } else {
-            return Object.values(CardinalDirection)
+            return [...Object.values(CardinalDirection), ...Object.values(OrdinalDirection)]
                 .map((direction) => this.neighborCoords(node.coords, direction))
                 .map((coords) => this.nodeAt(coords))
                 .filter((n) => n !== undefined)
         }
     }
 
-    neighborCoords(coords: OffsetCoordinates, direction: CardinalDirection): OffsetCoordinates {
+    neighborCoords(
+        coords: OffsetCoordinates,
+        direction: CardinalDirection | OrdinalDirection
+    ): OffsetCoordinates {
         const { row, col } = coords
         switch (direction) {
             case CardinalDirection.North:
@@ -130,6 +143,14 @@ export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
                 return { row, col: col + 1 }
             case CardinalDirection.West:
                 return { row, col: col - 1 }
+            case OrdinalDirection.Northeast:
+                return { row: row - 1, col: col + 1 }
+            case OrdinalDirection.Northwest:
+                return { row: row - 1, col: col - 1 }
+            case OrdinalDirection.Southeast:
+                return { row: row + 1, col: col + 1 }
+            case OrdinalDirection.Southwest:
+                return { row: row + 1, col: col - 1 }
         }
     }
 }

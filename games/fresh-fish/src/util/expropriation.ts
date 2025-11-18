@@ -2,10 +2,11 @@ import {
     breadthFirst,
     OffsetCoordinates,
     OffsetTupleCoordinates,
-    OrthogonalGridNode,
+    RectilinearGridNode,
     sameCoordinates,
     offsetTupleToOffset,
-    offsetToOffsetTuple
+    offsetToOffsetTuple,
+    areOrthogonal
 } from '@tabletop/common'
 import { canBeBlocked, Cell, isDiskCell, isTraversable } from '../components/cells.js'
 import { HydratedGameBoard } from '../components/gameBoard.js'
@@ -86,10 +87,11 @@ export class Expropriator {
 
     private canTraverse(
         options: TraversalOptions,
-        from: OrthogonalGridNode,
-        to: OrthogonalGridNode
+        from: RectilinearGridNode,
+        to: RectilinearGridNode
     ) {
         if (
+            !areOrthogonal(from.coords, to.coords) ||
             sameCoordinates(from.coords, options.blocked) ||
             (options.placement && sameCoordinates(from.coords, options.placement))
         ) {

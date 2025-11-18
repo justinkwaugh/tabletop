@@ -1,13 +1,13 @@
 import {
     CardinalDirection,
     coordinatesToNumber,
-    OrthogonalGrid,
-    OrthogonalGridNode
+    RectilinearGrid,
+    RectilinearGridNode
 } from '@tabletop/common'
 
 import { Cell, CellType } from '../components/cells.js'
 
-export class FreshFishGraph extends OrthogonalGrid {
+export class FreshFishGraph extends RectilinearGrid {
     constructor(cells: Cell[][]) {
         super()
         this.initialize(cells)
@@ -19,7 +19,7 @@ export class FreshFishGraph extends OrthogonalGrid {
                 const cell = cells[row][col]
                 const coords = { row, col }
                 if (cell.type !== CellType.OffBoard) {
-                    const node: OrthogonalGridNode = {
+                    const node: RectilinearGridNode = {
                         id: coordinatesToNumber(coords),
                         coords
                     }

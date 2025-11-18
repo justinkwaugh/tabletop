@@ -4,10 +4,11 @@ import { GoodsType } from '../definition/goodsType.js'
 import { FreshFishPlayerState } from '../model/playerState.js'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import {
+    areOrthogonal,
     OffsetCoordinates,
     offsetToOffsetTuple,
     OffsetTupleCoordinates,
-    OrthogonalGridNode,
+    RectilinearGridNode,
     sameCoordinates,
     shortestPath
 } from '@tabletop/common'
@@ -134,7 +135,14 @@ export class Scorer {
         return (this.graph.findFirstPath(pathfinder) ?? []).map((node) => node.coords)
     }
 
-    private canTraverse(end: OffsetCoordinates, from: OrthogonalGridNode, to: OrthogonalGridNode) {
+    private canTraverse(
+        end: OffsetCoordinates,
+        from: RectilinearGridNode,
+        to: RectilinearGridNode
+    ) {
+        if (!areOrthogonal(from.coords, to.coords)) {
+            return false
+        }
         const fromCell = this.board.cellAt(from.coords)
         const toCell = this.board.cellAt(to.coords)
         if (!fromCell || !toCell) {
