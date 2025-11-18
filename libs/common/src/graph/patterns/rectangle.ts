@@ -8,8 +8,8 @@ export type Rectangle = {
     solid?: boolean
 }
 
-export function rectangle(config: Rectangle): CoordinatePattern<OffsetCoordinates> {
-    return function* rectanglePattern() {
+export function rectanglePattern(config: Rectangle): CoordinatePattern<OffsetCoordinates> {
+    return function* pattern() {
         const solid = config.solid ?? true
         if (solid) {
             yield* generateSolidRectangle(config)

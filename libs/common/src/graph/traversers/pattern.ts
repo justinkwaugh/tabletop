@@ -8,7 +8,7 @@ export function patternTraverser<T extends CoordinatedNode<U>, U extends Coordin
 ): Traverser<CoordinatedGraph<T, U>, T> {
     const patterns = Array.isArray(patternOrPatterns) ? patternOrPatterns : [patternOrPatterns]
 
-    return function* traverser(graph) {
+    return function* traverse(graph) {
         for (const pattern of patterns) {
             for (const coords of pattern()) {
                 const node = graph.nodeAt(coords)

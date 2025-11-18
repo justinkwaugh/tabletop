@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { RectilinearGrid } from '../grids/rectilinear.js'
 import { coordinatesToNumber, OffsetCoordinates } from '../coordinates.js'
 import { patternGenerator } from '../generator.js'
-import { rectangle } from '../patterns/rectangle.js'
+import { rectanglePattern } from '../patterns/rectangle.js'
 import { breadthFirstAlgorithm } from './breadthFirst.js'
 
 function createTestNode(coords: OffsetCoordinates) {
@@ -13,7 +13,7 @@ describe('Breadth First Algorithm Tests', () => {
     it('Traverses entire graph', () => {
         const graph = new RectilinearGrid()
         const nodeGenerator = patternGenerator(
-            rectangle({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
+            rectanglePattern({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
             createTestNode
         )
         graph.addNodes(nodeGenerator)
@@ -30,7 +30,7 @@ describe('Breadth First Algorithm Tests', () => {
     it('Respects range limit', () => {
         const graph = new RectilinearGrid()
         const nodeGenerator = patternGenerator(
-            rectangle({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
+            rectanglePattern({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
             createTestNode
         )
         graph.addNodes(nodeGenerator)
@@ -45,7 +45,7 @@ describe('Breadth First Algorithm Tests', () => {
     it('Respects canTraverse', () => {
         const graph = new RectilinearGrid()
         const nodeGenerator = patternGenerator(
-            rectangle({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
+            rectanglePattern({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
             createTestNode
         )
         graph.addNodes(nodeGenerator)

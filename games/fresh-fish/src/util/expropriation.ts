@@ -1,5 +1,5 @@
 import {
-    breadthFirst,
+    breadthFirstTraverser,
     OffsetCoordinates,
     OffsetTupleCoordinates,
     RectilinearGridNode,
@@ -70,7 +70,7 @@ export class Expropriator {
             return () => []
         }
 
-        return breadthFirst({
+        return breadthFirstTraverser({
             start: startNode,
             canTraverse: this.canTraverse.bind(this, options)
         })

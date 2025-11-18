@@ -18,8 +18,10 @@ export type LineVector = {
     length: number
 }
 
-export function line(config: LineSegment | LineVector): CoordinatePattern<OffsetCoordinates> {
-    return function* linePattern() {
+export function linePattern(
+    config: LineSegment | LineVector
+): CoordinatePattern<OffsetCoordinates> {
+    return function* pattern() {
         const current: OffsetCoordinates = { ...config.start }
         if (!isLineSegment(config)) {
             for (let i = 0; i < config.length; i++) {

@@ -1,21 +1,21 @@
 import { Node, Graph, NodeIdentifier } from '../graph.js'
 
-export interface BreadthFirstOptions<T extends Node> {
+export interface BreadthFirstAlgorithmOptions<T extends Node> {
     start: T
     range?: number
     canTraverse?: (from: T, to: T) => boolean
 }
 
-export type BreadthFirstResult<T extends Node> = {
+export type BreadthFirstAlgorithmResult<T extends Node> = {
     depth: number
     prior?: T
     node: T
 }
 
 export function* breadthFirstAlgorithm<T extends Node, G extends Graph<T>>(
-    options: BreadthFirstOptions<T>,
+    options: BreadthFirstAlgorithmOptions<T>,
     graph: G
-): Iterable<BreadthFirstResult<T>> {
+): Iterable<BreadthFirstAlgorithmResult<T>> {
     const visitedNodes = new Map<NodeIdentifier, T>()
     const startNode = options.start
     let depth = 0

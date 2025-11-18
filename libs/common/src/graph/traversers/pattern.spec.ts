@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { RectilinearGrid } from '../grids/rectilinear.js'
 import { coordinatesToNumber, OffsetCoordinates } from '../coordinates.js'
-import { line } from '../patterns/line.js'
+import { linePattern } from '../patterns/line.js'
 import { patternTraverser } from './pattern.js'
 import { CardinalDirection } from '../directions.js'
 import { patternGenerator } from '../generator.js'
-import { rectangle } from '../patterns/rectangle.js'
+import { rectanglePattern } from '../patterns/rectangle.js'
 
 function createTestNode(coords: OffsetCoordinates) {
     return { id: coordinatesToNumber(coords), coords }
@@ -15,17 +15,17 @@ describe('Pattern Traverser Tests', () => {
     it('Traverses a line pattern', () => {
         const graph = new RectilinearGrid()
         const nodeGenerator = patternGenerator(
-            rectangle({ start: { row: 0, col: 0 }, width: 5, height: 5 }),
+            rectanglePattern({ start: { row: 0, col: 0 }, width: 5, height: 5 }),
             createTestNode
         )
         graph.addNodes(nodeGenerator)
 
-        const linePattern = line({
+        const pattern = linePattern({
             start: { row: 0, col: 0 },
             length: 3,
             direction: CardinalDirection.East
         })
-        const lineTraverser = patternTraverser(linePattern)
+        const lineTraverser = patternTraverser(pattern)
         const nodes = Array.from(graph.traverse(lineTraverser))
         expect(nodes.length).toEqual(3)
         expect(nodes[0].coords).toEqual({ row: 0, col: 0 })
@@ -36,22 +36,22 @@ describe('Pattern Traverser Tests', () => {
     it('Traverses multiple patterns', () => {
         const graph = new RectilinearGrid()
         const generator = patternGenerator(
-            rectangle({ start: { row: 0, col: 0 }, width: 5, height: 5 }),
+            rectanglePattern({ start: { row: 0, col: 0 }, width: 5, height: 5 }),
             createTestNode
         )
         graph.addNodes(generator)
 
-        const linePattern = line({
+        const pattern = linePattern({
             start: { row: 0, col: 0 },
             length: 3,
             direction: CardinalDirection.East
         })
-        const linePattern2 = line({
+        const pattern2 = linePattern({
             start: { row: 0, col: 0 },
             length: 3,
             direction: CardinalDirection.South
         })
-        const lineTraverser = patternTraverser([linePattern, linePattern2])
+        const lineTraverser = patternTraverser([pattern, pattern2])
         const nodes = Array.from(graph.traverse(lineTraverser))
         expect(nodes.length).toEqual(6)
         expect(nodes[0].coords).toEqual({ row: 0, col: 0 })
@@ -65,16 +65,16 @@ describe('Pattern Traverser Tests', () => {
     it('Traverses out of bounds', () => {
         const graph = new RectilinearGrid()
         const nodeGenerator = patternGenerator(
-            rectangle({ start: { row: 0, col: 0 }, width: 2, height: 5 }),
+            rectanglePattern({ start: { row: 0, col: 0 }, width: 2, height: 5 }),
             createTestNode
         )
         graph.addNodes(nodeGenerator)
-        const linePattern = line({
+        const pattern = linePattern({
             start: { row: 0, col: 0 },
             length: 8,
             direction: CardinalDirection.East
         })
-        const lineTraverser = patternTraverser(linePattern)
+        const lineTraverser = patternTraverser(pattern)
         const nodes = Array.from(graph.traverse(lineTraverser))
         expect(nodes.length).toEqual(2)
         expect(nodes[0].coords).toEqual({ row: 0, col: 0 })

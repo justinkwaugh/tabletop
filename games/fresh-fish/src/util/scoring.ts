@@ -10,7 +10,7 @@ import {
     OffsetTupleCoordinates,
     RectilinearGridNode,
     sameCoordinates,
-    shortestPath
+    shortestPathPathfinder
 } from '@tabletop/common'
 import { FreshFishGraph } from './freshFishGraph.js'
 import { HydratedGameBoard } from 'src/components/gameBoard.js'
@@ -127,7 +127,7 @@ export class Scorer {
             return []
         }
 
-        const pathfinder = shortestPath({
+        const pathfinder = shortestPathPathfinder({
             start: startNode,
             end: endNode,
             canTraverse: this.canTraverse.bind(this, endNode.coords)

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { rectangle } from './rectangle.js'
+import { rectanglePattern } from './rectangle.js'
 
 describe('Rectangle Pattern Tests', () => {
     it('generates solid rectangle', () => {
-        const rectanglePattern = rectangle({
+        const pattern = rectanglePattern({
             start: { row: 0, col: 0 },
             width: 4,
             height: 3
         })
-        const result = Array.from(rectanglePattern())
+        const result = Array.from(pattern())
         expect(result).toEqual([
             { row: 0, col: 0 },
             { row: 0, col: 1 },
@@ -26,13 +26,13 @@ describe('Rectangle Pattern Tests', () => {
     })
 
     it('generates hollow rectangle', () => {
-        const rectanglePattern = rectangle({
+        const pattern = rectanglePattern({
             start: { row: 0, col: 0 },
             width: 4,
             height: 3,
             solid: false
         })
-        const result = Array.from(rectanglePattern())
+        const result = Array.from(pattern())
         expect(result).toEqual([
             { row: 0, col: 0 },
             { row: 0, col: 1 },
@@ -48,13 +48,13 @@ describe('Rectangle Pattern Tests', () => {
     })
 
     it('generates hollow horizontal line rectangle', () => {
-        const rectanglePattern = rectangle({
+        const pattern = rectanglePattern({
             start: { row: 0, col: 0 },
             width: 4,
             height: 1,
             solid: false
         })
-        const result = Array.from(rectanglePattern())
+        const result = Array.from(pattern())
         expect(result).toEqual([
             { row: 0, col: 0 },
             { row: 0, col: 1 },
@@ -64,13 +64,13 @@ describe('Rectangle Pattern Tests', () => {
     })
 
     it('generates hollow vertical line rectangle', () => {
-        const rectanglePattern = rectangle({
+        const pattern = rectanglePattern({
             start: { row: 0, col: 0 },
             width: 1,
             height: 4,
             solid: false
         })
-        const result = Array.from(rectanglePattern())
+        const result = Array.from(pattern())
         expect(result).toEqual([
             { row: 0, col: 0 },
             { row: 1, col: 0 },
