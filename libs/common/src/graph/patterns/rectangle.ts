@@ -1,5 +1,5 @@
 import { OffsetCoordinates } from '../coordinates.js'
-import { CoordinatePattern } from './pattern.js'
+import { CoordinatePattern } from '../pattern.js'
 
 export type Rectangle = {
     start: OffsetCoordinates
@@ -20,14 +20,16 @@ export function rectangle(config: Rectangle): CoordinatePattern<OffsetCoordinate
 }
 
 function* generateSolidRectangle(rectangle: Rectangle) {
-    const current: OffsetCoordinates = { ...rectangle.start }
+    const rowStart = rectangle.start.row
+    const colStart = rectangle.start.col
     const rowEnd = rectangle.start.row + rectangle.height
     const colEnd = rectangle.start.col + rectangle.width
-    for (let rowOffset = rectangle.start.row; rowOffset < rowEnd; rowOffset++) {
-        for (let colOffset = rectangle.start.col; colOffset < colEnd; colOffset++) {
+
+    for (let rowOffset = rowStart; rowOffset < rowEnd; rowOffset++) {
+        for (let colOffset = colStart; colOffset < colEnd; colOffset++) {
             yield {
-                row: current.row + rowOffset,
-                col: current.col + colOffset
+                row: rowOffset,
+                col: colOffset
             }
         }
     }

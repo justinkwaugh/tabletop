@@ -1,5 +1,6 @@
-import { type Graph, type Node, type NodeIdentifier, type Pathfinder } from '../graph.js'
-
+import { breadthFirstAlgorithm } from '../algorithm/breadthFirst.js'
+import { type Graph, type Node, type NodeIdentifier } from '../graph.js'
+import { Pathfinder } from '../pathfinder.js'
 export interface ShortestPathOptions<T extends Node> {
     start: T
     end: T
@@ -8,42 +9,22 @@ export interface ShortestPathOptions<T extends Node> {
 }
 
 export function shortestPath<T extends Node>(options: ShortestPathOptions<T>): Pathfinder<T> {
-    return function breadthFirstSearch(graph: Graph<T>): T[][] {
-        const visitedNodes = new Map<NodeIdentifier, T>()
-        let depth = 0
-
-        const startNode = options.start
+    return function pathfind(graph: Graph<T>): T[][] {
         const endNode = options.end
         const parents: Map<NodeIdentifier, T> = new Map()
-        const queue: T[] = [startNode]
-        visitedNodes.set(startNode.id, startNode)
 
-        search: while (queue.length > 0 && (options.range === undefined || depth < options.range)) {
-            const numAtCurrentDepth = queue.length
-            for (let i = 0; i < numAtCurrentDepth; i++) {
-                const currentNode = queue.shift()!
-                for (const neighbor of graph.neighborsOf(currentNode)) {
-                    if (options.canTraverse && !options.canTraverse(currentNode, neighbor)) {
-                        continue
-                    }
-                    const neighborId = neighbor.id
-                    if (!visitedNodes.has(neighborId)) {
-                        visitedNodes.set(neighborId, neighbor)
-                        parents.set(neighborId, currentNode)
-
-                        if (neighbor.id === endNode.id) {
-                            break search
-                        }
-                        queue.push(neighbor)
-                    }
-                }
+        for (const node of breadthFirstAlgorithm(options, graph)) {
+            if (node.prior) {
+                parents.set(node.node.id, node.prior)
             }
-            depth++
+            if (node.node.id === endNode.id) {
+                break
+            }
         }
 
         const path = []
 
-        let target = visitedNodes.get(endNode.id)
+        let target: T | undefined = endNode
         while (target) {
             path.unshift(target)
             target = parents.get(target.id)

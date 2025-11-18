@@ -61,4 +61,23 @@ describe('Pattern Traverser Tests', () => {
         expect(nodes[4].coords).toEqual({ row: 1, col: 0 })
         expect(nodes[5].coords).toEqual({ row: 2, col: 0 })
     })
+
+    it('Traverses out of bounds', () => {
+        const graph = new RectilinearGrid()
+        const nodeGenerator = patternGenerator(
+            rectangle({ start: { row: 0, col: 0 }, width: 2, height: 5 }),
+            createTestNode
+        )
+        graph.addNodes(nodeGenerator)
+        const linePattern = line({
+            start: { row: 0, col: 0 },
+            length: 8,
+            direction: CardinalDirection.East
+        })
+        const lineTraverser = patternTraverser(linePattern)
+        const nodes = Array.from(graph.traverse(lineTraverser))
+        expect(nodes.length).toEqual(2)
+        expect(nodes[0].coords).toEqual({ row: 0, col: 0 })
+        expect(nodes[1].coords).toEqual({ row: 0, col: 1 })
+    })
 })

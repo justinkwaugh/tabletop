@@ -31,13 +31,21 @@ export * from './game/model/colors.js'
 
 export * from './hexGrid/floodTraverser.js'
 
-export * from './graph/coordinates.js'
 export * from './graph/graph.js'
+export * from './graph/pathfinder.js'
+export * from './graph/traverser.js'
+export * from './graph/generator.js'
+export * from './graph/directions.js'
+export * from './graph/coordinates.js'
+export * from './graph/pattern.js'
 export * from './graph/coordinatedGraph.js'
 export * from './graph/grids/rectilinear.js'
-export * from './graph/directions.js'
 export * from './graph/traversers/breadthFirst.js'
+export * from './graph/traversers/pattern.js'
 export * from './graph/pathfinders/shortestPath.js'
+
+export * from './graph/patterns/rectangle.js'
+export * from './graph/patterns/line.js'
 
 export * from './site/notifications/notification.js'
 export * from './site/notifications/gameNotification.js'

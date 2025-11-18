@@ -1,3 +1,7 @@
+import { NodeGenerator } from './generator.js'
+import { Pathfinder } from './pathfinder.js'
+import { Traverser } from './traverser.js'
+
 export type NodeIdentifier = string | number
 export function isNodeIdentifier(value: unknown): value is NodeIdentifier {
     return typeof value === 'string' || typeof value === 'number'
@@ -7,15 +11,7 @@ export interface Node {
     id: NodeIdentifier
 }
 
-// Generates a list of nodes
-export type NodeGenerator<T extends Node> = () => Iterable<T>
-
-// Traverses a graph and returns an iterable of nodes
-export type Traverser<G extends Graph<T>, T extends Node> = (graph: G) => Iterable<T>
-
-// Finds a path through a graph and returns a list of paths
-export type Pathfinder<T extends Node, R extends Iterable<T[]> = T[][]> = (graph: Graph<T>) => R
-
+// Represents a direction in a graph
 export type Direction = string
 
 export interface Graph<T extends Node> extends Iterable<T> {

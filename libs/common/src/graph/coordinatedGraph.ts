@@ -1,9 +1,15 @@
 import { Coordinates, coordinatesToNumber } from './coordinates.js'
-import { Node, BaseGraph, Direction, Graph, Traverser } from './graph.js'
+import { Node, BaseGraph, Direction, Graph } from './graph.js'
+import { Traverser } from './traverser.js'
 
 export type CoordinatedNode<T extends Coordinates> = {
     coords: T
 } & Node
+
+export type CoordinatedNodeFactory<
+    U extends Coordinates,
+    T extends CoordinatedNode<U> = CoordinatedNode<U>
+> = (coords: U) => T
 
 export interface CoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordinates>
     extends Graph<T> {
