@@ -21,24 +21,9 @@ export class FreshFishGraph extends OrthogonalGrid {
                 if (cell.type !== CellType.OffBoard) {
                     const node: OrthogonalGridNode = {
                         id: coordinatesToNumber(coords),
-                        coords,
-                        neighbors: {
-                            [CardinalDirection.North]: undefined,
-                            [CardinalDirection.East]: undefined,
-                            [CardinalDirection.West]: undefined,
-                            [CardinalDirection.South]: undefined
-                        }
+                        coords
                     }
                     this.addNode(node)
-                }
-            }
-        }
-
-        for (const node of this) {
-            for (const direction of Object.values(CardinalDirection)) {
-                const neighborCoords = this.neighborCoords(node.coords, direction)
-                if (this.hasAt(neighborCoords)) {
-                    node.neighbors[direction] = neighborCoords
                 }
             }
         }

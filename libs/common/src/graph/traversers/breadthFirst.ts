@@ -1,4 +1,4 @@
-import { type Node, type NodeIdentifier, type Traverser } from '../graph.js'
+import { Graph, type Node, type NodeIdentifier, type Traverser } from '../graph.js'
 
 export interface BreadthFirstOptions<T extends Node> {
     start: T
@@ -6,7 +6,9 @@ export interface BreadthFirstOptions<T extends Node> {
     canTraverse?: (from: T, to: T) => boolean
 }
 
-export function breadthFirst<T extends Node>(options: BreadthFirstOptions<T>): Traverser<T> {
+export function breadthFirst<T extends Node>(
+    options: BreadthFirstOptions<T>
+): Traverser<Graph<T>, T> {
     return function breadthFirstTraverser(graph) {
         const visitedNodes = new Map<NodeIdentifier, T>()
         const startNode = options.start

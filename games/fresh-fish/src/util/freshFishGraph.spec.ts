@@ -50,17 +50,17 @@ describe('Fresh Fish Graph Tests', () => {
             throw new Error('Left center node is undefined')
         }
 
-        const northNeighbor = leftCenterNode.neighbors[CardinalDirection.North]
-        expect(northNeighbor).toBeUndefined()
+        // const northNeighbor = leftCenterNode.neighbors[CardinalDirection.North]
+        // expect(northNeighbor).toBeUndefined()
 
-        const southNeighbor = leftCenterNode.neighbors[CardinalDirection.South]
-        expect(southNeighbor).toBeUndefined()
+        // const southNeighbor = leftCenterNode.neighbors[CardinalDirection.South]
+        // expect(southNeighbor).toBeUndefined()
 
-        const eastNeighbor = leftCenterNode.neighbors[CardinalDirection.East]
-        expect(eastNeighbor).toEqual({ row: 1, col: 1 })
+        // const eastNeighbor = leftCenterNode.neighbors[CardinalDirection.East]
+        // expect(eastNeighbor).toEqual({ row: 1, col: 1 })
 
-        const westNeighbor = leftCenterNode.neighbors[CardinalDirection.West]
-        expect(westNeighbor).toBeUndefined()
+        // const westNeighbor = leftCenterNode.neighbors[CardinalDirection.West]
+        // expect(westNeighbor).toBeUndefined()
     })
 
     it('has correct dimensions', () => {

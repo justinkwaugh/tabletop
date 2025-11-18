@@ -1,11 +1,9 @@
 import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from './coordinatedGraph.js'
 import { OffsetCoordinates } from './coordinates.js'
 import { CardinalDirection } from './directions.js'
-import { isNodeIdentifier, NodeIdentifier } from './graph.js'
+import { NodeIdentifier } from './graph.js'
 
-export type OrthogonalGridNode = CoordinatedNode<OffsetCoordinates> & {
-    neighbors: Record<CardinalDirection, OffsetCoordinates | undefined>
-}
+export type OrthogonalGridNode = CoordinatedNode<OffsetCoordinates>
 
 export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
     extends BaseCoordinatedGraph<T, OffsetCoordinates>
@@ -114,9 +112,9 @@ export class OrthogonalGrid<T extends OrthogonalGridNode = OrthogonalGridNode>
             const neighbor = this.nodeAt(neighborCoords)
             return neighbor ? [neighbor] : []
         } else {
-            return Object.values(node.neighbors)
-                .filter((n) => n !== undefined)
-                .map((coords) => this.nodeAt(coords!))
+            return Object.values(CardinalDirection)
+                .map((direction) => this.neighborCoords(node.coords, direction))
+                .map((coords) => this.nodeAt(coords))
                 .filter((n) => n !== undefined)
         }
     }
