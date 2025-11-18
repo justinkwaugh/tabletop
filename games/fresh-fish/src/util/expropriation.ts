@@ -42,7 +42,7 @@ export class Expropriator {
                 blocked: node.coords,
                 placement: placement ? offsetTupleToOffset(placement) : undefined
             })
-            const traversedNodes = this.graph.traverse(traverser)
+            const traversedNodes = Array.from(this.graph.traverse(traverser))
 
             if (traversedNodes.length !== expectedCount) {
                 expropriated.push({ cell, coords: offsetToOffsetTuple(node.coords) })

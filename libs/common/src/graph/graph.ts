@@ -10,9 +10,7 @@ export interface Node {
 export type Direction = string
 
 // Traverses a graph and returns a list of nodes
-export type Traverser<G extends Graph<T>, T extends Node, R extends Iterable<T> = T[]> = (
-    graph: G
-) => R
+export type Traverser<G extends Graph<T>, T extends Node> = (graph: G) => Iterable<T>
 
 // Finds a path through a graph and returns a list of paths
 export type Pathfinder<T extends Node, R extends Iterable<T[]> = T[][]> = (graph: Graph<T>) => R
@@ -27,7 +25,7 @@ export interface Graph<T extends Node> extends Iterable<T> {
     neighborsOf(node: T, direction?: Direction): T[]
     contains(id: NodeIdentifier): boolean
     contains(node: T): boolean
-    traverse(traverser: Traverser<Graph<T>, T>): T[]
+    traverse(traverser: Traverser<Graph<T>, T>): Iterable<T>
     size(): number
 }
 
@@ -70,7 +68,7 @@ export abstract class BaseGraph<T extends Node> implements Graph<T> {
         return !!this.nodes[id]
     }
 
-    public traverse(traverser: Traverser<Graph<T>, T>): T[] {
+    public traverse(traverser: Traverser<Graph<T>, T>): Iterable<T> {
         return traverser(this)
     }
 

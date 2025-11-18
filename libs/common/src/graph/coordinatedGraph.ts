@@ -10,7 +10,7 @@ export interface CoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordi
     nodeAt(coords: U): T | undefined
     neighborsAt(coords: U, direction?: Direction): T[]
     hasAt(coords: U): boolean
-    traverse(traverser: Traverser<CoordinatedGraph<T, U>, T>): T[]
+    traverse(traverser: Traverser<CoordinatedGraph<T, U>, T>): Iterable<T>
 }
 
 export abstract class BaseCoordinatedGraph<
@@ -32,7 +32,7 @@ export abstract class BaseCoordinatedGraph<
         return !!this.nodeAt(coords)
     }
 
-    public override traverse(traverser: Traverser<CoordinatedGraph<T, U>, T>): T[] {
+    public override traverse(traverser: Traverser<CoordinatedGraph<T, U>, T>): Iterable<T> {
         return traverser(this)
     }
 }

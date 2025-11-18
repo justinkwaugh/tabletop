@@ -68,7 +68,7 @@ export class HydratedSolGameBoard
 
     public reachableCoordinates(coords: OffsetCoordinates, range: number): OffsetCoordinates[] {
         const traverser = solTraverser({ board: this, start: coords, range })
-        return this.graph.traverse(traverser).map((node) => node.coords)
+        return Array.from(this.graph.traverse(traverser)).map((node) => node.coords)
     }
 
     public hasGateBetween(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
