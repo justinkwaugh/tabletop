@@ -1,6 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { szudzikPairSigned } from '../util/pairing.js'
-import { isAxial, isOffset } from 'honeycomb-grid'
 
 export type Point = Static<typeof Point>
 export const Point = Type.Object({
@@ -14,6 +13,17 @@ export const OffsetCoordinates = Type.Object({
     col: Type.Number(),
     row: Type.Number()
 })
+
+export function isOffset(value: unknown): value is OffsetCoordinates {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        'col' in value &&
+        'row' in value &&
+        typeof (value as any).col === 'number' &&
+        typeof (value as any).row === 'number'
+    )
+}
 
 /**
  * @deprecated It is recommended to use OffsetCoordinates instead
@@ -45,6 +55,17 @@ export const AxialCoordinates = Type.Object({
     r: Type.Number()
 })
 
+export function isAxial(value: unknown): value is AxialCoordinates {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        'q' in value &&
+        'r' in value &&
+        typeof (value as any).q === 'number' &&
+        typeof (value as any).r === 'number'
+    )
+}
+
 // Should this even be offered?
 export type HexTupleCoordinates = Static<typeof HexTupleCoordinates>
 export const HexTupleCoordinates = Type.Tuple([
@@ -52,6 +73,21 @@ export const HexTupleCoordinates = Type.Tuple([
     Type.Number(),
     Type.Optional(Type.Number())
 ])
+
+export type CubeCoordinates = Static<typeof CubeCoordinates>
+export const CubeCoordinates = Type.Object({
+    q: Type.Number(),
+    r: Type.Number(),
+    s: Type.Number()
+})
+
+export function axialToCube(coords: AxialCoordinates): CubeCoordinates {
+    return { q: coords.q, r: coords.r, s: -coords.q - coords.r }
+}
+
+export function cubeToAxial(coords: CubeCoordinates): AxialCoordinates {
+    return { q: coords.q, r: coords.r }
+}
 
 export function isHexTuple(value: unknown): value is HexTupleCoordinates {
     return (

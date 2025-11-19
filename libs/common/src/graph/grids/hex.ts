@@ -1,15 +1,35 @@
 import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from '../coordinatedGraph.js'
-import { AxialCoordinates, Coordinates, coordinatesToNumber } from '../coordinates.js'
+import { AxialCoordinates, axialToCube, Point } from '../coordinates.js'
+import {
+    DimensionsRectangle,
+    DimensionsCircle,
+    DimensionsElliptical,
+    isCircleDimensions,
+    isRectangleDimensions,
+    BoundingBox
+} from '../dimensions.js'
 import {
     FlatHexDirection,
     isFlatHexDirection,
     isPointyHexDirection,
     PointyHexDirection
 } from '../directions.js'
+import { NodeIdentifier } from '../graph.js'
+import {
+    addAxial,
+    circleDimensionsToElliptical,
+    hexToCenterPoint,
+    rectangleDimensionsToElliptical
+} from '../utils/hex.js'
 
 export enum HexOrientation {
     PointyTop = 'pointy-top',
     FlatTop = 'flat-top'
+}
+
+export type HexDefinition = {
+    orientation: HexOrientation
+    dimensions?: DimensionsRectangle | DimensionsElliptical | DimensionsCircle
 }
 
 export type HexGridNode = CoordinatedNode<AxialCoordinates>
@@ -19,10 +39,165 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     implements CoordinatedGraph<T, AxialCoordinates>
 {
     orientation: HexOrientation
+    ellipticalDimensions: DimensionsElliptical // Allows for non-regular hexes
 
-    constructor({ orientation }: { orientation: HexOrientation }) {
+    // These are used for quick boundary calculations
+    minXCoords: AxialCoordinates = { q: 0, r: 0 }
+    minYCoords: AxialCoordinates = { q: 0, r: 0 }
+    maxXCoords: AxialCoordinates = { q: 0, r: 0 }
+    maxYCoords: AxialCoordinates = { q: 0, r: 0 }
+
+    constructor({ hexDefinition }: { hexDefinition: HexDefinition }) {
         super()
-        this.orientation = orientation
+        this.orientation = hexDefinition.orientation
+        if (isRectangleDimensions(hexDefinition.dimensions)) {
+            this.ellipticalDimensions = rectangleDimensionsToElliptical(hexDefinition.dimensions)
+        } else if (isCircleDimensions(hexDefinition.dimensions)) {
+            this.ellipticalDimensions = circleDimensionsToElliptical(
+                hexDefinition.dimensions,
+                this.orientation
+            )
+        } else {
+            this.ellipticalDimensions =
+                hexDefinition.dimensions ??
+                (this.orientation === HexOrientation.PointyTop
+                    ? { xRadius: 43.5, yRadius: 50 }
+                    : { xRadius: 50, yRadius: 43.5 })
+        }
+    }
+
+    get pixelWidth(): number {
+        if (this.size() === 0) return 0
+
+        const hexWidth = this.ellipticalDimensions.xRadius * 2
+        const leftCenterPoint = hexToCenterPoint(
+            this.minXCoords,
+            this.ellipticalDimensions,
+            this.orientation
+        )
+        const rightCenterPoint = hexToCenterPoint(
+            this.maxXCoords,
+            this.ellipticalDimensions,
+            this.orientation
+        )
+        return rightCenterPoint.x - leftCenterPoint.x + hexWidth
+    }
+
+    get pixelHeight(): number {
+        if (this.size() === 0) return 0
+
+        const hexHeight = this.ellipticalDimensions.yRadius * 2
+        const topCenterPoint = hexToCenterPoint(
+            this.minYCoords,
+            this.ellipticalDimensions,
+            this.orientation
+        )
+        const bottomCenterPoint = hexToCenterPoint(
+            this.maxYCoords,
+            this.ellipticalDimensions,
+            this.orientation
+        )
+        return bottomCenterPoint.y - topCenterPoint.y + hexHeight
+    }
+
+    get cornerPoint(): Point {
+        if (this.size() === 0) {
+            return { x: 0, y: 0 }
+        }
+        return {
+            x:
+                hexToCenterPoint(this.minXCoords, this.ellipticalDimensions, this.orientation).x -
+                this.ellipticalDimensions.xRadius,
+            y:
+                hexToCenterPoint(this.minYCoords, this.ellipticalDimensions, this.orientation).y -
+                this.ellipticalDimensions.yRadius
+        }
+    }
+
+    get centerOffset(): Point {
+        const cornerPoint = this.cornerPoint
+        return {
+            x: -cornerPoint.x,
+            y: -cornerPoint.y
+        }
+    }
+
+    override addNode(node: T): void {
+        super.addNode(node)
+
+        const { q, r } = node.coords
+
+        if (this.size() === 1) {
+            this.minXCoords = { q, r }
+            this.maxXCoords = { q, r }
+            this.minYCoords = { q, r }
+            this.maxYCoords = { q, r }
+        } else if (this.orientation === HexOrientation.PointyTop) {
+            const cubeMinX = axialToCube(this.minXCoords)
+            const cubeMaxX = axialToCube(this.maxXCoords)
+            const cubeCurrent = axialToCube(node.coords)
+
+            if (cubeCurrent.s > cubeMinX.s || cubeCurrent.q < cubeMinX.q) {
+                this.minXCoords = { q, r }
+            }
+            if (cubeCurrent.s < cubeMaxX.s || cubeCurrent.q > cubeMaxX.q) {
+                this.maxXCoords = { q, r }
+            }
+            if (r < this.minYCoords.r) {
+                this.minYCoords = { q, r }
+            }
+            if (r > this.maxYCoords.r) {
+                this.maxYCoords = { q, r }
+            }
+        } else {
+            const cubeMinY = axialToCube(this.minYCoords)
+            const cubeMaxY = axialToCube(this.maxYCoords)
+            const cubeCurrent = axialToCube(node.coords)
+
+            if (q < this.minXCoords.q) {
+                this.minXCoords = { q, r }
+            }
+            if (q > this.maxXCoords.q) {
+                this.maxXCoords = { q, r }
+            }
+            if (cubeCurrent.r < cubeMinY.r || cubeCurrent.s > cubeMinY.s) {
+                this.minYCoords = { q, r }
+            }
+            if (cubeCurrent.r > cubeMaxY.r || cubeCurrent.s < cubeMaxY.s) {
+                this.maxYCoords = { q, r }
+            }
+        }
+    }
+
+    override removeNode(nodeOrId: T | NodeIdentifier): T | undefined {
+        const node = super.removeNode(nodeOrId)
+
+        if (node) {
+            const { q, r } = node.coords
+            // if (
+            //     row === this.minRow ||
+            //     row === this.maxRow ||
+            //     col === this.minCol ||
+            //     col === this.maxCol
+            // ) {
+            //     for (const n of this) {
+            //         const { row: nRow, col: nCol } = n.coords
+            //         if (nRow < this.minRow) {
+            //             this.minRow = nRow
+            //         }
+            //         if (nRow > this.maxRow) {
+            //             this.maxRow = nRow
+            //         }
+            //         if (nCol < this.minCol) {
+            //             this.minCol = nCol
+            //         }
+            //         if (nCol > this.maxCol) {
+            //             this.maxCol = nCol
+            //         }
+            //     }
+            // }
+        }
+        return node
     }
 
     neighborAt(
@@ -84,6 +259,28 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
             `Invalid direction ${direction} for hex grid with orientation ${this.orientation}`
         )
     }
+
+    getBoundingBox(offset?: Point): BoundingBox {
+        const cornerPoint = this.cornerPoint
+        offset = offset ?? { x: 0, y: 0 }
+        return {
+            x: cornerPoint.x + offset.x,
+            y: cornerPoint.y + offset.y,
+            width: this.pixelWidth,
+            height: this.pixelHeight
+        }
+    }
+
+    getBoundingBoxForCoords(coords: AxialCoordinates, offset?: Point): BoundingBox {
+        const centerPoint = hexToCenterPoint(coords, this.ellipticalDimensions, this.orientation)
+        offset = offset ?? { x: 0, y: 0 }
+        return {
+            x: centerPoint.x - this.ellipticalDimensions.xRadius + offset.x,
+            y: centerPoint.y - this.ellipticalDimensions.yRadius + offset.y,
+            width: this.ellipticalDimensions.xRadius * 2,
+            height: this.ellipticalDimensions.yRadius * 2
+        }
+    }
 }
 
 export const PointyNeighborOffsets: Record<PointyHexDirection, AxialCoordinates> = {
@@ -102,32 +299,4 @@ export const FlatNeighborOffsets: Record<FlatHexDirection, AxialCoordinates> = {
     [FlatHexDirection.South]: { q: 0, r: 1 }, // South
     [FlatHexDirection.Southwest]: { q: -1, r: 1 }, // Southwest
     [FlatHexDirection.Northwest]: { q: -1, r: 0 } // Northwest
-}
-
-export function addAxial(a: AxialCoordinates, b: AxialCoordinates): AxialCoordinates {
-    return { q: a.q + b.q, r: a.r + b.r }
-}
-
-export function subtractAxial(a: AxialCoordinates, b: AxialCoordinates): AxialCoordinates {
-    return { q: a.q - b.q, r: a.r - b.r }
-}
-
-export function scaleAxial(coords: AxialCoordinates, factor: number): AxialCoordinates {
-    return { q: coords.q * factor, r: coords.r * factor }
-}
-
-export function axialDistance(a: AxialCoordinates, b: AxialCoordinates): number {
-    return (Math.abs(a.q - b.q) + Math.abs(a.q + a.r - b.q - b.r) + Math.abs(a.r - b.r)) / 2
-}
-
-export function axialToCube(coords: AxialCoordinates): [number, number, number] {
-    const x = coords.q
-    const z = coords.r
-    const y = -x - z
-    return [x, y, z]
-}
-
-export function cubeToAxial(cube: [number, number, number]): AxialCoordinates {
-    const [x, , z] = cube
-    return { q: x, r: z }
 }

@@ -38,7 +38,6 @@
         "@tabletop/frontend-components": "*",
         "@tabletop/kaivai": "*",
         "gsap": "^3.12.5",
-        "honeycomb-grid": "^4.1.5",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^5.1.6"
     },

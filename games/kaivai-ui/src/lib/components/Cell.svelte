@@ -1,11 +1,16 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { Hex } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
     import fishtoken from '$lib/images/fishtoken.png'
     import FishGod from '$lib/images/fishgod.svelte'
-    import { coordinatesToNumber, sameCoordinates, Point, Game } from '@tabletop/common'
+    import {
+        coordinatesToNumber,
+        sameCoordinates,
+        Point,
+        AxialCoordinates,
+        type BoundingBox
+    } from '@tabletop/common'
     import {
         ActionType,
         CellType,
@@ -32,8 +37,9 @@
     import { fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
-    let { hex, origin }: { hex: Hex; origin: Point } = $props()
-    let cell = $derived(gameSession.gameState.board.cells[coordinatesToNumber(hex)])
+    let { box, coords, origin }: { box: BoundingBox; coords: AxialCoordinates; origin: Point } =
+        $props()
+    let cell = $derived(gameSession.gameState.board.cells[coordinatesToNumber(coords)])
     let cellImage = $derived.by(() => {
         if (cell) {
             switch (cell.type) {
@@ -59,17 +65,17 @@
             return (
                 gameSession.chosenBoat !== cell.boat.id ||
                 !gameSession.chosenBoatLocation ||
-                sameCoordinates(gameSession.chosenBoatLocation, hex)
+                sameCoordinates(gameSession.chosenBoatLocation, coords)
             )
         } else {
-            return sameCoordinates(gameSession.chosenBoatLocation, hex)
+            return sameCoordinates(gameSession.chosenBoatLocation, coords)
         }
     })
 
     let boat = $derived.by(() => {
         if (isBoatCell(cell) && cell.boat) {
             return cell.boat
-        } else if (sameCoordinates(gameSession.chosenBoatLocation, hex)) {
+        } else if (sameCoordinates(gameSession.chosenBoatLocation, coords)) {
             return { id: gameSession.chosenBoat, owner: gameSession.myPlayer?.id }
         }
         return undefined
@@ -102,16 +108,14 @@
         }
     })
 
-    let hasGod = $derived(
-        gameSession.gameState.godLocation?.coords.q === hex.q &&
-            gameSession.gameState.godLocation?.coords.r === hex.r
-    )
+    let hasGod = $derived(sameCoordinates(coords, gameSession.gameState.godLocation?.coords))
+
     let numFish = $derived.by(() => {
         return isDeliveryCell(cell) ? cell.fish : 0
     })
 
     let numDeliveredFish = $derived.by(() => {
-        const delivery = gameSession.chosenDeliveries.find((d) => sameCoordinates(d.coords, hex))
+        const delivery = gameSession.chosenDeliveries.find((d) => sameCoordinates(d.coords, coords))
         return delivery?.amount ?? 0
     })
 
@@ -204,18 +208,18 @@
             const boat = getBoat()
             return boat !== undefined && gameSession.usableBoats.includes(boat.id)
         } else if (!gameSession.chosenBoatLocation) {
-            return gameSession.validBoatLocationIds.has(coordinatesToNumber(hex))
+            return gameSession.validBoatLocationIds.has(coordinatesToNumber(coords))
         } else if (gameSession.chosenHutType) {
             // Why is checking every cell faster than using the validBuildLocationIds set?
             const { valid } = HydratedBuild.isValidPlacement(gameSession.gameState, {
                 playerId: gameSession.myPlayer!.id,
                 hutType: gameSession.chosenHutType!,
-                coords: hex,
+                coords,
                 boatId: gameSession.chosenBoat,
                 boatCoords: gameSession.chosenBoatLocation
             })
             return valid
-            // return gameSession.validBuildLocationIds.has(coordinatesToNumber(hex))
+            // return gameSession.validBuildLocationIds.has(coordinatesToNumber(coords))
         }
         return false
     }
@@ -229,7 +233,7 @@
             const { valid, reason } = HydratedBuild.isValidPlacement(gameSession.gameState, {
                 playerId: gameSession.myPlayer.id,
                 hutType: gameSession.chosenHutType,
-                coords: { q: hex.q, r: hex.r }
+                coords: { q: coords.q, r: coords.r }
             })
             return valid
         }
@@ -241,7 +245,7 @@
             const boat = getBoat()
             return boat !== undefined && gameSession.usableBoats.includes(boat.id)
         } else if (!gameSession.chosenBoatLocation) {
-            return gameSession.validBoatLocationIds.has(coordinatesToNumber(hex))
+            return gameSession.validBoatLocationIds.has(coordinatesToNumber(coords))
         }
         return false
     }
@@ -251,9 +255,9 @@
             const boat = getBoat()
             return boat !== undefined && gameSession.usableBoats.includes(boat.id)
         } else if (!gameSession.chosenBoatLocation) {
-            return gameSession.validBoatLocationIds.has(coordinatesToNumber(hex))
+            return gameSession.validBoatLocationIds.has(coordinatesToNumber(coords))
         } else {
-            return gameSession.validDeliveryLocationIds.includes(coordinatesToNumber(hex))
+            return gameSession.validDeliveryLocationIds.includes(coordinatesToNumber(coords))
         }
         return false
     }
@@ -263,7 +267,7 @@
             const boat = getBoat()
             return boat !== undefined && gameSession.usableBoats.includes(boat.id)
         } else if (!gameSession.chosenBoatLocation) {
-            return gameSession.validBoatLocationIds.has(coordinatesToNumber(hex))
+            return gameSession.validBoatLocationIds.has(coordinatesToNumber(coords))
         }
         return false
     }
@@ -277,8 +281,8 @@
 
     function isInteractableForMoveGod(): boolean {
         const { valid, reason } = HydratedMoveGod.isValidPlacement(gameSession.gameState, {
-            q: hex.q,
-            r: hex.r
+            q: coords.q,
+            r: coords.r
         })
         return valid
     }
@@ -297,16 +301,18 @@
 
             switch (true) {
                 case isFish(action):
-                    return !sameCoordinates(hex, action.boatCoords)
+                    return !sameCoordinates(coords, action.boatCoords)
                 case isDeliver(action):
                     return (
-                        !sameCoordinates(hex, action.boatCoords) &&
-                        !action.deliveries.some((delivery) => sameCoordinates(hex, delivery.coords))
+                        !sameCoordinates(coords, action.boatCoords) &&
+                        !action.deliveries.some((delivery) =>
+                            sameCoordinates(coords, delivery.coords)
+                        )
                     )
                 case isBuild(action):
                     return (
-                        !sameCoordinates(hex, action.coords) &&
-                        !sameCoordinates(hex, action.boatCoords)
+                        !sameCoordinates(coords, action.coords) &&
+                        !sameCoordinates(coords, action.boatCoords)
                     )
 
                 case isCelebrate(action):
@@ -325,16 +331,16 @@
                     return !isIslandCell(cell) || cell.islandId !== action.islandId
 
                 case isMoveGod(action):
-                    return !sameCoordinates(hex, action.coords)
+                    return !sameCoordinates(coords, action.coords)
 
                 case isMove(action):
-                    return !sameCoordinates(hex, action.boatCoords)
+                    return !sameCoordinates(coords, action.boatCoords)
             }
             return false
         }
 
         if (gameSession.highlightedHexes.size > 0) {
-            if (!gameSession.highlightedHexes.has(coordinatesToNumber(hex))) {
+            if (!gameSession.highlightedHexes.has(coordinatesToNumber(coords))) {
                 return true
             } else {
                 return false
@@ -346,7 +352,7 @@
                 return !state.board.isNeighborToCultSiteOfIsland(cell.coords, state.chosenIsland)
             }
             return !state.board.islands[state.chosenIsland].coordList.find((c) =>
-                sameCoordinates(c, hex)
+                sameCoordinates(c, coords)
             )
         }
 
@@ -405,7 +411,7 @@
         }
 
         const action = gameSession.createBuildAction({
-            coords: { q: hex.q, r: hex.r },
+            coords: { q: coords.q, r: coords.r },
             hutType: gameSession.chosenHutType,
             boatId: gameSession.chosenBoat,
             boatCoords: gameSession.chosenBoatLocation
@@ -450,7 +456,7 @@
     }
 
     async function moveGod() {
-        const action = gameSession.createMoveGodAction({ q: hex.q, r: hex.r })
+        const action = gameSession.createMoveGodAction({ q: coords.q, r: coords.r })
         // gameSession.resetAction()
         await gameSession.applyAction(action)
     }
@@ -482,7 +488,7 @@
                     gameSession.chosenBoat = boat.id
                     return
                 } else if (!gameSession.chosenBoatLocation) {
-                    gameSession.chosenBoatLocation = { q: hex.q, r: hex.r }
+                    gameSession.chosenBoatLocation = { q: coords.q, r: coords.r }
                     return
                 } else if (gameSession.chosenHutType) {
                     await build()
@@ -504,7 +510,7 @@
                 gameSession.chosenBoat = boat.id
                 return
             } else if (!gameSession.chosenBoatLocation) {
-                gameSession.chosenBoatLocation = { q: hex.q, r: hex.r }
+                gameSession.chosenBoatLocation = { q: coords.q, r: coords.r }
                 await fish()
                 return
             }
@@ -517,10 +523,10 @@
                 gameSession.chosenBoat = boat.id
                 return
             } else if (!gameSession.chosenBoatLocation) {
-                gameSession.chosenBoatLocation = { q: hex.q, r: hex.r }
+                gameSession.chosenBoatLocation = { q: coords.q, r: coords.r }
                 return
             } else if (!gameSession.currentDeliveryLocation) {
-                gameSession.currentDeliveryLocation = { q: hex.q, r: hex.r }
+                gameSession.currentDeliveryLocation = { q: coords.q, r: coords.r }
                 return
             }
         } else if (gameSession.chosenAction === ActionType.Move) {
@@ -532,7 +538,7 @@
                 gameSession.chosenBoat = boat.id
                 return
             } else if (!gameSession.chosenBoatLocation) {
-                gameSession.chosenBoatLocation = { q: hex.q, r: hex.r }
+                gameSession.chosenBoatLocation = { q: coords.q, r: coords.r }
                 await move()
                 return
             }
@@ -563,7 +569,7 @@
     pointer-events="visible"
     stroke="none"
     stroke-width="2"
-    transform="translate({hex.x + origin.x}, {hex.y + origin.y})"
+    transform="translate({box.x + origin.x + box.width / 2}, {box.y + origin.y + box.height / 2})"
 >
     {#if !hidden}
         <polygon
@@ -578,10 +584,10 @@
                     in:fadeScale={{ baseScale: 0.1, duration: 100 }}
                     out:fadeScale={{ baseScale: 0.1, duration: 100 }}
                     href={cellImage}
-                    x={-hex.height / 2}
-                    y={-hex.width / 2}
-                    width={hex.height}
-                    height={hex.width}
+                    x={-box.height / 2}
+                    y={-box.width / 2}
+                    width={box.height}
+                    height={box.width}
                 ></image>
             </g>
         {/if}
@@ -750,6 +756,6 @@
         ></polygon>
     {/if}
     <!-- <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-size="30" fill="yellow">
-        {hex.q}, {hex.r}
+        {coords.q}, {coords.r}
     </text> -->
 </g>

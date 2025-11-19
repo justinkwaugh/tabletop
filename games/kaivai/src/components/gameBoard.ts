@@ -15,7 +15,7 @@ import {
     FlatHexDirection,
     HexGridNode,
     breadthFirstTraverser,
-    axialDistance
+    distanceAxial
 } from '@tabletop/common'
 import { Island } from './island.js'
 import {
@@ -137,7 +137,7 @@ export class HydratedKaivaiGameBoard
     }
 
     areNeighbors(coords1: AxialCoordinates, coords2: AxialCoordinates): boolean {
-        return axialDistance(coords1, coords2) === 1
+        return distanceAxial(coords1, coords2) === 1
     }
 
     getAllBoatCoordinates(skipBoatId?: string) {
@@ -489,7 +489,9 @@ export class HydratedKaivaiGameBoard
 
     get grid(): HexGrid {
         if (!this.internalGrid) {
-            this.internalGrid = new HexGrid({ orientation: HexOrientation.FlatTop })
+            this.internalGrid = new HexGrid({
+                hexDefinition: { orientation: HexOrientation.FlatTop }
+            })
             const spiralPattern = hexSpiralPattern({
                 radius: 6,
                 orientation: HexOrientation.FlatTop

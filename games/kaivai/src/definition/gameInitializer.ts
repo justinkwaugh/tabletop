@@ -12,7 +12,7 @@ import {
     GameState,
     HexOrientation,
     hexRingPattern,
-    axialDistance
+    distanceAxial
 } from '@tabletop/common'
 import {
     Game,
@@ -168,7 +168,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
             const hexCoords = { q: hex.q, r: hex.r }
 
             // Check distance from all initial coords
-            if (initialCoords.some((coords) => axialDistance(hex, coords) <= 3)) {
+            if (initialCoords.some((coords) => distanceAxial(hex, coords) <= 3)) {
                 tileOneCoords = undefined
                 continue
             }
