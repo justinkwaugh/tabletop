@@ -12,6 +12,9 @@ export type CoordinatedNodeFactory<
     T extends CoordinatedNode<U> = CoordinatedNode<U>
 > = (coords: U) => T
 
+export function defaultCoordinateGridFactory<T extends Coordinates>(coords: T) {
+    return { id: coordinatesToNumber(coords), coords }
+}
 export interface CoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordinates>
     extends Graph<T> {
     nodeAt(coords: U): T | undefined

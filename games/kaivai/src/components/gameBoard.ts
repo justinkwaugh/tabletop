@@ -3,9 +3,19 @@ import { TypeCompiler } from '@sinclair/typebox/compiler'
 import {
     AxialCoordinates,
     coordinatesToNumber,
-    flood,
+    HexGrid,
+    hexSpiralPattern,
+    HexOrientation,
     Hydratable,
-    sameCoordinates
+    sameCoordinates,
+    patternTraverser,
+    patternGenerator,
+    defaultCoordinateGridFactory,
+    hexRingPattern,
+    FlatHexDirection,
+    HexGridNode,
+    breadthFirstTraverser,
+    axialDistance
 } from '@tabletop/common'
 import { Island } from './island.js'
 import {
@@ -21,16 +31,6 @@ import {
     isPlayerCell,
     MeetingCell
 } from '../definition/cells.js'
-import {
-    defineHex,
-    Direction,
-    distance,
-    Grid,
-    Hex,
-    Orientation,
-    ring,
-    spiral
-} from 'honeycomb-grid'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { Boat } from './boat.js'
 import { HutType } from '../definition/huts.js'
@@ -50,7 +50,7 @@ export class HydratedKaivaiGameBoard
     declare cells: Record<number, Cell>
     declare islands: Record<string, Island>
 
-    private internalGrid?: Grid<Hex>
+    private internalGrid?: HexGrid
 
     constructor(data: KaivaiGameBoard) {
         super(data, KaivaiGameBoardValidator)
@@ -79,7 +79,7 @@ export class HydratedKaivaiGameBoard
     }
 
     isInBounds(coords: AxialCoordinates) {
-        return this.grid.hasHex(new Hex(coords))
+        return this.grid.hasAt(coords)
     }
 
     isNeighborToCultSite(coords: AxialCoordinates) {
@@ -103,25 +103,37 @@ export class HydratedKaivaiGameBoard
     }
 
     getNeighboringIslands(coords: AxialCoordinates, withCellType?: CellType) {
-        const ringTraverser = ring({ center: coords, radius: 1 })
-        return this.grid.traverse(ringTraverser).reduce((acc: string[], hex: Hex) => {
-            const cell = this.getCellAt(hex)
-            if (isIslandCell(cell) && (!withCellType || cell.type === withCellType)) {
-                if (!acc.includes(cell.islandId)) {
-                    acc.push(cell.islandId)
+        const ringPattern = hexRingPattern({
+            center: coords,
+            radius: 1,
+            orientation: HexOrientation.FlatTop
+        })
+        const traverser = patternTraverser(ringPattern)
+        return Array.from(this.grid.traverse(traverser)).reduce(
+            (acc: string[], node: HexGridNode) => {
+                const cell = this.getCellAt(node.coords)
+                if (isIslandCell(cell) && (!withCellType || cell.type === withCellType)) {
+                    if (!acc.includes(cell.islandId)) {
+                        acc.push(cell.islandId)
+                    }
                 }
-            }
-            return acc
-        }, [])
+                return acc
+            },
+            []
+        )
     }
 
-    isNeighborTo(coords: AxialCoordinates, predicate: (hex: Hex) => boolean) {
-        const ringTraverser = ring({ center: coords, radius: 1 })
-        return this.grid.traverse(ringTraverser).toArray().some(predicate)
+    isNeighborTo(coords: AxialCoordinates, predicate: (coords: AxialCoordinates) => boolean) {
+        const ringPattern = hexRingPattern({
+            center: coords,
+            radius: 1,
+            orientation: HexOrientation.FlatTop
+        })
+        return Array.from(ringPattern()).some(predicate)
     }
 
     areNeighbors(coords1: AxialCoordinates, coords2: AxialCoordinates): boolean {
-        return distance({ offset: -1, orientation: Orientation.FLAT }, coords1, coords2) === 1
+        return axialDistance(coords1, coords2) === 1
     }
 
     getAllBoatCoordinates(skipBoatId?: string) {
@@ -133,18 +145,23 @@ export class HydratedKaivaiGameBoard
         }, [])
     }
 
-    getContiguousWaterHexes(coords: AxialCoordinates, blockedHex?: AxialCoordinates) {
-        const floodTraverser = flood({
-            start: coords,
-            canTraverse: (hex) => {
-                return (
-                    this.grid.hasHex(hex) &&
-                    this.isWaterCell(hex) &&
-                    !sameCoordinates(hex, blockedHex)
-                )
+    getContiguousWaterHexes(
+        coords: AxialCoordinates,
+        blockedHex?: AxialCoordinates
+    ): AxialCoordinates[] {
+        const startNode = this.grid.nodeAt(coords)
+        if (!startNode) {
+            return []
+        }
+
+        const floodTraverser = breadthFirstTraverser({
+            start: startNode,
+            canTraverse: (_from: HexGridNode, to: HexGridNode) => {
+                const nodeCoords = to.coords
+                return this.isWaterCell(nodeCoords) && !sameCoordinates(nodeCoords, blockedHex)
             }
         })
-        return this.grid.traverse(floodTraverser).toArray()
+        return Array.from(this.grid.traverse(floodTraverser)).map((node) => node.coords)
     }
 
     isTrappedWaterHex(coords: AxialCoordinates) {
@@ -156,7 +173,7 @@ export class HydratedKaivaiGameBoard
 
         const checked = new Set<number>()
         let islandId: string | undefined
-        return water.every((hex) => {
+        return water.every((hex: AxialCoordinates) => {
             return this.getNeighbors(hex).every((neighbor) => {
                 const numId = coordinatesToNumber(neighbor)
                 if (checked.has(numId)) {
@@ -172,7 +189,7 @@ export class HydratedKaivaiGameBoard
                     return islandId === cell.islandId
                 }
 
-                return !this.grid.hasHex(neighbor) || this.isWaterCell(neighbor)
+                return !this.grid.hasAt(neighbor) || this.isWaterCell(neighbor)
             })
         })
     }
@@ -180,18 +197,22 @@ export class HydratedKaivaiGameBoard
     getCoordinatesReachableByBoat(
         boatCoords: AxialCoordinates,
         playerState: HydratedKaivaiPlayerState
-    ) {
+    ): AxialCoordinates[] {
         const movement = playerState.movement()
-        const floodTraverser = flood({
-            start: boatCoords,
+        const startNode = this.grid.nodeAt(boatCoords)
+        if (!startNode) {
+            return []
+        }
+        const floodTraverser = breadthFirstTraverser({
+            start: startNode,
             range: movement,
-            canTraverse: (hex) => {
-                return this.grid.hasHex(hex) && this.isWaterCell(hex)
+            canTraverse: (_from: HexGridNode, to: HexGridNode) => {
+                const nodeCoords = to.coords
+                return this.isWaterCell(nodeCoords)
             }
         })
 
-        const reachableHexes = this.grid.traverse(floodTraverser).toArray()
-        return reachableHexes
+        return Array.from(this.grid.traverse(floodTraverser)).map((node) => node.coords)
     }
 
     willTrapBoats(
@@ -199,9 +220,9 @@ export class HydratedKaivaiGameBoard
         movedBoat?: { from: AxialCoordinates; to: AxialCoordinates }
     ): boolean {
         // Find a water hex to start from
-        const waterHex = this.grid
-            .toArray()
-            .find((hex) => this.isWaterCell(hex) && !sameCoordinates(hex, blockedHex))
+        const waterHex = Array.from(this.grid).find(
+            (node) => this.isWaterCell(node.coords) && !sameCoordinates(node.coords, blockedHex)
+        )?.coords
 
         // This is impossible
         if (!waterHex) {
@@ -247,13 +268,18 @@ export class HydratedKaivaiGameBoard
         })
     }
 
-    getNeighbors(coords: AxialCoordinates) {
-        const ringTraverser = ring({ center: coords, radius: 1 })
-        return this.grid.traverse(ringTraverser).toArray()
+    getNeighbors(coords: AxialCoordinates): AxialCoordinates[] {
+        const ringPattern = hexRingPattern({
+            center: coords,
+            radius: 1,
+            orientation: HexOrientation.FlatTop
+        })
+        const traverser = patternTraverser(ringPattern)
+        return Array.from(this.grid.traverse(traverser)).map((node) => node.coords)
     }
 
-    getNeighborForDirection(coords: AxialCoordinates, direction: Direction) {
-        return this.grid.neighborOf(coords, direction)
+    getNeighborForDirection(coords: AxialCoordinates, direction: FlatHexDirection) {
+        return this.grid.neighborAt(coords, direction)
     }
 
     getDeliverableNeighbors(coords: AxialCoordinates, actingBoatId?: string) {
@@ -457,11 +483,15 @@ export class HydratedKaivaiGameBoard
         return islandIds.find((islandId) => this.isUncontestableForScoring(playerStates, islandId))
     }
 
-    get grid(): Grid<Hex> {
+    get grid(): HexGrid {
         if (!this.internalGrid) {
-            const DefaultHex = defineHex({ orientation: Orientation.FLAT })
-            const spiralTraverser = spiral({ radius: 6 })
-            this.internalGrid = new Grid(DefaultHex, spiralTraverser)
+            this.internalGrid = new HexGrid({ orientation: HexOrientation.FlatTop })
+            const spiralPattern = hexSpiralPattern({
+                radius: 6,
+                orientation: HexOrientation.FlatTop
+            })
+            const spiralTraverser = patternGenerator(spiralPattern, defaultCoordinateGridFactory)
+            this.internalGrid.addNodes(spiralTraverser)
         }
         return this.internalGrid
     }

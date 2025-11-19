@@ -1,6 +1,11 @@
 import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from '../coordinatedGraph.js'
-import { AxialCoordinates } from '../coordinates.js'
-import { FlatHexDirection, isPointyHexDirection, PointyHexDirection } from '../directions.js'
+import { AxialCoordinates, Coordinates, coordinatesToNumber } from '../coordinates.js'
+import {
+    FlatHexDirection,
+    isFlatHexDirection,
+    isPointyHexDirection,
+    PointyHexDirection
+} from '../directions.js'
 
 export enum HexOrientation {
     PointyTop = 'pointy-top',
@@ -71,7 +76,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
         if (this.orientation === HexOrientation.PointyTop && isPointyHexDirection(direction)) {
             return addAxial(coords, PointyNeighborOffsets[direction])
         }
-        if (this.orientation === HexOrientation.FlatTop && !isPointyHexDirection(direction)) {
+        if (this.orientation === HexOrientation.FlatTop && isFlatHexDirection(direction)) {
             return addAxial(coords, FlatNeighborOffsets[direction])
         }
 
