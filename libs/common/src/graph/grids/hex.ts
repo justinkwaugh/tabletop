@@ -67,7 +67,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     }
 
     get pixelWidth(): number {
-        if (this.size() === 0) return 0
+        if (this.size === 0) return 0
 
         const hexWidth = this.ellipticalDimensions.xRadius * 2
         const leftCenterPoint = hexToCenterPoint(
@@ -84,7 +84,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     }
 
     get pixelHeight(): number {
-        if (this.size() === 0) return 0
+        if (this.size === 0) return 0
 
         const hexHeight = this.ellipticalDimensions.yRadius * 2
         const topCenterPoint = hexToCenterPoint(
@@ -101,7 +101,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     }
 
     get cornerPoint(): Point {
-        if (this.size() === 0) {
+        if (this.size === 0) {
             return { x: 0, y: 0 }
         }
         return {
@@ -127,7 +127,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
 
         const { q, r } = node.coords
 
-        if (this.size() === 1) {
+        if (this.size === 1) {
             this.minXCoords = { q, r }
             this.maxXCoords = { q, r }
             this.minYCoords = { q, r }

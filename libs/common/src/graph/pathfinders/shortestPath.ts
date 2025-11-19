@@ -1,14 +1,14 @@
 import { breadthFirstAlgorithm } from '../algorithm/breadthFirst.js'
-import { type Graph, type Node, type NodeIdentifier } from '../graph.js'
+import { type Graph, type GraphNode, type NodeIdentifier } from '../graph.js'
 import { Pathfinder } from '../pathfinder.js'
-export interface ShortestPathPathfinderOptions<T extends Node> {
+export interface ShortestPathPathfinderOptions<T extends GraphNode> {
     start: T
     end: T
     range?: number
     canTraverse?: (from: T, to: T) => boolean
 }
 
-export function shortestPathPathfinder<T extends Node>(
+export function shortestPathPathfinder<T extends GraphNode>(
     options: ShortestPathPathfinderOptions<T>
 ): Pathfinder<T> {
     return function pathfind(graph: Graph<T>): T[][] {

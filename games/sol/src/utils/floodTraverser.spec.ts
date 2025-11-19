@@ -8,7 +8,7 @@ describe('Flood Traverser Tests', () => {
         const startNode = graph.nodeAt({ row: Ring.Radiative, col: 0 })
         expect(startNode).toBeDefined()
         const traverser = breadthFirstTraverser({ start: startNode! })
-        expect(Array.from(graph.traverse(traverser)).length).toEqual(graph.size())
+        expect(Array.from(graph.traverse(traverser)).length).toEqual(graph.size)
     })
 
     it('should respect the range', () => {

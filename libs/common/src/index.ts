@@ -48,6 +48,7 @@ export * from './graph/patterns/rectangle.js'
 export * from './graph/patterns/line.js'
 export * from './graph/pathfinders/shortestPath.js'
 export * from './graph/utils/hex.js'
+export * from './graph/utils/rectilinear.js'
 
 export * from './site/notifications/notification.js'
 export * from './site/notifications/gameNotification.js'

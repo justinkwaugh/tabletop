@@ -25,7 +25,7 @@ describe('Sol Pathfinder Tests', () => {
             start: { row: Ring.Radiative, col: 0 },
             end: { row: Ring.Radiative, col: 4 }
         })
-        const paths = graph.findPaths(pathFinder)
+        const paths = Array.from(graph.findPaths(pathFinder))
         expect(paths.length).toEqual(1)
         expect(paths[0].length).toEqual(5)
     })
@@ -38,7 +38,7 @@ describe('Sol Pathfinder Tests', () => {
             end: { row: Ring.Radiative, col: 4 },
             range: 2
         })
-        const paths = graph.findPaths(pathFinder)
+        const paths = Array.from(graph.findPaths(pathFinder))
         expect(paths.length).toEqual(0)
     })
 
@@ -60,7 +60,7 @@ describe('Sol Pathfinder Tests', () => {
             start: { row: Ring.Radiative, col: 0 },
             end: { row: Ring.Outer, col: 4 }
         })
-        const paths = graph.findPaths(pathFinder)
+        const paths = Array.from(graph.findPaths(pathFinder))
         expect(paths.length).toEqual(1)
         expect(paths[0].length).toEqual(17)
     })

@@ -1,18 +1,18 @@
-import { Node, Graph, NodeIdentifier } from '../graph.js'
+import { GraphNode, Graph, NodeIdentifier } from '../graph.js'
 
-export interface BreadthFirstAlgorithmOptions<T extends Node> {
+export interface BreadthFirstAlgorithmOptions<T extends GraphNode> {
     start: T
     range?: number
     canTraverse?: (from: T, to: T) => boolean
 }
 
-export type BreadthFirstAlgorithmResult<T extends Node> = {
+export type BreadthFirstAlgorithmResult<T extends GraphNode> = {
     depth: number
     prior?: T
     node: T
 }
 
-export function* breadthFirstAlgorithm<T extends Node, G extends Graph<T>>(
+export function* breadthFirstAlgorithm<T extends GraphNode, G extends Graph<T>>(
     options: BreadthFirstAlgorithmOptions<T>,
     graph: G
 ): Iterable<BreadthFirstAlgorithmResult<T>> {

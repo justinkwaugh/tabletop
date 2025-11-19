@@ -1,11 +1,13 @@
 import { Coordinates, coordinatesToNumber } from './coordinates.js'
 import { Direction } from './directions.js'
-import { Node, BaseGraph, Graph } from './graph.js'
+import { GraphNode, BaseGraph, Graph } from './graph.js'
+import { CoordinatePattern } from './pattern.js'
 import { Traverser } from './traverser.js'
+import { patternTraverser } from './traversers/pattern.js'
 
 export type CoordinatedNode<T extends Coordinates> = {
     coords: T
-} & Node
+} & GraphNode
 
 export type CoordinatedNodeFactory<
     U extends Coordinates,
@@ -33,16 +35,23 @@ export abstract class BaseCoordinatedGraph<
     }
 
     public nodeAt(coords: U): T | undefined {
-        return this.getNode(coordinatesToNumber(coords))
+        return this.node(coordinatesToNumber(coords))
     }
 
     public abstract neighborsAt(_coords: U, _direction?: Direction): T[]
 
     public hasAt(coords: U): boolean {
-        return !!this.nodeAt(coords)
+        return this.has(coordinatesToNumber(coords))
     }
 
-    public override traverse(traverser: Traverser<CoordinatedGraph<T, U>, T>): Iterable<T> {
-        return traverser(this)
+    public override *traverse(traverser: Traverser<CoordinatedGraph<T, U>, T>): Iterable<T> {
+        yield* traverser(this)
+    }
+
+    public *traversePattern(
+        patternOrPatterns: CoordinatePattern<U> | CoordinatePattern<U>[]
+    ): Iterable<T> {
+        const traverser = patternTraverser<T, U>(patternOrPatterns)
+        yield* this.traverse(traverser)
     }
 }

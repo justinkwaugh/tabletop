@@ -4,47 +4,45 @@ import { Pathfinder } from './pathfinder.js'
 import { Traverser } from './traverser.js'
 
 export type NodeIdentifier = string | number
+
 export function isNodeIdentifier(value: unknown): value is NodeIdentifier {
     return typeof value === 'string' || typeof value === 'number'
 }
 
-export interface Node {
+export interface GraphNode {
     id: NodeIdentifier
 }
 
-export interface Graph<T extends Node> extends Iterable<T> {
-    getNode(id: NodeIdentifier): T | undefined
+export interface Graph<T extends GraphNode> extends Iterable<T> {
+    readonly size: number
+
+    node(id: NodeIdentifier): T | undefined
     addNode(node: T): void
     addNodes(nodes: T[] | NodeGenerator<T>): void
     removeNode(id: NodeIdentifier): void
     removeNode(node: T): void
-    findPaths(pathfinder: Pathfinder<T>): T[][]
+    findPaths(pathfinder: Pathfinder<T>): Iterable<T[]>
     findFirstPath(pathfinder: Pathfinder<T>): T[] | undefined
     neighborsOf(node: T, direction?: Direction): T[]
-    contains(id: NodeIdentifier): boolean
-    contains(node: T): boolean
+    has(id: NodeIdentifier): boolean
+    has(node: T): boolean
     traverse(traverser: Traverser<Graph<T>, T>): Iterable<T>
-    size(): number
+    findPaths(pathfinder: Pathfinder<T>): Iterable<T[]>
+    findFirstPath(pathfinder: Pathfinder<T>): T[] | undefined
 }
 
-export abstract class BaseGraph<T extends Node> implements Graph<T> {
+export abstract class BaseGraph<T extends GraphNode> implements Graph<T> {
     *[Symbol.iterator](): IterableIterator<T> {
         yield* Object.values(this.nodes)
     }
 
-    *map<V>(callback: (node: T) => V): IterableIterator<V> {
-        for (const node of this) {
-            yield callback(node)
-        }
-    }
-
     private nodes: Record<NodeIdentifier, T> = {}
 
-    public size(): number {
+    get size(): number {
         return Object.keys(this.nodes).length
     }
 
-    public getNode(id: NodeIdentifier): T | undefined {
+    public node(id: NodeIdentifier): T | undefined {
         return this.nodes[id]
     }
 
@@ -73,21 +71,23 @@ export abstract class BaseGraph<T extends Node> implements Graph<T> {
 
     public abstract neighborsOf(_node: T, _direction?: Direction): T[]
 
-    public contains(nodeOrId: T | NodeIdentifier): boolean {
+    public has(nodeOrId: T | NodeIdentifier): boolean {
         const id = isNodeIdentifier(nodeOrId) ? nodeOrId : nodeOrId.id
         return !!this.nodes[id]
     }
 
-    public traverse(traverser: Traverser<Graph<T>, T>): Iterable<T> {
-        return traverser(this)
+    public *traverse(traverser: Traverser<Graph<T>, T>): Iterable<T> {
+        yield* traverser(this)
     }
 
-    public findPaths(pathfinder: Pathfinder<T>): T[][] {
-        return pathfinder(this)
+    public *findPaths(pathfinder: Pathfinder<T>): Iterable<T[]> {
+        yield* pathfinder(this)
     }
 
     public findFirstPath(pathfinder: Pathfinder<T>): T[] | undefined {
-        const paths = pathfinder(this)
-        return paths.length > 0 ? paths[0] : undefined
+        for (const path of pathfinder(this)) {
+            return path
+        }
+        return undefined
     }
 }

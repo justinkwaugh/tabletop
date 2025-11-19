@@ -18,7 +18,7 @@ describe('Fresh Fish Graph Tests', () => {
 
         const graph = new FreshFishGraph(cells)
 
-        expect(graph.size()).toEqual(7)
+        expect(graph.size).toEqual(7)
 
         const nodes = []
         for (const node of graph) {
@@ -27,7 +27,7 @@ describe('Fresh Fish Graph Tests', () => {
 
         expect(nodes.length).toEqual(7)
 
-        const nodes2 = Array.from(graph.map((node) => node))
+        const nodes2 = Array.from(Iterator.from(graph).map((node) => node))
         expect(nodes2.length).toEqual(7)
     })
 

@@ -43,7 +43,7 @@ export class HydratedSolGameBoard
     private internalGraph?: SolGraph;
 
     *[Symbol.iterator](): IterableIterator<Cell> {
-        yield* this.graph.map((node) => {
+        yield* Iterator.from(this.graph).map((node) => {
             const cell = this.cells[coordinatesToNumber(node.coords)]
             if (cell) {
                 return cell

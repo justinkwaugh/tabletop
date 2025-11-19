@@ -29,7 +29,7 @@ export class Expropriator {
         expropriatedCoords: OffsetTupleCoordinates[]
         returnedDisks: ReturnedDisks
     } {
-        const expectedCount = this.graph.size()
+        const expectedCount = this.graph.size
         const expropriated: { cell: Cell; coords: OffsetTupleCoordinates }[] = []
         for (const node of this.graph) {
             const cell = this.board.cellAt(node.coords)

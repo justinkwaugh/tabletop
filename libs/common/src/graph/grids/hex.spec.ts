@@ -88,7 +88,7 @@ describe('Hex Utils Tests', () => {
 
         const biggerPattern = hexSpiralPattern({ radius: 6, orientation: HexOrientation.PointyTop })
         grid.addNodes(patternGenerator(biggerPattern, defaultCoordinateGridFactory))
-        console.log(grid.size(), grid.pixelWidth, grid.pixelHeight)
+
         expect(grid.pixelWidth).toEqual(1000)
         expect(grid.pixelHeight).toBeCloseTo(1131)
     })

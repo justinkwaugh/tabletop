@@ -112,8 +112,7 @@ export class HydratedKaivaiGameBoard
             radius: 1,
             orientation: HexOrientation.FlatTop
         })
-        const traverser = patternTraverser(ringPattern)
-        return Array.from(this.grid.traverse(traverser)).reduce(
+        return Array.from(this.grid.traversePattern(ringPattern)).reduce(
             (acc: string[], node: HexGridNode) => {
                 const cell = this.getCellAt(node.coords)
                 if (isIslandCell(cell) && (!withCellType || cell.type === withCellType)) {
@@ -278,8 +277,7 @@ export class HydratedKaivaiGameBoard
             radius: 1,
             orientation: HexOrientation.FlatTop
         })
-        const traverser = patternTraverser(ringPattern)
-        return Array.from(this.grid.traverse(traverser)).map((node) => node.coords)
+        return Array.from(this.grid.traversePattern(ringPattern)).map((node) => node.coords)
     }
 
     getNeighborCoords(coords: AxialCoordinates, direction: FlatHexDirection) {

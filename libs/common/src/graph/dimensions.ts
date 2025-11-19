@@ -3,6 +3,28 @@ export type DimensionsRectangle = {
     height: number
 }
 
+export type DimensionsCube = {
+    width: number
+    height: number
+    depth: number
+}
+
+export type DimensionsCircle = {
+    radius: number
+}
+
+export type DimensionsElliptical = {
+    xRadius: number
+    yRadius: number
+}
+
+export type BoundingBox = {
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
 export function isRectangleDimensions(dimensions: unknown): dimensions is DimensionsRectangle {
     return (
         typeof dimensions === 'object' &&
@@ -12,17 +34,6 @@ export function isRectangleDimensions(dimensions: unknown): dimensions is Dimens
         typeof (dimensions as any).width === 'number' &&
         typeof (dimensions as any).height === 'number'
     )
-}
-
-export type DimensionsCube = {
-    width: number
-    height: number
-    depth: number
-}
-
-export type DimensionsElliptical = {
-    xRadius: number
-    yRadius: number
 }
 
 export function isEllipticalDimensions(dimensions: unknown): dimensions is DimensionsElliptical {
@@ -36,10 +47,6 @@ export function isEllipticalDimensions(dimensions: unknown): dimensions is Dimen
     )
 }
 
-export type DimensionsCircle = {
-    radius: number
-}
-
 export function isCircleDimensions(dimensions: unknown): dimensions is DimensionsCircle {
     return (
         typeof dimensions === 'object' &&
@@ -47,11 +54,4 @@ export function isCircleDimensions(dimensions: unknown): dimensions is Dimension
         'radius' in dimensions &&
         typeof (dimensions as any).radius === 'number'
     )
-}
-
-export type BoundingBox = {
-    x: number
-    y: number
-    width: number
-    height: number
 }

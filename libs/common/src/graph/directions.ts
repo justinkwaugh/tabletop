@@ -1,3 +1,4 @@
+// Represents a direction in a graph
 export type Direction = string
 
 export enum RotationDirection {

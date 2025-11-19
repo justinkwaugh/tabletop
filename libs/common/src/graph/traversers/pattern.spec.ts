@@ -25,8 +25,7 @@ describe('Pattern Traverser Tests', () => {
             length: 3,
             direction: CardinalDirection.East
         })
-        const lineTraverser = patternTraverser(pattern)
-        const nodes = Array.from(graph.traverse(lineTraverser))
+        const nodes = Array.from(graph.traversePattern(pattern))
         expect(nodes.length).toEqual(3)
         expect(nodes[0].coords).toEqual({ row: 0, col: 0 })
         expect(nodes[1].coords).toEqual({ row: 0, col: 1 })
@@ -51,8 +50,7 @@ describe('Pattern Traverser Tests', () => {
             length: 3,
             direction: CardinalDirection.South
         })
-        const lineTraverser = patternTraverser([pattern, pattern2])
-        const nodes = Array.from(graph.traverse(lineTraverser))
+        const nodes = Array.from(graph.traversePattern([pattern, pattern2]))
         expect(nodes.length).toEqual(6)
         expect(nodes[0].coords).toEqual({ row: 0, col: 0 })
         expect(nodes[1].coords).toEqual({ row: 0, col: 1 })
@@ -74,8 +72,7 @@ describe('Pattern Traverser Tests', () => {
             length: 8,
             direction: CardinalDirection.East
         })
-        const lineTraverser = patternTraverser(pattern)
-        const nodes = Array.from(graph.traverse(lineTraverser))
+        const nodes = Array.from(graph.traversePattern(pattern))
         expect(nodes.length).toEqual(2)
         expect(nodes[0].coords).toEqual({ row: 0, col: 0 })
         expect(nodes[1].coords).toEqual({ row: 0, col: 1 })

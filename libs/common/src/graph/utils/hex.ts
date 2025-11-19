@@ -36,6 +36,18 @@ export function rectangleDimensionsToElliptical(
     return { xRadius: dimensions.width / 2, yRadius: dimensions.height / 2 }
 }
 
+export function hexToCenterPoint(
+    coords: AxialCoordinates,
+    dimensions: DimensionsElliptical,
+    orientation: HexOrientation
+): Point {
+    if (orientation === HexOrientation.PointyTop) {
+        return pointyHexToCenterPoint(coords, dimensions)
+    } else {
+        return flatHexToCenterPoint(coords, dimensions)
+    }
+}
+
 export function pointyHexToCenterPoint(
     coords: AxialCoordinates,
     dimensions: DimensionsElliptical
@@ -54,16 +66,4 @@ export function flatHexToCenterPoint(
     const x = 2 * xRadius * (3 / 4) * coords.q
     const y = 2 * yRadius * (coords.r + coords.q / 2)
     return { x, y }
-}
-
-export function hexToCenterPoint(
-    coords: AxialCoordinates,
-    dimensions: DimensionsElliptical,
-    orientation: HexOrientation
-): Point {
-    if (orientation === HexOrientation.PointyTop) {
-        return pointyHexToCenterPoint(coords, dimensions)
-    } else {
-        return flatHexToCenterPoint(coords, dimensions)
-    }
 }

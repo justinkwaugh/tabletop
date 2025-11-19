@@ -5,10 +5,6 @@ import { NodeIdentifier } from '../graph.js'
 
 export type RectilinearGridNode = CoordinatedNode<OffsetCoordinates>
 
-export function areOrthogonal(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
-    return coordsA.row === coordsB.row || coordsA.col === coordsB.col
-}
-
 export class RectilinearGrid<T extends RectilinearGridNode = RectilinearGridNode>
     extends BaseCoordinatedGraph<T, OffsetCoordinates>
     implements CoordinatedGraph<T, OffsetCoordinates>
@@ -25,7 +21,7 @@ export class RectilinearGrid<T extends RectilinearGridNode = RectilinearGridNode
     override addNode(node: T): void {
         super.addNode(node)
         const { row, col } = node.coords
-        if (this.size() === 1) {
+        if (this.size === 1) {
             this.minRow = row
             this.maxRow = row
             this.minCol = col

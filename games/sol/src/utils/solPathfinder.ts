@@ -1,7 +1,7 @@
 import {
     OffsetCoordinates,
     type Graph,
-    type Node,
+    type GraphNode,
     type NodeIdentifier,
     type Pathfinder
 } from '@tabletop/common'
@@ -40,7 +40,7 @@ export function solPathfinder({
     })
 }
 
-export function shortestPath<T extends Node>(options: ShortestPathOptions<T>): Pathfinder<T> {
+export function shortestPath<T extends GraphNode>(options: ShortestPathOptions<T>): Pathfinder<T> {
     return function breadthFirstSearch(graph: Graph<T>): T[][] {
         const visitedNodes = new Map<NodeIdentifier, T>()
         let depth = 0
@@ -86,7 +86,7 @@ export function shortestPath<T extends Node>(options: ShortestPathOptions<T>): P
     }
 }
 
-export interface ShortestPathOptions<T extends Node> {
+export interface ShortestPathOptions<T extends GraphNode> {
     start: T
     end: T
     range?: number
