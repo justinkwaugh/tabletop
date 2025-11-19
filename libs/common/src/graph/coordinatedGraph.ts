@@ -1,5 +1,6 @@
 import { Coordinates, coordinatesToNumber } from './coordinates.js'
-import { Node, BaseGraph, Direction, Graph } from './graph.js'
+import { Direction } from './directions.js'
+import { Node, BaseGraph, Graph } from './graph.js'
 import { Traverser } from './traverser.js'
 
 export type CoordinatedNode<T extends Coordinates> = {

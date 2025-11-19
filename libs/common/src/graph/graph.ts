@@ -1,3 +1,4 @@
+import { Direction } from './directions.js'
 import { NodeGenerator } from './generator.js'
 import { Pathfinder } from './pathfinder.js'
 import { Traverser } from './traverser.js'
@@ -10,9 +11,6 @@ export function isNodeIdentifier(value: unknown): value is NodeIdentifier {
 export interface Node {
     id: NodeIdentifier
 }
-
-// Represents a direction in a graph
-export type Direction = string
 
 export interface Graph<T extends Node> extends Iterable<T> {
     getNode(id: NodeIdentifier): T | undefined

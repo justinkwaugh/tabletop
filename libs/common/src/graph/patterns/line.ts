@@ -1,6 +1,6 @@
 import { OffsetCoordinates } from '../coordinates.js'
-import { CardinalDirection, OrdinalDirection } from '../directions.js'
-import { Direction } from '../graph.js'
+import { CardinalDirection, Direction, OrdinalDirection } from '../directions.js'
+
 import { CoordinatePattern } from '../pattern.js'
 
 export type LineSegment = {

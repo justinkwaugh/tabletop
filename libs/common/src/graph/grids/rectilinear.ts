@@ -129,7 +129,7 @@ export class RectilinearGrid<T extends RectilinearGridNode = RectilinearGridNode
         }
     }
 
-    neighborCoords(
+    private neighborCoords(
         coords: OffsetCoordinates,
         direction: CardinalDirection | OrdinalDirection
     ): OffsetCoordinates {
