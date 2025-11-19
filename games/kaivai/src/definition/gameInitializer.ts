@@ -9,7 +9,10 @@ import {
     HydratedPhaseManager,
     Prng,
     type UninitializedGameState,
-    GameState
+    GameState,
+    HexOrientation,
+    hexRingPattern,
+    axialDistance
 } from '@tabletop/common'
 import {
     Game,
@@ -25,7 +28,6 @@ import { MachineState } from './states.js'
 import { KaivaiGameBoard } from '../components/gameBoard.js'
 import { KaivaiColors } from './colors.js'
 import { Cell, CellType, CultCell } from './cells.js'
-import { defineHex, Grid, Hex, ring, spiral } from 'honeycomb-grid'
 import { Island } from '../components/island.js'
 import { KaivaiGameConfig, KaivaiGameConfigValidator, Ruleset } from './gameConfig.js'
 
@@ -122,18 +124,14 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         }
 
         // Create additional two islands
-        const DefaultHex = defineHex()
-        const spiralTraverser = spiral({ radius: 6 })
-        const hexGrid = new Grid(DefaultHex, spiralTraverser)
-
         const singleIsland = ruleset === Ruleset.FirstEdition
 
-        const island = this.createAdditionalIsland(hexGrid, initialCoords, singleIsland, prng)
+        const island = this.createAdditionalIsland(initialCoords, singleIsland, prng)
         initialCoords.push(...island.coordList)
         islands[island.id] = island
 
         if (ruleset !== Ruleset.FirstEdition || numPlayers === 4) {
-            const island2 = this.createAdditionalIsland(hexGrid, initialCoords, singleIsland, prng)
+            const island2 = this.createAdditionalIsland(initialCoords, singleIsland, prng)
             initialCoords.push(...island2.coordList)
             islands[island2.id] = island2
         }
@@ -156,22 +154,21 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         return board
     }
 
-    private createAdditionalIsland<T extends Hex>(
-        grid: Grid<T>,
+    private createAdditionalIsland(
         initialCoords: AxialCoordinates[],
         singleIsland: boolean,
         prng: Prng
     ): Island {
-        const ringTraverser = ring<T>({ center: [0, 0], radius: 6 })
+        const ring = hexRingPattern({ radius: 6, orientation: HexOrientation.FlatTop })
 
         let tileOneCoords: AxialCoordinates | undefined
         const validPositions: AxialCoordinates[][] = []
 
-        for (const hex of grid.traverse(ringTraverser)) {
+        for (const hex of ring()) {
             const hexCoords = { q: hex.q, r: hex.r }
 
             // Check distance from all initial coords
-            if (initialCoords.some((coords) => grid.distance(hex, coords) <= 3)) {
+            if (initialCoords.some((coords) => axialDistance(hex, coords) <= 3)) {
                 tileOneCoords = undefined
                 continue
             }

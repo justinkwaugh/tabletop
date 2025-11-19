@@ -69,7 +69,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
         }
     }
 
-    private neighborCoords(
+    neighborCoords(
         coords: AxialCoordinates,
         direction: PointyHexDirection | FlatHexDirection
     ): AxialCoordinates {

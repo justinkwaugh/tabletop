@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { Direction, Hex } from 'honeycomb-grid'
+    import { Hex } from 'honeycomb-grid'
     import cultTile from '$lib/images/culttile.png'
     import fishtoken from '$lib/images/fishtoken.png'
     import FishGod from '$lib/images/fishgod.svelte'
@@ -27,7 +27,7 @@
         isChooseScoringIsland,
         isBoatBuildingCell
     } from '@tabletop/kaivai'
-    import { fadeScale, GameSessionMode } from '@tabletop/frontend-components'
+    import { fadeScale } from '@tabletop/frontend-components'
     import { flipIn, flipInterest, flipKey, flipOut, saveFlipState } from '$lib/utils/transition'
     import { fade } from 'svelte/transition'
 

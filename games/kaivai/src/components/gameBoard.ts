@@ -57,6 +57,10 @@ export class HydratedKaivaiGameBoard
         this.internalGrid = undefined
     }
 
+    containsCoords(coords: AxialCoordinates): boolean {
+        return this.grid.hasAt(coords)
+    }
+
     addCell(cell: Cell) {
         if (cell.type !== CellType.Water) {
             const island = this.islands[cell.islandId]
@@ -278,8 +282,8 @@ export class HydratedKaivaiGameBoard
         return Array.from(this.grid.traverse(traverser)).map((node) => node.coords)
     }
 
-    getNeighborForDirection(coords: AxialCoordinates, direction: FlatHexDirection) {
-        return this.grid.neighborAt(coords, direction)
+    getNeighborCoords(coords: AxialCoordinates, direction: FlatHexDirection) {
+        return this.grid.neighborCoords(coords, direction)
     }
 
     getDeliverableNeighbors(coords: AxialCoordinates, actingBoatId?: string) {

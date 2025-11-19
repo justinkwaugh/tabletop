@@ -1,15 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import {
-        defineHex,
-        Grid,
-        spiral,
-        Orientation,
-        Direction,
-        type AxialCoordinates,
-        Hex
-    } from 'honeycomb-grid'
+    import { defineHex, Grid, spiral, Orientation, Hex } from 'honeycomb-grid'
     import board from '$lib/images/board.png'
     import Cell from './Cell.svelte'
     import buildImg from '$lib/images/build.png'
@@ -25,7 +17,6 @@
 
     import {
         ActionType,
-        CellType,
         isCelebrate,
         isChooseScoringIsland,
         Island,
@@ -33,8 +24,11 @@
         MachineState
     } from '@tabletop/kaivai'
     import { fade } from 'svelte/transition'
-    import { GameSessionMode } from '@tabletop/frontend-components'
-    import { coordinatesToNumber } from '@tabletop/common'
+    import {
+        ClockwiseFlatHexDirections,
+        coordinatesToNumber,
+        FlatHexDirection
+    } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -186,15 +180,6 @@
         { x1: -50, y1: 0, x2: -25, y2: -43.5 }
     ]
 
-    const directions = [
-        Direction.N,
-        Direction.NE,
-        Direction.SE,
-        Direction.S,
-        Direction.SW,
-        Direction.NW
-    ]
-
     let outlineBorders = $derived.by(() => {
         if (outlinedIslandCells.length === 0) {
             return []
@@ -204,8 +189,8 @@
         const borders: { hex: Hex; index: number }[] = []
 
         for (const cell of outlinedIslandCells) {
-            for (const [index, direction] of directions.entries()) {
-                const neighbor = board.getNeighborForDirection(cell.coords, direction)
+            for (const [index, direction] of ClockwiseFlatHexDirections.entries()) {
+                const neighbor = board.getNeighborCoords(cell.coords, direction)
                 if (!neighbor || board.isWaterCell(neighbor)) {
                     const hex = grid.getHex(cell.coords)
                     if (hex) {
