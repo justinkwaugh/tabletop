@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HexOrientation } from '../grids/hex.js'
-import { PointyHexDirection, RotationDirection } from '../directions.js'
-import { hexSpiralPattern } from './spiral.js'
+import { hexSpiralPattern } from './hexSpiral.js'
 
 describe('Hex Spiral Pattern Tests', () => {
     it('generates radius 0 spiral', () => {
