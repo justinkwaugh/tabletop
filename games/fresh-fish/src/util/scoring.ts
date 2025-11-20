@@ -140,7 +140,8 @@ export class Scorer {
         if (!fromCell || !toCell) {
             return false
         }
-        const traversable = sameCoordinates(to.coords, end) || isTraversable(toCell)
+        const traversable =
+            isTraversable(toCell) || (sameCoordinates(to.coords, end) && isTraversable(fromCell))
         return traversable
     }
 }
