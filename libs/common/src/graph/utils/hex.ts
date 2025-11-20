@@ -1,6 +1,20 @@
 import { AxialCoordinates, Point } from '../coordinates.js'
-import { DimensionsCircle, DimensionsElliptical, DimensionsRectangle } from '../dimensions.js'
-import { HexOrientation } from '../grids/hex.js'
+import {
+    DimensionsCircle,
+    DimensionsEllipse,
+    DimensionsRectangle,
+    HexDimensions,
+    isCircleDimensions,
+    isEllipseDimensions,
+    isRectangleDimensions
+} from '../dimensions.js'
+import {
+    DEFAULT_FLAT_TOP_HEX_DIMENSIONS,
+    DEFAULT_POINTY_TOP_HEX_DIMENSIONS,
+    HexDefinition,
+    HexGeometry,
+    HexOrientation
+} from '../grids/hex.js'
 
 export function addAxial(a: AxialCoordinates, b: AxialCoordinates): AxialCoordinates {
     return { q: a.q + b.q, r: a.r + b.r }
@@ -20,9 +34,10 @@ export function distanceAxial(a: AxialCoordinates, b: AxialCoordinates): number 
 
 export function circleDimensionsToElliptical(
     dimensions: DimensionsCircle,
-    orientation: HexOrientation
-): DimensionsElliptical {
+    orientation?: HexOrientation
+): DimensionsEllipse {
     const radius = dimensions.radius
+    orientation = orientation ?? HexOrientation.PointyTop
     if (orientation === HexOrientation.PointyTop) {
         return { xRadius: (Math.sqrt(3) / 2) * radius, yRadius: radius }
     } else {
@@ -32,25 +47,51 @@ export function circleDimensionsToElliptical(
 
 export function rectangleDimensionsToElliptical(
     dimensions: DimensionsRectangle
-): DimensionsElliptical {
+): DimensionsEllipse {
     return { xRadius: dimensions.width / 2, yRadius: dimensions.height / 2 }
 }
 
-export function hexToCenterPoint(
+export function hexDimensionsToElliptical(
+    dimensions?: HexDimensions,
+    orientation?: HexOrientation // Needed for circle
+): DimensionsEllipse {
+    if (dimensions === undefined) {
+        dimensions =
+            (orientation ?? HexOrientation.PointyTop) === HexOrientation.PointyTop
+                ? DEFAULT_POINTY_TOP_HEX_DIMENSIONS
+                : DEFAULT_FLAT_TOP_HEX_DIMENSIONS
+
+        return dimensions
+    }
+
+    switch (true) {
+        case isEllipseDimensions(dimensions):
+            return dimensions
+        case isRectangleDimensions(dimensions):
+            return rectangleDimensionsToElliptical(dimensions)
+        case isCircleDimensions(dimensions):
+            return circleDimensionsToElliptical(dimensions, orientation!)
+    }
+
+    // Can never happen
+    throw new Error('Invalid hex dimensions')
+}
+
+export function hexCoordsToCenterPoint(
     coords: AxialCoordinates,
-    dimensions: DimensionsElliptical,
+    dimensions: DimensionsEllipse,
     orientation: HexOrientation
 ): Point {
     if (orientation === HexOrientation.PointyTop) {
-        return pointyHexToCenterPoint(coords, dimensions)
+        return pointyHexCoordsToCenterPoint(coords, dimensions)
     } else {
-        return flatHexToCenterPoint(coords, dimensions)
+        return flatHexCoordsToCenterPoint(coords, dimensions)
     }
 }
 
-export function pointyHexToCenterPoint(
+export function pointyHexCoordsToCenterPoint(
     coords: AxialCoordinates,
-    dimensions: DimensionsElliptical
+    dimensions: DimensionsEllipse
 ): Point {
     const { xRadius, yRadius } = dimensions
     const x = 2 * xRadius * (coords.q + coords.r / 2)
@@ -58,12 +99,47 @@ export function pointyHexToCenterPoint(
     return { x, y }
 }
 
-export function flatHexToCenterPoint(
+export function flatHexCoordsToCenterPoint(
     coords: AxialCoordinates,
-    dimensions: DimensionsElliptical
+    dimensions: DimensionsEllipse
 ): Point {
     const { xRadius, yRadius } = dimensions
     const x = 2 * xRadius * (3 / 4) * coords.q
     const y = 2 * yRadius * (coords.r + coords.q / 2)
     return { x, y }
+}
+
+// Currently only produces regular geometry
+export function calculateHexGeometry(
+    definition: HexDefinition,
+    coords: AxialCoordinates
+): HexGeometry {
+    const ellipticalDimensions = hexDimensionsToElliptical(
+        definition.dimensions,
+        definition.orientation
+    )
+    const center = hexCoordsToCenterPoint(coords, ellipticalDimensions, definition.orientation)
+    const { xRadius, yRadius } = ellipticalDimensions
+
+    const radius = definition.orientation === HexOrientation.PointyTop ? yRadius : xRadius
+    const corners: Point[] = []
+    for (let i = 0; i < 6; i++) {
+        const angleDeg = definition.orientation === HexOrientation.PointyTop ? 60 * i - 30 : 60 * i
+        const angleRad = (Math.PI / 180) * angleDeg
+
+        // Should we round these?
+        const x = roundNumber(center.x + radius * Math.cos(angleRad), 1) + 0
+        const y = roundNumber(center.y + radius * Math.sin(angleRad), 1) + 0
+        corners.push({ x, y })
+    }
+
+    return {
+        center,
+        vertices: corners
+    }
+}
+
+export function roundNumber(num: number, decimalPlaces: number): number {
+    const factor = Math.pow(10, decimalPlaces)
+    return Math.round((num + Number.EPSILON) * factor) / factor
 }

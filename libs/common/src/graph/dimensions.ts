@@ -13,7 +13,7 @@ export type DimensionsCircle = {
     radius: number
 }
 
-export type DimensionsElliptical = {
+export type DimensionsEllipse = {
     xRadius: number
     yRadius: number
 }
@@ -24,6 +24,8 @@ export type BoundingBox = {
     width: number
     height: number
 }
+
+export type HexDimensions = DimensionsCircle | DimensionsEllipse | DimensionsRectangle
 
 export function isRectangleDimensions(dimensions: unknown): dimensions is DimensionsRectangle {
     return (
@@ -36,7 +38,7 @@ export function isRectangleDimensions(dimensions: unknown): dimensions is Dimens
     )
 }
 
-export function isEllipticalDimensions(dimensions: unknown): dimensions is DimensionsElliptical {
+export function isEllipseDimensions(dimensions: unknown): dimensions is DimensionsEllipse {
     return (
         typeof dimensions === 'object' &&
         dimensions !== null &&

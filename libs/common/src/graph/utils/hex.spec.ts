@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { HexOrientation } from '../grids/hex.js'
-import { DimensionsRectangle } from '../dimensions.js'
+import { HexDefinition, HexOrientation } from '../grids/hex.js'
+import { DimensionsCircle, DimensionsRectangle } from '../dimensions.js'
 import {
+    calculateHexGeometry,
     circleDimensionsToElliptical,
-    hexToCenterPoint,
+    hexCoordsToCenterPoint,
     rectangleDimensionsToElliptical
 } from './hex.js'
 
@@ -29,10 +30,9 @@ describe('Hex Utils Tests', () => {
             { radius: 50 },
             HexOrientation.PointyTop
         )
-        console.log(pointyDimensions)
 
         const centerCoords = { q: 0, r: 0 }
-        const centerPoint = hexToCenterPoint(
+        const centerPoint = hexCoordsToCenterPoint(
             centerCoords,
             pointyDimensions,
             HexOrientation.PointyTop
@@ -40,7 +40,7 @@ describe('Hex Utils Tests', () => {
         expect(centerPoint).toEqual({ x: 0, y: 0 })
 
         const offsetCoords = { q: 0, r: 1 }
-        const offsetPoint = hexToCenterPoint(
+        const offsetPoint = hexCoordsToCenterPoint(
             offsetCoords,
             pointyDimensions,
             HexOrientation.PointyTop
@@ -49,7 +49,7 @@ describe('Hex Utils Tests', () => {
         expect(offsetPoint.y).toBeCloseTo(75)
 
         const offsetCoords2 = { q: 1, r: 0 }
-        const offsetPoint2 = hexToCenterPoint(
+        const offsetPoint2 = hexCoordsToCenterPoint(
             offsetCoords2,
             pointyDimensions,
             HexOrientation.PointyTop
@@ -58,7 +58,7 @@ describe('Hex Utils Tests', () => {
         expect(offsetPoint2.y).toBeCloseTo(0)
 
         const offsetCoords3 = { q: 0, r: -2 }
-        const offsetPoint3 = hexToCenterPoint(
+        const offsetPoint3 = hexCoordsToCenterPoint(
             offsetCoords3,
             pointyDimensions,
             HexOrientation.PointyTop
@@ -67,22 +67,66 @@ describe('Hex Utils Tests', () => {
         expect(offsetPoint3.y).toBeCloseTo(-150)
 
         const flatDimensions = rectangleDimensionsToElliptical({ width: 100, height: 87 })
-        console.log(flatDimensions)
-        const flatCenterPoint = hexToCenterPoint(
+
+        const flatCenterPoint = hexCoordsToCenterPoint(
             centerCoords,
             flatDimensions,
             HexOrientation.FlatTop
         )
         expect(flatCenterPoint).toEqual({ x: 0, y: 0 })
 
-        expect(hexToCenterPoint({ q: 0, r: 1 }, flatDimensions, HexOrientation.FlatTop)).toEqual({
+        expect(
+            hexCoordsToCenterPoint({ q: 0, r: 1 }, flatDimensions, HexOrientation.FlatTop)
+        ).toEqual({
             x: 0,
             y: 87
         })
 
-        expect(hexToCenterPoint({ q: 0, r: 2 }, flatDimensions, HexOrientation.FlatTop)).toEqual({
+        expect(
+            hexCoordsToCenterPoint({ q: 0, r: 2 }, flatDimensions, HexOrientation.FlatTop)
+        ).toEqual({
             x: 0,
             y: 87 * 2
         })
+    })
+
+    it('calculates flat top geometry correctly', () => {
+        const definition: HexDefinition = {
+            orientation: HexOrientation.FlatTop,
+            dimensions: { radius: 50 } satisfies DimensionsCircle
+        }
+        const geometry = calculateHexGeometry(definition, {
+            q: 0,
+            r: 0
+        })
+        expect(geometry.center).toEqual({ x: 0, y: 0 })
+        expect(geometry.vertices.length).toEqual(6)
+
+        expect(geometry.vertices[0]).toEqual({ x: 50, y: 0 })
+        expect(geometry.vertices[1]).toEqual({ x: 25, y: 43.3 })
+        expect(geometry.vertices[2]).toEqual({ x: -25, y: 43.3 })
+        expect(geometry.vertices[3]).toEqual({ x: -50, y: 0 })
+        expect(geometry.vertices[4]).toEqual({ x: -25, y: -43.3 })
+        expect(geometry.vertices[5]).toEqual({ x: 25, y: -43.3 })
+    })
+
+    it('calculates pointy top geometry correctly', () => {
+        const definition: HexDefinition = {
+            orientation: HexOrientation.PointyTop,
+            dimensions: { radius: 50 } satisfies DimensionsCircle
+        }
+        const geometry = calculateHexGeometry(definition, {
+            q: 0,
+            r: 0
+        })
+        expect(geometry.center).toEqual({ x: 0, y: 0 })
+        expect(geometry.vertices.length).toEqual(6)
+
+        expect(geometry.vertices[0]).toEqual({ x: 43.3, y: -25 })
+        expect(geometry.vertices[1]).toEqual({ x: 43.3, y: 25 })
+        expect(geometry.vertices[2]).toEqual({ x: 0, y: 50 })
+        expect(geometry.vertices[3]).toEqual({ x: -43.3, y: 25 })
+        expect(geometry.vertices[4]).toEqual({ x: -43.3, y: -25 })
+        expect(geometry.vertices[5]).toEqual({ x: 0, y: -50 })
     })
 })

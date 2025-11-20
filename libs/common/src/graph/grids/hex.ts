@@ -3,9 +3,7 @@ import { AxialCoordinates, axialToCube, Point } from '../coordinates.js'
 import {
     DimensionsRectangle,
     DimensionsCircle,
-    DimensionsElliptical,
-    isCircleDimensions,
-    isRectangleDimensions,
+    DimensionsEllipse,
     BoundingBox
 } from '../dimensions.js'
 import {
@@ -15,12 +13,7 @@ import {
     PointyHexDirection
 } from '../directions.js'
 import { NodeIdentifier } from '../graph.js'
-import {
-    addAxial,
-    circleDimensionsToElliptical,
-    hexToCenterPoint,
-    rectangleDimensionsToElliptical
-} from '../utils/hex.js'
+import { addAxial, hexCoordsToCenterPoint, hexDimensionsToElliptical } from '../utils/hex.js'
 
 export enum HexOrientation {
     PointyTop = 'pointy-top',
@@ -29,7 +22,15 @@ export enum HexOrientation {
 
 export type HexDefinition = {
     orientation: HexOrientation
-    dimensions?: DimensionsRectangle | DimensionsElliptical | DimensionsCircle
+    dimensions?: DimensionsRectangle | DimensionsEllipse | DimensionsCircle
+}
+
+export const DEFAULT_POINTY_TOP_HEX_DIMENSIONS = { xRadius: 43.5, yRadius: 50 }
+export const DEFAULT_FLAT_TOP_HEX_DIMENSIONS = { xRadius: 50, yRadius: 43.5 }
+
+export type HexGeometry = {
+    center: Point
+    vertices: Point[]
 }
 
 export type HexGridNode = CoordinatedNode<AxialCoordinates>
@@ -39,7 +40,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     implements CoordinatedGraph<T, AxialCoordinates>
 {
     orientation: HexOrientation
-    ellipticalDimensions: DimensionsElliptical // Allows for non-regular hexes
+    ellipticalDimensions: DimensionsEllipse // Allows for non-regular hexes
 
     // These are used for quick boundary calculations
     minXCoords: AxialCoordinates = { q: 0, r: 0 }
@@ -50,32 +51,26 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     constructor({ hexDefinition }: { hexDefinition: HexDefinition }) {
         super()
         this.orientation = hexDefinition.orientation
-        if (isRectangleDimensions(hexDefinition.dimensions)) {
-            this.ellipticalDimensions = rectangleDimensionsToElliptical(hexDefinition.dimensions)
-        } else if (isCircleDimensions(hexDefinition.dimensions)) {
-            this.ellipticalDimensions = circleDimensionsToElliptical(
-                hexDefinition.dimensions,
-                this.orientation
-            )
-        } else {
-            this.ellipticalDimensions =
-                hexDefinition.dimensions ??
-                (this.orientation === HexOrientation.PointyTop
-                    ? { xRadius: 43.5, yRadius: 50 }
-                    : { xRadius: 50, yRadius: 43.5 })
-        }
+
+        const dimensions =
+            hexDefinition.dimensions ??
+            (this.orientation === HexOrientation.PointyTop
+                ? DEFAULT_POINTY_TOP_HEX_DIMENSIONS
+                : DEFAULT_FLAT_TOP_HEX_DIMENSIONS)
+
+        this.ellipticalDimensions = hexDimensionsToElliptical(dimensions, this.orientation)
     }
 
     get pixelWidth(): number {
         if (this.size === 0) return 0
 
         const hexWidth = this.ellipticalDimensions.xRadius * 2
-        const leftCenterPoint = hexToCenterPoint(
+        const leftCenterPoint = hexCoordsToCenterPoint(
             this.minXCoords,
             this.ellipticalDimensions,
             this.orientation
         )
-        const rightCenterPoint = hexToCenterPoint(
+        const rightCenterPoint = hexCoordsToCenterPoint(
             this.maxXCoords,
             this.ellipticalDimensions,
             this.orientation
@@ -87,12 +82,12 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
         if (this.size === 0) return 0
 
         const hexHeight = this.ellipticalDimensions.yRadius * 2
-        const topCenterPoint = hexToCenterPoint(
+        const topCenterPoint = hexCoordsToCenterPoint(
             this.minYCoords,
             this.ellipticalDimensions,
             this.orientation
         )
-        const bottomCenterPoint = hexToCenterPoint(
+        const bottomCenterPoint = hexCoordsToCenterPoint(
             this.maxYCoords,
             this.ellipticalDimensions,
             this.orientation
@@ -106,11 +101,11 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
         }
         return {
             x:
-                hexToCenterPoint(this.minXCoords, this.ellipticalDimensions, this.orientation).x -
-                this.ellipticalDimensions.xRadius,
+                hexCoordsToCenterPoint(this.minXCoords, this.ellipticalDimensions, this.orientation)
+                    .x - this.ellipticalDimensions.xRadius,
             y:
-                hexToCenterPoint(this.minYCoords, this.ellipticalDimensions, this.orientation).y -
-                this.ellipticalDimensions.yRadius
+                hexCoordsToCenterPoint(this.minYCoords, this.ellipticalDimensions, this.orientation)
+                    .y - this.ellipticalDimensions.yRadius
         }
     }
 
@@ -272,7 +267,11 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     }
 
     getBoundingBoxForCoords(coords: AxialCoordinates, offset?: Point): BoundingBox {
-        const centerPoint = hexToCenterPoint(coords, this.ellipticalDimensions, this.orientation)
+        const centerPoint = hexCoordsToCenterPoint(
+            coords,
+            this.ellipticalDimensions,
+            this.orientation
+        )
         offset = offset ?? { x: 0, y: 0 }
         return {
             x: centerPoint.x - this.ellipticalDimensions.xRadius + offset.x,
