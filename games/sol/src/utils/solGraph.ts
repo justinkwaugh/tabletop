@@ -179,7 +179,7 @@ export class SolGraph
                 const clockwise = (col + 1) % count
                 const counterClockwise = col === 0 ? count - 1 : col - 1
                 const coords = { col, row: ring }
-                this.addNode({
+                this.setNode({
                     id: coordinatesToNumber(coords),
                     coords: coords,
                     neighbors: {

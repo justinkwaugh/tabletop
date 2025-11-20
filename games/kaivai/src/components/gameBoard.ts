@@ -10,7 +10,7 @@ import {
     sameCoordinates,
     patternTraverser,
     patternGenerator,
-    defaultCoordinateGridFactory,
+    createCoordinatedNode,
     hexRingPattern,
     FlatHexDirection,
     HexGridNode,
@@ -494,8 +494,8 @@ export class HydratedKaivaiGameBoard
                 radius: 6,
                 orientation: HexOrientation.FlatTop
             })
-            const spiralTraverser = patternGenerator(spiralPattern, defaultCoordinateGridFactory)
-            this.internalGrid.addNodes(spiralTraverser)
+            const spiralTraverser = patternGenerator(spiralPattern, createCoordinatedNode)
+            this.internalGrid.populate(spiralTraverser)
         }
         return this.internalGrid
     }

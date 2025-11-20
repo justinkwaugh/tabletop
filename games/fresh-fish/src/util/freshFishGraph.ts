@@ -23,7 +23,7 @@ export class FreshFishGraph extends RectilinearGrid {
                         id: coordinatesToNumber(coords),
                         coords
                     }
-                    this.addNode(node)
+                    this.setNode(node)
                 }
             }
         }

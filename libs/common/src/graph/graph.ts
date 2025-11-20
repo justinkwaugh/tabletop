@@ -17,18 +17,17 @@ export interface Graph<T extends GraphNode> extends Iterable<T> {
     readonly size: number
 
     node(id: NodeIdentifier): T | undefined
-    addNode(node: T): void
-    addNodes(nodes: T[] | NodeGenerator<T>): void
+    setNode(node: T): void
+    populate(nodes: T[]): void
+    populate(generator: NodeGenerator<T>): void
     removeNode(id: NodeIdentifier): void
     removeNode(node: T): void
-    findPaths(pathfinder: Pathfinder<T>): Iterable<T[]>
-    findFirstPath(pathfinder: Pathfinder<T>): T[] | undefined
-    neighborsOf(node: T, direction?: Direction): T[]
     has(id: NodeIdentifier): boolean
     has(node: T): boolean
-    traverse(traverser: Traverser<Graph<T>, T>): Iterable<T>
+    neighborsOf(node: T, direction?: Direction): T[]
     findPaths(pathfinder: Pathfinder<T>): Iterable<T[]>
     findFirstPath(pathfinder: Pathfinder<T>): T[] | undefined
+    traverse(traverser: Traverser<Graph<T>, T>): Iterable<T>
 }
 
 export abstract class BaseGraph<T extends GraphNode> implements Graph<T> {
@@ -46,20 +45,20 @@ export abstract class BaseGraph<T extends GraphNode> implements Graph<T> {
         return this.nodes[id]
     }
 
-    public addNode(node: T) {
-        this.nodes[node.id] = node
-    }
-
-    public addNodes(nodes: T[] | NodeGenerator<T>) {
-        if (Array.isArray(nodes)) {
-            for (const node of nodes) {
-                this.addNode(node)
+    public populate(nodesOrGenerator: T[] | NodeGenerator<T>) {
+        if (Array.isArray(nodesOrGenerator)) {
+            for (const node of nodesOrGenerator) {
+                this.setNode(node)
             }
         } else {
-            for (const node of nodes()) {
-                this.addNode(node)
+            for (const node of nodesOrGenerator()) {
+                this.setNode(node)
             }
         }
+    }
+
+    public setNode(node: T) {
+        this.nodes[node.id] = node
     }
 
     public removeNode(nodeOrId: T | NodeIdentifier): T | undefined {

@@ -117,8 +117,8 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
         }
     }
 
-    override addNode(node: T): void {
-        super.addNode(node)
+    override setNode(node: T): void {
+        super.setNode(node)
 
         const { q, r } = node.coords
 

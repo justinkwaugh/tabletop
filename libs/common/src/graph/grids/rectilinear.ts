@@ -18,8 +18,8 @@ export class RectilinearGrid<T extends RectilinearGridNode = RectilinearGridNode
         super()
     }
 
-    override addNode(node: T): void {
-        super.addNode(node)
+    override setNode(node: T): void {
+        super.setNode(node)
         const { row, col } = node.coords
         if (this.size === 1) {
             this.minRow = row

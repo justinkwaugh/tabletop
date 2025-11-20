@@ -26,7 +26,7 @@
     import {
         ClockwiseFlatHexDirections,
         coordinatesToNumber,
-        defaultCoordinateGridFactory,
+        createCoordinatedNode,
         HexGrid,
         HexOrientation,
         hexSpiralPattern,
@@ -43,8 +43,8 @@
         }
     })
     const spiralPattern = hexSpiralPattern({ radius: 6, orientation: HexOrientation.FlatTop })
-    const generator = patternGenerator(spiralPattern, defaultCoordinateGridFactory)
-    grid2.addNodes(generator)
+    const generator = patternGenerator(spiralPattern, createCoordinatedNode)
+    grid2.populate(generator)
 
     const { x: xOffset, y: yOffset } = grid2.centerOffset
     let origin = { x: xOffset, y: yOffset + 100 }

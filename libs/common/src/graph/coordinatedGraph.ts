@@ -1,5 +1,6 @@
 import { Coordinates, coordinatesToNumber } from './coordinates.js'
 import { Direction } from './directions.js'
+import { NodeGenerator, patternGenerator } from './generator.js'
 import { GraphNode, BaseGraph, Graph } from './graph.js'
 import { CoordinatePattern } from './pattern.js'
 import { Traverser } from './traverser.js'
@@ -14,9 +15,10 @@ export type CoordinatedNodeFactory<
     T extends CoordinatedNode<U> = CoordinatedNode<U>
 > = (coords: U) => T
 
-export function defaultCoordinateGridFactory<T extends Coordinates>(coords: T) {
+export function createCoordinatedNode<T extends Coordinates>(coords: T) {
     return { id: coordinatesToNumber(coords), coords }
 }
+
 export interface CoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordinates>
     extends Graph<T> {
     nodeAt(coords: U): T | undefined
@@ -29,6 +31,14 @@ export abstract class BaseCoordinatedGraph<
     T extends CoordinatedNode<U>,
     U extends Coordinates
 > extends BaseGraph<T> {
+    public populateFromPattern(
+        patternOrPatterns: CoordinatePattern<U> | CoordinatePattern<U>[],
+        factory: CoordinatedNodeFactory<U, T>
+    ) {
+        const generator = patternGenerator(patternOrPatterns, factory)
+        this.populate(generator)
+    }
+
     public removeNodeAt(coords: U) {
         const nodeId = coordinatesToNumber(coords)
         this.removeNode(nodeId)

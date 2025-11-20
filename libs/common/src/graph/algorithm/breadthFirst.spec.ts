@@ -16,7 +16,7 @@ describe('Breadth First Algorithm Tests', () => {
             rectanglePattern({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
             createTestNode
         )
-        graph.addNodes(nodeGenerator)
+        graph.populate(nodeGenerator)
 
         const startNode = graph.nodeAt({ row: 0, col: 0 })
         if (!startNode) {
@@ -33,7 +33,7 @@ describe('Breadth First Algorithm Tests', () => {
             rectanglePattern({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
             createTestNode
         )
-        graph.addNodes(nodeGenerator)
+        graph.populate(nodeGenerator)
         const startNode = graph.nodeAt({ row: 0, col: 0 })
         if (!startNode) {
             throw new Error('Start node not found')
@@ -48,7 +48,7 @@ describe('Breadth First Algorithm Tests', () => {
             rectanglePattern({ start: { row: -2, col: -2 }, width: 5, height: 5 }),
             createTestNode
         )
-        graph.addNodes(nodeGenerator)
+        graph.populate(nodeGenerator)
         const startNode = graph.nodeAt({ row: 0, col: 0 })
         if (!startNode) {
             throw new Error('Start node not found')

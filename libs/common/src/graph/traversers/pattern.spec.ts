@@ -18,7 +18,7 @@ describe('Pattern Traverser Tests', () => {
             rectanglePattern({ start: { row: 0, col: 0 }, width: 5, height: 5 }),
             createTestNode
         )
-        graph.addNodes(nodeGenerator)
+        graph.populate(nodeGenerator)
 
         const pattern = linePattern({
             start: { row: 0, col: 0 },
@@ -38,7 +38,7 @@ describe('Pattern Traverser Tests', () => {
             rectanglePattern({ start: { row: 0, col: 0 }, width: 5, height: 5 }),
             createTestNode
         )
-        graph.addNodes(generator)
+        graph.populate(generator)
 
         const pattern = linePattern({
             start: { row: 0, col: 0 },
@@ -66,7 +66,7 @@ describe('Pattern Traverser Tests', () => {
             rectanglePattern({ start: { row: 0, col: 0 }, width: 2, height: 5 }),
             createTestNode
         )
-        graph.addNodes(nodeGenerator)
+        graph.populate(nodeGenerator)
         const pattern = linePattern({
             start: { row: 0, col: 0 },
             length: 8,
