@@ -48,14 +48,6 @@ export const EstatesGameState = Type.Evaluate(
 
 const EstatesGameStateValidator = Compile(EstatesGameState)
 
-type HydratedProperties = {
-    turnManager: HydratedSimpleTurnManager
-    players: HydratedEstatesPlayerState[]
-    board: HydratedEstatesGameBoard
-    roofs: HydratedRoofBag
-    auction?: HydratedOnceAroundAuction
-}
-
 export class HydratedEstatesGameState
     extends HydratableGameState<typeof EstatesGameState, HydratedEstatesPlayerState>
     implements EstatesGameState
@@ -87,14 +79,14 @@ export class HydratedEstatesGameState
     declare embezzled?: boolean
 
     constructor(data: EstatesGameState) {
-        const hydratedProperties: HydratedProperties = {
-            turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            players: data.players.map((player) => new HydratedEstatesPlayerState(player)),
-            board: new HydratedEstatesGameBoard(data.board),
-            roofs: new HydratedRoofBag(data.roofs),
-            auction: data.auction ? new HydratedOnceAroundAuction(data.auction) : undefined
+        super(data, EstatesGameStateValidator)
+        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+        this.players = data.players.map((player) => new HydratedEstatesPlayerState(player))
+        this.board = new HydratedEstatesGameBoard(data.board)
+        this.roofs = new HydratedRoofBag(data.roofs)
+        if (data.auction) {
+            this.auction = new HydratedOnceAroundAuction(data.auction)
         }
-        super(data, EstatesGameStateValidator, hydratedProperties)
     }
 
     placeableCubes(): OffsetCoordinates[] {

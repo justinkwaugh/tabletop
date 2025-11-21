@@ -26,12 +26,6 @@ export const BridgesGameState = Type.Evaluate(
 
 const BridgesGameStateValidator = Compile(BridgesGameState)
 
-type HydratedProperties = {
-    turnManager: HydratedSimpleTurnManager
-    players: HydratedBridgesPlayerState[]
-    board: HydratedBridgesGameBoard
-}
-
 export class HydratedBridgesGameState
     extends HydratableGameState<typeof BridgesGameState, HydratedBridgesPlayerState>
     implements BridgesGameState
@@ -51,12 +45,10 @@ export class HydratedBridgesGameState
     declare stones: number
 
     constructor(data: BridgesGameState) {
-        const hydratedProperties: HydratedProperties = {
-            turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            players: data.players.map((player) => new HydratedBridgesPlayerState(player)),
-            board: new HydratedBridgesGameBoard(data.board)
-        }
-        super(data, BridgesGameStateValidator, hydratedProperties)
+        super(data, BridgesGameStateValidator)
+        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+        this.players = data.players.map((player) => new HydratedBridgesPlayerState(player))
+        this.board = new HydratedBridgesGameBoard(data.board)
     }
 
     hasStones() {

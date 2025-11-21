@@ -31,13 +31,6 @@ export const SolGameState = Type.Evaluate(
 
 const SolGameStateValidator = Compile(SolGameState)
 
-type HydratedProperties = {
-    turnManager: HydratedSimpleTurnManager
-    players: HydratedSolPlayerState[]
-    board: HydratedSolGameBoard
-    deck: HydratedDeck
-}
-
 export class HydratedSolGameState
     extends HydratableGameState<typeof SolGameState, HydratedSolPlayerState>
     implements SolGameState
@@ -60,12 +53,13 @@ export class HydratedSolGameState
     declare energyCubes: number
 
     constructor(data: SolGameState) {
-        const hydratedProperties: HydratedProperties = {
-            turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            players: data.players.map((player) => new HydratedSolPlayerState(player)),
-            board: new HydratedSolGameBoard(data.board),
-            deck: new HydratedDeck(data.deck)
-        }
-        super(data, SolGameStateValidator, hydratedProperties)
+        super(data, SolGameStateValidator)
+
+        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+        this.players = data.players.map((player) => new HydratedSolPlayerState(player))
+        this.board = new HydratedSolGameBoard(data.board)
+        this.deck = new HydratedDeck(data.deck)
     }
+
+    protected override hydrateProperties(): void {}
 }

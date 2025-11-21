@@ -24,8 +24,8 @@ export class HydratedBridgesGameBoard
     declare villages: HydratedVillage[]
 
     constructor(data: BridgesGameBoard) {
-        const hydratedVillages = data.villages.map((village) => new HydratedVillage(village))
-        super(data, BridgesGameBoardValidator, { villages: hydratedVillages })
+        super(data, BridgesGameBoardValidator)
+        this.villages = data.villages.map((village) => new HydratedVillage(village))
     }
 
     hasVillage(villageIndex: number) {

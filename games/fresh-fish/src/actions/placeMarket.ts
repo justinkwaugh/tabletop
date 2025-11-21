@@ -11,6 +11,7 @@ export const PlaceMarket = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),
         Type.Object({
+            playerId: Type.String(),
             type: Type.Literal(ActionType.PlaceMarket),
             coords: OffsetTupleCoordinates
         })

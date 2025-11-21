@@ -43,14 +43,6 @@ export const KaivaiGameState = Type.Evaluate(
 
 const KaivaiGameStateValidator = Compile(KaivaiGameState)
 
-type HydratedProperties = {
-    turnManager: HydratedSimpleTurnManager
-    rounds: HydratedRoundManager
-    phases: HydratedPhaseManager
-    players: HydratedKaivaiPlayerState[]
-    board: HydratedKaivaiGameBoard
-}
-
 export class HydratedKaivaiGameState
     extends HydratableGameState<typeof KaivaiGameState, HydratedKaivaiPlayerState>
     implements KaivaiGameState
@@ -80,15 +72,16 @@ export class HydratedKaivaiGameState
     declare chosenIsland?: string
 
     constructor(data: KaivaiGameState) {
-        const hydratedProperties: HydratedProperties = {
-            turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            rounds: new HydratedRoundManager(data.rounds),
-            phases: new HydratedPhaseManager(data.phases),
-            players: data.players.map((player) => new HydratedKaivaiPlayerState(player)),
-            board: new HydratedKaivaiGameBoard(data.board)
-        }
-        super(data, KaivaiGameStateValidator, hydratedProperties)
+        super(data, KaivaiGameStateValidator)
+
+        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+        this.rounds = new HydratedRoundManager(data.rounds)
+        this.phases = new HydratedPhaseManager(data.phases)
+        this.players = data.players.map((player) => new HydratedKaivaiPlayerState(player))
+        this.board = new HydratedKaivaiGameBoard(data.board)
     }
+
+    protected override hydrateProperties(): void {}
 
     playersOrderedByAscendingWealth(afterDevalue: boolean = false): string[] {
         return this.players
