@@ -50,4 +50,24 @@ describe('Fresh Fish Game Board Tests', () => {
 
         expect(board.hasEmptyCell()).toBeFalsy()
     })
+
+    it<LocalTestContext>('will not have have graph in dehydrated state', ({ board }) => {
+        board.cells = [
+            [{ type: CellType.OffBoard }, { type: CellType.Empty }, { type: CellType.Market }],
+            [
+                { type: CellType.Truck, goodsType: GoodsType.Fish },
+                { type: CellType.Disk, playerId: 'abc' },
+                { type: CellType.Empty }
+            ],
+            [{ type: CellType.OffBoard }, { type: CellType.Empty }, { type: CellType.Empty }]
+        ]
+
+        const graph = board.graph
+        expect(graph.size()).toEqual(7)
+
+        const dehydrated = board.dehydrate()
+        console.log(dehydrated)
+        expect(dehydrated.cells.length).toEqual(3)
+        expect((dehydrated as any).internalGraph).toBeUndefined()
+    })
 })
