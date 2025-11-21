@@ -28,6 +28,7 @@
     "workspaces": [
         "libs/*",
         "games/*",
-        "apps/*"
+        "apps/*",
+        "config/*"
     ]
 }
