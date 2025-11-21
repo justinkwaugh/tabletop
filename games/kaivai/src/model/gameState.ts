@@ -81,8 +81,6 @@ export class HydratedKaivaiGameState
         this.board = new HydratedKaivaiGameBoard(data.board)
     }
 
-    protected override hydrateProperties(): void {}
-
     playersOrderedByAscendingWealth(afterDevalue: boolean = false): string[] {
         return this.players
             .sort((a, b) => {

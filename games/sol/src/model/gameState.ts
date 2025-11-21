@@ -60,6 +60,4 @@ export class HydratedSolGameState
         this.board = new HydratedSolGameBoard(data.board)
         this.deck = new HydratedDeck(data.deck)
     }
-
-    protected override hydrateProperties(): void {}
 }

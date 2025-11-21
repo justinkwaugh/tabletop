@@ -30,12 +30,7 @@ export abstract class Hydratable<T extends TSchema> {
         }
 
         Object.assign(this, structuredClone(data))
-
-        this.hydrateProperties()
     }
-
-    // Override this to hydrate nested properties
-    protected hydrateProperties() {}
 
     private cloneable(): Static<T> {
         // Shallow clone removes the _validator property
