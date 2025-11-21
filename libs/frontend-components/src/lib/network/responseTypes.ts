@@ -109,16 +109,21 @@ export const GameChatResponse = Type.Evaluate(
     ])
 )
 
+export type GameChatMessageResponsePayload = Static<typeof GameChatMessageResponsePayload>
+export const GameChatMessageResponsePayload = Type.Evaluate(
+    Type.Object({
+        message: GameChatMessage,
+        checksum: Type.Number(),
+        missedMessages: Type.Array(GameChatMessage)
+    })
+)
+
 export type GameChatMessageResponse = Static<typeof GameChatMessageResponse>
 export const GameChatMessageResponse = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Response, ['payload']),
         Type.Object({
-            payload: Type.Object({
-                message: GameChatMessage,
-                checksum: Type.Number(),
-                missedMessages: Type.Array(GameChatMessage)
-            })
+            payload: GameChatMessageResponsePayload
         })
     ])
 )

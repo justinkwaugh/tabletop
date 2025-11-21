@@ -6,7 +6,6 @@ import {
     GameAction,
     GameChat,
     GameChatMessage,
-    GameState,
     GameSyncStatus,
     GameValidator,
     User,
@@ -18,6 +17,7 @@ import type {
     BookmarkResponse,
     CheckSyncResponse,
     GameChatMessageResponse,
+    GameChatMessageResponsePayload,
     GameChatResponse,
     GameResponse,
     GamesResponse,
@@ -248,9 +248,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GamesResponse>()
 
-        return response.payload.games.map(
-            (game) => Value.Default(Game, Value.Convert(Game, game)) as Game
-        )
+        return response.payload.games.map((game) => this.validateGame(game))
     }
 
     async getGame(gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
@@ -275,7 +273,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
@@ -285,7 +283,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async updateGame(game: Partial<Game>): Promise<Game> {
@@ -295,7 +293,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async deleteGame(gameId: string): Promise<void> {
@@ -324,7 +322,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async joinGame(gameId: string): Promise<Game> {
@@ -334,7 +332,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async declineGame(gameId: string): Promise<Game> {
@@ -344,7 +342,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async startGame(game: Game): Promise<Game> {
@@ -354,7 +352,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async applyAction(
@@ -367,7 +365,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<ApplyActionResponse>()
 
-        const responseGame = Value.Convert(Game, response.payload.game) as Game
+        const responseGame = this.validateGame(response.payload.game)
         const actions = response.payload.actions.map((action) =>
             Value.Convert(GameAction, action)
         ) as GameAction[]
@@ -397,7 +395,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<UndoActionResponse>()
 
-        const responseGame = Value.Convert(Game, response.payload.game) as Game
+        const responseGame = this.validateGame(response.payload.game)
         const redoneActions = response.payload.redoneActions.map((action) =>
             Value.Convert(GameAction, action)
         ) as GameAction[]
@@ -456,7 +454,7 @@ export class TabletopApi {
         gameChatMessage: GameChatMessage,
         gameId: string,
         checksum: number
-    ): Promise<typeof GameChatMessageResponse.payload> {
+    ): Promise<GameChatMessageResponsePayload> {
         const {
             payload: { message, checksum: newChecksum, missedMessages }
         } = await this.wretch
