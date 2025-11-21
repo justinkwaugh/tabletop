@@ -19,6 +19,7 @@
         "typebox": "^1.0.53"
     },
     "devDependencies": {
+        "@tabletop/vitest-config": "*",
         "@tabletop/eslint-config": "*",
         "@types/fnv-plus": "^1.3.2",
         "rimraf": "^6.1.0",

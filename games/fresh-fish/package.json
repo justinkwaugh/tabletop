@@ -20,6 +20,7 @@
     "devDependencies": {
         "@babel/core": "^7.25.2",
         "@babel/preset-env": "^7.25.3",
+        "@tabletop/vitest-config": "*",
         "@tabletop/eslint-config": "*",
         "@types/uuid": "^9.0.8",
         "rimraf": "^6.1.0",

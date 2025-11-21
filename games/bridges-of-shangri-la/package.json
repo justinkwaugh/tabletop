@@ -18,6 +18,7 @@
     "devDependencies": {
         "@babel/core": "^7.25.2",
         "@babel/preset-env": "^7.25.3",
+        "@tabletop/vitest-config": "*",
         "@tabletop/eslint-config": "*",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3"

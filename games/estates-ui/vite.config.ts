@@ -1,17 +1,17 @@
 import { sveltekit } from '@sveltejs/kit/vite'
-import { defineConfig } from 'vitest/config'
+import { defineProject, mergeConfig } from 'vitest/config'
+import { VitestConfig } from '@tabletop/vitest-config'
 
-export default defineConfig({
-    plugins: [sveltekit()],
-    test: {
-        include: ['src/**/*.{test,spec}.{js,ts}']
-    },
-    build: {
-        commonjsOptions: {
-            include: [/node_modules/]
+export default defineProject(
+    mergeConfig(VitestConfig, {
+        plugins: [sveltekit()],
+        build: {
+            commonjsOptions: {
+                include: [/node_modules/]
+            }
+        },
+        server: {
+            port: 5174
         }
-    },
-    server: {
-        port: 5174
-    }
-})
+    })
+)

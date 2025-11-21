@@ -46,6 +46,7 @@
         "typescript-retry-decorator": "^2.4.2"
     },
     "devDependencies": {
+        "@tabletop/vitest-config": "*",
         "@tabletop/eslint-config": "*",
         "@types/bcrypt": "^5.0.2",
         "@types/node": "^20.14.2",

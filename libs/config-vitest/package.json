@@ -1,0 +1,11 @@
+{
+    "name": "@tabletop/vitest-config",
+    "type": "module",
+    "version": "0.0.0",
+    "dependencies": {
+        "vitest": "^4.0.12"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}
