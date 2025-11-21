@@ -8,7 +8,6 @@ export class TDate extends Type.Base<globalThis.Date> {
         super()
     }
     public override Check(value: unknown): value is globalThis.Date {
-        console.log('Checking value for Date type:', value)
         return value instanceof globalThis.Date
     }
 
@@ -28,7 +27,6 @@ export class TDate extends Type.Base<globalThis.Date> {
         if (typeof value === 'string' || typeof value === 'number') {
             const date = new Date(value)
             if (!isNaN(date.getTime())) {
-                console.log('Converted value to Date:', date)
                 return date
             }
         }
