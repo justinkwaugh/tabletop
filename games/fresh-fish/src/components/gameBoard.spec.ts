@@ -63,7 +63,7 @@ describe('Fresh Fish Game Board Tests', () => {
         ]
 
         const graph = board.graph
-        expect(graph.size()).toEqual(7)
+        expect(graph.size).toEqual(7)
 
         const dehydrated = board.dehydrate()
         console.log(dehydrated)

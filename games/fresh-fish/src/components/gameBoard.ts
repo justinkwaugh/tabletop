@@ -54,7 +54,7 @@ export class HydratedGameBoard
     }
 
     *[Symbol.iterator](): IterableIterator<BoardCell> {
-        yield* this.graph.map((node) => {
+        yield* Iterator.from(this.graph).map((node) => {
             const coords = offsetToOffsetTuple(node.coords)
             const cell = this.getCell(coords)
 
