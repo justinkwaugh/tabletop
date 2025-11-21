@@ -1,5 +1,5 @@
+import { Record } from 'typebox'
 import { isStallCell, isTraversable, isTruckCell } from '../components/cells.js'
-import { Record } from '@sinclair/typebox'
 import { GoodsType } from '../definition/goodsType.js'
 import { FreshFishPlayerState } from '../model/playerState.js'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
@@ -148,7 +148,8 @@ export class Scorer {
         if (!fromCell || !toCell) {
             return false
         }
-        const traversable = sameCoordinates(to.coords, end) || isTraversable(toCell)
+        const traversable =
+            isTraversable(toCell) || (sameCoordinates(to.coords, end) && isTraversable(fromCell))
         return traversable
     }
 }

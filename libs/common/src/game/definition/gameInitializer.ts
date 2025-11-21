@@ -5,8 +5,7 @@ import {
     type HydratedGameState,
     type UninitializedGameState
 } from '../model/gameState.js'
-import { Value } from '@sinclair/typebox/value'
-import { GameConfig } from './gameConfig.js'
+import { Value } from 'typebox/value'
 
 export interface GameInitializer {
     initializeGame(game: Partial<Game>): Game
@@ -39,7 +38,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
         }
 
         if (!Value.Check(Game, newGame)) {
-            throw Error(JSON.stringify([...Value.Errors(Game, newGame)]))
+            throw Error(JSON.stringify(Value.Errors(Game, newGame)))
         }
 
         return newGame

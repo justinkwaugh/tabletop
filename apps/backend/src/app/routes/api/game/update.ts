@@ -1,15 +1,17 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { Game } from '@tabletop/common'
 
 type GameUpdateRequest = Static<typeof GameUpdateRequest>
 const GameUpdateRequest = Type.Object({
-    game: Type.Composite([
-        Type.Pick(Game, ['id']),
-        Type.Partial(Type.Pick(Game, ['name', 'players', 'isPublic']), {
-            additionalProperties: false
-        })
-    ])
+    game: Type.Evaluate(
+        Type.Intersect([
+            Type.Pick(Game, ['id']),
+            Type.Partial(Type.Pick(Game, ['name', 'players', 'isPublic']), {
+                additionalProperties: false
+            })
+        ])
+    )
 })
 
 export default async function (fastify: FastifyInstance) {

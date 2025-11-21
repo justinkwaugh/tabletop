@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     AxialCoordinates,
     coordinatesToNumber,
@@ -41,7 +41,7 @@ export const KaivaiGameBoard = Type.Object({
     islands: Type.Record(Type.String(), Island)
 })
 
-export const KaivaiGameBoardValidator = TypeCompiler.Compile(KaivaiGameBoard)
+export const KaivaiGameBoardValidator = Compile(KaivaiGameBoard)
 
 export class HydratedKaivaiGameBoard
     extends Hydratable<typeof KaivaiGameBoard>

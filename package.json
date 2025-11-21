@@ -3,6 +3,7 @@
     "scripts": {
         "build": "turbo run build",
         "clean": "turbo run clean",
+        "clean:node": "rimraf node_modules /**/node_modules",
         "watch": "turbo watch dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "dev": "turbo dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "email": "turbo watch dev --filter=@tabletop/email",
@@ -15,9 +16,9 @@
         "@types/react": "^19.2.2",
         "eslint": "^9.39.1",
         "prettier": "^3.3.3",
+        "rimraf": "^6.1.2",
         "turbo": "^2.6.0",
-        "vitest": "^4.0.6",
-        "rimraf": "^6.1.0"
+        "vitest": "^4.0.12"
     },
     "engines": {
         "node": ">=18"
@@ -27,6 +28,7 @@
     "workspaces": [
         "libs/*",
         "games/*",
-        "apps/*"
+        "apps/*",
+        "config/*"
     ]
 }

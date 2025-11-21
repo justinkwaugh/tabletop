@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { ActionSource, GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
@@ -11,20 +11,22 @@ export const HutScore = Type.Object({
 })
 
 export type ScoreHuts = Static<typeof ScoreHuts>
-export const ScoreHuts = Type.Composite([
-    Type.Omit(GameAction, ['source']),
-    Type.Object({
-        type: Type.Literal(ActionType.ScoreHuts),
-        source: Type.Literal(ActionSource.System),
-        metadata: Type.Optional(
-            Type.Object({
-                scores: Type.Record(Type.String(), HutScore)
-            })
-        )
-    })
-])
+export const ScoreHuts = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['source']),
+        Type.Object({
+            type: Type.Literal(ActionType.ScoreHuts),
+            source: Type.Literal(ActionSource.System),
+            metadata: Type.Optional(
+                Type.Object({
+                    scores: Type.Record(Type.String(), HutScore)
+                })
+            )
+        })
+    ])
+)
 
-export const ScoreHutsValidator = TypeCompiler.Compile(ScoreHuts)
+export const ScoreHutsValidator = Compile(ScoreHuts)
 
 export function isScoreHuts(action?: GameAction): action is ScoreHuts {
     return action?.type === ActionType.ScoreHuts

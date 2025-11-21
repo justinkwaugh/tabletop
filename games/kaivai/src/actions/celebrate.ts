@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
@@ -12,17 +12,19 @@ export const CelebrateMetadata = Type.Object({
 })
 
 export type Celebrate = Static<typeof Celebrate>
-export const Celebrate = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Celebrate),
-        playerId: Type.String(),
-        islandId: Type.String(),
-        metadata: Type.Optional(CelebrateMetadata)
-    })
-])
+export const Celebrate = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Celebrate),
+            playerId: Type.String(),
+            islandId: Type.String(),
+            metadata: Type.Optional(CelebrateMetadata)
+        })
+    ])
+)
 
-export const CelebrateValidator = TypeCompiler.Compile(Celebrate)
+export const CelebrateValidator = Compile(Celebrate)
 
 export function isCelebrate(action?: GameAction): action is Celebrate {
     return action?.type === ActionType.Celebrate

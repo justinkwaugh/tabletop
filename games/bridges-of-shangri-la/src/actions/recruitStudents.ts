@@ -1,26 +1,28 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedBridgesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Placement } from '../components/gameBoard.js'
 
 export type RecruitStudents = Static<typeof RecruitStudents>
-export const RecruitStudents = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.RecruitStudents),
-        playerId: Type.String(),
-        placement: Placement,
-        metadata: Type.Optional(
-            Type.Object({
-                forceSkip: Type.Boolean()
-            })
-        )
-    })
-])
+export const RecruitStudents = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.RecruitStudents),
+            playerId: Type.String(),
+            placement: Placement,
+            metadata: Type.Optional(
+                Type.Object({
+                    forceSkip: Type.Boolean()
+                })
+            )
+        })
+    ])
+)
 
-export const RecruitStudentsValidator = TypeCompiler.Compile(RecruitStudents)
+export const RecruitStudentsValidator = Compile(RecruitStudents)
 
 export function isRecruitStudents(action?: GameAction): action is RecruitStudents {
     return action?.type === ActionType.RecruitStudents

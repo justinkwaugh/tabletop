@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { Notification, NotificationCategory } from './notification.js'
 import { Game } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
@@ -49,64 +49,76 @@ export const GameNotificationChatData = Type.Object({
 })
 
 export type GameCreateNotification = Static<typeof GameCreateNotification>
-export const GameCreateNotification = Type.Composite([
-    Type.Omit(Notification, ['type', 'action', 'data']),
-    Type.Object({
-        type: Type.Literal(NotificationCategory.Game),
-        action: Type.Literal(GameNotificationAction.Create),
-        data: GameNotificationCreateData
-    })
-])
+export const GameCreateNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.Create),
+            data: GameNotificationCreateData
+        })
+    ])
+)
 
 export type GameDeleteNotification = Static<typeof GameDeleteNotification>
-export const GameDeleteNotification = Type.Composite([
-    Type.Omit(Notification, ['type', 'action', 'data']),
-    Type.Object({
-        type: Type.Literal(NotificationCategory.Game),
-        action: Type.Literal(GameNotificationAction.Delete),
-        data: GameNotificationDeleteData
-    })
-])
+export const GameDeleteNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.Delete),
+            data: GameNotificationDeleteData
+        })
+    ])
+)
 
 export type GameUpdateNotification = Static<typeof GameUpdateNotification>
-export const GameUpdateNotification = Type.Composite([
-    Type.Omit(Notification, ['type', 'action', 'data']),
-    Type.Object({
-        type: Type.Literal(NotificationCategory.Game),
-        action: Type.Literal(GameNotificationAction.Update),
-        data: GameNotificationUpdateData
-    })
-])
+export const GameUpdateNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.Update),
+            data: GameNotificationUpdateData
+        })
+    ])
+)
 
 export type GameAddActionsNotification = Static<typeof GameAddActionsNotification>
-export const GameAddActionsNotification = Type.Composite([
-    Type.Omit(Notification, ['type', 'action', 'data']),
-    Type.Object({
-        type: Type.Literal(NotificationCategory.Game),
-        action: Type.Literal(GameNotificationAction.AddActions),
-        data: GameNotificationAddActionsData
-    })
-])
+export const GameAddActionsNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.AddActions),
+            data: GameNotificationAddActionsData
+        })
+    ])
+)
 
 export type GameUndoActionNotification = Static<typeof GameUndoActionNotification>
-export const GameUndoActionNotification = Type.Composite([
-    Type.Omit(Notification, ['type', 'action', 'data']),
-    Type.Object({
-        type: Type.Literal(NotificationCategory.Game),
-        action: Type.Literal(GameNotificationAction.UndoAction),
-        data: GameNotificationUndoActionData
-    })
-])
+export const GameUndoActionNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.UndoAction),
+            data: GameNotificationUndoActionData
+        })
+    ])
+)
 
 export type GameChatNotification = Static<typeof GameChatNotification>
-export const GameChatNotification = Type.Composite([
-    Type.Omit(Notification, ['type', 'action', 'data']),
-    Type.Object({
-        type: Type.Literal(NotificationCategory.Game),
-        action: Type.Literal(GameNotificationAction.Chat),
-        data: GameNotificationChatData
-    })
-])
+export const GameChatNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.Chat),
+            data: GameNotificationChatData
+        })
+    ])
+)
 
 export type GameNotificationData =
     | GameNotificationCreateData

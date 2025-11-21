@@ -1,18 +1,20 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 
 export type LoseValue = Static<typeof LoseValue>
-export const LoseValue = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.LoseValue)
-    })
-])
+export const LoseValue = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.LoseValue)
+        })
+    ])
+)
 
-export const LoseValueValidator = TypeCompiler.Compile(LoseValue)
+export const LoseValueValidator = Compile(LoseValue)
 
 export function isLoseValue(action?: GameAction): action is LoseValue {
     return action?.type === ActionType.LoseValue

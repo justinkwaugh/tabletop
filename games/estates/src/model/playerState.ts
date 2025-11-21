@@ -1,21 +1,23 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
 import { Company } from '../definition/companies.js'
 
 export type EstatesPlayerState = Static<typeof EstatesPlayerState>
-export const EstatesPlayerState = Type.Composite([
-    PlayerState,
-    Type.Object({
-        certificates: Type.Array(Type.Enum(Company)),
-        money: Type.Number(),
-        stolen: Type.Number(),
-        score: Type.Number()
-    })
-])
+export const EstatesPlayerState = Type.Evaluate(
+    Type.Intersect([
+        PlayerState,
+        Type.Object({
+            certificates: Type.Array(Type.Enum(Company)),
+            money: Type.Number(),
+            stolen: Type.Number(),
+            score: Type.Number()
+        })
+    ])
+)
 
-export const EstatesPlayerStateValidator = TypeCompiler.Compile(EstatesPlayerState)
+export const EstatesPlayerStateValidator = Compile(EstatesPlayerState)
 
 export class HydratedEstatesPlayerState
     extends Hydratable<typeof EstatesPlayerState>

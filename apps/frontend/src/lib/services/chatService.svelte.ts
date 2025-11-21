@@ -18,7 +18,7 @@ import {
     GameChatNotification,
     GameNotificationAction
 } from '@tabletop/common'
-import { Value } from '@sinclair/typebox/value'
+import { Value } from 'typebox/value'
 import { NotificationService } from './notificationService.svelte'
 
 export class ChatService {
@@ -204,6 +204,16 @@ export class ChatService {
                 GameChatMessage,
                 notification.data.message
             ) as GameChatMessage
+
+            // Date conversion of composite types not working properly, so force it here
+            if (!(newMessage.timestamp instanceof Date)) {
+                newMessage.timestamp = new Date(newMessage.timestamp)
+            }
+
+            if (!Value.Check(GameChatMessage, newMessage)) {
+                console.error('Invalid GameChatMessage format in notification')
+                return
+            }
 
             if (this.currentGameChat.messages.find((m) => m.id === newMessage.id)) {
                 return

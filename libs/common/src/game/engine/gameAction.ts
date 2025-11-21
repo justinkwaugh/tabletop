@@ -1,4 +1,5 @@
-import { Type, type Static, type TSchema } from '@sinclair/typebox'
+import { Type, type Static, type TSchema } from 'typebox'
+import { DateType } from '../../util/typebox.js'
 import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
 import { MachineContext } from './machineContext.js'
@@ -30,26 +31,30 @@ export const GameAction = Type.Object({
     index: Type.Optional(Type.Number()),
     simultaneousGroupId: Type.Optional(Type.String()),
     revealsInfo: Type.Optional(Type.Boolean()),
-    createdAt: Type.Optional(Type.Date()),
-    updatedAt: Type.Optional(Type.Date())
+    createdAt: Type.Optional(DateType()),
+    updatedAt: Type.Optional(DateType())
 })
 
 export type PlayerAction = Static<typeof PlayerAction>
-export const PlayerAction = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        playerId: Type.String()
-    })
-])
-
-export const ToAPIAction = (schema: TSchema) =>
-    Type.Composite([
-        Type.Omit(schema, ['createdAt', 'updatedAt']),
+export const PlayerAction = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
         Type.Object({
-            createdAt: Type.Optional(Type.String({ format: 'date-time' })),
-            updatedAt: Type.Optional(Type.String({ format: 'date-time' }))
+            playerId: Type.String()
         })
     ])
+)
+
+export const ToAPIAction = (schema: TSchema) =>
+    Type.Evaluate(
+        Type.Intersect([
+            Type.Omit(schema, ['createdAt', 'updatedAt']),
+            Type.Object({
+                createdAt: Type.Optional(Type.String({ format: 'date-time' })),
+                updatedAt: Type.Optional(Type.String({ format: 'date-time' }))
+            })
+        ])
+    )
 
 export interface HydratedAction extends GameAction {
     apply(state: GameState, context?: MachineContext): void

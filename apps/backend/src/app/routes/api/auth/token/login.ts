@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { AuthenticationTokenData, TokenType } from '@tabletop/backend-services'
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { authSession } from '../../../../lib/session.js'
 
 type TokenLoginRequest = Static<typeof TokenLoginRequest>

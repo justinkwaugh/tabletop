@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { GoodsType } from '../definition/goodsType.js'
 
 export enum TileType {
@@ -8,13 +8,13 @@ export enum TileType {
 
 export type MarketTile = Static<typeof MarketTile>
 export const MarketTile = Type.Object({
-    type: Type.Const(TileType.Market),
+    type: Type.Literal(TileType.Market),
     test: Type.Optional(Type.String())
 })
 
 export type StallTile = Static<typeof StallTile>
 export const StallTile = Type.Object({
-    type: Type.Const(TileType.Stall),
+    type: Type.Literal(TileType.Stall),
     goodsType: Type.Enum(GoodsType)
 })
 

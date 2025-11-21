@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     BooleanConfigOption,
     ConfigOptionType,
@@ -33,17 +33,13 @@ const boardSeedOption: NumberInputConfigOption = {
 }
 
 export type FreshFishGameConfig = Static<typeof FreshFishGameConfig>
-export const FreshFishGameConfig = Type.Composite([
-    Type.Object({
-        forceThreeDisks: Type.Optional(Type.Boolean({ default: forceThreeDisksOption.default })),
-        auctioneerWinsTie: Type.Optional(
-            Type.Boolean({ default: auctioneerWinsTieOption.default })
-        ),
-        boardSeed: Type.Optional(Type.Number())
-    })
-])
+export const FreshFishGameConfig = Type.Object({
+    forceThreeDisks: Type.Optional(Type.Boolean({ default: forceThreeDisksOption.default })),
+    auctioneerWinsTie: Type.Optional(Type.Boolean({ default: auctioneerWinsTieOption.default })),
+    boardSeed: Type.Optional(Type.Number())
+})
 
-export const FreshFishGameConfigValidator = TypeCompiler.Compile(FreshFishGameConfig)
+export const FreshFishGameConfigValidator = Compile(FreshFishGameConfig)
 
 export const FreshFishGameConfigOptions: GameConfigOptions = [
     auctioneerWinsTieOption,

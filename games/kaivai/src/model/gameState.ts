@@ -11,43 +11,37 @@ import {
     RoundManager
 } from '@tabletop/common'
 import { KaivaiPlayerState, HydratedKaivaiPlayerState } from './playerState.js'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { KaivaiGameBoard, HydratedKaivaiGameBoard } from '../components/gameBoard.js'
 
 export type KaivaiGameState = Static<typeof KaivaiGameState>
-export const KaivaiGameState = Type.Composite([
-    Type.Omit(GameState, ['players', 'machineState']),
-    Type.Object({
-        players: Type.Array(KaivaiPlayerState),
-        machineState: Type.Enum(MachineState),
-        rounds: RoundManager,
-        phases: PhaseManager,
-        board: KaivaiGameBoard,
-        influence: Type.Record(Type.String(), Type.Number()),
-        bidders: Type.Array(Type.String()),
-        bids: Type.Record(Type.String(), Type.Number()),
-        cultTiles: Type.Number(),
-        godCoords: Type.Optional(
-            Type.Object({ coords: AxialCoordinates, islandId: Type.String() })
-        ),
-        passedPlayers: Type.Array(Type.String()),
-        hutsScored: Type.Boolean(),
-        islandsToScore: Type.Array(Type.String()),
-        chosenIsland: Type.Optional(Type.String())
-    })
-])
+export const KaivaiGameState = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameState, ['players', 'machineState']),
+        Type.Object({
+            players: Type.Array(KaivaiPlayerState),
+            machineState: Type.Enum(MachineState),
+            rounds: RoundManager,
+            phases: PhaseManager,
+            board: KaivaiGameBoard,
+            influence: Type.Record(Type.String(), Type.Number()),
+            bidders: Type.Array(Type.String()),
+            bids: Type.Record(Type.String(), Type.Number()),
+            cultTiles: Type.Number(),
+            godCoords: Type.Optional(
+                Type.Object({ coords: AxialCoordinates, islandId: Type.String() })
+            ),
+            passedPlayers: Type.Array(Type.String()),
+            hutsScored: Type.Boolean(),
+            islandsToScore: Type.Array(Type.String()),
+            chosenIsland: Type.Optional(Type.String())
+        })
+    ])
+)
 
-const KaivaiGameStateValidator = TypeCompiler.Compile(KaivaiGameState)
-
-type HydratedProperties = {
-    turnManager: HydratedSimpleTurnManager
-    rounds: HydratedRoundManager
-    phases: HydratedPhaseManager
-    players: HydratedKaivaiPlayerState[]
-    board: HydratedKaivaiGameBoard
-}
+const KaivaiGameStateValidator = Compile(KaivaiGameState)
 
 export class HydratedKaivaiGameState
     extends HydratableGameState<typeof KaivaiGameState, HydratedKaivaiPlayerState>
@@ -78,14 +72,13 @@ export class HydratedKaivaiGameState
     declare chosenIsland?: string
 
     constructor(data: KaivaiGameState) {
-        const hydratedProperties: HydratedProperties = {
-            turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            rounds: new HydratedRoundManager(data.rounds),
-            phases: new HydratedPhaseManager(data.phases),
-            players: data.players.map((player) => new HydratedKaivaiPlayerState(player)),
-            board: new HydratedKaivaiGameBoard(data.board)
-        }
-        super(data, KaivaiGameStateValidator, hydratedProperties)
+        super(data, KaivaiGameStateValidator)
+
+        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+        this.rounds = new HydratedRoundManager(data.rounds)
+        this.phases = new HydratedPhaseManager(data.phases)
+        this.players = data.players.map((player) => new HydratedKaivaiPlayerState(player))
+        this.board = new HydratedKaivaiGameBoard(data.board)
     }
 
     playersOrderedByAscendingWealth(afterDevalue: boolean = false): string[] {

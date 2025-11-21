@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
-import { TSchema, Type, type Static } from '@sinclair/typebox'
+import { TSchema, Type, type Static } from 'typebox'
 import { GameAction, ActionSource, GameDefinition, ToAPIAction } from '@tabletop/common'
-import { Value } from '@sinclair/typebox/value'
+import { Value } from 'typebox/value'
 
 export default async function (
     definition: GameDefinition,
@@ -36,6 +36,10 @@ export default async function (
             // convert dates
             const action = Value.Convert(actionSchema, request.body.action) as GameAction
             action.source = ActionSource.User // Don't trust client
+
+            if (!Value.Check(actionSchema, action)) {
+                throw Error('Invalid action format')
+            }
 
             const { processedActions, updatedGame, missingActions } =
                 await fastify.gameService.applyActionToGame({

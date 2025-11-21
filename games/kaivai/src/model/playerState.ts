@@ -1,6 +1,6 @@
 import { AxialCoordinates, Hydratable, PlayerState } from '@tabletop/common'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
 import { Boat } from '../components/boat.js'
 
@@ -8,26 +8,27 @@ export type PlayerTile = Static<typeof PlayerTile>
 export const PlayerTile = Type.Object({})
 
 export type KaivaiPlayerState = Static<typeof KaivaiPlayerState>
-export const KaivaiPlayerState = Type.Composite([
-    PlayerState,
-    Type.Object({
-        score: Type.Number(),
-        movementModiferPosition: Type.Number(),
-        boats: Type.Array(Boat),
-        boatLocations: Type.Record(Type.String(), AxialCoordinates),
-        availableBoats: Type.Array(Type.String()),
-        fishermen: Type.Number(),
-        shells: Type.Array(Type.Number()),
-        fish: Type.Array(Type.Number()),
-        influence: Type.Number(),
-        buildingCost: Type.Number(),
-        baseMovement: Type.Number(),
-        initialHutsPlaced: Type.Number()
-        // tiles: Type.Number()
-    })
-])
+export const KaivaiPlayerState = Type.Evaluate(
+    Type.Intersect([
+        PlayerState,
+        Type.Object({
+            score: Type.Number(),
+            movementModiferPosition: Type.Number(),
+            boats: Type.Array(Boat),
+            boatLocations: Type.Record(Type.String(), AxialCoordinates),
+            availableBoats: Type.Array(Type.String()),
+            fishermen: Type.Number(),
+            shells: Type.Array(Type.Number()),
+            fish: Type.Array(Type.Number()),
+            influence: Type.Number(),
+            buildingCost: Type.Number(),
+            baseMovement: Type.Number(),
+            initialHutsPlaced: Type.Number()
+        })
+    ])
+)
 
-export const KaivaiPlayerStateValidator = TypeCompiler.Compile(KaivaiPlayerState)
+export const KaivaiPlayerStateValidator = Compile(KaivaiPlayerState)
 
 const movementModifiers = [0, 1, 2, 2, 3, 3, 4, 4, 5]
 

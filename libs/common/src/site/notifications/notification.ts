@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 
 export enum NotificationCategory {
     Game = 'game',
@@ -15,4 +15,4 @@ export const Notification = Type.Object({
     data: Type.Object({})
 })
 
-export const NotificationValidator = TypeCompiler.Compile(Notification)
+export const NotificationValidator = Compile(Notification)

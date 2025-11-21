@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     AxialCoordinates,
     GameAction,
@@ -28,19 +28,21 @@ export const DeliverMetadata = Type.Object({
 })
 
 export type Deliver = Static<typeof Deliver>
-export const Deliver = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Deliver),
-        playerId: Type.String(),
-        boatId: Type.String(),
-        boatCoords: AxialCoordinates,
-        deliveries: Type.Array(Delivery),
-        metadata: Type.Optional(DeliverMetadata)
-    })
-])
+export const Deliver = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Deliver),
+            playerId: Type.String(),
+            boatId: Type.String(),
+            boatCoords: AxialCoordinates,
+            deliveries: Type.Array(Delivery),
+            metadata: Type.Optional(DeliverMetadata)
+        })
+    ])
+)
 
-export const DeliverValidator = TypeCompiler.Compile(Deliver)
+export const DeliverValidator = Compile(Deliver)
 
 export function isDeliver(action?: GameAction): action is Deliver {
     return action?.type === ActionType.Deliver

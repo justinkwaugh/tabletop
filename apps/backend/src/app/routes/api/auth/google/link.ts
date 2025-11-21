@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { OAuth2Client } from 'google-auth-library'
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { ExternalAuthService } from '@tabletop/common'
 
 type LoginRequest = Static<typeof LoginRequest>

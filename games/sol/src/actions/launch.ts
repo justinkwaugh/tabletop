@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     GameAction,
     HydratableAction,
@@ -14,19 +14,21 @@ export type LaunchMetadata = Static<typeof LaunchMetadata>
 export const LaunchMetadata = Type.Object({})
 
 export type Launch = Static<typeof Launch>
-export const Launch = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Launch),
-        playerId: Type.String(),
-        mothership: Type.String(), // player id is surrogate for mothership
-        numSundivers: Type.Number(),
-        destination: OffsetCoordinates,
-        metadata: Type.Optional(LaunchMetadata)
-    })
-])
+export const Launch = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Launch),
+            playerId: Type.String(),
+            mothership: Type.String(), // player id is surrogate for mothership
+            numSundivers: Type.Number(),
+            destination: OffsetCoordinates,
+            metadata: Type.Optional(LaunchMetadata)
+        })
+    ])
+)
 
-export const LaunchValidator = TypeCompiler.Compile(Launch)
+export const LaunchValidator = Compile(Launch)
 
 export function isLaunch(action?: GameAction): action is Launch {
     return action?.type === ActionType.Launch

@@ -1,21 +1,23 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedBridgesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Placement } from '../components/gameBoard.js'
 
 export type PlaceMaster = Static<typeof PlaceMaster>
-export const PlaceMaster = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.PlaceMaster),
-        playerId: Type.String(),
-        placement: Placement
-    })
-])
+export const PlaceMaster = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceMaster),
+            playerId: Type.String(),
+            placement: Placement
+        })
+    ])
+)
 
-export const PlaceMasterValidator = TypeCompiler.Compile(PlaceMaster)
+export const PlaceMasterValidator = Compile(PlaceMaster)
 
 export function isPlaceMaster(action?: GameAction): action is PlaceMaster {
     return action?.type === ActionType.PlaceMaster

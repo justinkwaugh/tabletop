@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Hydratable } from '@tabletop/common'
 import { MasterType } from '../definition/masterType.js'
 import { HydratedVillage, Village } from './village.js'
@@ -15,7 +15,7 @@ export const BridgesGameBoard = Type.Object({
     villages: Type.Array(Village)
 })
 
-export const BridgesGameBoardValidator = TypeCompiler.Compile(BridgesGameBoard)
+export const BridgesGameBoardValidator = Compile(BridgesGameBoard)
 
 export class HydratedBridgesGameBoard
     extends Hydratable<typeof BridgesGameBoard>
@@ -24,8 +24,8 @@ export class HydratedBridgesGameBoard
     declare villages: HydratedVillage[]
 
     constructor(data: BridgesGameBoard) {
-        const hydratedVillages = data.villages.map((village) => new HydratedVillage(village))
-        super(data, BridgesGameBoardValidator, { villages: hydratedVillages })
+        super(data, BridgesGameBoardValidator)
+        this.villages = data.villages.map((village) => new HydratedVillage(village))
     }
 
     hasVillage(villageIndex: number) {

@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 
 export type StoredSubscription = Static<typeof StoredSubscription>
 export const StoredSubscription = Type.Object({

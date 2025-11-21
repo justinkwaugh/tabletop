@@ -1,4 +1,4 @@
-import { Type, type TSchema, type Static } from '@sinclair/typebox'
+import { Type, type TSchema, type Static } from 'typebox'
 import { shuffle } from '../../util/shuffle.js'
 import { Hydratable } from '../../util/hydration.js'
 import { type RandomFunction } from '../../util/prng.js'

@@ -6,29 +6,25 @@ import {
     PrngState
 } from '@tabletop/common'
 import { BridgesPlayerState, HydratedBridgesPlayerState } from './playerState.js'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { BridgesGameBoard, HydratedBridgesGameBoard } from '../components/gameBoard.js'
 
 export type BridgesGameState = Static<typeof BridgesGameState>
-export const BridgesGameState = Type.Composite([
-    Type.Omit(GameState, ['players', 'machineState']),
-    Type.Object({
-        players: Type.Array(BridgesPlayerState),
-        machineState: Type.Enum(MachineState),
-        board: BridgesGameBoard,
-        stones: Type.Number()
-    })
-])
+export const BridgesGameState = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameState, ['players', 'machineState']),
+        Type.Object({
+            players: Type.Array(BridgesPlayerState),
+            machineState: Type.Enum(MachineState),
+            board: BridgesGameBoard,
+            stones: Type.Number()
+        })
+    ])
+)
 
-const BridgesGameStateValidator = TypeCompiler.Compile(BridgesGameState)
-
-type HydratedProperties = {
-    turnManager: HydratedSimpleTurnManager
-    players: HydratedBridgesPlayerState[]
-    board: HydratedBridgesGameBoard
-}
+const BridgesGameStateValidator = Compile(BridgesGameState)
 
 export class HydratedBridgesGameState
     extends HydratableGameState<typeof BridgesGameState, HydratedBridgesPlayerState>
@@ -49,12 +45,10 @@ export class HydratedBridgesGameState
     declare stones: number
 
     constructor(data: BridgesGameState) {
-        const hydratedProperties: HydratedProperties = {
-            turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            players: data.players.map((player) => new HydratedBridgesPlayerState(player)),
-            board: new HydratedBridgesGameBoard(data.board)
-        }
-        super(data, BridgesGameStateValidator, hydratedProperties)
+        super(data, BridgesGameStateValidator)
+        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+        this.players = data.players.map((player) => new HydratedBridgesPlayerState(player))
+        this.board = new HydratedBridgesGameBoard(data.board)
     }
 
     hasStones() {

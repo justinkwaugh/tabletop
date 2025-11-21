@@ -1,19 +1,21 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 export type ChooseScoringIsland = Static<typeof ChooseScoringIsland>
-export const ChooseScoringIsland = Type.Composite([
-    GameAction,
-    Type.Object({
-        type: Type.Literal(ActionType.ChooseScoringIsland),
-        islandId: Type.String()
-    })
-])
+export const ChooseScoringIsland = Type.Evaluate(
+    Type.Intersect([
+        GameAction,
+        Type.Object({
+            type: Type.Literal(ActionType.ChooseScoringIsland),
+            islandId: Type.String()
+        })
+    ])
+)
 
-export const ChooseScoringIslandValidator = TypeCompiler.Compile(ChooseScoringIsland)
+export const ChooseScoringIslandValidator = Compile(ChooseScoringIsland)
 
 export function isChooseScoringIsland(action?: GameAction): action is ChooseScoringIsland {
     return action?.type === ActionType.ChooseScoringIsland

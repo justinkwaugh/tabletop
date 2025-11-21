@@ -1,16 +1,18 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Auction, AuctionParticipant, AuctionType, HydratedAuction } from './auction.js'
 
 export type SimpleAuction = Static<typeof SimpleAuction>
-export const SimpleAuction = Type.Composite([
-    Auction,
-    Type.Object({
-        type: Type.Literal(AuctionType.Simple)
-    })
-])
+export const SimpleAuction = Type.Evaluate(
+    Type.Intersect([
+        Auction,
+        Type.Object({
+            type: Type.Literal(AuctionType.Simple)
+        })
+    ])
+)
 
-export const SimpleAuctionValidator = TypeCompiler.Compile(SimpleAuction)
+export const SimpleAuctionValidator = Compile(SimpleAuction)
 
 export class HydratedSimpleAuction
     extends HydratedAuction<typeof SimpleAuction>

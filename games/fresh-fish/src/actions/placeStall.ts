@@ -1,23 +1,27 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, OffsetTupleCoordinates } from '@tabletop/common'
+
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { CellType } from '../components/cells.js'
 import { GoodsType } from '../definition/goodsType.js'
 import { ActionType } from '../definition/actions.js'
 
 export type PlaceStall = Static<typeof PlaceStall>
-export const PlaceStall = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.PlaceStall),
-        playerId: Type.String(),
-        goodsType: Type.Enum(GoodsType),
-        coords: Type.Optional(OffsetTupleCoordinates)
-    })
-])
 
-export const PlaceStallValidator = TypeCompiler.Compile(PlaceStall)
+export const PlaceStall = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceStall),
+            playerId: Type.String(),
+            goodsType: Type.Enum(GoodsType),
+            coords: Type.Optional(OffsetTupleCoordinates)
+        })
+    ])
+)
+
+export const PlaceStallValidator = Compile(PlaceStall)
 
 export function isPlaceStall(action: GameAction): action is PlaceStall {
     return action.type === ActionType.PlaceStall

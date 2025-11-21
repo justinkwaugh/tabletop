@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 
 type ParamsType = Static<typeof ParamsType>
 const ParamsType = Type.Object({

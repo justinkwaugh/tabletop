@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     CellType,
     Cell,
@@ -32,7 +32,7 @@ export type InternalCorner = {
     direction: OrdinalDirection
     dimensions: Dimensions
 }
-export const GameBoardValidator = TypeCompiler.Compile(GameBoard)
+export const GameBoardValidator = Compile(GameBoard)
 
 export interface BoardCell {
     cell: Cell

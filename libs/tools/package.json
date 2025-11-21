@@ -14,6 +14,7 @@
         "web-push": "3.6.7"
     },
     "devDependencies": {
+        "@tabletop/vitest-config": "*",
         "@tabletop/backend-services": "*",
         "@tabletop/eslint-config": "*",
         "rimraf": "^6.1.0",

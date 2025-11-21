@@ -1,20 +1,22 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 
 export type Increase = Static<typeof Increase>
-export const Increase = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.Increase),
-        playerId: Type.String()
-    })
-])
+export const Increase = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.Increase),
+            playerId: Type.String()
+        })
+    ])
+)
 
-export const IncreaseValidator = TypeCompiler.Compile(Increase)
+export const IncreaseValidator = Compile(Increase)
 
 export function isIncrease(action?: GameAction): action is Increase {
     return action?.type === ActionType.Increase

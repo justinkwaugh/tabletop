@@ -1,10 +1,12 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { Chat } from './chat.js'
 
 export type GameChat = Static<typeof GameChat>
-export const GameChat = Type.Composite([
-    Chat,
-    Type.Object({
-        gameId: Type.String()
-    })
-])
+export const GameChat = Type.Evaluate(
+    Type.Intersect([
+        Chat,
+        Type.Object({
+            gameId: Type.String()
+        })
+    ])
+)

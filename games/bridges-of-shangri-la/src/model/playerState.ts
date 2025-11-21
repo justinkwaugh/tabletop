@@ -1,6 +1,6 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { MasterType } from '../definition/masterType.js'
 import { Color } from '@tabletop/common'
 
@@ -8,15 +8,17 @@ export type PlayerTile = Static<typeof PlayerTile>
 export const PlayerTile = Type.Object({})
 
 export type BridgesPlayerState = Static<typeof BridgesPlayerState>
-export const BridgesPlayerState = Type.Composite([
-    PlayerState,
-    Type.Object({
-        pieces: Type.Record(Type.Enum(MasterType), Type.Number()),
-        score: Type.Number()
-    })
-])
+export const BridgesPlayerState = Type.Evaluate(
+    Type.Intersect([
+        PlayerState,
+        Type.Object({
+            pieces: Type.Record(Type.Enum(MasterType), Type.Number()),
+            score: Type.Number()
+        })
+    ])
+)
 
-export const BridgesPlayerStateValidator = TypeCompiler.Compile(BridgesPlayerState)
+export const BridgesPlayerStateValidator = Compile(BridgesPlayerState)
 
 export class HydratedBridgesPlayerState
     extends Hydratable<typeof BridgesPlayerState>

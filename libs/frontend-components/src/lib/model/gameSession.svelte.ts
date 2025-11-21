@@ -18,7 +18,7 @@ import {
     GameStorage
 } from '@tabletop/common'
 import { watch } from 'runed'
-import { Value } from '@sinclair/typebox/value'
+import { Value } from 'typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { TabletopApi } from '$lib/network/tabletopApi.svelte'
 import { toast } from 'svelte-sonner'
@@ -60,6 +60,7 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
 
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     private debug? = false
+    private busy = false
     private authorizationService: AuthorizationService
     private notificationService: NotificationService
 
@@ -471,9 +472,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     // internally, rather than having to pass it in.  No server generated actions go through
     // here.
     async applyAction(action: GameAction) {
-        if (!this.isPlayable) {
+        if (this.busy || !this.isPlayable) {
             return
         }
+
+        this.busy = true
 
         const relevantContext = this.currentModifiableContext
 
@@ -606,6 +609,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             relevantContext.restoreFrom(priorContext)
             await this.checkSync()
         } finally {
+            this.busy = false
             if (this.mode === GameSessionMode.Play) {
                 this.processingActions = false
                 await this.applyQueuedActions()
@@ -618,12 +622,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     // here.
     async undo() {
         if (
+            this.busy ||
             !this.undoableAction ||
             (this.processingActions && this.mode === GameSessionMode.Play) ||
             this.isViewingHistory
         ) {
             return
         }
+
+        this.busy = true
 
         const relevantContext = this.currentModifiableContext
         const targetAction = structuredClone($state.snapshot(this.undoableAction))
@@ -727,6 +734,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 this.processingActions = false
                 await this.applyQueuedActions()
             }
+            this.busy = false
         }
     }
 

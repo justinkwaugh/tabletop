@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     coordinatesToNumber,
     Hydratable,
@@ -29,7 +29,7 @@ export const SolGameBoard = Type.Object({
     gates: Type.Record(Type.String(), SolarGate)
 })
 
-export const SolGameBoardValidator = TypeCompiler.Compile(SolGameBoard)
+export const SolGameBoardValidator = Compile(SolGameBoard)
 
 export class HydratedSolGameBoard
     extends Hydratable<typeof SolGameBoard>
@@ -284,7 +284,7 @@ export class HydratedSolGameBoard
         if (!cell) {
             cell = {
                 coords,
-                station: Station.None,
+                station: undefined,
                 sundivers: []
             }
             this.cells[coordinatesToNumber(coords)] = cell

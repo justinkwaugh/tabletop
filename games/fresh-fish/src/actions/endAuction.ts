@@ -1,23 +1,25 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { AuctionParticipant, GameAction, HydratableAction } from '@tabletop/common'
 
 import { HydratedFreshFishGameState } from '../model/gameState.js'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
 
 export type EndAuction = Static<typeof EndAuction>
-export const EndAuction = Type.Composite([
-    GameAction,
-    Type.Object({
-        type: Type.Literal(ActionType.EndAuction),
-        winnerId: Type.String(),
-        highBid: Type.Number(),
-        revealsInfo: Type.Literal(true),
-        metadata: Type.Optional(Type.Object({ participants: Type.Array(AuctionParticipant) }))
-    })
-])
+export const EndAuction = Type.Evaluate(
+    Type.Intersect([
+        GameAction,
+        Type.Object({
+            type: Type.Literal(ActionType.EndAuction),
+            winnerId: Type.String(),
+            highBid: Type.Number(),
+            revealsInfo: Type.Literal(true),
+            metadata: Type.Optional(Type.Object({ participants: Type.Array(AuctionParticipant) }))
+        })
+    ])
+)
 
-export const EndAuctionValidator = TypeCompiler.Compile(EndAuction)
+export const EndAuctionValidator = Compile(EndAuction)
 
 export function isEndAuction(action: GameAction): action is EndAuction {
     return action.type === ActionType.EndAuction

@@ -1,9 +1,10 @@
-import { Kind, Type, type Static } from '@sinclair/typebox'
+import { DateType } from '../../util/typebox.js'
+import { Type, type Static } from 'typebox'
 
 export type ChatMessage = Static<typeof ChatMessage>
 export const ChatMessage = Type.Object({
     id: Type.String(),
     userId: Type.Optional(Type.String()),
-    timestamp: Type.Unsafe<Date>({ [Kind]: 'Date', format: 'date-time' }),
+    timestamp: DateType(),
     text: Type.String()
 })

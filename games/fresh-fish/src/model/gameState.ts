@@ -1,17 +1,20 @@
 import {
+    AuctionType,
+    Color,
     GameResult,
     GameState,
     HydratableGameState,
     HydratedSimpleTurnManager,
     HydratedSimultaneousAuction,
     PrngState,
-    SimultaneousAuction
+    SimultaneousAuction,
+    TieResolutionStrategy
 } from '@tabletop/common'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from './playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
-import { isStallTile, StallTile, Tile } from '../components/tiles.js'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { isStallTile, StallTile, Tile, TileType } from '../components/tiles.js'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameBoard, HydratedGameBoard } from '../components/gameBoard.js'
 import { MachineState } from '../definition/states.js'
 import { GoodsType } from '../definition/goodsType.js'
@@ -20,29 +23,23 @@ import { CellType, RoadCell } from '../components/cells.js'
 import { Scorer } from '../util/scoring.js'
 
 export type FreshFishGameState = Static<typeof FreshFishGameState>
-export const FreshFishGameState = Type.Composite([
-    Type.Omit(GameState, ['players', 'machineState']),
-    Type.Object({
-        players: Type.Array(FreshFishPlayerState),
-        machineState: Type.Enum(MachineState),
-        tileBag: TileBag,
-        board: GameBoard,
-        finalStalls: Type.Array(StallTile),
-        chosenTile: Type.Optional(Tile),
-        currentAuction: Type.Optional(SimultaneousAuction),
-        boardSeed: Type.Optional(Type.Number())
-    })
-])
+export const FreshFishGameState = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameState, ['players', 'machineState']),
+        Type.Object({
+            players: Type.Array(FreshFishPlayerState),
+            machineState: Type.Enum(MachineState),
+            tileBag: TileBag,
+            board: GameBoard,
+            finalStalls: Type.Array(StallTile),
+            chosenTile: Type.Optional(Tile),
+            currentAuction: Type.Optional(SimultaneousAuction),
+            boardSeed: Type.Optional(Type.Number())
+        })
+    ])
+)
 
-const FreshFishGameStateValidator = TypeCompiler.Compile(FreshFishGameState)
-
-type HydratedProperties = {
-    tileBag: HydratedTileBag
-    turnManager: HydratedSimpleTurnManager
-    board: HydratedGameBoard
-    players: HydratedFreshFishPlayerState[]
-    currentAuction?: HydratedSimultaneousAuction
-}
+const FreshFishGameStateValidator = Compile(FreshFishGameState)
 
 export class HydratedFreshFishGameState
     extends HydratableGameState<typeof FreshFishGameState, HydratedFreshFishPlayerState>
@@ -67,16 +64,15 @@ export class HydratedFreshFishGameState
     declare boardSeed?: number
 
     constructor(data: FreshFishGameState) {
-        const hydratedProperties: HydratedProperties = {
-            tileBag: new HydratedTileBag(data.tileBag),
-            turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            board: new HydratedGameBoard(data.board),
-            players: data.players.map((player) => new HydratedFreshFishPlayerState(player))
-        }
+        super(data, FreshFishGameStateValidator)
+
+        this.tileBag = new HydratedTileBag(data.tileBag)
+        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+        this.board = new HydratedGameBoard(data.board)
+        this.players = data.players.map((player) => new HydratedFreshFishPlayerState(player))
         if (data.currentAuction) {
-            hydratedProperties.currentAuction = new HydratedSimultaneousAuction(data.currentAuction)
+            this.currentAuction = new HydratedSimultaneousAuction(data.currentAuction)
         }
-        super(data, FreshFishGameStateValidator, hydratedProperties)
     }
 
     getAuctionGoodsType(): GoodsType | undefined {

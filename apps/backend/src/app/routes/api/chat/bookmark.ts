@@ -1,12 +1,13 @@
+import { DateType } from '@tabletop/common'
 import { FastifyInstance } from 'fastify'
-import { Kind, Type, type Static } from '@sinclair/typebox'
-import { Value } from '@sinclair/typebox/value'
+import { Type, type Static } from 'typebox'
+import { Value } from 'typebox/value'
 
 type BookmarkPostRequest = Static<typeof BookmarkPostRequest>
 const BookmarkPostRequest = Type.Object(
     {
         gameId: Type.String(),
-        lastReadTimestamp: Type.Unsafe<Date>({ [Kind]: 'Date', format: 'date-time' })
+        lastReadTimestamp: DateType()
     },
     { additionalProperties: false }
 )
@@ -53,10 +54,16 @@ export default async function (fastify: FastifyInstance) {
                 throw Error('No user found for request')
             }
 
-            const { gameId, lastReadTimestamp } = Value.Convert(
+            const bookmarkRequest = Value.Convert(
                 BookmarkPostRequest,
                 request.body
             ) as BookmarkPostRequest
+
+            if (!Value.Check(BookmarkPostRequest, bookmarkRequest)) {
+                throw Error('Invalid bookmark format')
+            }
+            const { gameId, lastReadTimestamp } = bookmarkRequest
+
             await fastify.chatService.setGameChatBookmark(user, gameId, lastReadTimestamp)
 
             return {

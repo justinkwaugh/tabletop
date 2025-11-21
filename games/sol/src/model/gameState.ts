@@ -6,35 +6,30 @@ import {
     PrngState
 } from '@tabletop/common'
 import { SolPlayerState, HydratedSolPlayerState } from './playerState.js'
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
 import { Effect } from '../components/effects.js'
 import { Deck, HydratedDeck } from '../components/deck.js'
 
 export type SolGameState = Static<typeof SolGameState>
-export const SolGameState = Type.Composite([
-    Type.Omit(GameState, ['players', 'machineState']),
-    Type.Object({
-        players: Type.Array(SolPlayerState),
-        machineState: Type.Enum(MachineState),
-        board: SolGameBoard,
-        deck: Deck,
-        effects: Type.Record(Type.String(), Effect),
-        instability: Type.Number(),
-        energyCubes: Type.Number()
-    })
-])
+export const SolGameState = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameState, ['players', 'machineState']),
+        Type.Object({
+            players: Type.Array(SolPlayerState),
+            machineState: Type.Enum(MachineState),
+            board: SolGameBoard,
+            deck: Deck,
+            effects: Type.Record(Type.String(), Effect),
+            instability: Type.Number(),
+            energyCubes: Type.Number()
+        })
+    ])
+)
 
-const SolGameStateValidator = TypeCompiler.Compile(SolGameState)
-
-type HydratedProperties = {
-    turnManager: HydratedSimpleTurnManager
-    players: HydratedSolPlayerState[]
-    board: HydratedSolGameBoard
-    deck: HydratedDeck
-}
+const SolGameStateValidator = Compile(SolGameState)
 
 export class HydratedSolGameState
     extends HydratableGameState<typeof SolGameState, HydratedSolPlayerState>
@@ -58,12 +53,11 @@ export class HydratedSolGameState
     declare energyCubes: number
 
     constructor(data: SolGameState) {
-        const hydratedProperties: HydratedProperties = {
-            turnManager: new HydratedSimpleTurnManager(data.turnManager),
-            players: data.players.map((player) => new HydratedSolPlayerState(player)),
-            board: new HydratedSolGameBoard(data.board),
-            deck: new HydratedDeck(data.deck)
-        }
-        super(data, SolGameStateValidator, hydratedProperties)
+        super(data, SolGameStateValidator)
+
+        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+        this.players = data.players.map((player) => new HydratedSolPlayerState(player))
+        this.board = new HydratedSolGameBoard(data.board)
+        this.deck = new HydratedDeck(data.deck)
     }
 }

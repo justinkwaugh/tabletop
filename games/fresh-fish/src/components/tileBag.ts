@@ -1,5 +1,5 @@
-import { type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GoodsType } from '../definition/goodsType.js'
 import { Tile, generateMarketTile, generateStallTile } from './tiles.js'
 import { HydratedDrawBag, DrawBag, type RandomFunction } from '@tabletop/common'
@@ -7,7 +7,7 @@ import { HydratedDrawBag, DrawBag, type RandomFunction } from '@tabletop/common'
 export type TileBag = Static<typeof TileBag>
 export const TileBag = DrawBag(Tile)
 
-export const TileBagValidator = TypeCompiler.Compile(TileBag)
+export const TileBagValidator = Compile(TileBag)
 
 export class HydratedTileBag extends HydratedDrawBag<Tile, typeof TileBag> implements TileBag {
     static generate(

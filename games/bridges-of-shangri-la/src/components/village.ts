@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 
 import { Hydratable } from '@tabletop/common'
 import { MasterType } from '../definition/masterType.js'
@@ -18,7 +18,7 @@ export const Village = Type.Object({
     stone: Type.Boolean()
 })
 
-export const VillageValidator = TypeCompiler.Compile(Village)
+export const VillageValidator = Compile(Village)
 
 export class HydratedVillage extends Hydratable<typeof Village> implements Village {
     declare spaces: Record<MasterType, MasterAndStudents | undefined>

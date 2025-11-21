@@ -1,8 +1,9 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
+import { DateType } from '../../util/typebox.js'
 import { Player } from './player.js'
 import { GameResult, GameState } from './gameState.js'
 import { GameConfig } from '../definition/gameConfig.js'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Compile } from 'typebox/compile'
 
 export enum GameStatus {
     WaitingForPlayers = 'waitingForPlayers',
@@ -56,20 +57,20 @@ export const Game = Type.Object({
     status: Type.Enum(GameStatus),
     isPublic: Type.Boolean(),
     deleted: Type.Boolean(),
-    deletedAt: Type.Optional(Type.Date()),
+    deletedAt: Type.Optional(DateType()),
     ownerId: Type.String(),
     name: Type.String(),
     players: Type.Array(Player),
     config: GameConfig,
     hotseat: Type.Boolean(),
     state: Type.Optional(GameState),
-    startedAt: Type.Optional(Type.Date()),
-    finishedAt: Type.Optional(Type.Date()),
-    createdAt: Type.Date(),
-    updatedAt: Type.Optional(Type.Date()),
+    startedAt: Type.Optional(DateType()),
+    finishedAt: Type.Optional(DateType()),
+    createdAt: DateType(),
+    updatedAt: Type.Optional(DateType()),
     activePlayerIds: Type.Optional(Type.Array(Type.String())),
     lastActionPlayerId: Type.Optional(Type.String()),
-    lastActionAt: Type.Optional(Type.Date()),
+    lastActionAt: Type.Optional(DateType()),
     result: Type.Optional(Type.Enum(GameResult)),
     winningPlayerIds: Type.Array(Type.String()),
     seed: Type.Optional(Type.Number()),
@@ -78,4 +79,4 @@ export const Game = Type.Object({
     category: Type.Optional(Type.String({ default: GameCategory.Standard }))
 })
 
-export const GameValidator = TypeCompiler.Compile(Game)
+export const GameValidator = Compile(Game)

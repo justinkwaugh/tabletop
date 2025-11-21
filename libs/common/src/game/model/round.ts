@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { ActionGroup } from './actionGroup.js'
 
 export type Round = Static<typeof Round>

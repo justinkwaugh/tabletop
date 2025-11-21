@@ -1,8 +1,8 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { GameAction, HydratableAction, remove } from '@tabletop/common'
 
 import { HydratedEstatesGameState } from '../model/gameState.js'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
 import { isCube } from '../components/pieces.js'
 
@@ -12,16 +12,18 @@ export enum AuctionRecipient {
 }
 
 export type ChooseRecipient = Static<typeof ChooseRecipient>
-export const ChooseRecipient = Type.Composite([
-    Type.Omit(GameAction, ['playerId', 'type']),
-    Type.Object({
-        type: Type.Literal(ActionType.ChooseRecipient),
-        playerId: Type.String(),
-        recipient: Type.Enum(AuctionRecipient)
-    })
-])
+export const ChooseRecipient = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId', 'type']),
+        Type.Object({
+            type: Type.Literal(ActionType.ChooseRecipient),
+            playerId: Type.String(),
+            recipient: Type.Enum(AuctionRecipient)
+        })
+    ])
+)
 
-export const ChooseRecipientValidator = TypeCompiler.Compile(ChooseRecipient)
+export const ChooseRecipientValidator = Compile(ChooseRecipient)
 
 export function isChooseRecipient(action: GameAction): action is ChooseRecipient {
     return action.type === ActionType.ChooseRecipient

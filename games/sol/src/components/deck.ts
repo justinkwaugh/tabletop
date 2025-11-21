@@ -1,12 +1,12 @@
-import { type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Card, Suit } from './cards.js'
 import { HydratedDrawBag, DrawBag, type RandomFunction } from '@tabletop/common'
 
 export type Deck = Static<typeof Deck>
 export const Deck = DrawBag(Card)
 
-export const DeckValidator = TypeCompiler.Compile(Deck)
+export const DeckValidator = Compile(Deck)
 
 export class HydratedDeck extends HydratedDrawBag<Card, typeof Deck> implements Deck {
     static create(suits: Suit[], random: RandomFunction) {

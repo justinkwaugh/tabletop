@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Hydratable, OffsetCoordinates } from '@tabletop/common'
 import { Cube } from './cube.js'
 import { Roof } from './roof.js'
@@ -26,7 +26,7 @@ export const EstatesGameBoard = Type.Object({
     rows: Type.Array(BoardRow)
 })
 
-export const EstatesGameBoardValidator = TypeCompiler.Compile(EstatesGameBoard)
+export const EstatesGameBoardValidator = Compile(EstatesGameBoard)
 
 export class HydratedEstatesGameBoard
     extends Hydratable<typeof EstatesGameBoard>

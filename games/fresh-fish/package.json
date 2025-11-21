@@ -12,7 +12,7 @@
         "build": "tsc"
     },
     "dependencies": {
-        "@sinclair/typebox": "^0.32.32",
+        "typebox": "^1.0.53",
         "@tabletop/common": "*",
         "chalk": "^4.1.2",
         "uuid": "^10.0.0"
@@ -20,6 +20,7 @@
     "devDependencies": {
         "@babel/core": "^7.25.2",
         "@babel/preset-env": "^7.25.3",
+        "@tabletop/vitest-config": "*",
         "@tabletop/eslint-config": "*",
         "@types/uuid": "^9.0.8",
         "rimraf": "^6.1.0",

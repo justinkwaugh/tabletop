@@ -1,22 +1,24 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, OffsetCoordinates } from '@tabletop/common'
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Barrier } from '../components/barrier.js'
 
 export type RemoveBarrier = Static<typeof RemoveBarrier>
-export const RemoveBarrier = Type.Composite([
-    Type.Omit(GameAction, ['playerId']),
-    Type.Object({
-        type: Type.Literal(ActionType.RemoveBarrier),
-        playerId: Type.String(),
-        barrier: Barrier,
-        coords: Type.Optional(OffsetCoordinates)
-    })
-])
+export const RemoveBarrier = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.RemoveBarrier),
+            playerId: Type.String(),
+            barrier: Barrier,
+            coords: Type.Optional(OffsetCoordinates)
+        })
+    ])
+)
 
-export const RemoveBarrierValidator = TypeCompiler.Compile(RemoveBarrier)
+export const RemoveBarrierValidator = Compile(RemoveBarrier)
 
 export function isRemoveBarrier(action: GameAction): action is RemoveBarrier {
     return action.type === ActionType.RemoveBarrier

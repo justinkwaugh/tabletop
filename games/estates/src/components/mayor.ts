@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { PieceType } from './pieceType.js'
 
 export type Mayor = Static<typeof Mayor>

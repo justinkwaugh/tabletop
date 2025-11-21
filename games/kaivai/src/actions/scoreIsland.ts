@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     GameAction,
@@ -19,23 +19,25 @@ export const PlayerIslandMajority = Type.Object({
 })
 
 export type ScoreIsland = Static<typeof ScoreIsland>
-export const ScoreIsland = Type.Composite([
-    Type.Omit(GameAction, ['source']),
-    Type.Object({
-        type: Type.Literal(ActionType.ScoreIsland),
-        source: Type.Literal(ActionSource.System),
-        islandId: Type.String(),
-        metadata: Type.Optional(
-            Type.Object({
-                playerMajorities: Type.Record(Type.String(), PlayerIslandMajority),
-                winners: Type.Array(Type.String()),
-                award: Type.Number()
-            })
-        )
-    })
-])
+export const ScoreIsland = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['source']),
+        Type.Object({
+            type: Type.Literal(ActionType.ScoreIsland),
+            source: Type.Literal(ActionSource.System),
+            islandId: Type.String(),
+            metadata: Type.Optional(
+                Type.Object({
+                    playerMajorities: Type.Record(Type.String(), PlayerIslandMajority),
+                    winners: Type.Array(Type.String()),
+                    award: Type.Number()
+                })
+            )
+        })
+    ])
+)
 
-export const ScoreIslandValidator = TypeCompiler.Compile(ScoreIsland)
+export const ScoreIslandValidator = Compile(ScoreIsland)
 
 export function isScoreIsland(action?: GameAction): action is ScoreIsland {
     return action?.type === ActionType.ScoreIsland

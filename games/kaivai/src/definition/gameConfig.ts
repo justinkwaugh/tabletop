@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     ConfigOptionType,
     GameConfigOptions,
@@ -19,7 +19,7 @@ export const KaivaiGameConfig = Type.Object({
     lessluckFishing: Type.Optional(Type.Boolean({ default: false }))
 })
 
-export const KaivaiGameConfigValidator = TypeCompiler.Compile(KaivaiGameConfig)
+export const KaivaiGameConfigValidator = Compile(KaivaiGameConfig)
 
 export const KaivaiGameConfigOptions: GameConfigOptions = [
     {

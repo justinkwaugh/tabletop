@@ -1,5 +1,5 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
-import { Value } from '@sinclair/typebox/value'
+import { Value } from 'typebox/value'
 import {
     Bookmark,
     Game,
@@ -7,6 +7,7 @@ import {
     GameChat,
     GameChatMessage,
     GameSyncStatus,
+    GameValidator,
     User,
     UserPreferences
 } from '@tabletop/common'
@@ -16,6 +17,7 @@ import type {
     BookmarkResponse,
     CheckSyncResponse,
     GameChatMessageResponse,
+    GameChatMessageResponsePayload,
     GameChatResponse,
     GameResponse,
     GamesResponse,
@@ -246,9 +248,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GamesResponse>()
 
-        return response.payload.games.map(
-            (game) => Value.Default(Game, Value.Convert(Game, game)) as Game
-        )
+        return response.payload.games.map((game) => this.validateGame(game))
     }
 
     async getGame(gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
@@ -258,11 +258,12 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameWithActionsResponse>()
 
-        const game = Value.Default(Game, Value.Convert(Game, response.payload.game)) as Game
+        const game = this.validateGame(response.payload.game)
         const actions = response.payload.actions.map((action) =>
             Value.Convert(GameAction, action)
         ) as GameAction[]
-        return { game, actions }
+
+        return { game: game, actions }
     }
 
     async createGame(game: Partial<Game>): Promise<Game> {
@@ -272,7 +273,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
@@ -282,7 +283,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async updateGame(game: Partial<Game>): Promise<Game> {
@@ -292,7 +293,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async deleteGame(gameId: string): Promise<void> {
@@ -321,7 +322,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async joinGame(gameId: string): Promise<Game> {
@@ -331,7 +332,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async declineGame(gameId: string): Promise<Game> {
@@ -341,7 +342,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async startGame(game: Game): Promise<Game> {
@@ -351,7 +352,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameResponse>()
 
-        return Value.Convert(Game, response.payload.game) as Game
+        return this.validateGame(response.payload.game)
     }
 
     async applyAction(
@@ -364,7 +365,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<ApplyActionResponse>()
 
-        const responseGame = Value.Convert(Game, response.payload.game) as Game
+        const responseGame = this.validateGame(response.payload.game)
         const actions = response.payload.actions.map((action) =>
             Value.Convert(GameAction, action)
         ) as GameAction[]
@@ -394,7 +395,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<UndoActionResponse>()
 
-        const responseGame = Value.Convert(Game, response.payload.game) as Game
+        const responseGame = this.validateGame(response.payload.game)
         const redoneActions = response.payload.redoneActions.map((action) =>
             Value.Convert(GameAction, action)
         ) as GameAction[]
@@ -436,6 +437,16 @@ export class TabletopApi {
             .json<GameChatResponse>()
 
         const chat = Value.Convert(GameChat, response.payload.chat) as GameChat
+        // Date conversion of composite types not working properly, so force it here
+        for (const message of chat.messages) {
+            if (!(message.timestamp instanceof Date)) {
+                message.timestamp = new Date(message.timestamp)
+            }
+        }
+        if (!Value.Check(GameChat, chat)) {
+            throw new Error('Invalid GameChat format')
+        }
+
         return chat
     }
 
@@ -443,7 +454,7 @@ export class TabletopApi {
         gameChatMessage: GameChatMessage,
         gameId: string,
         checksum: number
-    ): Promise<typeof GameChatMessageResponse.payload> {
+    ): Promise<GameChatMessageResponsePayload> {
         const {
             payload: { message, checksum: newChecksum, missedMessages }
         } = await this.wretch
@@ -452,8 +463,18 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameChatMessageResponse>()
 
+        const sentMessage = Value.Convert(GameChatMessage, message) as GameChatMessage
+        // Date conversion of composite types not working properly, so force it here
+        if (!(sentMessage.timestamp instanceof Date)) {
+            sentMessage.timestamp = new Date(sentMessage.timestamp)
+        }
+
+        if (!Value.Check(GameChatMessage, sentMessage)) {
+            throw new Error('Invalid GameChatMessageResponse format')
+        }
+
         return {
-            message: Value.Convert(GameChatMessage, message) as GameChatMessage,
+            message: sentMessage,
             checksum: newChecksum,
             missedMessages: missedMessages.map(
                 (message) => Value.Convert(GameChatMessage, message) as GameChatMessage
@@ -540,5 +561,18 @@ export class TabletopApi {
         window.location.reload()
         // let the window reload
         await new Promise((r) => setTimeout(r, 60000))
+    }
+
+    private validateGame(game: Game): Game {
+        const clone = structuredClone(game)
+        const validGame = GameValidator.Default(GameValidator.Convert(clone)) as Game
+        if (!GameValidator.Check(validGame)) {
+            throw new APIError({
+                name: 'InvalidGameData',
+                message: 'The game data received from the server is invalid',
+                metadata: { game, errors: GameValidator.Errors(clone) }
+            })
+        }
+        return validGame
     }
 }

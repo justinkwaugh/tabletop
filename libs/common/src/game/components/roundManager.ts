@@ -1,5 +1,5 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { Type, type Static } from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Hydratable } from '../../util/hydration.js'
 import { Round } from '../model/round.js'
 import { findLast } from '../../util/findLast.js'
@@ -9,7 +9,7 @@ export const RoundManager = Type.Object({
     series: Type.Array(Round)
 })
 
-export const RoundManagerValidator = TypeCompiler.Compile(RoundManager)
+export const RoundManagerValidator = Compile(RoundManager)
 
 export class HydratedRoundManager extends Hydratable<typeof RoundManager> implements RoundManager {
     declare series: Round[]

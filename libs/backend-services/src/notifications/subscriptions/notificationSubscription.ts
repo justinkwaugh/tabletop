@@ -1,4 +1,4 @@
-import { Static, Type } from '@sinclair/typebox'
+import { Static, Type } from 'typebox'
 import { DiscordSubscription } from './discordSubscription.js'
 import { WebPushSubscription } from './webPushSubscription.js'
 

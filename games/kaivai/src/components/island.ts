@@ -1,4 +1,4 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static } from 'typebox'
 import { AxialCoordinates } from '@tabletop/common'
 
 export type Island = Static<typeof Island>
