@@ -4,7 +4,11 @@ import Type from 'typebox'
 // Definition
 // ------------------------------------------------------------------
 export class TDate extends Type.Base<globalThis.Date> {
+    constructor(public readonly format = 'date-time') {
+        super()
+    }
     public override Check(value: unknown): value is globalThis.Date {
+        console.log('Checking value for Date type:', value)
         return value instanceof globalThis.Date
     }
 
@@ -22,8 +26,11 @@ export class TDate extends Type.Base<globalThis.Date> {
 
     public override Convert(value: unknown): unknown {
         if (typeof value === 'string' || typeof value === 'number') {
-            const date = new globalThis.Date(value)
-            if (this.Check(date)) return date
+            const date = new Date(value)
+            if (!isNaN(date.getTime())) {
+                console.log('Converted value to Date:', date)
+                return date
+            }
         }
         return value
     }

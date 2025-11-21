@@ -1170,16 +1170,16 @@ export class GameService {
         const notificationId = nanoid()
         const cacheKey = this.makeTurnNotificationCacheKey(userId, gameId)
         await this.cacheService.set(cacheKey, notificationId, inSeconds + 60)
-        this.taskService
-            .sendTurnNotification({
-                userId: userId,
-                gameId: gameId,
-                notificationId,
-                inSeconds
-            })
-            .catch((e) => {
-                console.error('Failed to send turn notification', e)
-            })
+        // this.taskService
+        //     .sendTurnNotification({
+        //         userId: userId,
+        //         gameId: gameId,
+        //         notificationId,
+        //         inSeconds
+        //     })
+        //     .catch((e) => {
+        //         console.error('Failed to send turn notification', e)
+        //     })
     }
 
     async notifyIsYourTurn(

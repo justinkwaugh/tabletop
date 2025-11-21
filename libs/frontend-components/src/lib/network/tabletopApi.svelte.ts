@@ -439,6 +439,16 @@ export class TabletopApi {
             .json<GameChatResponse>()
 
         const chat = Value.Convert(GameChat, response.payload.chat) as GameChat
+        // Date conversion of composite types not working properly, so force it here
+        for (const message of chat.messages) {
+            if (!(message.timestamp instanceof Date)) {
+                message.timestamp = new Date(message.timestamp)
+            }
+        }
+        if (!Value.Check(GameChat, chat)) {
+            throw new Error('Invalid GameChat format')
+        }
+
         return chat
     }
 
@@ -455,8 +465,18 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameChatMessageResponse>()
 
+        const sentMessage = Value.Convert(GameChatMessage, message) as GameChatMessage
+        // Date conversion of composite types not working properly, so force it here
+        if (!(sentMessage.timestamp instanceof Date)) {
+            sentMessage.timestamp = new Date(sentMessage.timestamp)
+        }
+
+        if (!Value.Check(GameChatMessage, sentMessage)) {
+            throw new Error('Invalid GameChatMessageResponse format')
+        }
+
         return {
-            message: Value.Convert(GameChatMessage, message) as GameChatMessage,
+            message: sentMessage,
             checksum: newChecksum,
             missedMessages: missedMessages.map(
                 (message) => Value.Convert(GameChatMessage, message) as GameChatMessage

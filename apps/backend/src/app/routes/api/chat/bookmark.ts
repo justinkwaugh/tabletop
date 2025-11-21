@@ -54,10 +54,16 @@ export default async function (fastify: FastifyInstance) {
                 throw Error('No user found for request')
             }
 
-            const { gameId, lastReadTimestamp } = Value.Convert(
+            const bookmarkRequest = Value.Convert(
                 BookmarkPostRequest,
                 request.body
             ) as BookmarkPostRequest
+
+            if (!Value.Check(BookmarkPostRequest, bookmarkRequest)) {
+                throw Error('Invalid bookmark format')
+            }
+            const { gameId, lastReadTimestamp } = bookmarkRequest
+
             await fastify.chatService.setGameChatBookmark(user, gameId, lastReadTimestamp)
 
             return {
