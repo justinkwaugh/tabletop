@@ -1,4 +1,4 @@
-import { DateType } from '../../util/typebox/customTypes.js'
+import { DateType } from '../../util/typebox.js'
 import { Type, type Static } from 'typebox'
 
 export type ChatMessage = Static<typeof ChatMessage>

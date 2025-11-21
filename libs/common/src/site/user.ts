@@ -1,5 +1,5 @@
 import { Type, type Static } from 'typebox'
-import { DateType } from '../util/typebox/customTypes.js'
+import { DateType } from '../util/typebox.js'
 import { Color } from '../game/model/colors.js'
 
 export enum Role {

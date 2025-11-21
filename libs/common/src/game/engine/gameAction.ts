@@ -1,5 +1,5 @@
 import { Type, type Static, type TSchema } from 'typebox'
-import { DateType } from '../../util/typebox/customTypes.js'
+import { DateType } from '../../util/typebox.js'
 import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
 import { MachineContext } from './machineContext.js'

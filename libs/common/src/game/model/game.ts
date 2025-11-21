@@ -1,5 +1,5 @@
 import { Type, type Static } from 'typebox'
-import { DateType } from '../../util/typebox/customTypes.js'
+import { DateType } from '../../util/typebox.js'
 import { Player } from './player.js'
 import { GameResult, GameState } from './gameState.js'
 import { GameConfig } from '../definition/gameConfig.js'
