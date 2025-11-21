@@ -114,9 +114,9 @@ export class DefaultNotificationService implements NotificationService {
                             .sendNotification(structuredClone(subscription), notification)
                             .then(async (result) => {
                                 if (result.unregister) {
-                                    await this.notificationStore.deleteNotificationSubscription(
-                                        subscription
-                                    )
+                                    // await this.notificationStore.deleteNotificationSubscription(
+                                    //     subscription
+                                    // )
                                 }
                             })
                             .catch((e) => {
