@@ -16,7 +16,7 @@ export type HistoryCallbacks = {
 }
 
 export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
-    private gameContext: GameContext<T, U> = $state({} as GameContext<T, U>)
+    private gameContext: GameContext<T, U>
 
     // This holds a clone of the game context when entering history mode
     private historyContext?: GameContext<T, U> = $state(undefined)
@@ -66,7 +66,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     private onHistoryExit: HistoryExitCallback = () => {}
 
     constructor(gameContext: GameContext<T, U>, callbacks?: HistoryCallbacks) {
-        this.gameContext = gameContext
+        this.gameContext = $state(gameContext)
         this.actionIndex = gameContext.actions.length - 1
         if (callbacks) {
             this.onHistoryEnter = callbacks.onHistoryEnter ?? this.onHistoryEnter

@@ -18,11 +18,9 @@
         switch (action) {
             case ActionType.DrawTile:
                 const drawTileAction = gameSession.createDrawTileAction()
-                cancelAction()
                 await gameSession.applyAction(drawTileAction)
                 break
             default:
-                console.log('choosing action:', action)
                 gameSession.chosenAction = action
                 break
         }
@@ -31,7 +29,6 @@
     async function placeBid() {
         const placeBidAction = gameSession.createPlaceBidAction(bidValue)
         await gameSession.applyAction(placeBidAction)
-        cancelAction()
         bidValue = 0
     }
 
@@ -83,8 +80,6 @@
                     console.error('Error choosing action:', error)
                 })
             }
-        } else if (gameSession.validActionTypes.length === 0) {
-            cancelAction()
         }
     })
 </script>

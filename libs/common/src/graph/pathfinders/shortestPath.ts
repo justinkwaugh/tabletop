@@ -1,43 +1,10 @@
-import {
-    OffsetCoordinates,
-    type Graph,
-    type Node,
-    type NodeIdentifier,
-    type Pathfinder
-} from '@tabletop/common'
-import { HydratedSolGameBoard } from '../components/gameBoard.js'
-import { solTraverseChecker } from './solTraverser.js'
-import { SolarGate } from '../components/solarGate.js'
+import { type Graph, type Node, type NodeIdentifier, type Pathfinder } from '../graph.js'
 
-export function solPathfinder({
-    board,
-    start,
-    end,
-    allowedGates,
-    range
-}: {
-    board: HydratedSolGameBoard
-    start: OffsetCoordinates
-    end: OffsetCoordinates
-    allowedGates?: SolarGate[] //This allows us to only allow movement through certain gates
+export interface ShortestPathOptions<T extends Node> {
+    start: T
+    end: T
     range?: number
-}) {
-    const startNode = board.graph.nodeAt(start)
-    if (!startNode) {
-        return () => []
-    }
-
-    const endNode = board.graph.nodeAt(end)
-    if (!endNode) {
-        return () => []
-    }
-
-    return shortestPath({
-        start: startNode,
-        end: endNode,
-        range,
-        canTraverse: solTraverseChecker(board, allowedGates)
-    })
+    canTraverse?: (from: T, to: T) => boolean
 }
 
 export function shortestPath<T extends Node>(options: ShortestPathOptions<T>): Pathfinder<T> {
@@ -84,11 +51,4 @@ export function shortestPath<T extends Node>(options: ShortestPathOptions<T>): P
 
         return path.length > 0 ? [path] : []
     }
-}
-
-export interface ShortestPathOptions<T extends Node> {
-    start: T
-    end: T
-    range?: number
-    canTraverse?: (from: T, to: T) => boolean
 }

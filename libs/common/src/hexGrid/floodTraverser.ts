@@ -1,5 +1,8 @@
 import { Hex, type HexCoordinates, type Traverser, Direction, neighborOf } from 'honeycomb-grid'
-import { coordinatesToNumber } from './coordinates.js'
+import { coordinatesToNumber } from '../graph/coordinates.js'
+
+// The honeycomb-grid library has its own API for the graph and traversers etc, and these cannot
+// be reused for our own graph system
 
 export function flood<T extends Hex>(options: FloodOptions): Traverser<T> {
     return function floodTraverser(createHex, _cursor) {

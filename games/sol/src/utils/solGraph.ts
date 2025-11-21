@@ -1,5 +1,10 @@
-import { coordinatesToNumber, OffsetCoordinates } from '@tabletop/common'
-import { BaseCoordinatedGraph, type CoordinatedGraph, type CoordinatedNode } from './graph.js'
+import {
+    coordinatesToNumber,
+    OffsetCoordinates,
+    BaseCoordinatedGraph,
+    type CoordinatedGraph,
+    type CoordinatedNode
+} from '@tabletop/common'
 
 export enum Direction {
     Out = 'O',

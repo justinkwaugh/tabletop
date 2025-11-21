@@ -32,7 +32,7 @@ function playerColorizer(state: HydratedFreshFishGameState): LogColorizer {
     return new LogColorizer(colorfuncs)
 }
 
-export function logBoard(board: HydratedGameBoard, colorizer: LogColorizer) {
+export function logBoard(board: HydratedGameBoard, colorizer: LogColorizer = new LogColorizer()) {
     const colIndices = board.cells[0]
         .map((cell, index) => {
             return index.toString()

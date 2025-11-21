@@ -15,7 +15,9 @@ export const OffsetCoordinates = Type.Object({
     row: Type.Number()
 })
 
-// SQUARE GRID
+/**
+ * @deprecated It is recommended to use OffsetCoordinates instead
+ */
 export type OffsetTupleCoordinates = Static<typeof OffsetTupleCoordinates>
 export const OffsetTupleCoordinates = Type.Tuple([Type.Number(), Type.Number()])
 
@@ -28,23 +30,22 @@ export function isOffsetTuple(value: unknown): value is OffsetTupleCoordinates {
     )
 }
 
-export type SquareCoordinates = Static<typeof SquareCoordinates>
-export const SquareCoordinates = Type.Union([OffsetCoordinates, OffsetTupleCoordinates])
+// Convert between the two offset coordinate representations
+export function offsetToOffsetTuple(coords: OffsetCoordinates): OffsetTupleCoordinates {
+    return [coords.col, coords.row]
+}
+export function offsetTupleToOffset(coords: OffsetTupleCoordinates): OffsetCoordinates {
+    return { col: coords[0], row: coords[1] }
+}
 
-// HEX GRID
+// Hex Grid specific coordinates
 export type AxialCoordinates = Static<typeof AxialCoordinates>
 export const AxialCoordinates = Type.Object({
     q: Type.Number(),
     r: Type.Number()
 })
 
-export type CubeCoordinates = Static<typeof CubeCoordinates>
-export const CubeCoordinates = Type.Object({
-    q: Type.Number(),
-    r: Type.Number(),
-    s: Type.Number()
-})
-
+// Should this even be offered?
 export type HexTupleCoordinates = Static<typeof HexTupleCoordinates>
 export const HexTupleCoordinates = Type.Tuple([
     Type.Number(),
@@ -84,12 +85,10 @@ export function coordinatesToNumber(coords: unknown): number {
     if (isOffset(coords)) {
         return szudzikPairSigned(coords.col, coords.row)
     }
-    if (isOffsetTuple(coords)) {
+    if (isOffsetTuple(coords) || isHexTuple(coords)) {
         return szudzikPairSigned(coords[0], coords[1])
     }
-    if (isHexTuple(coords)) {
-        return szudzikPairSigned(coords[0], coords[1])
-    }
+
     throw Error('Invalid coordinates')
 }
 

@@ -19,7 +19,7 @@ export abstract class BaseGameInitializer implements GameInitializer {
     initializeGame(game: Partial<Game>): Game {
         const newGame: Game = <Game>{
             id: game.id,
-            isPublic: game.isPublic,
+            isPublic: game.isPublic || false,
             status: GameStatus.WaitingForPlayers,
             typeId: game.typeId,
             deleted: false,

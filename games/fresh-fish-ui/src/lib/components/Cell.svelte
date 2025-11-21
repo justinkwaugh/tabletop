@@ -3,7 +3,6 @@
         ActionType,
         Cell,
         CellType,
-        Coordinates,
         HydratedPlaceStall,
         HydratedPlaceDisk,
         HydratedPlaceMarket,
@@ -17,10 +16,10 @@
     import MarketTile from '$lib/components/MarketTile.svelte'
     import TruckTile from '$lib/components/TruckTile.svelte'
     import { fadeScale, GameSessionMode } from '@tabletop/frontend-components'
-    import type { GameAction } from '@tabletop/common'
+    import type { GameAction, OffsetTupleCoordinates } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as FreshFishGameSession
-    let { cell, coords }: { cell: Cell; coords: Coordinates } = $props()
+    let { cell, coords }: { cell: Cell; coords: OffsetTupleCoordinates } = $props()
 
     let cellBgColor = $derived.by(() => {
         switch (cell.type) {
@@ -145,13 +144,7 @@
             return
         }
 
-        // Clear before apply, because effects may trigger before apply completes
-        // and the clearing will overwrite what they did
-
-        gameSession.chosenAction = undefined
         showBorder = false
-        gameSession.clearExpropriationPreview()
-
         await gameSession.applyAction(action)
     }
 

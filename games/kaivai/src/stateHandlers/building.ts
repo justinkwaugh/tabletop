@@ -35,7 +35,6 @@ export class BuildingStateHandler implements MachineStateHandler<BuildingAction>
             }
         }
 
-        console.log('Valid actions for player', playerId, validActions)
         return validActions
     }
 

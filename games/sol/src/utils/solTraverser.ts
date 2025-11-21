@@ -1,6 +1,5 @@
-import { OffsetCoordinates } from '@tabletop/common'
+import { OffsetCoordinates, breadthFirst } from '@tabletop/common'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
-import { flood } from './floodTraverser.js'
 import { Ring, type SolNode } from './solGraph.js'
 import { SolarGate } from '../components/solarGate.js'
 
@@ -18,7 +17,7 @@ export function solTraverser({
         return () => []
     }
 
-    return flood({
+    return breadthFirst({
         start: startNode,
         range,
         canTraverse: solTraverseChecker(board)

@@ -1,7 +1,13 @@
-import { type Node, type NodeIdentifier, type Traverser } from './graph.js'
+import { type Node, type NodeIdentifier, type Traverser } from '../graph.js'
 
-export function flood<T extends Node>(options: FloodOptions<T>): Traverser<T> {
-    return function floodTraverser(graph) {
+export interface BreadthFirstOptions<T extends Node> {
+    start: T
+    range?: number
+    canTraverse?: (from: T, to: T) => boolean
+}
+
+export function breadthFirst<T extends Node>(options: BreadthFirstOptions<T>): Traverser<T> {
+    return function breadthFirstTraverser(graph) {
         const visitedNodes = new Map<NodeIdentifier, T>()
         const startNode = options.start
         let depth = 0
@@ -28,10 +34,4 @@ export function flood<T extends Node>(options: FloodOptions<T>): Traverser<T> {
         }
         return [...visitedNodes.values()]
     }
-}
-
-export interface FloodOptions<T extends Node> {
-    start: T
-    range?: number
-    canTraverse?: (from: T, to: T) => boolean
 }

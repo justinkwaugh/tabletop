@@ -1,13 +1,14 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction, HydratableAction, OffsetTupleCoordinates } from '@tabletop/common'
+
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { CellType } from '../components/cells.js'
-import { Coordinates } from '../components/gameBoard.js'
 import { GoodsType } from '../definition/goodsType.js'
 import { ActionType } from '../definition/actions.js'
 
 export type PlaceStall = Static<typeof PlaceStall>
+
 export const PlaceStall = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),
@@ -15,7 +16,7 @@ export const PlaceStall = Type.Evaluate(
             type: Type.Literal(ActionType.PlaceStall),
             playerId: Type.String(),
             goodsType: Type.Enum(GoodsType),
-            coords: Type.Optional(Coordinates)
+            coords: Type.Optional(OffsetTupleCoordinates)
         })
     ])
 )
@@ -30,7 +31,7 @@ export class HydratedPlaceStall extends HydratableAction<typeof PlaceStall> impl
     declare type: ActionType.PlaceStall
     declare playerId: string
     declare goodsType: GoodsType
-    declare coords?: Coordinates
+    declare coords?: OffsetTupleCoordinates
 
     constructor(data: PlaceStall) {
         super(data, PlaceStallValidator)
@@ -67,7 +68,7 @@ export class HydratedPlaceStall extends HydratableAction<typeof PlaceStall> impl
 
     static isValidCellForPlacement(
         state: HydratedFreshFishGameState,
-        coords: Coordinates,
+        coords: OffsetTupleCoordinates,
         playerId: string
     ): boolean {
         const board = state.board
