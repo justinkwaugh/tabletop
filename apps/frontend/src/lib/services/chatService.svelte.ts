@@ -205,11 +205,6 @@ export class ChatService {
                 notification.data.message
             ) as GameChatMessage
 
-            // Date conversion of composite types not working properly, so force it here
-            if (!(newMessage.timestamp instanceof Date)) {
-                newMessage.timestamp = new Date(newMessage.timestamp)
-            }
-
             if (!Value.Check(GameChatMessage, newMessage)) {
                 console.error('Invalid GameChatMessage format in notification')
                 return

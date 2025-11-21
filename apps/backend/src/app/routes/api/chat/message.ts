@@ -31,11 +31,6 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const message = Value.Convert(GameChatMessage, request.body.message) as GameChatMessage
-            // Date conversion of composite types not working properly, so force it here
-            if (!(message.timestamp instanceof Date)) {
-                message.timestamp = new Date(message.timestamp)
-            }
-
             message.userId = user.id
 
             // Trim message to 500 characters

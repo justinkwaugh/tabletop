@@ -27,10 +27,10 @@ export interface CoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordi
     traverse(traverser: Traverser<CoordinatedGraph<T, U>, T>): Iterable<T>
 }
 
-export abstract class BaseCoordinatedGraph<
-    T extends CoordinatedNode<U>,
-    U extends Coordinates
-> extends BaseGraph<T> {
+export abstract class BaseCoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordinates>
+    extends BaseGraph<T>
+    implements CoordinatedGraph<T, U>
+{
     public populateFromPattern(
         patternOrPatterns: CoordinatePattern<U> | CoordinatePattern<U>[],
         factory: CoordinatedNodeFactory<U, T>

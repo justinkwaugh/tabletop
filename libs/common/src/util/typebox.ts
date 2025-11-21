@@ -20,7 +20,7 @@ export class TDate extends Type.Base<globalThis.Date> {
     }
 
     public override Clone(): TDate {
-        return structuredClone(this)
+        return new TDate(this.format)
     }
 
     public override Convert(value: unknown): unknown {
