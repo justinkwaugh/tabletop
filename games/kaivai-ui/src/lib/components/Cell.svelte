@@ -9,7 +9,7 @@
         sameCoordinates,
         Point,
         AxialCoordinates,
-        type HexGeometry
+        calculateHexGeometry
     } from '@tabletop/common'
     import {
         ActionType,
@@ -35,13 +35,15 @@
     import { fadeScale } from '@tabletop/frontend-components'
     import { flipIn, flipInterest, flipKey, flipOut, saveFlipState } from '$lib/utils/transition'
     import { fade } from 'svelte/transition'
+    import { KaivaiHexDefinition, KaivaiHexGeometry } from '$lib/utils/hexDefinition.js'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
-    let {
-        geometry,
-        coords,
-        origin
-    }: { geometry: HexGeometry; coords: AxialCoordinates; origin: Point } = $props()
+    let { coords, origin }: { coords: AxialCoordinates; origin: Point } = $props()
+
+    const cellGeometry = calculateHexGeometry(KaivaiHexDefinition, coords)
+    const pointsString = KaivaiHexGeometry.vertices
+        .map((point) => `${point.x},${point.y}`)
+        .join(' ')
 
     let cell = $derived(gameSession.gameState.board.cells[coordinatesToNumber(coords)])
     let cellImage = $derived.by(() => {
@@ -573,25 +575,20 @@
     pointer-events="visible"
     stroke="none"
     stroke-width="2"
-    transform="translate({geometry.center.x + origin.x}, {geometry.center.y + origin.y})"
+    transform="translate({cellGeometry.center.x + origin.x}, {cellGeometry.center.y + origin.y})"
 >
     {#if !hidden}
-        <polygon
-            points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5"
-            fill="none"
-            stroke="none"
-            opacity="1"
-        ></polygon>
+        <polygon points={pointsString} fill="none" stroke="none" opacity="1"></polygon>
         {#if cellImage}
             <g transform="rotate(30)">
                 <image
                     in:fadeScale={{ baseScale: 0.1, duration: 100 }}
                     out:fadeScale={{ baseScale: 0.1, duration: 100 }}
                     href={cellImage}
-                    x={-geometry.boundingBox.height / 2}
-                    y={-geometry.boundingBox.width / 2}
-                    width={geometry.boundingBox.height}
-                    height={geometry.boundingBox.width}
+                    x={KaivaiHexGeometry.boundingBox.y}
+                    y={KaivaiHexGeometry.boundingBox.x}
+                    width={KaivaiHexGeometry.boundingBox.height}
+                    height={KaivaiHexGeometry.boundingBox.width}
                 ></image>
             </g>
         {/if}
@@ -604,8 +601,8 @@
                 <svg
                     width="87px"
                     height="100px"
-                    x={-43.5}
-                    y={-50}
+                    x={KaivaiHexGeometry.boundingBox.x}
+                    y={KaivaiHexGeometry.boundingBox.y}
                     viewBox="-9.5 -5 31 31"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
@@ -753,7 +750,7 @@
         <polygon
             in:fade={{ duration: 150 }}
             out:fade={{ duration: 150 }}
-            points="25,-43.5 50,0 25,43.5 -25,43.5 -50,0 -25,-43.5"
+            points={pointsString}
             class="z-40"
             fill="black"
             opacity="0.35"

@@ -158,6 +158,12 @@ export function calculateHexGeometry(
         corners.push({ x, y })
     }
 
+    // Align indices with our clockwise direction enums
+    if (definition.orientation === HexOrientation.Flat) {
+        const twoCorners = corners.splice(corners.length - 2, 2)
+        corners.unshift(...twoCorners)
+    }
+
     return {
         center,
         vertices: corners,

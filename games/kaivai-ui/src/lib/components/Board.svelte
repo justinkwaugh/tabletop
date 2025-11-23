@@ -29,25 +29,26 @@
         coordinatesToNumber,
         createCoordinatedNode,
         HexGrid,
-        HexOrientation,
         hexSpiralPattern,
-        patternGenerator,
-        type BoundingBox,
-        type HexGeometry
+        Point
     } from '@tabletop/common'
+
+    import { KaivaiHexDefinition, KaivaiHexGeometry } from '$lib/utils/hexDefinition.js'
+
+    type Line = {
+        x1: number
+        y1: number
+        x2: number
+        y2: number
+    }
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
-    const hexDefinition = {
-        orientation: HexOrientation.Flat,
-        dimensions: { width: 100, height: 87 }
-    }
     const grid = new HexGrid({
-        hexDefinition
+        hexDefinition: KaivaiHexDefinition
     })
-    const spiralPattern = hexSpiralPattern({ radius: 6, orientation: hexDefinition.orientation })
-    const generator = patternGenerator(spiralPattern, createCoordinatedNode)
-    grid.populate(generator)
+    const spiralPattern = hexSpiralPattern({ radius: 6, orientation: grid.definition.orientation })
+    grid.populateFromPattern(spiralPattern, createCoordinatedNode)
 
     const boundingBox = grid.boundingBox
     const offset = { x: -boundingBox.x, y: -boundingBox.y }
@@ -180,14 +181,12 @@
         )
     })
 
-    const borders = [
-        { x1: -25, y1: -43.5, x2: 25, y2: -43.5 },
-        { x1: 25, y1: -43.5, x2: 50, y2: 0 },
-        { x1: 50, y1: 0, x2: 25, y2: 43.5 },
-        { x1: 25, y1: 43.5, x2: -25, y2: 43.5 },
-        { x1: -25, y1: 43.5, x2: -50, y2: 0 },
-        { x1: -50, y1: 0, x2: -25, y2: -43.5 }
-    ]
+    const borders: Line[] = []
+    for (let i = 0; i < KaivaiHexGeometry.vertices.length; i++) {
+        const vertex = KaivaiHexGeometry.vertices[i]
+        const nextVertex = KaivaiHexGeometry.vertices[(i + 1) % KaivaiHexGeometry.vertices.length]
+        borders.push({ x1: vertex.x, y1: vertex.y, x2: nextVertex.x, y2: nextVertex.y })
+    }
 
     let outlineBorders = $derived.by(() => {
         if (outlinedIslandCells.length === 0) {
@@ -195,14 +194,14 @@
         }
 
         const board = gameSession.gameState.board
-        const borders: { geometry: HexGeometry; index: number }[] = []
+        const borders: { center: Point; index: number }[] = []
 
         for (const cell of outlinedIslandCells) {
             for (const [index, direction] of ClockwiseFlatHexDirections.entries()) {
                 const neighbor = board.getNeighborCoords(cell.coords, direction)
                 if (!neighbor || board.isWaterCell(neighbor)) {
                     borders.push({
-                        geometry: calculateHexGeometry(hexDefinition, cell.coords),
+                        center: calculateHexGeometry(KaivaiHexDefinition, cell.coords).center,
                         index
                     })
                 }
@@ -327,19 +326,15 @@
                     {/if}
 
                     {#each grid as hex}
-                        <Cell
-                            geometry={calculateHexGeometry(hexDefinition, hex.coords)}
-                            coords={hex.coords}
-                            {origin}
-                        />
+                        <Cell coords={hex.coords} {origin} />
                     {/each}
                     {#each outlineBorders as border}
                         <line
                             class="z-50"
-                            x1={origin.x + border.geometry.center.x + borders[border.index].x1}
-                            y1={origin.y + border.geometry.center.y + borders[border.index].y1}
-                            x2={origin.x + border.geometry.center.x + borders[border.index].x2}
-                            y2={origin.y + border.geometry.center.y + borders[border.index].y2}
+                            x1={origin.x + border.center.x + borders[border.index].x1}
+                            y1={origin.y + border.center.y + borders[border.index].y1}
+                            x2={origin.x + border.center.x + borders[border.index].x2}
+                            y2={origin.y + border.center.y + borders[border.index].y2}
                             fill="none"
                             stroke="white"
                             stroke-width="6"
