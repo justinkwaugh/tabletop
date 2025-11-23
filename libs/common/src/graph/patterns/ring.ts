@@ -7,7 +7,7 @@ import {
     PointyHexDirection,
     RotationDirection
 } from '../directions.js'
-import { HexOrientation } from '../grids/hex.js'
+import { HexOrientation } from '../grids/hex/definition.js'
 import { CoordinatePattern } from '../pattern.js'
 import { addAxial, FlatNeighborOffsets, PointyNeighborOffsets, scaleAxial } from '../utils/hex.js'
 
@@ -25,7 +25,7 @@ export function hexRingPattern(
     const center: AxialCoordinates = options.center ?? { q: 0, r: 0 }
     const initialDirection =
         options.initialDirection ??
-        (options.orientation === HexOrientation.PointyTop
+        (options.orientation === HexOrientation.Pointy
             ? PointyHexDirection.Northeast
             : FlatHexDirection.Northeast)
     const rotationDirection = options.rotationDirection ?? RotationDirection.Clockwise
@@ -43,7 +43,7 @@ export function hexRingPattern(
             initialDirection
         )
 
-        for (const offset of options.orientation === HexOrientation.PointyTop
+        for (const offset of options.orientation === HexOrientation.Pointy
             ? pointyDirectionOffsetIterator(
                   initialDirection as PointyHexDirection,
                   rotationDirection
@@ -67,9 +67,9 @@ function calculateStartHex(
     initialDirection: PointyHexDirection | FlatHexDirection
 ): AxialCoordinates {
     let initialOffset
-    if (orientation === HexOrientation.PointyTop && isPointyHexDirection(initialDirection)) {
+    if (orientation === HexOrientation.Pointy && isPointyHexDirection(initialDirection)) {
         initialOffset = PointyNeighborOffsets[initialDirection]
-    } else if (orientation === HexOrientation.FlatTop && isFlatHexDirection(initialDirection)) {
+    } else if (orientation === HexOrientation.Flat && isFlatHexDirection(initialDirection)) {
         initialOffset = FlatNeighborOffsets[initialDirection]
     } else {
         throw new Error(

@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { RectilinearGrid } from '../grids/rectilinear.js'
 import { coordinatesToNumber, OffsetCoordinates } from '../coordinates.js'
 import { linePattern } from '../patterns/line.js'
-import { patternTraverser } from './pattern.js'
 import { CardinalDirection } from '../directions.js'
-import { patternGenerator } from '../generator.js'
 import { rectanglePattern } from '../patterns/rectangle.js'
+import { patternGenerator } from '../generators/pattern.js'
 
 function createTestNode(coords: OffsetCoordinates) {
     return { id: coordinatesToNumber(coords), coords }

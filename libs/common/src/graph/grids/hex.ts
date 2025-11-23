@@ -1,33 +1,13 @@
 import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from '../coordinatedGraph.js'
-import { AxialCoordinates, axialToCube, CubeCoordinates, Point } from '../coordinates.js'
-import {
-    DimensionsRectangle,
-    DimensionsCircle,
-    DimensionsEllipse,
-    BoundingBox
-} from '../dimensions.js'
+import { AxialCoordinates, axialToCube, CubeCoordinates } from '../coordinates.js'
+import { EllipseDimensions, BoundingBox } from '../dimensions.js'
 import { FlatHexDirection, PointyHexDirection } from '../directions.js'
 import { NodeIdentifier } from '../graph.js'
 import { hexCoordsToCenterPoint, hexDimensionsToElliptical, neighborCoords } from '../utils/hex.js'
+import { HexDefinition, HexOrientation } from './hex/definition.js'
 
-export enum HexOrientation {
-    PointyTop = 'pointy-top',
-    FlatTop = 'flat-top'
-}
-
-export type HexDefinition = {
-    orientation: HexOrientation
-    dimensions?: DimensionsRectangle | DimensionsEllipse | DimensionsCircle
-}
-
-export const DEFAULT_POINTY_TOP_HEX_DIMENSIONS = { xRadius: 43.5, yRadius: 50 }
-export const DEFAULT_FLAT_TOP_HEX_DIMENSIONS = { xRadius: 50, yRadius: 43.5 }
-
-export type HexGeometry = {
-    center: Point
-    vertices: Point[]
-    boundingBox: BoundingBox // Not sure if this should be included
-}
+export const DEFAULT_POINTY_HEX_DIMENSIONS = { xRadius: 43.5, yRadius: 50 }
+export const DEFAULT_FLAT_HEX_DIMENSIONS = { xRadius: 50, yRadius: 43.5 }
 
 export type HexGridNode = CoordinatedNode<AxialCoordinates>
 
@@ -35,20 +15,23 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     extends BaseCoordinatedGraph<T, AxialCoordinates>
     implements CoordinatedGraph<T, AxialCoordinates>
 {
+    definition: HexDefinition
     orientation: HexOrientation
-    ellipticalDimensions: DimensionsEllipse // Allows for non-regular hexes
 
+    // We hold the dimensions as elliptical so we don't have to keep converting
+    private ellipticalDimensions: EllipseDimensions // Allows for non-regular hexes
     private _boundingBox: BoundingBox | undefined // Lazy calculated bounding box
 
     constructor({ hexDefinition }: { hexDefinition: HexDefinition }) {
         super()
+        this.definition = hexDefinition
         this.orientation = hexDefinition.orientation
 
         const dimensions =
             hexDefinition.dimensions ??
-            (this.orientation === HexOrientation.PointyTop
-                ? DEFAULT_POINTY_TOP_HEX_DIMENSIONS
-                : DEFAULT_FLAT_TOP_HEX_DIMENSIONS)
+            (this.orientation === HexOrientation.Pointy
+                ? DEFAULT_POINTY_HEX_DIMENSIONS
+                : DEFAULT_FLAT_HEX_DIMENSIONS)
 
         this.ellipticalDimensions = hexDimensionsToElliptical(dimensions, this.orientation)
     }
@@ -97,7 +80,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
                 continue
             }
 
-            if (this.orientation === HexOrientation.PointyTop) {
+            if (this.orientation === HexOrientation.Pointy) {
                 if (cubeCurrent.s > cubeMinX.s || cubeCurrent.q < cubeMinX.q) {
                     cubeMinX = cubeCurrent
                 }
@@ -233,9 +216,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
             return neighbor ? [neighbor] : []
         } else {
             const neighborDirections =
-                this.orientation === HexOrientation.PointyTop
-                    ? PointyHexDirection
-                    : FlatHexDirection
+                this.orientation === HexOrientation.Pointy ? PointyHexDirection : FlatHexDirection
             return Object.values(neighborDirections)
                 .map((direction) => neighborCoords(node.coords, this.orientation, direction))
                 .map((coords) => this.nodeAt(coords))

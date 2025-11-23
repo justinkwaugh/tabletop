@@ -1,30 +1,30 @@
 import { Point } from './coordinates.js'
 
-export type DimensionsRectangle = {
+export type RectangleDimensions = {
     width: number
     height: number
 }
 
-export type DimensionsCube = {
+export type CubeDimensions = {
     width: number
     height: number
     depth: number
 }
 
-export type DimensionsCircle = {
+export type CircleDimensions = {
     radius: number
 }
 
-export type DimensionsEllipse = {
+export type EllipseDimensions = {
     xRadius: number
     yRadius: number
 }
 
-export type BoundingBox = Point & DimensionsRectangle
+export type HexDimensions = CircleDimensions | EllipseDimensions | RectangleDimensions
 
-export type HexDimensions = DimensionsCircle | DimensionsEllipse | DimensionsRectangle
+export type BoundingBox = Point & RectangleDimensions
 
-export function isRectangleDimensions(dimensions: unknown): dimensions is DimensionsRectangle {
+export function isRectangleDimensions(dimensions: unknown): dimensions is RectangleDimensions {
     return (
         typeof dimensions === 'object' &&
         dimensions !== null &&
@@ -35,7 +35,20 @@ export function isRectangleDimensions(dimensions: unknown): dimensions is Dimens
     )
 }
 
-export function isEllipseDimensions(dimensions: unknown): dimensions is DimensionsEllipse {
+export function isCubeDimensions(dimensions: unknown): dimensions is CubeDimensions {
+    return (
+        typeof dimensions === 'object' &&
+        dimensions !== null &&
+        'width' in dimensions &&
+        'height' in dimensions &&
+        'depth' in dimensions &&
+        typeof (dimensions as any).width === 'number' &&
+        typeof (dimensions as any).height === 'number' &&
+        typeof (dimensions as any).depth === 'number'
+    )
+}
+
+export function isEllipseDimensions(dimensions: unknown): dimensions is EllipseDimensions {
     return (
         typeof dimensions === 'object' &&
         dimensions !== null &&
@@ -46,7 +59,7 @@ export function isEllipseDimensions(dimensions: unknown): dimensions is Dimensio
     )
 }
 
-export function isCircleDimensions(dimensions: unknown): dimensions is DimensionsCircle {
+export function isCircleDimensions(dimensions: unknown): dimensions is CircleDimensions {
     return (
         typeof dimensions === 'object' &&
         dimensions !== null &&

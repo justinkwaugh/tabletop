@@ -32,13 +32,14 @@
         HexOrientation,
         hexSpiralPattern,
         patternGenerator,
-        type BoundingBox
+        type BoundingBox,
+        type HexGeometry
     } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     const hexDefinition = {
-        orientation: HexOrientation.FlatTop,
+        orientation: HexOrientation.Flat,
         dimensions: { width: 100, height: 87 }
     }
     const grid = new HexGrid({
@@ -194,16 +195,16 @@
         }
 
         const board = gameSession.gameState.board
-        const borders: { box: BoundingBox; index: number }[] = []
+        const borders: { geometry: HexGeometry; index: number }[] = []
 
         for (const cell of outlinedIslandCells) {
             for (const [index, direction] of ClockwiseFlatHexDirections.entries()) {
                 const neighbor = board.getNeighborCoords(cell.coords, direction)
                 if (!neighbor || board.isWaterCell(neighbor)) {
-                    const box = calculateHexGeometry(hexDefinition, cell.coords).boundingBox
-                    if (box) {
-                        borders.push({ box, index })
-                    }
+                    borders.push({
+                        geometry: calculateHexGeometry(hexDefinition, cell.coords),
+                        index
+                    })
                 }
             }
         }
@@ -327,7 +328,7 @@
 
                     {#each grid as hex}
                         <Cell
-                            box={calculateHexGeometry(hexDefinition, hex.coords).boundingBox}
+                            geometry={calculateHexGeometry(hexDefinition, hex.coords)}
                             coords={hex.coords}
                             {origin}
                         />
@@ -335,22 +336,10 @@
                     {#each outlineBorders as border}
                         <line
                             class="z-50"
-                            x1={origin.x +
-                                border.box.x +
-                                borders[border.index].x1 +
-                                border.box.width / 2}
-                            y1={origin.y +
-                                border.box.y +
-                                borders[border.index].y1 +
-                                border.box.height / 2}
-                            x2={origin.x +
-                                border.box.x +
-                                borders[border.index].x2 +
-                                border.box.width / 2}
-                            y2={origin.y +
-                                border.box.y +
-                                borders[border.index].y2 +
-                                border.box.height / 2}
+                            x1={origin.x + border.geometry.center.x + borders[border.index].x1}
+                            y1={origin.y + border.geometry.center.y + borders[border.index].y1}
+                            x2={origin.x + border.geometry.center.x + borders[border.index].x2}
+                            y2={origin.y + border.geometry.center.y + borders[border.index].y2}
                             fill="none"
                             stroke="white"
                             stroke-width="6"

@@ -159,7 +159,7 @@ export class KaivaiGameInitializer extends BaseGameInitializer implements GameIn
         singleIsland: boolean,
         prng: Prng
     ): Island {
-        const ring = hexRingPattern({ radius: 6, orientation: HexOrientation.FlatTop })
+        const ring = hexRingPattern({ radius: 6, orientation: HexOrientation.Flat })
 
         let tileOneCoords: AxialCoordinates | undefined
         const validPositions: AxialCoordinates[][] = []

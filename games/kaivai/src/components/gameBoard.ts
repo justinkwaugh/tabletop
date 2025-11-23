@@ -110,7 +110,7 @@ export class HydratedKaivaiGameBoard
         const ringPattern = hexRingPattern({
             center: coords,
             radius: 1,
-            orientation: HexOrientation.FlatTop
+            orientation: HexOrientation.Flat
         })
         return Array.from(this.grid.traversePattern(ringPattern)).reduce(
             (acc: string[], node: HexGridNode) => {
@@ -130,7 +130,7 @@ export class HydratedKaivaiGameBoard
         const ringPattern = hexRingPattern({
             center: coords,
             radius: 1,
-            orientation: HexOrientation.FlatTop
+            orientation: HexOrientation.Flat
         })
         return Array.from(ringPattern()).some(predicate)
     }
@@ -275,7 +275,7 @@ export class HydratedKaivaiGameBoard
         const ringPattern = hexRingPattern({
             center: coords,
             radius: 1,
-            orientation: HexOrientation.FlatTop
+            orientation: HexOrientation.Flat
         })
         return Array.from(this.grid.traversePattern(ringPattern)).map((node) => node.coords)
     }
@@ -488,11 +488,11 @@ export class HydratedKaivaiGameBoard
     get grid(): HexGrid {
         if (!this.internalGrid) {
             this.internalGrid = new HexGrid({
-                hexDefinition: { orientation: HexOrientation.FlatTop }
+                hexDefinition: { orientation: HexOrientation.Flat }
             })
             const spiralPattern = hexSpiralPattern({
                 radius: 6,
-                orientation: HexOrientation.FlatTop
+                orientation: HexOrientation.Flat
             })
             const spiralTraverser = patternGenerator(spiralPattern, createCoordinatedNode)
             this.internalGrid.populate(spiralTraverser)

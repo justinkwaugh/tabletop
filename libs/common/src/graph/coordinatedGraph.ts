@@ -1,6 +1,6 @@
 import { Coordinates, coordinatesToNumber } from './coordinates.js'
 import { Direction } from './directions.js'
-import { NodeGenerator, patternGenerator } from './generator.js'
+import { patternGenerator } from './generators/pattern.js'
 import { GraphNode, BaseGraph, Graph } from './graph.js'
 import { CoordinatePattern } from './pattern.js'
 import { Traverser } from './traverser.js'

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { RectilinearGrid } from '../grids/rectilinear.js'
 import { coordinatesToNumber, OffsetCoordinates } from '../coordinates.js'
-import { patternGenerator } from '../generator.js'
 import { rectanglePattern } from '../patterns/rectangle.js'
 import { breadthFirstAlgorithm } from './breadthFirst.js'
+import { patternGenerator } from '../generators/pattern.js'
 
 function createTestNode(coords: OffsetCoordinates) {
     return { id: coordinatesToNumber(coords), coords }

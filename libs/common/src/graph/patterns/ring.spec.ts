@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { hexRingPattern } from './ring.js'
-import { HexOrientation } from '../grids/hex.js'
 import { PointyHexDirection, RotationDirection } from '../directions.js'
+import { HexOrientation } from '../grids/hex/definition.js'
 
 describe('Hex Ring Pattern Tests', () => {
     it('generates radius 0 ring', () => {
         const pattern = hexRingPattern({
             radius: 0,
-            orientation: HexOrientation.PointyTop
+            orientation: HexOrientation.Pointy
         })
         const result = Array.from(pattern())
         expect(result).toEqual([{ q: 0, r: 0 }])
@@ -16,7 +16,7 @@ describe('Hex Ring Pattern Tests', () => {
     it('generates radius 1 ring in pointy top orientation', () => {
         const pattern = hexRingPattern({
             radius: 1,
-            orientation: HexOrientation.PointyTop
+            orientation: HexOrientation.Pointy
         })
         const result = Array.from(pattern())
         expect(result).toEqual([
@@ -32,7 +32,7 @@ describe('Hex Ring Pattern Tests', () => {
     it('generates radius 2 ring in pointy top orientation', () => {
         const pattern = hexRingPattern({
             radius: 2,
-            orientation: HexOrientation.PointyTop
+            orientation: HexOrientation.Pointy
         })
         const result = Array.from(pattern())
         expect(result).toEqual([
@@ -54,7 +54,7 @@ describe('Hex Ring Pattern Tests', () => {
     it('generates radius 1 ring in pointy top orientation with alternate initial direction', () => {
         const pattern = hexRingPattern({
             radius: 1,
-            orientation: HexOrientation.PointyTop,
+            orientation: HexOrientation.Pointy,
             initialDirection: PointyHexDirection.West
         })
         const result = Array.from(pattern())
@@ -71,7 +71,7 @@ describe('Hex Ring Pattern Tests', () => {
     it('generates radius 1 ring in ccw rotation', () => {
         const pattern = hexRingPattern({
             radius: 1,
-            orientation: HexOrientation.PointyTop,
+            orientation: HexOrientation.Pointy,
             rotationDirection: RotationDirection.Counterclockwise
         })
         const result = Array.from(pattern())
@@ -89,7 +89,7 @@ describe('Hex Ring Pattern Tests', () => {
         const pattern = hexRingPattern({
             center: { q: 1, r: -1 },
             radius: 1,
-            orientation: HexOrientation.PointyTop
+            orientation: HexOrientation.Pointy
         })
         const result = Array.from(pattern())
         expect(result).toEqual([
@@ -105,7 +105,7 @@ describe('Hex Ring Pattern Tests', () => {
     it('generates radius 1 ring in flat top orientation', () => {
         const pattern = hexRingPattern({
             radius: 1,
-            orientation: HexOrientation.FlatTop
+            orientation: HexOrientation.Flat
         })
         const result = Array.from(pattern())
         expect(result).toEqual([

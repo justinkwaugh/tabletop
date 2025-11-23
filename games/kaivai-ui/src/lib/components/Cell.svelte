@@ -9,7 +9,7 @@
         sameCoordinates,
         Point,
         AxialCoordinates,
-        type BoundingBox
+        type HexGeometry
     } from '@tabletop/common'
     import {
         ActionType,
@@ -37,8 +37,12 @@
     import { fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
-    let { box, coords, origin }: { box: BoundingBox; coords: AxialCoordinates; origin: Point } =
-        $props()
+    let {
+        geometry,
+        coords,
+        origin
+    }: { geometry: HexGeometry; coords: AxialCoordinates; origin: Point } = $props()
+
     let cell = $derived(gameSession.gameState.board.cells[coordinatesToNumber(coords)])
     let cellImage = $derived.by(() => {
         if (cell) {
@@ -569,7 +573,7 @@
     pointer-events="visible"
     stroke="none"
     stroke-width="2"
-    transform="translate({box.x + origin.x + box.width / 2}, {box.y + origin.y + box.height / 2})"
+    transform="translate({geometry.center.x + origin.x}, {geometry.center.y + origin.y})"
 >
     {#if !hidden}
         <polygon
@@ -584,10 +588,10 @@
                     in:fadeScale={{ baseScale: 0.1, duration: 100 }}
                     out:fadeScale={{ baseScale: 0.1, duration: 100 }}
                     href={cellImage}
-                    x={-box.height / 2}
-                    y={-box.width / 2}
-                    width={box.height}
-                    height={box.width}
+                    x={-geometry.boundingBox.height / 2}
+                    y={-geometry.boundingBox.width / 2}
+                    width={geometry.boundingBox.height}
+                    height={geometry.boundingBox.width}
                 ></image>
             </g>
         {/if}
