@@ -24,6 +24,7 @@
     } from '@tabletop/kaivai'
     import { fade } from 'svelte/transition'
     import {
+        calculateHexGeometry,
         ClockwiseFlatHexDirections,
         coordinatesToNumber,
         createCoordinatedNode,
@@ -36,18 +37,20 @@
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
-    const grid2 = new HexGrid({
-        hexDefinition: {
-            orientation: HexOrientation.FlatTop,
-            dimensions: { width: 100, height: 87 }
-        }
+    const hexDefinition = {
+        orientation: HexOrientation.FlatTop,
+        dimensions: { width: 100, height: 87 }
+    }
+    const grid = new HexGrid({
+        hexDefinition
     })
-    const spiralPattern = hexSpiralPattern({ radius: 6, orientation: HexOrientation.FlatTop })
+    const spiralPattern = hexSpiralPattern({ radius: 6, orientation: hexDefinition.orientation })
     const generator = patternGenerator(spiralPattern, createCoordinatedNode)
-    grid2.populate(generator)
+    grid.populate(generator)
 
-    const { x: xOffset, y: yOffset } = grid2.centerOffset
-    let origin = { x: xOffset, y: yOffset + 100 }
+    const boundingBox = grid.boundingBox
+    const offset = { x: -boundingBox.x, y: -boundingBox.y }
+    let origin = { x: offset.x, y: offset.y + 100 }
 
     function getImageForAction(actionType: ActionType) {
         switch (actionType) {
@@ -197,10 +200,7 @@
             for (const [index, direction] of ClockwiseFlatHexDirections.entries()) {
                 const neighbor = board.getNeighborCoords(cell.coords, direction)
                 if (!neighbor || board.isWaterCell(neighbor)) {
-                    const box = grid2.getBoundingBoxForCoords(cell.coords, {
-                        x: grid2.ellipticalDimensions.xRadius,
-                        y: grid2.ellipticalDimensions.yRadius
-                    })
+                    const box = calculateHexGeometry(hexDefinition, cell.coords).boundingBox
                     if (box) {
                         borders.push({ box, index })
                     }
@@ -283,14 +283,14 @@
         </div>
         <div
             class="absolute z-10"
-            style="width:{grid2.pixelWidth + 16 + 'px'};height:{grid2.pixelHeight +
+            style="width:{grid.boundingBox.width + 16 + 'px'};height:{grid.boundingBox.height +
                 16 +
                 100 +
                 'px'};"
         >
             <svg
-                width={Math.ceil(grid2.pixelWidth + 16)}
-                height={Math.ceil(grid2.pixelHeight) + 100}
+                width={Math.ceil(grid.boundingBox.width + 16)}
+                height={Math.ceil(grid.boundingBox.height) + 100}
             >
                 <defs>
                     <filter id="dropshadow" height="130%">
@@ -325,9 +325,9 @@
                         {/if}
                     {/if}
 
-                    {#each grid2 as hex}
+                    {#each grid as hex}
                         <Cell
-                            box={grid2.getBoundingBoxForCoords(hex.coords)}
+                            box={calculateHexGeometry(hexDefinition, hex.coords).boundingBox}
                             coords={hex.coords}
                             {origin}
                         />
@@ -335,10 +335,22 @@
                     {#each outlineBorders as border}
                         <line
                             class="z-50"
-                            x1={origin.x + border.box.x + borders[border.index].x1}
-                            y1={origin.y + border.box.y + borders[border.index].y1}
-                            x2={origin.x + border.box.x + borders[border.index].x2}
-                            y2={origin.y + border.box.y + borders[border.index].y2}
+                            x1={origin.x +
+                                border.box.x +
+                                borders[border.index].x1 +
+                                border.box.width / 2}
+                            y1={origin.y +
+                                border.box.y +
+                                borders[border.index].y1 +
+                                border.box.height / 2}
+                            x2={origin.x +
+                                border.box.x +
+                                borders[border.index].x2 +
+                                border.box.width / 2}
+                            y2={origin.y +
+                                border.box.y +
+                                borders[border.index].y2 +
+                                border.box.height / 2}
                             fill="none"
                             stroke="white"
                             stroke-width="6"

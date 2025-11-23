@@ -9,6 +9,12 @@ import {
     isRectangleDimensions
 } from '../dimensions.js'
 import {
+    FlatHexDirection,
+    isFlatHexDirection,
+    isPointyHexDirection,
+    PointyHexDirection
+} from '../directions.js'
+import {
     DEFAULT_FLAT_TOP_HEX_DIMENSIONS,
     DEFAULT_POINTY_TOP_HEX_DIMENSIONS,
     HexDefinition,
@@ -109,6 +115,39 @@ export function flatHexCoordsToCenterPoint(
     return { x, y }
 }
 
+export const PointyNeighborOffsets: Record<PointyHexDirection, AxialCoordinates> = {
+    [PointyHexDirection.East]: { q: 1, r: 0 }, // East
+    [PointyHexDirection.Southeast]: { q: 0, r: 1 }, // Southeast
+    [PointyHexDirection.Southwest]: { q: -1, r: 1 }, // Southwest
+    [PointyHexDirection.West]: { q: -1, r: 0 }, // West
+    [PointyHexDirection.Northwest]: { q: 0, r: -1 }, // Northwest
+    [PointyHexDirection.Northeast]: { q: 1, r: -1 } // Northeast
+}
+
+export const FlatNeighborOffsets: Record<FlatHexDirection, AxialCoordinates> = {
+    [FlatHexDirection.North]: { q: 0, r: -1 }, // North
+    [FlatHexDirection.Northeast]: { q: 1, r: -1 }, // Northeast
+    [FlatHexDirection.Southeast]: { q: 1, r: 0 }, // Southeast
+    [FlatHexDirection.South]: { q: 0, r: 1 }, // South
+    [FlatHexDirection.Southwest]: { q: -1, r: 1 }, // Southwest
+    [FlatHexDirection.Northwest]: { q: -1, r: 0 } // Northwest
+}
+
+export function neighborCoords(
+    coords: AxialCoordinates,
+    orientation: HexOrientation,
+    direction: PointyHexDirection | FlatHexDirection
+): AxialCoordinates {
+    if (orientation === HexOrientation.PointyTop && isPointyHexDirection(direction)) {
+        return addAxial(coords, PointyNeighborOffsets[direction])
+    }
+    if (orientation === HexOrientation.FlatTop && isFlatHexDirection(direction)) {
+        return addAxial(coords, FlatNeighborOffsets[direction])
+    }
+
+    throw new Error(`Invalid direction ${direction} for hex grid with orientation ${orientation}`)
+}
+
 // Currently only produces regular geometry
 export function calculateHexGeometry(
     definition: HexDefinition,
@@ -135,7 +174,13 @@ export function calculateHexGeometry(
 
     return {
         center,
-        vertices: corners
+        vertices: corners,
+        boundingBox: {
+            x: center.x - xRadius,
+            y: center.y - yRadius,
+            width: xRadius * 2,
+            height: yRadius * 2
+        }
     }
 }
 

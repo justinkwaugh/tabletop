@@ -8,14 +8,14 @@ import {
     HexOrientation,
     Hydratable,
     sameCoordinates,
-    patternTraverser,
     patternGenerator,
     createCoordinatedNode,
     hexRingPattern,
     FlatHexDirection,
     HexGridNode,
     breadthFirstTraverser,
-    distanceAxial
+    distanceAxial,
+    neighborCoords
 } from '@tabletop/common'
 import { Island } from './island.js'
 import {
@@ -281,7 +281,7 @@ export class HydratedKaivaiGameBoard
     }
 
     getNeighborCoords(coords: AxialCoordinates, direction: FlatHexDirection) {
-        return this.grid.neighborCoords(coords, direction)
+        return neighborCoords(coords, this.grid.orientation, direction)
     }
 
     getDeliverableNeighbors(coords: AxialCoordinates, actingBoatId?: string) {

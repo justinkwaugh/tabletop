@@ -1,3 +1,5 @@
+import { Point } from './coordinates.js'
+
 export type DimensionsRectangle = {
     width: number
     height: number
@@ -18,12 +20,7 @@ export type DimensionsEllipse = {
     yRadius: number
 }
 
-export type BoundingBox = {
-    x: number
-    y: number
-    width: number
-    height: number
-}
+export type BoundingBox = Point & DimensionsRectangle
 
 export type HexDimensions = DimensionsCircle | DimensionsEllipse | DimensionsRectangle
 

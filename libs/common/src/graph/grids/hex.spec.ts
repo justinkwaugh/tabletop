@@ -23,23 +23,27 @@ describe('Hex Utils Tests', () => {
             dimensions: { radius: 50 }
         }
         const grid = new HexGrid<CustomHexNode>({ hexDefinition })
-        expect(grid.minXCoords).toEqual({ q: 0, r: 0 })
-        expect(grid.minYCoords).toEqual({ q: 0, r: 0 })
-        expect(grid.maxXCoords).toEqual({ q: 0, r: 0 })
-        expect(grid.maxYCoords).toEqual({ q: 0, r: 0 })
+        const minMaxCoords = grid.minMaxCoords
+        expect(minMaxCoords.minX).toBeUndefined
+        expect(minMaxCoords.minY).toBeUndefined
+        expect(minMaxCoords.maxX).toBeUndefined
+        expect(minMaxCoords.maxY).toBeUndefined
 
         const pattern = hexSpiralPattern({ radius: 0, orientation: HexOrientation.PointyTop })
         grid.populateFromPattern(pattern, createCustomHexNode)
+        const minMaxCoords2 = grid.minMaxCoords
+        expect(minMaxCoords2.minX).toEqual({ q: 0, r: 0 })
+        expect(minMaxCoords2.minY).toEqual({ q: 0, r: 0 })
+        expect(minMaxCoords2.maxX).toEqual({ q: 0, r: 0 })
+        expect(minMaxCoords2.maxY).toEqual({ q: 0, r: 0 })
 
         const biggerPattern = hexSpiralPattern({ radius: 1, orientation: HexOrientation.PointyTop })
         grid.populateFromPattern(biggerPattern, createCustomHexNode)
-
-        console.log(grid.nodeAt({ q: 0, r: 0 })?.desc)
-
-        expect(grid.minXCoords).toEqual({ q: -1, r: 0 })
-        expect(grid.minYCoords).toEqual({ q: 1, r: -1 })
-        expect(grid.maxXCoords).toEqual({ q: 1, r: 0 })
-        expect(grid.maxYCoords).toEqual({ q: 0, r: 1 })
+        const minMaxCoords3 = grid.minMaxCoords
+        expect(minMaxCoords3.minX).toEqual({ q: -1, r: 0 })
+        expect(minMaxCoords3.minY).toEqual({ q: 1, r: -1 })
+        expect(minMaxCoords3.maxX).toEqual({ q: 1, r: 0 })
+        expect(minMaxCoords3.maxY).toEqual({ q: 0, r: 1 })
     })
 
     it('calculates min/max coords correctly for flat top grid', () => {
@@ -48,21 +52,27 @@ describe('Hex Utils Tests', () => {
             dimensions: { radius: 50 }
         }
         const grid = new HexGrid({ hexDefinition })
-        expect(grid.minXCoords).toEqual({ q: 0, r: 0 })
-        expect(grid.minYCoords).toEqual({ q: 0, r: 0 })
-        expect(grid.maxXCoords).toEqual({ q: 0, r: 0 })
-        expect(grid.maxYCoords).toEqual({ q: 0, r: 0 })
+        const minMaxCoords = grid.minMaxCoords
+        expect(minMaxCoords.minX).toBeUndefined
+        expect(minMaxCoords.minY).toBeUndefined
+        expect(minMaxCoords.maxX).toBeUndefined
+        expect(minMaxCoords.maxY).toBeUndefined
 
         const pattern = hexSpiralPattern({ radius: 0, orientation: HexOrientation.FlatTop })
         grid.populateFromPattern(pattern, createCoordinatedNode)
+        const minMaxCoords2 = grid.minMaxCoords
+        expect(minMaxCoords2.minX).toEqual({ q: 0, r: 0 })
+        expect(minMaxCoords2.minY).toEqual({ q: 0, r: 0 })
+        expect(minMaxCoords2.maxX).toEqual({ q: 0, r: 0 })
+        expect(minMaxCoords2.maxY).toEqual({ q: 0, r: 0 })
 
         const biggerPattern = hexSpiralPattern({ radius: 1, orientation: HexOrientation.FlatTop })
         grid.populateFromPattern(biggerPattern, createCoordinatedNode)
-
-        expect(grid.minXCoords).toEqual({ q: -1, r: 1 })
-        expect(grid.minYCoords).toEqual({ q: 0, r: -1 })
-        expect(grid.maxXCoords).toEqual({ q: 1, r: -1 })
-        expect(grid.maxYCoords).toEqual({ q: 0, r: 1 })
+        const minMaxCoords3 = grid.minMaxCoords
+        expect(minMaxCoords3.minX).toEqual({ q: -1, r: 0 })
+        expect(minMaxCoords3.minY).toEqual({ q: 0, r: -1 })
+        expect(minMaxCoords3.maxX).toEqual({ q: 1, r: 0 })
+        expect(minMaxCoords3.maxY).toEqual({ q: 0, r: 1 })
     })
 
     it('calculates pixel width and height correctly for pointy top grid', () => {
@@ -71,19 +81,21 @@ describe('Hex Utils Tests', () => {
             dimensions: { radius: 50 }
         }
         const grid = new HexGrid({ hexDefinition })
-        expect(grid.pixelWidth).toEqual(0)
-        expect(grid.pixelHeight).toEqual(0)
+        const boundingBox = grid.boundingBox
+        expect(boundingBox.width).toEqual(0)
+        expect(boundingBox.height).toEqual(0)
 
         const pattern = hexSpiralPattern({ radius: 0, orientation: HexOrientation.PointyTop })
         grid.populateFromPattern(pattern, createCoordinatedNode)
-        expect(grid.pixelWidth).toBeCloseTo(86.6)
-        expect(grid.pixelHeight).toEqual(100)
+        const boundingBox2 = grid.boundingBox
+        expect(boundingBox2.width).toBeCloseTo(86.6)
+        expect(boundingBox2.height).toEqual(100)
 
         const biggerPattern = hexSpiralPattern({ radius: 1, orientation: HexOrientation.PointyTop })
         grid.populateFromPattern(biggerPattern, createCoordinatedNode)
-
-        expect(grid.pixelWidth).toBeCloseTo(259.81)
-        expect(grid.pixelHeight).toEqual(250)
+        const boundingBox3 = grid.boundingBox
+        expect(boundingBox3.width).toBeCloseTo(259.81)
+        expect(boundingBox3.height).toEqual(250)
     })
 
     it('calculates pixel width and height correctly for flat top grid', () => {
@@ -92,18 +104,20 @@ describe('Hex Utils Tests', () => {
             dimensions: { width: 100, height: 87 }
         }
         const grid = new HexGrid({ hexDefinition })
-        expect(grid.pixelWidth).toEqual(0)
-        expect(grid.pixelHeight).toEqual(0)
+        const boundingBox = grid.boundingBox
+        expect(boundingBox.width).toEqual(0)
+        expect(boundingBox.height).toEqual(0)
 
         const pattern = hexSpiralPattern({ radius: 0, orientation: HexOrientation.PointyTop })
         grid.populateFromPattern(pattern, createCoordinatedNode)
-        expect(grid.pixelHeight).toEqual(87)
-        expect(grid.pixelWidth).toEqual(100)
+        const boundingBox2 = grid.boundingBox
+        expect(boundingBox2.height).toEqual(87)
+        expect(boundingBox2.width).toEqual(100)
 
         const biggerPattern = hexSpiralPattern({ radius: 6, orientation: HexOrientation.PointyTop })
         grid.populateFromPattern(biggerPattern, createCoordinatedNode)
-
-        expect(grid.pixelWidth).toEqual(1000)
-        expect(grid.pixelHeight).toBeCloseTo(1131)
+        const boundingBox3 = grid.boundingBox
+        expect(boundingBox3.width).toEqual(1000)
+        expect(boundingBox3.height).toBeCloseTo(1131)
     })
 })

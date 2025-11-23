@@ -7,9 +7,9 @@ import {
     PointyHexDirection,
     RotationDirection
 } from '../directions.js'
-import { FlatNeighborOffsets, HexOrientation, PointyNeighborOffsets } from '../grids/hex.js'
+import { HexOrientation } from '../grids/hex.js'
 import { CoordinatePattern } from '../pattern.js'
-import { addAxial, scaleAxial } from '../utils/hex.js'
+import { addAxial, FlatNeighborOffsets, PointyNeighborOffsets, scaleAxial } from '../utils/hex.js'
 
 export type HexRingPatternOptions = {
     center?: AxialCoordinates
