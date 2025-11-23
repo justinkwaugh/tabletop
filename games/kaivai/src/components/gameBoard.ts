@@ -15,7 +15,7 @@ import {
     HexGridNode,
     breadthFirstTraverser,
     distanceAxial,
-    neighborCoords
+    hexNeighborCoords
 } from '@tabletop/common'
 import { Island } from './island.js'
 import {
@@ -281,7 +281,7 @@ export class HydratedKaivaiGameBoard
     }
 
     getNeighborCoords(coords: AxialCoordinates, direction: FlatHexDirection) {
-        return neighborCoords(coords, this.grid.orientation, direction)
+        return hexNeighborCoords(coords, this.grid.orientation, direction)
     }
 
     getDeliverableNeighbors(coords: AxialCoordinates, actingBoatId?: string) {

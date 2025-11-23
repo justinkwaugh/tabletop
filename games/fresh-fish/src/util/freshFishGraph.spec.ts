@@ -76,12 +76,12 @@ describe('Fresh Fish Graph Tests', () => {
 
         const graph = new FreshFishGraph(cells)
 
-        expect(graph.minRow).toEqual(0)
-        expect(graph.maxRow).toEqual(2)
-        expect(graph.minCol).toEqual(0)
-        expect(graph.maxCol).toEqual(2)
+        expect(graph.minMaxCoords.minX?.col).toEqual(0)
+        expect(graph.minMaxCoords.maxY?.row).toEqual(2)
+        expect(graph.minMaxCoords.minY?.row).toEqual(0)
+        expect(graph.minMaxCoords.maxX?.col).toEqual(2)
 
-        const dimensions = graph.dimensions()
+        const dimensions = graph.coordinateDimensions()
         expect(dimensions.rows).toEqual(3)
         expect(dimensions.cols).toEqual(3)
     })

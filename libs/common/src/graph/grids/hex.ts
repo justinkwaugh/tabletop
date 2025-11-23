@@ -3,7 +3,11 @@ import { AxialCoordinates, axialToCube, CubeCoordinates } from '../coordinates.j
 import { EllipseDimensions, BoundingBox } from '../dimensions.js'
 import { FlatHexDirection, PointyHexDirection } from '../directions.js'
 import { NodeIdentifier } from '../graph.js'
-import { hexCoordsToCenterPoint, hexDimensionsToElliptical, neighborCoords } from '../utils/hex.js'
+import {
+    hexCoordsToCenterPoint,
+    hexDimensionsToElliptical,
+    hexNeighborCoords
+} from '../utils/hex.js'
 import { HexDefinition, HexOrientation } from './hex/definition.js'
 
 export const DEFAULT_POINTY_HEX_DIMENSIONS = { xRadius: 43.5, yRadius: 50 }
@@ -194,7 +198,7 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
     }
 
     neighborOf(node: T, direction: PointyHexDirection | FlatHexDirection): T | undefined {
-        const coords = neighborCoords(node.coords, this.orientation, direction)
+        const coords = hexNeighborCoords(node.coords, this.orientation, direction)
         return this.nodeAt(coords)
     }
 
@@ -211,14 +215,14 @@ export class HexGrid<T extends HexGridNode = HexGridNode>
 
     override neighborsOf(node: T, direction?: PointyHexDirection | FlatHexDirection): T[] {
         if (direction) {
-            const coords = neighborCoords(node.coords, this.orientation, direction)
+            const coords = hexNeighborCoords(node.coords, this.orientation, direction)
             const neighbor = this.nodeAt(coords)
             return neighbor ? [neighbor] : []
         } else {
             const neighborDirections =
                 this.orientation === HexOrientation.Pointy ? PointyHexDirection : FlatHexDirection
             return Object.values(neighborDirections)
-                .map((direction) => neighborCoords(node.coords, this.orientation, direction))
+                .map((direction) => hexNeighborCoords(node.coords, this.orientation, direction))
                 .map((coords) => this.nodeAt(coords))
                 .filter((n) => n !== undefined)
         }

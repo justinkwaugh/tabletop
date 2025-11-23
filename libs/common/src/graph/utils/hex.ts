@@ -119,7 +119,7 @@ export const FlatNeighborOffsets: Record<FlatHexDirection, AxialCoordinates> = {
     [FlatHexDirection.Northwest]: { q: -1, r: 0 } // Northwest
 }
 
-export function neighborCoords(
+export function hexNeighborCoords(
     coords: AxialCoordinates,
     orientation: HexOrientation,
     direction: PointyHexDirection | FlatHexDirection

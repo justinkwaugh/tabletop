@@ -96,12 +96,12 @@ describe('Hex Utils Tests', () => {
         expect(geometry.center).toEqual({ x: 0, y: 0 })
         expect(geometry.vertices.length).toEqual(6)
 
-        expect(geometry.vertices[0]).toEqual({ x: 50, y: 0 })
-        expect(geometry.vertices[1]).toEqual({ x: 25, y: 43.3 })
-        expect(geometry.vertices[2]).toEqual({ x: -25, y: 43.3 })
-        expect(geometry.vertices[3]).toEqual({ x: -50, y: 0 })
-        expect(geometry.vertices[4]).toEqual({ x: -25, y: -43.3 })
-        expect(geometry.vertices[5]).toEqual({ x: 25, y: -43.3 })
+        expect(geometry.vertices[0]).toEqual({ x: -25, y: -43.3 })
+        expect(geometry.vertices[1]).toEqual({ x: 25, y: -43.3 })
+        expect(geometry.vertices[2]).toEqual({ x: 50, y: 0 })
+        expect(geometry.vertices[3]).toEqual({ x: 25, y: 43.3 })
+        expect(geometry.vertices[4]).toEqual({ x: -25, y: 43.3 })
+        expect(geometry.vertices[5]).toEqual({ x: -50, y: 0 })
     })
 
     it('calculates pointy top geometry correctly', () => {

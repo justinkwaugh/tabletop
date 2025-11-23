@@ -11,6 +11,7 @@ import {
 } from '../components/cells.js'
 import {
     CardinalDirection,
+    cellNeighborCoords,
     Hydratable,
     OffsetCoordinates,
     offsetToOffsetTuple,
@@ -92,12 +93,12 @@ export class HydratedGameBoard
     }
 
     dimensions(): Dimensions {
-        const { rows, cols } = this.graph.dimensions()
+        const { rows, cols } = this.graph.coordinateDimensions()
         return [cols, rows]
     }
 
     isInBounds(coords: OffsetTupleCoordinates): boolean {
-        return this.graph.isWithinDimensions(offsetTupleToOffset(coords))
+        return this.graph.hasAt(offsetTupleToOffset(coords))
     }
 
     isEmptyCell(cell?: Cell): cell is EmptyCell {
@@ -154,11 +155,11 @@ export class HydratedGameBoard
     }
 
     getNeighbor(coords: OffsetTupleCoordinates, direction: CardinalDirection): Cell | undefined {
-        const neighborCoords = this.graph.neighborCoords(offsetTupleToOffset(coords), direction)
-        if (!neighborCoords) {
+        const directionalCoords = cellNeighborCoords(offsetTupleToOffset(coords), direction)
+        if (!directionalCoords) {
             return undefined
         }
-        return this.cellAt(neighborCoords)
+        return this.cellAt(directionalCoords)
     }
 
     getContiguousSide(direction: CardinalDirection): {
