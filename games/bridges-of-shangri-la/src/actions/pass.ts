@@ -29,6 +29,7 @@ export function isPass(action?: GameAction): action is Pass {
 export class HydratedPass extends HydratableAction<typeof Pass> implements Pass {
     declare type: ActionType.Pass
     declare playerId: string
+    declare metadata?: { recruiting: boolean }
 
     constructor(data: Pass) {
         super(data, PassValidator)

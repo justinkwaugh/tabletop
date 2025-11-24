@@ -23,7 +23,8 @@ export const KaivaiPlayerState = Type.Evaluate(
             influence: Type.Number(),
             buildingCost: Type.Number(),
             baseMovement: Type.Number(),
-            initialHutsPlaced: Type.Number()
+            initialHutsPlaced: Type.Number(),
+            tiles: Type.Number()
         })
     ])
 )

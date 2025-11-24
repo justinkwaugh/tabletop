@@ -30,7 +30,7 @@ export const KaivaiGameState = Type.Evaluate(
             bidders: Type.Array(Type.String()),
             bids: Type.Record(Type.String(), Type.Number()),
             cultTiles: Type.Number(),
-            godCoords: Type.Optional(
+            godLocation: Type.Optional(
                 Type.Object({ coords: AxialCoordinates, islandId: Type.String() })
             ),
             passedPlayers: Type.Array(Type.String()),
@@ -110,7 +110,7 @@ export class HydratedKaivaiGameState
                     )
                 }
 
-                // Need to piece limit and track huts
+                // Need to  track huts
                 return b.tiles - a.tiles
             })
             .map((player) => player.playerId)

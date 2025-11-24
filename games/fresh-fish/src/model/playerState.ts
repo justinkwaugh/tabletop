@@ -33,12 +33,12 @@ export class HydratedFreshFishPlayerState
     extends Hydratable<typeof FreshFishPlayerState>
     implements FreshFishPlayerState
 {
-    playerId!: string
-    color!: Color
-    money!: number
-    score!: number
-    stalls!: PlayerStall[]
-    disks!: number
+    declare playerId: string
+    declare color: Color
+    declare money: number
+    declare score: number
+    declare stalls: PlayerStall[]
+    declare disks: number
 
     constructor(data: FreshFishPlayerState) {
         super(data, FreshFishPlayerStateValidator)

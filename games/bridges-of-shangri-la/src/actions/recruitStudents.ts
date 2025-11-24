@@ -35,6 +35,7 @@ export class HydratedRecruitStudents
     declare type: ActionType.RecruitStudents
     declare playerId: string
     declare placement: Placement
+    declare metadata?: { forceSkip: boolean }
 
     constructor(data: RecruitStudents) {
         super(data, RecruitStudentsValidator)
