@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RectilinearGrid } from '../grids/rectilinear.js'
+import { RectilinearGrid } from '../grids/rectilinear/grid.js'
 import { coordinatesToNumber, OffsetCoordinates } from '../coordinates.js'
 import { rectanglePattern } from '../patterns/rectangle.js'
 import { breadthFirstAlgorithm } from './breadthFirst.js'

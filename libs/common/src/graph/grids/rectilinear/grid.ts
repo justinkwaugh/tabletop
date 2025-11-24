@@ -1,9 +1,9 @@
-import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from '../coordinatedGraph.js'
-import { OffsetCoordinates } from '../coordinates.js'
-import { BoundingBox, RectangleDimensions } from '../dimensions.js'
-import { CardinalDirection, OrdinalDirection } from '../directions.js'
-import { NodeIdentifier } from '../graph.js'
-import { cellCoordsToCenterPoint, cellNeighborCoords } from '../utils/rectilinear.js'
+import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from '../../coordinatedGraph.js'
+import { OffsetCoordinates } from '../../coordinates.js'
+import { BoundingBox, RectangleDimensions } from '../../dimensions.js'
+import { CardinalDirection, OrdinalDirection } from '../../directions.js'
+import { NodeIdentifier } from '../../graph.js'
+import { cellCoordsToCenterPoint, cellNeighborCoords } from '../../utils/rectilinear.js'
 
 export type RectilinearGridNode = CoordinatedNode<OffsetCoordinates>
 

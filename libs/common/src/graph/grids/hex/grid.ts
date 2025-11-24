@@ -1,14 +1,14 @@
-import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from '../coordinatedGraph.js'
-import { AxialCoordinates, axialToCube, CubeCoordinates } from '../coordinates.js'
-import { EllipseDimensions, BoundingBox } from '../dimensions.js'
-import { FlatHexDirection, PointyHexDirection } from '../directions.js'
-import { NodeIdentifier } from '../graph.js'
+import { BaseCoordinatedGraph, CoordinatedGraph, CoordinatedNode } from '../../coordinatedGraph.js'
+import { AxialCoordinates, axialToCube, CubeCoordinates } from '../../coordinates.js'
+import { EllipseDimensions, BoundingBox } from '../../dimensions.js'
+import { FlatHexDirection, PointyHexDirection } from '../../directions.js'
+import { NodeIdentifier } from '../../graph.js'
 import {
     hexCoordsToCenterPoint,
     hexDimensionsToElliptical,
     hexNeighborCoords
-} from '../utils/hex.js'
-import { HexDefinition, HexOrientation } from './hex/definition.js'
+} from '../../utils/hex.js'
+import { HexDefinition, HexOrientation } from './definition.js'
 
 export const DEFAULT_POINTY_HEX_DIMENSIONS = { xRadius: 43.5, yRadius: 50 }
 export const DEFAULT_FLAT_HEX_DIMENSIONS = { xRadius: 50, yRadius: 43.5 }

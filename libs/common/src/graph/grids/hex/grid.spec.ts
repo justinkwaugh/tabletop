@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { HexGrid, HexGridNode } from '../grids/hex.js'
-import { hexSpiralPattern } from '../patterns/hexSpiral.js'
-import { createCoordinatedNode } from '../coordinatedGraph.js'
+import { HexGrid, HexGridNode } from './grid.js'
+import { hexSpiralPattern } from '../../patterns/hexSpiral.js'
+import { createCoordinatedNode } from '../../coordinatedGraph.js'
 
-import { AxialCoordinates } from '../coordinates.js'
-import { HexDefinition, HexOrientation } from './hex/definition.js'
+import { AxialCoordinates } from '../../coordinates.js'
+import { HexDefinition, HexOrientation } from './definition.js'
 
 type CustomHexNode = HexGridNode & {
     desc: string
