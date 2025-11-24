@@ -134,7 +134,6 @@ export function hexNeighborCoords(
     throw new Error(`Invalid direction ${direction} for hex grid with orientation ${orientation}`)
 }
 
-// Currently only produces regular geometry
 export function calculateHexGeometry(
     definition: HexDefinition,
     coords: AxialCoordinates
@@ -146,23 +145,48 @@ export function calculateHexGeometry(
     const center = hexCoordsToCenterPoint(coords, ellipticalDimensions, definition.orientation)
     const { xRadius, yRadius } = ellipticalDimensions
 
-    const radius = definition.orientation === HexOrientation.Pointy ? yRadius : xRadius
-    const corners: Point[] = []
-    for (let i = 0; i < 6; i++) {
-        const angleDeg = definition.orientation === HexOrientation.Pointy ? 60 * i - 30 : 60 * i
-        const angleRad = (Math.PI / 180) * angleDeg
-
-        // Should we round these?
-        const x = roundNumber(center.x + radius * Math.cos(angleRad), 1) + 0
-        const y = roundNumber(center.y + radius * Math.sin(angleRad), 1) + 0
-        corners.push({ x, y })
-    }
-
-    // Align indices with our clockwise direction enums
-    if (definition.orientation === HexOrientation.Flat) {
-        const twoCorners = corners.splice(corners.length - 2, 2)
-        corners.unshift(...twoCorners)
-    }
+    const corners: Point[] =
+        definition.orientation === HexOrientation.Pointy
+            ? [
+                  {
+                      x: roundNumber(center.x + xRadius, 1) + 0,
+                      y: roundNumber(center.y - yRadius / 2, 1) + 0
+                  }, // Top-right
+                  {
+                      x: roundNumber(center.x + xRadius, 1) + 0,
+                      y: roundNumber(center.y + yRadius / 2, 1) + 0
+                  }, // Bottom-right
+                  { x: roundNumber(center.x, 1) + 0, y: roundNumber(center.y + yRadius, 1) + 0 }, // Bottom
+                  {
+                      x: roundNumber(center.x - xRadius, 1) + 0,
+                      y: roundNumber(center.y + yRadius / 2, 1) + 0
+                  }, // Bottom-left
+                  {
+                      x: roundNumber(center.x - xRadius, 1) + 0,
+                      y: roundNumber(center.y - yRadius / 2, 1) + 0
+                  }, // Top-left
+                  { x: roundNumber(center.x, 1) + 0, y: roundNumber(center.y - yRadius, 1) + 0 } // Top
+              ]
+            : [
+                  {
+                      x: roundNumber(center.x - xRadius / 2, 1) + 0,
+                      y: roundNumber(center.y - yRadius, 1) + 0
+                  }, // Top-left
+                  {
+                      x: roundNumber(center.x + xRadius / 2, 1) + 0,
+                      y: roundNumber(center.y - yRadius, 1) + 0
+                  }, // Top-right
+                  { x: roundNumber(center.x + xRadius, 1) + 0, y: roundNumber(center.y, 1) + 0 }, // Right
+                  {
+                      x: roundNumber(center.x + xRadius / 2, 1) + 0,
+                      y: roundNumber(center.y + yRadius, 1) + 0
+                  }, // Bottom-right
+                  {
+                      x: roundNumber(center.x - xRadius / 2, 1) + 0,
+                      y: roundNumber(center.y + yRadius, 1) + 0
+                  }, // Bottom-left
+                  { x: roundNumber(center.x - xRadius, 1) + 0, y: roundNumber(center.y, 1) + 0 } // Left
+              ]
 
     return {
         center,
