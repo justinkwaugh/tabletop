@@ -87,12 +87,13 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         }
 
         if (!rep.sent) {
+            const anyError = error as any
             const outError = {
                 // Pull all enumerable properties, supporting properties on custom Errors
-                ...error,
+                ...anyError,
                 // Explicitly pull Error's non-enumerable properties
-                name: error.name,
-                message: error.message
+                name: anyError.name,
+                message: anyError.message
             }
             await rep.send({ status: 'error', error: outError })
         }
