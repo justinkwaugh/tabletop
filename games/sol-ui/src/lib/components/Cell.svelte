@@ -115,7 +115,7 @@
     })
 </script>
 
-<!-- {#each [...numSundiversByPlayer] as [playerId, quantity], i}
+<!-- {#each [...numSundiversByPlayer] as [playerId, quantity], i (playerId)}
     <Sundiver
         location={cellLayout.divers[i] ?? { x: 0, y: 0 }}
         color={gameSession.colors.getPlayerColor(playerId)}
