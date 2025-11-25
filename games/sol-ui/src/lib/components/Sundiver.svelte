@@ -1,32 +1,33 @@
 <script lang="ts">
     import SundiverIcon from '$lib/images/sundiver.svelte'
     import SundiverMask from '$lib/images/sundiverMask.svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
     import { translateFromCenter } from '$lib/utils/boardGeometry.js'
 
     import { type Point } from '@tabletop/common'
-    import { getContext } from 'svelte'
-    import { attachAnimator } from '$lib/animators/stateAnimator.js'
-    import { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
+    import { attachAnimator, StateAnimator } from '$lib/animators/stateAnimator.js'
 
     let {
         id,
         color,
-        quantity,
+        quantity = 1,
         location,
+        animator,
         onclick
-    }: { id?: string; color: string; quantity: number; location?: Point; onclick?: () => void } =
-        $props()
-
-    let gameSession = getContext('gameSession') as SolGameSession
+    }: {
+        id?: string
+        playerId?: string
+        color: string
+        quantity?: number
+        location?: Point
+        animator?: StateAnimator<any, any, any>
+        onclick?: () => void
+    } = $props()
 
     let onClick = () => {
         if (onclick) {
             onclick()
         }
     }
-
-    const animator = id ? new SundiverAnimator(gameSession, id) : undefined
 </script>
 
 <g

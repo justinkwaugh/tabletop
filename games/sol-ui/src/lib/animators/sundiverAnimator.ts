@@ -19,6 +19,13 @@ export class SundiverAnimator extends StateAnimator<
         super(gameSession)
     }
 
+    override onAttach(): void {
+        console.log('SundiverAnimator attached for sundiver', this.id)
+        if (this.element) {
+            gsap.set(this.element, { opacity: 0 })
+        }
+    }
+
     override async onGameStateChange({
         to,
         from,
@@ -51,8 +58,7 @@ export class SundiverAnimator extends StateAnimator<
                 }
                 const cell = to.board.cellAt(toSundiver.coords)
                 if (cell) {
-                    const cellLayout = getCellLayout(cell, to.players.length, to.board)
-                    toLocation = cellLayout.divers[0]
+                    toLocation = this.gameSession.locationForDiverInCell(toSundiver.playerId, cell)
                 }
                 // In a hold
             } else if (toSundiver.hold) {
@@ -68,16 +74,18 @@ export class SundiverAnimator extends StateAnimator<
             if (fromSundiver.coords) {
                 const fromCell = from?.board.cellAt(fromSundiver.coords)
                 if (fromCell) {
-                    const fromCellLayout = getCellLayout(fromCell, to.players.length, to.board)
-                    fromLocation = fromCellLayout.divers[0]
+                    fromLocation = this.gameSession.locationForDiverInCell(
+                        fromSundiver.playerId,
+                        fromCell
+                    )
                 }
             } else if (fromSundiver.hold) {
+                gsap.set(this.element, { opacity: 1 })
                 fromLocation = this.getMothershipLocationForPlayer(from!, fromSundiver.hold)
             }
         }
 
         if (fromLocation) {
-            console.log('set sundiver ', this.id, 'to', fromLocation)
             const changes = Object.assign({}, offsetFromCenter(fromLocation), {
                 opacity: 1
             })
@@ -85,7 +93,6 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         if (toLocation) {
-            console.log('animate sundiver ', this.id, 'to', toLocation)
             move({
                 object: this.element,
                 location: offsetFromCenter(toLocation),
@@ -97,7 +104,7 @@ export class SundiverAnimator extends StateAnimator<
         if (fadeOut) {
             timeline.to(this.element, {
                 opacity: 0,
-                duration: 0.3,
+                duration: 0,
                 position: '>'
             })
         }

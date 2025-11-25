@@ -7,20 +7,18 @@
     import boardImg5p from '$lib/images/board5p.jpg'
     import Sandbox from './Sandbox.svelte'
     import Mothership from './Mothership.svelte'
-    import type { HydratedSolGameState, SolGameState, Sundiver } from '@tabletop/sol'
+    import type { Sundiver } from '@tabletop/sol'
     import UISundiver from './Sundiver.svelte'
-    import { getCellLayout } from '$lib/utils/cellLayouts.js'
+    import { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
 
-    const sundiversById = $derived.by(() => {
-        const sundivers: Map<string, Sundiver> = new Map()
-        for (const diver of gameSession.gameState.getAllSundivers()) {
-            sundivers.set(diver.id, diver)
-        }
-        return sundivers
-    })
+    // Non-reactive map of sundivers by ID for rendering sundiver movement
+    const sundiversById: Map<string, Sundiver> = new Map()
+    for (const diver of gameSession.gameState.getAllSundivers()) {
+        sundiversById.set(diver.id, diver)
+    }
 </script>
 
 <div class="relative w-[1280px] h-[1280px]">
@@ -37,7 +35,7 @@
             <UISundiver
                 id={sundiver.id}
                 color={gameSession.colors.getPlayerColor(sundiver.playerId)}
-                quantity={1}
+                animator={new SundiverAnimator(gameSession, sundiver.id)}
             />
         {/each}
 

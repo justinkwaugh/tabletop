@@ -1,15 +1,18 @@
 import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
 import {
     ActionType,
+    Cell,
     Fly,
     HydratedSolGameState,
     isLaunch,
     Launch,
     MachineState,
-    SolGameState
+    SolGameState,
+    Sundiver
 } from '@tabletop/sol'
-import { GameAction, OffsetCoordinates } from '@tabletop/common'
+import { GameAction, OffsetCoordinates, Point } from '@tabletop/common'
 import { ActionCategory } from '$lib/definition/actionCategory.js'
+import { getCellLayout } from '$lib/utils/cellLayouts.js'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
@@ -51,13 +54,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         // Add labels for different phases
         if (isUndo) {
             timeline.addLabel('mothership', 0)
+            timeline.addLabel('cellsFadeOut', 'mothership+=0')
             timeline.addLabel('movingPieces', 'mothership+=0.1')
-            timeline.addLabel('cellsFadeOut', 'movingPieces+=0.5')
             timeline.addLabel('cellsFadeIn', 'cellsFadeOut+=0.3')
         } else {
             timeline.addLabel('cellsFadeOut', 0)
-            timeline.addLabel('movingPieces', 'cellsFadeOut+=0.3')
-            timeline.addLabel('cellsFadeIn', 'movingPieces+=0.5')
+            timeline.addLabel('movingPieces', 'cellsFadeOut+=0.2')
+            timeline.addLabel('cellsFadeIn', 'movingPieces+=0.3')
             timeline.addLabel('mothership', 'movingPieces+=0.1')
         }
     }
@@ -94,6 +97,21 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
 
         return Math.min(this.myPlayerState.movementPoints, availableFromSource)
+    }
+
+    locationForDiverInCell(playerId: string, cell: Cell): Point | undefined {
+        const cellLayout = getCellLayout(cell, this.numPlayers, this.gameState.board)
+
+        const seen = new Set()
+        const orderedPlayers = cell.sundivers.filter((diver) => {
+            if (!seen.has(diver.playerId)) {
+                seen.add(diver.playerId)
+                return true
+            }
+            return false
+        })
+        const diverIndex = orderedPlayers.findIndex((d) => d.playerId === playerId)
+        return cellLayout.divers[diverIndex]
     }
 
     cancel() {}
@@ -181,7 +199,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         if (playerDivers.length < this.chosenNumDivers) {
             throw new Error('Not enough divers')
         }
-        const diverIds = playerDivers.slice(0, this.chosenNumDivers).map((diver) => diver.id)
+
+        // We want to take the last ones first
+        const diverIds = playerDivers
+            .toReversed()
+            .slice(0, this.chosenNumDivers)
+            .map((diver) => diver.id)
 
         const action = {
             ...this.createBaseAction(ActionType.Fly),

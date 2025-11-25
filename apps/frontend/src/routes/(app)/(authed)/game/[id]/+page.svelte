@@ -48,19 +48,31 @@
 
         if (event.key === 'ArrowUp') {
             event.preventDefault()
+            if (data.gameSession.isBusy()) {
+                return
+            }
             if (data.gameSession.myPlayer) {
                 data.gameSession.history.goToPlayersNextTurn(data.gameSession.myPlayer.id)
             }
         } else if (event.key === 'ArrowDown') {
             event.preventDefault()
+            if (data.gameSession.isBusy()) {
+                return
+            }
             if (data.gameSession.myPlayer) {
                 data.gameSession.history.goToPlayersPreviousTurn(data.gameSession.myPlayer.id)
             }
         } else if (event.key === 'ArrowLeft') {
             event.preventDefault()
+            if (data.gameSession.isBusy()) {
+                return
+            }
             data.gameSession.history.goToPreviousAction()
         } else if (event.key === 'ArrowRight') {
             event.preventDefault()
+            if (data.gameSession.isBusy()) {
+                return
+            }
             data.gameSession.history.goToNextAction()
         }
     }

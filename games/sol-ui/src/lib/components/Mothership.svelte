@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getContext, onMount } from 'svelte'
+    import { getContext } from 'svelte'
     import GreenShip from '$lib/images/greenShip.svelte'
     import GreenShipMask from '$lib/images/greenShipMask.svelte'
     import PurpleShip from '$lib/images/purpleShip.svelte'
@@ -18,11 +18,9 @@
         toRadians
     } from '$lib/utils/boardGeometry.js'
     import { Color } from '@tabletop/common'
-    import { rotate } from '$lib/utils/animations.js'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
-    import { HydratedLaunch, SolGameState } from '@tabletop/sol'
+    import { HydratedLaunch } from '@tabletop/sol'
     import DropShadow from './DropShadow.svelte'
-    import { gsap } from 'gsap'
     import { MothershipAnimator } from '$lib/animators/mothershipAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
 
@@ -41,9 +39,6 @@
 
     // This is the basic transformation for the mothership from which we rotate it around the center point
     let shapeTransformation = `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${offsets.rotation}) translate(${offsets.x},${offsets.y}) `
-    let locationTransformation = $derived(
-        `rotate(${getMothershipAngle(numPlayers, color, locationIndex)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
-    )
 
     let shipElement: SVGElement
 
@@ -128,54 +123,6 @@
         }
     }
 
-    async function onGameStateChange({
-        to,
-        from,
-        timeline
-    }: {
-        to: SolGameState
-        from?: SolGameState
-        timeline: unknown
-    }) {
-        const startIndex = from ? from.board.motherships[playerId] : locationIndex
-        const endIndex = to.board.motherships[playerId]
-        if (startIndex !== endIndex) {
-            moveShip(timeline as gsap.core.Timeline, startIndex, endIndex)
-        }
-    }
-
-    function moveShip(timeline: gsap.core.Timeline, startIndex: number, endIndex: number) {
-        const startDegrees = getMothershipAngle(numPlayers, color, startIndex)
-        const endDegrees = getMothershipAngle(numPlayers, color, endIndex)
-
-        let direction = ''
-        let distanceDegrees = 0
-        if ((endDegrees - startDegrees + 360) % 360 === 0) {
-            // No movement needed
-            return
-        } else if ((endDegrees - startDegrees + 360) % 360 <= 180) {
-            direction = '+='
-            distanceDegrees = (endDegrees - startDegrees + 360) % 360
-        } else {
-            direction = '-='
-            distanceDegrees = (startDegrees - endDegrees + 360) % 360
-        }
-        rotate({
-            timeline,
-            object: shipElement,
-            degrees: `${direction}${distanceDegrees}`,
-            svgOrigin: `${CENTER_POINT.x}, ${CENTER_POINT.y}`,
-            duration: 0.5,
-            position: 'mothership',
-            onComplete: () => {
-                // detach gsap so it doesn't interfere with future transforms, and set the transforms to the desired final state
-                locationIndex = endIndex
-                gsap.set(shipElement, { clearProps: 'transform' })
-                shipElement.setAttribute('transform', shapeTransformation)
-            }
-        })
-    }
-
     let shadowOffset = $derived.by(() => {
         const angleInDegrees =
             (360 - getMothershipAngle(numPlayers, color, locationIndex) + 45 + offsets.rotation) %
@@ -184,15 +131,6 @@
         const offset = getCirclePoint(45, angle)
         return offset
     })
-
-    // onMount(() => {
-    //     console.log('Mothership mounted for player', playerId)
-    //     // gameSession.addGameStateChangeListener(onGameStateChange)
-    //     return () => {
-    //         console.log('Mothership unmounted for player', playerId)
-    //         // gameSession.removeGameStateChangeListener(onGameStateChange)
-    //     }
-    // })
 
     const animator = attachAnimator(new MothershipAnimator(gameSession, playerId))
 </script>

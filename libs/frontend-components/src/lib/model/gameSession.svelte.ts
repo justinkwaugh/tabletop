@@ -394,25 +394,34 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         })
     }
 
+    isBusy(): boolean {
+        return this.busy
+    }
+
     async notifyStateChangeListeners(newState: U, oldState?: U) {
-        const id = nanoid()
-        const timeline = gsap.timeline({
-            autoRemoveChildren: true
-        })
+        this.busy = true
 
-        this.initializeTimeline({ to: newState, from: oldState, timeline })
+        try {
+            const timeline = gsap.timeline({
+                autoRemoveChildren: true
+            })
 
-        const promises = []
-        for (const listener of this.gameStateChangeListeners) {
-            promises.push(listener({ to: newState, from: oldState, timeline }))
+            this.initializeTimeline({ to: newState, from: oldState, timeline })
+
+            const promises = []
+            for (const listener of this.gameStateChangeListeners) {
+                promises.push(listener({ to: newState, from: oldState, timeline }))
+            }
+            await Promise.all(promises)
+
+            if (timeline.getChildren().length > 0) {
+                await timeline.play()
+            }
+
+            this.gameState = newState
+        } finally {
+            this.busy = false
         }
-        await Promise.all(promises)
-
-        if (timeline.getChildren().length > 0) {
-            await timeline.play()
-        }
-
-        this.gameState = newState
     }
 
     initializeTimeline({ to, from, timeline }: { to: U; from?: U; timeline: gsap.core.Timeline }) {

@@ -1,15 +1,9 @@
-import { HydratedSolGameState, type SolGameState, type Sundiver } from '@tabletop/sol'
+import { HydratedSolGameState, type SolGameState } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import { Color, sameCoordinates, type Point } from '@tabletop/common'
-import { getCellLayout } from '$lib/utils/cellLayouts.js'
-import {
-    CENTER_POINT,
-    getMothershipAngle,
-    getMothershipSpotPoint,
-    offsetFromCenter
-} from '$lib/utils/boardGeometry.js'
+import { Color } from '@tabletop/common'
+import { CENTER_POINT, getMothershipAngle } from '$lib/utils/boardGeometry.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { move, rotate } from '$lib/utils/animations.js'
+import { rotate } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 
 export class MothershipAnimator extends StateAnimator<
@@ -28,6 +22,7 @@ export class MothershipAnimator extends StateAnimator<
     }
 
     override onAttach(): void {
+        // Could fade in here
         const currentIndex = this.gameSession.gameState.board.motherships[this.playerId]
         const degrees = getMothershipAngle(this.gameSession.numPlayers, this.color, currentIndex)
         const svgOrigin = `${CENTER_POINT.x}, ${CENTER_POINT.y}`

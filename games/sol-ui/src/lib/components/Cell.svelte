@@ -12,6 +12,7 @@
     import { HydratedFly, type Cell } from '@tabletop/sol'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
     import Sundiver from './Sundiver.svelte'
+    import { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
@@ -115,13 +116,14 @@
     })
 </script>
 
-<!-- {#each [...numSundiversByPlayer] as [playerId, quantity], i (playerId)}
+{#each [...numSundiversByPlayer] as [playerId, quantity], i (playerId)}
     <Sundiver
-        location={cellLayout.divers[i] ?? { x: 0, y: 0 }}
+        location={gameSession.locationForDiverInCell(playerId, cell) ?? { x: 0, y: 0 }}
         color={gameSession.colors.getPlayerColor(playerId)}
         {quantity}
+        animator={new CellSundiverAnimator(gameSession, playerId, cell.coords)}
     />
-{/each} -->
+{/each}
 
 <g onclick={onClick} transform={translateFromCenter(0, 0)} stroke="none">
     <path
