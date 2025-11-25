@@ -7,14 +7,12 @@
     import { attachAnimator, StateAnimator } from '$lib/animators/stateAnimator.js'
 
     let {
-        id,
         color,
         quantity = 1,
         location,
         animator,
         onclick
     }: {
-        id?: string
         playerId?: string
         color: string
         quantity?: number

@@ -1,5 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
+    import { SvelteMap } from 'svelte/reactivity'
+    import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { sameCoordinates } from '@tabletop/common'
     import {
@@ -84,7 +86,7 @@
     }
 
     function onClick() {
-        if (disabled || !gameSession.isMyTurn || !gameSession.myPlayer?.id) {
+        if (!interactable) {
             return
         }
 
@@ -105,9 +107,16 @@
         }
     }
 
+    function onKeyDown(event: KeyboardEvent) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            onClick()
+        }
+    }
+
     let numSundiversByPlayer = $derived.by(() => {
         const sundivers = cell.sundivers
-        const sundiverMap = new Map<string, number>()
+        const sundiverMap = new SvelteMap<string, number>()
         sundivers.forEach((sundiver) => {
             const current = sundiverMap.get(sundiver.playerId) ?? 0
             sundiverMap.set(sundiver.playerId, current + 1)
@@ -125,7 +134,16 @@
     />
 {/each}
 
-<g onclick={onClick} transform={translateFromCenter(0, 0)} stroke="none">
+<g
+    class="focusable-control"
+    role="button"
+    tabindex={interactable ? 0 : -1}
+    aria-disabled={interactable}
+    onclick={onClick}
+    onkeydown={onKeyDown}
+    transform={translateFromCenter(0, 0)}
+    stroke="none"
+>
     <path
         d={cellPath(
             dimensions.innerRadius,

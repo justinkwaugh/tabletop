@@ -33,7 +33,6 @@
 
         {#each [...sundiversById] as [, sundiver] (sundiver.id)}
             <UISundiver
-                id={sundiver.id}
                 color={gameSession.colors.getPlayerColor(sundiver.playerId)}
                 animator={new SundiverAnimator(gameSession, sundiver.id)}
             />
