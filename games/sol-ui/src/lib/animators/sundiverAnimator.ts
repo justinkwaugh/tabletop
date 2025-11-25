@@ -1,5 +1,5 @@
 import { HydratedSolGameState, type SolGameState, type Sundiver } from '@tabletop/sol'
-import { StateAnimator } from './animator.js'
+import { StateAnimator } from './stateAnimator.js'
 import { sameCoordinates, type Point } from '@tabletop/common'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { getMothershipSpotPoint, offsetFromCenter } from '$lib/utils/boardGeometry.js'
@@ -28,7 +28,6 @@ export class SundiverAnimator extends StateAnimator<
         from?: HydratedSolGameState
         timeline: gsap.core.Timeline
     }) {
-        console.log('SundiverAnimator onGameStateChange', this.id)
         if (!this.element) {
             return
         }

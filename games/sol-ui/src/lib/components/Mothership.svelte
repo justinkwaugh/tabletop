@@ -23,6 +23,8 @@
     import { HydratedLaunch, SolGameState } from '@tabletop/sol'
     import DropShadow from './DropShadow.svelte'
     import { gsap } from 'gsap'
+    import { MothershipAnimator } from '$lib/animators/mothershipAnimator.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
 
     let { playerId }: { playerId: string } = $props()
     let gameSession = getContext('gameSession') as SolGameSession
@@ -183,15 +185,19 @@
         return offset
     })
 
-    onMount(() => {
-        gameSession.addGameStateChangeListener(onGameStateChange)
-        return () => {
-            gameSession.removeGameStateChangeListener(onGameStateChange)
-        }
-    })
+    // onMount(() => {
+    //     console.log('Mothership mounted for player', playerId)
+    //     // gameSession.addGameStateChangeListener(onGameStateChange)
+    //     return () => {
+    //         console.log('Mothership unmounted for player', playerId)
+    //         // gameSession.removeGameStateChangeListener(onGameStateChange)
+    //     }
+    // })
+
+    const animator = attachAnimator(new MothershipAnimator(gameSession, playerId))
 </script>
 
-<g transform={locationTransformation}>
+<g {@attach animator}>
     <g
         bind:this={shipElement}
         onclick={onMouseClick}

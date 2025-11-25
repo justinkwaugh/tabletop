@@ -1,5 +1,6 @@
 import type { GameState, HydratedGameState } from '@tabletop/common'
 import type { GameSession } from '@tabletop/frontend-components'
+import { untrack } from 'svelte'
 
 export abstract class StateAnimator<
     T extends GameState,
@@ -9,6 +10,10 @@ export abstract class StateAnimator<
     protected element: HTMLElement | SVGElement | undefined
 
     constructor(protected gameSession: S) {}
+
+    onAttach(): void {
+        // Optional override
+    }
 
     abstract onGameStateChange({
         to,
@@ -38,7 +43,11 @@ export function attachAnimator(
 ): (element: HTMLElement | SVGElement) => () => void {
     return (element: HTMLElement | SVGElement) => {
         animator.setElement(element)
-        animator.register()
+
+        untrack(() => {
+            animator.onAttach()
+            animator.register()
+        })
 
         return () => {
             animator.unregister()

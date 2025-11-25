@@ -11,7 +11,7 @@ export function rotate({
     timeline,
     onComplete
 }: {
-    object: SVGElement | HTMLElement
+    object?: SVGElement | HTMLElement
     duration?: number
     degrees: number | string
     svgOrigin?: string
@@ -20,6 +20,9 @@ export function rotate({
     timeline?: gsap.core.Timeline
     onComplete?: () => void
 }) {
+    if (!object) {
+        return
+    }
     const myTimeline = timeline || gsap.timeline()
     myTimeline.to(
         object,
@@ -47,7 +50,7 @@ export function move({
     timeline,
     onComplete
 }: {
-    object: SVGElement | HTMLElement
+    object?: SVGElement | HTMLElement
     location: Point
     duration?: number
     ease?: gsap.EaseString | gsap.EaseFunction
@@ -55,6 +58,9 @@ export function move({
     timeline?: gsap.core.Timeline
     onComplete?: () => void
 }) {
+    if (!object) {
+        return
+    }
     const myTimeline = timeline || gsap.timeline()
     myTimeline.to(
         object,

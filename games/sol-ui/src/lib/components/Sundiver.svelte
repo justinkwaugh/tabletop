@@ -6,7 +6,7 @@
 
     import { type Point } from '@tabletop/common'
     import { getContext } from 'svelte'
-    import { attachAnimator } from '$lib/animators/animator.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
 
     let {
