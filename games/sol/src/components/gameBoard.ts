@@ -10,7 +10,13 @@ import {
 import { Station } from './stations.js'
 import { Sundiver } from './sundiver.js'
 import { SolarGate } from './solarGate.js'
-import { Direction, Ring, SolGraph } from '../utils/solGraph.js'
+import {
+    Direction,
+    FIVE_PLAYER_RING_COUNTS,
+    ONE_TO_FOUR_PLAYER_RING_COUNTS,
+    Ring,
+    SolGraph
+} from '../utils/solGraph.js'
 import { solTraverser } from '../utils/solTraverser.js'
 import { solPathfinder } from '../utils/solPathfinder.js'
 
@@ -60,6 +66,14 @@ export class HydratedSolGameBoard
     constructor(data: SolGameBoard) {
         super(data, SolGameBoardValidator)
         this.internalGraph = undefined
+    }
+
+    get numMothershipLocations(): number {
+        const outerSpaces =
+            this.numPlayers === 5
+                ? FIVE_PLAYER_RING_COUNTS[Ring.Outer]
+                : ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Outer]
+        return outerSpaces - 1
     }
 
     public cellAt(coords: OffsetCoordinates): Cell {
@@ -274,6 +288,7 @@ export class HydratedSolGameBoard
     public addSundiversToCell(sundivers: Sundiver[], coords: OffsetCoordinates) {
         const sundiversByPlayer: Record<string, Sundiver[]> = {}
         for (const sundiver of sundivers) {
+            sundiver.coords = coords
             if (!sundiversByPlayer[sundiver.playerId]) {
                 sundiversByPlayer[sundiver.playerId] = []
             }
@@ -294,7 +309,7 @@ export class HydratedSolGameBoard
             if (!this.canAddSundiversToCell(playerId, sundivers.length, coords)) {
                 throw new Error('Cannot add sundivers to cell')
             }
-            cell.sundivers.push(...structuredClone(sundivers))
+            cell.sundivers.push(...sundivers)
         }
     }
 
@@ -304,13 +319,17 @@ export class HydratedSolGameBoard
             throw new Error('No sundivers to remove')
         }
 
-        const removedSundivers = structuredClone(
-            cell.sundivers.filter((sundiver) => sundiverIds.includes(sundiver.id))
+        const removedSundivers = cell.sundivers.filter((sundiver) =>
+            sundiverIds.includes(sundiver.id)
         )
         if (removedSundivers.length !== sundiverIds.length) {
             throw new Error(`Could not find sundivers to remove`)
         }
         cell.sundivers = cell.sundivers.filter((sundiver) => !sundiverIds.includes(sundiver.id))
+
+        for (const sundiver of removedSundivers) {
+            sundiver.coords = undefined
+        }
         return removedSundivers
     }
 

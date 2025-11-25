@@ -1,4 +1,4 @@
-import { Color, type OffsetCoordinates } from '@tabletop/common'
+import { Color, Point, type OffsetCoordinates } from '@tabletop/common'
 import { Ring } from '@tabletop/sol'
 
 export const CENTER_POINT = { x: 640, y: 640 }
@@ -96,10 +96,19 @@ export function toRadians(degrees: number) {
     return degrees * (Math.PI / 180)
 }
 
+export function getMothershipSpotAngle(numPlayers: number, index: number) {
+    const angles = numPlayers === 5 ? FIVE_PLAYER_ANGLES : ONE_TO_FOUR_PLAYER_ANGLES
+    return angles[Ring.Outer][index]
+}
+
+export function getMothershipSpotPoint(numPlayers: number, index: number) {
+    const degrees = getMothershipSpotAngle(numPlayers, index)
+    return getCirclePoint(MOTHERSHIP_RADIUS, toRadians(degrees))
+}
+
 export function getMothershipAngle(numPlayers: number, color: Color, index: number) {
     const offsets = MOTHERSHIP_OFFSETS[color]
-    const angles = numPlayers === 5 ? FIVE_PLAYER_ANGLES : ONE_TO_FOUR_PLAYER_ANGLES
-    return angles[Ring.Outer][index] + offsets.angle
+    return getMothershipSpotAngle(numPlayers, index) + offsets.angle
 }
 
 export function getMothershipTransformation(numPlayers: number, color: Color, index: number) {
@@ -111,6 +120,13 @@ export function getMothershipTransformation(numPlayers: number, color: Color, in
 
 export function translateFromCenter(x: number, y: number) {
     return `translate(${CENTER_POINT.x + x}, ${CENTER_POINT.y + y})`
+}
+
+export function offsetFromCenter(point: Point) {
+    return {
+        x: CENTER_POINT.x + point.x,
+        y: CENTER_POINT.y + point.y
+    }
 }
 
 export function dimensionsForSpace(numPlayers: number, coords: OffsetCoordinates) {

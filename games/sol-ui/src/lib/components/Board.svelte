@@ -7,9 +7,20 @@
     import boardImg5p from '$lib/images/board5p.jpg'
     import Sandbox from './Sandbox.svelte'
     import Mothership from './Mothership.svelte'
+    import type { HydratedSolGameState, SolGameState, Sundiver } from '@tabletop/sol'
+    import UISundiver from './Sundiver.svelte'
+    import { getCellLayout } from '$lib/utils/cellLayouts.js'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
+
+    const sundiversById = $derived.by(() => {
+        const sundivers: Map<string, Sundiver> = new Map()
+        for (const diver of gameSession.gameState.getAllSundivers()) {
+            sundivers.set(diver.id, diver)
+        }
+        return sundivers
+    })
 </script>
 
 <div class="relative w-[1280px] h-[1280px]">
@@ -21,6 +32,14 @@
             <DropShadow id="textshadow" />
             <DropShadow id="divershadow" offset={{ x: 0, y: 0 }} amount={20} />
         </defs>
+
+        {#each [...sundiversById] as [, sundiver] (sundiver.id)}
+            <UISundiver
+                id={sundiver.id}
+                color={gameSession.colors.getPlayerColor(sundiver.playerId)}
+                quantity={1}
+            />
+        {/each}
 
         {#each gameSession.gameState.board as cell}
             <Cell {cell} />

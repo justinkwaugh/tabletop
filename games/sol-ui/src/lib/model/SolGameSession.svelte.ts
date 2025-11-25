@@ -38,6 +38,42 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     })
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
 
+    override initializeTimeline({
+        to,
+        from,
+        timeline
+    }: {
+        to: SolGameState
+        from?: SolGameState
+        timeline: gsap.core.Timeline
+    }): void {
+        const isUndo = to.actionCount < (from?.actionCount ?? -1)
+        // Add labels for different phases
+        if (isUndo) {
+            timeline.addLabel('mothership', 0)
+            timeline.addLabel('movingPieces', 'mothership+=0.1')
+            timeline.addLabel('cellsFadeOut', 'movingPieces+=0.5')
+            timeline.addLabel('cellsFadeIn', 'cellsFadeOut+=0.3')
+        } else {
+            timeline.addLabel('cellsFadeOut', 0)
+            timeline.addLabel('movingPieces', 'cellsFadeOut+=0.3')
+            timeline.addLabel('cellsFadeIn', 'movingPieces+=0.5')
+            timeline.addLabel('mothership', 'movingPieces+=0.1')
+        }
+    }
+
+    override async onGameStateChange({
+        to,
+        from,
+        timeline
+    }: {
+        to: SolGameState
+        from?: SolGameState
+        timeline: unknown
+    }) {
+        this.resetAction()
+    }
+
     numPlayerCanMoveFromSource(): number {
         if (!this.isMyTurn || !this.myPlayerState) {
             return 0
@@ -68,8 +104,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.chosenMothership = action.mothership
             this.chosenNumDivers = action.numSundivers
             this.chosenDestination = undefined
-        } else {
-            this.resetAction()
         }
     }
 
@@ -173,7 +207,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             await this.applyAction(action)
         } catch (e) {
             console.error('Error for action', e, action)
-            this.resetAction()
         }
     }
 }

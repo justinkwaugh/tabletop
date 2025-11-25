@@ -12,6 +12,7 @@ import { MachineState } from '../definition/states.js'
 import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
 import { Effect } from '../components/effects.js'
 import { Deck, HydratedDeck } from '../components/deck.js'
+import { Sundiver } from 'src/components/sundiver.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Evaluate(
@@ -59,5 +60,34 @@ export class HydratedSolGameState
         this.players = data.players.map((player) => new HydratedSolPlayerState(player))
         this.board = new HydratedSolGameBoard(data.board)
         this.deck = new HydratedDeck(data.deck)
+    }
+
+    advanceMothership(playerId: string) {
+        const currentLocation = this.board.motherships[playerId]
+        if (currentLocation === undefined) {
+            return
+        }
+        let newLocation = currentLocation - 1
+        if (newLocation < 0) {
+            const numSpots = this.board.numMothershipLocations
+            newLocation = numSpots
+        }
+        this.board.motherships[playerId] = newLocation
+    }
+
+    *getAllSundivers(): Iterable<Sundiver> {
+        for (const playerState of this.players) {
+            for (const diver of playerState.holdSundivers) {
+                yield diver
+            }
+            for (const diver of playerState.reserveSundivers) {
+                yield diver
+            }
+        }
+        for (const cell of this.board) {
+            for (const diver of cell.sundivers) {
+                yield diver
+            }
+        }
     }
 }

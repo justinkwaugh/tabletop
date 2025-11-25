@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
+    import { sameCoordinates } from '@tabletop/common'
     import {
         dimensionsForSpace,
         getCirclePoint,
@@ -104,7 +104,7 @@
         }
     }
 
-    let sundiversPerPlayer = $derived.by(() => {
+    let numSundiversByPlayer = $derived.by(() => {
         const sundivers = cell.sundivers
         const sundiverMap = new Map<string, number>()
         sundivers.forEach((sundiver) => {
@@ -115,13 +115,13 @@
     })
 </script>
 
-{#each [...sundiversPerPlayer] as [playerId, quantity], i}
+<!-- {#each [...numSundiversByPlayer] as [playerId, quantity], i}
     <Sundiver
         location={cellLayout.divers[i] ?? { x: 0, y: 0 }}
         color={gameSession.colors.getPlayerColor(playerId)}
         {quantity}
     />
-{/each}
+{/each} -->
 
 <g onclick={onClick} transform={translateFromCenter(0, 0)} stroke="none">
     <path

@@ -49,6 +49,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedSolGameState
+        gameState.advanceMothership(gameState.activePlayerIds[0])
         const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
         gameState.activePlayerIds = [nextPlayerId]
         const playerState = gameState.getPlayerState(nextPlayerId)

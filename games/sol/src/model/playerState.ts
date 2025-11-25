@@ -69,15 +69,24 @@ export class HydratedSolPlayerState
         const removedSundivers = ownerSundivers.splice(0, numSundivers)
 
         this.holdSundivers = [...nonOwnerSundivers, ...ownerSundivers]
+        for (const sundiver of removedSundivers) {
+            sundiver.hold = undefined
+        }
 
         return removedSundivers
     }
 
     public addSundiversToHold(sundivers: Sundiver[]) {
+        for (const sundiver of sundivers) {
+            sundiver.hold = this.playerId
+        }
         this.holdSundivers.push(...sundivers)
     }
 
     public addSundiversToReserve(sundivers: Sundiver[]) {
+        for (const sundiver of sundivers) {
+            sundiver.reserve = true
+        }
         this.reserveSundivers.push(...sundivers)
     }
 
@@ -87,7 +96,11 @@ export class HydratedSolPlayerState
                 `Player ${this.playerId} only has ${this.reserveSundivers.length} sundivers in reserve`
             )
         }
-        return this.reserveSundivers.splice(0, numSundivers)
+        const removedSundivers = this.reserveSundivers.splice(0, numSundivers)
+        for (const sundiver of removedSundivers) {
+            sundiver.reserve = false
+        }
+        return removedSundivers
     }
 
     public hasSundiversOnTheBoard(): boolean {

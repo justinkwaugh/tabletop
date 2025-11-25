@@ -23,8 +23,7 @@
     import type { Effects } from '$lib/model/Effects.svelte'
     import { Bloomer } from '$lib/utils/bloomer'
     import { gsap, Power1, Power2 } from 'gsap'
-    import { GameSessionMode } from '@tabletop/frontend-components'
-    import { fadeIn, fadeOut, hideInstant, scaleIn, scaleOut } from '$lib/utils/animations'
+    import { fadeOut, scaleIn, scaleOut } from '$lib/utils/animations'
     import type { Object3D } from 'three'
     import { ColumnOffsets } from '$lib/utils/boardOffsets'
 

@@ -92,7 +92,10 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             for (let i = 0; i < 8; i++) {
                 holdSundivers.push({
                     id: prng.randId(),
-                    playerId: player.id
+                    playerId: player.id,
+                    hold: player.id,
+                    reserve: false,
+                    sacrificed: false
                 })
             }
 
@@ -100,7 +103,10 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             for (let i = 0; i < 5; i++) {
                 reserveSundivers.push({
                     id: prng.randId(),
-                    playerId: player.id
+                    playerId: player.id,
+                    hold: undefined,
+                    reserve: true,
+                    sacrificed: false
                 })
             }
 

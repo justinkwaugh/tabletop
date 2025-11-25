@@ -388,24 +388,35 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             watch(
                 () => this.currentVisibleGameState,
                 (newState, oldState) => {
-                    const timeline = gsap.timeline({
-                        autoRemoveChildren: true
-                    })
-
-                    void (async () => {
-                        for (const listener of this.gameStateChangeListeners) {
-                            await listener({ to: newState, from: oldState, timeline })
-                        }
-
-                        if (timeline.getChildren().length > 0) {
-                            await timeline.play()
-                        }
-
-                        this.gameState = newState
-                    })()
+                    void this.notifyStateChangeListeners(newState, oldState)
                 }
             )
         })
+    }
+
+    async notifyStateChangeListeners(newState: U, oldState?: U) {
+        const id = nanoid()
+        const timeline = gsap.timeline({
+            autoRemoveChildren: true
+        })
+
+        this.initializeTimeline({ to: newState, from: oldState, timeline })
+
+        const promises = []
+        for (const listener of this.gameStateChangeListeners) {
+            promises.push(listener({ to: newState, from: oldState, timeline }))
+        }
+        await Promise.all(promises)
+
+        if (timeline.getChildren().length > 0) {
+            await timeline.play()
+        }
+
+        this.gameState = newState
+    }
+
+    initializeTimeline({ to, from, timeline }: { to: U; from?: U; timeline: gsap.core.Timeline }) {
+        // Do nothing by default
     }
 
     async onGameStateChange({

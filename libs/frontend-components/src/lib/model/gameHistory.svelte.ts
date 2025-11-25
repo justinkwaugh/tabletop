@@ -93,13 +93,13 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
-    public async goToEnd() {
+    public goToEnd() {
         if (this.stepping || !this.historyContext) {
             return
         }
         this.stepping = true
+
         try {
-            await this.gotoAction(this.historyContext.actions.length - 1)
             this.exitHistory()
         } finally {
             this.stepping = false
