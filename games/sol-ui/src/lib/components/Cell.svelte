@@ -11,10 +11,11 @@
         translateFromCenter
     } from '$lib/utils/boardGeometry.js'
     import { getCellLayout } from '$lib/utils/cellLayouts.js'
-    import { HydratedFly, type Cell } from '@tabletop/sol'
+    import { Direction, HydratedConvert, HydratedFly, type Cell } from '@tabletop/sol'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
     import Sundiver from './Sundiver.svelte'
     import { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
+    import { ConvertType } from '$lib/definition/convertType.js'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
@@ -25,9 +26,13 @@
         gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Move
     )
 
+    let myConvert = $derived(
+        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Convert
+    )
+
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer
-        if (!myPlayer || !myMove) {
+        if (!myPlayer || (!myMove && !myConvert)) {
             return false
         }
 
@@ -68,7 +73,7 @@
         return false
     })
 
-    let disabled = $derived(myMove && !interactable)
+    let disabled = $derived((myMove || myConvert) && !interactable)
 
     function cellPath(
         innerRadius: number,
@@ -123,14 +128,28 @@
         })
         return sundiverMap
     })
+
+    function getAnimator(playerId: string) {
+        return new CellSundiverAnimator(gameSession, playerId, cell.coords)
+    }
+
+    // Pre-create animators for each player sundiver in this cell
+    // to avoid creating them over and over due to reactivity
+    const animatorPerPlayer = new Map<string, CellSundiverAnimator>()
+    for (const player of gameSession.game.players) {
+        animatorPerPlayer.set(
+            player.id,
+            new CellSundiverAnimator(gameSession, player.id, cell.coords)
+        )
+    }
 </script>
 
-{#each [...numSundiversByPlayer] as [playerId, quantity], i (playerId)}
+{#each gameSession.game.players as player (player.id)}
     <Sundiver
-        location={gameSession.locationForDiverInCell(playerId, cell) ?? { x: 0, y: 0 }}
-        color={gameSession.colors.getPlayerColor(playerId)}
-        {quantity}
-        animator={new CellSundiverAnimator(gameSession, playerId, cell.coords)}
+        location={gameSession.locationForDiverInCell(player.id, cell) ?? { x: 0, y: 0 }}
+        color={gameSession.colors.getPlayerColor(player.id)}
+        quantity={numSundiversByPlayer.get(player.id)}
+        animator={animatorPerPlayer.get(player.id)}
     />
 {/each}
 

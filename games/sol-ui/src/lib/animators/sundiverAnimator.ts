@@ -20,7 +20,6 @@ export class SundiverAnimator extends StateAnimator<
     }
 
     override onAttach(): void {
-        console.log('SundiverAnimator attached for sundiver', this.id)
         if (this.element) {
             gsap.set(this.element, { opacity: 0 })
         }
@@ -47,7 +46,7 @@ export class SundiverAnimator extends StateAnimator<
         ).find((d) => d.id === this.id)
         let fromLocation: Point | undefined
         let toLocation: Point | undefined
-        let fadeOut = false
+        let hide = false
 
         // Figure out where we are going
         if (toSundiver) {
@@ -66,7 +65,13 @@ export class SundiverAnimator extends StateAnimator<
                     return
                 }
                 toLocation = this.getMothershipLocationForPlayer(to, toSundiver.hold)
-                fadeOut = true
+                hide = true
+            } else if (toSundiver.reserve) {
+                // We need some idea of what happened.  We may need to do something like
+                // move to the converted station and disappear
+                if (!fromSundiver?.coords) {
+                    return
+                }
             }
         }
 
@@ -101,7 +106,7 @@ export class SundiverAnimator extends StateAnimator<
                 position: 'movingPieces'
             })
         }
-        if (fadeOut) {
+        if (hide) {
             timeline.to(this.element, {
                 opacity: 0,
                 duration: 0,

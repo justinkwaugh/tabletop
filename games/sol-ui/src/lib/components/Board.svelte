@@ -7,9 +7,12 @@
     import boardImg5p from '$lib/images/board5p.jpg'
     import Sandbox from './Sandbox.svelte'
     import Mothership from './Mothership.svelte'
-    import type { Sundiver } from '@tabletop/sol'
+    import { Direction, Ring, type Sundiver } from '@tabletop/sol'
     import UISundiver from './Sundiver.svelte'
     import { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
+    import { getGatePosition, type GatePosition } from '$lib/utils/boardGeometry.js'
+    import type { OffsetCoordinates } from '@tabletop/common'
+    import GateDestination from './GateDestination.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -18,6 +21,34 @@
     const sundiversById: Map<string, Sundiver> = new Map()
     for (const diver of gameSession.gameState.getAllSundivers()) {
         sundiversById.set(diver.id, diver)
+    }
+
+    type GateData = {
+        key: number
+        position: GatePosition
+        coords: OffsetCoordinates
+        neighborCoords: OffsetCoordinates
+    }
+
+    const gatePositions: GateData[] = []
+    for (const node of gameSession.gameState.board) {
+        if (
+            node.coords.row === Ring.Inner ||
+            node.coords.row === Ring.Convective ||
+            node.coords.row === Ring.Radiative
+        ) {
+            for (const neighbor of gameSession.gameState.board.neighborsAt(
+                node.coords,
+                Direction.In
+            )) {
+                gatePositions.push({
+                    key: gameSession.gameState.board.gateKey(neighbor.coords, node.coords),
+                    position: getGatePosition(gameSession.numPlayers, neighbor.coords, node.coords),
+                    coords: node.coords,
+                    neighborCoords: neighbor.coords
+                })
+            }
+        }
     }
 </script>
 
@@ -40,6 +71,10 @@
 
         {#each gameSession.gameState.board as cell}
             <Cell {cell} />
+        {/each}
+
+        {#each gatePositions as gate (gate.key)}
+            <GateDestination {...gate} />
         {/each}
 
         {#each gameSession.gameState.players as player}

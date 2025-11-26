@@ -34,6 +34,16 @@
             <div>
                 MOVEMENT REMAINING: {gameSession.myPlayerState?.movementPoints}
             </div>
+        {:else if convertChosen}
+            <div class="inline-flex items-center gap-x-2">
+                <ConvertAtom />
+                <div>CONVERTING</div>
+            </div>
+        {:else if activateChosen}
+            <div class="inline-flex items-center gap-x-2">
+                <ActivateBolt />
+                <div>ACTIVATING</div>
+            </div>
         {/if}
         <div>
             {#if gameSession.midAction}

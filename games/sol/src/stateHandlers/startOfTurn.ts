@@ -5,6 +5,7 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedLaunch, isLaunch } from '../actions/launch.js'
 import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
+import { HydratedConvert, isConvert } from '../actions/convert.js'
 
 // Transition from StartOfTurn(Launch) -> Moving | TakingActions
 
@@ -16,7 +17,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         return (
             action.type === ActionType.Launch ||
             action.type === ActionType.Fly ||
-            action.type === ActionType.Hurl
+            action.type === ActionType.Hurl ||
+            action.type === ActionType.Convert
         )
     }
 
@@ -24,7 +26,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const gameState = context.gameState as HydratedSolGameState
 
         const validActions = []
-        const actions = [ActionType.Launch, ActionType.Fly, ActionType.Hurl]
+        const actions = [ActionType.Launch, ActionType.Fly, ActionType.Hurl, ActionType.Convert]
 
         for (const action of actions) {
             switch (action) {
@@ -35,9 +37,18 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                     break
                 }
                 case ActionType.Fly: {
+                    if (HydratedFly.canFly(gameState, playerId)) {
+                        validActions.push(ActionType.Fly)
+                    }
                     break
                 }
                 case ActionType.Hurl: {
+                    break
+                }
+                case ActionType.Convert: {
+                    if (HydratedConvert.canConvert(gameState, playerId)) {
+                        validActions.push(ActionType.Convert)
+                    }
                     break
                 }
             }
@@ -84,6 +95,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                     gameState.turnManager.endTurn(gameState.actionCount)
                     return MachineState.StartOfTurn
                 }
+            }
+            case isConvert(action): {
+                gameState.turnManager.endTurn(gameState.actionCount)
+                return MachineState.StartOfTurn
             }
             default: {
                 throw Error('Invalid action type')

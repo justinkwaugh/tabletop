@@ -19,104 +19,14 @@
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     // import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     // import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import { Indicator, TabItem, Tabs } from 'flowbite-svelte'
-    import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
     import { toast } from 'svelte-sonner'
     import starsBg from '$lib/images/stars.jpg'
     // import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
-    let chatActive: boolean = $state(false)
-    let showNewMessageIndicator: boolean = $derived(
-        gameSession.myPlayer !== undefined &&
-            gameSession.chatService.hasUnreadMessages &&
-            !chatActive
-    )
-
-    let activeTabClasses =
-        'relative py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900 box-border'
-    let inactiveTabClasses =
-        'relative text-gray-200 py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700 box-border'
-
     let table: HTMLDivElement
-
-    function onChatClick() {
-        chatActive = true
-    }
-
-    function onNonChatClick() {
-        chatActive = false
-    }
-
-    async function chatListener(event: ChatEvent) {
-        if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            toast.custom(ChatToast as unknown as ComponentType, {
-                duration: 3000,
-                position: 'bottom-left',
-                componentProps: {
-                    message: event.message,
-                    playerName: gameSession.getPlayerName(event.message.playerId),
-                    playerBgColor: gameSession.colors.getPlayerBgColor(event.message.playerId),
-                    playerTextColor: gameSession.colors.getPlayerTextColor(event.message.playerId)
-                }
-            })
-        }
-    }
-
-    onMount(() => {
-        const chatService = gameSession.chatService
-        chatService.addListener(chatListener)
-
-        return () => {
-            chatService.removeListener(chatListener)
-        }
-    })
-
     onMount(() => {
         table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
-    })
-
-    // Heights used in CSS calculations:
-    // Not Mobile(sm and up):
-    // - Navbar: 68px
-    // - Hotseat Banner: 30px
-    // - Exploration Banner: 44px
-    // Mobile (max-sm):
-    // - Navbar: 142px
-    // - Hotseat Banner: 30px
-    // - Exploration Banner: 44px
-
-    const tableHeightMobile = 'max-sm:h-[calc(100vh-142px)]'
-    const tableHeightMobileHotseat = 'max-sm:h-[calc(100vh-172px)]'
-    const tableHeightMobileExploration = 'max-sm:h-[calc(100vh-186px)]'
-    const tableHeightDesktop = 'h-[calc(100vh-84px)]'
-    const tableHeightDesktopHotseat = 'h-[calc(100vh-114px)]'
-    const tableHeightDesktopExploration = 'h-[calc(100vh-128px)]'
-    const innerTableHeightMobile = 'max-sm:h-[calc(100vh-158px)]'
-    const innerTableHeightMobileHotseat = 'max-sm:h-[calc(100vh-188px)]'
-    const innerTableHeightMobileExploration = 'max-sm:h-[calc(100vh-202px)]'
-    const innerTableHeightDesktop = 'h-[calc(100vh-100px)]'
-    const innerTableHeightDesktopHotseat = 'h-[calc(100vh-130px)]'
-    const innerTableHeightDesktopExploration = 'h-[calc(100vh-144px)]'
-
-    const tableHeight = $derived.by(() => {
-        if (gameSession.isExploring) {
-            return `${tableHeightMobileExploration} ${tableHeightDesktopExploration}`
-        }
-        if (gameSession.game.hotseat) {
-            return `${tableHeightMobileHotseat} ${tableHeightDesktopHotseat}`
-        }
-        return `${tableHeightMobile} ${tableHeightDesktop}`
-    })
-
-    const innerTableHeight = $derived.by(() => {
-        if (gameSession.isExploring) {
-            return `${innerTableHeightMobileExploration} ${innerTableHeightDesktopExploration}`
-        }
-        if (gameSession.game.hotseat) {
-            return `${innerTableHeightMobileHotseat} ${innerTableHeightDesktopHotseat}`
-        }
-        return `${innerTableHeightMobile} ${innerTableHeightDesktop}`
     })
 </script>
 

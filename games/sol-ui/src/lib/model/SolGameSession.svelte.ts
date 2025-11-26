@@ -2,6 +2,8 @@ import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
 import {
     ActionType,
     Cell,
+    Convert,
+    Direction,
     Fly,
     HydratedSolGameState,
     isLaunch,
@@ -13,6 +15,7 @@ import {
 import { GameAction, OffsetCoordinates, Point } from '@tabletop/common'
 import { ActionCategory } from '$lib/definition/actionCategory.js'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
+import { ConvertType } from '$lib/definition/convertType.js'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
@@ -27,6 +30,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     chosenNumDivers?: number = $state(undefined)
     chosenSource?: OffsetCoordinates = $state(undefined)
     chosenDestination?: OffsetCoordinates = $state(undefined)
+    chosenConvertType?: ConvertType = $state(undefined)
 
     midAction = $derived.by(() => {
         if (this.chosenSource) {
@@ -35,6 +39,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         if (this.isMoving) {
             return this.chosenMothership || this.chosenNumDivers
+        }
+
+        if (this.chosenConvertType) {
+            return true
         }
 
         return this.chosenActionCategory
@@ -114,6 +122,24 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         return cellLayout.divers[diverIndex]
     }
 
+    validGateDestinations = $derived.by(() => {
+        if (!this.myPlayer || this.chosenConvertType !== ConvertType.SolarGate) {
+            return []
+        }
+
+        const gateKeys: number[] = []
+        for (const cell of this.gameState.board) {
+            if (this.gameState.board.canConvertGateAt(this.myPlayer.id, cell.coords)) {
+                for (const destination of this.gameState.board.gateConversionDestinations(
+                    cell.coords
+                )) {
+                    gateKeys.push(this.gameState.board.gateKey(cell.coords, destination))
+                }
+            }
+        }
+        return gateKeys
+    })
+
     cancel() {}
 
     override willUndo(action: GameAction) {
@@ -146,6 +172,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.chosenActionCategory = undefined
         } else if (this.chosenAction) {
             this.chosenAction = undefined
+        } else if (this.chosenConvertType) {
+            this.chosenConvertType = undefined
         }
     }
 
@@ -155,6 +183,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.chosenMothership = undefined
         this.chosenSource = undefined
         this.chosenNumDivers = undefined
+        this.chosenConvertType = undefined
+        this.chosenDestination = undefined
     }
 
     override shouldAutoStepAction(_action: GameAction) {
@@ -179,10 +209,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
 
         await this.doAction(action)
-
-        this.chosenMothership = undefined
-        this.chosenNumDivers = undefined
-        this.chosenDestination = undefined
     }
 
     async fly() {
@@ -215,10 +241,53 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
 
         await this.doAction(action)
+    }
 
-        this.chosenSource = undefined
-        this.chosenNumDivers = undefined
-        this.chosenDestination = undefined
+    async convert() {
+        if (
+            !this.myPlayer ||
+            !this.myPlayerState ||
+            !this.chosenConvertType ||
+            !this.chosenSource ||
+            !this.chosenDestination
+        ) {
+            throw new Error('Invalid flight')
+        }
+
+        const sundiverIds = []
+        const firstSundiver = this.gameState.board
+            .sundiversForPlayerAt(this.myPlayer.id, this.chosenSource)
+            .at(-1)
+
+        if (!firstSundiver) {
+            throw new Error('No first sundiver to convert gate')
+        }
+        sundiverIds.push(firstSundiver.id)
+
+        const secondCells = this.gameState.board.neighborsAt(this.chosenSource, Direction.Out)
+        if (secondCells.length > 1) {
+            return // Ambiguous sundiver selection, UI will show option
+        }
+
+        const secondSundiver = this.gameState.board
+            .sundiversForPlayerAt(this.myPlayer.id, secondCells[0].coords)
+            .at(-1)
+
+        if (!secondSundiver) {
+            throw new Error('No second sundiver to convert gate')
+        }
+        sundiverIds.push(secondSundiver.id)
+
+        const action = {
+            ...this.createBaseAction(ActionType.Convert),
+            playerId: this.myPlayer.id,
+            isGate: this.chosenConvertType === ConvertType.SolarGate,
+            sundiverIds,
+            coords: this.chosenSource,
+            neighborCoords: this.chosenDestination
+        }
+
+        await this.doAction(action)
     }
 
     async doAction(action: GameAction) {

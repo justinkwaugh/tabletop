@@ -58,6 +58,21 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         playerState.movementPoints -= distanceMoved * this.sundiverIds.length
     }
 
+    static canFly(state: HydratedSolGameState, playerId: string): boolean {
+        const playerState = state.getPlayerState(playerId)
+        if (playerState.movementPoints <= 0) {
+            return false
+        }
+
+        for (const cell of state.board) {
+            const sundiversInCell = state.board.sundiversForPlayerAt(playerId, cell.coords)
+            if (sundiversInCell.length > 0) {
+                return true
+            }
+        }
+        return false
+    }
+
     isValidFlight(state: HydratedSolGameState): number {
         const playerState = state.getPlayerState(this.playerId)
         if (

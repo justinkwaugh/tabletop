@@ -7,7 +7,7 @@ import {
     sameCoordinates,
     szudzikPairSigned
 } from '@tabletop/common'
-import { Station } from './stations.js'
+import { Station, StationType } from './stations.js'
 import { Sundiver } from './sundiver.js'
 import { SolarGate } from './solarGate.js'
 import {
@@ -76,8 +76,21 @@ export class HydratedSolGameBoard
         return outerSpaces - 1
     }
 
+    private emptyCell(coords: OffsetCoordinates): Cell {
+        return {
+            coords: coords,
+            station: undefined,
+            sundivers: []
+        }
+    }
     public cellAt(coords: OffsetCoordinates): Cell {
-        return this.cells[coordinatesToNumber(coords)]
+        return this.cells[coordinatesToNumber(coords)] ?? this.emptyCell(coords)
+    }
+
+    public neighborsAt(coords: OffsetCoordinates, direction: Direction): Cell[] {
+        return this.graph
+            .neighborsAt(coords, direction)
+            .map((neighbor) => this.cellAt(neighbor.coords))
     }
 
     public reachableCoordinates(coords: OffsetCoordinates, range: number): OffsetCoordinates[] {
@@ -277,6 +290,10 @@ export class HydratedSolGameBoard
     }
 
     public canAddStationToCell(coords: OffsetCoordinates): boolean {
+        if (coords.row === Ring.Center) {
+            return false
+        }
+
         if (!this.graph.hasAt(coords)) {
             return false
         }
@@ -364,6 +381,102 @@ export class HydratedSolGameBoard
         const [innerCoords, outerCoords] =
             coordsA.row < coordsB.row ? [coordsA, coordsB] : [coordsB, coordsA]
         return szudzikPairSigned(coordinatesToNumber(innerCoords), coordinatesToNumber(outerCoords))
+    }
+
+    public canConvertGateAt(playerId: string, coords: OffsetCoordinates): boolean {
+        const cell = this.cellAt(coords)
+
+        const innerNeighbors = this.graph.neighborsAt(coords, Direction.In)
+        const openGateSpots = Iterator.from(innerNeighbors).some((neighbor) => {
+            return !this.hasGateBetween(coords, neighbor.coords)
+        })
+        if (!openGateSpots) {
+            return false
+        }
+
+        const localSundivers = this.sundiversForPlayer(playerId, cell)
+        if (localSundivers.length === 0) {
+            return false
+        }
+        const outwardNeighbors = this.graph.neighborsAt(coords, Direction.Out)
+        for (const neighbor of outwardNeighbors) {
+            if (this.sundiversForPlayerAt(playerId, neighbor.coords).length > 0) {
+                return true
+            }
+        }
+        return false
+    }
+
+    public gateConversionDestinations(coords: OffsetCoordinates): OffsetCoordinates[] {
+        const destinations: OffsetCoordinates[] = []
+        return this.graph
+            .neighborsAt(coords, Direction.In)
+            .filter((neighbor) => {
+                return !this.hasGateBetween(coords, neighbor.coords)
+            })
+            .map((neighbor) => neighbor.coords)
+    }
+
+    public canConvertStationAt(
+        playerId: string,
+        stationType: StationType,
+        coords: OffsetCoordinates
+    ): boolean {
+        if (!this.canAddStationToCell(coords)) {
+            return false
+        }
+
+        // Check either side
+        if (stationType === StationType.EnergyNode) {
+            const ccwNeighborCoords = this.graph.neighborsAt(coords, Direction.CounterClockwise)[0]
+                ?.coords
+            const cwNeighborCoords = this.graph.neighborsAt(coords, Direction.Clockwise)[0]?.coords
+
+            return (
+                this.sundiversForPlayerAt(playerId, ccwNeighborCoords).length > 0 &&
+                this.sundiversForPlayerAt(playerId, cwNeighborCoords).length > 0
+            )
+        }
+
+        // Check self and neighbor
+        if (stationType === StationType.SundiverFoundry) {
+            const localSundivers = this.sundiversForPlayerAt(playerId, coords)
+            const ccwNeighborCoords = this.graph.neighborsAt(coords, Direction.CounterClockwise)[0]
+                ?.coords
+            const cwNeighborCoords = this.graph.neighborsAt(coords, Direction.Clockwise)[0]?.coords
+
+            return (
+                localSundivers.length > 0 &&
+                (this.sundiversForPlayerAt(playerId, ccwNeighborCoords).length > 0 ||
+                    this.sundiversForPlayerAt(playerId, cwNeighborCoords).length > 0)
+            )
+        }
+
+        if (stationType === StationType.TransmitTower) {
+            if (coords.row > Ring.Convective) {
+                return false
+            }
+            const localSundivers = this.sundiversForPlayerAt(playerId, coords)
+            if (localSundivers.length === 0) {
+                return false
+            }
+
+            const outwardNeighbors = this.graph.neighborsAt(coords, Direction.Out)
+            for (const neighbor of outwardNeighbors) {
+                if (this.sundiversForPlayerAt(playerId, neighbor.coords).length === 0) {
+                    continue
+                }
+                const thirdOuterNeighbors = this.graph.neighborsAt(neighbor.coords, Direction.Out)
+                for (const thirdNeighbor of thirdOuterNeighbors) {
+                    if (this.sundiversForPlayerAt(playerId, thirdNeighbor.coords).length > 0) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        return false
     }
 
     get graph(): SolGraph {

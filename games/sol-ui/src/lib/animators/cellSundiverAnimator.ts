@@ -19,12 +19,17 @@ export class CellSundiverAnimator extends StateAnimator<
     }
 
     override onAttach(): void {
-        // console.log('CellSundiverAnimator attached for player', this.playerId, 'at', this.coords)
+        console.log('CellSundiverAnimator attached for player', this.playerId, 'at', this.coords)
         gsap.set(this.element!, { opacity: 0 })
-        fadeIn({
-            object: this.element,
-            duration: 0.2
-        })
+        if (
+            this.gameSession.gameState.board.sundiversForPlayerAt(this.playerId, this.coords)
+                .length > 0
+        ) {
+            fadeIn({
+                object: this.element,
+                duration: 0.3
+            })
+        }
     }
 
     override async onGameStateChange({

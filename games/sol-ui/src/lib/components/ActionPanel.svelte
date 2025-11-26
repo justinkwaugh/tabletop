@@ -6,9 +6,9 @@
     import ActivateBolt from '$lib/images/activatebolt.svelte'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
     import LaunchPicker from './LaunchPicker.svelte'
-    import { GameSessionMode } from '@tabletop/frontend-components'
-    import { MachineState } from '@tabletop/sol'
     import Header from './Header.svelte'
+    import { ActionType } from '@tabletop/sol'
+    import ConvertPicker from './ConvertPicker.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -19,6 +19,14 @@
                 break
         }
     }
+
+    const canMove = $derived(
+        gameSession.validActionTypes.includes(ActionType.Launch) ||
+            gameSession.validActionTypes.includes(ActionType.Fly) ||
+            gameSession.validActionTypes.includes(ActionType.Hurl)
+    )
+    const canConvert = $derived(gameSession.validActionTypes.includes(ActionType.Convert))
+    const canActivate = $derived(gameSession.validActionTypes.includes(ActionType.Activate))
 
     $effect(() => {
         if (gameSession.validActionTypes.length === 1) {
@@ -38,6 +46,10 @@
         if (gameSession.myPlayerState && !gameSession.myPlayerState.hasSundiversOnTheBoard()) {
             gameSession.chosenMothership = gameSession.myPlayerState.playerId
         }
+    }
+
+    function chooseConvert() {
+        gameSession.chosenActionCategory = ActionCategory.Convert
     }
 
     let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
@@ -72,26 +84,27 @@
             </div>
         {/if}
     {/if}
-    {#if !moveChosen}
+    {#if !moveChosen && !convertChosen && !activateChosen}
         <div class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4">
             <div class="w-fit me-4 leading-tight text-center">CHOOSE<br />AN ACTION</div>
             <button
                 onclick={chooseMove}
-                class="{convertChosen || activateChosen
+                class="{!canMove || convertChosen || activateChosen
                     ? 'opacity-30'
                     : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
                 ><MoveArrows />
                 <div class="ms-3">MOVE</div></button
             >
             <button
-                class="{moveChosen || activateChosen
+                onclick={chooseConvert}
+                class="{!canConvert || moveChosen || activateChosen
                     ? 'opacity-30'
                     : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
                 ><ConvertAtom />
                 <div class="ms-3">CONVERT</div></button
             >
             <button
-                class="{moveChosen || convertChosen
+                class="{!canActivate || moveChosen || convertChosen
                     ? 'opacity-30'
                     : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
                 ><ActivateBolt />
@@ -99,6 +112,19 @@
             >
         </div>
     {/if}
+    {#if convertChosen}
+        {#if !gameSession.chosenConvertType}
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">
+                WHAT WILL YOU CONVERT?
+            </div>
+            <ConvertPicker />
+        {/if}
+        {#if gameSession.chosenConvertType && !gameSession.chosenDestination}
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">
+                CHOOSE A DESTINATION
+            </div>
+        {/if}
+    {/if}
 </div>
-{#if convertChosen}{/if}
+
 {#if activateChosen}{/if}
