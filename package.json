@@ -30,5 +30,8 @@
         "games/*",
         "apps/*",
         "config/*"
-    ]
+    ],
+    "dependencies": {
+        "nanoid": "^5.1.6"
+    }
 }
