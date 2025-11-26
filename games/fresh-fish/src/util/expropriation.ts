@@ -8,7 +8,13 @@ import {
     offsetToOffsetTuple,
     areOrthogonal
 } from '@tabletop/common'
-import { canBeBlocked, Cell, isDiskCell, isTraversable } from '../components/cells.js'
+import {
+    canBeBlocked,
+    Cell,
+    isDiskCell,
+    isTraversable,
+    mustBeReachable
+} from '../components/cells.js'
 import { HydratedGameBoard } from '../components/gameBoard.js'
 import { FreshFishGraph } from './freshFishGraph.js'
 
@@ -29,7 +35,10 @@ export class Expropriator {
         expropriatedCoords: OffsetTupleCoordinates[]
         returnedDisks: ReturnedDisks
     } {
-        const expectedCount = this.graph.size
+        const expectedCount = Array.from(this.graph).filter((node) => {
+            return mustBeReachable(this.board.cellAt(node.coords))
+        }).length
+
         const expropriated: { cell: Cell; coords: OffsetTupleCoordinates }[] = []
         for (const node of this.graph) {
             const cell = this.board.cellAt(node.coords)
@@ -103,7 +112,7 @@ export class Expropriator {
         if (!fromCell || !toCell) {
             return false
         }
-        const traversable = isTraversable(fromCell)
+        const traversable = isTraversable(fromCell) && mustBeReachable(toCell)
         return traversable
     }
 }
