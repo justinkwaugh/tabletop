@@ -12,16 +12,17 @@
         "build": "tsc"
     },
     "dependencies": {
-        "typebox": "^1.0.53",
         "@tabletop/common": "*",
         "chalk": "^4.1.2",
+        "es-iterator-helpers": "^1.2.1",
+        "typebox": "^1.0.53",
         "uuid": "^10.0.0"
     },
     "devDependencies": {
         "@babel/core": "^7.25.2",
         "@babel/preset-env": "^7.25.3",
-        "@tabletop/vitest-config": "*",
         "@tabletop/eslint-config": "*",
+        "@tabletop/vitest-config": "*",
         "@types/uuid": "^9.0.8",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3"
