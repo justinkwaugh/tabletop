@@ -284,7 +284,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             isGate: this.chosenConvertType === ConvertType.SolarGate,
             sundiverIds,
             coords: this.chosenSource,
-            neighborCoords: this.chosenDestination
+            innerCoords: this.chosenDestination
         }
 
         await this.doAction(action)

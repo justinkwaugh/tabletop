@@ -2,7 +2,7 @@ import { HydratedSolGameState, type SolGameState } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import { OffsetCoordinates } from '@tabletop/common'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { fadeIn, fadeOut } from '$lib/utils/animations.js'
+import { fadeIn, fadeOut, move } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 
 export class CellSundiverAnimator extends StateAnimator<

@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from 
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
+import { Direction } from '../utils/solGraph.js'
 
 export type ConvertMetadata = Static<typeof ConvertMetadata>
 export const ConvertMetadata = Type.Object({})
@@ -19,7 +20,7 @@ export const Convert = Type.Evaluate(
             isGate: Type.Boolean(),
             stationType: Type.Optional(Type.Enum(StationType)),
             coords: OffsetCoordinates,
-            neighborCoords: OffsetCoordinates, // For gate conversion
+            innerCoords: OffsetCoordinates, // For gate conversion
             metadata: Type.Optional(ConvertMetadata)
         })
     ])
@@ -38,7 +39,7 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
     declare isGate: boolean
     declare stationType?: StationType
     declare coords: OffsetCoordinates
-    declare neighborCoords: OffsetCoordinates // For gate conversion
+    declare innerCoords: OffsetCoordinates // For gate conversion
     declare metadata?: ConvertMetadata
 
     constructor(data: Convert) {
@@ -46,41 +47,20 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
+        if (!HydratedConvert.isValidConversion(state, this)) {
+            throw Error('Invalid conversion')
+        }
+
         const playerState = state.getPlayerState(this.playerId)
 
-        // const distanceMoved = this.isValidFlight(state)
-        // if (!distanceMoved) {
-        //     throw Error('Invalid flight')
-        // }
+        if (this.isGate) {
+            const playerGate = playerState.removeSolarGate()
+            state.board.addGateAt(playerGate, this.innerCoords, this.coords)
+        }
 
-        // const removedSundivers = state.board.removeSundiversFromCell(this.sundiverIds, this.start)
-        // state.board.addSundiversToCell(removedSundivers, this.destination)
-        throw Error('Not implemented')
+        const removedSundivers = state.board.removeSundiversFromBoard(this.sundiverIds)
+        playerState.addSundiversToReserve(removedSundivers)
     }
-
-    // isValidFlight(state: HydratedSolGameState): number {
-    //     const playerState = state.getPlayerState(this.playerId)
-    //     if (
-    //         !HydratedFly.isValidFlightDestination(
-    //             state,
-    //             this.playerId,
-    //             this.sundiverIds.length,
-    //             false,
-    //             this.start,
-    //             this.destination
-    //         )
-    //     ) {
-    //         return 0
-    //     }
-
-    //     const path = state.board.pathToDestination({
-    //         start: this.start,
-    //         destination: this.destination,
-    //         range: playerState.movementPoints / this.sundiverIds.length,
-    //         requiredGates: this.gates
-    //     })
-    //     return path ? path.length - 1 : 0
-    // }
 
     static canConvert(state: HydratedSolGameState, playerId: string): boolean {
         return (
@@ -144,14 +124,50 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         return false
     }
 
-    static isValidConversion(
-        state: HydratedSolGameState,
-        playerId: string,
-        sundiverIds: string[],
-        stationType: StationType,
-        coords: OffsetCoordinates
-    ): boolean {
-        const playerState = state.getPlayerState(playerId)
+    static isValidConversion(state: HydratedSolGameState, convert: Convert): boolean {
+        const playerState = state.getPlayerState(convert.playerId)
+
+        if (convert.isGate) {
+            if (convert.sundiverIds.length !== 2) {
+                return false
+            }
+
+            if (playerState.solarGates.length === 0) {
+                return false
+            }
+
+            if (state.board.hasGateBetween(convert.coords, convert.innerCoords)) {
+                return false
+            }
+
+            if (!state.board.canConvertGateAt(convert.playerId, convert.coords)) {
+                return false
+            }
+
+            const firstSundivers = state.board.sundiversForPlayerAt(
+                convert.playerId,
+                convert.coords
+            )
+            const firstIndex = convert.sundiverIds.findIndex((sundiverId) => {
+                return firstSundivers.find((sundiver) => sundiver.id === sundiverId)
+            })
+            if (firstIndex === -1) {
+                return false
+            }
+
+            const secondDiverId = convert.sundiverIds[firstIndex === 0 ? 1 : 0]
+            const secondSundivers = []
+            for (const cell of state.board.neighborsAt(convert.coords, Direction.Out)) {
+                secondSundivers.push(
+                    ...state.board.sundiversForPlayerAt(convert.playerId, cell.coords)
+                )
+            }
+            if (!secondSundivers.find((sundiver) => sundiver.id === secondDiverId)) {
+                return false
+            }
+
+            return true
+        }
 
         // Check to see if destination can hold the pieces
 

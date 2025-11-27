@@ -53,7 +53,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             throw Error('Invalid flight')
         }
 
-        const removedSundivers = state.board.removeSundiversFromCell(this.sundiverIds, this.start)
+        const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
         state.board.addSundiversToCell(removedSundivers, this.destination)
         playerState.movementPoints -= distanceMoved * this.sundiverIds.length
     }

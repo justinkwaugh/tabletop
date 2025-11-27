@@ -72,6 +72,7 @@ export class SundiverAnimator extends StateAnimator<
                 if (!fromSundiver?.coords) {
                     return
                 }
+                hide = true
             }
         }
 

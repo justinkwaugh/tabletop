@@ -13,6 +13,7 @@
     import { getGatePosition, type GatePosition } from '$lib/utils/boardGeometry.js'
     import type { OffsetCoordinates } from '@tabletop/common'
     import GateDestination from './GateDestination.svelte'
+    import Gate from './Gate.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -67,6 +68,18 @@
                 color={gameSession.colors.getPlayerColor(sundiver.playerId)}
                 animator={new SundiverAnimator(gameSession, sundiver.id)}
             />
+        {/each}
+        {#each Object.entries(gameSession.gameState.board.gates) as [key, gate] (key)}
+            {#if gate.innerCoords && gate.outerCoords}
+                <Gate
+                    color="{gameSession.colors.getPlayerColor(gate.playerId)},"
+                    position={getGatePosition(
+                        gameSession.numPlayers,
+                        gate.innerCoords,
+                        gate.outerCoords
+                    )}
+                />
+            {/if}
         {/each}
 
         {#each gameSession.gameState.board as cell}

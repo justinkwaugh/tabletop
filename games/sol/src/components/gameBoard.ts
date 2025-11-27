@@ -330,16 +330,24 @@ export class HydratedSolGameBoard
         }
     }
 
-    public removeSundiversFromCell(sundiverIds: string[], coords: OffsetCoordinates): Sundiver[] {
+    public removeSundiversAt(sundiverIds: string[], coords: OffsetCoordinates): Sundiver[] {
         const cell = this.cells[coordinatesToNumber(coords)]
         if (!cell) {
             throw new Error('No sundivers to remove')
         }
 
+        return this.removeSundiversFromCell(sundiverIds, cell)
+    }
+
+    public removeSundiversFromCell(
+        sundiverIds: string[],
+        cell: Cell,
+        requireAll: boolean = true
+    ): Sundiver[] {
         const removedSundivers = cell.sundivers.filter((sundiver) =>
             sundiverIds.includes(sundiver.id)
         )
-        if (removedSundivers.length !== sundiverIds.length) {
+        if (requireAll && removedSundivers.length !== sundiverIds.length) {
             throw new Error(`Could not find sundivers to remove`)
         }
         cell.sundivers = cell.sundivers.filter((sundiver) => !sundiverIds.includes(sundiver.id))
@@ -348,6 +356,18 @@ export class HydratedSolGameBoard
             sundiver.coords = undefined
         }
         return removedSundivers
+    }
+
+    // Could be more efficient
+    public removeSundiversFromBoard(sundiverIds: string[]): Sundiver[] {
+        const removedDivers = []
+        for (const cell of this) {
+            removedDivers.push(...this.removeSundiversFromCell(sundiverIds, cell, false))
+            if (removedDivers.length === sundiverIds.length) {
+                break
+            }
+        }
+        return removedDivers
     }
 
     public launchCoordinatesForMothership(playerId: string): OffsetCoordinates[] {

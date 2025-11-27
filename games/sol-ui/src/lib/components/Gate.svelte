@@ -1,21 +1,27 @@
 <script lang="ts">
     import GateIcon from '$lib/images/gate.svelte'
     import GateMask from '$lib/images/gateMask.svelte'
-    import { getCirclePoint, toRadians, translateFromCenter } from '$lib/utils/boardGeometry.js'
+    import {
+        getCirclePoint,
+        toRadians,
+        translateFromCenter,
+        type GatePosition
+    } from '$lib/utils/boardGeometry.js'
     import type { Point } from '@tabletop/common'
 
     let {
         color,
         location,
-        radius = 0,
-        angle = 270
-    }: { color: string; location?: Point; radius?: number; angle?: number } = $props()
-    let renderedLocation = $derived(location ?? getCirclePoint(radius, toRadians(angle)))
+        position = { radius: 0, angle: 270 }
+    }: { color: string; location?: Point; position: GatePosition } = $props()
+    let renderedLocation = $derived(
+        location ?? getCirclePoint(position.radius, toRadians(position.angle))
+    )
 </script>
 
 <g
     transform="{translateFromCenter(renderedLocation.x, renderedLocation.y)} rotate({90 +
-        angle}) scale(.35) translate(-57, -100) "
+        position.angle}) scale(.35) translate(-57, -100) "
 >
     <g transform="translate(-2, -2)">
         <GateMask
