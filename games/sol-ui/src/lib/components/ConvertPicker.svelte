@@ -39,7 +39,10 @@
     {#if canConvertSolarGate}
         <button onclick={() => chooseConvertType(ConvertType.SolarGate)}>
             <svg xmlns="http://www.w3.org/2000/svg" width="41px" height="36px" viewBox="8 14 41 36">
-                <Gate color="green" location={{ x: -640 + 29, y: -640 + 50 }} />
+                <Gate
+                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    location={{ x: -640 + 29, y: -640 + 50 }}
+                />
             </svg>
         </button>
     {/if}

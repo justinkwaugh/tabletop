@@ -72,7 +72,7 @@
         {#each Object.entries(gameSession.gameState.board.gates) as [key, gate] (key)}
             {#if gate.innerCoords && gate.outerCoords}
                 <Gate
-                    color="{gameSession.colors.getPlayerColor(gate.playerId)},"
+                    color={gameSession.colors.getPlayerColor(gate.playerId)}
                     position={getGatePosition(
                         gameSession.numPlayers,
                         gate.innerCoords,

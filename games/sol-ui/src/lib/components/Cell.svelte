@@ -3,7 +3,7 @@
     import { SvelteMap } from 'svelte/reactivity'
     import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { sameCoordinates } from '@tabletop/common'
+    import { coordinatesToNumber, sameCoordinates } from '@tabletop/common'
     import {
         dimensionsForSpace,
         getCirclePoint,
@@ -68,6 +68,8 @@
             } else {
                 return gameSession.gameState.board.sundiversForPlayer(myPlayer.id, cell).length > 0
             }
+        } else if (myConvert) {
+            return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
         }
 
         return false
@@ -95,7 +97,7 @@
             return
         }
 
-        if (gameSession.chosenActionCategory === ActionCategory.Move) {
+        if (myMove) {
             if (gameSession.chosenMothership) {
                 gameSession.chosenDestination = cell.coords
                 gameSession.launch()
@@ -109,6 +111,9 @@
                     gameSession.chosenNumDivers = 1
                 }
             }
+        } else if (myConvert) {
+            gameSession.chosenDiverCell = cell.coords
+            gameSession.convert()
         }
     }
 

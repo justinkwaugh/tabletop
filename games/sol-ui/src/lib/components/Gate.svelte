@@ -13,7 +13,7 @@
         color,
         location,
         position = { radius: 0, angle: 270 }
-    }: { color: string; location?: Point; position: GatePosition } = $props()
+    }: { color: string; location?: Point; position?: GatePosition } = $props()
     let renderedLocation = $derived(
         location ?? getCirclePoint(position.radius, toRadians(position.angle))
     )

@@ -124,6 +124,9 @@
                 CHOOSE A DESTINATION
             </div>
         {/if}
+        {#if gameSession.diverCellChoices}
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE A SUNDIVER</div>
+        {/if}
     {/if}
 </div>
 

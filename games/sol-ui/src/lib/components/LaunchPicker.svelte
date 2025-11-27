@@ -4,6 +4,7 @@
     import Sundiver from './Sundiver.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
+    let playerColor = $derived(gameSession.colors.getPlayerColor(gameSession.myPlayer?.id))
 
     // Also need to incorporate how many available spaces are around the mothership
     let maxPieces = $derived.by(() => {
@@ -36,7 +37,7 @@
     {#if maxPieces > 0}
         <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">
             <Sundiver
-                color="green"
+                color={playerColor}
                 quantity={1}
                 location={{ x: -640 + 16, y: -640 + 21 }}
                 onclick={() => selectAmount(1)}
@@ -46,7 +47,7 @@
     {#if maxPieces > 1}
         <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">
             <Sundiver
-                color="green"
+                color={playerColor}
                 quantity={2}
                 location={{ x: -640 + 16, y: -640 + 21 }}
                 onclick={() => selectAmount(2)}
@@ -56,7 +57,7 @@
     {#if maxPieces > 2}
         <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">
             <Sundiver
-                color="green"
+                color={playerColor}
                 quantity={3}
                 location={{ x: -640 + 16, y: -640 + 21 }}
                 onclick={() => selectAmount(3)}
@@ -66,7 +67,7 @@
     {#if maxPieces > 3}
         <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">
             <Sundiver
-                color="green"
+                color={playerColor}
                 quantity={4}
                 location={{ x: -640 + 16, y: -640 + 21 }}
                 onclick={() => selectAmount(4)}
@@ -76,7 +77,7 @@
     {#if maxPieces > 4}
         <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">
             <Sundiver
-                color="green"
+                color={playerColor}
                 quantity={5}
                 location={{ x: -640 + 16, y: -640 + 21 }}
                 onclick={() => selectAmount(5)}

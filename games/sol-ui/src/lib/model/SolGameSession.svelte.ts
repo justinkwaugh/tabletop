@@ -12,7 +12,7 @@ import {
     SolGameState,
     Sundiver
 } from '@tabletop/sol'
-import { GameAction, OffsetCoordinates, Point } from '@tabletop/common'
+import { coordinatesToNumber, GameAction, OffsetCoordinates, Point } from '@tabletop/common'
 import { ActionCategory } from '$lib/definition/actionCategory.js'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
@@ -31,6 +31,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     chosenSource?: OffsetCoordinates = $state(undefined)
     chosenDestination?: OffsetCoordinates = $state(undefined)
     chosenConvertType?: ConvertType = $state(undefined)
+
+    diverCellChoices?: number[] = $state(undefined)
+    chosenDiverCell?: OffsetCoordinates = $state(undefined)
 
     midAction = $derived.by(() => {
         if (this.chosenSource) {
@@ -185,6 +188,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.chosenNumDivers = undefined
         this.chosenConvertType = undefined
         this.chosenDestination = undefined
+        this.diverCellChoices = undefined
+        this.chosenDiverCell = undefined
     }
 
     override shouldAutoStepAction(_action: GameAction) {
@@ -264,14 +269,37 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
         sundiverIds.push(firstSundiver.id)
 
-        const secondCells = this.gameState.board.neighborsAt(this.chosenSource, Direction.Out)
-        if (secondCells.length > 1) {
-            return // Ambiguous sundiver selection, UI will show option
-        }
+        let secondSundiver
+        if (!this.chosenDiverCell) {
+            const sundiversByCoords: Map<
+                number,
+                { coords: OffsetCoordinates; divers: Sundiver[] }
+            > = new Map()
+            const secondCells = this.gameState.board.neighborsAt(this.chosenSource, Direction.Out)
+            for (const cell of secondCells) {
+                const divers = this.gameState.board.sundiversForPlayerAt(
+                    this.myPlayer.id,
+                    cell.coords
+                )
+                if (divers.length > 0) {
+                    sundiversByCoords.set(coordinatesToNumber(cell.coords), {
+                        coords: cell.coords,
+                        divers
+                    })
+                }
+            }
 
-        const secondSundiver = this.gameState.board
-            .sundiversForPlayerAt(this.myPlayer.id, secondCells[0].coords)
-            .at(-1)
+            if (sundiversByCoords.size > 1) {
+                this.diverCellChoices = Array.from(sundiversByCoords.keys())
+                return
+            }
+
+            secondSundiver = Array.from(sundiversByCoords.values()).at(-1)?.divers.at(-1)
+        } else {
+            secondSundiver = this.gameState.board
+                .sundiversForPlayerAt(this.myPlayer.id, this.chosenDiverCell)
+                .at(-1)
+        }
 
         if (!secondSundiver) {
             throw new Error('No second sundiver to convert gate')
