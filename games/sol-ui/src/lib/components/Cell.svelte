@@ -182,6 +182,9 @@
                 gameSession.chosenSource = cell.coords
                 gameSession.convertSundiverFoundry()
             }
+        } else if (myActivate) {
+            gameSession.chosenSource = cell.coords
+            gameSession.activateStation()
         }
     }
 

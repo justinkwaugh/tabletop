@@ -458,6 +458,32 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
     }
 
+    async activateStation() {
+        if (!this.myPlayer || !this.chosenSource) {
+            throw new Error('Invalid activation')
+        }
+        const cell = this.gameState.board.cellAt(this.chosenSource)
+        const station = cell.station
+
+        if (!station) {
+            throw new Error('No station to activate')
+        }
+        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
+        if (playerDivers.length < 1) {
+            throw new Error('Not enough divers')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Activate),
+            playerId: this.myPlayer.id,
+            stationId: station.id,
+            coords: cell.coords,
+            start: this.chosenSource
+        }
+
+        await this.doAction(action)
+    }
+
     async doAction(action: GameAction) {
         if (!this.isPlayable) {
             return
