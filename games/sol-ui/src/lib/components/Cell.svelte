@@ -11,12 +11,13 @@
         translateFromCenter
     } from '$lib/utils/boardGeometry.js'
     import { getCellLayout } from '$lib/utils/cellLayouts.js'
-    import { Direction, HydratedConvert, HydratedFly, StationType, type Cell } from '@tabletop/sol'
+    import { HydratedActivate, HydratedFly, StationType, type Cell } from '@tabletop/sol'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
     import Sundiver from './Sundiver.svelte'
     import { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
     import { ConvertType } from '$lib/definition/convertType.js'
     import EnergyNode from './EnergyNode.svelte'
+    import Foundry from './Foundry.svelte'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
@@ -31,9 +32,13 @@
         gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Convert
     )
 
+    let myActivate = $derived(
+        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Activate
+    )
+
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer
-        if (!myPlayer || (!myMove && !myConvert)) {
+        if (!myPlayer || (!myMove && !myConvert && !myActivate)) {
             return false
         }
 
@@ -79,6 +84,9 @@
                     cell.coords
                 )
             } else if (gameSession.chosenConvertType === ConvertType.SundiverFoundry) {
+                if (gameSession.diverCellChoices) {
+                    return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
+                }
                 return gameSession.gameState.board.canConvertStationAt(
                     myPlayer.id,
                     StationType.SundiverFoundry,
@@ -91,13 +99,38 @@
                     cell.coords
                 )
             }
+        } else if (myActivate) {
+            if (!gameSession.chosenSource && cell.station) {
+                switch (cell.station.type) {
+                    case StationType.EnergyNode:
+                        return HydratedActivate.canActivateEnergyNode(
+                            gameSession.gameState,
+                            myPlayer.id,
+                            cell.station,
+                            cell.coords
+                        )
+                        break
+                    case StationType.SundiverFoundry:
+                        return HydratedActivate.canActivateSundiverFoundry(
+                            gameSession.gameState,
+                            myPlayer.id
+                        )
+                        break
+                    case StationType.TransmitTower:
+                        return HydratedActivate.canActivateTransmitTower(
+                            gameSession.gameState,
+                            myPlayer.id
+                        )
+                        break
+                }
+            }
         }
 
         return false
     })
 
     let disabled = $derived(
-        (myMove || (myConvert && gameSession.chosenConvertType)) && !interactable
+        (myMove || (myConvert && gameSession.chosenConvertType) || myActivate) && !interactable
     )
 
     function cellPath(
@@ -137,10 +170,17 @@
         } else if (myConvert) {
             if (gameSession.diverCellChoices) {
                 gameSession.chosenDiverCell = cell.coords
-                gameSession.convertGate()
+                if (gameSession.chosenConvertType === ConvertType.SolarGate) {
+                    gameSession.convertGate()
+                } else if (gameSession.chosenConvertType === ConvertType.SundiverFoundry) {
+                    gameSession.convertSundiverFoundry()
+                }
             } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
                 gameSession.chosenSource = cell.coords
                 gameSession.convertEnergyNode()
+            } else if (gameSession.chosenConvertType === ConvertType.SundiverFoundry) {
+                gameSession.chosenSource = cell.coords
+                gameSession.convertSundiverFoundry()
             }
         }
     }
@@ -189,6 +229,11 @@
 {#if cell.station}
     {#if cell.station.type === StationType.EnergyNode}
         <EnergyNode
+            location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
+            color={gameSession.colors.getPlayerColor(cell.station.playerId)}
+        />
+    {:else if cell.station.type === StationType.SundiverFoundry}
+        <Foundry
             location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
             color={gameSession.colors.getPlayerColor(cell.station.playerId)}
         />

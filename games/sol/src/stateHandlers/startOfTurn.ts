@@ -6,10 +6,16 @@ import { HydratedLaunch, isLaunch } from '../actions/launch.js'
 import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedConvert, isConvert } from '../actions/convert.js'
+import { HydratedActivate, isActivate } from '../actions/activate.js'
 
 // Transition from StartOfTurn(Launch) -> Moving | TakingActions
 
-type StartOfTurnAction = HydratedLaunch | HydratedFly | HydratedHurl
+type StartOfTurnAction =
+    | HydratedLaunch
+    | HydratedFly
+    | HydratedHurl
+    | HydratedConvert
+    | HydratedActivate
 
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is StartOfTurnAction {
@@ -18,7 +24,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             action.type === ActionType.Launch ||
             action.type === ActionType.Fly ||
             action.type === ActionType.Hurl ||
-            action.type === ActionType.Convert
+            action.type === ActionType.Convert ||
+            action.type === ActionType.Activate
         )
     }
 
@@ -26,7 +33,13 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const gameState = context.gameState as HydratedSolGameState
 
         const validActions = []
-        const actions = [ActionType.Launch, ActionType.Fly, ActionType.Hurl, ActionType.Convert]
+        const actions = [
+            ActionType.Launch,
+            ActionType.Fly,
+            ActionType.Hurl,
+            ActionType.Convert,
+            ActionType.Activate
+        ]
 
         for (const action of actions) {
             switch (action) {
@@ -48,6 +61,12 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 case ActionType.Convert: {
                     if (HydratedConvert.canConvert(gameState, playerId)) {
                         validActions.push(ActionType.Convert)
+                    }
+                    break
+                }
+                case ActionType.Activate: {
+                    if (HydratedActivate.canActivate(gameState, playerId)) {
+                        validActions.push(ActionType.Activate)
                     }
                     break
                 }
@@ -97,6 +116,12 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 }
             }
             case isConvert(action): {
+                // Need to do more things here w/ card drawing and such
+                gameState.turnManager.endTurn(gameState.actionCount)
+                return MachineState.StartOfTurn
+            }
+            case isActivate(action): {
+                // Need to do lots more stuff here
                 gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.StartOfTurn
             }

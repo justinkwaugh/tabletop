@@ -309,6 +309,7 @@ export class HydratedSolGameBoard
 
     public addStationAt(station: Station, coords: OffsetCoordinates) {
         let cell = this.cellAt(coords)
+        station.coords = coords
         cell.station = station
         this.setCell(cell)
     }

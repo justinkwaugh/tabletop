@@ -351,7 +351,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             .at(-1)
 
         if (!ccwNeighbor || !cwNeighbor) {
-            throw new Error('No neigbors')
+            throw new Error('No neighbors')
         }
 
         const firstSundiver = this.gameState.board
@@ -371,6 +371,86 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             playerId: this.myPlayer.id,
             isGate: false,
             stationType: StationType.EnergyNode,
+            sundiverIds,
+            coords: this.chosenSource
+        }
+
+        await this.doAction(action)
+    }
+
+    async convertSundiverFoundry() {
+        if (
+            !this.myPlayer ||
+            !this.myPlayerState ||
+            !this.chosenConvertType ||
+            !this.chosenSource
+        ) {
+            throw new Error('Invalid conversion')
+        }
+
+        const ccwNeighbor = this.gameState.board
+            .neighborsAt(this.chosenSource, Direction.CounterClockwise)
+            .at(-1)
+        const cwNeighbor = this.gameState.board
+            .neighborsAt(this.chosenSource, Direction.Clockwise)
+            .at(-1)
+
+        if (!ccwNeighbor || !cwNeighbor) {
+            throw new Error('No neighbors')
+        }
+
+        const sundiverIds = []
+        const firstSundiver = this.gameState.board
+            .sundiversForPlayerAt(this.myPlayer.id, this.chosenSource)
+            .at(-1)
+
+        if (!firstSundiver) {
+            throw new Error('No sundiver at local cell')
+        }
+
+        sundiverIds.push(firstSundiver.id)
+
+        if (this.chosenDiverCell) {
+            const secondSundiver = this.gameState.board
+                .sundiversForPlayerAt(this.myPlayer.id, this.chosenDiverCell)
+                .at(-1)
+            if (!secondSundiver) {
+                throw new Error('No second sundiver found')
+            }
+            sundiverIds.push(secondSundiver.id)
+        } else {
+            const secondSundiver = this.gameState.board
+                .sundiversForPlayer(this.myPlayer.id, cwNeighbor)
+                .at(-1)
+
+            const alternateSecondSundiver = this.gameState.board
+                .sundiversForPlayer(this.myPlayer.id, ccwNeighbor)
+                .at(-1)
+
+            if (secondSundiver && alternateSecondSundiver) {
+                this.diverCellChoices = [
+                    coordinatesToNumber(cwNeighbor.coords),
+                    coordinatesToNumber(ccwNeighbor.coords)
+                ]
+                return
+            }
+
+            if (!secondSundiver && !alternateSecondSundiver) {
+                throw new Error('No sundivers to convert energy node')
+            }
+
+            sundiverIds.push(secondSundiver?.id ?? alternateSecondSundiver?.id)
+        }
+
+        if (sundiverIds.length !== 2) {
+            throw new Error('not enough sundivers to convert')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Convert),
+            playerId: this.myPlayer.id,
+            isGate: false,
+            stationType: StationType.SundiverFoundry,
             sundiverIds,
             coords: this.chosenSource
         }

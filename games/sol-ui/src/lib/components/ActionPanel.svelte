@@ -52,6 +52,10 @@
         gameSession.chosenActionCategory = ActionCategory.Convert
     }
 
+    function chooseActivate() {
+        gameSession.chosenActionCategory = ActionCategory.Activate
+    }
+
     let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
     let convertChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Convert)
     let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
@@ -104,6 +108,7 @@
                 <div class="ms-3">CONVERT</div></button
             >
             <button
+                onclick={chooseActivate}
                 class="{!canActivate || moveChosen || convertChosen
                     ? 'opacity-30'
                     : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
@@ -118,14 +123,13 @@
                 WHAT WILL YOU CONVERT?
             </div>
             <ConvertPicker />
-        {/if}
-        {#if gameSession.chosenConvertType && !gameSession.chosenDestination}
+        {:else if gameSession.diverCellChoices}
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE A SUNDIVER</div>
+        {:else if !gameSession.chosenDestination}
             <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE A LOCATION</div>
         {/if}
-        {#if gameSession.diverCellChoices}
-            <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE A SUNDIVER</div>
-        {/if}
+    {/if}
+    {#if activateChosen}
+        <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE A STATION</div>
     {/if}
 </div>
-
-{#if activateChosen}{/if}

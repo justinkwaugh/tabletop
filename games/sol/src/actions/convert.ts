@@ -59,6 +59,12 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         } else if (this.stationType === StationType.EnergyNode) {
             const playerNode = playerState.removeEnergyNode()
             state.board.addStationAt(playerNode, this.coords)
+        } else if (this.stationType === StationType.SundiverFoundry) {
+            const playerFoundry = playerState.removeSundiverFoundry()
+            state.board.addStationAt(playerFoundry, this.coords)
+        } else if (this.stationType === StationType.TransmitTower) {
+            const playerTower = playerState.removeTransmitTower()
+            state.board.addStationAt(playerTower, this.coords)
         }
 
         const removedSundivers = state.board.removeSundiversFromBoard(this.sundiverIds)
@@ -139,103 +145,151 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         const playerState = state.getPlayerState(convert.playerId)
 
         if (convert.isGate) {
-            if (convert.sundiverIds.length !== 2) {
-                return false
-            }
-
-            if (playerState.solarGates.length === 0) {
-                return false
-            }
-
-            if (!convert.innerCoords) {
-                return false
-            }
-
-            if (state.board.hasGateBetween(convert.coords, convert.innerCoords)) {
-                return false
-            }
-
-            if (!state.board.canConvertGateAt(convert.playerId, convert.coords)) {
-                return false
-            }
-
-            const firstSundivers = state.board.sundiversForPlayerAt(
-                convert.playerId,
-                convert.coords
-            )
-            const firstIndex = convert.sundiverIds.findIndex((sundiverId) => {
-                return firstSundivers.find((sundiver) => sundiver.id === sundiverId)
-            })
-            if (firstIndex === -1) {
-                return false
-            }
-
-            const secondDiverId = convert.sundiverIds[firstIndex === 0 ? 1 : 0]
-            const secondSundivers = []
-            for (const cell of state.board.neighborsAt(convert.coords, Direction.Out)) {
-                secondSundivers.push(
-                    ...state.board.sundiversForPlayerAt(convert.playerId, cell.coords)
-                )
-            }
-            if (!secondSundivers.find((sundiver) => sundiver.id === secondDiverId)) {
-                return false
-            }
-
-            return true
+            return HydratedConvert.isValidGateConversion(state, convert)
         } else if (convert.stationType === StationType.EnergyNode) {
-            if (convert.sundiverIds.length !== 2) {
-                console.log('a')
-                return false
-            }
-
-            if (playerState.energyNodes.length === 0) {
-                console.log('b')
-                return false
-            }
-
-            if (
-                !state.board.canConvertStationAt(
-                    convert.playerId,
-                    StationType.EnergyNode,
-                    convert.coords
-                )
-            ) {
-                console.log('c')
-                return false
-            }
-
-            const ccwNeighbor = state.board
-                .neighborsAt(convert.coords, Direction.CounterClockwise)
-                .at(-1)
-            const cwNeighbor = state.board.neighborsAt(convert.coords, Direction.Clockwise).at(-1)
-
-            if (!ccwNeighbor || !cwNeighbor) {
-                console.log('d')
-                return false
-            }
-
-            const ccwSundivers = state.board.sundiversForPlayer(convert.playerId, ccwNeighbor)
-            const firstIndex = convert.sundiverIds.findIndex((sundiverId) => {
-                return ccwSundivers.find((sundiver) => sundiver.id === sundiverId)
-            })
-
-            if (firstIndex === -1) {
-                console.log('e')
-                return false
-            }
-
-            const secondDiverId = convert.sundiverIds[firstIndex === 0 ? 1 : 0]
-            const cwSundivers = state.board.sundiversForPlayer(convert.playerId, cwNeighbor)
-            if (!cwSundivers.find((sundiver) => sundiver.id === secondDiverId)) {
-                console.log('f')
-                return false
-            }
-
-            return true
+            return HydratedConvert.isValidEnergyNodeConversion(state, convert)
+        } else if (convert.stationType === StationType.SundiverFoundry) {
+            return HydratedConvert.isValidSundiverFoundryConversion(state, convert)
         }
 
-        // Check to see if destination can hold the pieces
-        console.log('oops')
+        return false
+    }
+
+    static isValidGateConversion(state: HydratedSolGameState, convert: Convert): boolean {
+        const playerState = state.getPlayerState(convert.playerId)
+
+        if (convert.sundiverIds.length !== 2) {
+            return false
+        }
+
+        if (playerState.solarGates.length === 0) {
+            return false
+        }
+
+        if (!convert.innerCoords) {
+            return false
+        }
+
+        if (state.board.hasGateBetween(convert.coords, convert.innerCoords)) {
+            return false
+        }
+
+        if (!state.board.canConvertGateAt(convert.playerId, convert.coords)) {
+            return false
+        }
+
+        const firstSundivers = state.board.sundiversForPlayerAt(convert.playerId, convert.coords)
+        const firstIndex = convert.sundiverIds.findIndex((sundiverId) => {
+            return firstSundivers.find((sundiver) => sundiver.id === sundiverId)
+        })
+        if (firstIndex === -1) {
+            return false
+        }
+
+        const secondDiverId = convert.sundiverIds[firstIndex === 0 ? 1 : 0]
+        const secondSundivers = []
+        for (const cell of state.board.neighborsAt(convert.coords, Direction.Out)) {
+            secondSundivers.push(...state.board.sundiversForPlayerAt(convert.playerId, cell.coords))
+        }
+        if (!secondSundivers.find((sundiver) => sundiver.id === secondDiverId)) {
+            return false
+        }
+
+        return true
+    }
+
+    static isValidEnergyNodeConversion(state: HydratedSolGameState, convert: Convert): boolean {
+        const playerState = state.getPlayerState(convert.playerId)
+        if (convert.sundiverIds.length !== 2) {
+            return false
+        }
+
+        if (playerState.energyNodes.length === 0) {
+            return false
+        }
+
+        if (
+            !state.board.canConvertStationAt(
+                convert.playerId,
+                StationType.EnergyNode,
+                convert.coords
+            )
+        ) {
+            return false
+        }
+
+        const ccwNeighbor = state.board
+            .neighborsAt(convert.coords, Direction.CounterClockwise)
+            .at(-1)
+        const cwNeighbor = state.board.neighborsAt(convert.coords, Direction.Clockwise).at(-1)
+
+        if (!ccwNeighbor || !cwNeighbor) {
+            return false
+        }
+
+        const ccwSundivers = state.board.sundiversForPlayer(convert.playerId, ccwNeighbor)
+        const firstIndex = convert.sundiverIds.findIndex((sundiverId) => {
+            return ccwSundivers.find((sundiver) => sundiver.id === sundiverId)
+        })
+
+        if (firstIndex === -1) {
+            return false
+        }
+
+        const secondDiverId = convert.sundiverIds[firstIndex === 0 ? 1 : 0]
+        const cwSundivers = state.board.sundiversForPlayer(convert.playerId, cwNeighbor)
+        if (!cwSundivers.find((sundiver) => sundiver.id === secondDiverId)) {
+            return false
+        }
+
+        return true
+    }
+
+    static isValidSundiverFoundryConversion(
+        state: HydratedSolGameState,
+        convert: Convert
+    ): boolean {
+        const playerState = state.getPlayerState(convert.playerId)
+        if (convert.sundiverIds.length !== 2) {
+            return false
+        }
+
+        if (playerState.sundiverFoundries.length === 0) {
+            return false
+        }
+
+        if (
+            !state.board.canConvertStationAt(
+                convert.playerId,
+                StationType.SundiverFoundry,
+                convert.coords
+            )
+        ) {
+            return false
+        }
+
+        const localSundivers = state.board.sundiversForPlayerAt(convert.playerId, convert.coords)
+        const firstIndex = convert.sundiverIds.findIndex((sundiverId) => {
+            return localSundivers.find((sundiver) => sundiver.id === sundiverId)
+        })
+
+        if (firstIndex === -1) {
+            return false
+        }
+
+        const secondDiverId = convert.sundiverIds[firstIndex === 0 ? 1 : 0]
+
+        const neighbors = [
+            ...state.board.neighborsAt(convert.coords, Direction.Clockwise),
+            ...state.board.neighborsAt(convert.coords, Direction.CounterClockwise)
+        ]
+
+        for (const neighbor of neighbors) {
+            if (neighbor.sundivers.find((diver) => diver.id === secondDiverId)) {
+                return true
+            }
+        }
+
         return false
     }
 }
