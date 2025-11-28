@@ -11,11 +11,12 @@
         translateFromCenter
     } from '$lib/utils/boardGeometry.js'
     import { getCellLayout } from '$lib/utils/cellLayouts.js'
-    import { Direction, HydratedConvert, HydratedFly, type Cell } from '@tabletop/sol'
+    import { Direction, HydratedConvert, HydratedFly, StationType, type Cell } from '@tabletop/sol'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
     import Sundiver from './Sundiver.svelte'
     import { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
     import { ConvertType } from '$lib/definition/convertType.js'
+    import EnergyNode from './EnergyNode.svelte'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
@@ -69,13 +70,35 @@
                 return gameSession.gameState.board.sundiversForPlayer(myPlayer.id, cell).length > 0
             }
         } else if (myConvert) {
-            return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
+            if (gameSession.chosenConvertType === ConvertType.SolarGate) {
+                return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
+            } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
+                return gameSession.gameState.board.canConvertStationAt(
+                    myPlayer.id,
+                    StationType.EnergyNode,
+                    cell.coords
+                )
+            } else if (gameSession.chosenConvertType === ConvertType.SundiverFoundry) {
+                return gameSession.gameState.board.canConvertStationAt(
+                    myPlayer.id,
+                    StationType.SundiverFoundry,
+                    cell.coords
+                )
+            } else if (gameSession.chosenConvertType === ConvertType.TransmitTower) {
+                return gameSession.gameState.board.canConvertStationAt(
+                    myPlayer.id,
+                    StationType.TransmitTower,
+                    cell.coords
+                )
+            }
         }
 
         return false
     })
 
-    let disabled = $derived((myMove || myConvert) && !interactable)
+    let disabled = $derived(
+        (myMove || (myConvert && gameSession.chosenConvertType)) && !interactable
+    )
 
     function cellPath(
         innerRadius: number,
@@ -112,8 +135,13 @@
                 }
             }
         } else if (myConvert) {
-            gameSession.chosenDiverCell = cell.coords
-            gameSession.convert()
+            if (gameSession.diverCellChoices) {
+                gameSession.chosenDiverCell = cell.coords
+                gameSession.convertGate()
+            } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
+                gameSession.chosenSource = cell.coords
+                gameSession.convertEnergyNode()
+            }
         }
     }
 
@@ -157,6 +185,15 @@
         animator={animatorPerPlayer.get(player.id)}
     />
 {/each}
+
+{#if cell.station}
+    {#if cell.station.type === StationType.EnergyNode}
+        <EnergyNode
+            location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
+            color={gameSession.colors.getPlayerColor(cell.station.playerId)}
+        />
+    {/if}
+{/if}
 
 <g
     class="focusable-control"

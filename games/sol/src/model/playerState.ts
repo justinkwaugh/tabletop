@@ -114,4 +114,28 @@ export class HydratedSolPlayerState
         }
         return solarGate
     }
+
+    public removeEnergyNode(): EnergyNode {
+        const energyNode = this.energyNodes.pop()
+        if (!energyNode) {
+            throw Error('No energy node to remove')
+        }
+        return energyNode
+    }
+
+    public removeSundiverFoundry(): SundiverFoundry {
+        const foundry = this.sundiverFoundries.pop()
+        if (!foundry) {
+            throw Error('No sundiver foundry to remove')
+        }
+        return foundry
+    }
+
+    public removeTransmitTower(): TransmitTower {
+        const tower = this.transmitTowers.pop()
+        if (!tower) {
+            throw Error('No transmit tower to remove')
+        }
+        return tower
+    }
 }

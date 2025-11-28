@@ -52,7 +52,7 @@
         // Do the convert
         gameSession.chosenSource = coords
         gameSession.chosenDestination = neighborCoords
-        gameSession.convert()
+        gameSession.convertGate()
     }
 
     function onKeyDown(event: KeyboardEvent) {

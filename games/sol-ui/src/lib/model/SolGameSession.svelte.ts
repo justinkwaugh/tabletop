@@ -10,12 +10,14 @@ import {
     Launch,
     MachineState,
     SolGameState,
+    StationType,
     Sundiver
 } from '@tabletop/sol'
 import { coordinatesToNumber, GameAction, OffsetCoordinates, Point } from '@tabletop/common'
 import { ActionCategory } from '$lib/definition/actionCategory.js'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
+import { get } from 'svelte/store'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
@@ -125,6 +127,11 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         return cellLayout.divers[diverIndex]
     }
 
+    locationForStationInCell(cell: Cell): Point | undefined {
+        const cellLayout = getCellLayout(cell, this.numPlayers, this.gameState.board)
+        return cellLayout.station?.point
+    }
+
     validGateDestinations = $derived.by(() => {
         if (!this.myPlayer || this.chosenConvertType !== ConvertType.SolarGate) {
             return []
@@ -155,7 +162,17 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     back() {
-        if (this.chosenNumDivers) {
+        if (this.chosenActionCategory === ActionCategory.Convert) {
+            if (this.chosenSource) {
+                this.diverCellChoices = undefined
+                this.chosenSource = undefined
+                this.chosenDestination = undefined
+            } else if (this.chosenConvertType) {
+                this.chosenConvertType = undefined
+            } else {
+                this.chosenActionCategory = undefined
+            }
+        } else if (this.chosenNumDivers) {
             this.chosenNumDivers = undefined
             if (this.numPlayerCanMoveFromSource() === 1) {
                 if (this.chosenMothership) {
@@ -175,8 +192,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.chosenActionCategory = undefined
         } else if (this.chosenAction) {
             this.chosenAction = undefined
-        } else if (this.chosenConvertType) {
-            this.chosenConvertType = undefined
         }
     }
 
@@ -248,7 +263,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
     }
 
-    async convert() {
+    async convertGate() {
         if (
             !this.myPlayer ||
             !this.myPlayerState ||
@@ -256,7 +271,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             !this.chosenSource ||
             !this.chosenDestination
         ) {
-            throw new Error('Invalid flight')
+            throw new Error('Invalid gate conversion')
         }
 
         const sundiverIds = []
@@ -309,10 +324,55 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         const action = {
             ...this.createBaseAction(ActionType.Convert),
             playerId: this.myPlayer.id,
-            isGate: this.chosenConvertType === ConvertType.SolarGate,
+            isGate: true,
             sundiverIds,
             coords: this.chosenSource,
             innerCoords: this.chosenDestination
+        }
+
+        await this.doAction(action)
+    }
+
+    async convertEnergyNode() {
+        if (
+            !this.myPlayer ||
+            !this.myPlayerState ||
+            !this.chosenConvertType ||
+            !this.chosenSource
+        ) {
+            throw new Error('Invalid conversion')
+        }
+
+        const ccwNeighbor = this.gameState.board
+            .neighborsAt(this.chosenSource, Direction.CounterClockwise)
+            .at(-1)
+        const cwNeighbor = this.gameState.board
+            .neighborsAt(this.chosenSource, Direction.Clockwise)
+            .at(-1)
+
+        if (!ccwNeighbor || !cwNeighbor) {
+            throw new Error('No neigbors')
+        }
+
+        const firstSundiver = this.gameState.board
+            .sundiversForPlayer(this.myPlayer.id, ccwNeighbor)
+            .at(-1)
+        const secondSundiver = this.gameState.board
+            .sundiversForPlayer(this.myPlayer.id, cwNeighbor)
+            .at(-1)
+
+        if (!firstSundiver || !secondSundiver) {
+            throw new Error('No sundivers to convert energy node')
+        }
+        const sundiverIds = [firstSundiver.id, secondSundiver.id]
+
+        const action = {
+            ...this.createBaseAction(ActionType.Convert),
+            playerId: this.myPlayer.id,
+            isGate: false,
+            stationType: StationType.EnergyNode,
+            sundiverIds,
+            coords: this.chosenSource
         }
 
         await this.doAction(action)

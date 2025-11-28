@@ -120,9 +120,7 @@
             <ConvertPicker />
         {/if}
         {#if gameSession.chosenConvertType && !gameSession.chosenDestination}
-            <div class="ms-3 py-2 flex flex-row justify-center items-center">
-                CHOOSE A DESTINATION
-            </div>
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE A LOCATION</div>
         {/if}
         {#if gameSession.diverCellChoices}
             <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE A SUNDIVER</div>

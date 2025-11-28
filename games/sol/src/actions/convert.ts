@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from 
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
-import { Direction } from '../utils/solGraph.js'
+import { Direction, Ring } from '../utils/solGraph.js'
 
 export type ConvertMetadata = Static<typeof ConvertMetadata>
 export const ConvertMetadata = Type.Object({})
@@ -20,7 +20,7 @@ export const Convert = Type.Evaluate(
             isGate: Type.Boolean(),
             stationType: Type.Optional(Type.Enum(StationType)),
             coords: OffsetCoordinates,
-            innerCoords: OffsetCoordinates, // For gate conversion
+            innerCoords: Type.Optional(OffsetCoordinates), // For gate conversion
             metadata: Type.Optional(ConvertMetadata)
         })
     ])
@@ -56,10 +56,21 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         if (this.isGate) {
             const playerGate = playerState.removeSolarGate()
             state.board.addGateAt(playerGate, this.innerCoords, this.coords)
+        } else if (this.stationType === StationType.EnergyNode) {
+            const playerNode = playerState.removeEnergyNode()
+            state.board.addStationAt(playerNode, this.coords)
         }
 
         const removedSundivers = state.board.removeSundiversFromBoard(this.sundiverIds)
         playerState.addSundiversToReserve(removedSundivers)
+
+        const playerMovement = Iterator.from(Object.values(Ring)).reduce(
+            (acc, ring) =>
+                state.board.hasStationInRing(this.playerId, ring as Ring) ? acc + 1 : acc,
+            3
+        )
+
+        playerState.movement = playerMovement
     }
 
     static canConvert(state: HydratedSolGameState, playerId: string): boolean {
@@ -136,6 +147,10 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
                 return false
             }
 
+            if (!convert.innerCoords) {
+                return false
+            }
+
             if (state.board.hasGateBetween(convert.coords, convert.innerCoords)) {
                 return false
             }
@@ -167,10 +182,60 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
             }
 
             return true
+        } else if (convert.stationType === StationType.EnergyNode) {
+            if (convert.sundiverIds.length !== 2) {
+                console.log('a')
+                return false
+            }
+
+            if (playerState.energyNodes.length === 0) {
+                console.log('b')
+                return false
+            }
+
+            if (
+                !state.board.canConvertStationAt(
+                    convert.playerId,
+                    StationType.EnergyNode,
+                    convert.coords
+                )
+            ) {
+                console.log('c')
+                return false
+            }
+
+            const ccwNeighbor = state.board
+                .neighborsAt(convert.coords, Direction.CounterClockwise)
+                .at(-1)
+            const cwNeighbor = state.board.neighborsAt(convert.coords, Direction.Clockwise).at(-1)
+
+            if (!ccwNeighbor || !cwNeighbor) {
+                console.log('d')
+                return false
+            }
+
+            const ccwSundivers = state.board.sundiversForPlayer(convert.playerId, ccwNeighbor)
+            const firstIndex = convert.sundiverIds.findIndex((sundiverId) => {
+                return ccwSundivers.find((sundiver) => sundiver.id === sundiverId)
+            })
+
+            if (firstIndex === -1) {
+                console.log('e')
+                return false
+            }
+
+            const secondDiverId = convert.sundiverIds[firstIndex === 0 ? 1 : 0]
+            const cwSundivers = state.board.sundiversForPlayer(convert.playerId, cwNeighbor)
+            if (!cwSundivers.find((sundiver) => sundiver.id === secondDiverId)) {
+                console.log('f')
+                return false
+            }
+
+            return true
         }
 
         // Check to see if destination can hold the pieces
-
+        console.log('oops')
         return false
     }
 }

@@ -19,6 +19,7 @@ import {
 } from '../utils/solGraph.js'
 import { solTraverser } from '../utils/solTraverser.js'
 import { solPathfinder } from '../utils/solPathfinder.js'
+import { solRingPattern } from '../utils/solRingPattern.js'
 
 export type Cell = Static<typeof Cell>
 export const Cell = Type.Object({
@@ -85,6 +86,10 @@ export class HydratedSolGameBoard
     }
     public cellAt(coords: OffsetCoordinates): Cell {
         return this.cells[coordinatesToNumber(coords)] ?? this.emptyCell(coords)
+    }
+
+    public setCell(cell: Cell) {
+        this.cells[coordinatesToNumber(cell.coords)] = cell
     }
 
     public neighborsAt(coords: OffsetCoordinates, direction: Direction): Cell[] {
@@ -302,6 +307,12 @@ export class HydratedSolGameBoard
         return !cell || !cell.station
     }
 
+    public addStationAt(station: Station, coords: OffsetCoordinates) {
+        let cell = this.cellAt(coords)
+        cell.station = station
+        this.setCell(cell)
+    }
+
     public addSundiversToCell(sundivers: Sundiver[], coords: OffsetCoordinates) {
         const sundiversByPlayer: Record<string, Sundiver[]> = {}
         for (const sundiver of sundivers) {
@@ -312,15 +323,7 @@ export class HydratedSolGameBoard
             sundiversByPlayer[sundiver.playerId].push(sundiver)
         }
 
-        let cell = this.cells[coordinatesToNumber(coords)]
-        if (!cell) {
-            cell = {
-                coords,
-                station: undefined,
-                sundivers: []
-            }
-            this.cells[coordinatesToNumber(coords)] = cell
-        }
+        let cell = this.cellAt(coords)
 
         for (const [playerId, sundivers] of Object.entries(sundiversByPlayer)) {
             if (!this.canAddSundiversToCell(playerId, sundivers.length, coords)) {
@@ -328,6 +331,8 @@ export class HydratedSolGameBoard
             }
             cell.sundivers.push(...sundivers)
         }
+
+        this.setCell(cell)
     }
 
     public removeSundiversAt(sundiverIds: string[], coords: OffsetCoordinates): Sundiver[] {
@@ -395,6 +400,15 @@ export class HydratedSolGameBoard
             return []
         }
         return cell.sundivers.filter((sundiver) => sundiver.playerId === playerId)
+    }
+
+    public findSundiverCoords(sundiverId: string): OffsetCoordinates | undefined {
+        for (const [key, cell] of Object.entries(this.cells)) {
+            if (cell.sundivers.find((diver) => diver.id === sundiverId)) {
+                return cell.coords
+            }
+        }
+        return undefined
     }
 
     public gateKey(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates) {
@@ -497,6 +511,16 @@ export class HydratedSolGameBoard
         }
 
         return false
+    }
+
+    hasStationInRing(playerId: string, ring: Ring): boolean {
+        if (ring === Ring.Center) {
+            return false
+        }
+        const ringPattern = solRingPattern({ numPlayers: this.numPlayers, ring })
+        return Iterator.from(this.graph.traversePattern(ringPattern)).some(
+            (node) => this.cellAt(node.coords).station?.playerId === playerId
+        )
     }
 
     get graph(): SolGraph {
