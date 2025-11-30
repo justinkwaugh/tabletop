@@ -72,6 +72,13 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 playerState.momentum = playerState.momentum ?? 0 + BASE_AWARD_PER_RING[ring]
                 break
         }
+        const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
+        const removed = playerDivers.at(-1)
+        if (!removed) {
+            throw new Error('No sundiver to remove')
+        }
+        const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
+        playerState.addSundiversToHold(removedDivers)
     }
 
     static canActivate(state: HydratedSolGameState, playerId: string): boolean {
