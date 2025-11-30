@@ -53,6 +53,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         return this.chosenActionCategory
     })
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
+    isActivating = $derived(this.gameState.machineState === MachineState.Activating)
 
     override initializeTimeline({
         to,
@@ -479,6 +480,30 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             stationId: station.id,
             coords: cell.coords,
             start: this.chosenSource
+        }
+
+        await this.doAction(action)
+    }
+
+    async activateBonus() {
+        if (!this.myPlayer || !this.isActivating) {
+            throw new Error('Invalid activate bonus')
+        }
+        const action = {
+            ...this.createBaseAction(ActionType.ActivateBonus),
+            playerId: this.myPlayer.id
+        }
+
+        await this.doAction(action)
+    }
+
+    async pass() {
+        if (!this.myPlayer || !this.isActivating) {
+            throw new Error('Invalid pass')
+        }
+        const action = {
+            ...this.createBaseAction(ActionType.Pass),
+            playerId: this.myPlayer.id
         }
 
         await this.doAction(action)

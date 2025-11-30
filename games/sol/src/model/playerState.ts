@@ -22,7 +22,8 @@ export const SolPlayerState = Type.Evaluate(
             transmitTowers: Type.Array(TransmitTower),
             movement: Type.Number(),
             movementPoints: Type.Number(),
-            card: Type.Optional(Card)
+            card: Type.Optional(Card),
+            momentum: Type.Optional(Type.Number({ default: 0 })) // TODO: Make not optional
         })
     ])
 )
@@ -45,6 +46,7 @@ export class HydratedSolPlayerState
     declare transmitTowers: TransmitTower[]
     declare movementPoints: number
     declare movement: number
+    declare momentum?: number
 
     declare card?: Card
 

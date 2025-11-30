@@ -106,20 +106,21 @@
                         return HydratedActivate.canActivateEnergyNode(
                             gameSession.gameState,
                             myPlayer.id,
-                            cell.station,
                             cell.coords
                         )
                         break
                     case StationType.SundiverFoundry:
                         return HydratedActivate.canActivateSundiverFoundry(
                             gameSession.gameState,
-                            myPlayer.id
+                            myPlayer.id,
+                            cell.coords
                         )
                         break
                     case StationType.TransmitTower:
                         return HydratedActivate.canActivateTransmitTower(
                             gameSession.gameState,
-                            myPlayer.id
+                            myPlayer.id,
+                            cell.coords
                         )
                         break
                 }

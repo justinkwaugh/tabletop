@@ -4,5 +4,7 @@ export enum ActionType {
     Hurl = 'Hurl',
     Convert = 'Convert',
     Activate = 'Activate',
+    ActivateBonus = 'ActivateBonus',
+    Pass = 'Pass',
     UseCard = 'UseCard'
 }

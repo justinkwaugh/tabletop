@@ -21,7 +21,7 @@
     let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
 </script>
 
-{#if gameSession.chosenActionCategory}
+{#if gameSession.chosenActionCategory || gameSession.isMoving || gameSession.isActivating}
     <div
         class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[42px] border-b border-[#ad9c80]"
     >
@@ -39,7 +39,7 @@
                 <ConvertAtom />
                 <div>CONVERTING</div>
             </div>
-        {:else if activateChosen}
+        {:else if activateChosen || gameSession.isActivating}
             <div class="inline-flex items-center gap-x-2">
                 <ActivateBolt />
                 <div>ACTIVATING</div>

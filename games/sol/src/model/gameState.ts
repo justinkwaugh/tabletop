@@ -13,6 +13,8 @@ import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
 import { Effect } from '../components/effects.js'
 import { Deck, HydratedDeck } from '../components/deck.js'
 import { Sundiver } from 'src/components/sundiver.js'
+import { Ring } from '../utils/solGraph.js'
+import { Station } from '../components/stations.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Evaluate(
@@ -25,7 +27,9 @@ export const SolGameState = Type.Evaluate(
             deck: Deck,
             effects: Type.Record(Type.String(), Effect),
             instability: Type.Number(),
-            energyCubes: Type.Number()
+            energyCubes: Type.Number(),
+            activatingStationId: Type.Optional(Type.String()),
+            activatingStationRing: Type.Optional(Type.Enum(Ring))
         })
     ])
 )
@@ -52,6 +56,8 @@ export class HydratedSolGameState
     declare effects: Record<string, Effect>
     declare instability: number
     declare energyCubes: number
+    declare activatingStationId?: string
+    declare activatingStationRing?: Ring
 
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)
@@ -89,5 +95,18 @@ export class HydratedSolGameState
                 yield diver
             }
         }
+    }
+
+    getActivatingStation(): Station {
+        if (!this.activatingStationId) {
+            throw Error('No activating station')
+        }
+
+        const station = this.board.findStation(this.activatingStationId)
+        if (!station) {
+            throw Error('Cannot find activating station')
+        }
+
+        return station
     }
 }

@@ -412,6 +412,15 @@ export class HydratedSolGameBoard
         return undefined
     }
 
+    public findStation(stationId: string): Station | undefined {
+        for (const [key, cell] of Object.entries(this.cells)) {
+            if (cell.station?.id === stationId) {
+                return cell.station
+            }
+        }
+        return undefined
+    }
+
     public gateKey(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates) {
         const [innerCoords, outerCoords] =
             coordsA.row < coordsB.row ? [coordsA, coordsB] : [coordsB, coordsA]

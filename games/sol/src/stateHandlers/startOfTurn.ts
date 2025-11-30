@@ -7,6 +7,7 @@ import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
+import { HydratedActivateBonus } from '../actions/activateBonus.js'
 
 // Transition from StartOfTurn(Launch) -> Moving | TakingActions
 
@@ -121,7 +122,18 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 return MachineState.StartOfTurn
             }
             case isActivate(action): {
-                // Need to do lots more stuff here
+                const station = gameState.getActivatingStation()
+                if (HydratedActivateBonus.canActivateBonus(gameState, station.playerId)) {
+                    gameState.activePlayerIds = [station.playerId]
+                    return MachineState.Activating
+                } else if (
+                    action.playerId !== station.playerId &&
+                    HydratedActivateBonus.canActivateBonus(gameState, action.playerId)
+                ) {
+                    return MachineState.Activating
+                }
+                gameState.activatingStationId = undefined
+                gameState.activatingStationRing = undefined
                 gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.StartOfTurn
             }
