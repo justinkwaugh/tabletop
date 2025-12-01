@@ -65,8 +65,7 @@
 
 <div class="relative">
     <div
-        style="background-image: {backgroundImage}"
-        class="bg-cover rounded-lg {bgColor} py-[3px] h-[185px] px-4 pb-2 text-center {gameSession.colors.getPlayerTextColor(
+        class="bg-cover rounded-lg {bgColor} pt-[3px] px-2 pb-2 text-center {gameSession.colors.getPlayerTextColor(
             playerState.playerId
         )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
     >
@@ -74,7 +73,7 @@
             {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
         </h1>
         <div
-            class="flex flex-row justify-between items-center rounded-lg dark:bg-black w-full h-full p-1"
+            class="flex flex-row justify-between items-center rounded-lg dark:bg-black/70 w-full h-full p-1"
         >
             <div class="flex flex-col justify-center items-center">
                 <div class="flex flex-row space-x-2 justify-center items-center p-2">
@@ -128,7 +127,7 @@
                     </div>
                 </div>
             </div>
-            <div class="rounded-lg dark:bg-gray-700 w-[85px] h-full overflow-hidden">
+            <div class="rounded-lg dark:bg-gray-700 w-[94px] h-[136px] overflow-hidden">
                 {#if playerState.card}
                     <Card suit={playerState.card.suit} />
                 {:else}
