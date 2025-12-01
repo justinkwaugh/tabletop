@@ -15,7 +15,7 @@
 
 <g
     onclick={onClick}
-    transform="{translateFromCenter(location.x, location.y)} scale(.35) translate(-46.5, -50)"
+    transform="{translateFromCenter(location.x, location.y)} scale(.50) translate(-46.5, -50)"
 >
     <FoundryIcon class={color} />
 </g>
