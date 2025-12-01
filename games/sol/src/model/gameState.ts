@@ -30,7 +30,9 @@ export const SolGameState = Type.Evaluate(
             instability: Type.Number(),
             energyCubes: Type.Number(),
             activation: Type.Optional(Activation),
-            cardsToDraw: Type.Optional(Type.Number({ default: 0 }))
+            cardsToDraw: Type.Optional(Type.Number({ default: 0 })),
+            solarFlares: Type.Optional(Type.Number({ default: 0 })),
+            solarFlareActivations: Type.Optional(Type.Array(Activation))
         })
     ])
 )
@@ -59,6 +61,8 @@ export class HydratedSolGameState
     declare energyCubes: number
     declare activation?: Activation
     declare cardsToDraw?: number
+    declare solarFlares?: number
+    declare solarFlareActivations?: Activation[]
 
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)

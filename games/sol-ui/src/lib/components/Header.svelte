@@ -5,9 +5,13 @@
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
+    import CardBack from '$lib/images/cardBack.png'
+    import { Suit } from '@tabletop/sol'
+    import Card from './Card.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
+    let cardBackImage = `url(${CardBack})`
     function back() {
         gameSession.back()
     }
@@ -21,7 +25,7 @@
     let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
 </script>
 
-{#if gameSession.chosenActionCategory || gameSession.isMoving || gameSession.isActivating || gameSession.isChoosingCard}
+{#if gameSession.chosenActionCategory || gameSession.isMoving || gameSession.isActivating || gameSession.isChoosingCard || gameSession.isSolarFlares}
     <div
         class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[42px] border-b border-[#ad9c80]"
     >
@@ -46,7 +50,20 @@
             </div>
         {:else if gameSession.isChoosingCard}
             <div class="inline-flex items-center gap-x-2">
+                <div class="rounded-sm dark:bg-gray-700 h-[36px] w-[22px] overflow-hidden">
+                    <div
+                        style="background-image: {cardBackImage}"
+                        class="bg-center bg-cover w-full h-full"
+                    ></div>
+                </div>
                 <div>INSTABILITY CARDS</div>
+            </div>
+        {:else if gameSession.isSolarFlares}
+            <div class="inline-flex items-center gap-x-2">
+                <div class="rounded-sm dark:bg-gray-700 h-[36px] w-[22px] overflow-hidden">
+                    <Card suit={Suit.Flare} />
+                </div>
+                <div>SOLAR FLARE</div>
             </div>
         {/if}
         <div>

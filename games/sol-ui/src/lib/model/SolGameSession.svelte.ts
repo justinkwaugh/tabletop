@@ -2,12 +2,9 @@ import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
 import {
     ActionType,
     Cell,
-    Convert,
     Direction,
-    Fly,
     HydratedSolGameState,
     isLaunch,
-    Launch,
     MachineState,
     SolGameState,
     StationType,
@@ -55,6 +52,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
     isActivating = $derived(this.gameState.machineState === MachineState.Activating)
     isChoosingCard = $derived(this.gameState.machineState === MachineState.ChoosingCard)
+    isSolarFlares = $derived(this.gameState.machineState === MachineState.SolarFlares)
 
     override initializeTimeline({
         to,
@@ -499,7 +497,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async pass() {
-        if (!this.myPlayer || !this.isActivating) {
+        if (
+            !this.myPlayer ||
+            (!this.isActivating && !this.isMoving && !this.isSolarFlares && !this.isChoosingCard)
+        ) {
             throw new Error('Invalid pass')
         }
         const action = {

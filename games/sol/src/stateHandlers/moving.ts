@@ -5,12 +5,14 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedLaunch, isLaunch } from '../actions/launch.js'
 import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 
 // Transition from Moving(Launch) -> Moving | StartOfTurn
 // Transition from Moving(Fly) -> Moving | StartOfTurn
 // Transition from Moving(Hurl) -> Moving | StartOfTurn
+// Transition from Moving(Pass) -> StartOfTurn
 
-type MovingAction = HydratedLaunch | HydratedFly | HydratedHurl
+type MovingAction = HydratedLaunch | HydratedFly | HydratedHurl | HydratedPass
 
 export class MovingStateHandler implements MachineStateHandler<MovingAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is MovingAction {
@@ -18,14 +20,15 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
         return (
             action.type === ActionType.Launch ||
             action.type === ActionType.Fly ||
-            action.type === ActionType.Hurl
+            action.type === ActionType.Hurl ||
+            action.type === ActionType.Pass
         )
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
         const gameState = context.gameState as HydratedSolGameState
 
-        const validActions = []
+        const validActions = [ActionType.Pass]
         const actions = [ActionType.Launch, ActionType.Fly, ActionType.Hurl]
 
         for (const action of actions) {
@@ -37,6 +40,9 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
                     break
                 }
                 case ActionType.Fly: {
+                    if (HydratedFly.canFly(gameState, playerId)) {
+                        validActions.push(ActionType.Fly)
+                    }
                     break
                 }
                 case ActionType.Hurl: {
@@ -79,6 +85,10 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
                     gameState.turnManager.endTurn(gameState.actionCount)
                     return MachineState.StartOfTurn
                 }
+            }
+            case isPass(action): {
+                gameState.turnManager.endTurn(gameState.actionCount)
+                return MachineState.StartOfTurn
             }
             default: {
                 throw Error('Invalid action type')

@@ -84,7 +84,13 @@
     {#if moveChosen || gameSession.isMoving}
         {#if !gameSession.chosenMothership && !gameSession.chosenSource}
             <div class="ms-3 py-2 flex flex-row justify-center items-center">
-                CHOOSE A MOVEMENT SOURCE
+                <div class="me-2">CHOOSE A MOVEMENT SOURCE</div>
+                <button
+                    onclick={pass}
+                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                >
+                    SKIP</button
+                >
             </div>
         {/if}
         {#if gameSession.chosenSource && !gameSession.chosenNumDivers}
@@ -106,7 +112,7 @@
             </div>
         {/if}
     {/if}
-    {#if !moveChosen && !convertChosen && !activateChosen && !gameSession.isMoving && !gameSession.isActivating && !gameSession.isChoosingCard}
+    {#if !moveChosen && !convertChosen && !activateChosen && !gameSession.isMoving && !gameSession.isActivating && !gameSession.isChoosingCard && !gameSession.isSolarFlares}
         <div class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4">
             <div class="w-fit me-4 leading-tight text-center">CHOOSE<br />AN ACTION</div>
             <button
@@ -181,5 +187,16 @@
     {#if gameSession.isChoosingCard}
         <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE CARD TO KEEP</div>
         <CardPicker />
+    {/if}
+    {#if gameSession.isSolarFlares}
+        <div class="ms-3 py-2 flex flex-row justify-center items-center">
+            <div class="me-2">ACTIVATE AN OUTER STATION</div>
+            <button
+                onclick={pass}
+                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+            >
+                SKIP</button
+            >
+        </div>
     {/if}
 </div>

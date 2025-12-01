@@ -7,6 +7,7 @@ export enum ActionType {
     ActivateBonus = 'ActivateBonus',
     Pass = 'Pass',
     DrawCards = 'DrawCards',
+    SolarFlare = 'SolarFlare',
     ChooseCard = 'ChooseCard',
     UseCard = 'UseCard'
 }

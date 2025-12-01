@@ -41,5 +41,6 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
         const cards = state.deck.drawItems(state.cardsToDraw)
         const playerState = state.getPlayerState(this.playerId)
         playerState.drawnCards = cards
+        state.cardsToDraw = 0
     }
 }

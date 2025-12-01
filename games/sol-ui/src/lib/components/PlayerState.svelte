@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { SolPlayerState, MachineState } from '@tabletop/sol'
+    import { SolPlayerState } from '@tabletop/sol'
     import { Color, range, type Player } from '@tabletop/common'
     import BlueBoard from '$lib/images/blueBoard.jpg'
     import GreenBoard from '$lib/images/greenBoard.jpg'
@@ -14,6 +14,7 @@
     import BlackShip from '$lib/images/blackShip.svelte'
     import BlueShip from '$lib/images/blueShip.svelte'
     import Card from './Card.svelte'
+    import CardBack from '$lib/images/cardBack.png'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: SolPlayerState } = $props()
@@ -58,6 +59,8 @@
                 return ''
         }
     })
+
+    let cardBackImage = `url(${CardBack})`
 </script>
 
 <div class="relative">
@@ -128,6 +131,11 @@
             <div class="rounded-lg dark:bg-gray-700 w-[85px] h-full overflow-hidden">
                 {#if playerState.card}
                     <Card suit={playerState.card.suit} />
+                {:else}
+                    <div
+                        style="background-image: {cardBackImage}"
+                        class="bg-center bg-cover w-full h-full"
+                    ></div>
                 {/if}
             </div>
         </div>

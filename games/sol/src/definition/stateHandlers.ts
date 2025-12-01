@@ -9,6 +9,7 @@ import { MovingStateHandler } from '../stateHandlers/moving.js'
 import { ActivatingStateHandler } from '../stateHandlers/activating.js'
 import { DrawingCardsStateHandler } from '../stateHandlers/drawingCards.js'
 import { ChoosingCardStateHandler } from '../stateHandlers/choosingCard.js'
+import { SolarFlaresStateHandler } from '../stateHandlers/solarFlares.js'
 
 export const SolStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
@@ -16,5 +17,6 @@ export const SolStateHandlers: Record<MachineState, MachineStateHandler<Hydrated
     [MachineState.Activating]: new ActivatingStateHandler(),
     [MachineState.DrawingCards]: new DrawingCardsStateHandler(),
     [MachineState.ChoosingCard]: new ChoosingCardStateHandler(),
+    [MachineState.SolarFlares]: new SolarFlaresStateHandler(),
     [MachineState.EndOfGame]: new TerminalStateHandler()
 }

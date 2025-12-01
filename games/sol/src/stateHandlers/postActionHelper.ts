@@ -10,6 +10,7 @@ export function drawCardsOrEndTurn(
     context: MachineContext
 ): MachineState {
     if (state.cardsToDraw && state.cardsToDraw > 0) {
+        console.log('Drawing cards, cards left to draw:', state.cardsToDraw)
         // Add the card draw action here
         const drawCardsAction: DrawCards = {
             type: ActionType.DrawCards,
