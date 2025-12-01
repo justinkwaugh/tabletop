@@ -9,26 +9,28 @@
     import SolarFlareCard from '$lib/images/solarFlareCard.png'
     import SubductionCard from '$lib/images/subductionCard.png'
     import { Suit } from '@tabletop/sol'
+    import Card from './Card.svelte'
+    import { card } from 'flowbite-svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
     const cardsBySuit = $derived.by(() => {
         const myPlayerState = gameSession.myPlayerState
         if (!myPlayerState || !myPlayerState.drawnCards) {
-            return {}
+            return new Map()
         }
 
-        const suits: Record<string, number> = {}
+        const suits: Map<Suit, number> = new Map()
         for (const card of myPlayerState.drawnCards) {
-            if (!suits[card.suit]) {
-                suits[card.suit] = 0
+            if (!suits.has(card.suit)) {
+                suits.set(card.suit, 0)
             }
-            suits[card.suit]++
+            suits.set(card.suit, suits.get(card.suit)! + 1)
         }
         return suits
     })
 
-    function cardImageForSuit(suit: string) {
+    function cardImageForSuit(suit: Suit) {
         switch (suit) {
             case Suit.Condensation:
                 return `url(${CondensationCard})`
@@ -48,15 +50,29 @@
                 return ''
         }
     }
+
+    function chooseCard(suit: Suit) {
+        gameSession.chooseCard(suit as Suit)
+    }
 </script>
 
 <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
-    {#each Object.entries(cardsBySuit) as [suit, count] (suit)}
-        <div class="flex flex-col justify-center items-center">
-            <div
-                class="w-[69px] h-[100px] bg-white bg-cover border border-black rounded-lg flex justify-center items-center text-2xl font-bold"
-                style="background-image: {cardImageForSuit(suit)}"
-            ></div>
+    {#each cardsBySuit as [suit, count] (suit)}
+        <div class="flex flex-row justify-center items-center">
+            <button
+                class="w-[69px] h-[100px] bg-black hover:border-white box-border border-2 border-black rounded-lg overflow-hidden"
+                style="z-index: {count};"
+                title="{suit} card"
+                onclick={() => chooseCard(suit)}><Card {suit} /></button
+            >
+            {#each { length: count - 1 }, i}
+                <div
+                    class="w-[20px] h-[100px] bg-black border-t-2 border-e-2 border-b-2 border-black ms-[-5px] overflow-hidden rounded-tr-lg rounded-br-lg bg-right"
+                    style="z-index: {count - 1 - i};"
+                >
+                    <Card {suit} style="partial" />
+                </div>
+            {/each}
         </div>
     {/each}
 </div>

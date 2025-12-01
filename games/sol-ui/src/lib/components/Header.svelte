@@ -21,7 +21,7 @@
     let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
 </script>
 
-{#if gameSession.chosenActionCategory || gameSession.isMoving || gameSession.isActivating || gameSession.isChoosingCards}
+{#if gameSession.chosenActionCategory || gameSession.isMoving || gameSession.isActivating || gameSession.isChoosingCard}
     <div
         class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[42px] border-b border-[#ad9c80]"
     >
@@ -44,9 +44,9 @@
                 <ActivateBolt />
                 <div>ACTIVATING</div>
             </div>
-        {:else if gameSession.isChoosingCards}
+        {:else if gameSession.isChoosingCard}
             <div class="inline-flex items-center gap-x-2">
-                <div>CHOOSING CARDS</div>
+                <div>INSTABILITY CARDS</div>
             </div>
         {/if}
         <div>

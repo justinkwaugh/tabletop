@@ -4,11 +4,15 @@ import { Fly } from '../actions/fly.js'
 import { Launch } from '../actions/launch.js'
 import { ActionType } from './actions.js'
 import { Pass } from '../actions/pass.js'
+import { DrawCards } from '../actions/drawCards.js'
+import { ChooseCard } from '../actions/chooseCard.js'
 
 export const SolApiActions = {
     [ActionType.Launch]: Launch,
     [ActionType.Fly]: Fly,
     [ActionType.Convert]: Convert,
     [ActionType.ActivateBonus]: ActivateBonus,
-    [ActionType.Pass]: Pass
+    [ActionType.Pass]: Pass,
+    [ActionType.DrawCards]: DrawCards,
+    [ActionType.ChooseCard]: ChooseCard
 }

@@ -22,6 +22,6 @@ export class DrawingCardsStateHandler implements MachineStateHandler<HydratedDra
         const gameState = context.gameState as HydratedSolGameState
 
         // Check for solar flares and handle them first
-        return MachineState.ChoosingCards
+        return MachineState.ChoosingCard
     }
 }

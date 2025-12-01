@@ -3,6 +3,6 @@ export enum MachineState {
     Moving = 'Moving',
     Activating = 'Activating',
     DrawingCards = 'DrawingCards',
-    ChoosingCards = 'ChoosingCards',
+    ChoosingCard = 'ChoosingCard',
     EndOfGame = 'EndOfGame'
 }

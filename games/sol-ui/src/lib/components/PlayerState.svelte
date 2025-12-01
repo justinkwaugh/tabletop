@@ -13,6 +13,7 @@
     import SilverShip from '$lib/images/silverShip.svelte'
     import BlackShip from '$lib/images/blackShip.svelte'
     import BlueShip from '$lib/images/blueShip.svelte'
+    import Card from './Card.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: SolPlayerState } = $props()
@@ -124,7 +125,11 @@
                     </div>
                 </div>
             </div>
-            <div class="rounded-lg dark:bg-gray-700 w-[85px] h-full"></div>
+            <div class="rounded-lg dark:bg-gray-700 w-[85px] h-full overflow-hidden">
+                {#if playerState.card}
+                    <Card suit={playerState.card.suit} />
+                {/if}
+            </div>
         </div>
         {#if gameSession.showDebug}
             <div class="text-xs mt-2">id: {player.id}</div>

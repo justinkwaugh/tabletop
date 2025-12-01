@@ -43,6 +43,9 @@
     })
 
     function chooseMove() {
+        if (!canMove) {
+            return
+        }
         gameSession.chosenActionCategory = ActionCategory.Move
         if (gameSession.myPlayerState && !gameSession.myPlayerState.hasSundiversOnTheBoard()) {
             gameSession.chosenMothership = gameSession.myPlayerState.playerId
@@ -50,10 +53,16 @@
     }
 
     function chooseConvert() {
+        if (!canConvert) {
+            return
+        }
         gameSession.chosenActionCategory = ActionCategory.Convert
     }
 
     function chooseActivate() {
+        if (!canActivate) {
+            return
+        }
         gameSession.chosenActionCategory = ActionCategory.Activate
     }
 
@@ -97,7 +106,7 @@
             </div>
         {/if}
     {/if}
-    {#if !moveChosen && !convertChosen && !activateChosen && !gameSession.isMoving && !gameSession.isActivating && !gameSession.isChoosingCards}
+    {#if !moveChosen && !convertChosen && !activateChosen && !gameSession.isMoving && !gameSession.isActivating && !gameSession.isChoosingCard}
         <div class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4">
             <div class="w-fit me-4 leading-tight text-center">CHOOSE<br />AN ACTION</div>
             <button
@@ -169,7 +178,7 @@
             </div>
         {/if}
     {/if}
-    {#if gameSession.isChoosingCards}
+    {#if gameSession.isChoosingCard}
         <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE CARD TO KEEP</div>
         <CardPicker />
     {/if}

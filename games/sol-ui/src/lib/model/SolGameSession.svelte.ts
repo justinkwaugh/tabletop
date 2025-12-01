@@ -11,6 +11,7 @@ import {
     MachineState,
     SolGameState,
     StationType,
+    Suit,
     Sundiver
 } from '@tabletop/sol'
 import { coordinatesToNumber, GameAction, OffsetCoordinates, Point } from '@tabletop/common'
@@ -53,7 +54,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     })
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
     isActivating = $derived(this.gameState.machineState === MachineState.Activating)
-    isChoosingCards = $derived(this.gameState.machineState === MachineState.ChoosingCards)
+    isChoosingCard = $derived(this.gameState.machineState === MachineState.ChoosingCard)
 
     override initializeTimeline({
         to,
@@ -504,6 +505,19 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         const action = {
             ...this.createBaseAction(ActionType.Pass),
             playerId: this.myPlayer.id
+        }
+
+        await this.doAction(action)
+    }
+
+    async chooseCard(suit: Suit) {
+        if (!this.myPlayer || !this.isChoosingCard) {
+            throw new Error('Invalid choose card')
+        }
+        const action = {
+            ...this.createBaseAction(ActionType.ChooseCard),
+            playerId: this.myPlayer.id,
+            suit
         }
 
         await this.doAction(action)
