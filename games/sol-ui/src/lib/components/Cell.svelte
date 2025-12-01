@@ -33,7 +33,9 @@
     )
 
     let myActivate = $derived(
-        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Activate
+        gameSession.isMyTurn &&
+            (gameSession.isActivating ||
+                gameSession.chosenActionCategory === ActionCategory.Activate)
     )
 
     let interactable = $derived.by(() => {

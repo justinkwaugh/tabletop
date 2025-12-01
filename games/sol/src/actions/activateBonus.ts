@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { Station, StationType } from '../components/stations.js'
+import { StationType } from '../components/stations.js'
 import { Ring } from '../utils/solGraph.js'
 
 export type ActivateBonusMetadata = Static<typeof ActivateBonusMetadata>
@@ -49,7 +49,7 @@ export class HydratedActivateBonus
         const playerState = state.getPlayerState(this.playerId)
 
         const station = state.getActivatingStation()
-        const ring = state.activatingStationRing ?? Ring.Center
+        const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
 
         switch (station?.type) {
             case StationType.EnergyNode:
@@ -68,11 +68,11 @@ export class HydratedActivateBonus
     }
 
     static canActivateBonus(state: HydratedSolGameState, playerId: string): boolean {
-        if (state.activatingStationRing === Ring.Outer) {
+        if (state.activation?.currentStationCoords?.row === Ring.Outer) {
             return false
         }
 
-        const station = state.board.findStation(state.activatingStationId ?? '')
+        const station = state.getActivatingStation()
         if (!station) {
             return false
         }
@@ -96,7 +96,8 @@ export class HydratedActivateBonus
 
     static canActivateSundiverFoundryBonus(state: HydratedSolGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
-        const awardCost = BONUS_AWARD_PER_RING[state.activatingStationRing ?? Ring.Center]
+        const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
+        const awardCost = BONUS_AWARD_PER_RING[ring]
         return (
             playerState.energyCubes >= awardCost && playerState.reserveSundivers.length > awardCost
         )
@@ -104,7 +105,8 @@ export class HydratedActivateBonus
 
     static canActivateTransmitTowerBonus(state: HydratedSolGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
-        const awardCost = BONUS_AWARD_PER_RING[state.activatingStationRing ?? Ring.Center]
+        const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
+        const awardCost = BONUS_AWARD_PER_RING[ring]
         return playerState.energyCubes >= awardCost
     }
 
@@ -112,7 +114,7 @@ export class HydratedActivateBonus
         state: HydratedSolGameState,
         activateBonus: ActivateBonus
     ): boolean {
-        if (state.activatingStationRing === Ring.Outer) {
+        if (state.activation?.currentStationCoords?.row === Ring.Outer) {
             return false
         }
 

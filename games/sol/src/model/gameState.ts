@@ -14,7 +14,8 @@ import { Effect } from '../components/effects.js'
 import { Deck, HydratedDeck } from '../components/deck.js'
 import { Sundiver } from 'src/components/sundiver.js'
 import { Ring } from '../utils/solGraph.js'
-import { Station } from '../components/stations.js'
+import { Station, StationType } from '../components/stations.js'
+import { Activation } from './activation.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Evaluate(
@@ -28,8 +29,7 @@ export const SolGameState = Type.Evaluate(
             effects: Type.Record(Type.String(), Effect),
             instability: Type.Number(),
             energyCubes: Type.Number(),
-            activatingStationId: Type.Optional(Type.String()),
-            activatingStationRing: Type.Optional(Type.Enum(Ring))
+            activation: Type.Optional(Activation)
         })
     ])
 )
@@ -56,8 +56,7 @@ export class HydratedSolGameState
     declare effects: Record<string, Effect>
     declare instability: number
     declare energyCubes: number
-    declare activatingStationId?: string
-    declare activatingStationRing?: Ring
+    declare activation?: Activation
 
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)
@@ -98,15 +97,19 @@ export class HydratedSolGameState
     }
 
     getActivatingStation(): Station {
-        if (!this.activatingStationId) {
+        if (!this.activation || !this.activation.currentStationId) {
             throw Error('No activating station')
         }
 
-        const station = this.board.findStation(this.activatingStationId)
+        const station = this.board.findStation(this.activation.currentStationId)
         if (!station) {
             throw Error('Cannot find activating station')
         }
 
         return station
+    }
+
+    hasActivatedStation(stationId: string): boolean {
+        return this.activation?.activatedIds.includes(stationId) ?? false
     }
 }

@@ -4,16 +4,23 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedActivateBonus, isActivateBonus } from '../actions/activateBonus.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedActivate, isActivate } from '../actions/activate.js'
 
 // Transition from Activating(Pass) -> Activating | StartOfTurn
-// Transition from Activating(ActivateBonus) -> StartOfTurn
+// Transition from Activating(ActivateBonus) -> Activating | StartOfTurn
 
-type ActivatingAction = HydratedActivateBonus | HydratedPass
+type ActivatingAction = HydratedActivateBonus | HydratedPass | HydratedActivate
 
 export class ActivatingStateHandler implements MachineStateHandler<ActivatingAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is ActivatingAction {
+    isValidAction(action: HydratedAction, context: MachineContext): action is ActivatingAction {
         if (!action.playerId) return false
-        return action.type === ActionType.ActivateBonus || action.type === ActionType.Pass
+        const gameState = context.gameState as HydratedSolGameState
+
+        return (
+            isPass(action) ||
+            (isActivate(action) && gameState.activation?.currentStationId === undefined) ||
+            (isActivateBonus(action) && gameState.activation?.currentStationId !== undefined)
+        )
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
@@ -21,7 +28,12 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
 
         const validActions = [ActionType.Pass]
 
-        if (HydratedActivateBonus.canActivateBonus(gameState, playerId)) {
+        if (!gameState.activation?.currentStationId) {
+            validActions.push(ActionType.Activate)
+        } else if (
+            gameState.activation?.currentStationId &&
+            HydratedActivateBonus.canActivateBonus(gameState, playerId)
+        ) {
             validActions.push(ActionType.ActivateBonus)
         }
 
@@ -35,36 +47,90 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         const gameState = context.gameState as HydratedSolGameState
 
         switch (true) {
-            case isActivateBonus(action): {
-                gameState.activatingStationId = undefined
-                gameState.activatingStationRing = undefined
-                gameState.turnManager.endTurn(gameState.actionCount)
-                return MachineState.StartOfTurn
-            }
-            case isPass(action): {
-                const station = gameState.getActivatingStation()
-                const activatingPlayerId = gameState.turnManager.currentTurn()?.playerId
-                if (!activatingPlayerId) {
-                    throw Error('Cannot find activating player id')
+            case isActivate(action): {
+                const activation = gameState.activation
+                if (!activation) {
+                    throw Error('No activation found')
                 }
 
-                if (action.playerId === activatingPlayerId) {
-                    gameState.activatingStationId = undefined
-                    gameState.activatingStationRing = undefined
+                const station = gameState.getActivatingStation()
+                if (HydratedActivateBonus.canActivateBonus(gameState, station.playerId)) {
+                    // Give station owner chance to do bonus activation
+                    gameState.activePlayerIds = [station.playerId]
+                    return MachineState.Activating
+                } else if (
+                    action.playerId !== station.playerId &&
+                    HydratedActivateBonus.canActivateBonus(gameState, action.playerId)
+                ) {
+                    // Give activating player a chance to do bonus activation
+                    gameState.activePlayerIds = [activation.playerId]
+                    return MachineState.Activating
+                } else if (HydratedActivate.canActivate(gameState, activation.playerId)) {
+                    // Allow activating player to continue if possible
+                    activation.currentStationId = undefined
+                    activation.currentStationCoords = undefined
+                    gameState.activePlayerIds = [activation.playerId]
+                    return MachineState.Activating
+                } else {
+                    // No more activations possible, end turn
+                    gameState.activation = undefined
                     gameState.turnManager.endTurn(gameState.actionCount)
                     return MachineState.StartOfTurn
-                } else if (
-                    action.playerId === station.playerId &&
-                    HydratedActivateBonus.canActivateBonus(gameState, activatingPlayerId)
-                ) {
-                    gameState.activePlayerIds = [activatingPlayerId]
-                    return MachineState.Activating
+                }
+                break
+            }
+            case isActivateBonus(action): {
+                const activation = gameState.activation
+                if (!activation) {
+                    throw Error('Cannot find activation')
                 }
 
-                gameState.activatingStationId = undefined
-                gameState.activatingStationRing = undefined
-                gameState.turnManager.endTurn(gameState.actionCount)
-                return MachineState.StartOfTurn
+                if (HydratedActivate.canActivate(gameState, activation.playerId)) {
+                    activation.currentStationId = undefined
+                    activation.currentStationCoords = undefined
+                    gameState.activePlayerIds = [activation.playerId]
+                    return MachineState.Activating
+                } else {
+                    gameState.activation = undefined
+                    gameState.turnManager.endTurn(gameState.actionCount)
+                    return MachineState.StartOfTurn
+                }
+                break
+            }
+            case isPass(action): {
+                const activation = gameState.activation
+                if (!activation) {
+                    throw Error('Cannot find activation')
+                }
+
+                if (!activation.currentStationId) {
+                    // No more activations chosen
+                    gameState.activation = undefined
+                    gameState.turnManager.endTurn(gameState.actionCount)
+                    return MachineState.StartOfTurn
+                }
+
+                const station = gameState.getActivatingStation()
+
+                if (
+                    action.playerId === station.playerId &&
+                    activation.playerId !== station.playerId &&
+                    HydratedActivateBonus.canActivateBonus(gameState, activation.playerId)
+                ) {
+                    // Give activating player a chance to do bonus activation
+                    gameState.activePlayerIds = [activation.playerId]
+                    return MachineState.Activating
+                } else if (HydratedActivate.canActivate(gameState, activation.playerId)) {
+                    activation.currentStationId = undefined
+                    activation.currentStationCoords = undefined
+                    gameState.activePlayerIds = [activation.playerId]
+                    return MachineState.Activating
+                } else {
+                    gameState.activation = undefined
+                    gameState.turnManager.endTurn(gameState.actionCount)
+                    return MachineState.StartOfTurn
+                }
+                break
             }
             default: {
                 throw Error('Invalid action type')

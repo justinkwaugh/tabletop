@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from 
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
+import { Activation } from '../model/activation.js'
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({})
@@ -50,11 +51,25 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
         const cell = state.board.cellAt(this.coords)
         const station = cell.station
-        const ring = this.coords.row
-        state.activatingStationId = this.stationId
-        state.activatingStationRing = ring
 
-        switch (station?.type) {
+        if (!station) {
+            throw new Error('No station at activation coordinates')
+        }
+
+        const ring = this.coords.row
+
+        const activation: Activation = state.activation ?? {
+            playerId: this.playerId,
+            activatedIds: [],
+            stationType: station.type
+        }
+
+        activation.activatedIds.push(this.stationId)
+        activation.currentStationId = this.stationId
+        activation.currentStationCoords = this.coords
+        state.activation = activation
+
+        switch (station.type) {
             case StationType.EnergyNode:
                 playerState.energyCubes += BASE_AWARD_PER_RING[ring]
                 break
@@ -83,7 +98,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
     static canActivate(state: HydratedSolGameState, playerId: string): boolean {
         for (const cell of state.board) {
-            if (!cell.station) {
+            if (!cell.station || state.hasActivatedStation(cell.station.id)) {
                 continue
             }
 
@@ -109,12 +124,24 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         return false
     }
 
+    static isAllowedStationType(state: HydratedSolGameState, stationType: StationType): boolean {
+        const activation = state.activation
+        if (!activation) {
+            return true
+        }
+
+        return activation.stationType === stationType
+    }
+
     static canActivateEnergyNode(
         state: HydratedSolGameState,
         playerId: string,
         coords: OffsetCoordinates
     ): boolean {
-        return state.board.sundiversForPlayerAt(playerId, coords).length > 0
+        return (
+            this.isAllowedStationType(state, StationType.EnergyNode) &&
+            state.board.sundiversForPlayerAt(playerId, coords).length > 0
+        )
     }
 
     static canActivateSundiverFoundry(
@@ -122,7 +149,10 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         playerId: string,
         coords: OffsetCoordinates
     ): boolean {
-        if (state.board.sundiversForPlayerAt(playerId, coords).length === 0) {
+        if (
+            !this.isAllowedStationType(state, StationType.SundiverFoundry) ||
+            state.board.sundiversForPlayerAt(playerId, coords).length === 0
+        ) {
             return false
         }
 
@@ -138,7 +168,10 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         playerId: string,
         coords: OffsetCoordinates
     ): boolean {
-        if (state.board.sundiversForPlayerAt(playerId, coords).length === 0) {
+        if (
+            !this.isAllowedStationType(state, StationType.TransmitTower) ||
+            state.board.sundiversForPlayerAt(playerId, coords).length === 0
+        ) {
             return false
         }
 
@@ -151,7 +184,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         const cell = state.board.cellAt(activate.coords)
         const station = cell.station
 
-        if (!station) {
+        if (!station || state.hasActivatedStation(station.id)) {
             return false
         }
 
@@ -162,29 +195,11 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
         switch (station.type) {
             case StationType.EnergyNode:
-                return this.isValidEnergyNodeActivation(state, activate)
+                return this.canActivateEnergyNode(state, activate.playerId, activate.coords)
             case StationType.SundiverFoundry:
-                return this.isValidSundiverFoundryActivation(state, activate)
+                return this.canActivateSundiverFoundry(state, activate.playerId, activate.coords)
             case StationType.TransmitTower:
-                return this.isValidTransmitTowerActivation(state, activate)
+                return this.canActivateTransmitTower(state, activate.playerId, activate.coords)
         }
-    }
-
-    static isValidEnergyNodeActivation(state: HydratedSolGameState, activate: Activate): boolean {
-        return this.canActivateEnergyNode(state, activate.playerId, activate.coords)
-    }
-
-    static isValidSundiverFoundryActivation(
-        state: HydratedSolGameState,
-        activate: Activate
-    ): boolean {
-        return this.canActivateSundiverFoundry(state, activate.playerId, activate.coords)
-    }
-
-    static isValidTransmitTowerActivation(
-        state: HydratedSolGameState,
-        activate: Activate
-    ): boolean {
-        return this.canActivateTransmitTower(state, activate.playerId, activate.coords)
     }
 }

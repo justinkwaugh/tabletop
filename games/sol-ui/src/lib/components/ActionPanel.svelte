@@ -141,19 +141,31 @@
         <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE A STATION</div>
     {/if}
     {#if gameSession.isActivating}
-        <div class="ms-3 py-2 flex flex-row justify-center items-center">
-            <div class="me-2">CLAIM THE BONUS?</div>
-            <button
-                onclick={chooseBonus}
-                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                >YES</button
-            >
-            <button
-                onclick={pass}
-                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-            >
-                NO</button
-            >
-        </div>
+        {#if gameSession.gameState.activation && !gameSession.gameState.activation.currentStationId}
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">
+                <div class="me-2">ACTIVATE ANOTHER?</div>
+                <button
+                    onclick={pass}
+                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                >
+                    SKIP</button
+                >
+            </div>
+        {:else}
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">
+                <div class="me-2">CLAIM THE BONUS?</div>
+                <button
+                    onclick={chooseBonus}
+                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                    >YES</button
+                >
+                <button
+                    onclick={pass}
+                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                >
+                    NO</button
+                >
+            </div>
+        {/if}
     {/if}
 </div>

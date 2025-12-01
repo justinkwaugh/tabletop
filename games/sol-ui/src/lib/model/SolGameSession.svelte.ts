@@ -17,7 +17,6 @@ import { coordinatesToNumber, GameAction, OffsetCoordinates, Point } from '@tabl
 import { ActionCategory } from '$lib/definition/actionCategory.js'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
-import { get } from 'svelte/store'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
