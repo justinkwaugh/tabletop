@@ -7,7 +7,7 @@ import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
-import { HydratedActivateBonus } from '../actions/activateBonus.js'
+import { ActivatingStateHandler } from './activating.js'
 
 // Transition from StartOfTurn(Launch) -> Moving | TakingActions
 // Transition from StartOfTurn(Fly) -> Moving | TakingActions
@@ -130,35 +130,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 return MachineState.StartOfTurn
             }
             case isActivate(action): {
-                const station = gameState.getActivatingStation()
-                const activation = gameState.activation
-                if (!activation) {
-                    throw Error('No activation found')
-                }
-
-                if (HydratedActivateBonus.canActivateBonus(gameState, station.playerId)) {
-                    // Give station owner chance to do bonus activation
-                    gameState.activePlayerIds = [station.playerId]
-                    return MachineState.Activating
-                } else if (
-                    action.playerId !== station.playerId &&
-                    HydratedActivateBonus.canActivateBonus(gameState, action.playerId)
-                ) {
-                    // Give activating player a chance to do bonus activation
-                    gameState.activePlayerIds = [activation.playerId]
-                    return MachineState.Activating
-                } else if (HydratedActivate.canActivate(gameState, activation.playerId)) {
-                    // Allow activating player to continue if possible
-                    activation.currentStationId = undefined
-                    activation.currentStationCoords = undefined
-                    gameState.activePlayerIds = [activation.playerId]
-                    return MachineState.Activating
-                } else {
-                    // No more activations possible, end turn
-                    gameState.activation = undefined
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
-                }
+                return ActivatingStateHandler.handleActivation(gameState, action)
             }
             default: {
                 throw Error('Invalid action type')
