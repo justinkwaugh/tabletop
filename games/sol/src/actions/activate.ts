@@ -6,6 +6,8 @@ import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
 import { Activation } from '../model/activation.js'
 import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
+import { MachineState } from '../definition/states.js'
+import { Ring } from '../index.js'
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({})
@@ -86,43 +88,27 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 playerState.momentum = playerState.momentum ?? 0 + BASE_AWARD_PER_RING[ring]
                 break
         }
-        const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
-        const removed = playerDivers.at(-1)
-        if (!removed) {
-            throw new Error('No sundiver to remove')
-        }
-        const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
-        playerState.addSundiversToHold(removedDivers)
 
-        const cardsToDraw = CARDS_DRAWN_PER_RING[ring]
-        state.cardsToDraw = (state.cardsToDraw ?? 0) + cardsToDraw
+        if (state.machineState !== MachineState.SolarFlares) {
+            const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
+            const removed = playerDivers.at(-1)
+            if (!removed) {
+                throw new Error('No sundiver to remove')
+            }
+            const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
+            playerState.addSundiversToHold(removedDivers)
+
+            const cardsToDraw = CARDS_DRAWN_PER_RING[ring]
+            state.cardsToDraw = (state.cardsToDraw ?? 0) + cardsToDraw
+        }
     }
 
     static canActivate(state: HydratedSolGameState, playerId: string): boolean {
         for (const cell of state.board) {
-            if (!cell.station || state.hasActivatedStation(cell.station.id)) {
-                continue
-            }
-
-            switch (cell.station.type) {
-                case StationType.EnergyNode:
-                    if (this.canActivateEnergyNode(state, playerId, cell.coords)) {
-                        return true
-                    }
-                    break
-                case StationType.SundiverFoundry:
-                    if (this.canActivateSundiverFoundry(state, playerId, cell.coords)) {
-                        return true
-                    }
-                    break
-                case StationType.TransmitTower:
-                    if (this.canActivateTransmitTower(state, playerId, cell.coords)) {
-                        return true
-                    }
-                    break
+            if (this.canActivateStationAt(state, playerId, cell.coords)) {
+                return true
             }
         }
-
         return false
     }
 
@@ -132,7 +118,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             return true
         }
 
-        return activation.stationType === stationType
+        return activation.stationType === undefined || activation.stationType === stationType
     }
 
     static canActivateEnergyNode(
@@ -140,10 +126,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         playerId: string,
         coords: OffsetCoordinates
     ): boolean {
-        return (
-            this.isAllowedStationType(state, StationType.EnergyNode) &&
-            state.board.sundiversForPlayerAt(playerId, coords).length > 0
-        )
+        return true
     }
 
     static canActivateSundiverFoundry(
@@ -151,13 +134,6 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         playerId: string,
         coords: OffsetCoordinates
     ): boolean {
-        if (
-            !this.isAllowedStationType(state, StationType.SundiverFoundry) ||
-            state.board.sundiversForPlayerAt(playerId, coords).length === 0
-        ) {
-            return false
-        }
-
         const awardCost = BASE_AWARD_PER_RING[coords.row]
         const playerState = state.getPlayerState(playerId)
         return (
@@ -170,38 +146,48 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         playerId: string,
         coords: OffsetCoordinates
     ): boolean {
-        if (
-            !this.isAllowedStationType(state, StationType.TransmitTower) ||
-            state.board.sundiversForPlayerAt(playerId, coords).length === 0
-        ) {
-            return false
-        }
-
         const awardCost = BASE_AWARD_PER_RING[coords.row]
         const playerState = state.getPlayerState(playerId)
         return playerState.energyCubes >= awardCost
     }
 
-    static isValidActivation(state: HydratedSolGameState, activate: Activate): boolean {
-        const cell = state.board.cellAt(activate.coords)
+    static canActivateStationAt(
+        state: HydratedSolGameState,
+        playerId: string,
+        coords: OffsetCoordinates
+    ): boolean {
+        const cell = state.board.cellAt(coords)
         const station = cell.station
 
         if (!station || state.hasActivatedStation(station.id)) {
             return false
         }
 
-        const playerDivers = state.board.sundiversForPlayer(activate.playerId, cell)
-        if (playerDivers.length < 1) {
+        if (!this.isAllowedStationType(state, StationType.SundiverFoundry)) {
             return false
+        }
+
+        if (state.machineState === MachineState.SolarFlares) {
+            if (station.playerId !== playerId || coords.row !== Ring.Outer) {
+                return false
+            }
+        } else {
+            if (state.board.sundiversForPlayerAt(playerId, coords).length === 0) {
+                return false
+            }
         }
 
         switch (station.type) {
             case StationType.EnergyNode:
-                return this.canActivateEnergyNode(state, activate.playerId, activate.coords)
+                return this.canActivateEnergyNode(state, playerId, coords)
             case StationType.SundiverFoundry:
-                return this.canActivateSundiverFoundry(state, activate.playerId, activate.coords)
+                return this.canActivateSundiverFoundry(state, playerId, coords)
             case StationType.TransmitTower:
-                return this.canActivateTransmitTower(state, activate.playerId, activate.coords)
+                return this.canActivateTransmitTower(state, playerId, coords)
         }
+    }
+
+    static isValidActivation(state: HydratedSolGameState, activate: Activate): boolean {
+        return this.canActivateStationAt(state, activate.playerId, activate.coords)
     }
 }

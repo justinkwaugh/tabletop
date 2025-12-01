@@ -35,6 +35,7 @@
     let myActivate = $derived(
         gameSession.isMyTurn &&
             (gameSession.isActivating ||
+                gameSession.isSolarFlares ||
                 gameSession.chosenActionCategory === ActionCategory.Activate)
     )
 
@@ -103,29 +104,11 @@
             }
         } else if (myActivate) {
             if (!gameSession.chosenSource && cell.station) {
-                switch (cell.station.type) {
-                    case StationType.EnergyNode:
-                        return HydratedActivate.canActivateEnergyNode(
-                            gameSession.gameState,
-                            myPlayer.id,
-                            cell.coords
-                        )
-                        break
-                    case StationType.SundiverFoundry:
-                        return HydratedActivate.canActivateSundiverFoundry(
-                            gameSession.gameState,
-                            myPlayer.id,
-                            cell.coords
-                        )
-                        break
-                    case StationType.TransmitTower:
-                        return HydratedActivate.canActivateTransmitTower(
-                            gameSession.gameState,
-                            myPlayer.id,
-                            cell.coords
-                        )
-                        break
-                }
+                return HydratedActivate.canActivateStationAt(
+                    gameSession.gameState,
+                    myPlayer.id,
+                    cell.coords
+                )
             }
         }
 
