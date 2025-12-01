@@ -5,9 +5,11 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedActivateBonus, isActivateBonus } from '../actions/activateBonus.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
+import { drawCardsOrEndTurn } from './postActionHelper.js'
+import { Activation } from '../model/activation.js'
 
-// Transition from Activating(Pass) -> Activating | StartOfTurn
-// Transition from Activating(ActivateBonus) -> Activating | StartOfTurn
+// Transition from Activating(Pass) -> Activating | DrawingCards | StartOfTurn
+// Transition from Activating(ActivateBonus) -> Activating | DrawingCards | StartOfTurn
 
 type ActivatingAction = HydratedActivateBonus | HydratedPass | HydratedActivate
 
@@ -48,7 +50,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
 
         switch (true) {
             case isActivate(action): {
-                return ActivatingStateHandler.handleActivation(gameState, action)
+                return ActivatingStateHandler.handleActivation(gameState, action, context)
                 break
             }
             case isActivateBonus(action): {
@@ -57,17 +59,11 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                     throw Error('Cannot find activation')
                 }
 
-                if (HydratedActivate.canActivate(gameState, activation.playerId)) {
-                    activation.currentStationId = undefined
-                    activation.currentStationCoords = undefined
-                    gameState.activePlayerIds = [activation.playerId]
-                    return MachineState.Activating
-                } else {
-                    gameState.activation = undefined
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
-                }
-                break
+                return ActivatingStateHandler.continueActivatingOrEnd(
+                    gameState,
+                    context,
+                    activation
+                )
             }
             case isPass(action): {
                 const activation = gameState.activation
@@ -76,10 +72,9 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                 }
 
                 if (!activation.currentStationId) {
-                    // No more activations chosen
+                    gameState.activePlayerIds = [activation.playerId]
                     gameState.activation = undefined
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
+                    return drawCardsOrEndTurn(gameState, context)
                 }
 
                 const station = gameState.getActivatingStation()
@@ -92,15 +87,12 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                     // Give activating player a chance to do bonus activation
                     gameState.activePlayerIds = [activation.playerId]
                     return MachineState.Activating
-                } else if (HydratedActivate.canActivate(gameState, activation.playerId)) {
-                    activation.currentStationId = undefined
-                    activation.currentStationCoords = undefined
-                    gameState.activePlayerIds = [activation.playerId]
-                    return MachineState.Activating
                 } else {
-                    gameState.activation = undefined
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
+                    return ActivatingStateHandler.continueActivatingOrEnd(
+                        gameState,
+                        context,
+                        activation
+                    )
                 }
                 break
             }
@@ -110,7 +102,11 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         }
     }
 
-    static handleActivation(state: HydratedSolGameState, activate: HydratedActivate) {
+    static handleActivation(
+        state: HydratedSolGameState,
+        activate: HydratedActivate,
+        context: MachineContext
+    ): MachineState {
         const activation = state.activation
         if (!activation) {
             throw Error('Cannot find activation')
@@ -128,7 +124,17 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             // Give activating player a chance to do bonus activation
             state.activePlayerIds = [activate.playerId]
             return MachineState.Activating
-        } else if (HydratedActivate.canActivate(state, activate.playerId)) {
+        } else {
+            return this.continueActivatingOrEnd(state, context, activation)
+        }
+    }
+
+    static continueActivatingOrEnd(
+        state: HydratedSolGameState,
+        context: MachineContext,
+        activation: Activation
+    ): MachineState {
+        if (HydratedActivate.canActivate(state, activation.playerId)) {
             // Allow activating player to continue if possible
             activation.currentStationId = undefined
             activation.currentStationCoords = undefined
@@ -136,9 +142,9 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             return MachineState.Activating
         } else {
             // No more activations possible, end turn
+            state.activePlayerIds = [activation.playerId]
             state.activation = undefined
-            state.turnManager.endTurn(state.actionCount)
-            return MachineState.StartOfTurn
+            return drawCardsOrEndTurn(state, context)
         }
     }
 }

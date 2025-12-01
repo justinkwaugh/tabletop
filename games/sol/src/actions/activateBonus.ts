@@ -5,6 +5,7 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
 import { Ring } from '../utils/solGraph.js'
+import { BONUS_AWARD_PER_RING } from '../utils/solConstants.js'
 
 export type ActivateBonusMetadata = Static<typeof ActivateBonusMetadata>
 export const ActivateBonusMetadata = Type.Object({})
@@ -26,8 +27,6 @@ export const ActivateBonusValidator = Compile(ActivateBonus)
 export function isActivateBonus(action?: GameAction): action is ActivateBonus {
     return action?.type === ActionType.ActivateBonus
 }
-
-export const BONUS_AWARD_PER_RING: number[] = [0, 3, 2, 1, 1, 0]
 
 export class HydratedActivateBonus
     extends HydratableAction<typeof ActivateBonus>

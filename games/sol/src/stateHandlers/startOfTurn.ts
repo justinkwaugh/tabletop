@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    ActionSource,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -8,6 +13,8 @@ import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
 import { ActivatingStateHandler } from './activating.js'
+import { DrawCards } from '../actions/drawCards.js'
+import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from StartOfTurn(Launch) -> Moving | TakingActions
 // Transition from StartOfTurn(Fly) -> Moving | TakingActions
@@ -125,16 +132,17 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 }
             }
             case isConvert(action): {
-                // Need to do more things here w/ card drawing and such
-                gameState.turnManager.endTurn(gameState.actionCount)
-                return MachineState.StartOfTurn
+                return drawCardsOrEndTurn(gameState, context)
             }
             case isActivate(action): {
-                return ActivatingStateHandler.handleActivation(gameState, action)
+                return ActivatingStateHandler.handleActivation(gameState, action, context)
             }
             default: {
                 throw Error('Invalid action type')
             }
         }
     }
+}
+function nanoid(): string {
+    throw new Error('Function not implemented.')
 }

@@ -9,6 +9,7 @@
     import Header from './Header.svelte'
     import { ActionType } from '@tabletop/sol'
     import ConvertPicker from './ConvertPicker.svelte'
+    import CardPicker from './CardPicker.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -96,7 +97,7 @@
             </div>
         {/if}
     {/if}
-    {#if !moveChosen && !convertChosen && !activateChosen && !gameSession.isMoving && !gameSession.isActivating}
+    {#if !moveChosen && !convertChosen && !activateChosen && !gameSession.isMoving && !gameSession.isActivating && !gameSession.isChoosingCards}
         <div class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4">
             <div class="w-fit me-4 leading-tight text-center">CHOOSE<br />AN ACTION</div>
             <button
@@ -167,5 +168,9 @@
                 >
             </div>
         {/if}
+    {/if}
+    {#if gameSession.isChoosingCards}
+        <div class="ms-3 py-2 flex flex-row justify-center items-center">CHOOSE CARD TO KEEP</div>
+        <CardPicker />
     {/if}
 </div>

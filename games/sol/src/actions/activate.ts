@@ -5,6 +5,7 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
 import { Activation } from '../model/activation.js'
+import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({})
@@ -28,8 +29,6 @@ export const ActivateValidator = Compile(Activate)
 export function isActivate(action?: GameAction): action is Activate {
     return action?.type === ActionType.Activate
 }
-
-export const BASE_AWARD_PER_RING: number[] = [0, 5, 3, 2, 1, 1]
 
 export class HydratedActivate extends HydratableAction<typeof Activate> implements Activate {
     declare type: ActionType.Activate
@@ -94,6 +93,9 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         }
         const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
         playerState.addSundiversToHold(removedDivers)
+
+        const cardsToDraw = CARDS_DRAWN_PER_RING[ring]
+        state.cardsToDraw = (state.cardsToDraw ?? 0) + cardsToDraw
     }
 
     static canActivate(state: HydratedSolGameState, playerId: string): boolean {

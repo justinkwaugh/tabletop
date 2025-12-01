@@ -53,6 +53,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     })
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
     isActivating = $derived(this.gameState.machineState === MachineState.Activating)
+    isChoosingCards = $derived(this.gameState.machineState === MachineState.ChoosingCards)
 
     override initializeTimeline({
         to,

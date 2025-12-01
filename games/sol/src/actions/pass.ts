@@ -34,7 +34,7 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
         super(data, PassValidator)
     }
 
-    apply(state: HydratedSolGameState, _context?: MachineContext) {
-        const playerState = state.getPlayerState(this.playerId)
+    apply(_state: HydratedSolGameState, _context?: MachineContext) {
+        // Pass does not affect game state directly
     }
 }

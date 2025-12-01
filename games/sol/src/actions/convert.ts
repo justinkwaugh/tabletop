@@ -5,6 +5,7 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
 import { Direction, Ring } from '../utils/solGraph.js'
+import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 
 export type ConvertMetadata = Static<typeof ConvertMetadata>
 export const ConvertMetadata = Type.Object({})
@@ -77,6 +78,10 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         )
 
         playerState.movement = playerMovement
+
+        const ring = this.isGate ? this.innerCoords.row : this.coords.row
+        const cardsToDraw = CARDS_DRAWN_PER_RING[ring]
+        state.cardsToDraw = (state.cardsToDraw ?? 0) + cardsToDraw
     }
 
     static canConvert(state: HydratedSolGameState, playerId: string): boolean {

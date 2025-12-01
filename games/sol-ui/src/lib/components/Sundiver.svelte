@@ -27,9 +27,9 @@
         }
     }
 
-    $effect(() => {
-        console.log('Sundiver animator changed:', { animator })
-    })
+    // $effect(() => {
+    //     console.log('Sundiver animator changed:', { animator })
+    // })
 </script>
 
 <g

@@ -12,6 +12,7 @@ import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
 import { HydratedActivateBonus, isActivateBonus } from '../actions/activateBonus.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedDrawCards, isDrawCards } from '../actions/drawCards.js'
 
 export class SolHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -33,6 +34,9 @@ export class SolHydrator implements GameHydrator {
             }
             case isPass(data): {
                 return new HydratedPass(data)
+            }
+            case isDrawCards(data): {
+                return new HydratedDrawCards(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

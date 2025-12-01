@@ -29,7 +29,8 @@ export const SolGameState = Type.Evaluate(
             effects: Type.Record(Type.String(), Effect),
             instability: Type.Number(),
             energyCubes: Type.Number(),
-            activation: Type.Optional(Activation)
+            activation: Type.Optional(Activation),
+            cardsToDraw: Type.Optional(Type.Number({ default: 0 }))
         })
     ])
 )
@@ -52,11 +53,12 @@ export class HydratedSolGameState
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare board: HydratedSolGameBoard
-    declare deck: Deck
+    declare deck: HydratedDeck
     declare effects: Record<string, Effect>
     declare instability: number
     declare energyCubes: number
     declare activation?: Activation
+    declare cardsToDraw?: number
 
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)
