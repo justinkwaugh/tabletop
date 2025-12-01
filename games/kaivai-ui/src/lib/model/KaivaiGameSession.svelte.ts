@@ -301,10 +301,16 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     resetAction() {
         this.chosenAction = undefined
         this.chosenHutType = undefined
-        this.chosenBoat = undefined
-        this.chosenBoatLocation = undefined
+
         this.chosenDeliveries = []
         this.currentDeliveryLocation = undefined
+
+        // These break the boat animations if not delayed.
+        // Not sure if svelte bug or not.
+        setTimeout(() => {
+            this.chosenBoat = undefined
+            this.chosenBoatLocation = undefined
+        })
     }
 
     setDeliveryLocation(coords: AxialCoordinates) {
