@@ -48,7 +48,7 @@
                 style="filter: url(#divershadow)"
             />
         </g>
-        <SundiverIcon class={color} />
+        <SundiverIcon {color} />
     </g>
     {#if quantity > 1}
         <g transform="translate(0,0)">

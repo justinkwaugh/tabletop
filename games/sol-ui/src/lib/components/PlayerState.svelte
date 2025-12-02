@@ -15,6 +15,12 @@
     import BlueShip from '$lib/images/blueShip.svelte'
     import Card from './Card.svelte'
     import CardBack from '$lib/images/cardBack.png'
+    import Cube from '$lib/images/cube.svelte'
+    import Sundiver from '$lib/images/sundiver.svelte'
+    import Gate from '$lib/images/gate.svelte'
+    import Tower from '$lib/images/tower.svelte'
+    import Foundry from '$lib/images/foundry.svelte'
+    import EnergyNode from '$lib/images/energynode.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: SolPlayerState } = $props()
@@ -65,7 +71,7 @@
 
 <div class="relative">
     <div
-        class="bg-cover rounded-lg {bgColor} pt-[3px] px-2 pb-2 text-center {gameSession.colors.getPlayerTextColor(
+        class="bg-cover rounded-lg {bgColor} pt-[3px] px-1 pb-1 text-center {gameSession.colors.getPlayerTextColor(
             playerState.playerId
         )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
     >
@@ -75,8 +81,8 @@
         <div
             class="flex flex-row justify-between items-center rounded-lg dark:bg-black/70 w-full h-full p-1"
         >
-            <div class="flex flex-col justify-center items-center">
-                <div class="flex flex-row space-x-2 justify-center items-center p-2">
+            <div class="flex flex-col justify-between items-center w-full">
+                <div class="flex flex-row space-x-2 justify-center items-center pt-1 pb-2">
                     {#each range(3, 6) as i}
                         <svg
                             class="pointer-events-none"
@@ -86,7 +92,7 @@
                             xmlns="http://www.w3.org/2000/svg"
                         >
                             <circle
-                                fill="#eeeeee"
+                                fill="#dddddd"
                                 stroke="#333333"
                                 stroke-width=".5"
                                 cx="12"
@@ -96,7 +102,7 @@
                             <text
                                 class="select-none"
                                 style="fill: black"
-                                x="11"
+                                x="12"
                                 y="13"
                                 text-anchor="middle"
                                 dominant-baseline="middle"
@@ -109,25 +115,61 @@
                         </svg>
                     {/each}
                 </div>
-                <div class="flex flex-row justify-between items-center w-full px-2">
-                    <svg
-                        class="pointer-events-none"
-                        width="50"
-                        height="100"
-                        viewBox="0 0 250 450"
-                        xmlns="http://www.w3.org/2000/svg"
+                <div class="flex flex-row justify-between items-center w-full px-3">
+                    <div class="shrink-0">
+                        <svg
+                            class="pointer-events-none"
+                            width="50"
+                            height="100"
+                            viewBox="0 0 250 450"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <g transform="">
+                                <Ship />
+                            </g>
+                        </svg>
+                    </div>
+                    <div
+                        class="flex flex-col justify-between items-center h-full w-fit text-[.75rem] sol-font-bold text-[#cccccc] leading-none tracking-widest"
                     >
-                        <g transform="">
-                            <Ship />
-                        </g>
-                    </svg>
-                    <div class="flex flex-col justify-center items-center h-full py-2">
-                        <div>Energy: {playerState.energyCubes}</div>
-                        <div>Divers: {playerState.holdSundivers.length}</div>
+                        <div class="flex flex-row justify-start items-end gap-x-2 w-full mb-[-5px]">
+                            <div class="flex flex-col justify-center items-center gap-y-1">
+                                <Sundiver width={28 * 0.75} height={28} color={playerState.color} />
+
+                                <div>{gameSession.myPlayerState?.holdSundivers.length ?? 0}</div>
+                            </div>
+                            <div class="flex flex-col justify-center items-center gap-y-1">
+                                <Cube width={26} height={26} />
+                                <div>{gameSession.myPlayerState?.energyCubes ?? 0}</div>
+                            </div>
+                        </div>
+                        <div
+                            class="flex flex-row justify-start items-end gap-x-2 w-full text-[.75rem] sol-font-bold text-[#cccccc] leading-none"
+                        >
+                            <div class="flex flex-col justify-center items-center gap-y-1">
+                                <Gate width={25} height={21} color={playerState.color} />
+                                <div>{gameSession.myPlayerState?.solarGates.length ?? 0}</div>
+                            </div>
+                            <div class="flex flex-col justify-center items-center gap-y-1">
+                                <EnergyNode width={23} height={25} color={playerState.color} />
+                                <div>{gameSession.myPlayerState?.energyNodes.length ?? 0}</div>
+                            </div>
+                            <div class="flex flex-col justify-center items-center gap-y-1">
+                                <Foundry width={23} height={25} color={playerState.color} />
+                                <div>
+                                    {gameSession.myPlayerState?.sundiverFoundries.length ?? 0}
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col justify-center items-center gap-y-1">
+                                <Tower width={19} height={40} color={playerState.color} />
+                                <div>{gameSession.myPlayerState?.transmitTowers.length ?? 0}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="rounded-lg dark:bg-gray-700 w-[94px] h-[136px] overflow-hidden">
+            <div class="rounded-lg dark:bg-gray-700 w-[94px] h-[136px] overflow-hidden shrink-0">
                 {#if playerState.card}
                     <Card suit={playerState.card.suit} />
                 {:else}

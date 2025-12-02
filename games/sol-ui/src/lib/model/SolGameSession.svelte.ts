@@ -7,6 +7,7 @@ import {
     HydratedSolGameState,
     isLaunch,
     MachineState,
+    SolarGate,
     SolGameState,
     StationType,
     Suit,
@@ -37,10 +38,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     chosenSource?: OffsetCoordinates = $state(undefined)
     chosenDestination?: OffsetCoordinates = $state(undefined)
     chosenConvertType?: ConvertType = $state(undefined)
-
-    diverCellChoices?: number[] = $state(undefined)
+    chosenGates?: number[] = $state(undefined)
     chosenDiverCell?: OffsetCoordinates = $state(undefined)
     chosenSecondDiverCell?: OffsetCoordinates = $state(undefined)
+
+    gateChoices?: SolarGate[] = $state(undefined)
+    diverCellChoices?: number[] = $state(undefined)
 
     midAction = $derived.by(() => {
         if (this.chosenSource) {
@@ -257,6 +260,20 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('Not enough divers')
         }
 
+        // Check gates
+        const gates = this.gameState.board.gateChoicesForDestination(
+            this.chosenSource,
+            this.chosenDestination,
+            this.myPlayerState?.movementPoints ?? 0
+        )
+
+        console.log('Gates for flight', gates)
+
+        if (gates.length > 0) {
+            this.gateChoices = gates
+            return
+        }
+
         // We want to take the last ones first
         const diverIds = playerDivers
             .toReversed()
@@ -305,6 +322,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
 
         await this.doAction(action)
+    }
+
+    checkGates(source: OffsetCoordinates, destination: OffsetCoordinates, range: number) {
+        const gates = this.gameState.board.gateChoicesForDestination(source, destination, range)
     }
 
     async convertGate() {

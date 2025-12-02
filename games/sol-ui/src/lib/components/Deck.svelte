@@ -44,8 +44,8 @@
         stroke-width="2"
     ></rect>
     <text
-        x={width / 2}
-        y={height - 10}
+        x={width / 2 + 5}
+        y={height + 40}
         text-anchor="middle"
         font-family="metropolis, sans-serif"
         font-size={30}

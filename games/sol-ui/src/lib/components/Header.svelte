@@ -5,7 +5,7 @@
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
-    import CardBack from '$lib/images/cardBack.png'
+    import CardBack from '$lib/images/cardBack2.png'
     import { Suit } from '@tabletop/sol'
     import Card from './Card.svelte'
 
@@ -56,7 +56,9 @@
             </div>
         {:else if gameSession.isChoosingCard}
             <div class="inline-flex items-center gap-x-2">
-                <div class="rounded-sm dark:bg-gray-700 h-[36px] w-[22px] overflow-hidden">
+                <div
+                    class="rounded-sm dark:bg-gray-700 h-[36px] w-[26px] overflow-hidden border-1 border-[#5a5141]"
+                >
                     <div
                         style="background-image: {cardBackImage}"
                         class="bg-center bg-cover w-full h-full"
