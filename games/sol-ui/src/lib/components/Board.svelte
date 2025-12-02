@@ -14,6 +14,8 @@
     import type { OffsetCoordinates } from '@tabletop/common'
     import GateDestination from './GateDestination.svelte'
     import Gate from './BoardGate.svelte'
+    import InstabilityTrack from './InstabilityTrack.svelte'
+    import Deck from './Deck.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -62,6 +64,9 @@
             <DropShadow id="textshadow" />
             <DropShadow id="divershadow" offset={{ x: 0, y: 0 }} amount={20} />
         </defs>
+
+        <InstabilityTrack width={760} height={35} location={{ x: (1280 - 760) / 2, y: 12 }} />
+        <Deck width={100} height={142} location={{ x: 80, y: 10 }} />
 
         {#each [...sundiversById] as [, sundiver] (sundiver.id)}
             <UISundiver
