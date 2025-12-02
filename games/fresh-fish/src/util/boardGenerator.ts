@@ -349,6 +349,8 @@ function generateNewBoardWithTile({
                 const oldCell = currentBoard.getCell([offsetCoords.x, offsetCoords.y])
                 if (oldCell) {
                     newRow.push(oldCell)
+                } else {
+                    newRow.push({ type: CellType.OffBoard })
                 }
             } else {
                 // Then off board
