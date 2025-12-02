@@ -6,7 +6,6 @@ import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
-import { Sundiver } from '../index.js'
 
 export type ConvertMetadata = Static<typeof ConvertMetadata>
 export const ConvertMetadata = Type.Object({})
