@@ -26,7 +26,6 @@ export function isSolarFlare(action?: GameAction): action is SolarFlare {
 
 export class HydratedSolarFlare extends HydratableAction<typeof SolarFlare> implements SolarFlare {
     declare type: ActionType.SolarFlare
-    declare playerId: string
     declare metadata?: SolarFlareMetadata
 
     constructor(data: SolarFlare) {
@@ -39,6 +38,14 @@ export class HydratedSolarFlare extends HydratableAction<typeof SolarFlare> impl
             if (playerState.energyCubes > 12) {
                 playerState.energyCubes = Math.floor(playerState.energyCubes / 2)
             }
+        }
+        if (state.hurled) {
+            const currentPlayerId = state.turnManager.currentTurn()?.playerId
+            if (!currentPlayerId) {
+                throw Error('No current player')
+            }
+            const playerState = state.getPlayerState(currentPlayerId)
+            playerState.momentum = (playerState.momentum ?? 0) + 1
         }
     }
 }

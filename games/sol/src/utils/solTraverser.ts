@@ -39,6 +39,11 @@ export function solTraverseChecker(board: HydratedSolGameBoard, allowedGates?: S
             return true
         }
 
+        // Traversing to the center is always allowed
+        if (to.coords.row === Ring.Center && from.coords.row === Ring.Core) {
+            return true
+        }
+
         // Traversing between other rings is allowed if there is a gate between them
         if (allowedGates) {
             return allowedGates.some((gate) => {

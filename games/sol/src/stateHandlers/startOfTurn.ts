@@ -91,6 +91,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedSolGameState
+        gameState.hurled = false
         const lastPlayerId = gameState.turnManager.lastPlayer()
         if (!lastPlayerId) {
             throw Error('Cannot find last player')
@@ -107,28 +108,13 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {
-            case isLaunch(action): {
-                if (playerState.movementPoints > 0) {
-                    return MachineState.Moving
-                } else {
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
-                }
-            }
-            case isFly(action): {
-                if (playerState.movementPoints > 0) {
-                    return MachineState.Moving
-                } else {
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
-                }
-            }
+            case isLaunch(action):
+            case isFly(action):
             case isHurl(action): {
                 if (playerState.movementPoints > 0) {
                     return MachineState.Moving
                 } else {
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
+                    return drawCardsOrEndTurn(gameState, context)
                 }
             }
             case isConvert(action): {

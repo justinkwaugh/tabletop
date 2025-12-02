@@ -15,6 +15,7 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedDrawCards, isDrawCards } from '../actions/drawCards.js'
 import { HydratedChooseCard, isChooseCard } from '../actions/chooseCard.js'
 import { HydratedSolarFlare, isSolarFlare } from '../actions/solarFlare.js'
+import { HydratedHurl, isHurl } from '../actions/hurl.js'
 
 export class SolHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -24,6 +25,9 @@ export class SolHydrator implements GameHydrator {
             }
             case isFly(data): {
                 return new HydratedFly(data)
+            }
+            case isHurl(data): {
+                return new HydratedHurl(data)
             }
             case isConvert(data): {
                 return new HydratedConvert(data)

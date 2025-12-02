@@ -2,6 +2,7 @@ import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
 import {
     ActionType,
     Cell,
+    CENTER_COORDS,
     Direction,
     HydratedSolGameState,
     isLaunch,
@@ -11,7 +12,13 @@ import {
     Suit,
     Sundiver
 } from '@tabletop/sol'
-import { coordinatesToNumber, GameAction, OffsetCoordinates, Point } from '@tabletop/common'
+import {
+    coordinatesToNumber,
+    GameAction,
+    OffsetCoordinates,
+    Point,
+    sameCoordinates
+} from '@tabletop/common'
 import { ActionCategory } from '$lib/definition/actionCategory.js'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
@@ -258,6 +265,39 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         const action = {
             ...this.createBaseAction(ActionType.Fly),
+            playerId: this.myPlayer.id,
+            sundiverIds: diverIds,
+            start: this.chosenSource,
+            destination: this.chosenDestination
+        }
+
+        await this.doAction(action)
+    }
+
+    async hurl() {
+        if (
+            !this.myPlayer ||
+            !this.chosenSource ||
+            !this.chosenNumDivers ||
+            !this.chosenDestination ||
+            !sameCoordinates(this.chosenDestination, CENTER_COORDS)
+        ) {
+            throw new Error('Invalid hurl')
+        }
+        const cell = this.gameState.board.cellAt(this.chosenSource)
+        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
+        if (playerDivers.length < this.chosenNumDivers) {
+            throw new Error('Not enough divers')
+        }
+
+        // We want to take the last ones first
+        const diverIds = playerDivers
+            .toReversed()
+            .slice(0, this.chosenNumDivers)
+            .map((diver) => diver.id)
+
+        const action = {
+            ...this.createBaseAction(ActionType.Hurl),
             playerId: this.myPlayer.id,
             sundiverIds: diverIds,
             start: this.chosenSource,

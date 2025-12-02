@@ -23,6 +23,12 @@
     let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
     let convertChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Convert)
     let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
+
+    let currentSolarFlare = $derived(
+        (gameSession.gameState.solarFlares ?? 0) -
+            (gameSession.gameState.solarFlaresRemaining ?? 0) +
+            1
+    )
 </script>
 
 {#if gameSession.chosenActionCategory || gameSession.isMoving || gameSession.isActivating || gameSession.isChoosingCard || gameSession.isSolarFlares}
@@ -63,7 +69,9 @@
                 <div class="rounded-sm dark:bg-gray-700 h-[36px] w-[22px] overflow-hidden">
                     <Card suit={Suit.Flare} />
                 </div>
-                <div>SOLAR FLARE</div>
+                <div>
+                    SOLAR FLARE {currentSolarFlare} OF {gameSession.gameState.solarFlares}
+                </div>
             </div>
         {/if}
         <div>

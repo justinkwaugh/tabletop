@@ -6,6 +6,7 @@ import { HydratedLaunch, isLaunch } from '../actions/launch.js'
 import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from Moving(Launch) -> Moving | StartOfTurn
 // Transition from Moving(Fly) -> Moving | StartOfTurn
@@ -62,33 +63,17 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {
-            case isLaunch(action): {
-                if (playerState.movementPoints > 0) {
-                    return MachineState.Moving
-                } else {
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
-                }
-            }
-            case isFly(action): {
-                if (playerState.movementPoints > 0) {
-                    return MachineState.Moving
-                } else {
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
-                }
-            }
+            case isLaunch(action):
+            case isFly(action):
             case isHurl(action): {
                 if (playerState.movementPoints > 0) {
                     return MachineState.Moving
                 } else {
-                    gameState.turnManager.endTurn(gameState.actionCount)
-                    return MachineState.StartOfTurn
+                    return drawCardsOrEndTurn(gameState, context)
                 }
             }
             case isPass(action): {
-                gameState.turnManager.endTurn(gameState.actionCount)
-                return MachineState.StartOfTurn
+                return drawCardsOrEndTurn(gameState, context)
             }
             default: {
                 throw Error('Invalid action type')

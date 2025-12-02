@@ -36,6 +36,7 @@ export const SolGameBoard = Type.Object({
     gates: Type.Record(Type.String(), SolarGate)
 })
 
+export const CENTER_COORDS = { row: Ring.Center, col: 0 } satisfies OffsetCoordinates
 export const SolGameBoardValidator = Compile(SolGameBoard)
 
 export class HydratedSolGameBoard

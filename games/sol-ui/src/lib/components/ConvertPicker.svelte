@@ -8,8 +8,6 @@
     import EnergyNode from '$lib/images/energynode.svelte'
     import { ConvertType } from '$lib/definition/convertType.js'
 
-    import SvgIcon from './SvgIcon.svelte'
-
     let gameSession = getContext('gameSession') as SolGameSession
 
     const canConvertSolarGate = $derived(
@@ -68,7 +66,7 @@
             </div>
         </div>
     {/if}
-    {#if true || canConvertSundiverFoundry}
+    {#if canConvertSundiverFoundry}
         <div class="flex flex-col items-center">
             <button onclick={() => chooseConvertType(ConvertType.SundiverFoundry)}>
                 <Foundry

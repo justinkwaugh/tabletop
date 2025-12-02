@@ -32,7 +32,9 @@ export const SolGameState = Type.Evaluate(
             activation: Type.Optional(Activation),
             cardsToDraw: Type.Optional(Type.Number({ default: 0 })),
             solarFlares: Type.Optional(Type.Number({ default: 0 })),
-            solarFlareActivations: Type.Optional(Type.Array(Activation))
+            solarFlaresRemaining: Type.Optional(Type.Number({ default: 0 })),
+            solarFlareActivations: Type.Optional(Type.Array(Activation)),
+            hurled: Type.Optional(Type.Boolean({ default: false }))
         })
     ])
 )
@@ -62,7 +64,9 @@ export class HydratedSolGameState
     declare activation?: Activation
     declare cardsToDraw?: number
     declare solarFlares?: number
+    declare solarFlaresRemaining?: number
     declare solarFlareActivations?: Activation[]
+    declare hurled?: boolean
 
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)

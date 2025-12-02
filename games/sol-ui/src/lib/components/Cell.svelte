@@ -7,11 +7,19 @@
     import {
         dimensionsForSpace,
         getCirclePoint,
+        RING_RADII,
         toRadians,
         translateFromCenter
     } from '$lib/utils/boardGeometry.js'
-    import { getCellLayout } from '$lib/utils/cellLayouts.js'
-    import { HydratedActivate, HydratedFly, StationType, type Cell } from '@tabletop/sol'
+    import {
+        CENTER_COORDS,
+        HydratedActivate,
+        HydratedFly,
+        HydratedHurl,
+        Ring,
+        StationType,
+        type Cell
+    } from '@tabletop/sol'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
     import Sundiver from './Sundiver.svelte'
     import { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
@@ -24,7 +32,7 @@
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
     const dimensions = dimensionsForSpace(gameSession.numPlayers, cell.coords)
-    const cellLayout = getCellLayout(cell, gameSession.numPlayers, gameSession.gameState.board)
+    const isCenterCell = sameCoordinates(cell.coords, CENTER_COORDS)
 
     let myMove = $derived(
         gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Move
@@ -67,14 +75,18 @@
                 }
             } else if (gameSession.chosenSource) {
                 if (gameSession.chosenNumDivers) {
-                    return HydratedFly.isValidFlightDestination(
-                        gameSession.gameState,
-                        myPlayer.id,
-                        gameSession.chosenNumDivers,
-                        false,
-                        gameSession.chosenSource,
-                        cell.coords
-                    )
+                    if (isCenterCell) {
+                        return HydratedHurl.canHurl(gameSession.gameState, myPlayer.id)
+                    } else {
+                        return HydratedFly.isValidFlightDestination(
+                            gameSession.gameState,
+                            myPlayer.id,
+                            gameSession.chosenNumDivers,
+                            false,
+                            gameSession.chosenSource,
+                            cell.coords
+                        )
+                    }
                 }
             } else {
                 return gameSession.gameState.board.sundiversForPlayer(myPlayer.id, cell).length > 0
@@ -150,7 +162,11 @@
                 gameSession.launch()
             } else if (gameSession.chosenSource) {
                 gameSession.chosenDestination = cell.coords
-                gameSession.fly()
+                if (isCenterCell) {
+                    gameSession.hurl()
+                } else {
+                    gameSession.fly()
+                }
             } else {
                 gameSession.chosenSource = cell.coords
 
@@ -279,19 +295,9 @@
     transform={translateFromCenter(0, 0)}
     stroke="none"
 >
-    <path
-        d={cellPath(
-            dimensions.innerRadius,
-            dimensions.outerRadius,
-            dimensions.startDegrees,
-            dimensions.endDegrees
-        )}
-        fill="transparent"
-    ></path>
-</g>
-
-{#if disabled}
-    <g transform={translateFromCenter(0, 0)} stroke="none">
+    {#if isCenterCell}
+        <circle r={RING_RADII[Ring.Center][1]} fill="transparent"></circle>
+    {:else}
         <path
             d={cellPath(
                 dimensions.innerRadius,
@@ -299,8 +305,26 @@
                 dimensions.startDegrees,
                 dimensions.endDegrees
             )}
-            opacity="0.5"
-            fill="black"
+            fill="transparent"
         ></path>
+    {/if}
+</g>
+
+{#if disabled}
+    <g transform={translateFromCenter(0, 0)} stroke="none">
+        {#if isCenterCell}
+            <circle r={RING_RADII[Ring.Center][1]} opacity="0.5" fill="black"></circle>
+        {:else}
+            <path
+                d={cellPath(
+                    dimensions.innerRadius,
+                    dimensions.outerRadius,
+                    dimensions.startDegrees,
+                    dimensions.endDegrees
+                )}
+                opacity="0.5"
+                fill="black"
+            ></path>
+        {/if}
     </g>
 {/if}

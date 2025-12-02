@@ -37,6 +37,7 @@ export class DrawingCardsStateHandler implements MachineStateHandler<HydratedDra
 
         if (numSolarFlares > 0) {
             gameState.solarFlares = numSolarFlares
+            gameState.solarFlaresRemaining = numSolarFlares
             const solarFlareAction: SolarFlare = {
                 type: ActionType.SolarFlare,
                 id: nanoid(),
