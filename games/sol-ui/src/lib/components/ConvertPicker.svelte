@@ -2,11 +2,13 @@
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { HydratedConvert } from '@tabletop/sol'
-    import Gate from '$lib/components/Gate.svelte'
-    import Tower from '$lib/components/Tower.svelte'
-    import Foundry from '$lib/components/Foundry.svelte'
+    import Gate from '$lib/images/gate.svelte'
+    import Tower from '$lib/images/tower.svelte'
+    import Foundry from '$lib/images/foundry.svelte'
+    import EnergyNode from '$lib/images/energynode.svelte'
     import { ConvertType } from '$lib/definition/convertType.js'
-    import EnergyNode from './EnergyNode.svelte'
+
+    import SvgIcon from './SvgIcon.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -37,47 +39,69 @@
     }
 </script>
 
-<div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
+<div class="flex flex-row flex-wrap justify-center items-end gap-x-2 mb-2">
     {#if canConvertSolarGate}
-        <button onclick={() => chooseConvertType(ConvertType.SolarGate)}>
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="41px"
-                height="36px"
-                viewBox="0 -18 41 36"
-            >
-                <Gate
-                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                    location={{ x: -640 + 20.5, y: -640 + 18 }}
-                />
-            </svg>
-        </button>
+        <div class="flex flex-col items-center">
+            <button onclick={() => chooseConvertType(ConvertType.SolarGate)}>
+                <SvgIcon width={41} height={36}>
+                    <Gate
+                        width={41}
+                        height={36}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                </SvgIcon>
+            </button>
+            <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                SOLAR<br />GATE
+            </div>
+        </div>
     {/if}
     {#if canConvertEnergyNode}
-        <button onclick={() => chooseConvertType(ConvertType.EnergyNode)}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="46px" height="48px" viewBox="0 0 34 41">
-                <EnergyNode
-                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                    location={{ x: -640 + 19.5, y: -640 + 20.5 }}
-                />
-            </svg>
-        </button>
+        <div class="flex flex-col items-center">
+            <button onclick={() => chooseConvertType(ConvertType.EnergyNode)}>
+                <SvgIcon width={46} height={48}>
+                    <EnergyNode
+                        width={46}
+                        height={48}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                </SvgIcon>
+            </button>
+            <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                ENERGY<br />NODE
+            </div>
+        </div>
     {/if}
     {#if canConvertSundiverFoundry}
-        <button onclick={() => chooseConvertType(ConvertType.SundiverFoundry)}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="46px" height="48px" viewBox="0 0 34 41">
-                <Foundry
-                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                    location={{ x: -640 + 19.5, y: -640 + 20.5 }}
-                />
-            </svg>
-        </button>
+        <div class="flex flex-col items-center">
+            <button onclick={() => chooseConvertType(ConvertType.SundiverFoundry)}>
+                <SvgIcon width={46} height={48}>
+                    <Foundry
+                        width={46}
+                        height={48}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                </SvgIcon>
+            </button>
+            <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                SUNDIVER<br />FOUNDRY
+            </div>
+        </div>
     {/if}
     {#if canConvertTransmitTower}
-        <button onclick={() => chooseConvertType(ConvertType.TransmitTower)}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">
-                <Tower color="green" location={{ x: -640 + 16, y: -640 + 21 }} />
-            </svg>
-        </button>
+        <div class="flex flex-col items-center">
+            <button onclick={() => chooseConvertType(ConvertType.TransmitTower)}>
+                <SvgIcon width={40} height={80}>
+                    <Tower
+                        width={40}
+                        height={80}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                </SvgIcon>
+            </button>
+            <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                TRANSMIT<br />TOWER
+            </div>
+        </div>
     {/if}
 </div>

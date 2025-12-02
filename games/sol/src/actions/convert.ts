@@ -6,6 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
+import { Sundiver } from '../index.js'
 
 export type ConvertMetadata = Static<typeof ConvertMetadata>
 export const ConvertMetadata = Type.Object({})
@@ -154,6 +155,8 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
             return HydratedConvert.isValidEnergyNodeConversion(state, convert)
         } else if (convert.stationType === StationType.SundiverFoundry) {
             return HydratedConvert.isValidSundiverFoundryConversion(state, convert)
+        } else if (convert.stationType === StationType.TransmitTower) {
+            return HydratedConvert.isValidTransmitTowerConversion(state, convert)
         }
 
         return false
@@ -290,6 +293,65 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
 
         for (const neighbor of neighbors) {
             if (neighbor.sundivers.find((diver) => diver.id === secondDiverId)) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    static isValidTransmitTowerConversion(state: HydratedSolGameState, convert: Convert): boolean {
+        const playerState = state.getPlayerState(convert.playerId)
+
+        if (convert.sundiverIds.length !== 3) {
+            return false
+        }
+
+        if (playerState.transmitTowers.length === 0) {
+            return false
+        }
+
+        if (
+            !state.board.canConvertStationAt(
+                convert.playerId,
+                StationType.TransmitTower,
+                convert.coords
+            )
+        ) {
+            return false
+        }
+
+        const firstSundivers = state.board.sundiversForPlayerAt(convert.playerId, convert.coords)
+        const firstIndex = convert.sundiverIds.findIndex((sundiverId) => {
+            return firstSundivers.find((sundiver) => sundiver.id === sundiverId)
+        })
+        if (firstIndex === -1) {
+            return false
+        }
+
+        const remainingDiverIds = convert.sundiverIds.filter((_, index) => index !== firstIndex)
+        let secondCoords: OffsetCoordinates | undefined
+
+        for (const cell of state.board.neighborsAt(convert.coords, Direction.Out)) {
+            const cellDivers = state.board.sundiversForPlayerAt(convert.playerId, cell.coords)
+            const index = remainingDiverIds.findIndex((sundiverId) => {
+                return cellDivers.find((sundiver) => sundiver.id === sundiverId)
+            })
+            if (index !== -1) {
+                remainingDiverIds.splice(index, 1)
+                secondCoords = cell.coords
+            }
+        }
+
+        if (remainingDiverIds.length !== 1 || secondCoords === undefined) {
+            return false
+        }
+
+        const thirdDiverId = remainingDiverIds[0]
+        const thirdNeighbors = state.board.neighborsAt(secondCoords, Direction.Out)
+        for (const cell of thirdNeighbors) {
+            const cellDivers = state.board.sundiversForPlayerAt(convert.playerId, cell.coords)
+            if (cellDivers.find((sundiver) => sundiver.id === thirdDiverId)) {
                 return true
             }
         }

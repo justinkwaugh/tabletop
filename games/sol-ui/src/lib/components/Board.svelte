@@ -13,7 +13,7 @@
     import { getGatePosition, type GatePosition } from '$lib/utils/boardGeometry.js'
     import type { OffsetCoordinates } from '@tabletop/common'
     import GateDestination from './GateDestination.svelte'
-    import Gate from './Gate.svelte'
+    import Gate from './BoardGate.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg

@@ -16,8 +16,10 @@
     import Sundiver from './Sundiver.svelte'
     import { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
     import { ConvertType } from '$lib/definition/convertType.js'
-    import EnergyNode from './EnergyNode.svelte'
-    import Foundry from './Foundry.svelte'
+    import EnergyNode from '$lib/images/energynode.svelte'
+    import Foundry from '$lib/images/foundry.svelte'
+    import Tower from '$lib/images/tower.svelte'
+    import BoardSvg from './BoardSvg.svelte'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
@@ -96,6 +98,9 @@
                     cell.coords
                 )
             } else if (gameSession.chosenConvertType === ConvertType.TransmitTower) {
+                if (gameSession.diverCellChoices) {
+                    return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
+                }
                 return gameSession.gameState.board.canConvertStationAt(
                     myPlayer.id,
                     StationType.TransmitTower,
@@ -155,11 +160,17 @@
             }
         } else if (myConvert) {
             if (gameSession.diverCellChoices) {
-                gameSession.chosenDiverCell = cell.coords
+                if (gameSession.chosenDiverCell) {
+                    gameSession.chosenSecondDiverCell = cell.coords
+                } else {
+                    gameSession.chosenDiverCell = cell.coords
+                }
                 if (gameSession.chosenConvertType === ConvertType.SolarGate) {
                     gameSession.convertGate()
                 } else if (gameSession.chosenConvertType === ConvertType.SundiverFoundry) {
                     gameSession.convertSundiverFoundry()
+                } else if (gameSession.chosenConvertType === ConvertType.TransmitTower) {
+                    gameSession.convertTransmitTower()
                 }
             } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
                 gameSession.chosenSource = cell.coords
@@ -167,6 +178,9 @@
             } else if (gameSession.chosenConvertType === ConvertType.SundiverFoundry) {
                 gameSession.chosenSource = cell.coords
                 gameSession.convertSundiverFoundry()
+            } else if (gameSession.chosenConvertType === ConvertType.TransmitTower) {
+                gameSession.chosenSource = cell.coords
+                gameSession.convertTransmitTower()
             }
         } else if (myActivate) {
             gameSession.chosenSource = cell.coords
@@ -217,15 +231,41 @@
 
 {#if cell.station}
     {#if cell.station.type === StationType.EnergyNode}
-        <EnergyNode
+        <BoardSvg
+            width={46}
+            height={48}
             location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
-            color={gameSession.colors.getPlayerColor(cell.station.playerId)}
-        />
+        >
+            <EnergyNode
+                width={46}
+                height={48}
+                color={gameSession.colors.getPlayerColor(cell.station.playerId)}
+            />
+        </BoardSvg>
     {:else if cell.station.type === StationType.SundiverFoundry}
-        <Foundry
+        <BoardSvg
+            width={46}
+            height={48}
             location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
-            color={gameSession.colors.getPlayerColor(cell.station.playerId)}
-        />
+        >
+            <Foundry
+                width={46}
+                height={48}
+                color={gameSession.colors.getPlayerColor(cell.station.playerId)}
+            />
+        </BoardSvg>
+    {:else if cell.station.type === StationType.TransmitTower}
+        <BoardSvg
+            width={46}
+            height={48}
+            location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
+        >
+            <Tower
+                width={46}
+                height={48}
+                color={gameSession.colors.getPlayerColor(cell.station.playerId)}
+            />
+        </BoardSvg>
     {/if}
 {/if}
 

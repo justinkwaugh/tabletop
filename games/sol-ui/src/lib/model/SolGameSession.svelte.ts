@@ -33,6 +33,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     diverCellChoices?: number[] = $state(undefined)
     chosenDiverCell?: OffsetCoordinates = $state(undefined)
+    chosenSecondDiverCell?: OffsetCoordinates = $state(undefined)
 
     midAction = $derived.by(() => {
         if (this.chosenSource) {
@@ -163,7 +164,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     back() {
         if (this.chosenActionCategory === ActionCategory.Convert) {
-            if (this.chosenSource) {
+            if (this.chosenDiverCell) {
+                this.chosenDiverCell = undefined
+            } else if (this.chosenSource) {
                 this.diverCellChoices = undefined
                 this.chosenSource = undefined
                 this.chosenDestination = undefined
@@ -205,6 +208,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.chosenDestination = undefined
         this.diverCellChoices = undefined
         this.chosenDiverCell = undefined
+        this.chosenSecondDiverCell = undefined
     }
 
     override shouldAutoStepAction(_action: GameAction) {
@@ -453,6 +457,116 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             stationType: StationType.SundiverFoundry,
             sundiverIds,
             coords: this.chosenSource
+        }
+
+        await this.doAction(action)
+    }
+
+    async convertTransmitTower() {
+        if (
+            !this.myPlayer ||
+            !this.myPlayerState ||
+            !this.chosenConvertType ||
+            !this.chosenSource
+        ) {
+            throw new Error('Invalid tower conversion')
+        }
+
+        const sundiverIds = []
+        const firstSundiver = this.gameState.board
+            .sundiversForPlayerAt(this.myPlayer.id, this.chosenSource)
+            .at(-1)
+
+        if (!firstSundiver) {
+            throw new Error('No first sundiver to convert gate')
+        }
+        sundiverIds.push(firstSundiver.id)
+
+        let secondSundiver
+        if (!this.chosenDiverCell) {
+            const sundiversByCoords: Map<
+                number,
+                { coords: OffsetCoordinates; divers: Sundiver[] }
+            > = new Map()
+            const secondCells = this.gameState.board.neighborsAt(this.chosenSource, Direction.Out)
+            for (const cell of secondCells) {
+                const divers = this.gameState.board.sundiversForPlayerAt(
+                    this.myPlayer.id,
+                    cell.coords
+                )
+                if (divers.length > 0) {
+                    sundiversByCoords.set(coordinatesToNumber(cell.coords), {
+                        coords: cell.coords,
+                        divers
+                    })
+                }
+            }
+
+            if (sundiversByCoords.size > 1) {
+                this.diverCellChoices = Array.from(sundiversByCoords.keys())
+                return
+            }
+
+            secondSundiver = Array.from(sundiversByCoords.values()).at(-1)?.divers.at(-1)
+        } else {
+            secondSundiver = this.gameState.board
+                .sundiversForPlayerAt(this.myPlayer.id, this.chosenDiverCell)
+                .at(-1)
+        }
+
+        if (!secondSundiver) {
+            throw new Error('No second sundiver to convert gate')
+        }
+        sundiverIds.push(secondSundiver.id)
+
+        let thirdSundiver
+        if (!this.chosenSecondDiverCell) {
+            if (!this.chosenDiverCell) {
+                throw new Error('No chosen diver cell for second sundiver')
+            }
+            const sundiversByCoords: Map<
+                number,
+                { coords: OffsetCoordinates; divers: Sundiver[] }
+            > = new Map()
+            const thirdCells = this.gameState.board.neighborsAt(this.chosenDiverCell, Direction.Out)
+            for (const cell of thirdCells) {
+                const divers = this.gameState.board.sundiversForPlayerAt(
+                    this.myPlayer.id,
+                    cell.coords
+                )
+                if (divers.length > 0) {
+                    sundiversByCoords.set(coordinatesToNumber(cell.coords), {
+                        coords: cell.coords,
+                        divers
+                    })
+                }
+            }
+
+            if (sundiversByCoords.size > 1) {
+                this.diverCellChoices = Array.from(sundiversByCoords.keys())
+                return
+            }
+
+            thirdSundiver = Array.from(sundiversByCoords.values()).at(-1)?.divers.at(-1)
+        } else {
+            thirdSundiver = this.gameState.board
+                .sundiversForPlayerAt(this.myPlayer.id, this.chosenSecondDiverCell)
+                .at(-1)
+        }
+
+        if (!thirdSundiver) {
+            throw new Error('No third sundiver to convert gate')
+        }
+        sundiverIds.push(thirdSundiver.id)
+
+        const action = {
+            ...this.createBaseAction(ActionType.Convert),
+            playerId: this.myPlayer.id,
+            isGate: false,
+            stationType: StationType.TransmitTower,
+            sundiverIds,
+            coords: this.chosenSource,
+            innerCoords: this.chosenDestination
         }
 
         await this.doAction(action)

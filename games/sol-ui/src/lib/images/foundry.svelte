@@ -2,13 +2,13 @@
     let {
         width = 93,
         height = 100,
-        class: className = '',
+        color = '',
         ...svgProps
-    }: { width?: number; height?: number; class?: string } = $props()
+    }: { width?: number; height?: number; color?: string } = $props()
 </script>
 
 <svg
-    class={`sol ${className}`}
+    class={`sol ${color}`}
     {width}
     {height}
     xmlns="http://www.w3.org/2000/svg"
@@ -17,6 +17,13 @@
 >
     <defs>
         <style>
+            .a,
+            .b,
+            .c,
+            .d {
+                stroke-width: 0px;
+            }
+
             .a {
                 fill: #c2c2c2;
             }

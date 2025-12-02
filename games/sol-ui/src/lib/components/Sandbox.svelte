@@ -12,8 +12,8 @@
         type GatePosition
     } from '$lib/utils/boardGeometry.js'
     import Sundiver from './Sundiver.svelte'
-    import Gate from './Gate.svelte'
-    import Tower from './Tower.svelte'
+    import Gate from './BoardGate.svelte'
+    // import Tower from './Tower.svelte'
     import BlueShip from '$lib/images/blueShip.svelte'
     import SilverShip from '$lib/images/silverShip.svelte'
     import { Direction, Ring, SolGraph } from '@tabletop/sol'
@@ -172,9 +172,9 @@
     <Sundiver color="blue" {quantity} location={point} />
 {/each}
 
-{#each towerLocs as point}
+<!-- {#each towerLocs as point}
     <Tower color="blue" location={point} />
-{/each}
+{/each} -->
 
 {#if !hideStuff}
     {#each spaceLabels as { point, label }}
@@ -295,13 +295,13 @@
     {/each}
 
     {#each tempTowersLocations as { id, point }}
-        <Tower
+        <!-- <Tower
             onclick={() => {
                 towerClick(id)
             }}
             color="blue"
             location={point}
-        />
+        /> -->
         <g transform={translateFromCenter(point.x, point.y)}>
             <text
                 y="-6"
