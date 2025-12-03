@@ -1,4 +1,4 @@
-import { HydratedSolGameState, type SolGameState } from '@tabletop/sol'
+import { Direction, HydratedSolGameState, type SolGameState } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import { Color } from '@tabletop/common'
 import { CENTER_POINT, getMothershipAngle } from '$lib/utils/boardGeometry.js'
@@ -6,6 +6,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { rotate } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 
+const SVG_ORIGIN = `${CENTER_POINT.x}, ${CENTER_POINT.y}`
 export class MothershipAnimator extends StateAnimator<
     SolGameState,
     HydratedSolGameState,
@@ -41,24 +42,44 @@ export class MothershipAnimator extends StateAnimator<
         from?: HydratedSolGameState
         timeline: gsap.core.Timeline
     }) {
+        const direction =
+            to.actionCount >= (from?.actionCount ?? 0)
+                ? Direction.CounterClockwise
+                : Direction.Clockwise
         const startIndex = from?.board.motherships[this.playerId]
         if (!startIndex) {
             return
         }
         const endIndex = to.board.motherships[this.playerId]
         if (startIndex !== endIndex) {
-            this.moveShip(timeline as gsap.core.Timeline, startIndex, endIndex)
+            this.moveShip(timeline as gsap.core.Timeline, startIndex, endIndex, direction)
         }
     }
 
-    moveShip(timeline: gsap.core.Timeline, startIndex: number, endIndex: number) {
+    moveShip(
+        timeline: gsap.core.Timeline,
+        startIndex: number,
+        endIndex: number,
+        direction: Direction.Clockwise | Direction.CounterClockwise = Direction.CounterClockwise
+    ) {
+        const startDegrees = getMothershipAngle(this.gameSession.numPlayers, this.color, startIndex)
         const endDegrees = getMothershipAngle(this.gameSession.numPlayers, this.color, endIndex)
+
+        if (direction === Direction.CounterClockwise && startDegrees < endDegrees) {
+            gsap.set(this.element!, {
+                rotation: startDegrees + 360
+            })
+        } else if (direction === Direction.Clockwise && startDegrees > endDegrees) {
+            gsap.set(this.element!, {
+                rotation: startDegrees - 360
+            })
+        }
 
         rotate({
             timeline,
             object: this.element,
             degrees: `${endDegrees}`,
-            svgOrigin: `${CENTER_POINT.x}, ${CENTER_POINT.y}`,
+            svgOrigin: SVG_ORIGIN,
             duration: 0.5,
             position: 'mothership'
         })
