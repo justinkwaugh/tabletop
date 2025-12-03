@@ -51,10 +51,12 @@ export enum GameSessionMode {
 export type GameStateChangeListener<U extends HydratedGameState> = ({
     to,
     from,
+    actions,
     timeline
 }: {
     to: U
     from?: U
+    actions?: GameAction[]
     timeline: gsap.core.Timeline
 }) => Promise<void>
 
@@ -406,11 +408,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 autoRemoveChildren: true
             })
 
-            this.initializeTimeline({ to: newState, from: oldState, timeline })
+            const actions: GameAction[] = []
+            if (oldState && newState.gameId === oldState.gameId) {
+                if (newState.actionCount >= oldState.actionCount) {
+                    actions.push(...this.actions.slice(oldState.actionCount, newState.actionCount))
+                } else {
+                    actions.push(...this.actions.slice(newState.actionCount, oldState.actionCount))
+                }
+            }
+
+            this.initializeTimeline({ to: newState, from: oldState, actions, timeline })
 
             const promises = []
             for (const listener of this.gameStateChangeListeners) {
-                promises.push(listener({ to: newState, from: oldState, timeline }))
+                promises.push(listener({ to: newState, from: oldState, actions, timeline }))
             }
             await Promise.all(promises)
 
@@ -424,7 +435,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
-    initializeTimeline({ to, from, timeline }: { to: U; from?: U; timeline: gsap.core.Timeline }) {
+    initializeTimeline({
+        to,
+        from,
+        actions,
+        timeline
+    }: {
+        to: U
+        from?: U
+        actions?: GameAction[]
+        timeline: gsap.core.Timeline
+    }) {
         // Do nothing by default
     }
 

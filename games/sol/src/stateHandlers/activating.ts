@@ -78,16 +78,17 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                 }
 
                 const station = gameState.getActivatingStation()
-
+                console.log('Handling pass')
                 if (
                     action.playerId === station.playerId &&
                     activation.playerId !== station.playerId &&
                     HydratedActivateBonus.canActivateBonus(gameState, activation.playerId)
                 ) {
-                    // Give activating player a chance to do bonus activation
+                    console.log('Giving activating player a chance to do bonus activation')
                     gameState.activePlayerIds = [activation.playerId]
                     return MachineState.Activating
                 } else {
+                    console.log('Continuing activating or ending turn')
                     return ActivatingStateHandler.continueActivatingOrEnd(
                         gameState,
                         context,

@@ -124,6 +124,9 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
             return MachineState.SolarFlares
         } else {
             state.solarFlares = 0
+            state.activation = undefined
+            state.solarFlareActivations = undefined
+
             const currentPlayerId = state.turnManager.currentTurn()?.playerId
             if (!currentPlayerId) {
                 throw Error('No current turn player found')

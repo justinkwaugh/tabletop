@@ -10,7 +10,12 @@ import { MachineState } from '../definition/states.js'
 import { Ring } from '../index.js'
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
-export const ActivateMetadata = Type.Object({})
+export const ActivateMetadata = Type.Object({
+    sundiverId: Type.String(),
+    energyAdded: Type.Number(),
+    createdSundiverIds: Type.Array(Type.String()),
+    momentumAdded: Type.Number()
+})
 
 export type Activate = Static<typeof Activate>
 export const Activate = Type.Evaluate(
@@ -70,9 +75,17 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         activation.currentStationCoords = this.coords
         state.activation = activation
 
+        const metadata: ActivateMetadata = {
+            sundiverId: '',
+            energyAdded: 0,
+            createdSundiverIds: [],
+            momentumAdded: 0
+        }
+
         switch (station.type) {
             case StationType.EnergyNode:
                 playerState.energyCubes += BASE_AWARD_PER_RING[ring]
+                metadata.energyAdded = BASE_AWARD_PER_RING[ring]
                 break
             case StationType.SundiverFoundry:
                 playerState.energyCubes -= BASE_AWARD_PER_RING[ring]
@@ -82,10 +95,12 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                     awardCount
                 )
                 playerState.holdSundivers.push(...awardedSundivers)
+                metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
             case StationType.TransmitTower:
                 playerState.energyCubes -= BASE_AWARD_PER_RING[ring]
                 playerState.momentum = playerState.momentum ?? 0 + BASE_AWARD_PER_RING[ring]
+                metadata.momentumAdded = BASE_AWARD_PER_RING[ring]
                 break
         }
 
@@ -95,6 +110,9 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             if (!removed) {
                 throw new Error('No sundiver to remove')
             }
+            metadata.sundiverId = removed.id
+            this.metadata = metadata
+
             const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
             playerState.addSundiversToHold(removedDivers)
 

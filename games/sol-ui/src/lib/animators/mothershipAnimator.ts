@@ -81,7 +81,7 @@ export class MothershipAnimator extends StateAnimator<
             degrees: `${endDegrees}`,
             svgOrigin: SVG_ORIGIN,
             duration: 0.5,
-            position: 'mothership'
+            position: 0
         })
     }
 }

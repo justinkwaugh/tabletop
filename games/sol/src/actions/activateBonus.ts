@@ -8,7 +8,12 @@ import { Ring } from '../utils/solGraph.js'
 import { BONUS_AWARD_PER_RING } from '../utils/solConstants.js'
 
 export type ActivateBonusMetadata = Static<typeof ActivateBonusMetadata>
-export const ActivateBonusMetadata = Type.Object({})
+export const ActivateBonusMetadata = Type.Object({
+    coords: OffsetCoordinates,
+    energyAdded: Type.Number(),
+    createdSundiverIds: Type.Array(Type.String()),
+    momentumAdded: Type.Number()
+})
 
 export type ActivateBonus = Static<typeof ActivateBonus>
 export const ActivateBonus = Type.Evaluate(
@@ -50,18 +55,28 @@ export class HydratedActivateBonus
         const station = state.getActivatingStation()
         const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
 
+        this.metadata = {
+            coords: state.activation?.currentStationCoords!,
+            energyAdded: 0,
+            createdSundiverIds: [],
+            momentumAdded: 0
+        }
+
         switch (station?.type) {
             case StationType.EnergyNode:
                 playerState.energyCubes += BONUS_AWARD_PER_RING[ring]
+                this.metadata.energyAdded = BONUS_AWARD_PER_RING[ring]
                 break
             case StationType.SundiverFoundry:
                 const awardCost = BONUS_AWARD_PER_RING[ring]
                 playerState.energyCubes -= awardCost
                 const awardedSundivers = playerState.reserveSundivers.splice(-awardCost, awardCost)
                 playerState.holdSundivers.push(...awardedSundivers)
+                this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
             case StationType.TransmitTower:
                 playerState.momentum = (playerState.momentum ?? 0) + BONUS_AWARD_PER_RING[ring]
+                this.metadata.momentumAdded = BONUS_AWARD_PER_RING[ring]
                 break
         }
     }

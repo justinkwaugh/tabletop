@@ -91,7 +91,11 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedSolGameState
+
         gameState.hurled = false
+        gameState.activation = undefined
+        gameState.solarFlareActivations = undefined
+
         const lastPlayerId = gameState.turnManager.lastPlayer()
         if (!lastPlayerId) {
             throw Error('Cannot find last player')

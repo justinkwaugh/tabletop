@@ -133,7 +133,12 @@
     })
 
     let disabled = $derived(
-        (myMove || (myConvert && gameSession.chosenConvertType) || myActivate) && !interactable
+        (myMove ||
+            (myConvert && gameSession.chosenConvertType) ||
+            (myActivate &&
+                !gameSession.chosenSource &&
+                !gameSession.gameState.activation?.currentStationId)) &&
+            !interactable
     )
 
     function cellPath(
