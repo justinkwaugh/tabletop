@@ -27,16 +27,23 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeOut, move, scale, path } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 
+type SetQuantityCallback = (quantity: number) => void
+
 export class SundiverAnimator extends StateAnimator<
     SolGameState,
     HydratedSolGameState,
     SolGameSession
 > {
+    private quantityCallback?: SetQuantityCallback
     constructor(
         gameSession: SolGameSession,
         private id: string
     ) {
         super(gameSession)
+    }
+
+    setQuantityCallback(callback: SetQuantityCallback): void {
+        this.quantityCallback = callback
     }
 
     override onAttach(): void {
@@ -190,6 +197,9 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
+        const moveDuration = 0.5
+        const delayBetween = 0.3
+
         // Appear... move... disappear
         gsap.set(this.element!, {
             opacity: 1,
@@ -210,15 +220,14 @@ export class SundiverAnimator extends StateAnimator<
         move({
             object: this.element,
             location: offsetFromCenter(targetLocation),
-            duration: 0.5,
-            ease: 'power2.in',
+            duration: moveDuration,
+            ease: 'power2.out',
             timeline,
-            position: launchIndex * 0.2
+            position: launchIndex * delayBetween
         })
-
         fadeOut({
-            object: this.element!,
-            duration: 0.1,
+            object: this.element,
+            duration: 0,
             timeline,
             position: '>'
         })
@@ -271,19 +280,22 @@ export class SundiverAnimator extends StateAnimator<
             y: offsetFromCenter(startLocation).y
         })
 
+        const moveDuration = 0.5
+        const delayBetween = 0.3
+
         path({
             object: this.element,
             path: locations.map((loc) => offsetFromCenter(loc)),
             curviness: 0.5,
-            duration: 0.5 * locations.length,
+            duration: moveDuration * locations.length,
             ease: 'power1.inOut',
             timeline,
-            position: index * 0.2
+            position: index * delayBetween
         })
 
         fadeOut({
             object: this.element!,
-            duration: 0.1,
+            duration: 0,
             timeline,
             position: '>'
         })

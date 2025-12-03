@@ -4,7 +4,9 @@
     import { translateFromCenter } from '$lib/utils/boardGeometry.js'
 
     import { type Point } from '@tabletop/common'
-    import { attachAnimator, StateAnimator } from '$lib/animators/stateAnimator.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import type { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
+    import type { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
 
     let {
         color,
@@ -17,9 +19,11 @@
         color: string
         quantity?: number
         location?: Point
-        animator?: StateAnimator<any, any, any>
+        animator?: CellSundiverAnimator | SundiverAnimator
         onclick?: () => void
     } = $props()
+
+    let updateableQuantity = $derived(quantity)
 
     let onClick = () => {
         if (onclick) {
@@ -27,9 +31,13 @@
         }
     }
 
-    // $effect(() => {
-    //     console.log('Sundiver animator changed:', { animator })
-    // })
+    function setQuantity(quantity: number) {
+        updateableQuantity = quantity
+    }
+
+    if (animator) {
+        animator.setQuantityCallback(setQuantity)
+    }
 </script>
 
 <g
@@ -50,7 +58,7 @@
         </g>
         <SundiverIcon {color} />
     </g>
-    {#if quantity > 1}
+    {#if updateableQuantity > 1}
         <g transform="translate(0,0)">
             <text
                 class="select-none pointer-events-none"
@@ -63,7 +71,7 @@
                 stroke-width="1"
                 stroke="#000000"
                 opacity=".5"
-                fill="black">{quantity}</text
+                fill="black">{updateableQuantity}</text
             >
             <text
                 y="1"
@@ -75,7 +83,7 @@
                 stroke-width="1"
                 stroke="#FFFFFF"
                 fill="white"
-                >{quantity}
+                >{updateableQuantity}
             </text>
         </g>
     {/if}
