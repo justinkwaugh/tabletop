@@ -2,10 +2,14 @@ import {
     Activate,
     ActivateBonus,
     Convert,
+    Fly,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
     isConvert,
+    isFly,
+    isLaunch,
+    Launch,
     type SolGameState,
     type Sundiver
 } from '@tabletop/sol'
@@ -15,13 +19,13 @@ import {
     getCirclePoint,
     getGatePosition,
     getMothershipSpotPoint,
+    getSpaceCentroid,
     offsetFromCenter,
     toRadians
 } from '$lib/utils/boardGeometry.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { fadeOut, move } from '$lib/utils/animations.js'
+import { fadeOut, move, scale, path } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
-import { act } from 'react'
 
 export class SundiverAnimator extends StateAnimator<
     SolGameState,
@@ -146,6 +150,7 @@ export class SundiverAnimator extends StateAnimator<
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
+        // Each action should probably return it's last position in the timeline
         for (const action of actions) {
             if (isConvert(action)) {
                 this.animateConvertAction(action, timeline)
@@ -153,8 +158,135 @@ export class SundiverAnimator extends StateAnimator<
                 this.animateActivateAction(action, timeline, toState, fromState)
             } else if (isActivateBonus(action)) {
                 this.animateActivateBonusAction(action, timeline, toState, fromState)
+            } else if (isLaunch(action)) {
+                this.animateLaunchAction(action, timeline, toState, fromState)
+            } else if (isFly(action)) {
+                this.animateFlyAction(action, timeline, toState, fromState)
             }
         }
+    }
+
+    animateLaunchAction(
+        launch: Launch,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        const launchIndex = launch.metadata?.sundiverIds.indexOf(this.id)
+        if (launchIndex === undefined || launchIndex < 0) {
+            return
+        }
+        const board = toState.board
+
+        const diverLocation = this.getMothershipLocationForPlayer(
+            fromState ?? toState,
+            launch.mothership
+        )
+
+        const targetCell = board.cellAt(launch.destination)
+        const targetLocation = this.gameSession.locationForDiverInCell(launch.playerId, targetCell)
+
+        if (!diverLocation || !targetLocation) {
+            return
+        }
+
+        // Appear... move... disappear
+        gsap.set(this.element!, {
+            opacity: 1,
+            scale: 0,
+            x: offsetFromCenter(diverLocation).x,
+            y: offsetFromCenter(diverLocation).y
+        })
+
+        scale({
+            object: this.element,
+            to: 1,
+            duration: 0.1,
+            ease: 'power2.in',
+            timeline,
+            position: launchIndex * 0.2
+        })
+
+        move({
+            object: this.element,
+            location: offsetFromCenter(targetLocation),
+            duration: 0.5,
+            ease: 'power2.in',
+            timeline,
+            position: launchIndex * 0.2
+        })
+
+        fadeOut({
+            object: this.element!,
+            duration: 0.1,
+            timeline,
+            position: '>'
+        })
+    }
+
+    animateFlyAction(
+        fly: Fly,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        const index = fly.sundiverIds.indexOf(this.id)
+        if (index === -1) {
+            return
+        }
+
+        const flightPath = structuredClone(fly.metadata?.flightPath)
+        if (!flightPath || flightPath.length < 2) {
+            return
+        }
+
+        const startCoords = flightPath.shift()!
+        const startCell = fromState?.board.cellAt(startCoords)
+        if (!startCell) {
+            return
+        }
+
+        const startLocation = this.gameSession.locationForDiverInCell(fly.playerId, startCell)
+        if (!startLocation) {
+            return
+        }
+
+        const endCoords = flightPath.pop()!
+        const endCell = toState.board.cellAt(endCoords)
+        const endLocation = this.gameSession.locationForDiverInCell(fly.playerId, endCell)
+        if (!endLocation) {
+            return
+        }
+
+        const locations = flightPath.map((coords) => {
+            return getSpaceCentroid(this.gameSession.numPlayers, coords)
+        })
+
+        locations.push(endLocation)
+
+        // Appear... move... disappear
+        gsap.set(this.element!, {
+            opacity: 1,
+            x: offsetFromCenter(startLocation).x,
+            y: offsetFromCenter(startLocation).y
+        })
+
+        path({
+            object: this.element,
+            path: locations.map((loc) => offsetFromCenter(loc)),
+            curviness: 0.5,
+            duration: 0.5 * locations.length,
+            ease: 'power1.inOut',
+            timeline,
+            position: index * 0.2
+        })
+
+        fadeOut({
+            object: this.element!,
+            duration: 0.1,
+            timeline,
+            position: '>'
+        })
     }
 
     animateConvertAction(convert: Convert, timeline: gsap.core.Timeline) {
@@ -251,8 +383,18 @@ export class SundiverAnimator extends StateAnimator<
         // Appear... move... disappear
         gsap.set(this.element!, {
             opacity: 1,
+            scale: 0,
             x: offsetFromCenter(diverLocation).x,
             y: offsetFromCenter(diverLocation).y
+        })
+
+        scale({
+            object: this.element,
+            to: 1,
+            duration: 0.1,
+            ease: 'power2.in',
+            timeline,
+            position: startOffset
         })
 
         move({
@@ -301,8 +443,18 @@ export class SundiverAnimator extends StateAnimator<
         // Appear... move... disappear
         gsap.set(this.element!, {
             opacity: 1,
+            scale: 0,
             x: offsetFromCenter(diverLocation).x,
             y: offsetFromCenter(diverLocation).y
+        })
+
+        scale({
+            object: this.element,
+            to: 1,
+            duration: 0.1,
+            ease: 'power2.in',
+            timeline,
+            position: startOffset
         })
 
         move({

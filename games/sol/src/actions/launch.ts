@@ -11,7 +11,9 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 export type LaunchMetadata = Static<typeof LaunchMetadata>
-export const LaunchMetadata = Type.Object({})
+export const LaunchMetadata = Type.Object({
+    sundiverIds: Type.Array(Type.String())
+})
 
 export type Launch = Static<typeof Launch>
 export const Launch = Type.Evaluate(
@@ -58,6 +60,7 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
             this.playerId
         )
         state.board.addSundiversToCell(launchedSundivers, this.destination)
+        this.metadata = { sundiverIds: launchedSundivers.map((diver) => diver.id) }
         playerState.movementPoints -= this.numSundivers
     }
 

@@ -1,5 +1,8 @@
 import type { Point } from '@tabletop/common'
+import { MotionPathPlugin } from 'gsap/dist/MotionPathPlugin'
 import { gsap } from 'gsap'
+
+gsap.registerPlugin(MotionPathPlugin)
 
 export function fadeOut({
     object,
@@ -116,6 +119,102 @@ export function move({
             duration,
             onComplete
         },
+        position,
+        timeline
+    })
+}
+
+export function scale({
+    object,
+    to,
+    duration = 0.3,
+    ease,
+    position,
+    timeline,
+    onComplete
+}: {
+    object?: SVGElement | HTMLElement
+    to: number
+    duration?: number
+    ease?: gsap.EaseString | gsap.EaseFunction
+    position?: gsap.Position
+    timeline?: gsap.core.Timeline
+    onComplete?: () => void
+}) {
+    performAnimation({
+        object,
+        params: {
+            scale: to,
+            ease,
+            duration,
+            onComplete
+        },
+        position,
+        timeline
+    })
+}
+
+export function path({
+    object,
+    path,
+    curviness,
+    duration = 0.3,
+    ease,
+    position,
+    timeline,
+    onComplete
+}: {
+    object?: SVGElement | HTMLElement
+    path: string | Point[]
+    curviness?: number
+    duration?: number
+    ease?: gsap.EaseString | gsap.EaseFunction
+    position?: gsap.Position
+    timeline?: gsap.core.Timeline
+    onComplete?: () => void
+}) {
+    performAnimation({
+        object,
+        params: {
+            motionPath: {
+                path,
+                curviness: curviness ?? 1
+            },
+            ease,
+            duration,
+            onComplete
+        },
+        position,
+        timeline
+    })
+}
+
+export function animate({
+    object,
+    params = {},
+    duration = 0.3,
+    ease,
+    position,
+    timeline,
+    onComplete
+}: {
+    object?: SVGElement | HTMLElement
+    params?: object
+    duration?: number
+    ease?: gsap.EaseString | gsap.EaseFunction
+    position?: gsap.Position
+    timeline?: gsap.core.Timeline
+    onComplete?: () => void
+}) {
+    Object.assign(params, {
+        ease,
+        duration,
+        onComplete
+    })
+
+    performAnimation({
+        object,
+        params,
         position,
         timeline
     })

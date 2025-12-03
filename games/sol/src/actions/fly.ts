@@ -6,7 +6,9 @@ import { ActionType } from '../definition/actions.js'
 import { SolarGate } from '../components/solarGate.js'
 
 export type FlyMetadata = Static<typeof FlyMetadata>
-export const FlyMetadata = Type.Object({})
+export const FlyMetadata = Type.Object({
+    flightPath: Type.Array(OffsetCoordinates)
+})
 
 export type Fly = Static<typeof Fly>
 export const Fly = Type.Evaluate(
@@ -48,11 +50,15 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
 
-        const distanceMoved = this.isValidFlight(state)
-        if (!distanceMoved) {
+        const path = this.isValidFlight(state)
+        if (!path) {
             throw Error('Invalid flight')
         }
 
+        this.metadata = {
+            flightPath: path
+        }
+        const distanceMoved = path.length - 1
         const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
         state.board.addSundiversToCell(removedSundivers, this.destination)
         playerState.movementPoints -= distanceMoved * this.sundiverIds.length
@@ -82,7 +88,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         return false
     }
 
-    isValidFlight(state: HydratedSolGameState): number {
+    isValidFlight(state: HydratedSolGameState): OffsetCoordinates[] | undefined {
         const playerState = state.getPlayerState(this.playerId)
         if (
             !HydratedFly.isValidFlightDestination(
@@ -94,16 +100,15 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 this.destination
             )
         ) {
-            return 0
+            return
         }
 
-        const path = state.board.pathToDestination({
+        return state.board.pathToDestination({
             start: this.start,
             destination: this.destination,
             range: playerState.movementPoints / this.sundiverIds.length,
             requiredGates: this.gates
         })
-        return path ? path.length - 1 : 0
     }
 
     static isValidFlightDestination(
