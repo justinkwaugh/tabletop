@@ -359,34 +359,35 @@ export class SundiverAnimator extends StateAnimator<
         fromState?: HydratedSolGameState
     ) {
         if (
-            activate.metadata?.sundiverId !== this.id &&
-            !activate.metadata?.createdSundiverIds.includes(this.id)
+            !fromState ||
+            (activate.metadata?.sundiverId !== this.id &&
+                !activate.metadata?.createdSundiverIds.includes(this.id))
         ) {
             return
         }
 
-        const board = this.gameSession.gameState.board
+        const isActivatingSundiver = activate.metadata?.sundiverId === this.id
+
+        const fromBoard = fromState.board
+        const toBoard = toState.board
 
         let diverLocation: Point | undefined
         let startOffset = 0
 
-        if (activate.metadata?.sundiverId === this.id) {
+        if (isActivatingSundiver) {
             // Activating sundiver starts in cell
-            const diverCoords = board.findSundiverCoords(this.id)
-            const diverCell = board.cellAt(diverCoords!)
+            const diverCoords = fromBoard.findSundiverCoords(this.id)
+            const diverCell = fromBoard.cellAt(diverCoords!)
             diverLocation = this.gameSession.locationForDiverInCell(activate.playerId, diverCell)
         } else {
             // Newly created sundiver - appear at the foundry
             const createdIndex = activate.metadata?.createdSundiverIds.indexOf(this.id)
             startOffset = (createdIndex + 1) * 0.2
-            const stationCell = board.cellAt(activate.coords)
+            const stationCell = toBoard.cellAt(activate.coords)
             diverLocation = this.gameSession.locationForStationInCell(stationCell)
         }
 
-        const targetLocation = this.getMothershipLocationForPlayer(
-            fromState ?? toState,
-            activate.playerId
-        )
+        const targetLocation = this.getMothershipLocationForPlayer(fromState, activate.playerId)
 
         if (!diverLocation || !targetLocation) {
             return
@@ -395,19 +396,21 @@ export class SundiverAnimator extends StateAnimator<
         // Appear... move... disappear
         gsap.set(this.element!, {
             opacity: 1,
-            scale: 0,
+            scale: isActivatingSundiver ? 1 : 0,
             x: offsetFromCenter(diverLocation).x,
             y: offsetFromCenter(diverLocation).y
         })
 
-        scale({
-            object: this.element,
-            to: 1,
-            duration: 0.1,
-            ease: 'power2.in',
-            timeline,
-            position: startOffset
-        })
+        if (!isActivatingSundiver) {
+            scale({
+                object: this.element,
+                to: 1,
+                duration: 0.1,
+                ease: 'power2.in',
+                timeline,
+                position: startOffset
+            })
+        }
 
         move({
             object: this.element,
