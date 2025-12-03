@@ -181,7 +181,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             return false
         }
 
-        if (!this.isAllowedStationType(state, StationType.SundiverFoundry)) {
+        if (!this.isAllowedStationType(state, station.type)) {
             return false
         }
 
