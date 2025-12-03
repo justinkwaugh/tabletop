@@ -20,9 +20,11 @@
 </script>
 
 <BoardSvg {width} {height} location={getCirclePoint(position.radius, toRadians(position.angle))}>
+    <!-- This transform logic translates so the bottom center is at the origin, rotates around it, then translates
+     it back such that the bottom center is at the middle-->
     <g
         transform="translate({width / 2}, {height / 2}) rotate({90 +
-            position.angle}) translate(-{width / 2}, -{height / 2})"
+            position.angle}) translate(-{width / 2}, -{height})"
     >
         <g transform="translate(-2, -2)">
             <GateMask
