@@ -103,7 +103,11 @@
             </div>
             <LaunchPicker />
         {/if}
-        {#if gameSession.chosenNumDivers}
+        {#if gameSession.gateChoices && gameSession.gateChoices.length > 0}
+            <div class="ms-3 py-2 flex flex-row justify-center items-center">
+                CHOOSE A GATE TO USE
+            </div>
+        {:else if gameSession.chosenNumDivers}
             <div class="ms-3 py-2 flex flex-row justify-center items-center">
                 CHOOSE A DESTINATION FOR {gameSession.chosenNumDivers} SUNDIVER{gameSession.chosenNumDivers >
                 1

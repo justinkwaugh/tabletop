@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { OffsetCoordinates } from '@tabletop/common'
+    import { OffsetCoordinates, sameCoordinates } from '@tabletop/common'
     import {
         getCirclePoint,
         toRadians,
@@ -11,6 +11,7 @@
     } from '$lib/utils/boardGeometry.js'
     import { ActionCategory } from '$lib/definition/actionCategory.js'
     import { ConvertType } from '$lib/definition/convertType.js'
+    import { CENTER_COORDS } from '@tabletop/sol'
 
     let {
         key,
@@ -31,14 +32,22 @@
         gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Convert
     )
 
+    let myMove = $derived(
+        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Move
+    )
+
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer
-        if (!myPlayer || !myConvert) {
+        if (!myPlayer || (!myConvert && !myMove)) {
             return false
         }
 
-        if (gameSession.chosenConvertType === ConvertType.SolarGate) {
+        if (myConvert && gameSession.chosenConvertType === ConvertType.SolarGate) {
             return gameSession.validGateDestinations.includes(key)
+        }
+
+        if (myMove) {
+            return gameSession.gateChoices?.includes(key)
         }
 
         return false
@@ -50,9 +59,21 @@
         }
 
         // Do the convert
-        gameSession.chosenSource = coords
-        gameSession.chosenDestination = neighborCoords
-        gameSession.convertGate()
+        if (myConvert) {
+            gameSession.chosenSource = coords
+            gameSession.chosenDestination = neighborCoords
+            gameSession.convertGate()
+        } else if (myMove) {
+            if (!gameSession.chosenGates) {
+                gameSession.chosenGates = []
+            }
+            gameSession.chosenGates?.push(key)
+            if (sameCoordinates(gameSession.chosenDestination, CENTER_COORDS)) {
+                gameSession.hurl()
+            } else {
+                gameSession.fly()
+            }
+        }
     }
 
     function onKeyDown(event: KeyboardEvent) {

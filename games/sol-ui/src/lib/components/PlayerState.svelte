@@ -136,11 +136,11 @@
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <Sundiver width={28 * 0.75} height={28} color={playerState.color} />
 
-                                <div>{gameSession.myPlayerState?.holdSundivers.length ?? 0}</div>
+                                <div>{playerState.holdSundivers.length}</div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <Cube width={26} height={26} />
-                                <div>{gameSession.myPlayerState?.energyCubes ?? 0}</div>
+                                <div>{playerState.energyCubes}</div>
                             </div>
                         </div>
                         <div
@@ -148,22 +148,22 @@
                         >
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <Gate width={25} height={21} color={playerState.color} />
-                                <div>{gameSession.myPlayerState?.solarGates.length ?? 0}</div>
+                                <div>{playerState.solarGates.length}</div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <EnergyNode width={23} height={25} color={playerState.color} />
-                                <div>{gameSession.myPlayerState?.energyNodes.length ?? 0}</div>
+                                <div>{playerState.energyNodes.length}</div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <Foundry width={23} height={25} color={playerState.color} />
                                 <div>
-                                    {gameSession.myPlayerState?.sundiverFoundries.length ?? 0}
+                                    {playerState.sundiverFoundries.length}
                                 </div>
                             </div>
 
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <Tower width={19} height={40} color={playerState.color} />
-                                <div>{gameSession.myPlayerState?.transmitTowers.length ?? 0}</div>
+                                <div>{playerState.transmitTowers.length}</div>
                             </div>
                         </div>
                     </div>

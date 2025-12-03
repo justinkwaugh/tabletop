@@ -42,7 +42,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     chosenDiverCell?: OffsetCoordinates = $state(undefined)
     chosenSecondDiverCell?: OffsetCoordinates = $state(undefined)
 
-    gateChoices?: SolarGate[] = $state(undefined)
+    gateChoices?: number[] = $state(undefined)
     diverCellChoices?: number[] = $state(undefined)
 
     midAction = $derived.by(() => {
@@ -216,9 +216,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.chosenNumDivers = undefined
         this.chosenConvertType = undefined
         this.chosenDestination = undefined
-        this.diverCellChoices = undefined
+
+        this.chosenGates = undefined
         this.chosenDiverCell = undefined
         this.chosenSecondDiverCell = undefined
+
+        this.diverCellChoices = undefined
+        this.gateChoices = undefined
     }
 
     override shouldAutoStepAction(_action: GameAction) {
@@ -260,17 +264,20 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('Not enough divers')
         }
 
-        // Check gates
-        const gates = this.gameState.board.gateChoicesForDestination(
-            this.chosenSource,
-            this.chosenDestination,
-            this.myPlayerState?.movementPoints ?? 0
-        )
+        const chosenGates = (this.chosenGates ?? []).map((key) => {
+            const gate = this.gameState.board.gates[key]
+            if (!gate) {
+                throw new Error('Invalid gate for flight')
+            }
+            return gate
+        })
 
-        console.log('Gates for flight', gates)
+        const gates = this.getGateChoices(this.chosenSource, this.chosenDestination, chosenGates)
 
         if (gates.length > 0) {
-            this.gateChoices = gates
+            this.gateChoices = gates.map((gate) =>
+                this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
+            )
             return
         }
 
@@ -285,7 +292,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             playerId: this.myPlayer.id,
             sundiverIds: diverIds,
             start: this.chosenSource,
-            destination: this.chosenDestination
+            destination: this.chosenDestination,
+            gates: chosenGates
         }
 
         await this.doAction(action)
@@ -307,6 +315,23 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('Not enough divers')
         }
 
+        const chosenGates = (this.chosenGates ?? []).map((key) => {
+            const gate = this.gameState.board.gates[key]
+            if (!gate) {
+                throw new Error('Invalid gate for flight')
+            }
+            return gate
+        })
+
+        const gates = this.getGateChoices(this.chosenSource, this.chosenDestination, chosenGates)
+
+        if (gates.length > 0) {
+            this.gateChoices = gates.map((gate) =>
+                this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
+            )
+            return
+        }
+
         // We want to take the last ones first
         const diverIds = playerDivers
             .toReversed()
@@ -318,14 +343,39 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             playerId: this.myPlayer.id,
             sundiverIds: diverIds,
             start: this.chosenSource,
-            destination: this.chosenDestination
+            destination: this.chosenDestination,
+            gates: chosenGates
         }
 
         await this.doAction(action)
     }
 
-    checkGates(source: OffsetCoordinates, destination: OffsetCoordinates, range: number) {
-        const gates = this.gameState.board.gateChoicesForDestination(source, destination, range)
+    getGateChoices(
+        start: OffsetCoordinates,
+        end: OffsetCoordinates,
+        chosenGates: SolarGate[]
+    ): SolarGate[] {
+        let movementRemaining = this.myPlayerState?.movementPoints ?? 0
+        let gatePath: OffsetCoordinates[] | undefined
+        if (chosenGates.length > 0) {
+            gatePath = this.gameState.board.pathThroughGates({
+                start,
+                requiredGates: chosenGates
+            })
+            if (!gatePath || gatePath.length === 0) {
+                throw new Error('No path through chosen gates')
+            }
+            const distanceUsed = gatePath.length - 1
+            movementRemaining -= distanceUsed
+        }
+
+        // Check for more gate choices
+        const gates = this.gameState.board.gateChoicesForDestination(
+            gatePath && gatePath.length > 1 ? gatePath.at(-1)! : start,
+            end,
+            movementRemaining
+        )
+        return gates
     }
 
     async convertGate() {

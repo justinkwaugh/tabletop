@@ -36,7 +36,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     declare playerId: string
     declare sundiverIds: string[]
     declare stationId?: string
-    declare gates: SolarGate[]
+    declare gates?: SolarGate[]
     declare start: OffsetCoordinates
     declare destination: OffsetCoordinates
     declare metadata?: FlyMetadata
@@ -56,6 +56,15 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
         state.board.addSundiversToCell(removedSundivers, this.destination)
         playerState.movementPoints -= distanceMoved * this.sundiverIds.length
+
+        const paidPlayerIds = new Set<string>()
+        for (const gate of this.gates ?? []) {
+            if (gate.playerId !== this.playerId && !paidPlayerIds.has(gate.playerId)) {
+                const gateOwner = state.getPlayerState(gate.playerId)
+                gateOwner.energyCubes += 1
+                paidPlayerIds.add(gate.playerId)
+            }
+        }
     }
 
     static canFly(state: HydratedSolGameState, playerId: string): boolean {

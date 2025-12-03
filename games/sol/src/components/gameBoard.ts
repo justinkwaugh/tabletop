@@ -238,6 +238,38 @@ export class HydratedSolGameBoard
         return path.length > 0 ? path : undefined
     }
 
+    public pathThroughGates({
+        start,
+        requiredGates // Ordered list of gates to pass through
+    }: {
+        start: OffsetCoordinates
+        requiredGates?: SolarGate[]
+    }): OffsetCoordinates[] | undefined {
+        const path = [start]
+        let current = start
+        for (const gate of requiredGates || []) {
+            if (!gate.innerCoords || !gate.outerCoords) {
+                return undefined
+            }
+            const nextDestination =
+                current.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
+
+            const pathFinder = solPathfinder({
+                board: this,
+                start: current,
+                end: nextDestination,
+                allowedGates: [gate]
+            })
+            const segment = this.graph.findFirstPath(pathFinder)
+            if (!segment) {
+                return undefined
+            }
+            path.push(...segment.slice(1).map((node) => node.coords))
+            current = nextDestination
+        }
+        return path.length > 0 ? path : undefined
+    }
+
     public gatesForCell(
         coords: OffsetCoordinates,
         direction: Direction.In | Direction.Out
