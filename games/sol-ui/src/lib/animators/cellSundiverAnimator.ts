@@ -216,7 +216,7 @@ export class CellSundiverAnimator extends StateAnimator<
                 })
             }
 
-            for (const index of range(1, leaving - 1).reverse()) {
+            for (const index of range(1, leaving).reverse()) {
                 timeline.call(
                     () => {
                         console.log('Setting quantity to ', numBefore - index)
@@ -293,16 +293,20 @@ export class CellSundiverAnimator extends StateAnimator<
 
         const numAfter = toState.board.sundiversForPlayerAt(convert.playerId, this.coords).length
         if (numAfter > 0) {
-            return
-        }
+            if (this.quantityCallback) {
+                this.quantityCallback(numAfter)
+            }
 
-        // Disappear immediately
-        fadeOut({
-            object: this.element!,
-            duration: 0,
-            timeline,
-            position: 0
-        })
+            return
+        } else {
+            // Disappear immediately
+            fadeOut({
+                object: this.element!,
+                duration: 0,
+                timeline,
+                position: 0
+            })
+        }
     }
 
     animateActivateAction(
@@ -317,15 +321,19 @@ export class CellSundiverAnimator extends StateAnimator<
 
         const numAfter = toState.board.sundiversForPlayerAt(activate.playerId, this.coords).length
         if (numAfter > 0) {
-            return
-        }
+            if (this.quantityCallback) {
+                this.quantityCallback(numAfter)
+            }
 
-        // Disappear immediately
-        fadeOut({
-            object: this.element!,
-            duration: 0,
-            timeline,
-            position: 0
-        })
+            return
+        } else {
+            // Disappear immediately
+            fadeOut({
+                object: this.element!,
+                duration: 0,
+                timeline,
+                position: 0
+            })
+        }
     }
 }
