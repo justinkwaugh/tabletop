@@ -13,8 +13,7 @@ import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
 import { Effect } from '../components/effects.js'
 import { Deck, HydratedDeck } from '../components/deck.js'
 import { Sundiver } from 'src/components/sundiver.js'
-import { Ring } from '../utils/solGraph.js'
-import { Station, StationType } from '../components/stations.js'
+import { Station } from '../components/stations.js'
 import { Activation } from './activation.js'
 
 export type SolGameState = Static<typeof SolGameState>
@@ -34,7 +33,8 @@ export const SolGameState = Type.Evaluate(
             solarFlares: Type.Optional(Type.Number({ default: 0 })),
             solarFlaresRemaining: Type.Optional(Type.Number({ default: 0 })),
             solarFlareActivations: Type.Optional(Type.Array(Activation)),
-            hurled: Type.Optional(Type.Boolean({ default: false }))
+            hurled: Type.Optional(Type.Boolean({ default: false })),
+            paidPlayerIds: Type.Optional(Type.Array(Type.String()))
         })
     ])
 )
@@ -67,6 +67,7 @@ export class HydratedSolGameState
     declare solarFlaresRemaining?: number
     declare solarFlareActivations?: Activation[]
     declare hurled?: boolean
+    declare paidPlayerIds?: string[]
 
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)

@@ -95,6 +95,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         gameState.hurled = false
         gameState.activation = undefined
         gameState.solarFlareActivations = undefined
+        gameState.paidPlayerIds = []
 
         const lastPlayerId = gameState.turnManager.lastPlayer()
         if (!lastPlayerId) {

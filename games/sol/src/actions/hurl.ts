@@ -59,14 +59,15 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
         state.hurled = true
         state.cardsToDraw = (state.cardsToDraw ?? 0) + this.sundiverIds.length
 
-        const paidPlayerIds = new Set<string>()
+        const paidPlayerIds = state.paidPlayerIds ?? []
         for (const gate of this.gates ?? []) {
-            if (gate.playerId !== this.playerId && !paidPlayerIds.has(gate.playerId)) {
+            if (gate.playerId !== this.playerId && !paidPlayerIds.includes(gate.playerId)) {
                 const gateOwner = state.getPlayerState(gate.playerId)
                 gateOwner.energyCubes += 1
-                paidPlayerIds.add(gate.playerId)
+                paidPlayerIds.push(gate.playerId)
             }
         }
+        state.paidPlayerIds = paidPlayerIds
     }
 
     static canHurl(state: HydratedSolGameState, playerId: string): boolean {
