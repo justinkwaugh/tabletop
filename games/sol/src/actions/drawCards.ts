@@ -10,10 +10,11 @@ export const DrawCardsMetadata = Type.Object({})
 export type DrawCards = Static<typeof DrawCards>
 export const DrawCards = Type.Evaluate(
     Type.Intersect([
-        Type.Omit(GameAction, ['playerId']),
+        Type.Omit(GameAction, ['playerId', 'revealsInfo']),
         Type.Object({
             type: Type.Literal(ActionType.DrawCards),
             playerId: Type.String(),
+            revealsInfo: Type.Literal(true),
             metadata: Type.Optional(DrawCardsMetadata)
         })
     ])
@@ -28,6 +29,7 @@ export function isDrawCards(action?: GameAction): action is DrawCards {
 export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implements DrawCards {
     declare type: ActionType.DrawCards
     declare playerId: string
+    declare revealsInfo: true
     declare metadata?: DrawCardsMetadata
 
     constructor(data: DrawCards) {

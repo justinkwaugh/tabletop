@@ -8,6 +8,7 @@
     import CardBack from '$lib/images/cardBack2.png'
     import { Suit } from '@tabletop/sol'
     import Card from './Card.svelte'
+    import { fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -31,52 +32,81 @@
     )
 </script>
 
-{#if gameSession.chosenActionCategory || gameSession.isMoving || gameSession.isActivating || gameSession.isChoosingCard || gameSession.isSolarFlares}
-    <div
-        class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[42px] border-b border-[#ad9c80]"
-    >
-        {#if moveChosen || gameSession.isMoving}
-            <div class="inline-flex items-center gap-x-2">
-                <MoveArrows />
-                <div>MOVING</div>
-            </div>
-
-            <div>
-                MOVEMENT REMAINING: {gameSession.myPlayerState?.movementPoints}
-            </div>
-        {:else if convertChosen}
-            <div class="inline-flex items-center gap-x-2">
-                <ConvertAtom />
-                <div>CONVERTING</div>
-            </div>
-        {:else if activateChosen || gameSession.isActivating}
-            <div class="inline-flex items-center gap-x-2">
-                <ActivateBolt />
-                <div>ACTIVATING</div>
-            </div>
-        {:else if gameSession.isChoosingCard}
-            <div class="inline-flex items-center gap-x-2">
+<div
+    class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[42px] border-b border-[#ad9c80]"
+>
+    <div class="header-grid grid">
+        {#key gameSession.gameState.machineState}
+            {#if moveChosen || gameSession.isMoving}
                 <div
-                    class="rounded-sm dark:bg-gray-700 h-[36px] w-[26px] overflow-hidden border-1 border-[#5a5141]"
+                    in:fade={{ duration: 300, delay: 100 }}
+                    out:fade={{ duration: 100 }}
+                    class="inline-flex items-center gap-x-2"
+                >
+                    <MoveArrows />
+                    <div>MOVING</div>
+                </div>
+            {:else if convertChosen}
+                <div
+                    in:fade={{ duration: 300, delay: 100 }}
+                    out:fade={{ duration: 100 }}
+                    class="inline-flex items-center gap-x-2"
+                >
+                    <ConvertAtom />
+                    <div>CONVERTING</div>
+                </div>
+            {:else if activateChosen || gameSession.isActivating}
+                <div
+                    in:fade={{ duration: 300, delay: 100 }}
+                    out:fade={{ duration: 100 }}
+                    class="inline-flex items-center gap-x-2"
+                >
+                    <ActivateBolt />
+                    <div>ACTIVATING</div>
+                </div>
+            {:else if gameSession.isDrawingCards || gameSession.isChoosingCard}
+                <div
+                    in:fade={{ duration: 300, delay: 100 }}
+                    out:fade={{ duration: 100 }}
+                    class="inline-flex items-center gap-x-2"
                 >
                     <div
-                        style="background-image: {cardBackImage}"
-                        class="bg-center bg-cover w-full h-full"
-                    ></div>
+                        class="rounded-sm dark:bg-gray-700 h-[36px] w-[26px] overflow-hidden border-1 border-[#5a5141]"
+                    >
+                        <div
+                            style="background-image: {cardBackImage}"
+                            class="bg-center bg-cover w-full h-full"
+                        ></div>
+                    </div>
+                    <div>INSTABILITY CARDS</div>
                 </div>
-                <div>INSTABILITY CARDS</div>
-            </div>
-        {:else if gameSession.isSolarFlares}
-            <div class="inline-flex items-center gap-x-2">
-                <div class="rounded-sm dark:bg-gray-700 h-[36px] w-[22px] overflow-hidden">
-                    <Card suit={Suit.Flare} />
+            {:else if gameSession.isSolarFlares}
+                <div
+                    in:fade={{ duration: 300, delay: 100 }}
+                    out:fade={{ duration: 100 }}
+                    class="inline-flex items-center gap-x-2"
+                >
+                    <div class="rounded-sm dark:bg-gray-700 h-[36px] w-[22px] overflow-hidden">
+                        <Card suit={Suit.Flare} />
+                    </div>
+                    <div>
+                        SOLAR FLARE {currentSolarFlare} OF {gameSession.gameState.solarFlares}
+                    </div>
                 </div>
-                <div>
-                    SOLAR FLARE {currentSolarFlare} OF {gameSession.gameState.solarFlares}
+            {:else}
+                <div class="inline-flex items-center gap-x-2">
+                    <div>&nbsp;</div>
                 </div>
-            </div>
-        {/if}
+            {/if}
+        {/key}
+    </div>
+    {#if moveChosen || gameSession.isMoving}
         <div>
+            REMAINING: {gameSession.myPlayerState?.movementPoints}
+        </div>
+    {/if}
+    <div>
+        <div class="header-grid grid">
             {#if gameSession.midAction}
                 <button
                     onclick={back}
@@ -94,4 +124,10 @@
             {/if}
         </div>
     </div>
-{/if}
+</div>
+
+<style>
+    .header-grid > * {
+        grid-area: 1 / 1;
+    }
+</style>

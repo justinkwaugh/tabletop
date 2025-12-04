@@ -14,9 +14,18 @@
         location?: Point
     } = $props()
     let gameSession = getContext('gameSession') as SolGameSession
+
+    async function drawCards() {
+        if (!interactable) {
+            return
+        }
+        await gameSession.drawCards()
+    }
+
+    const interactable = $derived(gameSession.isMyTurn && gameSession.isDrawingCards)
 </script>
 
-<g transform={`translate(${location.x}, ${location.y})`}>
+<g onclick={drawCards} transform={`translate(${location.x}, ${location.y})`}>
     {#each { length: 3 } as _, index (index)}
         <rect
             rx="10"

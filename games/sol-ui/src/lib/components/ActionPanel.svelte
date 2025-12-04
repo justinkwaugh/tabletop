@@ -10,6 +10,7 @@
     import { ActionType } from '@tabletop/sol'
     import ConvertPicker from './ConvertPicker.svelte'
     import CardPicker from './CardPicker.svelte'
+    import { fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -66,12 +67,12 @@
         gameSession.chosenActionCategory = ActionCategory.Activate
     }
 
-    function chooseBonus() {
-        gameSession.activateBonus()
+    async function chooseBonus() {
+        await gameSession.activateBonus()
     }
 
-    function pass() {
-        gameSession.pass()
+    async function pass() {
+        await gameSession.pass()
     }
 
     let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
@@ -81,6 +82,39 @@
 
 <div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2">
     <Header />
+
+    {#if !gameSession.acting}
+        <div class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4">
+            <div class="w-fit me-4 leading-tight text-center">
+                CHOOSE<br />AN ACTION
+            </div>
+            <button
+                onclick={chooseMove}
+                class="{!canMove || convertChosen || activateChosen
+                    ? 'opacity-30'
+                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                ><MoveArrows />
+                <div class="ms-3">MOVE</div></button
+            >
+            <button
+                onclick={chooseConvert}
+                class="{!canConvert || moveChosen || activateChosen
+                    ? 'opacity-30'
+                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                ><ConvertAtom />
+                <div class="ms-3">CONVERT</div></button
+            >
+            <button
+                onclick={chooseActivate}
+                class="{!canActivate || moveChosen || convertChosen
+                    ? 'opacity-30'
+                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                ><ActivateBolt />
+                <div class="ms-3">ACTIVATE</div></button
+            >
+        </div>
+    {/if}
+
     {#if moveChosen || gameSession.isMoving}
         {#if !gameSession.chosenMothership && !gameSession.chosenSource}
             <div class="ms-3 py-2 flex flex-row justify-center items-center">
@@ -116,35 +150,7 @@
             </div>
         {/if}
     {/if}
-    {#if !moveChosen && !convertChosen && !activateChosen && !gameSession.isMoving && !gameSession.isActivating && !gameSession.isChoosingCard && !gameSession.isSolarFlares}
-        <div class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4">
-            <div class="w-fit me-4 leading-tight text-center">CHOOSE<br />AN ACTION</div>
-            <button
-                onclick={chooseMove}
-                class="{!canMove || convertChosen || activateChosen
-                    ? 'opacity-30'
-                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                ><MoveArrows />
-                <div class="ms-3">MOVE</div></button
-            >
-            <button
-                onclick={chooseConvert}
-                class="{!canConvert || moveChosen || activateChosen
-                    ? 'opacity-30'
-                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                ><ConvertAtom />
-                <div class="ms-3">CONVERT</div></button
-            >
-            <button
-                onclick={chooseActivate}
-                class="{!canActivate || moveChosen || convertChosen
-                    ? 'opacity-30'
-                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                ><ActivateBolt />
-                <div class="ms-3">ACTIVATE</div></button
-            >
-        </div>
-    {/if}
+
     {#if convertChosen}
         {#if !gameSession.chosenConvertType}
             <div class="ms-3 py-2 flex flex-row justify-center items-center">
@@ -188,6 +194,11 @@
             </div>
         {/if}
     {/if}
+    {#if gameSession.isDrawingCards}
+        <div class="ms-3 py-2 flex flex-row justify-center items-center">
+            DRAW {gameSession.gameState.cardsToDraw ?? 0} CARDS...
+        </div>
+    {/if}
     {#if gameSession.isChoosingCard}
         <div class="ms-3 py-2 flex flex-row justify-center items-center">
             <div class="me-2">CHOOSE CARD TO KEEP</div>
@@ -198,7 +209,6 @@
                 SKIP</button
             >
         </div>
-        <CardPicker />
     {/if}
     {#if gameSession.isSolarFlares}
         <div class="ms-3 py-2 flex flex-row justify-center items-center">
@@ -210,5 +220,9 @@
                 SKIP</button
             >
         </div>
+    {/if}
+
+    {#if gameSession.drawnCards.length > 0}
+        <CardPicker />
     {/if}
 </div>

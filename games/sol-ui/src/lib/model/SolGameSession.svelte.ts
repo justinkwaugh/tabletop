@@ -1,6 +1,7 @@
 import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
 import {
     ActionType,
+    Card,
     Cell,
     CENTER_COORDS,
     Direction,
@@ -45,6 +46,15 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     gateChoices?: number[] = $state(undefined)
     diverCellChoices?: number[] = $state(undefined)
 
+    drawnCards: Card[] = $derived.by(() => {
+        const myPlayerState = this.myPlayerState
+        if (!myPlayerState || !myPlayerState.drawnCards) {
+            return []
+        }
+
+        return structuredClone(myPlayerState.drawnCards)
+    })
+
     midAction = $derived.by(() => {
         if (this.chosenSource) {
             return true
@@ -64,6 +74,16 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isActivating = $derived(this.gameState.machineState === MachineState.Activating)
     isChoosingCard = $derived(this.gameState.machineState === MachineState.ChoosingCard)
     isSolarFlares = $derived(this.gameState.machineState === MachineState.SolarFlares)
+    isDrawingCards = $derived(this.gameState.machineState === MachineState.DrawingCards)
+
+    acting = $derived(
+        this.chosenActionCategory ||
+            this.isMoving ||
+            this.isActivating ||
+            this.isChoosingCard ||
+            this.isSolarFlares ||
+            this.isDrawingCards
+    )
 
     override initializeTimeline({
         to,
@@ -739,6 +759,19 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         const action = {
             ...this.createBaseAction(ActionType.Pass),
             playerId: this.myPlayer.id
+        }
+
+        await this.doAction(action)
+    }
+
+    async drawCards() {
+        if (!this.myPlayer || !this.isDrawingCards) {
+            throw new Error('Invalid draw card')
+        }
+        const action = {
+            ...this.createBaseAction(ActionType.DrawCards),
+            playerId: this.myPlayer.id,
+            revealsInfo: true
         }
 
         await this.doAction(action)

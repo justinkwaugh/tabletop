@@ -48,7 +48,6 @@ export class SundiverAnimator extends StateAnimator<
 
     override onAttach(): void {
         if (this.element) {
-            console.log(`Hiding sundiver ${this.id} on attach`)
             gsap.set(this.element, { opacity: 0 })
         }
     }

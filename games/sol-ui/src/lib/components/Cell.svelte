@@ -156,7 +156,7 @@
         return `M${start.x} ${start.y} L${startOuter.x} ${startOuter.y} A${outerRadius} ${outerRadius} 0 0 1 ${endOuter.x} ${endOuter.y} L${end.x} ${end.y} A${innerRadius} ${innerRadius} 0 0 0 ${start.x} ${start.y}Z`
     }
 
-    function onClick() {
+    async function onClick() {
         if (!interactable) {
             return
         }
@@ -187,25 +187,25 @@
                     gameSession.chosenDiverCell = cell.coords
                 }
                 if (gameSession.chosenConvertType === ConvertType.SolarGate) {
-                    gameSession.convertGate()
+                    await gameSession.convertGate()
                 } else if (gameSession.chosenConvertType === ConvertType.SundiverFoundry) {
-                    gameSession.convertSundiverFoundry()
+                    await gameSession.convertSundiverFoundry()
                 } else if (gameSession.chosenConvertType === ConvertType.TransmitTower) {
-                    gameSession.convertTransmitTower()
+                    await gameSession.convertTransmitTower()
                 }
             } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
                 gameSession.chosenSource = cell.coords
-                gameSession.convertEnergyNode()
+                await gameSession.convertEnergyNode()
             } else if (gameSession.chosenConvertType === ConvertType.SundiverFoundry) {
                 gameSession.chosenSource = cell.coords
-                gameSession.convertSundiverFoundry()
+                await gameSession.convertSundiverFoundry()
             } else if (gameSession.chosenConvertType === ConvertType.TransmitTower) {
                 gameSession.chosenSource = cell.coords
-                gameSession.convertTransmitTower()
+                await gameSession.convertTransmitTower()
             }
         } else if (myActivate) {
             gameSession.chosenSource = cell.coords
-            gameSession.activateStation()
+            await gameSession.activateStation()
         }
     }
 
@@ -277,13 +277,13 @@
         </BoardSvg>
     {:else if cell.station.type === StationType.TransmitTower}
         <BoardSvg
-            width={46}
-            height={48}
+            width={48}
+            height={100}
             location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
         >
             <Tower
-                width={46}
-                height={48}
+                width={48}
+                height={100}
                 color={gameSession.colors.getPlayerColor(cell.station.playerId)}
             />
         </BoardSvg>

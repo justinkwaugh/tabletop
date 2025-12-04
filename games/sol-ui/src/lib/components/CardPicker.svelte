@@ -51,8 +51,8 @@
         }
     }
 
-    function chooseCard(suit: Suit) {
-        gameSession.chooseCard(suit as Suit)
+    async function chooseCard(suit: Suit) {
+        await gameSession.chooseCard(suit as Suit)
     }
 </script>
 
