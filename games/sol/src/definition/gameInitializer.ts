@@ -55,7 +55,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         ]
         shuffle(nonFlareSuits, prng.random)
         const suits = [Suit.Flare, ...nonFlareSuits.slice(0, players.length + 1)]
-        const deck = HydratedDeck.create(suits, prng.random)
+        const deck = HydratedDeck.create(suits, prng)
 
         const allEffects = structuredClone(Effects)
         shuffle(allEffects, prng.random)
@@ -167,12 +167,14 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
     private initializeBoard(players: PlayerState[], random: RandomFunction): HydratedSolGameBoard {
         const numPlayers = players.length
         const numMothershipPositions = numPlayers === 5 ? 16 : 13
-        const spacing = MOTHERSHIP_SPACING[numPlayers]
+        const spacing = MOTHERSHIP_SPACING[numPlayers - 1]
         const motherships: Record<string, number> = {}
 
         const randomOffset = Math.floor(random() * numMothershipPositions)
+        const reversedPlayers = players.toReversed()
         for (let i = 0; i < players.length; i++) {
-            motherships[players[i].playerId] = (randomOffset + i * spacing) % numMothershipPositions
+            motherships[reversedPlayers[i].playerId] =
+                (randomOffset + i * spacing) % numMothershipPositions
         }
 
         const board = new HydratedSolGameBoard({

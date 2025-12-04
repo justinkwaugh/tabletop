@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import ExpansionCard from '$lib/images/expansionCard.png'
     import CondensationCard from '$lib/images/condensationCard.png'
@@ -10,9 +10,20 @@
     import SubductionCard from '$lib/images/subductionCard.png'
     import { Suit } from '@tabletop/sol'
     import Card from './Card.svelte'
-    import { card } from 'flowbite-svelte'
+    import { attachCard, type CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
+    import { nanoid } from 'nanoid'
 
     let gameSession = getContext('gameSession') as SolGameSession
+
+    let {
+        animator
+    }: {
+        animator: CardPickerAnimator
+    } = $props()
+
+    export function sayHi() {
+        console.log('hi from CardPicker')
+    }
 
     const cardsBySuit = $derived.by(() => {
         const myPlayerState = gameSession.myPlayerState
@@ -56,23 +67,31 @@
     }
 </script>
 
-<div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
-    {#each cardsBySuit as [suit, count] (suit)}
+<div class="flex flex-row flex-wrap justify-center items-center gap-x-2 h-[100px]">
+    {#each gameSession.drawnCards as card (card.id)}
+        <div
+            {@attach attachCard(animator, card)}
+            class="w-[69px] h-[100px] rounded-lg overflow-hidden"
+        >
+            <Card {card} />
+        </div>
+    {/each}
+    <!-- {#each cardsBySuit as [suit, count] (suit)}
         <div class="flex flex-row justify-center items-center">
             <button
                 class="w-[69px] h-[100px] bg-black hover:border-white box-border border-2 border-black rounded-lg overflow-hidden"
                 style="z-index: {count};"
                 title="{suit} card"
-                onclick={() => chooseCard(suit)}><Card {suit} /></button
+                onclick={() => chooseCard(suit)}><Card card={{ id: nanoid(), suit }} /></button
             >
             {#each { length: count - 1 }, i}
                 <div
                     class="w-[20px] h-[100px] bg-black border-t-2 border-e-2 border-b-2 border-black ms-[-5px] overflow-hidden rounded-tr-lg rounded-br-lg bg-right"
                     style="z-index: {count - 1 - i};"
                 >
-                    <Card {suit} style="partial" />
+                    <Card card={{ id: nanoid(), suit }} style="partial" />
                 </div>
             {/each}
         </div>
-    {/each}
+    {/each} -->
 </div>

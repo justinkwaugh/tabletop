@@ -1,8 +1,10 @@
 import type { Point } from '@tabletop/common'
 import { MotionPathPlugin } from 'gsap/dist/MotionPathPlugin'
+import { Flip } from 'gsap/dist/Flip'
 import { gsap } from 'gsap'
 
 gsap.registerPlugin(MotionPathPlugin)
+gsap.registerPlugin(Flip)
 
 export function fadeOut({
     object,

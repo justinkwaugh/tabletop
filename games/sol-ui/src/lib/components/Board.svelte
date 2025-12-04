@@ -59,7 +59,7 @@
     <div class="absolute top left w-[1280px] h-[1280px]">
         <img src={boardImage} alt="game board" />
     </div>
-    <svg class="absolute z-10" width="1280" height="1280" viewBox="0 0 1280 1280">
+    <svg class="absolute z-0" width="1280" height="1280" viewBox="0 0 1280 1280">
         <defs>
             <DropShadow id="textshadow" />
             <DropShadow id="divershadow" offset={{ x: 0, y: 0 }} amount={20} />

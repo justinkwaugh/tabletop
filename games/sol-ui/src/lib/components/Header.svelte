@@ -87,7 +87,7 @@
                     class="inline-flex items-center gap-x-2"
                 >
                     <div class="rounded-sm dark:bg-gray-700 h-[36px] w-[22px] overflow-hidden">
-                        <Card suit={Suit.Flare} />
+                        <Card card={{ id: 'header-flare', suit: Suit.Flare }} />
                     </div>
                     <div>
                         SOLAR FLARE {currentSolarFlare} OF {gameSession.gameState.solarFlares}

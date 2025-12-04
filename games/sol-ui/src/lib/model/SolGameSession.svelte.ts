@@ -46,14 +46,15 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     gateChoices?: number[] = $state(undefined)
     diverCellChoices?: number[] = $state(undefined)
 
-    drawnCards: Card[] = $derived.by(() => {
-        const myPlayerState = this.myPlayerState
-        if (!myPlayerState || !myPlayerState.drawnCards) {
-            return []
-        }
+    drawnCards: Card[] = $state([])
+    // drawnCards: Card[] = $derived.by(() => {
+    //     const myPlayerState = this.myPlayerState
+    //     if (!myPlayerState || !myPlayerState.drawnCards) {
+    //         return []
+    //     }
 
-        return structuredClone(myPlayerState.drawnCards)
-    })
+    //     return structuredClone(myPlayerState.drawnCards)
+    // })
 
     midAction = $derived.by(() => {
         if (this.chosenSource) {

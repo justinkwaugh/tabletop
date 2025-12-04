@@ -6,15 +6,17 @@
     import ReverberationCard from '$lib/images/reverberationCard.png'
     import SolarFlareCard from '$lib/images/solarFlareCard.png'
     import SubductionCard from '$lib/images/subductionCard.png'
-    import { Suit } from '@tabletop/sol'
+    import { Card, Suit } from '@tabletop/sol'
+    import type { HTMLAttributes } from 'svelte/elements'
 
     let {
-        suit,
-        style = 'full'
+        card,
+        style = 'full',
+        ...htmlProps
     }: {
-        suit: Suit
+        card: Card
         style?: 'full' | 'partial'
-    } = $props()
+    } & HTMLAttributes<HTMLDivElement> = $props()
 
     function cardImageForSuit(suit: Suit) {
         switch (suit) {
@@ -39,8 +41,9 @@
 </script>
 
 <div
+    {...htmlProps}
     class="bg-gray-900 w-full h-full border-0 {style === 'full'
         ? 'bg-center bg-cover'
         : 'bg-right bg-cover'}"
-    style="background-image: {cardImageForSuit(suit)}"
+    style="background-image: {cardImageForSuit(card.suit)}"
 ></div>

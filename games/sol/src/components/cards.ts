@@ -12,5 +12,6 @@ export enum Suit {
 
 export type Card = Static<typeof Card>
 export const Card = Type.Object({
+    id: Type.String(),
     suit: Type.Enum(Suit)
 })

@@ -3,9 +3,12 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { Card } from '../components/cards.js'
 
 export type DrawCardsMetadata = Static<typeof DrawCardsMetadata>
-export const DrawCardsMetadata = Type.Object({})
+export const DrawCardsMetadata = Type.Object({
+    drawnCards: Type.Array(Card)
+})
 
 export type DrawCards = Static<typeof DrawCards>
 export const DrawCards = Type.Evaluate(
@@ -43,6 +46,7 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
         const cards = state.deck.drawItems(state.cardsToDraw)
         const playerState = state.getPlayerState(this.playerId)
         playerState.drawnCards = cards
+        this.metadata = { drawnCards: cards }
         state.cardsToDraw = 0
     }
 }

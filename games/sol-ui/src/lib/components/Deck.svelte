@@ -42,6 +42,7 @@
 
     <image xlink:href={CardBack} {width} {height} clip-path="inset(0% round 10px)"></image>
     <rect
+        id="sol-deck"
         rx="10"
         ry="10"
         width={width - 2}

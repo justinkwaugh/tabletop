@@ -39,11 +39,12 @@ export class HydratedChooseCard extends HydratableAction<typeof ChooseCard> impl
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
-        if (!(playerState.drawnCards ?? []).find((card) => card.suit === this.suit)) {
+        const chosenCard = (playerState.drawnCards ?? []).find((card) => card.suit === this.suit)
+        if (!chosenCard) {
             throw Error('Chosen card suit not in drawn cards')
         }
 
-        playerState.card = { suit: this.suit }
+        playerState.card = chosenCard
         playerState.drawnCards = undefined
     }
 }

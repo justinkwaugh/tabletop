@@ -191,7 +191,7 @@
             </div>
             <div class="rounded-lg dark:bg-gray-700 w-[94px] h-[136px] overflow-hidden shrink-0">
                 {#if playerState.card}
-                    <Card suit={playerState.card.suit} />
+                    <Card card={playerState.card} />
                 {:else}
                     <div
                         style="background-image: {cardBackImage}"

@@ -98,10 +98,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         gameState.paidPlayerIds = []
 
         const lastPlayerId = gameState.turnManager.lastPlayer()
-        if (!lastPlayerId) {
-            throw Error('Cannot find last player')
+        if (lastPlayerId) {
+            gameState.advanceMothership(lastPlayerId)
         }
-        gameState.advanceMothership(lastPlayerId)
+
         const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
         gameState.activePlayerIds = [nextPlayerId]
         const playerState = gameState.getPlayerState(nextPlayerId)
