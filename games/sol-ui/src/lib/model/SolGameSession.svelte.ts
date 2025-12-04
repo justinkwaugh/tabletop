@@ -618,7 +618,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 return
             }
 
-            secondSundiver = Array.from(sundiversByCoords.values()).at(-1)?.divers.at(-1)
+            const { divers, coords } = Array.from(sundiversByCoords.values()).at(-1) ?? {
+                divers: [],
+                coords: undefined
+            }
+            secondSundiver = divers.at(-1)
+            this.chosenDiverCell = coords
         } else {
             secondSundiver = this.gameState.board
                 .sundiversForPlayerAt(this.myPlayer.id, this.chosenDiverCell)
