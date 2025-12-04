@@ -121,65 +121,97 @@ export class HydratedSolGameBoard
         return gateKey === this.gateKey(gate.innerCoords, gate.outerCoords)
     }
 
-    public gateChoicesForDestination(
-        start: OffsetCoordinates,
-        destination: OffsetCoordinates,
-        range: number
-    ): SolarGate[] {
-        const localGates = Object.values(this.gates).filter((gate) => {
+    public findGatesLocalToRing(ring: Ring): SolarGate[] {
+        return Object.values(this.gates).filter((gate) => {
+            // Core to convective, have to match inner or outer
             if (
-                start.row >= Ring.Core &&
-                start.row <= Ring.Convective &&
-                gate.innerCoords!.row !== start.row &&
-                gate.outerCoords!.row !== start.row
+                ring >= Ring.Core &&
+                ring <= Ring.Convective &&
+                (gate.innerCoords?.row === ring || gate.outerCoords?.row === ring)
             ) {
-                return false
+                return true
             }
-            if (start.row >= Ring.Inner && gate.outerCoords!.row !== start.row) {
-                return false
-            }
-            return true
-        })
 
+            // Inner and outer, only match outer
+            if (ring >= Ring.Inner && gate.outerCoords?.row === Ring.Inner) {
+                return true
+            }
+
+            return false
+        })
+    }
+
+    public gateChoicesForDestination({
+        start,
+        end,
+        range,
+        requiredGates,
+        allowLoops = false
+    }: {
+        start: OffsetCoordinates
+        end: OffsetCoordinates
+        range?: number
+        requiredGates?: SolarGate[]
+        allowLoops?: boolean
+    }): SolarGate[] {
+        const path = [start]
+
+        // First travel through any required gates
+        if (requiredGates && requiredGates.length > 0) {
+            const requiredPath = this.pathThroughGates({ start, requiredGates, range })
+            if (!requiredPath) {
+                return []
+            }
+            path.push(...requiredPath.slice(1))
+        }
+
+        // Now search from here
+        const current = path.at(-1)!
+        // If we've reached the destination, we're done
+        if (sameCoordinates(current, end)) {
+            return []
+        }
+
+        const localGates = this.findGatesLocalToRing(current.row)
+        const remainingRange = range !== undefined ? range - (path.length - 1) : undefined
+
+        // Check each gate to see if the path from the opposite side of the gate to the destination is valid
         return localGates.filter((gate) => {
             if (!gate.innerCoords || !gate.outerCoords) {
                 return false
             }
 
-            // Check path to gate
-            const gateDestination =
-                start.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
-
-            const pathToGate = this.pathToDestination({
-                start,
-                destination: gateDestination,
-                range,
-                requiredGates: [gate]
+            // First travel through the gate
+            const pathThroughGate = this.pathThroughGates({
+                start: current,
+                requiredGates: [gate],
+                range: remainingRange,
+                illegalCoordinates: allowLoops ? undefined : path
             })
-            if (!pathToGate) {
-                return false
-            }
-            const distanceTraveled = pathToGate.length - 1
-            if (distanceTraveled > range) {
+
+            if (!pathThroughGate || pathThroughGate.length < 2) {
                 return false
             }
 
-            if (distanceTraveled === range) {
-                return sameCoordinates(destination, gateDestination)
+            const otherSideOfGate = pathThroughGate.at(-1)!
+
+            // We might just be done
+            if (sameCoordinates(end, otherSideOfGate)) {
+                return true
             }
 
-            // Check path from gate to destination
+            const distanceTraveled = pathThroughGate.length - 1
+            const extendedPath = path.concat(pathThroughGate.slice(1))
+
+            // Check path from other side of gate to destination
             const pathFromGate = this.pathToDestination({
-                start: gateDestination,
-                destination,
-                range
+                start: otherSideOfGate,
+                destination: end,
+                range: range !== undefined ? range - distanceTraveled : undefined,
+                illegalCoordinates: allowLoops ? undefined : extendedPath
             })
-            if (!pathFromGate) {
-                return false
-            }
 
-            const totalDistance = distanceTraveled + pathFromGate.length - 1
-            return totalDistance <= range
+            return pathFromGate !== undefined && pathFromGate.length >= 2
         })
     }
 
@@ -187,12 +219,59 @@ export class HydratedSolGameBoard
         start,
         destination,
         range,
-        requiredGates // Ordered list of gates to pass through
+        requiredGates, // Ordered list of gates to pass through
+        illegalCoordinates
     }: {
         start: OffsetCoordinates
         destination: OffsetCoordinates
         range?: number
         requiredGates?: SolarGate[]
+        illegalCoordinates?: OffsetCoordinates[]
+    }): OffsetCoordinates[] | undefined {
+        const path = [start]
+
+        if (requiredGates && requiredGates.length > 0) {
+            const pathThroughGates = this.pathThroughGates({
+                start,
+                requiredGates,
+                range
+            })
+            if (!pathThroughGates) {
+                return undefined
+            }
+            path.push(...pathThroughGates.slice(1))
+        }
+
+        let remainingRange = range !== undefined ? range - (path.length - 1) : undefined
+        let current = path.at(-1)!
+
+        if (!sameCoordinates(current, destination)) {
+            const pathFinder = solPathfinder({
+                board: this,
+                start: current,
+                end: destination,
+                range: remainingRange,
+                illegalCoordinates
+            })
+            const finalSegment = this.graph.findFirstPath(pathFinder)
+            if (!finalSegment) {
+                return undefined
+            }
+            path.push(...finalSegment.slice(1).map((node) => node.coords))
+        }
+        return path.length > 0 ? path : undefined
+    }
+
+    public pathThroughGates({
+        start,
+        requiredGates, // Ordered list of gates to pass through
+        range,
+        illegalCoordinates
+    }: {
+        start: OffsetCoordinates
+        requiredGates?: SolarGate[]
+        range?: number
+        illegalCoordinates?: OffsetCoordinates[]
     }): OffsetCoordinates[] | undefined {
         const path = [start]
         let current = start
@@ -209,62 +288,18 @@ export class HydratedSolGameBoard
                 start: current,
                 end: nextDestination,
                 allowedGates: [gate],
-                range: remainingRange
+                range: remainingRange,
+                illegalCoordinates
             })
             const segment = this.graph.findFirstPath(pathFinder)
             if (!segment) {
                 return undefined
             }
             path.push(...segment.slice(1).map((node) => node.coords))
+
             if (remainingRange !== undefined) {
                 remainingRange -= segment.length - 1
             }
-            current = nextDestination
-        }
-
-        if (!sameCoordinates(current, destination)) {
-            const pathFinder = solPathfinder({
-                board: this,
-                start: current,
-                end: destination,
-                range: remainingRange
-            })
-            const finalSegment = this.graph.findFirstPath(pathFinder)
-            if (!finalSegment) {
-                return undefined
-            }
-            path.push(...finalSegment.slice(1).map((node) => node.coords))
-        }
-        return path.length > 0 ? path : undefined
-    }
-
-    public pathThroughGates({
-        start,
-        requiredGates // Ordered list of gates to pass through
-    }: {
-        start: OffsetCoordinates
-        requiredGates?: SolarGate[]
-    }): OffsetCoordinates[] | undefined {
-        const path = [start]
-        let current = start
-        for (const gate of requiredGates || []) {
-            if (!gate.innerCoords || !gate.outerCoords) {
-                return undefined
-            }
-            const nextDestination =
-                current.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
-
-            const pathFinder = solPathfinder({
-                board: this,
-                start: current,
-                end: nextDestination,
-                allowedGates: [gate]
-            })
-            const segment = this.graph.findFirstPath(pathFinder)
-            if (!segment) {
-                return undefined
-            }
-            path.push(...segment.slice(1).map((node) => node.coords))
             current = nextDestination
         }
         return path.length > 0 ? path : undefined

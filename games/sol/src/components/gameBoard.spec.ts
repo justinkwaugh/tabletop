@@ -40,10 +40,21 @@ describe('Sol Game Board Tests', () => {
         }
         board.addGateAt(gate4, { row: Ring.Radiative, col: 5 }, { row: Ring.Convective, col: 8 })
 
+        const gate5 = {
+            id: 'g5',
+            playerId: 'p2'
+        }
+        board.addGateAt(gate5, { row: Ring.Core, col: 1 }, { row: Ring.Radiative, col: 2 })
+
         const start = { row: Ring.Radiative, col: 7 }
         const end = { row: Ring.Outer, col: 4 }
-        const gates = board.gateChoicesForDestination(start, end, 50)
-        expect(gates.length).toEqual(2)
+
+        const localGates = board.findGatesLocalToRing(start.row)
+
+        expect(localGates.length).toEqual(3)
+        expect(localGates).toContainEqual(gate3)
+        expect(localGates).toContainEqual(gate4)
+        expect(localGates).toContainEqual(gate5)
     })
 
     it<LocalTestContext>('should find only one gate choice due to range', ({ board }) => {
@@ -60,7 +71,7 @@ describe('Sol Game Board Tests', () => {
 
         const start = { row: Ring.Convective, col: 0 }
         const end = { row: Ring.Inner, col: 11 }
-        const gates = board.gateChoicesForDestination(start, end, 4)
+        const gates = board.gateChoicesForDestination({ start, end, range: 4 })
         expect(gates.length).toEqual(1)
         expect(gates[0].id).toEqual(gate.id)
     })
@@ -79,7 +90,13 @@ describe('Sol Game Board Tests', () => {
 
         const start = { row: Ring.Convective, col: 0 }
         const end = { row: Ring.Convective, col: 5 }
-        const gates = board.gateChoicesForDestination(start, end, 7)
+
+        // Not enough range to go out and back in
+        let gates = board.gateChoicesForDestination({ start, end, range: 7 })
+        expect(gates.length).toEqual(0)
+
+        // Enough range to go out and back in
+        gates = board.gateChoicesForDestination({ start, end, range: 11 })
         expect(gates.length).toEqual(1)
         expect(gates[0].id).toEqual(gate.id)
     })
@@ -93,7 +110,7 @@ describe('Sol Game Board Tests', () => {
 
         const start = { row: Ring.Convective, col: 0 }
         const end = { row: Ring.Inner, col: 2 }
-        const gates = board.gateChoicesForDestination(start, end, 3)
+        const gates = board.gateChoicesForDestination({ start, end, range: 3 })
         expect(gates.length).toEqual(1)
         expect(gates[0].id).toEqual(gate.id)
     })
@@ -123,7 +140,57 @@ describe('Sol Game Board Tests', () => {
         const gates = [gate2, gate3]
         const path = board.pathToDestination({ start, destination: end, requiredGates: gates })
         expect(path).toBeDefined()
-        console.log('path', path)
         expect(path!.length).toEqual(10)
+    })
+
+    it<LocalTestContext>('returns progressive gate choices', ({ board }) => {
+        const gate = {
+            id: 'g1',
+            playerId: 'p1'
+        }
+        board.addGateAt(gate, { row: Ring.Convective, col: 0 }, { row: Ring.Inner, col: 0 })
+        const gate2 = {
+            id: 'g2',
+            playerId: 'p2'
+        }
+        board.addGateAt(gate2, { row: Ring.Convective, col: 2 }, { row: Ring.Inner, col: 2 })
+        const gate3 = {
+            id: 'g3',
+            playerId: 'p1'
+        }
+        board.addGateAt(gate3, { row: Ring.Radiative, col: 2 }, { row: Ring.Convective, col: 3 })
+        const gate4 = {
+            id: 'g4',
+            playerId: 'p2'
+        }
+        board.addGateAt(gate4, { row: Ring.Radiative, col: 5 }, { row: Ring.Convective, col: 8 })
+
+        const gate5 = {
+            id: 'g5',
+            playerId: 'p2'
+        }
+        board.addGateAt(gate5, { row: Ring.Core, col: 1 }, { row: Ring.Radiative, col: 2 })
+
+        const start = { row: Ring.Outer, col: 6 }
+        const end = { row: Ring.Core, col: 0 }
+
+        const gates = board.gateChoicesForDestination({ start, end, range: 50 })
+
+        expect(gates.length).toEqual(2)
+        expect(gates[0]).toEqual(gate)
+        expect(gates[1]).toEqual(gate2)
+
+        const requiredGates = [gate]
+        const nextGates = board.gateChoicesForDestination({ start, end, range: 50, requiredGates })
+
+        expect(nextGates.length).toEqual(2)
+        expect(nextGates[0]).toEqual(gate3)
+        expect(nextGates[1]).toEqual(gate4)
+
+        requiredGates.push(gate3)
+        const finalGates = board.gateChoicesForDestination({ start, end, range: 50, requiredGates })
+
+        expect(finalGates.length).toEqual(1)
+        expect(finalGates[0]).toEqual(gate5)
     })
 })

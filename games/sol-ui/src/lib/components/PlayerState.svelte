@@ -147,22 +147,42 @@
                             class="flex flex-row justify-start items-end gap-x-2 w-full text-[.75rem] sol-font-bold text-[#cccccc] leading-none"
                         >
                             <div class="flex flex-col justify-center items-center gap-y-1">
-                                <Gate width={25} height={21} color={playerState.color} />
+                                <Gate
+                                    width={25}
+                                    height={21}
+                                    color={playerState.color}
+                                    opacity={playerState.solarGates.length > 0 ? 1 : 0.3}
+                                />
                                 <div>{playerState.solarGates.length}</div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
-                                <EnergyNode width={23} height={25} color={playerState.color} />
+                                <EnergyNode
+                                    width={23}
+                                    height={25}
+                                    color={playerState.color}
+                                    opacity={playerState.energyNodes.length > 0 ? 1 : 0.3}
+                                />
                                 <div>{playerState.energyNodes.length}</div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
-                                <Foundry width={23} height={25} color={playerState.color} />
+                                <Foundry
+                                    width={23}
+                                    height={25}
+                                    color={playerState.color}
+                                    opacity={playerState.sundiverFoundries.length > 0 ? 1 : 0.3}
+                                />
                                 <div>
                                     {playerState.sundiverFoundries.length}
                                 </div>
                             </div>
 
                             <div class="flex flex-col justify-center items-center gap-y-1">
-                                <Tower width={19} height={40} color={playerState.color} />
+                                <Tower
+                                    width={19}
+                                    height={40}
+                                    color={playerState.color}
+                                    opacity={playerState.transmitTowers.length > 0 ? 1 : 0.3}
+                                />
                                 <div>{playerState.transmitTowers.length}</div>
                             </div>
                         </div>

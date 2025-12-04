@@ -1,4 +1,4 @@
-import { OffsetCoordinates, breadthFirstTraverser } from '@tabletop/common'
+import { OffsetCoordinates, breadthFirstTraverser, coordinatesToNumber } from '@tabletop/common'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { Ring, type SolNode } from './solGraph.js'
 import { SolarGate } from '../components/solarGate.js'
@@ -24,8 +24,19 @@ export function solTraverser({
     })
 }
 
-export function solTraverseChecker(board: HydratedSolGameBoard, allowedGates?: SolarGate[]) {
+export function solTraverseChecker(
+    board: HydratedSolGameBoard,
+    allowedGates?: SolarGate[],
+    illegalCoordinates?: OffsetCoordinates[]
+) {
+    const illegalKeys = new Set(illegalCoordinates?.map((coords) => coordinatesToNumber(coords)))
+
     return (from: SolNode, to: SolNode) => {
+        // Can't go there
+        if (illegalKeys.has(coordinatesToNumber(to.coords))) {
+            return false
+        }
+
         // Traversing within a ring is always allowed
         if (from.coords.row === to.coords.row) {
             return true

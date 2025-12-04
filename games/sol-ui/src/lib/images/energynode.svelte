@@ -1,10 +1,11 @@
 <script lang="ts">
+    import type { SVGAttributes } from 'svelte/elements'
     let {
         width = 93,
         height = 100,
         color = '',
         ...svgProps
-    }: { width?: number; height?: number; color?: string } = $props()
+    }: { width?: number; height?: number; color?: string } & SVGAttributes<SVGElement> = $props()
 </script>
 
 <svg
