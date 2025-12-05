@@ -10,7 +10,7 @@
     import SubductionCard from '$lib/images/subductionCard.png'
     import { Suit } from '@tabletop/sol'
     import Card from './Card.svelte'
-    import { attachCard, type CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
+    import { animateCard, type CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
     import { nanoid } from 'nanoid'
 
     let gameSession = getContext('gameSession') as SolGameSession
@@ -71,7 +71,7 @@
 <div class="flex flex-row flex-wrap justify-center items-center gap-x-2 h-[100px] mb-2">
     {#each gameSession.drawnCards as card (card.id)}
         <button
-            {@attach attachCard(animator, card)}
+            use:animateCard={{ animator, card }}
             onclick={() => chooseCard(card.suit)}
             class="{interactable
                 ? 'hover:border-white'

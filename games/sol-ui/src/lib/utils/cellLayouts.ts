@@ -23,8 +23,10 @@ export function getCellLayout(
     playerCount: number,
     board: HydratedSolGameBoard
 ): CellLayout {
+    const numPlayersWithDivers = board.playersWithSundivers(cell).length
+
     if (cell.station && cell.station.type !== StationType.TransmitTower) {
-        if (cell.sundivers.length < 3) {
+        if (numPlayersWithDivers < 3) {
             const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
             const gates = board.gatesForCell(cell.coords, Direction.In)
             const radiusOffset = gates.length > 0 && cell.coords.row < Ring.Inner ? 10 : 0
@@ -46,14 +48,14 @@ export function getCellLayout(
             }
         }
     } else if (!cell.station) {
-        if (cell.sundivers.length === 1) {
+        if (numPlayersWithDivers === 1) {
             // Just center the diver
             const center = getSpaceCentroid(playerCount, cell.coords)
             return {
                 station: undefined,
                 divers: [center]
             }
-        } else if (cell.sundivers.length === 2) {
+        } else if (numPlayersWithDivers === 2) {
             // Just split the divers
             const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
             const diver1 = getCirclePoint(

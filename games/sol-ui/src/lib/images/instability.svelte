@@ -1,14 +1,25 @@
 <script lang="ts">
+    import type { InstabilityAnimator } from '$lib/animators/instabilityAnimator.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
+
     let {
         width = 58,
         height = 100,
         x = 0,
         y = 0,
+        animator,
         ...svgProps
-    }: { width?: number; height?: number; x?: number; y?: number } = $props()
+    }: {
+        width?: number
+        height?: number
+        x?: number
+        y?: number
+        animator?: InstabilityAnimator
+    } = $props()
 </script>
 
 <svg
+    {@attach animator && attachAnimator(animator)}
     class="instability-marker"
     {width}
     {height}

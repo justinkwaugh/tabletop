@@ -3,6 +3,7 @@
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { Point } from '@tabletop/common'
     import InstabilityMarker from '$lib/images/instability.svelte'
+    import { InstabilityAnimator } from '$lib/animators/instabilityAnimator.js'
 
     let {
         width = 840,
@@ -41,6 +42,8 @@
 
         '#000000'
     ]
+
+    const animator = new InstabilityAnimator(gameSession, cellWidth, markerWidth)
 </script>
 
 <g transform={`translate(${location.x}, ${location.y})`}>
@@ -73,5 +76,6 @@
         height={markerHeight}
         x={markerX}
         y={-(height / 2) + 2}
+        {animator}
     />
 </g>

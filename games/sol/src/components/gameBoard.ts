@@ -459,6 +459,15 @@ export class HydratedSolGameBoard
         ]
     }
 
+    public playersWithSundiversAt(coords: OffsetCoordinates): string[] {
+        const cell = this.cellAt(coords)
+        return this.playersWithSundivers(cell)
+    }
+
+    public playersWithSundivers(cell: Cell): string[] {
+        return Array.from(new Set(cell.sundivers.map((sundiver) => sundiver.playerId)))
+    }
+
     public sundiversForPlayerAt(playerId: string, coords: OffsetCoordinates): Sundiver[] {
         const cell = this.cells[coordinatesToNumber(coords)]
         return this.sundiversForPlayer(playerId, cell)

@@ -142,6 +142,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     // Used to trigger an effect to call the state change listening callbacks and then update the exposed gameState
     private currentVisibleGameState: U = $derived.by(() => {
+        console.log('Deriving current visible game state')
         return this.definition.hydrator.hydrateState(this.currentVisibleContext.state) as U
     })
 
@@ -373,8 +374,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
         )
 
-        // Need an initial value
-        this.gameState = $state.raw(this.definition.hydrator.hydrateState(state) as U)
         this.colors = new GameColors(this.authorizationService, this.gameContext)
 
         if (!game.hotseat) {
@@ -390,10 +389,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             watch(
                 () => this.currentVisibleGameState,
                 (newState, oldState) => {
+                    console.log('Game state changed', { newState, oldState })
                     void this.notifyStateChangeListeners(newState, oldState)
                 }
             )
         })
+
+        // Need an initial value
+        console.log('Initializing gameState in GameSession constructor')
+        this.gameState = $state.raw(this.definition.hydrator.hydrateState(state) as U)
     }
 
     isBusy(): boolean {

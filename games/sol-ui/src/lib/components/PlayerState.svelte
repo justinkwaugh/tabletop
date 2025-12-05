@@ -119,8 +119,8 @@
                     <div class="shrink-0">
                         <svg
                             class="pointer-events-none"
-                            width="50"
-                            height="100"
+                            width="40"
+                            height="80"
                             viewBox="0 0 250 450"
                             xmlns="http://www.w3.org/2000/svg"
                         >
@@ -134,7 +134,7 @@
                     >
                         <div class="flex flex-row justify-start items-end gap-x-2 w-full mb-[-5px]">
                             <div class="flex flex-col justify-center items-center gap-y-1">
-                                <Sundiver width={28 * 0.75} height={28} color={playerState.color} />
+                                <Sundiver width={25 * 0.75} height={25} color={playerState.color} />
 
                                 <div>{playerState.holdSundivers.length}</div>
                             </div>
@@ -146,6 +146,15 @@
                         <div
                             class="flex flex-row justify-start items-end gap-x-2 w-full text-[.75rem] sol-font-bold text-[#cccccc] leading-none"
                         >
+                            <div class="flex flex-col justify-center items-center gap-y-1">
+                                <Sundiver
+                                    width={25 * 0.75}
+                                    height={25}
+                                    color={playerState.color}
+                                    opacity={playerState.reserveSundivers.length > 0 ? 1 : 0.3}
+                                />
+                                <div>{playerState.reserveSundivers.length}</div>
+                            </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <Gate
                                     width={25}
