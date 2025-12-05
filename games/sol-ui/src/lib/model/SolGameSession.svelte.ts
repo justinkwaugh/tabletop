@@ -114,15 +114,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
     }
 
-    override async onGameStateChange({
-        to,
-        from,
-        timeline
-    }: {
-        to: SolGameState
-        from?: SolGameState
-        timeline: unknown
-    }) {
+    override afterAnimations(): void {
         this.resetAction()
     }
 

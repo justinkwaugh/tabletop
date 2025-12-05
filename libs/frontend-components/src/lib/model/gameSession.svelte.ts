@@ -431,6 +431,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 await timeline.play()
             }
 
+            this.afterAnimations()
+
             this.gameState = newState
         } finally {
             this.busy = false
@@ -450,6 +452,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }) {
         // Do nothing by default
     }
+
+    afterAnimations() {}
 
     async onGameStateChange({
         to,
