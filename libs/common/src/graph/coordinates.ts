@@ -120,6 +120,13 @@ export function cubeToAxial(coords: CubeCoordinates): AxialCoordinates {
     return { q: coords.q, r: coords.r }
 }
 
+export function samePoint(a: Point | undefined, b: Point | undefined): boolean {
+    if (a === undefined || b === undefined) {
+        return false
+    }
+    return a.x === b.x && a.y === b.y
+}
+
 export function coordinatesToNumber(coords: OffsetCoordinates): number
 export function coordinatesToNumber(coords: AxialCoordinates): number
 export function coordinatesToNumber(coords: CubeCoordinates): number

@@ -117,100 +117,98 @@
                 <div class="ms-3">ACTIVATE</div></button
             >
         </div>
+    {:else}
+        <!-- Call to action -->
+        <div class="ms-3 py-2 flex flex-row justify-center items-center h-[50px]">
+            {#if moveChosen || gameSession.isMoving}
+                {#if !gameSession.chosenMothership && !gameSession.chosenSource}
+                    <div class="me-2">CHOOSE A MOVEMENT SOURCE</div>
+                    <button
+                        onclick={pass}
+                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                        >SKIP</button
+                    >
+                {/if}
+                {#if gameSession.chosenSource && !gameSession.chosenNumDivers}
+                    HOW MANY TO MOVE?
+                {/if}
+                {#if gameSession.chosenMothership && !gameSession.chosenNumDivers}
+                    HOW MANY TO LAUNCH?
+                {/if}
+                {#if gameSession.gateChoices && gameSession.gateChoices.length > 0}
+                    CHOOSE A GATE TO USE
+                {:else if gameSession.chosenNumDivers}
+                    CHOOSE A DESTINATION FOR {gameSession.chosenNumDivers} SUNDIVER{gameSession.chosenNumDivers >
+                    1
+                        ? 'S'
+                        : ''}
+                {/if}
+            {/if}
+
+            {#if convertChosen}
+                {#if !gameSession.chosenConvertType}
+                    WHAT WILL YOU CONVERT?
+                {:else if gameSession.diverCellChoices}
+                    CHOOSE A SUNDIVER
+                {:else if !gameSession.chosenDestination}
+                    CHOOSE A LOCATION
+                {/if}
+            {/if}
+            {#if activateChosen}
+                CHOOSE A STATION
+            {/if}
+            {#if gameSession.isActivating}
+                {#if gameSession.gameState.activation && !gameSession.gameState.activation.currentStationId}
+                    <div class="me-2">ACTIVATE ANOTHER?</div>
+                    <button
+                        onclick={pass}
+                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                    >
+                        SKIP</button
+                    >
+                {:else}
+                    <div class="me-2">CLAIM THE BONUS?</div>
+                    <button
+                        onclick={chooseBonus}
+                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                        >YES</button
+                    >
+                    <button
+                        onclick={pass}
+                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                    >
+                        NO</button
+                    >
+                {/if}
+            {/if}
+            {#if gameSession.isDrawingCards}
+                DRAW {gameSession.gameState.cardsToDraw ?? 0} CARD{(gameSession.gameState
+                    .cardsToDraw ?? 0) !== 1
+                    ? 'S'
+                    : ''}...
+            {/if}
+            {#if gameSession.isChoosingCard}
+                <div class="me-2">CHOOSE CARD TO KEEP</div>
+                <button
+                    onclick={pass}
+                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                >
+                    SKIP</button
+                >
+            {/if}
+            {#if gameSession.isSolarFlares}
+                <div class="me-2">ACTIVATE AN OUTER STATION</div>
+                <button
+                    onclick={pass}
+                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                >
+                    SKIP</button
+                >
+            {/if}
+        </div>
     {/if}
 
-    <!-- Call to action -->
-    <div class="ms-3 py-2 flex flex-row justify-center items-center h-[50px]">
-        {#if moveChosen || gameSession.isMoving}
-            {#if !gameSession.chosenMothership && !gameSession.chosenSource}
-                <div class="me-2">CHOOSE A MOVEMENT SOURCE</div>
-                <button
-                    onclick={pass}
-                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                >
-                    SKIP</button
-                >
-            {/if}
-            {#if gameSession.chosenSource && !gameSession.chosenNumDivers}
-                HOW MANY TO MOVE?
-            {/if}
-            {#if gameSession.chosenMothership && !gameSession.chosenNumDivers}
-                HOW MANY TO LAUNCH?
-            {/if}
-            {#if gameSession.gateChoices && gameSession.gateChoices.length > 0}
-                CHOOSE A GATE TO USE
-            {:else if gameSession.chosenNumDivers}
-                CHOOSE A DESTINATION FOR {gameSession.chosenNumDivers} SUNDIVER{gameSession.chosenNumDivers >
-                1
-                    ? 'S'
-                    : ''}
-            {/if}
-        {/if}
-
-        {#if convertChosen}
-            {#if !gameSession.chosenConvertType}
-                WHAT WILL YOU CONVERT?
-                <ConvertPicker />
-            {:else if gameSession.diverCellChoices}
-                CHOOSE A SUNDIVER
-            {:else if !gameSession.chosenDestination}
-                CHOOSE A LOCATION
-            {/if}
-        {/if}
-        {#if activateChosen}
-            CHOOSE A STATION
-        {/if}
-        {#if gameSession.isActivating}
-            {#if gameSession.gameState.activation && !gameSession.gameState.activation.currentStationId}
-                <div class="me-2">ACTIVATE ANOTHER?</div>
-                <button
-                    onclick={pass}
-                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                >
-                    SKIP</button
-                >
-            {:else}
-                <div class="me-2">CLAIM THE BONUS?</div>
-                <button
-                    onclick={chooseBonus}
-                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                    >YES</button
-                >
-                <button
-                    onclick={pass}
-                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                >
-                    NO</button
-                >
-            {/if}
-        {/if}
-        {#if gameSession.isDrawingCards}
-            DRAW {gameSession.gameState.cardsToDraw ?? 0} CARD{(gameSession.gameState.cardsToDraw ??
-                0) !== 1
-                ? 'S'
-                : ''}...
-        {/if}
-        {#if gameSession.isChoosingCard}
-            <div class="me-2">CHOOSE CARD TO KEEP</div>
-            <button
-                onclick={pass}
-                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-            >
-                SKIP</button
-            >
-        {/if}
-        {#if gameSession.isSolarFlares}
-            <div class="me-2">ACTIVATE AN OUTER STATION</div>
-            <button
-                onclick={pass}
-                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-            >
-                SKIP</button
-            >
-        {/if}
-    </div>
-
-    {#if gameSession.drawnCards.length > 0}
+    {#if gameSession.drawnCards.length > 0 || gameSession.isSolarFlares || gameSession.isChoosingCard}
         <CardPicker animator={cardPickerAnimator} />
     {:else if (moveChosen || gameSession.isMoving) && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers}
         <LaunchPicker />

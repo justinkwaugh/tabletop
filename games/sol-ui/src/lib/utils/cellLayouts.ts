@@ -1,7 +1,15 @@
 import type { Point } from '@tabletop/common'
 import { CELL_LAYOUT_5P } from './cellLayout5p.js'
 import { CELL_LAYOUT_4P } from './cellLayout4p.js'
-import { Direction, HydratedSolGameBoard, StationType, type Cell } from '@tabletop/sol'
+import { Direction, HydratedSolGameBoard, Ring, StationType, type Cell } from '@tabletop/sol'
+import {
+    addToAngle,
+    getCirclePoint,
+    getSpaceCentroid,
+    getSpaceCentroidAngleAndRadius,
+    subtractFromAngle,
+    toRadians
+} from './boardGeometry.js'
 
 export type CellLayouts = Record<string, CellLayoutRecord>
 export type CellLayoutRecord = Record<string, CellLayout>
@@ -15,6 +23,54 @@ export function getCellLayout(
     playerCount: number,
     board: HydratedSolGameBoard
 ): CellLayout {
+    if (cell.station && cell.station.type !== StationType.TransmitTower) {
+        if (cell.sundivers.length < 3) {
+            const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
+            const gates = board.gatesForCell(cell.coords, Direction.In)
+            const radiusOffset = gates.length > 0 && cell.coords.row < Ring.Inner ? 10 : 0
+            const stationPoint = getCirclePoint(
+                center.radius + radiusOffset,
+                toRadians(center.angle)
+            )
+            const diver1 = getCirclePoint(
+                center.radius + 10,
+                toRadians(subtractFromAngle(center.angle, 8))
+            )
+            const diver2 = getCirclePoint(
+                center.radius + 10,
+                toRadians(addToAngle(center.angle, 8))
+            )
+            return {
+                station: { point: stationPoint, z: 1 },
+                divers: [diver1, diver2]
+            }
+        }
+    } else if (!cell.station) {
+        if (cell.sundivers.length === 1) {
+            // Just center the diver
+            const center = getSpaceCentroid(playerCount, cell.coords)
+            return {
+                station: undefined,
+                divers: [center]
+            }
+        } else if (cell.sundivers.length === 2) {
+            // Just split the divers
+            const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
+            const diver1 = getCirclePoint(
+                center.radius + 10,
+                toRadians(subtractFromAngle(center.angle, 4))
+            )
+            const diver2 = getCirclePoint(
+                center.radius + 10,
+                toRadians(addToAngle(center.angle, 4))
+            )
+            return {
+                station: undefined,
+                divers: [diver1, diver2]
+            }
+        }
+    }
+
     const layouts = cellLayoutsForPlayerCount(playerCount)
     const layoutCellKey = `${cell.coords.row}-${cell.coords.col}`
     const layoutRecords = layouts[layoutCellKey]

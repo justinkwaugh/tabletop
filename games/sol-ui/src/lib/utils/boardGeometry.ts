@@ -212,6 +212,11 @@ export function getGatePosition(
 }
 
 export function getSpaceCentroid(numPlayers: number, coords: OffsetCoordinates) {
+    const { angle, radius } = getSpaceCentroidAngleAndRadius(numPlayers, coords)
+    return getCirclePoint(radius, toRadians(angle))
+}
+
+export function getSpaceCentroidAngleAndRadius(numPlayers: number, coords: OffsetCoordinates) {
     const { innerRadius, outerRadius, startDegrees, endDegrees } = dimensionsForSpace(
         numPlayers,
         coords
@@ -219,5 +224,22 @@ export function getSpaceCentroid(numPlayers: number, coords: OffsetCoordinates) 
 
     const radius = (innerRadius + outerRadius) / 2
     const angle = (startDegrees + (startDegrees > endDegrees ? endDegrees + 360 : endDegrees)) / 2
-    return getCirclePoint(radius, toRadians(angle))
+    return { angle, radius }
+}
+
+export function addToAngle(angleDegrees: number, amount: number) {
+    return normalizeAngle(angleDegrees + amount)
+}
+
+export function subtractFromAngle(angleDegrees: number, amount: number) {
+    return normalizeAngle(angleDegrees - amount)
+}
+
+export function normalizeAngle(angleDegrees: number) {
+    if (angleDegrees < 0) {
+        return 360 + (angleDegrees % 360)
+    } else if (angleDegrees >= 360) {
+        return angleDegrees % 360
+    }
+    return angleDegrees
 }

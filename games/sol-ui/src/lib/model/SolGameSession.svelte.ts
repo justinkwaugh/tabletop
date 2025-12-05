@@ -24,6 +24,7 @@ import {
 import { ActionCategory } from '$lib/definition/actionCategory.js'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
+import { getSpaceCentroid } from '$lib/utils/boardGeometry.js'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
@@ -46,15 +47,18 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     gateChoices?: number[] = $state(undefined)
     diverCellChoices?: number[] = $state(undefined)
 
-    drawnCards: Card[] = $state([])
-    // drawnCards: Card[] = $derived.by(() => {
-    //     const myPlayerState = this.myPlayerState
-    //     if (!myPlayerState || !myPlayerState.drawnCards) {
-    //         return []
-    //     }
+    drawnCards: Card[] = $derived.by(() => {
+        const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId
+        if (!currentPlayer) {
+            return []
+        }
+        const currentPlayerState = this.gameState.getPlayerState(currentPlayer!)
+        if (!currentPlayerState || !currentPlayerState.drawnCards) {
+            return []
+        }
 
-    //     return structuredClone(myPlayerState.drawnCards)
-    // })
+        return structuredClone(currentPlayerState.drawnCards)
+    })
 
     midAction = $derived.by(() => {
         if (this.chosenSource) {

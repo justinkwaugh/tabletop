@@ -21,9 +21,7 @@
         animator: CardPickerAnimator
     } = $props()
 
-    export function sayHi() {
-        console.log('hi from CardPicker')
-    }
+    const interactable = $derived(gameSession.isMyTurn && gameSession.isChoosingCard)
 
     const cardsBySuit = $derived.by(() => {
         const myPlayerState = gameSession.myPlayerState
@@ -63,18 +61,24 @@
     }
 
     async function chooseCard(suit: Suit) {
+        if (!interactable) {
+            return
+        }
         await gameSession.chooseCard(suit as Suit)
     }
 </script>
 
-<div class="flex flex-row flex-wrap justify-center items-center gap-x-2 h-[100px]">
+<div class="flex flex-row flex-wrap justify-center items-center gap-x-2 h-[100px] mb-2">
     {#each gameSession.drawnCards as card (card.id)}
-        <div
+        <button
             {@attach attachCard(animator, card)}
-            class="w-[69px] h-[100px] rounded-lg overflow-hidden"
+            onclick={() => chooseCard(card.suit)}
+            class="{interactable
+                ? 'hover:border-white'
+                : ''} box-border border-2 border-black w-[69px] h-[100px] rounded-lg overflow-hidden"
         >
             <Card {card} />
-        </div>
+        </button>
     {/each}
     <!-- {#each cardsBySuit as [suit, count] (suit)}
         <div class="flex flex-row justify-center items-center">

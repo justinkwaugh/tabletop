@@ -11,7 +11,7 @@ import {
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import { GameAction, OffsetCoordinates, range, sameCoordinates } from '@tabletop/common'
+import { GameAction, OffsetCoordinates, range, sameCoordinates, samePoint } from '@tabletop/common'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeIn, fadeOut, move } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
@@ -67,8 +67,13 @@ export class CellSundiverAnimator extends StateAnimator<
             return
         }
 
+        const undo = from && from.actionCount > to.actionCount
+
         if (actions && actions.length > 0) {
             this.animateActions(actions, timeline, to, from)
+        }
+
+        if (!undo && !actions?.some((action) => this.mayBeAffectedByAction(action))) {
             return
         }
 
@@ -81,25 +86,35 @@ export class CellSundiverAnimator extends StateAnimator<
         const toDivers = to.board.sundiversForPlayerAt(this.playerId, this.coords)
         const fromDivers = from?.board.sundiversForPlayerAt(this.playerId, this.coords) ?? []
 
-        if (toDivers.length === fromDivers.length) {
-            return
-        }
-
-        if (toDivers.length === 0) {
-            fadeOut({
-                object: this.element,
-                duration: 0.2,
-                timeline,
-                position: 'cellsFadeOut'
-            })
-        } else if (fromDivers.length === 0) {
-            gsap.set(this.element, { opacity: 0 })
-            fadeIn({
-                object: this.element,
-                duration: 0.3,
-                timeline,
-                position: 'cellsFadeIn'
-            })
+        if (toDivers.length > 0) {
+            // Check locations
+            const targetLocation = this.gameSession.locationForDiverInCell(this.playerId, toCell)
+            if (!targetLocation) {
+                return
+            }
+            if (fromCell) {
+                const sourceLocation = this.gameSession.locationForDiverInCell(
+                    this.playerId,
+                    fromCell!
+                )
+                if (sourceLocation && !samePoint(sourceLocation, targetLocation)) {
+                    console.log('animating sundiver from ', sourceLocation, 'to', targetLocation)
+                    move({
+                        object: this.element,
+                        timeline,
+                        location: offsetFromCenter(targetLocation),
+                        duration: 0.4,
+                        position: 0
+                    })
+                }
+            } else {
+                gsap.set(this.element!, {
+                    x: offsetFromCenter(targetLocation).x,
+                    y: offsetFromCenter(targetLocation).y
+                })
+            }
+        } else {
+            gsap.set(this.element!, { opacity: 0 })
         }
     }
 
@@ -121,6 +136,29 @@ export class CellSundiverAnimator extends StateAnimator<
                 this.animateFlyAction(action, timeline, toState, fromState)
             }
         }
+    }
+
+    mayBeAffectedByAction(action: GameAction): boolean {
+        if (isLaunch(action)) {
+            return (
+                action.playerId !== this.playerId &&
+                sameCoordinates(action.destination, this.coords)
+            )
+        } else if (isFly(action)) {
+            return (
+                action.playerId !== this.playerId &&
+                (sameCoordinates(action.start, this.coords) ||
+                    sameCoordinates(action.destination, this.coords))
+            )
+        } else if (isConvert(action)) {
+            if (action.playerId !== this.playerId) {
+                return true
+            }
+        } else if (isActivate(action)) {
+            return action.playerId !== this.playerId && sameCoordinates(action.coords, this.coords)
+        }
+
+        return false
     }
 
     animateLaunchAction(
@@ -219,7 +257,6 @@ export class CellSundiverAnimator extends StateAnimator<
             for (const index of range(1, leaving).reverse()) {
                 timeline.call(
                     () => {
-                        console.log('Setting quantity to ', numBefore - index)
                         this.quantityCallback!(numBefore - index)
                     },
                     [],

@@ -425,7 +425,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
             await Promise.all(promises)
 
-            if (timeline.getChildren().length > 0) {
+            const animations = timeline.getChildren()
+            if (animations.length > 0) {
+                console.log(`Playing ${animations.length} animations for state change`)
                 await timeline.play()
             }
 

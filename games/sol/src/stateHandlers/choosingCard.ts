@@ -20,8 +20,11 @@ export class ChoosingCardStateHandler implements MachineStateHandler<HydratedCho
 
     enter(_context: MachineContext) {}
 
-    onAction(_action: HydratedChooseCard, context: MachineContext): MachineState {
+    onAction(action: HydratedChooseCard, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedSolGameState
+
+        const playerState = gameState.getPlayerState(action.playerId)
+        playerState.drawnCards = undefined
 
         gameState.turnManager.endTurn(gameState.actionCount)
         return MachineState.StartOfTurn
