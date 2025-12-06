@@ -17,6 +17,7 @@ export interface GameDefinition {
     apiActions: Record<string, TSchema>
     playerColors: Color[]
     configOptions: GameConfigOptions
+    configSchema?: TSchema
     configHandler?: ConfigHandler
     stateLogger?: GameStateLogger
 }

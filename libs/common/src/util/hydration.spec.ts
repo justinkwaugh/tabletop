@@ -124,4 +124,101 @@ describe('Hydration Tests', () => {
         // @ts-expect-error Testing invalid but possible edge case
         expect(dehydratedParent.child.greet()).toBe('Hello, Charlie!') // original dehydrated object unchanged
     })
+
+    it('hydrates children in arrays', () => {
+        type ChildObject = Static<typeof ChildObject>
+        const ChildObject = Type.Object({
+            name: Type.String()
+        })
+
+        class HydratedChildObject extends Hydratable<typeof ChildObject> implements ChildObject {
+            name: string
+
+            constructor(data: ChildObject) {
+                super(data, Compile(ChildObject))
+                this.name = data.name
+            }
+
+            greet() {
+                return `Hello, ${this.name}!`
+            }
+        }
+
+        type ParentObject = Static<typeof ParentObject>
+        const ParentObject = Type.Object({
+            children: Type.Array(ChildObject)
+        })
+
+        class HydratedParentObject extends Hydratable<typeof ParentObject> implements ParentObject {
+            children: HydratedChildObject[]
+            constructor(data: ParentObject) {
+                super(data, Compile(ParentObject))
+                this.children = data.children.map((child) => new HydratedChildObject(child))
+            }
+        }
+
+        const data: ParentObject = { children: [{ name: 'Alice' }, { name: 'Bob' }] }
+        const hydratedParent = new HydratedParentObject(data)
+        expect(hydratedParent.children[0].name).toBe('Alice')
+        expect(hydratedParent.children[0].greet()).toBe('Hello, Alice!')
+
+        expect(hydratedParent.children[0].name).toBe('Alice')
+        expect(hydratedParent.children[1].greet()).toBe('Hello, Bob!')
+
+        const dehydratedParent = hydratedParent.dehydrate()
+        expect(dehydratedParent).toEqual({ children: [{ name: 'Alice' }, { name: 'Bob' }] })
+
+        const rehydratedParent = new HydratedParentObject(hydratedParent)
+        expect(rehydratedParent.children[0].name).toBe('Alice')
+        expect(rehydratedParent.children[0].greet()).toBe('Hello, Alice!')
+        expect(rehydratedParent.children[1].name).toBe('Bob')
+        expect(rehydratedParent.children[1].greet()).toBe('Hello, Bob!')
+    })
+
+    it('hydrates children in nested objects', () => {
+        type ChildObject = Static<typeof ChildObject>
+        const ChildObject = Type.Object({
+            name: Type.String()
+        })
+
+        class HydratedChildObject extends Hydratable<typeof ChildObject> implements ChildObject {
+            name: string
+
+            constructor(data: ChildObject) {
+                super(data, Compile(ChildObject))
+                this.name = data.name
+            }
+
+            greet() {
+                return `Hello, ${this.name}!`
+            }
+        }
+
+        type ParentObject = Static<typeof ParentObject>
+        const ParentObject = Type.Object({
+            children: Type.Object({
+                child: ChildObject
+            })
+        })
+
+        class HydratedParentObject extends Hydratable<typeof ParentObject> implements ParentObject {
+            children: { child: HydratedChildObject }
+            constructor(data: ParentObject) {
+                super(data, Compile(ParentObject))
+                this.children = { child: new HydratedChildObject(data.children.child) }
+            }
+        }
+
+        const data: ParentObject = { children: { child: { name: 'Alice' } } }
+        const hydratedParent = new HydratedParentObject(data)
+        expect(hydratedParent.children.child.name).toBe('Alice')
+        expect(hydratedParent.children.child.greet()).toBe('Hello, Alice!')
+
+        const dehydratedParent = hydratedParent.dehydrate()
+        expect(dehydratedParent).toEqual({ children: { child: { name: 'Alice' } } })
+
+        const rehydratedParent = new HydratedParentObject(hydratedParent)
+        expect(rehydratedParent.children.child.name).toBe('Alice')
+        expect(rehydratedParent.children.child.greet()).toBe('Hello, Alice!')
+    })
 })
