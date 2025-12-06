@@ -29,7 +29,7 @@ export function getCellLayout(
         if (numPlayersWithDivers < 3) {
             const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
             const gates = board.gatesForCell(cell.coords, Direction.In)
-            const radiusOffset = gates.length > 0 && cell.coords.row < Ring.Inner ? 10 : 0
+            const radiusOffset = gates.length > 0 && cell.coords.row < Ring.Inner ? 12 : 0
             const stationPoint = getCirclePoint(
                 center.radius + radiusOffset,
                 toRadians(center.angle)
