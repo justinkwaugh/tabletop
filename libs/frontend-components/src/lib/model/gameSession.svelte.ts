@@ -15,7 +15,8 @@ import {
     GameDeleteNotification,
     type HydratedGameState,
     PlayerAction,
-    GameStorage
+    GameStorage,
+    RunMode
 } from '@tabletop/common'
 import { watch } from 'runed'
 import { Value } from 'typebox/value'
@@ -408,10 +409,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.busy = true
 
         try {
-            const timeline = gsap.timeline({
-                autoRemoveChildren: true
-            })
-
             const actions: GameAction[] = []
             if (oldState && newState.gameId === oldState.gameId) {
                 if (newState.actionCount >= oldState.actionCount) {
@@ -421,21 +418,63 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 }
             }
 
-            this.initializeTimeline({ to: newState, from: oldState, actions, timeline })
+            // With actions, generate intermediate states and notify for each, giving each their own
+            // timeline so that the action animations will be sequenced properly
+            if (oldState && actions.length > 0) {
+                let priorState = oldState.dehydrate()
 
-            const promises = []
-            for (const listener of this.gameStateChangeListeners) {
-                promises.push(listener({ to: newState, from: oldState, actions, timeline }))
-            }
-            await Promise.all(promises)
+                for (const action of actions) {
+                    console.log('Processing action for state change listeners: ', action)
+                    const { updatedState } = this.engine.run(
+                        $state.snapshot(action),
+                        priorState,
+                        this.game,
+                        RunMode.Single
+                    )
 
-            const animations = timeline.getChildren()
-            if (animations.length > 0) {
-                console.log(
-                    `Playing ${animations.length} animations for state change: `,
-                    animations
-                )
-                await timeline.play()
+                    const actionTimeline = gsap.timeline({
+                        autoRemoveChildren: true
+                    })
+
+                    const promises = []
+                    for (const listener of this.gameStateChangeListeners) {
+                        promises.push(
+                            listener({
+                                to: this.definition.hydrator.hydrateState(updatedState) as U,
+                                from: this.definition.hydrator.hydrateState(priorState) as U,
+                                actions: [action],
+                                timeline: actionTimeline
+                            })
+                        )
+                    }
+                    await Promise.all(promises)
+                    priorState = updatedState as U
+                    const animations = actionTimeline.getChildren()
+                    if (animations.length > 0) {
+                        console.log(
+                            `Playing ${animations.length} animations for state change: `,
+                            animations
+                        )
+                        await actionTimeline.play()
+                    }
+                }
+            } else {
+                const timeline = gsap.timeline({
+                    autoRemoveChildren: true
+                })
+                const promises = []
+                for (const listener of this.gameStateChangeListeners) {
+                    promises.push(listener({ to: newState, from: oldState, actions, timeline }))
+                }
+                await Promise.all(promises)
+                const animations = timeline.getChildren()
+                if (animations.length > 0) {
+                    console.log(
+                        `Playing ${animations.length} animations for state change: `,
+                        animations
+                    )
+                    await timeline.play()
+                }
             }
 
             this.afterAnimations()
