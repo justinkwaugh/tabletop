@@ -25,7 +25,11 @@
     const interactable = $derived(gameSession.isMyTurn && gameSession.isDrawingCards)
 </script>
 
-<g onclick={drawCards} transform={`translate(${location.x}, ${location.y})`}>
+<g
+    class="stroke-[#5a5141] {interactable ? 'hover:stroke-[#ffffff]' : ''}"
+    onclick={drawCards}
+    transform={`translate(${location.x}, ${location.y})`}
+>
     {#each { length: 3 } as _, index (index)}
         <rect
             rx="10"
@@ -35,7 +39,7 @@
             x={1 + (3 - index) * 3}
             y={1 + (3 - index) * 3}
             fill="#000000"
-            stroke="#5a5141"
+            stroke="inherit"
             stroke-width="2"
         ></rect>
     {/each}
@@ -50,7 +54,7 @@
         x="1"
         y="1"
         fill="none"
-        stroke="#5a5141"
+        stroke="inherit"
         stroke-width="2"
     ></rect>
     <text
@@ -64,3 +68,6 @@
         stroke="#000000">{gameSession.gameState.deck.remaining}</text
     >
 </g>
+
+<style>
+</style>
