@@ -3,6 +3,8 @@
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { Point } from '@tabletop/common'
     import CardBack from '$lib/images/cardBack2.png'
+    import { DeckAnimator } from '$lib/animators/deckAnimator.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
 
     let {
         width = 35,
@@ -23,9 +25,11 @@
     }
 
     const interactable = $derived(gameSession.isMyTurn && gameSession.isDrawingCards)
+    const animator = new DeckAnimator(gameSession)
 </script>
 
 <g
+    {@attach attachAnimator(animator)}
     class="stroke-[#5a5141] {interactable ? 'hover:stroke-[#ffffff]' : ''}"
     onclick={drawCards}
     transform={`translate(${location.x}, ${location.y})`}
