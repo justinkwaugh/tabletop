@@ -68,6 +68,3 @@
         stroke="#000000">{gameSession.gameState.deck.remaining}</text
     >
 </g>
-
-<style>
-</style>
