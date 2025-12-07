@@ -90,6 +90,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.isDrawingCards
     )
 
+    forcedCallToAction = $state<string | undefined>(undefined)
+
     override initializeTimeline({
         to,
         from,
@@ -240,6 +242,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         this.diverCellChoices = undefined
         this.gateChoices = undefined
+
+        this.forcedCallToAction = undefined
     }
 
     override shouldAutoStepAction(_action: GameAction) {

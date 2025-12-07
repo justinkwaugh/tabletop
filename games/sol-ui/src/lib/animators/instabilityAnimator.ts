@@ -33,7 +33,11 @@ export class InstabilityAnimator extends StateAnimator<
             await this.animateActions(actions, timeline, to, from)
         }
 
+        const fromInstability = from?.instability
         const toInstability = to.instability
+        if (fromInstability && fromInstability === toInstability) {
+            return
+        }
         animate({
             object: this.element!,
             params: {
@@ -70,5 +74,14 @@ export class InstabilityAnimator extends StateAnimator<
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
-    ) {}
+    ) {
+        this.gameSession.forcedCallToAction = "A SOLAR FLARE INCREASES THE SUN'S INSTABILITY..."
+        timeline.call(
+            () => {
+                // Pause for dramatic effect
+            },
+            [],
+            1
+        )
+    }
 }

@@ -13,6 +13,12 @@
     import { fade } from 'svelte/transition'
     import { CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
 
+    type CallToAction = {
+        message?: string
+        showSkip: boolean
+        yesNo: boolean
+    }
+
     let gameSession = getContext('gameSession') as SolGameSession
 
     async function chooseAction(action: string) {
@@ -30,6 +36,67 @@
     )
     const canConvert = $derived(gameSession.validActionTypes.includes(ActionType.Convert))
     const canActivate = $derived(gameSession.validActionTypes.includes(ActionType.Activate))
+
+    const callToAction = $derived.by(() => {
+        const result = { message: undefined, showSkip: false, yesNo: false } as CallToAction
+
+        if (gameSession.forcedCallToAction) {
+            result.message = gameSession.forcedCallToAction
+            return result
+        }
+
+        if (moveChosen || gameSession.isMoving) {
+            if (!gameSession.chosenMothership && !gameSession.chosenSource) {
+                result.message = 'CHOOSE A MOVEMENT SOURCE'
+                result.showSkip = true
+            }
+            if (gameSession.chosenSource && !gameSession.chosenNumDivers) {
+                result.message = 'HOW MANY TO MOVE?'
+            }
+            if (gameSession.chosenMothership && !gameSession.chosenNumDivers) {
+                result.message = 'HOW MANY TO LAUNCH?'
+            }
+            if (gameSession.gateChoices && gameSession.gateChoices.length > 0) {
+                result.message = 'CHOOSE A GATE TO USE'
+            } else if (gameSession.chosenNumDivers) {
+                result.message = `CHOOSE A DESTINATION FOR ${gameSession.chosenNumDivers} SUNDIVER${
+                    gameSession.chosenNumDivers > 1 ? 'S' : ''
+                }`
+            }
+        } else if (convertChosen) {
+            if (!gameSession.chosenConvertType) {
+                result.message = 'WHAT WILL YOU CONVERT?'
+            } else if (gameSession.diverCellChoices) {
+                result.message = 'CHOOSE A SUNDIVER'
+            } else if (!gameSession.chosenDestination) {
+                result.message = 'CHOOSE A LOCATION'
+            }
+        } else if (activateChosen) {
+            result.message = 'CHOOSE A STATION'
+        } else if (gameSession.isActivating) {
+            if (
+                gameSession.gameState.activation &&
+                !gameSession.gameState.activation.currentStationId
+            ) {
+                result.message = 'ACTIVATE ANOTHER?'
+                result.showSkip = true
+            } else {
+                result.message = 'CLAIM THE BONUS?'
+                result.yesNo = true
+            }
+        } else if (gameSession.isDrawingCards) {
+            result.message = `DRAW ${gameSession.gameState.cardsToDraw ?? 0} CARD${
+                (gameSession.gameState.cardsToDraw ?? 0) !== 1 ? 'S' : ''
+            }...`
+        } else if (gameSession.isChoosingCard) {
+            result.message = 'CHOOSE CARD TO KEEP'
+            result.showSkip = true
+        } else if (gameSession.isSolarFlares) {
+            result.message = 'ACTIVATE AN OUTER STATION'
+            result.showSkip = true
+        }
+        return result
+    })
 
     $effect(() => {
         if (gameSession.validActionTypes.length === 1) {
@@ -119,91 +186,36 @@
         </div>
     {:else}
         <!-- Call to action -->
-        <div class="ms-3 py-2 flex flex-row justify-center items-center h-[50px]">
-            {#if moveChosen || gameSession.isMoving}
-                {#if !gameSession.chosenMothership && !gameSession.chosenSource}
-                    <div class="me-2">CHOOSE A MOVEMENT SOURCE</div>
-                    <button
-                        onclick={pass}
-                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                        >SKIP</button
+        <div class="header-grid grid h-[50px]">
+            {#if callToAction.message}
+                {#key callToAction}
+                    <div
+                        in:fade={{ duration: 300, delay: 100 }}
+                        out:fade={{ duration: 100 }}
+                        class="ms-3 py-2 flex flex-row justify-center items-center h-[50px]"
                     >
-                {/if}
-                {#if gameSession.chosenSource && !gameSession.chosenNumDivers}
-                    HOW MANY TO MOVE?
-                {/if}
-                {#if gameSession.chosenMothership && !gameSession.chosenNumDivers}
-                    HOW MANY TO LAUNCH?
-                {/if}
-                {#if gameSession.gateChoices && gameSession.gateChoices.length > 0}
-                    CHOOSE A GATE TO USE
-                {:else if gameSession.chosenNumDivers}
-                    CHOOSE A DESTINATION FOR {gameSession.chosenNumDivers} SUNDIVER{gameSession.chosenNumDivers >
-                    1
-                        ? 'S'
-                        : ''}
-                {/if}
-            {/if}
-
-            {#if convertChosen}
-                {#if !gameSession.chosenConvertType}
-                    WHAT WILL YOU CONVERT?
-                {:else if gameSession.diverCellChoices}
-                    CHOOSE A SUNDIVER
-                {:else if !gameSession.chosenDestination}
-                    CHOOSE A LOCATION
-                {/if}
-            {/if}
-            {#if activateChosen}
-                CHOOSE A STATION
-            {/if}
-            {#if gameSession.isActivating}
-                {#if gameSession.gameState.activation && !gameSession.gameState.activation.currentStationId}
-                    <div class="me-2">ACTIVATE ANOTHER?</div>
-                    <button
-                        onclick={pass}
-                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                    >
-                        SKIP</button
-                    >
-                {:else}
-                    <div class="me-2">CLAIM THE BONUS?</div>
-                    <button
-                        onclick={chooseBonus}
-                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                        >YES</button
-                    >
-                    <button
-                        onclick={pass}
-                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                    >
-                        NO</button
-                    >
-                {/if}
-            {/if}
-            {#if gameSession.isDrawingCards}
-                DRAW {gameSession.gameState.cardsToDraw ?? 0} CARD{(gameSession.gameState
-                    .cardsToDraw ?? 0) !== 1
-                    ? 'S'
-                    : ''}...
-            {/if}
-            {#if gameSession.isChoosingCard}
-                <div class="me-2">CHOOSE CARD TO KEEP</div>
-                <button
-                    onclick={pass}
-                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                >
-                    SKIP</button
-                >
-            {/if}
-            {#if gameSession.isSolarFlares}
-                <div class="me-2">ACTIVATE AN OUTER STATION</div>
-                <button
-                    onclick={pass}
-                    class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                >
-                    SKIP</button
-                >
+                        <div class="me-2">{callToAction.message}</div>
+                        {#if callToAction.showSkip}
+                            <button
+                                onclick={pass}
+                                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                                >SKIP</button
+                            >
+                        {:else if callToAction.yesNo}
+                            <button
+                                onclick={chooseBonus}
+                                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                                >YES</button
+                            >
+                            <button
+                                onclick={pass}
+                                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                            >
+                                NO</button
+                            >
+                        {/if}
+                    </div>
+                {/key}
             {/if}
         </div>
     {/if}
@@ -216,3 +228,9 @@
         <ConvertPicker />
     {/if}
 </div>
+
+<style>
+    .panel-grid > * {
+        grid-area: 1 / 1;
+    }
+</style>

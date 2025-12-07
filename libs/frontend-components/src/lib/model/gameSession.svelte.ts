@@ -431,7 +431,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
             const animations = timeline.getChildren()
             if (animations.length > 0) {
-                console.log(`Playing ${animations.length} animations for state change`)
+                console.log(
+                    `Playing ${animations.length} animations for state change: `,
+                    animations
+                )
                 await timeline.play()
             }
 
