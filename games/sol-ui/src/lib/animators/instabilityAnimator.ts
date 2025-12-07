@@ -78,7 +78,7 @@ export class InstabilityAnimator extends StateAnimator<
                 // Pause for dramatic effect
             },
             [],
-            1
+            1.5
         )
     }
 }

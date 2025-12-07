@@ -57,7 +57,11 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return []
         }
 
-        return structuredClone(currentPlayerState.drawnCards)
+        const drawnCards = structuredClone(currentPlayerState.drawnCards)
+        if (this.gameState.machineState === MachineState.SolarFlares) {
+            return drawnCards.filter((card) => card.suit === Suit.Flare)
+        }
+        return drawnCards
     })
 
     midAction = $derived.by(() => {

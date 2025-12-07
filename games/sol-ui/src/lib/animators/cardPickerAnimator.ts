@@ -14,7 +14,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import { tick, untrack } from 'svelte'
 import type { GameAction } from '@tabletop/common'
-import { fadeIn, scale } from '$lib/utils/animations.js'
+import { fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
 import { Flip } from 'gsap/dist/Flip'
 
 type CardAndElement = {
@@ -69,12 +69,12 @@ export class CardPickerAnimator extends StateAnimator<
         }
 
         if (to.machineState === MachineState.SolarFlares) {
-            for (const { card, element } of this.cards.values()) {
-                if (card.suit !== Suit.Flare) {
-                    continue
-                }
-                this.pulseCard(card, element)
-            }
+            // for (const { card, element } of this.cards.values()) {
+            //     if (card.suit !== Suit.Flare) {
+            //         continue
+            //     }
+            //     this.pulseCard(card, element)
+            // }
         } else {
             const pulseIds = Array.from(this.tweensPerCard.keys())
             for (const id of pulseIds) {
@@ -193,6 +193,56 @@ export class CardPickerAnimator extends StateAnimator<
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
+        // Get the initial state of the cards laid out in a row
+
+        const allCards = Array.from(this.cards.values()).map((ce) => ce.element)
+        const removedCards = this.cards
+            .values()
+            .filter((ce) => ce.card.suit !== Suit.Flare)
+            .map((ce) => ce.element)
+
+        const state = Flip.getState(allCards)
+
+        for (const cardElement of removedCards) {
+            fadeOut({
+                object: cardElement,
+                duration: 0.3,
+                position: 0
+            })
+        }
+
+        timeline.call(
+            () => {
+                this.gameSession.drawnCards = this.gameSession.drawnCards.filter(
+                    (card) => card.suit === Suit.Flare
+                )
+                tick().then(() => {
+                    Flip.from(state, {
+                        duration: 0.3,
+                        ease: 'power2.in',
+                        onComplete: () => {
+                            const firstFlare = this.cards
+                                .values()
+                                .find((ce) => ce.card.suit === Suit.Flare)
+                            if (firstFlare) {
+                                this.pulseCard(firstFlare.card, firstFlare.element)
+                            }
+                        }
+                    })
+                })
+            },
+            [],
+            0.2
+        )
+
+        timeline.call(
+            () => {
+                console.log('Done animating solar flare')
+            },
+            [],
+            1
+        )
+
         // for (const cardAndElement of this.cards.values()) {
         //     if (cardAndElement.card.suit !== Suit.Flare) {
         //         // Maybe scale out and hide?

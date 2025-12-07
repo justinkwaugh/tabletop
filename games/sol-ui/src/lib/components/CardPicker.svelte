@@ -72,6 +72,7 @@
     {#each gameSession.drawnCards as card (card.id)}
         <button
             use:animateCard={{ animator, card }}
+            data-flip-id={card.id}
             onclick={() => chooseCard(card.suit)}
             class="{interactable
                 ? 'hover:border-white'
