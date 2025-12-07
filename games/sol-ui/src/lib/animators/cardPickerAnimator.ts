@@ -56,16 +56,16 @@ export class CardPickerAnimator extends StateAnimator<
     override async onGameStateChange({
         to,
         from,
-        actions,
+        action,
         timeline
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
-        actions?: GameAction[]
+        action: GameAction
         timeline: gsap.core.Timeline
     }) {
-        if (actions && actions.length > 0) {
-            await this.animateActions(actions, timeline, to, from)
+        if (action) {
+            await this.animateAction(action, timeline, to, from)
         }
 
         if (to.machineState === MachineState.SolarFlares) {
@@ -84,19 +84,16 @@ export class CardPickerAnimator extends StateAnimator<
         }
     }
 
-    async animateActions(
-        actions: GameAction[],
+    async animateAction(
+        action: GameAction,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
-        // Each action should probably return it's last position in the timeline
-        for (const action of actions) {
-            if (isDrawCards(action)) {
-                await this.animateDrawCards(action, timeline, toState, fromState)
-            } else if (isSolarFlare(action)) {
-                await this.animateSolarFlare(action, timeline, toState, fromState)
-            }
+        if (isDrawCards(action)) {
+            await this.animateDrawCards(action, timeline, toState, fromState)
+        } else if (isSolarFlare(action)) {
+            await this.animateSolarFlare(action, timeline, toState, fromState)
         }
     }
 

@@ -52,12 +52,12 @@ export enum GameSessionMode {
 export type GameStateChangeListener<U extends HydratedGameState> = ({
     to,
     from,
-    actions,
+    action,
     timeline
 }: {
     to: U
     from?: U
-    actions?: GameAction[]
+    action?: GameAction
     timeline: gsap.core.Timeline
 }) => Promise<void>
 
@@ -431,50 +431,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                         this.game,
                         RunMode.Single
                     )
-
-                    const actionTimeline = gsap.timeline({
-                        autoRemoveChildren: true
-                    })
-
-                    const promises = []
-                    for (const listener of this.gameStateChangeListeners) {
-                        promises.push(
-                            listener({
-                                to: this.definition.hydrator.hydrateState(updatedState) as U,
-                                from: this.definition.hydrator.hydrateState(priorState) as U,
-                                actions: [action],
-                                timeline: actionTimeline
-                            })
-                        )
-                    }
-                    await Promise.all(promises)
-                    priorState = updatedState as U
-                    const animations = actionTimeline.getChildren()
-                    if (animations.length > 0) {
-                        console.log(
-                            `Playing ${animations.length} animations for state change: `,
-                            animations
-                        )
-                        await actionTimeline.play()
-                    }
+                    await this.gatherAndPlayAnimations(
+                        this.definition.hydrator.hydrateState(updatedState) as U,
+                        this.definition.hydrator.hydrateState(priorState) as U,
+                        action
+                    )
+                    priorState = updatedState
                 }
             } else {
-                const timeline = gsap.timeline({
-                    autoRemoveChildren: true
-                })
-                const promises = []
-                for (const listener of this.gameStateChangeListeners) {
-                    promises.push(listener({ to: newState, from: oldState, actions, timeline }))
-                }
-                await Promise.all(promises)
-                const animations = timeline.getChildren()
-                if (animations.length > 0) {
-                    console.log(
-                        `Playing ${animations.length} animations for state change: `,
-                        animations
-                    )
-                    await timeline.play()
-                }
+                await this.gatherAndPlayAnimations(newState, oldState)
             }
 
             this.afterAnimations()
@@ -482,6 +447,22 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             this.gameState = newState
         } finally {
             this.busy = false
+        }
+    }
+
+    private async gatherAndPlayAnimations(to: U, from?: U, action?: GameAction) {
+        const timeline = gsap.timeline({
+            autoRemoveChildren: true
+        })
+        const promises = []
+        for (const listener of this.gameStateChangeListeners) {
+            promises.push(listener({ to, from, action, timeline }))
+        }
+        await Promise.all(promises)
+        const animations = timeline.getChildren()
+        if (animations.length > 0) {
+            console.log(`Playing ${animations.length} animations for state change: `, animations)
+            await timeline.play()
         }
     }
 

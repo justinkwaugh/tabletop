@@ -21,16 +21,16 @@ export class InstabilityAnimator extends StateAnimator<
     override async onGameStateChange({
         to,
         from,
-        actions,
+        action,
         timeline
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
-        actions?: GameAction[]
+        action?: GameAction
         timeline: gsap.core.Timeline
     }) {
-        if (actions && actions.length > 0) {
-            await this.animateActions(actions, timeline, to, from)
+        if (action) {
+            await this.animateAction(action, timeline, to, from)
         }
 
         const fromInstability = from?.instability
@@ -55,17 +55,14 @@ export class InstabilityAnimator extends StateAnimator<
         return (13 - instability) * this.spaceWidth + (this.spaceWidth - this.markerWidth) / 2
     }
 
-    async animateActions(
-        actions: GameAction[],
+    async animateAction(
+        action: GameAction,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
-        // Each action should probably return it's last position in the timeline
-        for (const action of actions) {
-            if (isSolarFlare(action)) {
-                await this.animateSolarFlare(action, timeline, toState, fromState)
-            }
+        if (isSolarFlare(action)) {
+            await this.animateSolarFlare(action, timeline, toState, fromState)
         }
     }
 

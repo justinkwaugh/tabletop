@@ -55,20 +55,20 @@ export class SundiverAnimator extends StateAnimator<
     override async onGameStateChange({
         to,
         from,
-        actions,
+        action,
         timeline
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
-        actions?: GameAction[]
+        action?: GameAction
         timeline: gsap.core.Timeline
     }) {
         if (!this.element) {
             return
         }
 
-        if (actions && actions.length > 0) {
-            this.animateActions(actions, timeline, to, from)
+        if (action) {
+            this.animateAction(action, timeline, to, from)
             return
         }
 
@@ -150,25 +150,22 @@ export class SundiverAnimator extends StateAnimator<
         }
     }
 
-    animateActions(
-        actions: GameAction[],
+    animateAction(
+        action: GameAction,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
-        // Each action should probably return it's last position in the timeline
-        for (const action of actions) {
-            if (isConvert(action)) {
-                this.animateConvertAction(action, timeline)
-            } else if (isActivate(action)) {
-                this.animateActivateAction(action, timeline, toState, fromState)
-            } else if (isActivateBonus(action)) {
-                this.animateActivateBonusAction(action, timeline, toState, fromState)
-            } else if (isLaunch(action)) {
-                this.animateLaunchAction(action, timeline, toState, fromState)
-            } else if (isFly(action)) {
-                this.animateFlyAction(action, timeline, toState, fromState)
-            }
+        if (isConvert(action)) {
+            this.animateConvertAction(action, timeline)
+        } else if (isActivate(action)) {
+            this.animateActivateAction(action, timeline, toState, fromState)
+        } else if (isActivateBonus(action)) {
+            this.animateActivateBonusAction(action, timeline, toState, fromState)
+        } else if (isLaunch(action)) {
+            this.animateLaunchAction(action, timeline, toState, fromState)
+        } else if (isFly(action)) {
+            this.animateFlyAction(action, timeline, toState, fromState)
         }
     }
 

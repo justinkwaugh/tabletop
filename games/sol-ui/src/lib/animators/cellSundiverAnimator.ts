@@ -55,12 +55,12 @@ export class CellSundiverAnimator extends StateAnimator<
     override async onGameStateChange({
         to,
         from,
-        actions,
+        action,
         timeline
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
-        actions?: GameAction[]
+        action?: GameAction
         timeline: gsap.core.Timeline
     }) {
         if (!this.element) {
@@ -69,11 +69,11 @@ export class CellSundiverAnimator extends StateAnimator<
 
         const undo = from && from.actionCount > to.actionCount
 
-        if (actions && actions.length > 0) {
-            this.animateActions(actions, timeline, to, from)
+        if (action) {
+            this.animateAction(action, timeline, to, from)
         }
 
-        if (!undo && !actions?.some((action) => this.mayBeAffectedByAction(action))) {
+        if (!undo && (!action || !this.mayBeAffectedByAction(action))) {
             return
         }
 
@@ -118,23 +118,20 @@ export class CellSundiverAnimator extends StateAnimator<
         }
     }
 
-    animateActions(
-        actions: GameAction[],
+    animateAction(
+        action: GameAction,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
-        // Each action should probably return it's last position in the timeline
-        for (const action of actions) {
-            if (isConvert(action)) {
-                this.animateConvertAction(action, timeline, toState, fromState)
-            } else if (isActivate(action)) {
-                this.animateActivateAction(action, timeline, toState, fromState)
-            } else if (isLaunch(action)) {
-                this.animateLaunchAction(action, timeline, toState, fromState)
-            } else if (isFly(action)) {
-                this.animateFlyAction(action, timeline, toState, fromState)
-            }
+        if (isConvert(action)) {
+            this.animateConvertAction(action, timeline, toState, fromState)
+        } else if (isActivate(action)) {
+            this.animateActivateAction(action, timeline, toState, fromState)
+        } else if (isLaunch(action)) {
+            this.animateLaunchAction(action, timeline, toState, fromState)
+        } else if (isFly(action)) {
+            this.animateFlyAction(action, timeline, toState, fromState)
         }
     }
 
