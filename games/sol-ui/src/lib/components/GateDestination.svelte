@@ -94,7 +94,7 @@
     transform={translateFromCenter(location.x, location.y)}
     stroke="none"
 >
-    {#if interactable}
+    {#if interactable && !gameSession.animating}
         <circle cx="0" cy="0" r="20" stroke="yellow" fill="white" opacity="0.8"></circle>
     {/if}
 </g>

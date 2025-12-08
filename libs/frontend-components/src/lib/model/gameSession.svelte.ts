@@ -89,6 +89,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     gameService: GameService
 
     mode: GameSessionMode = $state(GameSessionMode.Play)
+    animating = $state(false)
+
     isPlayable = $derived(
         this.mode === GameSessionMode.Play || this.mode === GameSessionMode.Explore
     )
@@ -479,7 +481,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 action ?? 'no action',
                 animations
             )
-            await masterTimeline.play()
+            try {
+                this.animating = true
+                await masterTimeline.play()
+            } finally {
+                this.animating = false
+            }
         }
     }
 

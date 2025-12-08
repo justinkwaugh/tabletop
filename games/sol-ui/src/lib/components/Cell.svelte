@@ -139,11 +139,12 @@
     })
 
     let disabled = $derived(
-        (myMove ||
-            (myConvert && gameSession.chosenConvertType) ||
-            (myActivate &&
-                !gameSession.chosenSource &&
-                !gameSession.gameState.activation?.currentStationId)) &&
+        !gameSession.animating &&
+            (myMove ||
+                (myConvert && gameSession.chosenConvertType) ||
+                (myActivate &&
+                    !gameSession.chosenSource &&
+                    !gameSession.gameState.activation?.currentStationId)) &&
             !interactable
     )
 

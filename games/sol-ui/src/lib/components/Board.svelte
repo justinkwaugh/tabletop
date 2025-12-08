@@ -7,7 +7,7 @@
     import boardImg5p from '$lib/images/board5p.jpg'
     import Sandbox from './Sandbox.svelte'
     import Mothership from './Mothership.svelte'
-    import { Direction, Ring, type Sundiver } from '@tabletop/sol'
+    import { Direction, gateKey, Ring, SolarGate, type Sundiver } from '@tabletop/sol'
     import UISundiver from './Sundiver.svelte'
     import { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
     import { getGatePosition, type GatePosition } from '$lib/utils/boardGeometry.js'
@@ -19,6 +19,8 @@
     import Cube from '$lib/images/cube.svelte'
     import { animateCube, EnergyCubeAnimator } from '$lib/animators/energyCubeAnimator.js'
     import BoardSvg from './BoardSvg.svelte'
+    import { animateGate, GateAnimator } from '$lib/animators/gateAnimator.js'
+    import { SvelteMap } from 'svelte/reactivity'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -28,6 +30,13 @@
     for (const diver of gameSession.gameState.getAllSundivers()) {
         sundiversById.set(diver.id, diver)
     }
+
+    const gates = $derived.by(() => {
+        const entries: [number, SolarGate][] = Object.entries(
+            gameSession.gameState.board.gates
+        ).map(([key, gate]) => [Number(key), gate])
+        return new SvelteMap<number, SolarGate>(entries)
+    })
 
     type GateData = {
         key: number
@@ -59,6 +68,13 @@
 
     const cubeAnimator = new EnergyCubeAnimator(gameSession)
     cubeAnimator.register()
+
+    const gateAnimator = new GateAnimator(gameSession, (gate) => {
+        if (gate) {
+            gates.set(gateKey(gate.innerCoords!, gate.outerCoords!), gate)
+        }
+    })
+    gateAnimator.register()
 </script>
 
 <div class="relative w-[1280px] h-[1280px]">
@@ -85,18 +101,6 @@
                 <Cube width={30} height={30} />
             </g>
         {/each}
-        {#each Object.entries(gameSession.gameState.board.gates) as [key, gate] (key)}
-            {#if gate.innerCoords && gate.outerCoords}
-                <Gate
-                    color={gameSession.colors.getPlayerColor(gate.playerId)}
-                    position={getGatePosition(
-                        gameSession.numPlayers,
-                        gate.innerCoords,
-                        gate.outerCoords
-                    )}
-                />
-            {/if}
-        {/each}
 
         {#each gameSession.gameState.board as cell}
             <Cell {cell} />
@@ -104,6 +108,21 @@
 
         {#each gatePositions as gate (gate.key)}
             <GateDestination {...gate} />
+        {/each}
+
+        {#each [...gates] as [key, gate] (key)}
+            {#if gate.innerCoords && gate.outerCoords}
+                <g use:animateGate={{ animator: gateAnimator, gate }}>
+                    <Gate
+                        color={gameSession.colors.getPlayerColor(gate.playerId)}
+                        position={getGatePosition(
+                            gameSession.numPlayers,
+                            gate.innerCoords,
+                            gate.outerCoords
+                        )}
+                    />
+                </g>
+            {/if}
         {/each}
 
         {#each gameSession.gameState.players as player}
