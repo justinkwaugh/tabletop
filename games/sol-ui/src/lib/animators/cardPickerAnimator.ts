@@ -14,8 +14,9 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import { tick, untrack } from 'svelte'
 import type { GameAction } from '@tabletop/common'
-import { fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
+import { ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
 import { Flip } from 'gsap/dist/Flip'
+import { fade } from 'svelte/transition'
 
 type CardAndElement = {
     card: Card
@@ -64,8 +65,11 @@ export class CardPickerAnimator extends StateAnimator<
         action: GameAction
         timeline: gsap.core.Timeline
     }) {
+        const subTimeline = gsap.timeline({
+            autoRemoveChildren: true
+        })
         if (action) {
-            await this.animateAction(action, timeline, to, from)
+            await this.animateAction(action, subTimeline, to, from)
         }
 
         if (to.machineState === MachineState.SolarFlares) {
@@ -81,6 +85,72 @@ export class CardPickerAnimator extends StateAnimator<
                 this.stopPulsingCard(id, timeline)
             }
             this.tweensPerCard.clear()
+        }
+
+        if (to.machineState === MachineState.ChoosingCard) {
+            console.log('CardPickerAnimator: Going to ChoosingCard state')
+            const currentPlayerId = to.turnManager.currentTurn()?.playerId
+            if (!currentPlayerId) {
+                return
+            }
+            const playerState = from?.getPlayerState(currentPlayerId)
+            if (!playerState) {
+                return
+            }
+
+            const seenSuits = new Set<Suit>()
+            if (playerState.card) {
+                seenSuits.add(playerState.card.suit)
+            }
+            console.log('CardPickerAnimator: finding removed cards to fade out')
+            const removedCards = this.gameSession.drawnCards.filter((card) => {
+                if (seenSuits.has(card.suit)) {
+                    return true
+                }
+                seenSuits.add(card.suit)
+                return false
+            })
+
+            console.log(`CardPickerAnimator: fading out ${removedCards.length} removed cards`)
+            const removedElements = removedCards
+                .map((card) => this.cards.get(card.id)?.element)
+                .filter((ce) => ce !== undefined)
+
+            for (const element of removedElements) {
+                fadeOut({
+                    object: element,
+                    duration: 0.3,
+                    timeline: subTimeline,
+                    position: '<'
+                })
+            }
+
+            const remainingCards = this.gameSession.drawnCards.filter(
+                (card) => !removedCards.find((rc) => rc.id === card.id)
+            )
+
+            const remainingCardElements = remainingCards
+                .map((card) => this.cards.get(card.id)?.element)
+                .filter((ce) => ce !== undefined)
+
+            const durationUntilNow = subTimeline.duration()
+            subTimeline.call(
+                () => {
+                    const state = Flip.getState(remainingCardElements)
+                    this.gameSession.drawnCards = remainingCards
+
+                    tick().then(() => {
+                        Flip.from(state, {
+                            duration: 0.3,
+                            ease: 'power2.out'
+                        })
+                    })
+                },
+                [],
+                durationUntilNow
+            )
+            ensureDuration(subTimeline, durationUntilNow + 0.3)
+            timeline.add(subTimeline)
         }
     }
 
@@ -239,14 +309,6 @@ export class CardPickerAnimator extends StateAnimator<
             [],
             1
         )
-
-        // for (const cardAndElement of this.cards.values()) {
-        //     if (cardAndElement.card.suit !== Suit.Flare) {
-        //         // Maybe scale out and hide?
-        //         continue
-        //     }
-        //     this.pulseCard(cardAndElement.card, cardAndElement.element)
-        // }
     }
 
     private pulseCard(card: Card, element: HTMLElement | SVGElement) {

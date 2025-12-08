@@ -8,7 +8,7 @@
     import ReverberationCard from '$lib/images/reverberationCard.png'
     import SolarFlareCard from '$lib/images/solarFlareCard.png'
     import SubductionCard from '$lib/images/subductionCard.png'
-    import { Suit } from '@tabletop/sol'
+    import { MachineState, Suit } from '@tabletop/sol'
     import Card from './Card.svelte'
     import { animateCard, type CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
     import { nanoid } from 'nanoid'
@@ -22,6 +22,27 @@
     } = $props()
 
     const interactable = $derived(gameSession.isMyTurn && gameSession.isChoosingCard)
+
+    const displayableCards = $derived.by(() => {
+        let gameSessionCards = gameSession.drawnCards
+
+        if (gameSession.gameState.machineState === MachineState.ChoosingCard) {
+            const seenSuits = new Set<Suit>()
+            const myPlayerState = gameSession.myPlayerState
+            if (myPlayerState && myPlayerState.card) {
+                seenSuits.add(myPlayerState.card.suit)
+            }
+            gameSessionCards = gameSessionCards.filter((card) => {
+                if (seenSuits.has(card.suit)) {
+                    return false
+                }
+                seenSuits.add(card.suit)
+                return true
+            })
+        }
+
+        return gameSessionCards
+    })
 
     const cardsBySuit = $derived.by(() => {
         const myPlayerState = gameSession.myPlayerState
@@ -69,7 +90,7 @@
 </script>
 
 <div class="flex flex-row flex-wrap justify-center items-center gap-x-2 h-[100px] mb-2">
-    {#each gameSession.drawnCards as card (card.id)}
+    {#each displayableCards as card (card.id)}
         <button
             use:animateCard={{ animator, card }}
             data-flip-id={card.id}
