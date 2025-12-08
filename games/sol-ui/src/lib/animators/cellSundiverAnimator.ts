@@ -67,8 +67,6 @@ export class CellSundiverAnimator extends StateAnimator<
             return
         }
 
-        const undo = from && from.actionCount > to.actionCount
-
         if (action) {
             this.animateAction(action, timeline, to, from)
         }
@@ -89,6 +87,21 @@ export class CellSundiverAnimator extends StateAnimator<
                 return
             }
             if (fromCell) {
+                if (fromDivers.length === 0) {
+                    gsap.set(this.element!, {
+                        opacity: 0,
+                        translateX: offsetFromCenter(targetLocation).x,
+                        translateY: offsetFromCenter(targetLocation).y
+                    })
+                    fadeIn({
+                        object: this.element,
+                        duration: 0.3,
+                        timeline,
+                        position: 0
+                    })
+                    return
+                }
+
                 const sourceLocation = this.gameSession.locationForDiverInCell(
                     this.playerId,
                     fromCell!
@@ -105,8 +118,9 @@ export class CellSundiverAnimator extends StateAnimator<
                 }
             } else {
                 gsap.set(this.element!, {
-                    x: offsetFromCenter(targetLocation).x,
-                    y: offsetFromCenter(targetLocation).y
+                    opacity: 1,
+                    translateX: offsetFromCenter(targetLocation).x,
+                    translateY: offsetFromCenter(targetLocation).y
                 })
             }
         } else {
