@@ -25,7 +25,7 @@ export abstract class StateAnimator<
         timeline: gsap.core.Timeline
     }): Promise<void>
 
-    setElement(element: HTMLElement | SVGElement): void {
+    setElement(element?: HTMLElement | SVGElement): void {
         this.element = element
     }
 

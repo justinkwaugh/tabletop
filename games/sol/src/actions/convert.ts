@@ -3,12 +3,16 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { StationType } from '../components/stations.js'
+import { Station, StationType } from '../components/stations.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
+import { SolarGate } from '../components/solarGate.js'
 
 export type ConvertMetadata = Static<typeof ConvertMetadata>
-export const ConvertMetadata = Type.Object({})
+export const ConvertMetadata = Type.Object({
+    convertedStation: Type.Optional(Station),
+    convertedGate: Type.Optional(SolarGate)
+})
 
 export type Convert = Static<typeof Convert>
 export const Convert = Type.Evaluate(
@@ -56,15 +60,19 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
 
         if (this.isGate) {
             const playerGate = playerState.removeSolarGate()
+            this.metadata = { convertedGate: playerGate }
             state.board.addGateAt(playerGate, this.innerCoords, this.coords)
         } else if (this.stationType === StationType.EnergyNode) {
             const playerNode = playerState.removeEnergyNode()
+            this.metadata = { convertedStation: playerNode }
             state.board.addStationAt(playerNode, this.coords)
         } else if (this.stationType === StationType.SundiverFoundry) {
             const playerFoundry = playerState.removeSundiverFoundry()
+            this.metadata = { convertedStation: playerFoundry }
             state.board.addStationAt(playerFoundry, this.coords)
         } else if (this.stationType === StationType.TransmitTower) {
             const playerTower = playerState.removeTransmitTower()
+            this.metadata = { convertedStation: playerTower }
             state.board.addStationAt(playerTower, this.coords)
         }
 

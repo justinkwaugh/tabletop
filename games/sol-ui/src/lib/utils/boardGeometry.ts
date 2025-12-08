@@ -122,7 +122,10 @@ export function translateFromCenter(x: number, y: number) {
     return `translate(${CENTER_POINT.x + x}, ${CENTER_POINT.y + y})`
 }
 
-export function offsetFromCenter(point: Point) {
+export function offsetFromCenter(point?: Point) {
+    if (!point) {
+        point = { x: 0, y: 0 }
+    }
     return {
         x: CENTER_POINT.x + point.x,
         y: CENTER_POINT.y + point.y

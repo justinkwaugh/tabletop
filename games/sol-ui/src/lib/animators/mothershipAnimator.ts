@@ -47,7 +47,7 @@ export class MothershipAnimator extends StateAnimator<
                 ? Direction.CounterClockwise
                 : Direction.Clockwise
         const startIndex = from?.board.motherships[this.playerId]
-        if (!startIndex) {
+        if (startIndex === undefined) {
             return
         }
         const endIndex = to.board.motherships[this.playerId]

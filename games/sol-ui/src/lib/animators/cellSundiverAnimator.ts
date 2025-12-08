@@ -73,10 +73,6 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateAction(action, timeline, to, from)
         }
 
-        if (!undo && (!action || !this.mayBeAffectedByAction(action))) {
-            return
-        }
-
         const toCell = to.board.cellAt(this.coords)
         const fromCell = from?.board.cellAt(this.coords)
         if (!toCell && !fromCell) {

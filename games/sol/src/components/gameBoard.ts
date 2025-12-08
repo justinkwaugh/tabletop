@@ -505,6 +505,9 @@ export class HydratedSolGameBoard
     }
 
     public canConvertGateAt(playerId: string, coords: OffsetCoordinates): boolean {
+        if (coords.row === Ring.Core) {
+            return false
+        }
         const cell = this.cellAt(coords)
 
         const innerNeighbors = this.graph.neighborsAt(coords, Direction.In)

@@ -17,6 +17,7 @@
         HydratedFly,
         HydratedHurl,
         Ring,
+        Station,
         StationType,
         type Cell
     } from '@tabletop/sol'
@@ -28,12 +29,16 @@
     import Foundry from '$lib/images/foundry.svelte'
     import Tower from '$lib/images/tower.svelte'
     import BoardSvg from './BoardSvg.svelte'
-    import { animateEnergyNode, EnergyNodeAnimator } from '$lib/animators/energyNodeAnimator.js'
+    import { animateStation, CellStationAnimator } from '$lib/animators/cellStationAnimator.js'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
     const dimensions = dimensionsForSpace(gameSession.numPlayers, cell.coords)
     const isCenterCell = sameCoordinates(cell.coords, CENTER_COORDS)
+    let station: Station | undefined = $derived(cell.station)
+    let stationLocation: { x: number; y: number } = $derived(
+        gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }
+    )
 
     let myMove = $derived(
         gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Move
@@ -227,10 +232,6 @@
         return sundiverMap
     })
 
-    function getAnimator(playerId: string) {
-        return new CellSundiverAnimator(gameSession, playerId, cell.coords)
-    }
-
     // Pre-create animators for each player sundiver in this cell
     // to avoid creating them over and over due to reactivity
     const animatorPerPlayer = new Map<string, CellSundiverAnimator>()
@@ -240,7 +241,44 @@
             new CellSundiverAnimator(gameSession, player.id, cell.coords)
         )
     }
+
+    const stationAnimator = new CellStationAnimator(
+        gameSession,
+        cell.coords,
+        (newStation, newStationLocation) => {
+            station = newStation
+            stationLocation = newStationLocation || { x: 0, y: 0 }
+        }
+    )
+    stationAnimator.register()
 </script>
+
+{#snippet renderStation(station: Station, width: number, height: number)}
+    <g use:animateStation={{ animator: stationAnimator, station }}>
+        <BoardSvg {width} {height} location={stationLocation}>
+            {#if station.type === StationType.EnergyNode}
+                <EnergyNode
+                    id={station.id}
+                    {width}
+                    {height}
+                    color={gameSession.colors.getPlayerColor(station.playerId)}
+                />
+            {:else if station.type === StationType.SundiverFoundry}
+                <Foundry
+                    {width}
+                    {height}
+                    color={gameSession.colors.getPlayerColor(station.playerId)}
+                />
+            {:else if station.type === StationType.TransmitTower}
+                <Tower
+                    {width}
+                    {height}
+                    color={gameSession.colors.getPlayerColor(station.playerId)}
+                />
+            {/if}
+        </BoardSvg>
+    </g>
+{/snippet}
 
 {#each gameSession.game.players as player (player.id)}
     <Sundiver
@@ -251,45 +289,13 @@
     />
 {/each}
 
-{#if cell.station}
-    {#if cell.station.type === StationType.EnergyNode}
-        <BoardSvg
-            width={46}
-            height={48}
-            location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
-        >
-            <EnergyNode
-                id={cell.station.id}
-                width={46}
-                height={48}
-                color={gameSession.colors.getPlayerColor(cell.station.playerId)}
-                animator={new EnergyNodeAnimator(gameSession, cell.station)}
-            />
-        </BoardSvg>
-    {:else if cell.station.type === StationType.SundiverFoundry}
-        <BoardSvg
-            width={46}
-            height={48}
-            location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
-        >
-            <Foundry
-                width={46}
-                height={48}
-                color={gameSession.colors.getPlayerColor(cell.station.playerId)}
-            />
-        </BoardSvg>
-    {:else if cell.station.type === StationType.TransmitTower}
-        <BoardSvg
-            width={48}
-            height={100}
-            location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
-        >
-            <Tower
-                width={48}
-                height={100}
-                color={gameSession.colors.getPlayerColor(cell.station.playerId)}
-            />
-        </BoardSvg>
+{#if station}
+    {#if station.type === StationType.EnergyNode}
+        {@render renderStation(station, 46, 48)}
+    {:else if station.type === StationType.SundiverFoundry}
+        {@render renderStation(station, 46, 48)}
+    {:else if station.type === StationType.TransmitTower}
+        {@render renderStation(station, 48, 100)}
     {/if}
 {/if}
 
