@@ -54,15 +54,17 @@ export class CellStationAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline
+        timeline,
+        finalTimeline
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action?: GameAction
         timeline: gsap.core.Timeline
+        finalTimeline: gsap.core.Timeline
     }) {
         if (isActivate(action) || isActivateBonus(action)) {
-            this.animateActivate(action, timeline, to, from)
+            this.animateActivate(action, finalTimeline, to, from)
         } else if (isConvert(action)) {
             await this.animateConvert(action, timeline, to, from)
         }
@@ -90,8 +92,17 @@ export class CellStationAnimator extends StateAnimator<
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
+        if (!this.station) {
+            return
+        }
+        const stationId = isActivate(action) ? action.stationId : action.metadata?.stationId
+
+        if (stationId !== this.station.id) {
+            return
+        }
+
         this.gameSession.forcedCallToAction = `${action.metadata?.energyAdded ?? 0} ENERGY ADDED`
-        ensureDuration(timeline, 1.5)
+        // ensureDuration(timeline, 1.5)
     }
 
     async animateConvert(

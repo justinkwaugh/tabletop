@@ -18,6 +18,7 @@
     import Deck from './Deck.svelte'
     import Cube from '$lib/images/cube.svelte'
     import { animateCube, EnergyCubeAnimator } from '$lib/animators/energyCubeAnimator.js'
+    import BoardSvg from './BoardSvg.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -81,7 +82,7 @@
         {/each}
         {#each gameSession.movingCubeIds as cubeId (cubeId)}
             <g use:animateCube={{ animator: cubeAnimator, cubeId }}>
-                <Cube width={50} height={50} />
+                <Cube width={30} height={30} />
             </g>
         {/each}
         {#each Object.entries(gameSession.gameState.board.gates) as [key, gate] (key)}

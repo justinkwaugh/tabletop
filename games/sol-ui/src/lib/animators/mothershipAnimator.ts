@@ -1,6 +1,6 @@
 import { Direction, HydratedSolGameState, type SolGameState } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import { Color } from '@tabletop/common'
+import { Color, GameAction } from '@tabletop/common'
 import { CENTER_POINT, getMothershipAngle } from '$lib/utils/boardGeometry.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { rotate } from '$lib/utils/animations.js'
@@ -36,11 +36,15 @@ export class MothershipAnimator extends StateAnimator<
     override async onGameStateChange({
         to,
         from,
-        timeline
+        action,
+        timeline,
+        finalTimeline
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
+        action?: GameAction
         timeline: gsap.core.Timeline
+        finalTimeline: gsap.core.Timeline
     }) {
         const direction =
             to.actionCount >= (from?.actionCount ?? 0)
@@ -52,7 +56,7 @@ export class MothershipAnimator extends StateAnimator<
         }
         const endIndex = to.board.motherships[this.playerId]
         if (startIndex !== endIndex) {
-            this.moveShip(timeline as gsap.core.Timeline, startIndex, endIndex, direction)
+            this.moveShip(finalTimeline, startIndex, endIndex, direction)
         }
     }
 

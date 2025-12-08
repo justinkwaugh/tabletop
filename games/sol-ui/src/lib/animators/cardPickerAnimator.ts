@@ -183,7 +183,7 @@ export class CardPickerAnimator extends StateAnimator<
             await this.animateSolarFlare(action, timeline, toState, fromState)
         } else if (isActivate(action)) {
             // Delay for informational display
-            ensureDuration(timeline, 1.5)
+            // ensureDuration(timeline, 1.5)
         }
     }
 

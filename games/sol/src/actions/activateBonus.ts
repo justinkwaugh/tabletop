@@ -9,6 +9,7 @@ import { BONUS_AWARD_PER_RING } from '../utils/solConstants.js'
 
 export type ActivateBonusMetadata = Static<typeof ActivateBonusMetadata>
 export const ActivateBonusMetadata = Type.Object({
+    stationId: Type.String(),
     coords: OffsetCoordinates,
     energyAdded: Type.Number(),
     createdSundiverIds: Type.Array(Type.String()),
@@ -53,16 +54,22 @@ export class HydratedActivateBonus
         const playerState = state.getPlayerState(this.playerId)
 
         const station = state.getActivatingStation()
+
+        if (!station) {
+            throw Error('No station to activate bonus at')
+        }
+
         const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
 
         this.metadata = {
+            stationId: station.id,
             coords: state.activation?.currentStationCoords!,
             energyAdded: 0,
             createdSundiverIds: [],
             momentumAdded: 0
         }
 
-        switch (station?.type) {
+        switch (station.type) {
             case StationType.EnergyNode:
                 playerState.energyCubes += BONUS_AWARD_PER_RING[ring]
                 this.metadata.energyAdded = BONUS_AWARD_PER_RING[ring]

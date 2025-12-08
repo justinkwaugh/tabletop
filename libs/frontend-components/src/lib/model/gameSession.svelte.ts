@@ -53,12 +53,14 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
     to,
     from,
     action,
-    timeline
+    timeline,
+    finalTimeline
 }: {
     to: U
     from?: U
     action?: GameAction
     timeline: gsap.core.Timeline
+    finalTimeline?: gsap.core.Timeline
 }) => Promise<void>
 
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
@@ -391,7 +393,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 () => this.currentVisibleGameState,
                 (newState, oldState) => {
                     console.log('Game state changed', { newState, oldState })
-                    void this.notifyStateChangeListeners(newState, oldState)
+                    void this.notifyStateChangeListeners(newState, oldState).catch((error) => {
+                        console.error('Error notifying state change listeners:', error)
+                    })
                 }
             )
         })
@@ -451,18 +455,31 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     private async gatherAndPlayAnimations(to: U, from?: U, action?: GameAction) {
-        const timeline = gsap.timeline({
-            autoRemoveChildren: true
-        })
+        const masterTimeline = gsap.timeline({ autoRemoveChildren: true })
+
+        // Timeline for animations that happen during state change
+        const timeline = gsap.timeline({ autoRemoveChildren: true })
+
+        // Timeline for any animations that need to happen after all state change animations
+        const finalTimeline = gsap.timeline({ autoRemoveChildren: true })
+
         const promises = []
         for (const listener of this.gameStateChangeListeners) {
-            promises.push(listener({ to, from, action, timeline }))
+            promises.push(listener({ to, from, action, timeline, finalTimeline }))
         }
         await Promise.all(promises)
-        const animations = timeline.getChildren()
+
+        masterTimeline.add(timeline)
+        masterTimeline.add(finalTimeline)
+
+        const animations = masterTimeline.getChildren()
         if (animations.length > 0) {
-            console.log(`Playing ${animations.length} animations for state change: `, animations)
-            await timeline.play()
+            console.log(
+                `Playing ${animations.length} animations for action state change: `,
+                action ?? 'no action',
+                animations
+            )
+            await masterTimeline.play()
         }
     }
 
