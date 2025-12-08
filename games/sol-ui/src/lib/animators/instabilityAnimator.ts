@@ -3,7 +3,7 @@ import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import type { GameAction } from '@tabletop/common'
-import { animate } from '$lib/utils/animations.js'
+import { animate, ensureDuration } from '$lib/utils/animations.js'
 
 export class InstabilityAnimator extends StateAnimator<
     SolGameState,
@@ -73,12 +73,6 @@ export class InstabilityAnimator extends StateAnimator<
         fromState?: HydratedSolGameState
     ) {
         this.gameSession.forcedCallToAction = "A SOLAR FLARE INCREASES THE SUN'S INSTABILITY..."
-        timeline.call(
-            () => {
-                // Pause for dramatic effect
-            },
-            [],
-            1.5
-        )
+        ensureDuration(timeline, 1.5)
     }
 }

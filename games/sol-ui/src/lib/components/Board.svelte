@@ -16,6 +16,8 @@
     import Gate from './BoardGate.svelte'
     import InstabilityTrack from './InstabilityTrack.svelte'
     import Deck from './Deck.svelte'
+    import Cube from '$lib/images/cube.svelte'
+    import { animateCube, EnergyCubeAnimator } from '$lib/animators/energyCubeAnimator.js'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -53,6 +55,9 @@
             }
         }
     }
+
+    const cubeAnimator = new EnergyCubeAnimator(gameSession)
+    cubeAnimator.register()
 </script>
 
 <div class="relative w-[1280px] h-[1280px]">
@@ -73,6 +78,11 @@
                 color={gameSession.colors.getPlayerColor(sundiver.playerId)}
                 animator={new SundiverAnimator(gameSession, sundiver.id)}
             />
+        {/each}
+        {#each gameSession.movingCubeIds as cubeId (cubeId)}
+            <g use:animateCube={{ animator: cubeAnimator, cubeId }}>
+                <Cube width={50} height={50} />
+            </g>
         {/each}
         {#each Object.entries(gameSession.gameState.board.gates) as [key, gate] (key)}
             {#if gate.innerCoords && gate.outerCoords}
@@ -98,7 +108,6 @@
         {#each gameSession.gameState.players as player}
             <Mothership playerId={player.playerId} />
         {/each}
-
         <!-- <Sandbox /> -->
     </svg>
 </div>

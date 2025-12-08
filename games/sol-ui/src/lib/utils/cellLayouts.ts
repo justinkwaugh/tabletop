@@ -18,6 +18,9 @@ export type CellLayout = {
     divers: Point[]
 }
 
+const TWO_DIVER_PLUS_STATION_ANGLE_OFFSETS_PER_RING = [0, 16, 12, 8.5, 8, 8]
+const TWO_DIVER_ANGLE_OFFSETS_PER_RING = [0, 12, 6, 4, 4, 4]
+
 export function getCellLayout(
     cell: Cell,
     playerCount: number,
@@ -36,11 +39,21 @@ export function getCellLayout(
             )
             const diver1 = getCirclePoint(
                 center.radius + 10,
-                toRadians(subtractFromAngle(center.angle, 8))
+                toRadians(
+                    subtractFromAngle(
+                        center.angle,
+                        TWO_DIVER_PLUS_STATION_ANGLE_OFFSETS_PER_RING[cell.coords.row]
+                    )
+                )
             )
             const diver2 = getCirclePoint(
                 center.radius + 10,
-                toRadians(addToAngle(center.angle, 8))
+                toRadians(
+                    addToAngle(
+                        center.angle,
+                        TWO_DIVER_PLUS_STATION_ANGLE_OFFSETS_PER_RING[cell.coords.row]
+                    )
+                )
             )
             return {
                 station: { point: stationPoint, z: 1 },
@@ -60,11 +73,18 @@ export function getCellLayout(
             const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
             const diver1 = getCirclePoint(
                 center.radius + 10,
-                toRadians(subtractFromAngle(center.angle, 4))
+                toRadians(
+                    subtractFromAngle(
+                        center.angle,
+                        TWO_DIVER_ANGLE_OFFSETS_PER_RING[cell.coords.row]
+                    )
+                )
             )
             const diver2 = getCirclePoint(
                 center.radius + 10,
-                toRadians(addToAngle(center.angle, 4))
+                toRadians(
+                    addToAngle(center.angle, TWO_DIVER_ANGLE_OFFSETS_PER_RING[cell.coords.row])
+                )
             )
             return {
                 station: undefined,

@@ -11,7 +11,7 @@ import { Ring } from '../index.js'
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({
-    sundiverId: Type.String(),
+    sundiverId: Type.Optional(Type.String()),
     energyAdded: Type.Number(),
     createdSundiverIds: Type.Array(Type.String()),
     momentumAdded: Type.Number()
@@ -75,8 +75,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         activation.currentStationCoords = this.coords
         state.activation = activation
 
-        const metadata: ActivateMetadata = {
-            sundiverId: '',
+        this.metadata = {
+            sundiverId: undefined,
             energyAdded: 0,
             createdSundiverIds: [],
             momentumAdded: 0
@@ -85,7 +85,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         switch (station.type) {
             case StationType.EnergyNode:
                 playerState.energyCubes += BASE_AWARD_PER_RING[ring]
-                metadata.energyAdded = BASE_AWARD_PER_RING[ring]
+                this.metadata.energyAdded = BASE_AWARD_PER_RING[ring]
                 break
             case StationType.SundiverFoundry:
                 playerState.energyCubes -= BASE_AWARD_PER_RING[ring]
@@ -95,12 +95,12 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                     awardCount
                 )
                 playerState.holdSundivers.push(...awardedSundivers)
-                metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
+                this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
             case StationType.TransmitTower:
                 playerState.energyCubes -= BASE_AWARD_PER_RING[ring]
                 playerState.momentum = playerState.momentum ?? 0 + BASE_AWARD_PER_RING[ring]
-                metadata.momentumAdded = BASE_AWARD_PER_RING[ring]
+                this.metadata.momentumAdded = BASE_AWARD_PER_RING[ring]
                 break
         }
 
@@ -110,8 +110,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             if (!removed) {
                 throw new Error('No sundiver to remove')
             }
-            metadata.sundiverId = removed.id
-            this.metadata = metadata
+            this.metadata.sundiverId = removed.id
 
             const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
             playerState.addSundiversToHold(removedDivers)

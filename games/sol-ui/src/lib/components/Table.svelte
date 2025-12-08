@@ -45,7 +45,7 @@
         {/snippet}
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->
-            <div class="shrink-0 z-10">
+            <div class="shrink-0">
                 {#if gameSession.gameState.result}
                     <!-- <GameEndPanel /> -->
                 {:else if gameSession.isViewingHistory}

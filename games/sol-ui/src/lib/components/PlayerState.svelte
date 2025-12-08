@@ -139,7 +139,11 @@
                                 <div>{playerState.holdSundivers.length}</div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
-                                <Cube width={26} height={26} />
+                                <Cube
+                                    id="{playerState.playerId}-energy-supply"
+                                    width={26}
+                                    height={26}
+                                />
                                 <div>{playerState.energyCubes}</div>
                             </div>
                         </div>

@@ -222,6 +222,10 @@ export function animate({
     })
 }
 
+export function ensureDuration(timeline: gsap.core.Timeline, duration: number) {
+    timeline.set({}, {}, duration)
+}
+
 function performAnimation({
     object,
     params,

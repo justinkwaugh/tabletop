@@ -1,4 +1,4 @@
-import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
+import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
     Card,
@@ -24,7 +24,6 @@ import {
 import { ActionCategory } from '$lib/definition/actionCategory.js'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
-import { getSpaceCentroid } from '$lib/utils/boardGeometry.js'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
@@ -95,6 +94,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     )
 
     forcedCallToAction = $state<string | undefined>(undefined)
+    movingCubeIds: string[] = $state([])
 
     override initializeTimeline({
         to,

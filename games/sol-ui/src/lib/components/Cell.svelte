@@ -28,6 +28,7 @@
     import Foundry from '$lib/images/foundry.svelte'
     import Tower from '$lib/images/tower.svelte'
     import BoardSvg from './BoardSvg.svelte'
+    import { animateEnergyNode, EnergyNodeAnimator } from '$lib/animators/energyNodeAnimator.js'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
@@ -258,9 +259,11 @@
             location={gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }}
         >
             <EnergyNode
+                id={cell.station.id}
                 width={46}
                 height={48}
                 color={gameSession.colors.getPlayerColor(cell.station.playerId)}
+                animator={new EnergyNodeAnimator(gameSession, cell.station)}
             />
         </BoardSvg>
     {:else if cell.station.type === StationType.SundiverFoundry}

@@ -43,7 +43,7 @@
             x={1 + (3 - index) * 3}
             y={1 + (3 - index) * 3}
             fill="#000000"
-            stroke="inherit"
+            stroke="#5a5141"
             stroke-width="2"
         ></rect>
     {/each}

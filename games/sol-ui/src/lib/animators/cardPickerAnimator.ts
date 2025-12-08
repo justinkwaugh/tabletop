@@ -113,9 +113,6 @@ export class CardPickerAnimator extends StateAnimator<
         const flipDuration = 0.3
         const startTime = 0.3
 
-        // iterate our held cards and animate them in
-        let i = 0
-
         // Get the initial state of the cards laid out in a row
         const state = Flip.getState(
             Array.from(this.cards.values())

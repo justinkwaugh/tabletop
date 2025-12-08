@@ -24,6 +24,12 @@ export class DeckAnimator extends StateAnimator<
         super(gameSession)
     }
 
+    override onAttach(): void {
+        if (this.gameSession.gameState.machineState === MachineState.DrawingCards) {
+            this.pulseDeck()
+        }
+    }
+
     override async onGameStateChange({
         to,
         from,
@@ -35,33 +41,11 @@ export class DeckAnimator extends StateAnimator<
         action?: GameAction
         timeline: gsap.core.Timeline
     }) {
-        if (action) {
-            await this.animateAction(action, timeline, to, from)
-        }
-
         if (to.machineState === MachineState.DrawingCards) {
             this.pulseDeck()
+        } else {
+            this.stopPulsingDeck(timeline)
         }
-    }
-
-    async animateAction(
-        action: GameAction,
-        timeline: gsap.core.Timeline,
-        toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
-    ) {
-        if (isDrawCards(action)) {
-            await this.animateDrawCards(action, timeline, toState, fromState)
-        }
-    }
-
-    async animateDrawCards(
-        action: DrawCards,
-        timeline: gsap.core.Timeline,
-        toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
-    ) {
-        this.stopPulsingDeck(timeline)
     }
 
     private pulseDeck() {
@@ -75,7 +59,7 @@ export class DeckAnimator extends StateAnimator<
             ease: 'power2.inOut',
             yoyo: true,
             repeat: -1,
-            svgOrigin: '50% 50%'
+            transformOrigin: 'center center'
         })
     }
 
