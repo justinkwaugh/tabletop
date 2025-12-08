@@ -44,7 +44,18 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
 
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
         const prng = new Prng(state.prng)
+
         const players = this.initializePlayers(game, prng)
+        const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
+        // Put players array in turn order
+        const orderedPlayers: SolPlayerState[] = []
+        for (const playerId of turnManager.turnOrder) {
+            const player = players.find((p) => p.playerId === playerId)
+            if (player) {
+                orderedPlayers.push(player)
+            }
+        }
+
         const nonFlareSuits = [
             Suit.Condensation,
             Suit.Expansion,
@@ -66,12 +77,12 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         })
 
         // const config = game.config as SolGameConfig
-        const board = this.initializeBoard(players, prng.random)
+        const board = this.initializeBoard(orderedPlayers, prng.random)
 
         const solState: SolGameState = Object.assign(state, {
-            players: players,
+            players: orderedPlayers,
             machineState: MachineState.StartOfTurn,
-            turnManager: HydratedSimpleTurnManager.generate(players, prng.random),
+            turnManager: turnManager,
             board,
             deck,
             effects,
@@ -171,10 +182,10 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         const motherships: Record<string, number> = {}
 
         const randomOffset = Math.floor(random() * numMothershipPositions)
-        const reversedPlayers = players.toReversed()
-        for (let i = 0; i < players.length; i++) {
-            motherships[reversedPlayers[i].playerId] =
-                (randomOffset + i * spacing) % numMothershipPositions
+        let currentPos = randomOffset
+        for (const player of players) {
+            motherships[player.playerId] = currentPos
+            currentPos = (currentPos + spacing) % numMothershipPositions
         }
 
         const board = new HydratedSolGameBoard({

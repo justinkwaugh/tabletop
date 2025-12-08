@@ -112,11 +112,17 @@ export class CellSundiverAnimator extends StateAnimator<
                 )
                 if (sourceLocation && !samePoint(sourceLocation, targetLocation)) {
                     console.log('animating sundiver from ', sourceLocation, 'to', targetLocation)
+                    gsap.set(this.element!, {
+                        opacity: 1,
+                        translateX: offsetFromCenter(sourceLocation).x,
+                        translateY: offsetFromCenter(sourceLocation).y
+                    })
                     move({
                         object: this.element,
                         timeline,
                         location: offsetFromCenter(targetLocation),
-                        duration: 0.4,
+                        ease: 'power2.inOut',
+                        duration: 1,
                         position: 0
                     })
                 }
@@ -162,7 +168,7 @@ export class CellSundiverAnimator extends StateAnimator<
                     sameCoordinates(action.destination, this.coords))
             )
         } else if (isConvert(action)) {
-            if (action.playerId !== this.playerId) {
+            if (action.playerId !== this.playerId || sameCoordinates(action.coords, this.coords)) {
                 return true
             }
         } else if (isActivate(action)) {
@@ -346,6 +352,7 @@ export class CellSundiverAnimator extends StateAnimator<
             }
 
             const toCell = toState.board.cellAt(this.coords)
+
             const targetLocation = this.gameSession.locationForDiverInCell(convert.playerId, toCell)
             if (!targetLocation) {
                 return
@@ -355,7 +362,8 @@ export class CellSundiverAnimator extends StateAnimator<
                 object: this.element,
                 timeline,
                 location: offsetFromCenter(targetLocation),
-                duration: 0.3,
+                ease: 'power1.in',
+                duration: 0.5,
                 position: 0
             })
         } else {
