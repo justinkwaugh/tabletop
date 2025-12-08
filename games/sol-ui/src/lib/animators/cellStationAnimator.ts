@@ -19,7 +19,7 @@ import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import { Point, sameCoordinates, type GameAction, type OffsetCoordinates } from '@tabletop/common'
-import { animate, ensureDuration, fadeIn, scale } from '$lib/utils/animations.js'
+import { animate, ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 
@@ -65,6 +65,22 @@ export class CellStationAnimator extends StateAnimator<
             this.animateActivate(action, timeline, to, from)
         } else if (isConvert(action)) {
             await this.animateConvert(action, timeline, to, from)
+        }
+
+        const toBoard = to.board
+        const fromBoard = from?.board
+        const toCell = toBoard.cellAt(this.coords)
+        const fromCell = fromBoard?.cellAt(this.coords)
+
+        const toStation = toCell.station
+        const fromStation = fromCell?.station
+
+        if (fromStation && !toStation) {
+            fadeOut({
+                object: this.element!,
+                timeline,
+                duration: 0.3
+            })
         }
     }
 
