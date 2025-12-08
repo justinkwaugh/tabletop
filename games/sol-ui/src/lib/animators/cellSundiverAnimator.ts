@@ -71,6 +71,10 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateAction(action, timeline, to, from)
         }
 
+        if (action && !this.mayBeAffectedByAction(action)) {
+            return
+        }
+
         const toCell = to.board.cellAt(this.coords)
         const fromCell = from?.board.cellAt(this.coords)
         if (!toCell && !fromCell) {
@@ -341,7 +345,19 @@ export class CellSundiverAnimator extends StateAnimator<
                 this.quantityCallback(numAfter)
             }
 
-            return
+            const toCell = toState.board.cellAt(this.coords)
+            const targetLocation = this.gameSession.locationForDiverInCell(convert.playerId, toCell)
+            if (!targetLocation) {
+                return
+            }
+
+            move({
+                object: this.element,
+                timeline,
+                location: offsetFromCenter(targetLocation),
+                duration: 0.3,
+                position: 0
+            })
         } else {
             // Disappear immediately
             fadeOut({
