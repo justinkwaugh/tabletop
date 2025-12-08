@@ -11,6 +11,7 @@ import { HydratedDrawCards, isDrawCards } from '../actions/drawCards.js'
 import { Suit } from '../components/cards.js'
 import { SolarFlare } from '../actions/solarFlare.js'
 import { nanoid } from 'nanoid'
+import { Pass } from '../actions/pass.js'
 
 // Transition from DrawingCards(DrawCards) -> SolarFlares | ChoosingCard
 
@@ -47,6 +48,16 @@ export class DrawingCardsStateHandler implements MachineStateHandler<HydratedDra
             context.addPendingAction(solarFlareAction)
             return MachineState.SolarFlares
         } else {
+            if (!playerState.hasCardChoice()) {
+                const passAction: Pass = {
+                    type: ActionType.Pass,
+                    id: nanoid(),
+                    gameId: context.gameState.gameId,
+                    playerId: action.playerId,
+                    source: ActionSource.System
+                }
+                context.addPendingAction(passAction)
+            }
             return MachineState.ChoosingCard
         }
     }

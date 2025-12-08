@@ -141,4 +141,17 @@ export class HydratedSolPlayerState
         }
         return tower
     }
+
+    public hasCardChoice(): boolean {
+        if (!this.drawnCards || this.drawnCards.length === 0) {
+            return false
+        }
+
+        if (!this.card) {
+            return true
+        }
+
+        const filteredCards = this.drawnCards.filter((card) => card.suit !== this.card!.suit)
+        return filteredCards.length > 0
+    }
 }

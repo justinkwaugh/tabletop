@@ -4,6 +4,7 @@ import {
     HydratedSolGameState,
     isActivate,
     isDrawCards,
+    isPass,
     isSolarFlare,
     MachineState,
     SolarFlare,
@@ -14,7 +15,7 @@ import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import { tick, untrack } from 'svelte'
-import type { GameAction } from '@tabletop/common'
+import { ActionSource, type GameAction } from '@tabletop/common'
 import { ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
 import { Flip } from 'gsap/dist/Flip'
 import { fade } from 'svelte/transition'
@@ -132,27 +133,40 @@ export class CardPickerAnimator extends StateAnimator<
                 (card) => !removedCards.find((rc) => rc.id === card.id)
             )
 
-            const remainingCardElements = remainingCards
-                .map((card) => this.cards.get(card.id)?.element)
-                .filter((ce) => ce !== undefined)
+            if (remainingCards.length === 0) {
+                const durationUntilNow = subTimeline.duration()
+                subTimeline.call(
+                    () => {
+                        this.gameSession.forcedCallToAction = 'NO NEW CARDS TO CHOOSE FROM...'
+                        this.gameSession.drawnCards = []
+                    },
+                    [],
+                    durationUntilNow
+                )
+                ensureDuration(subTimeline, 3)
+            } else {
+                const remainingCardElements = remainingCards
+                    .map((card) => this.cards.get(card.id)?.element)
+                    .filter((ce) => ce !== undefined)
 
-            const durationUntilNow = subTimeline.duration()
-            subTimeline.call(
-                () => {
-                    const state = Flip.getState(remainingCardElements)
-                    this.gameSession.drawnCards = remainingCards
+                const durationUntilNow = subTimeline.duration()
+                subTimeline.call(
+                    () => {
+                        const state = Flip.getState(remainingCardElements)
+                        this.gameSession.drawnCards = remainingCards
 
-                    tick().then(() => {
-                        Flip.from(state, {
-                            duration: 0.5,
-                            ease: 'power2.in'
+                        tick().then(() => {
+                            Flip.from(state, {
+                                duration: 0.5,
+                                ease: 'power2.in'
+                            })
                         })
-                    })
-                },
-                [],
-                durationUntilNow
-            )
-            ensureDuration(subTimeline, durationUntilNow + 0.3)
+                    },
+                    [],
+                    durationUntilNow
+                )
+                ensureDuration(subTimeline, durationUntilNow + 0.3)
+            }
         }
         timeline.add(subTimeline, 0)
     }
