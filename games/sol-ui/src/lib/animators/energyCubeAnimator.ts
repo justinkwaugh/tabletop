@@ -44,13 +44,13 @@ export class EnergyCubeAnimator extends StateAnimator<
         action: GameAction
         timeline: gsap.core.Timeline
     }) {
-        if (isActivate(action)) {
+        if (isActivate(action) || isActivateBonus(action)) {
             this.animateActivate(action, timeline, to, from)
         }
     }
 
     async animateActivate(
-        action: Activate,
+        action: Activate | ActivateBonus,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
@@ -73,7 +73,10 @@ export class EnergyCubeAnimator extends StateAnimator<
         const startTime = 0
 
         // Set the initial location of the cubes at the energy node
-        const stationId = action.stationId
+        const stationId = isActivate(action) ? action.stationId : action.metadata?.stationId
+        if (!stationId) {
+            return
+        }
         const stationCoords = fromState.board.findStation(stationId)?.coords
         if (!stationCoords) {
             return

@@ -41,12 +41,7 @@ export class CardPickerAnimator extends StateAnimator<
     addCard(card: Card, element: HTMLElement | SVGElement): void {
         console.log('add card to animator:', card.id, card.suit)
         this.cards.set(card.id, { card, element })
-        if (
-            card.suit === Suit.Flare &&
-            this.gameSession.gameState.machineState === MachineState.SolarFlares
-        ) {
-            this.pulseCard(card, element)
-        }
+        this.pulseCorrectFlare(this.gameSession.gameState)
     }
 
     removeCard(card: Card): void {
@@ -77,12 +72,9 @@ export class CardPickerAnimator extends StateAnimator<
         }
 
         if (to.machineState === MachineState.SolarFlares) {
-            // for (const { card, element } of this.cards.values()) {
-            //     if (card.suit !== Suit.Flare) {
-            //         continue
-            //     }
-            //     this.pulseCard(card, element)
-            // }
+            if (!action) {
+                this.pulseCorrectFlare(to)
+            }
         } else {
             const pulseIds = Array.from(this.tweensPerCard.keys())
             for (const id of pulseIds) {
@@ -311,12 +303,7 @@ export class CardPickerAnimator extends StateAnimator<
                         duration: 0.5,
                         ease: 'power2.in',
                         onComplete: () => {
-                            const firstFlare = this.cards
-                                .values()
-                                .find((ce) => ce.card.suit === Suit.Flare)
-                            if (firstFlare) {
-                                this.pulseCard(firstFlare.card, firstFlare.element)
-                            }
+                            this.pulseCorrectFlare(toState)
                         }
                     })
                 })
@@ -360,6 +347,28 @@ export class CardPickerAnimator extends StateAnimator<
                     timeline,
                     position: 0
                 })
+            }
+        }
+    }
+
+    flareIndexToPulse(state: HydratedSolGameState) {
+        if (!state.solarFlares || !state.solarFlaresRemaining) {
+            return -1
+        }
+
+        return state.solarFlares - state.solarFlaresRemaining
+    }
+
+    pulseCorrectFlare(state: HydratedSolGameState) {
+        const flares = Array.from(this.cards.values()).filter((ce) => ce.card.suit === Suit.Flare)
+
+        const flareIndex = this.flareIndexToPulse(state)
+        for (let i = 0; i < flares.length; i++) {
+            const card = flares[i]
+            if (i !== flareIndex) {
+                this.stopPulsingCard(card.card.id)
+            } else {
+                this.pulseCard(card.card, card.element)
             }
         }
     }
