@@ -75,6 +75,7 @@ export class HydratedActivateBonus
                 this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
             case StationType.TransmitTower:
+                playerState.energyCubes -= BONUS_AWARD_PER_RING[ring]
                 playerState.momentum = (playerState.momentum ?? 0) + BONUS_AWARD_PER_RING[ring]
                 this.metadata.momentumAdded = BONUS_AWARD_PER_RING[ring]
                 break

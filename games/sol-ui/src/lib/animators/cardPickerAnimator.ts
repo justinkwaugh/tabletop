@@ -2,6 +2,7 @@ import {
     Card,
     DrawCards,
     HydratedSolGameState,
+    isActivate,
     isDrawCards,
     isSolarFlare,
     MachineState,
@@ -65,6 +66,8 @@ export class CardPickerAnimator extends StateAnimator<
         action: GameAction
         timeline: gsap.core.Timeline
     }) {
+        // This subtimeline helps us sequence things locally, particularly with the flip
+        // animation not being added to the timeline directly
         const subTimeline = gsap.timeline({
             autoRemoveChildren: true
         })
@@ -141,8 +144,8 @@ export class CardPickerAnimator extends StateAnimator<
 
                     tick().then(() => {
                         Flip.from(state, {
-                            duration: 0.3,
-                            ease: 'power2.out'
+                            duration: 0.5,
+                            ease: 'power2.in'
                         })
                     })
                 },
@@ -150,8 +153,8 @@ export class CardPickerAnimator extends StateAnimator<
                 durationUntilNow
             )
             ensureDuration(subTimeline, durationUntilNow + 0.3)
-            timeline.add(subTimeline)
         }
+        timeline.add(subTimeline, 0)
     }
 
     async animateAction(
@@ -164,6 +167,9 @@ export class CardPickerAnimator extends StateAnimator<
             await this.animateDrawCards(action, timeline, toState, fromState)
         } else if (isSolarFlare(action)) {
             await this.animateSolarFlare(action, timeline, toState, fromState)
+        } else if (isActivate(action)) {
+            // Delay for informational display
+            ensureDuration(timeline, 1.5)
         }
     }
 
@@ -270,6 +276,7 @@ export class CardPickerAnimator extends StateAnimator<
 
         const state = Flip.getState(allCards)
 
+        console.log('SolarFlare: fading')
         for (const cardElement of removedCards) {
             fadeOut({
                 object: cardElement,
@@ -280,12 +287,14 @@ export class CardPickerAnimator extends StateAnimator<
 
         timeline.call(
             () => {
+                console.log('SolarFlare: removing non-flare cards from drawnCards')
                 this.gameSession.drawnCards = this.gameSession.drawnCards.filter(
                     (card) => card.suit === Suit.Flare
                 )
                 tick().then(() => {
+                    console.log('SolarFlare: flip em')
                     Flip.from(state, {
-                        duration: 0.3,
+                        duration: 0.5,
                         ease: 'power2.in',
                         onComplete: () => {
                             const firstFlare = this.cards
@@ -299,16 +308,11 @@ export class CardPickerAnimator extends StateAnimator<
                 })
             },
             [],
-            0.2
+            0.3
         )
 
-        timeline.call(
-            () => {
-                console.log('Done animating solar flare')
-            },
-            [],
-            1
-        )
+        const durationUntilNow = timeline.duration()
+        ensureDuration(timeline, durationUntilNow + 0.3)
     }
 
     private pulseCard(card: Card, element: HTMLElement | SVGElement) {
