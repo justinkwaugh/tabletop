@@ -157,7 +157,7 @@ export class SundiverAnimator extends StateAnimator<
         fromState?: HydratedSolGameState
     ) {
         if (isConvert(action)) {
-            this.animateConvertAction(action, timeline)
+            this.animateConvertAction(action, timeline, toState, fromState)
         } else if (isActivate(action)) {
             this.animateActivateAction(action, timeline, toState, fromState)
         } else if (isActivateBonus(action)) {
@@ -297,20 +297,30 @@ export class SundiverAnimator extends StateAnimator<
         })
     }
 
-    animateConvertAction(convert: Convert, timeline: gsap.core.Timeline) {
+    animateConvertAction(
+        convert: Convert,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
         if (!convert.sundiverIds.includes(this.id)) {
             return
         }
 
-        const board = this.gameSession.gameState.board
+        const toBoard = toState.board
+        const fromBoard = fromState?.board
 
-        const diverCoords = board.findSundiverCoords(this.id)
-        const diverCell = board.cellAt(diverCoords!)
+        if (!fromBoard) {
+            return
+        }
+
+        const diverCoords = fromBoard.findSundiverCoords(this.id)
+        const diverCell = fromBoard.cellAt(diverCoords!)
         const diverLocation = this.gameSession.locationForDiverInCell(convert.playerId, diverCell)
 
         let targetLocation: Point | undefined
         if (!convert.isGate) {
-            const stationCell = board.cellAt(convert.coords)
+            const stationCell = toBoard.cellAt(convert.coords)
             targetLocation = this.gameSession.locationForStationInCell(stationCell)
         } else if (convert.innerCoords && convert.coords) {
             const gatePosition = getGatePosition(
