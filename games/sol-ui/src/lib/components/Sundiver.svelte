@@ -48,12 +48,12 @@
     <g transform="scale(.8) translate(-19, -25)">
         <g transform="translate(-1, -1)">
             <SundiverMask
-                width="40"
-                height="52"
+                width={40}
+                height={52}
                 fill={'black'}
                 opacity=".5"
                 overflow="visible"
-                style="filter: url(#divershadow)"
+                style="filter: url(#pieceshadow)"
             />
         </g>
         <SundiverIcon {color} />

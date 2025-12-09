@@ -2,7 +2,6 @@
     id="purpleship"
     width="168"
     height="400"
-    data-name="Layer 1"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 514.71 1196.79"
 >

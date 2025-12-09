@@ -33,7 +33,7 @@
                 fill={'black'}
                 opacity=".5"
                 overflow="visible"
-                style="filter: url(#divershadow)"
+                style="filter: url(#pieceshadow)"
             />
         </g>
         <GateIcon {width} {height} {color} />

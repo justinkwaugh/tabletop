@@ -3,9 +3,11 @@
     import GreenShip from '$lib/images/greenShip.svelte'
     import GreenShipMask from '$lib/images/greenShipMask.svelte'
     import PurpleShip from '$lib/images/purpleShip.svelte'
+    import PurpleShipMask from '$lib/images/purpleShipMask.svelte'
     import SilverShip from '$lib/images/silverShip.svelte'
     import SilverShipMask from '$lib/images/silverShipMask.svelte'
     import BlackShip from '$lib/images/blackShip.svelte'
+    import BlackShipMask from '$lib/images/blackShipMask.svelte'
     import BlueShip from '$lib/images/blueShip.svelte'
     import BlueShipMask from '$lib/images/blueShipMask.svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
@@ -99,6 +101,10 @@
                 return SilverShipMask
             case Color.Blue:
                 return BlueShipMask
+            case Color.Purple:
+                return PurpleShipMask
+            case Color.Black:
+                return BlackShipMask
             default:
                 return undefined
         }

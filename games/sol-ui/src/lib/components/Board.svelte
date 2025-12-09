@@ -84,7 +84,7 @@
     <svg class="absolute z-0" width="1280" height="1280" viewBox="0 0 1280 1280">
         <defs>
             <DropShadow id="textshadow" />
-            <DropShadow id="divershadow" offset={{ x: 0, y: 0 }} amount={20} />
+            <DropShadow id="pieceshadow" offset={{ x: 0, y: 0 }} amount={20} />
         </defs>
 
         <InstabilityTrack width={760} height={35} location={{ x: (1280 - 760) / 2, y: 12 }} />

@@ -165,4 +165,24 @@
         color: #777777;
         fill: #777777;
     }
+
+    :global(.sol.black .a) {
+        color: #888888;
+        fill: #888888;
+    }
+
+    :global(.sol.black .b) {
+        color: #666666;
+        fill: #666666;
+    }
+
+    :global(.sol.black .c) {
+        color: #444444;
+        fill: #444444;
+    }
+
+    :global(.sol.black .d) {
+        color: #222222;
+        fill: #222222;
+    }
 </style>
