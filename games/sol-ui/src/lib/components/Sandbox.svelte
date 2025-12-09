@@ -24,6 +24,7 @@
     import BlackShip from '$lib/images/blackShip.svelte'
     import { CELL_LAYOUT_5P } from '$lib/utils/cellLayout5p.js'
     import { CELL_LAYOUT_4P } from '$lib/utils/cellLayout4p.js'
+    import BoardSvg from './BoardSvg.svelte'
 
     enum PieceType {
         Sundiver,
@@ -168,9 +169,9 @@
     }
 </script>
 
-{#each diverLocs as { point, quantity }}
+<!-- {#each diverLocs as { point, quantity }}
     <Sundiver color="blue" {quantity} location={point} />
-{/each}
+{/each} -->
 
 <!-- {#each towerLocs as point}
     <Tower color="blue" location={point} />
@@ -209,7 +210,7 @@
     </g> -->
 
     {#each gatePositions as gatePosition}
-        <Gate color="green" {...gatePosition} />
+        <Gate color="green" position={gatePosition} />
     {/each}
 
     {#each blueLocations as locationTransformation}

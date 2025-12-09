@@ -19,7 +19,8 @@ export type CellLayout = {
 }
 
 const TWO_DIVER_PLUS_STATION_ANGLE_OFFSETS_PER_RING = [0, 16, 12, 8.5, 8, 8]
-const TWO_DIVER_ANGLE_OFFSETS_PER_RING = [0, 12, 6, 4, 4, 4]
+const TWO_DIVER_ANGLE_OFFSETS_PER_RING = [0, 12, 6, 4, 2.5, 1.5]
+const TWO_DIVER_RADIUS_OFFSETS_PER_RING = [0, 10, 10, 10, 3, 12]
 
 export function getCellLayout(
     cell: Cell,
@@ -61,30 +62,26 @@ export function getCellLayout(
             }
         }
     } else if (!cell.station) {
+        const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
         if (numPlayersWithDivers === 1) {
-            const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
-            const diver1 = getCirclePoint(center.radius + 10, toRadians(center.angle))
+            const diver1 = centerOffset(center, 10, 0)
             return {
                 station: undefined,
                 divers: [diver1]
             }
         } else if (numPlayersWithDivers === 2) {
-            // Just split the divers
-            const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
-            const diver1 = getCirclePoint(
-                center.radius + 10,
-                toRadians(
-                    subtractFromAngle(
-                        center.angle,
-                        TWO_DIVER_ANGLE_OFFSETS_PER_RING[cell.coords.row]
-                    )
-                )
+            const radiusOffset = TWO_DIVER_RADIUS_OFFSETS_PER_RING[cell.coords.row]
+            const angleOffset = TWO_DIVER_ANGLE_OFFSETS_PER_RING[cell.coords.row]
+
+            const diver1 = centerOffset(
+                center,
+                radiusOffset,
+                -angleOffset + (cell.coords.row === Ring.Inner ? 1 : 0)
             )
-            const diver2 = getCirclePoint(
-                center.radius + 10,
-                toRadians(
-                    addToAngle(center.angle, TWO_DIVER_ANGLE_OFFSETS_PER_RING[cell.coords.row])
-                )
+            const diver2 = centerOffset(
+                center,
+                radiusOffset,
+                angleOffset + (cell.coords.row === Ring.Inner ? 1.75 : 0)
             )
             return {
                 station: undefined,
@@ -92,17 +89,55 @@ export function getCellLayout(
             }
         } else if (numPlayersWithDivers === 3) {
             if (cell.coords.row === Ring.Core) {
-                // Triangle shape
-                const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
-                const diver1 = getCirclePoint(center.radius - 20, toRadians(center.angle))
-                const diver2 = getCirclePoint(
-                    center.radius + 15,
-                    toRadians(addToAngle(center.angle, 14))
-                )
-                const diver3 = getCirclePoint(
-                    center.radius + 15,
-                    toRadians(subtractFromAngle(center.angle, 14))
-                )
+                const diver1 = centerOffset(center, -20, 0)
+                const diver2 = centerOffset(center, 15, 14)
+                const diver3 = centerOffset(center, 15, -14)
+                return {
+                    station: undefined,
+                    divers: [diver1, diver2, diver3]
+                }
+            } else if (cell.coords.row === Ring.Radiative) {
+                const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
+                if (numInwardNeighbors == 1) {
+                    const diver1 = centerOffset(center, -10, -14)
+                    const diver2 = centerOffset(center, -10, 14)
+                    const diver3 = centerOffset(center, 15, 0)
+                    return {
+                        station: undefined,
+                        divers: [diver1, diver2, diver3]
+                    }
+                } else {
+                    const diver1 = centerOffset(center, 15, -14)
+                    const diver2 = centerOffset(center, 15, 14)
+                    const diver3 = centerOffset(center, 5, 0)
+                    return {
+                        station: undefined,
+                        divers: [diver1, diver2, diver3]
+                    }
+                }
+            } else if (cell.coords.row === Ring.Convective) {
+                const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
+                if (numInwardNeighbors == 1) {
+                    const diver1 = centerOffset(center, -10, -8)
+                    const diver2 = centerOffset(center, -10, 8)
+                    const diver3 = centerOffset(center, 15, 0)
+                    return {
+                        station: undefined,
+                        divers: [diver1, diver2, diver3]
+                    }
+                } else {
+                    const diver1 = centerOffset(center, 15, -8)
+                    const diver2 = centerOffset(center, 15, 8)
+                    const diver3 = centerOffset(center, 5, 0)
+                    return {
+                        station: undefined,
+                        divers: [diver1, diver2, diver3]
+                    }
+                }
+            } else if (cell.coords.row === Ring.Inner) {
+                const diver1 = centerOffset(center, 15, 0)
+                const diver2 = centerOffset(center, 15, 6)
+                const diver3 = centerOffset(center, -23, 0.5)
                 return {
                     station: undefined,
                     divers: [diver1, diver2, diver3]
@@ -110,27 +145,57 @@ export function getCellLayout(
             }
         } else if (numPlayersWithDivers === 4) {
             if (cell.coords.row === Ring.Core) {
-                // Triangle shape
-                const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
-                const diver1 = getCirclePoint(
-                    center.radius - 20,
-                    toRadians(subtractFromAngle(center.angle, 14))
-                )
-                const diver2 = getCirclePoint(
-                    center.radius + 20,
-                    toRadians(addToAngle(center.angle, 6))
-                )
-                const diver3 = getCirclePoint(
-                    center.radius + 20,
-                    toRadians(subtractFromAngle(center.angle, 18))
-                )
-                const diver4 = getCirclePoint(
-                    center.radius - 20,
-                    toRadians(addToAngle(center.angle, 18))
-                )
+                const diver1 = centerOffset(center, -20, -14)
+                const diver2 = centerOffset(center, 20, 6)
+                const diver3 = centerOffset(center, 20, -18)
+                const diver4 = centerOffset(center, -20, 18)
                 return {
                     station: undefined,
                     divers: [diver1, diver2, diver3, diver4]
+                }
+            } else if (cell.coords.row === Ring.Radiative) {
+                const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
+                if (numInwardNeighbors == 1) {
+                    const diver1 = centerOffset(center, -10, -14)
+                    const diver2 = centerOffset(center, 20, 6)
+                    const diver3 = centerOffset(center, 20, -6)
+                    const diver4 = centerOffset(center, -10, 14)
+                    return {
+                        station: undefined,
+                        divers: [diver1, diver2, diver3, diver4]
+                    }
+                } else {
+                    const diver1 = centerOffset(center, 22, -14)
+                    const diver2 = centerOffset(center, 22, 5)
+                    const diver3 = centerOffset(center, 0, -5)
+                    const diver4 = centerOffset(center, 0, 15)
+
+                    return {
+                        station: undefined,
+                        divers: [diver1, diver2, diver3, diver4]
+                    }
+                }
+            } else if (cell.coords.row === Ring.Convective) {
+                const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
+                if (numInwardNeighbors == 1) {
+                    const diver1 = centerOffset(center, -10, -9)
+                    const diver2 = centerOffset(center, 20, 3.5)
+                    const diver3 = centerOffset(center, 20, -3.5)
+                    const diver4 = centerOffset(center, -10, 9)
+                    return {
+                        station: undefined,
+                        divers: [diver1, diver2, diver3, diver4]
+                    }
+                } else {
+                    const diver1 = centerOffset(center, 23, -9)
+                    const diver2 = centerOffset(center, 23, 3)
+                    const diver3 = centerOffset(center, 2, -3)
+                    const diver4 = centerOffset(center, 2, 9)
+
+                    return {
+                        station: undefined,
+                        divers: [diver1, diver2, diver3, diver4]
+                    }
                 }
             }
         }
@@ -150,6 +215,19 @@ export function getCellLayout(
         station: undefined,
         divers: []
     }
+}
+
+function centerOffset(
+    center: { radius: number; angle: number },
+    radius: number,
+    angleDegrees: number
+): Point {
+    const offsetRadius = center.radius + radius
+    const offsetAngle =
+        angleDegrees >= 0
+            ? addToAngle(center.angle, angleDegrees)
+            : subtractFromAngle(center.angle, -angleDegrees)
+    return getCirclePoint(offsetRadius, toRadians(offsetAngle))
 }
 
 function cellLayoutsForPlayerCount(playerCount: number): CellLayouts {

@@ -90,6 +90,7 @@
         <InstabilityTrack width={760} height={35} location={{ x: (1280 - 760) / 2, y: 12 }} />
         <Deck width={100} height={142} location={{ x: 80, y: 10 }} />
 
+        <!-- <Sandbox /> -->
         {#each [...sundiversById] as [, sundiver] (sundiver.id)}
             <UISundiver
                 color={gameSession.colors.getPlayerColor(sundiver.playerId)}
@@ -128,6 +129,5 @@
         {#each gameSession.gameState.players as player}
             <Mothership playerId={player.playerId} />
         {/each}
-        <!-- <Sandbox /> -->
     </svg>
 </div>
