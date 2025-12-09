@@ -19,6 +19,7 @@ import { ActionSource, type GameAction } from '@tabletop/common'
 import { ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
 import { Flip } from 'gsap/dist/Flip'
 import { fade } from 'svelte/transition'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 type CardAndElement = {
     card: Card
@@ -55,12 +56,12 @@ export class CardPickerAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action: GameAction
-        timeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         // This subtimeline helps us sequence things locally, particularly with the flip
         // animation not being added to the timeline directly
@@ -78,7 +79,7 @@ export class CardPickerAnimator extends StateAnimator<
         } else {
             const pulseIds = Array.from(this.tweensPerCard.keys())
             for (const id of pulseIds) {
-                this.stopPulsingCard(id, timeline)
+                this.stopPulsingCard(id, animationContext.actionTimeline)
             }
             this.tweensPerCard.clear()
         }
@@ -160,7 +161,7 @@ export class CardPickerAnimator extends StateAnimator<
                 ensureDuration(subTimeline, durationUntilNow + 0.3)
             }
         }
-        timeline.add(subTimeline, 0)
+        animationContext.actionTimeline.add(subTimeline, 0)
     }
 
     async animateAction(

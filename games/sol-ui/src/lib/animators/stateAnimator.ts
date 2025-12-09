@@ -1,5 +1,5 @@
-import type { GameState, HydratedGameState } from '@tabletop/common'
-import type { GameSession } from '@tabletop/frontend-components'
+import type { GameAction, GameState, HydratedGameState } from '@tabletop/common'
+import type { AnimationContext, GameSession } from '@tabletop/frontend-components'
 import { untrack } from 'svelte'
 
 export abstract class StateAnimator<
@@ -18,11 +18,13 @@ export abstract class StateAnimator<
     abstract onGameStateChange({
         to,
         from,
-        timeline
+        action,
+        animationContext
     }: {
         to: U
         from?: U
-        timeline: gsap.core.Timeline
+        action?: GameAction
+        animationContext: AnimationContext
     }): Promise<void>
 
     setElement(element?: HTMLElement | SVGElement): void {

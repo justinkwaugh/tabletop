@@ -15,6 +15,7 @@ import { ensureDuration, fadeIn, fadeOut, move, scale } from '$lib/utils/animati
 import { Flip } from 'gsap/dist/Flip'
 import { nanoid } from 'nanoid'
 import { getMothershipSpotPoint, offsetFromCenter } from '$lib/utils/boardGeometry.js'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 export class EnergyCubeAnimator extends StateAnimator<
     SolGameState,
@@ -37,15 +38,15 @@ export class EnergyCubeAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action: GameAction
-        timeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         if (isActivate(action) || isActivateBonus(action)) {
-            this.animateActivate(action, timeline, to, from)
+            this.animateActivate(action, animationContext.actionTimeline, to, from)
         }
     }
 

@@ -22,6 +22,7 @@ import { Point, sameCoordinates, type GameAction, type OffsetCoordinates } from 
 import { animate, ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 export class CellStationAnimator extends StateAnimator<
     SolGameState,
@@ -54,19 +55,17 @@ export class CellStationAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline,
-        finalTimeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action?: GameAction
-        timeline: gsap.core.Timeline
-        finalTimeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         if (isActivate(action) || isActivateBonus(action)) {
-            this.animateActivate(action, finalTimeline, to, from)
+            this.animateActivate(action, animationContext, to, from)
         } else if (isConvert(action)) {
-            await this.animateConvert(action, timeline, to, from)
+            await this.animateConvert(action, animationContext.actionTimeline, to, from)
         }
 
         const toBoard = to.board
@@ -80,7 +79,7 @@ export class CellStationAnimator extends StateAnimator<
         if (fromStation && !toStation) {
             fadeOut({
                 object: this.element!,
-                timeline,
+                timeline: animationContext.actionTimeline,
                 duration: 0.3
             })
         }
@@ -88,7 +87,7 @@ export class CellStationAnimator extends StateAnimator<
 
     animateActivate(
         action: Activate | ActivateBonus,
-        timeline: gsap.core.Timeline,
+        animationContext: AnimationContext,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
@@ -102,7 +101,7 @@ export class CellStationAnimator extends StateAnimator<
         }
 
         this.gameSession.forcedCallToAction = `${action.metadata?.energyAdded ?? 0} ENERGY ADDED`
-        // ensureDuration(timeline, 1.5)
+        animationContext.ensureDuration(1.5)
     }
 
     async animateConvert(

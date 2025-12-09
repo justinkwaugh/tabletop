@@ -16,6 +16,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeIn, fadeOut, move } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -56,19 +57,19 @@ export class CellSundiverAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action?: GameAction
-        timeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         if (!this.element) {
             return
         }
 
         if (action) {
-            this.animateAction(action, timeline, to, from)
+            this.animateAction(action, animationContext.actionTimeline, to, from)
         }
 
         if (action && !this.mayBeAffectedByAction(action)) {
@@ -100,7 +101,7 @@ export class CellSundiverAnimator extends StateAnimator<
                     fadeIn({
                         object: this.element,
                         duration: 0.3,
-                        timeline,
+                        timeline: animationContext.actionTimeline,
                         position: 0
                     })
                     return
@@ -119,7 +120,7 @@ export class CellSundiverAnimator extends StateAnimator<
                     })
                     move({
                         object: this.element,
-                        timeline,
+                        timeline: animationContext.actionTimeline,
                         location: offsetFromCenter(targetLocation),
                         ease: 'power2.inOut',
                         duration: 1,

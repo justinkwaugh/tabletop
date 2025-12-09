@@ -4,6 +4,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import type { GameAction } from '@tabletop/common'
 import { animate, ensureDuration } from '$lib/utils/animations.js'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 export class InstabilityAnimator extends StateAnimator<
     SolGameState,
@@ -22,15 +23,15 @@ export class InstabilityAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action?: GameAction
-        timeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         if (action) {
-            await this.animateAction(action, timeline, to, from)
+            await this.animateAction(action, animationContext.actionTimeline, to, from)
         }
 
         const fromInstability = from?.instability
@@ -43,7 +44,7 @@ export class InstabilityAnimator extends StateAnimator<
             params: {
                 attr: { x: this.calculateMarkerX(toInstability) }
             },
-            timeline,
+            timeline: animationContext.actionTimeline,
             duration: 0.5,
             onComplete: () => {
                 gsap.set(this.element!, { clearProps: 'all' })

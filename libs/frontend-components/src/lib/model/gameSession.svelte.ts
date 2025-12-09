@@ -42,6 +42,7 @@ import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
 import { GameExplorations } from './gameExplorations.svelte.js'
 import { on } from 'svelte/events'
+import { AnimationContext } from '$lib/utils/animations.js'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -53,14 +54,12 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
     to,
     from,
     action,
-    timeline,
-    finalTimeline
+    animationContext
 }: {
     to: U
     from?: U
     action?: GameAction
-    timeline: gsap.core.Timeline
-    finalTimeline?: gsap.core.Timeline
+    animationContext: AnimationContext
 }) => Promise<void>
 
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
@@ -457,36 +456,18 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     private async gatherAndPlayAnimations(to: U, from?: U, action?: GameAction) {
-        const masterTimeline = gsap.timeline({ autoRemoveChildren: true })
-
-        // Timeline for animations that happen during state change
-        const timeline = gsap.timeline({ autoRemoveChildren: true })
-
-        // Timeline for any animations that need to happen after all state change animations
-        const finalTimeline = gsap.timeline({ autoRemoveChildren: true })
-
+        const animationContext = new AnimationContext()
         const promises = []
         for (const listener of this.gameStateChangeListeners) {
-            promises.push(listener({ to, from, action, timeline, finalTimeline }))
+            promises.push(listener({ to, from, action, animationContext }))
         }
         await Promise.all(promises)
 
-        masterTimeline.add(timeline)
-        masterTimeline.add(finalTimeline)
-
-        const animations = masterTimeline.getChildren()
-        if (animations.length > 0) {
-            console.log(
-                `Playing ${animations.length} animations for action state change: `,
-                action ?? 'no action',
-                animations
-            )
-            try {
-                this.animating = true
-                await masterTimeline.play()
-            } finally {
-                this.animating = false
-            }
+        try {
+            this.animating = true
+            await animationContext.play()
+        } finally {
+            this.animating = false
         }
     }
 
@@ -509,11 +490,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     async onGameStateChange({
         to,
         from,
-        timeline
+        animationContext
     }: {
         to: U
         from?: U
-        timeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         // Default implementation does nothing
     }

@@ -12,6 +12,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import type { GameAction } from '@tabletop/common'
 import { animate, scale } from '$lib/utils/animations.js'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 export class DeckAnimator extends StateAnimator<
     SolGameState,
@@ -34,17 +35,17 @@ export class DeckAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action?: GameAction
-        timeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         if (to.machineState === MachineState.DrawingCards) {
             this.pulseDeck()
         } else {
-            this.stopPulsingDeck(timeline)
+            this.stopPulsingDeck(animationContext.actionTimeline)
         }
     }
 

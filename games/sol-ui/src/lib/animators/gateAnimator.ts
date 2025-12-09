@@ -13,6 +13,7 @@ import { Point, sameCoordinates, type GameAction, type OffsetCoordinates } from 
 import { animate, ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import { getGatePosition } from '$lib/utils/boardGeometry.js'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 type GateAndElement = {
     gate: SolarGate
@@ -56,17 +57,15 @@ export class GateAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline,
-        finalTimeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action?: GameAction
-        timeline: gsap.core.Timeline
-        finalTimeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         if (isConvert(action)) {
-            await this.animateConvert(action, timeline, to, from)
+            await this.animateConvert(action, animationContext.actionTimeline, to, from)
         }
 
         // const toBoard = to.board

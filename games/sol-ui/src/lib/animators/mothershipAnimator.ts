@@ -5,6 +5,7 @@ import { CENTER_POINT, getMothershipAngle } from '$lib/utils/boardGeometry.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { rotate } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 const SVG_ORIGIN = `${CENTER_POINT.x}, ${CENTER_POINT.y}`
 export class MothershipAnimator extends StateAnimator<
@@ -37,14 +38,12 @@ export class MothershipAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline,
-        finalTimeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action?: GameAction
-        timeline: gsap.core.Timeline
-        finalTimeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         const direction =
             to.actionCount >= (from?.actionCount ?? 0)
@@ -56,7 +55,7 @@ export class MothershipAnimator extends StateAnimator<
         }
         const endIndex = to.board.motherships[this.playerId]
         if (startIndex !== endIndex) {
-            this.moveShip(finalTimeline, startIndex, endIndex, direction)
+            this.moveShip(animationContext.finalTimeline, startIndex, endIndex, direction)
         }
     }
 

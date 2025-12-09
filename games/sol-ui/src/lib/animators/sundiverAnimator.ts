@@ -26,6 +26,7 @@ import {
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeOut, move, scale, path } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
+import type { AnimationContext } from '@tabletop/frontend-components'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -56,19 +57,19 @@ export class SundiverAnimator extends StateAnimator<
         to,
         from,
         action,
-        timeline
+        animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
         action?: GameAction
-        timeline: gsap.core.Timeline
+        animationContext: AnimationContext
     }) {
         if (!this.element) {
             return
         }
 
         if (action) {
-            this.animateAction(action, timeline, to, from)
+            this.animateAction(action, animationContext.actionTimeline, to, from)
             return
         }
 
