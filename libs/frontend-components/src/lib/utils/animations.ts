@@ -17,7 +17,7 @@ export class AnimationContext {
 
     async play() {
         this.masterTimeline.add(this.actionTimeline, 0)
-        this.masterTimeline.add(this.finalTimeline)
+        this.masterTimeline.add(this.finalTimeline, this.actionTimeline.duration())
 
         const animations = this.masterTimeline.getChildren()
         if (animations.length === 0) {
