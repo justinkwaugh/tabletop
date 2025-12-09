@@ -62,11 +62,11 @@ export function getCellLayout(
         }
     } else if (!cell.station) {
         if (numPlayersWithDivers === 1) {
-            // Just center the diver
-            const center = getSpaceCentroid(playerCount, cell.coords)
+            const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
+            const diver1 = getCirclePoint(center.radius + 10, toRadians(center.angle))
             return {
                 station: undefined,
-                divers: [center]
+                divers: [diver1]
             }
         } else if (numPlayersWithDivers === 2) {
             // Just split the divers
@@ -89,6 +89,49 @@ export function getCellLayout(
             return {
                 station: undefined,
                 divers: [diver1, diver2]
+            }
+        } else if (numPlayersWithDivers === 3) {
+            if (cell.coords.row === Ring.Core) {
+                // Triangle shape
+                const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
+                const diver1 = getCirclePoint(center.radius - 20, toRadians(center.angle))
+                const diver2 = getCirclePoint(
+                    center.radius + 15,
+                    toRadians(addToAngle(center.angle, 14))
+                )
+                const diver3 = getCirclePoint(
+                    center.radius + 15,
+                    toRadians(subtractFromAngle(center.angle, 14))
+                )
+                return {
+                    station: undefined,
+                    divers: [diver1, diver2, diver3]
+                }
+            }
+        } else if (numPlayersWithDivers === 4) {
+            if (cell.coords.row === Ring.Core) {
+                // Triangle shape
+                const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
+                const diver1 = getCirclePoint(
+                    center.radius - 20,
+                    toRadians(subtractFromAngle(center.angle, 14))
+                )
+                const diver2 = getCirclePoint(
+                    center.radius + 20,
+                    toRadians(addToAngle(center.angle, 6))
+                )
+                const diver3 = getCirclePoint(
+                    center.radius + 20,
+                    toRadians(subtractFromAngle(center.angle, 18))
+                )
+                const diver4 = getCirclePoint(
+                    center.radius - 20,
+                    toRadians(addToAngle(center.angle, 18))
+                )
+                return {
+                    station: undefined,
+                    divers: [diver1, diver2, diver3, diver4]
+                }
             }
         }
     }
