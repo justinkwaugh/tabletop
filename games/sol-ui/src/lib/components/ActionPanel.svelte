@@ -29,13 +29,23 @@
         }
     }
 
+    let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
+    let convertChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Convert)
+    let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
+
     const canMove = $derived(
-        gameSession.validActionTypes.includes(ActionType.Launch) ||
+        (gameSession.validActionTypes.includes(ActionType.Launch) ||
             gameSession.validActionTypes.includes(ActionType.Fly) ||
-            gameSession.validActionTypes.includes(ActionType.Hurl)
+            gameSession.validActionTypes.includes(ActionType.Hurl)) &&
+            !convertChosen &&
+            !activateChosen
     )
-    const canConvert = $derived(gameSession.validActionTypes.includes(ActionType.Convert))
-    const canActivate = $derived(gameSession.validActionTypes.includes(ActionType.Activate))
+    const canConvert = $derived(
+        gameSession.validActionTypes.includes(ActionType.Convert) && !moveChosen && !activateChosen
+    )
+    const canActivate = $derived(
+        gameSession.validActionTypes.includes(ActionType.Activate) && !moveChosen && !convertChosen
+    )
 
     const callToAction = $derived.by(() => {
         const result = { message: undefined, showSkip: false, yesNo: false } as CallToAction
@@ -143,10 +153,6 @@
         await gameSession.pass()
     }
 
-    let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
-    let convertChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Convert)
-    let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
-
     const cardPickerAnimator = new CardPickerAnimator(gameSession)
     cardPickerAnimator.register()
 </script>
@@ -161,25 +167,25 @@
             </div>
             <button
                 onclick={chooseMove}
-                class="{!canMove || convertChosen || activateChosen
+                class="{!canMove
                     ? 'opacity-30'
-                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                    : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
                 ><MoveArrows />
                 <div class="ms-3">MOVE</div></button
             >
             <button
                 onclick={chooseConvert}
-                class="{!canConvert || moveChosen || activateChosen
+                class="{!canConvert
                     ? 'opacity-30'
-                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                    : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
                 ><ConvertAtom />
                 <div class="ms-3">CONVERT</div></button
             >
             <button
                 onclick={chooseActivate}
-                class="{!canActivate || moveChosen || convertChosen
+                class="{!canActivate
                     ? 'opacity-30'
-                    : ''} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                    : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
                 ><ActivateBolt />
                 <div class="ms-3">ACTIVATE</div></button
             >
