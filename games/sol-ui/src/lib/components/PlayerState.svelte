@@ -21,6 +21,7 @@
     import Tower from '$lib/images/tower.svelte'
     import Foundry from '$lib/images/foundry.svelte'
     import EnergyNode from '$lib/images/energynode.svelte'
+    import Sun from '$lib/images/sun.png'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: SolPlayerState } = $props()
@@ -82,37 +83,43 @@
             class="flex flex-row justify-between items-center rounded-lg dark:bg-black/70 w-full h-full p-1"
         >
             <div class="flex flex-col justify-between items-center w-full">
-                <div class="flex flex-row space-x-2 justify-center items-center pt-1 pb-2">
+                <div class="flex flex-row space-x-1 justify-center items-center pb-2">
                     {#each range(3, 6) as i}
-                        <svg
-                            class="pointer-events-none"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
+                        <div
+                            style={playerState.movement === i
+                                ? `background-image: url(${Sun})`
+                                : ''}
+                            class="flex justify-center items-center w-[24px] h-[24px] bg-center bg-cover"
                         >
-                            <circle
-                                fill="#dddddd"
-                                stroke="#333333"
-                                stroke-width=".5"
-                                cx="12"
-                                cy="12"
-                                r="12"
-                            ></circle>
-                            <text
-                                class="select-none"
-                                style="fill: black"
-                                x="12"
-                                y="13"
-                                text-anchor="middle"
-                                dominant-baseline="middle"
-                                font-size="14"
-                                stroke-width="1"
-                                stroke="#000000"
-                                opacity="1"
-                                fill="black">{i}</text
+                            <svg
+                                class="pointer-events-none"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
                             >
-                        </svg>
+                                <circle
+                                    fill={playerState.movement === i ? 'none' : '#dddddd'}
+                                    stroke="none"
+                                    cx="12"
+                                    cy="12"
+                                    r="12"
+                                ></circle>
+                                <text
+                                    class="select-none"
+                                    x="12"
+                                    y="13"
+                                    text-anchor="middle"
+                                    dominant-baseline="middle"
+                                    font-size="14"
+                                    stroke-width="1"
+                                    stroke={playerState.movement === i ? '#ffffff' : '#000000'}
+                                    opacity="1"
+                                    fill={playerState.movement === i ? '#ffffff' : '#000000'}
+                                    >{i}</text
+                                >
+                            </svg>
+                        </div>
                     {/each}
                 </div>
                 <div class="flex flex-row justify-between items-center w-full px-3">
@@ -202,13 +209,13 @@
                     </div>
                 </div>
             </div>
-            <div class="rounded-lg dark:bg-gray-700 w-[94px] h-[136px] overflow-hidden shrink-0">
+            <div class="rounded-lg w-[94px] h-[136px] overflow-hidden shrink-0">
                 {#if playerState.card}
                     <Card card={playerState.card} />
                 {:else}
                     <div
                         style="background-image: {cardBackImage}"
-                        class="bg-center bg-cover w-full h-full"
+                        class="bg-center bg-cover w-full h-full opacity-30"
                     ></div>
                 {/if}
             </div>
