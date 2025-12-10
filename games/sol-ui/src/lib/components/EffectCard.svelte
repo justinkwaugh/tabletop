@@ -76,6 +76,6 @@
 </script>
 
 <div
-    class="bg-cover bg-center bg-no-repeat w-[200px] h-[147px]"
+    class="bg-cover bg-center bg-no-repeat w-[250px] h-[184px]"
     style:background-image={effectTypeToBackgroundImage(effectType)}
 ></div>

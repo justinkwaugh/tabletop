@@ -23,6 +23,8 @@
     import EnergyNode from '$lib/images/energynode.svelte'
     import Sun from '$lib/images/sun.png'
     import Ark from '$lib/images/ark.svelte'
+    import { Popover } from 'flowbite-svelte'
+    import EffectCard from './EffectCard.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: SolPlayerState } = $props()
@@ -217,6 +219,18 @@
             <div class="rounded-lg w-[94px] h-[136px] overflow-hidden shrink-0">
                 {#if playerState.card}
                     <Card card={playerState.card} />
+
+                    <Popover
+                        classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
+                        placement="right"
+                        triggeredBy={`[id='${playerState.card.id}']`}
+                        trigger="click"
+                        arrow={false}
+                        offset={15}
+                        ><EffectCard
+                            effectType={gameSession.gameState.effects[playerState.card.suit].type}
+                        /></Popover
+                    >
                 {:else}
                     <div
                         style="background-image: {cardBackImage}"

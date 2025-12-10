@@ -12,6 +12,8 @@
     import Card from './Card.svelte'
     import { animateCard, type CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
     import { nanoid } from 'nanoid'
+    import { Popover } from 'flowbite-svelte'
+    import EffectCard from './EffectCard.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -93,6 +95,7 @@
     {#each displayableCards as card (card.id)}
         <button
             use:animateCard={{ animator, card }}
+            id={card.id}
             data-flip-id={card.id}
             onclick={() => chooseCard(card.suit)}
             class="{interactable
@@ -101,6 +104,16 @@
         >
             <Card {card} />
         </button>
+        {#if interactable}
+            <Popover
+                classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
+                placement="bottom"
+                triggeredBy={`[id='${card.id}']`}
+                trigger="hover"
+                arrow={false}
+                ><EffectCard effectType={gameSession.gameState.effects[card.suit].type} /></Popover
+            >
+        {/if}
     {/each}
     <!-- {#each cardsBySuit as [suit, count] (suit)}
         <div class="flex flex-row justify-center items-center">

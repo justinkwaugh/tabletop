@@ -10,8 +10,6 @@
     import type { HTMLAttributes } from 'svelte/elements'
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-    import { Popover } from 'flowbite-svelte'
-    import EffectCard from './EffectCard.svelte'
 
     let {
         card,
@@ -52,21 +50,32 @@
 
 <div
     {...htmlProps}
-    id="abce"
-    class="sol-font-bold flex flex-col justify-end items-center bg-gray-900 w-full h-full border-0 {style ===
+    id={card.id}
+    class="card-container px-2 pb-1 sol-font-bold flex flex-col justify-end items-center bg-gray-900 w-full h-full border-0 {style ===
     'full'
         ? 'bg-center bg-cover'
         : 'bg-right bg-cover'}"
     style="background-image: {cardImageForSuit(card.suit)}"
 >
-    <div class=" text-black text-xs uppercase tracking-widest">
+    <div
+        class="card-label w-full text-center {card.suit === Suit.Flare
+            ? 'text-[#fdfdfd]'
+            : 'text-black'} text-xs uppercase tracking-widest"
+    >
         {effectNameForSuit(card.suit)}
     </div>
-    <Popover
-        defaultClass="p-0 rounded-md overflow-hidden dark:border-0"
-        placement="right"
-        triggeredBy="#abce"
-        trigger="click"
-        ><EffectCard effectType={gameSession.gameState.effects[card.suit].type} /></Popover
-    >
 </div>
+
+<style>
+    .card-container {
+        container-type: inline-size;
+    }
+
+    .card-label {
+        font-size: clamp(0.2rem, 15cqi, 2rem);
+        line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
