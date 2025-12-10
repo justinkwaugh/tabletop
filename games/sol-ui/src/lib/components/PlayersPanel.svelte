@@ -4,6 +4,7 @@
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import Momentum from './Momentum.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 

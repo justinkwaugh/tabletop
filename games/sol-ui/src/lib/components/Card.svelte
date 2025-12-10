@@ -8,6 +8,10 @@
     import SubductionCard from '$lib/images/subductionCard.png'
     import { Card, Suit } from '@tabletop/sol'
     import type { HTMLAttributes } from 'svelte/elements'
+    import { getContext } from 'svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
+    import { Popover } from 'flowbite-svelte'
+    import EffectCard from './EffectCard.svelte'
 
     let {
         card,
@@ -17,6 +21,8 @@
         card: Card
         style?: 'full' | 'partial'
     } & HTMLAttributes<HTMLDivElement> = $props()
+
+    let gameSession = getContext('gameSession') as SolGameSession
 
     function cardImageForSuit(suit: Suit) {
         switch (suit) {
@@ -38,12 +44,29 @@
                 return ''
         }
     }
+
+    function effectNameForSuit(suit: Suit) {
+        return gameSession.gameState.effects[suit]?.type ?? 'unknown'
+    }
 </script>
 
 <div
     {...htmlProps}
-    class="bg-gray-900 w-full h-full border-0 {style === 'full'
+    id="abce"
+    class="sol-font-bold flex flex-col justify-end items-center bg-gray-900 w-full h-full border-0 {style ===
+    'full'
         ? 'bg-center bg-cover'
         : 'bg-right bg-cover'}"
     style="background-image: {cardImageForSuit(card.suit)}"
-></div>
+>
+    <div class=" text-black text-xs uppercase tracking-widest">
+        {effectNameForSuit(card.suit)}
+    </div>
+    <Popover
+        defaultClass="p-0 rounded-md overflow-hidden dark:border-0"
+        placement="right"
+        triggeredBy="#abce"
+        trigger="click"
+        ><EffectCard effectType={gameSession.gameState.effects[card.suit].type} /></Popover
+    >
+</div>

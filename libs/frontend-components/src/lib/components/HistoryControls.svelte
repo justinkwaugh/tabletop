@@ -10,11 +10,13 @@
         enabledColor = 'text-white',
         disabledColor = 'text-gray-700',
         borderClass = 'rounded-lg border-2 border-gray-700',
+        height = 'h-[44px]',
         bgClass = 'bg-transparent'
     }: {
         enabledColor?: string
         disabledColor?: string
         borderClass?: string
+        height?: string
         bgClass?: string
     } = $props()
 
@@ -68,7 +70,7 @@
     }
 </script>
 
-<div class="shrink-0 grow-0 w-full p-2 h-[44px] {borderClass} {bgClass}">
+<div class="shrink-0 grow-0 w-full p-2 {height} {borderClass} {bgClass}">
     <div class="w-full flex flex-row justify-between items-center">
         <button aria-label="start exploring" onclick={requestFork}>
             <svg

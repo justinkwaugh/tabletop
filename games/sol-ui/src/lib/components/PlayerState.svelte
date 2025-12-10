@@ -22,6 +22,7 @@
     import Foundry from '$lib/images/foundry.svelte'
     import EnergyNode from '$lib/images/energynode.svelte'
     import Sun from '$lib/images/sun.png'
+    import Ark from '$lib/images/ark.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: SolPlayerState } = $props()
@@ -72,11 +73,15 @@
 
 <div class="relative">
     <div
-        class="bg-cover rounded-lg {bgColor} pt-[3px] px-1 pb-1 text-center {gameSession.colors.getPlayerTextColor(
+        class="sol-font-bold uppercase bg-cover rounded-lg {bgColor} pt-[3px] px-1 pb-1 text-center {gameSession.colors.getPlayerTextColor(
             playerState.playerId
         )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
     >
-        <h1 class="{isTurn ? 'text-xl font-semibold' : 'text-lg font-medium'} mb-1">
+        <h1
+            class="ms-2 text-left tracking-widest {isTurn
+                ? 'text-xl font-semibold'
+                : 'text-lg font-medium'} mb-1"
+        >
             {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
         </h1>
         <div
@@ -106,7 +111,7 @@
                                     r="12"
                                 ></circle>
                                 <text
-                                    class="select-none"
+                                    class="select-none tracking-tight"
                                     x="12"
                                     y="13"
                                     text-anchor="middle"

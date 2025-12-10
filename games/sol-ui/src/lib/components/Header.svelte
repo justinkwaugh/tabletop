@@ -33,7 +33,7 @@
 </script>
 
 <div
-    class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[42px] border-b border-[#ad9c80]"
+    class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[44px] border-b border-[#ad9c80]"
 >
     <div class="header-grid grid">
         {#key gameSession.gameState.machineState}
@@ -95,7 +95,7 @@
                 </div>
             {:else}
                 <div class="inline-flex items-center gap-x-2">
-                    <div>&nbsp;</div>
+                    <div>TURN START</div>
                 </div>
             {/if}
         {/key}

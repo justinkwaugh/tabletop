@@ -17,6 +17,9 @@
         history,
         playersPanel,
         chat,
+        playersTitle,
+        historyTitle,
+        chatTitle,
         fontClass = '',
         activeTabClass,
         inactiveTabClass
@@ -24,6 +27,9 @@
         history?: Snippet
         playersPanel?: Snippet
         chat?: Snippet
+        playersTitle?: string
+        historyTitle?: string
+        chatTitle?: string
         fontClass?: string
         activeTabClass?: string
         inactiveTabClass?: string
@@ -90,7 +96,7 @@
             {#snippet titleSlot()}
                 <div class="flex items-center gap-2 {fontClass}">
                     <UserCircleSolid size="md" />
-                    Players
+                    {playersTitle ?? 'Players'}
                 </div>
             {/snippet}
             {#if playersPanel}
@@ -107,7 +113,7 @@
             {#snippet titleSlot()}
                 <div class="flex items-center gap-2 {fontClass}">
                     <ClockSolid size="md" />
-                    History
+                    {historyTitle ?? 'History'}
                 </div>
             {/snippet}
             {#if history}
@@ -124,7 +130,7 @@
             {#snippet titleSlot()}
                 <div class="flex items-center gap-2 {fontClass}">
                     <AnnotationSolid size="md" />
-                    Chat
+                    {chatTitle ?? 'Chat'}
                     {#if showNewMessageIndicator}
                         <Indicator
                             color="red"

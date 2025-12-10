@@ -1,26 +1,23 @@
 <script lang="ts">
     import {
         ScalingWrapper,
-        AdminPanel,
         HistoryControls,
         GameChat,
-        type ChatEvent,
-        ChatEventType,
-        ChatToast,
         DefaultTableLayout,
-        DefaultSideContent
+        DefaultSideContent,
+        DefaultTabs
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
-    import { getContext, onMount, type ComponentType } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     // import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     // import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import { toast } from 'svelte-sonner'
     import starsBg from '$lib/images/stars.jpg'
+    import Momentum from './Momentum.svelte'
     // import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
@@ -34,14 +31,35 @@
 <div bind:this={table} class="bg-repeat" style="background-image: url('{starsBg}')">
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <DefaultSideContent>
+            <div class="max-sm:hidden">
+                <HistoryControls
+                    borderClass="border-b-1 border-[#ad9c80]"
+                    enabledColor="text-[#ad9c80]"
+                    disabledColor="text-[#373128]"
+                />
+            </div>
+            <Momentum />
+            <DefaultTabs
+                playersTitle="ARKS"
+                fontClass="gap-1 sol-font uppercase font-size-sm tracking-widest"
+                activeTabClass="py-1 px-1 border-1 border-transparent rounded-lg text-gray-200 text-md"
+                inactiveTabClass="py-1 px-1 text-[#ad9c80] rounded-lg border-1 border-transparent hover:border-[#ad9c80] text-md"
+            >
                 {#snippet playersPanel()}
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
                     <History />
                 {/snippet}
-            </DefaultSideContent>
+                {#snippet chat()}
+                    <GameChat
+                        timeColor={'text-[#8d794d]'}
+                        bgColor={'bg-[#302408]'}
+                        inputBgColor={'bg-[#634a11]'}
+                        inputBorderColor={'border-[#302408]'}
+                    />
+                {/snippet}
+            </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->
