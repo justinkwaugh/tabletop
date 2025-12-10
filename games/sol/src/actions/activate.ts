@@ -7,7 +7,7 @@ import { StationType } from '../components/stations.js'
 import { Activation } from '../model/activation.js'
 import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { MachineState } from '../definition/states.js'
-import { Ring } from '../index.js'
+import { EffectType, Ring } from '../index.js'
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({
@@ -115,8 +115,10 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
             playerState.addSundiversToHold(removedDivers)
 
-            const cardsToDraw = CARDS_DRAWN_PER_RING[ring]
-            state.cardsToDraw = (state.cardsToDraw ?? 0) + cardsToDraw
+            if (state.activeEffect !== EffectType.Motivate) {
+                const cardsToDraw = CARDS_DRAWN_PER_RING[ring]
+                state.cardsToDraw = (state.cardsToDraw ?? 0) + cardsToDraw
+            }
         }
     }
 

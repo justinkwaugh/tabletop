@@ -90,7 +90,11 @@
                     </div>
                 </div>
             {:else}
-                <div class="inline-flex items-center gap-x-2">
+                <div
+                    in:fade={{ duration: 300, delay: 100 }}
+                    out:fade={{ duration: 100 }}
+                    class="inline-flex items-center gap-x-2"
+                >
                     <div>TURN START</div>
                 </div>
             {/if}

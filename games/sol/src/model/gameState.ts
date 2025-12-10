@@ -39,7 +39,8 @@ export const SolGameState = Type.Evaluate(
             activeEffect: Type.Optional(Type.Enum(EffectType)),
             effectTracking: Type.Optional(
                 Type.Object({
-                    outerRingLaunches: Type.Number()
+                    outerRingLaunches: Type.Number(), // For Ceremony effect
+                    convertedStation: Type.Optional(Station) // For Motivate effect
                 })
             )
         })
@@ -78,6 +79,7 @@ export class HydratedSolGameState
     declare activeEffect?: EffectType
     declare effectTracking?: {
         outerRingLaunches: number
+        convertedStation?: Station
     }
 
     constructor(data: SolGameState) {
@@ -87,6 +89,13 @@ export class HydratedSolGameState
         this.players = data.players.map((player) => new HydratedSolPlayerState(player))
         this.board = new HydratedSolGameBoard(data.board)
         this.deck = new HydratedDeck(data.deck)
+    }
+
+    getEffectTracking() {
+        if (!this.effectTracking) {
+            this.effectTracking = { outerRingLaunches: 0 }
+        }
+        return this.effectTracking
     }
 
     advanceMothership(playerId: string) {

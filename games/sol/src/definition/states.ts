@@ -7,5 +7,6 @@ export enum MachineState {
     DrawingCards = 'DrawingCards',
     ChoosingCard = 'ChoosingCard',
     SolarFlares = 'SolarFlares',
+    CheckEffect = 'CheckEffect',
     EndOfGame = 'EndOfGame'
 }

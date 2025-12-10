@@ -86,6 +86,14 @@
         } else if (gameSession.isSolarFlares) {
             result.message = 'ACTIVATE AN OUTER STATION'
             result.showSkip = true
+        } else if (gameSession.isCheckingEffect) {
+            const myPlayerState = gameSession.myPlayerState
+            if (!myPlayerState || !myPlayerState.card) {
+                return result
+            }
+            const effect = gameSession.gameState.effects[myPlayerState.card.suit]
+            result.message = `ACTIVATE ${effect.type} EFFECT?`
+            result.showSkip = true
         }
         return result
     })
@@ -143,42 +151,47 @@
     cardPickerAnimator.register()
 </script>
 
-<div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2">
+<div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">
     <Header />
 
-    {#if !gameSession.acting}
-        <div class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4">
-            <div class="w-fit me-4 leading-tight text-center">
-                CHOOSE<br />AN ACTION
+    <div class="header-grid grid {gameSession.acting ? 'h-[50px]' : 'h-[68px]'}">
+        {#if !gameSession.acting}
+            <div
+                out:fade={{ duration: 100 }}
+                in:fade={{ duration: 300, delay: 100 }}
+                class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4"
+            >
+                <div class="w-fit me-4 leading-tight text-center">
+                    CHOOSE<br />AN ACTION
+                </div>
+                <button
+                    onclick={chooseMove}
+                    class="{!canMove
+                        ? 'opacity-30'
+                        : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
+                    ><MoveArrows />
+                    <div class="ms-3">MOVE</div></button
+                >
+                <button
+                    onclick={chooseConvert}
+                    class="{!canConvert
+                        ? 'opacity-30'
+                        : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
+                    ><ConvertAtom />
+                    <div class="ms-3">CONVERT</div></button
+                >
+                <button
+                    onclick={chooseActivate}
+                    class="{!canActivate
+                        ? 'opacity-30'
+                        : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
+                    ><ActivateBolt />
+                    <div class="ms-3">ACTIVATE</div></button
+                >
             </div>
-            <button
-                onclick={chooseMove}
-                class="{!canMove
-                    ? 'opacity-30'
-                    : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
-                ><MoveArrows />
-                <div class="ms-3">MOVE</div></button
-            >
-            <button
-                onclick={chooseConvert}
-                class="{!canConvert
-                    ? 'opacity-30'
-                    : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
-                ><ConvertAtom />
-                <div class="ms-3">CONVERT</div></button
-            >
-            <button
-                onclick={chooseActivate}
-                class="{!canActivate
-                    ? 'opacity-30'
-                    : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
-                ><ActivateBolt />
-                <div class="ms-3">ACTIVATE</div></button
-            >
-        </div>
-    {:else}
-        <!-- Call to action -->
-        <div class="header-grid grid h-[50px]">
+        {:else}
+            <!-- Call to action -->
+
             {#if callToAction.message}
                 {#key callToAction}
                     <div
@@ -209,8 +222,8 @@
                     </div>
                 {/key}
             {/if}
-        </div>
-    {/if}
+        {/if}
+    </div>
 
     {#if gameSession.drawnCards.length > 0 || gameSession.isSolarFlares || gameSession.isChoosingCard}
         <CardPicker animator={cardPickerAnimator} />

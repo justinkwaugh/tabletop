@@ -6,6 +6,7 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
+import { EffectType } from '../components/effects.js'
 
 // Transition from Converting(Pass) -> DrawingCards | StartOfTurn
 // Transition from Converting(Convert) -> Converting | DrawingCards | StartOfTurn
@@ -45,6 +46,17 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
 
         switch (true) {
             case isConvert(action): {
+                // Check for motivate
+                if (
+                    HydratedActivateEffect.canActivateEffect(
+                        gameState,
+                        action.playerId,
+                        EffectType.Motivate
+                    )
+                ) {
+                    return MachineState.CheckEffect
+                }
+
                 return drawCardsOrEndTurn(gameState, context)
             }
             case isActivateEffect(action): {

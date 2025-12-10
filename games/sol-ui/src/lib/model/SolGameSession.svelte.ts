@@ -80,6 +80,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
     isConverting = $derived(this.gameState.machineState === MachineState.Converting)
     isActivating = $derived(this.gameState.machineState === MachineState.Activating)
+    isCheckingEffect = $derived(this.gameState.machineState === MachineState.CheckEffect)
     isChoosingCard = $derived(this.gameState.machineState === MachineState.ChoosingCard)
     isSolarFlares = $derived(this.gameState.machineState === MachineState.SolarFlares)
     isDrawingCards = $derived(this.gameState.machineState === MachineState.DrawingCards)
@@ -90,7 +91,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.isActivating ||
             this.isChoosingCard ||
             this.isSolarFlares ||
-            this.isDrawingCards
+            this.isDrawingCards ||
+            this.isCheckingEffect
     )
 
     forcedCallToAction = $state<string | undefined>(undefined)
@@ -780,10 +782,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async pass() {
-        if (
-            !this.myPlayer ||
-            (!this.isActivating && !this.isMoving && !this.isSolarFlares && !this.isChoosingCard)
-        ) {
+        if (!this.myPlayer) {
             throw new Error('Invalid pass')
         }
         const action = {

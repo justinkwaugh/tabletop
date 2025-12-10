@@ -5,6 +5,9 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { EffectType } from '../components/effects.js'
 import { HydratedSolPlayerState } from 'src/model/playerState.js'
+import { MachineState } from '../definition/states.js'
+import { Convert } from './convert.js'
+import { HydratedActivate } from './activate.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({})
@@ -92,14 +95,25 @@ export class HydratedActivateEffect
         switch (effect) {
             case EffectType.Ceremony:
                 return this.canActivateCeremony(state, playerId)
+            case EffectType.Motivate:
+                return this.canActivateMotivate(state, playerId)
             default:
                 return false
         }
     }
 
     static canActivateCeremony(state: HydratedSolGameState, playerId: string): boolean {
+        state.machineState === MachineState.Moving
         const playerState = state.getPlayerState(playerId)
         return playerState.holdSundivers.length > 0
+    }
+
+    static canActivateMotivate(state: HydratedSolGameState, playerId: string): boolean {
+        const station = state.effectTracking?.convertedStation
+        if (!station || !station.coords) {
+            return false
+        }
+        return HydratedActivate.canActivateStationAt(state, playerId, station.coords)
     }
 
     static hasCardForEffect(
