@@ -1,11 +1,13 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { AnimationContext, GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
     Card,
     Cell,
     CENTER_COORDS,
     Direction,
+    EffectType,
     HydratedSolGameState,
+    isActivateEffect,
     isLaunch,
     MachineState,
     SolarGate,
@@ -96,32 +98,32 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     forcedCallToAction = $state<string | undefined>(undefined)
     movingCubeIds: string[] = $state([])
 
-    override initializeTimeline({
+    skipReset = false
+
+    override async onGameStateChange({
         to,
         from,
-        timeline
+        action,
+        animationContext
     }: {
-        to: SolGameState
-        from?: SolGameState
-        timeline: gsap.core.Timeline
-    }): void {
-        const isUndo = to.actionCount < (from?.actionCount ?? -1)
-        // Add labels for different phases
-        if (isUndo) {
-            timeline.addLabel('mothership', 0)
-            timeline.addLabel('cellsFadeOut', 'mothership+=0')
-            timeline.addLabel('movingPieces', 'mothership+=0.1')
-            timeline.addLabel('cellsFadeIn', 'cellsFadeOut+=0.3')
-        } else {
-            timeline.addLabel('cellsFadeOut', 0)
-            timeline.addLabel('movingPieces', 'cellsFadeOut+=0.2')
-            timeline.addLabel('cellsFadeIn', 'movingPieces+=0.3')
-            timeline.addLabel('mothership', 'movingPieces+=0.1')
+        to: HydratedSolGameState
+        from?: HydratedSolGameState
+        action?: GameAction
+        animationContext: AnimationContext
+    }) {
+        // Activating an effect is a state change noop really, so we should
+        // not reset the action before the state change.  This allows for the user to do it
+        // in the middle of other actions like moving.  Undo may be an issue here though.
+        if (isActivateEffect(action)) {
+            this.skipReset = true
         }
     }
 
-    override afterAnimations(): void {
-        this.resetAction()
+    override beforeNewState(): void {
+        if (!this.skipReset) {
+            this.resetAction()
+        }
+        this.skipReset = false
     }
 
     numPlayerCanMoveFromSource(): number {
@@ -790,6 +792,19 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             ...this.createBaseAction(ActionType.ChooseCard),
             playerId: this.myPlayer.id,
             suit
+        }
+
+        await this.doAction(action)
+    }
+
+    async activateEffect(effectType: EffectType) {
+        if (!this.myPlayer) {
+            throw new Error('Invalid activate effect')
+        }
+        const action = {
+            ...this.createBaseAction(ActionType.ActivateEffect),
+            playerId: this.myPlayer.id,
+            effect: effectType
         }
 
         await this.doAction(action)

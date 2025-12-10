@@ -42,7 +42,13 @@ export class HydratedActivateEffect
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
+        if (!HydratedActivateEffect.canActivateEffect(state, this.playerId, this.effect)) {
+            throw Error('Invalid effect activation')
+        }
+        const playerState = state.getPlayerState(this.playerId)
+
         state.activeEffect = this.effect
+        playerState.card = undefined
 
         // Retroactive ceremony application
         if (
@@ -73,6 +79,10 @@ export class HydratedActivateEffect
         playerId: string,
         effect: EffectType
     ): boolean {
+        if (state.activeEffect) {
+            return false
+        }
+
         const playerState = state.getPlayerState(playerId)
 
         if (!this.hasCardForEffect(state, playerState, effect)) {

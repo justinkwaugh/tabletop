@@ -6,17 +6,19 @@
     import ReverberationCard from '$lib/images/reverberationCard.png'
     import SolarFlareCard from '$lib/images/solarFlareCard.png'
     import SubductionCard from '$lib/images/subductionCard.png'
-    import { Card, Suit } from '@tabletop/sol'
+    import { ActionType, Card, EffectType, HydratedActivateEffect, Suit } from '@tabletop/sol'
     import type { HTMLAttributes } from 'svelte/elements'
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 
     let {
         card,
+        showActivate,
         style = 'full',
         ...htmlProps
     }: {
         card: Card
+        showActivate?: boolean
         style?: 'full' | 'partial'
     } & HTMLAttributes<HTMLDivElement> = $props()
 
@@ -43,26 +45,43 @@
         }
     }
 
-    function effectNameForSuit(suit: Suit) {
-        return gameSession.gameState.effects[suit]?.type ?? 'unknown'
+    function effectForSuit(suit: Suit): EffectType {
+        return gameSession.gameState.effects[suit].type
+    }
+
+    function onActivate() {
+        if (!gameSession.isMyTurn) {
+            return
+        }
+
+        gameSession.activateEffect(effectForSuit(card.suit))
     }
 </script>
 
 <div
     {...htmlProps}
     id={card.id}
-    class="card-container px-2 pb-1 sol-font-bold flex flex-col justify-end items-center bg-gray-900 w-full h-full border-0 {style ===
+    class="card-container px-2 py-1 sol-font-bold flex flex-col justify-between items-center bg-gray-900 w-full h-full border-0 {style ===
     'full'
         ? 'bg-center bg-cover'
         : 'bg-right bg-cover'}"
     style="background-image: {cardImageForSuit(card.suit)}"
 >
+    <div>
+        {#if showActivate}
+            <button
+                onclick={onActivate}
+                class="rounded-lg bg-black/80 text-[#cccccc] text-xs tracking-widest p-2 hover:border-white border-transparent border-2"
+                >ACTIVATE</button
+            >
+        {/if}
+    </div>
     <div
         class="card-label w-full text-center {card.suit === Suit.Flare
             ? 'text-[#fdfdfd]'
             : 'text-black'} text-xs uppercase tracking-widest"
     >
-        {effectNameForSuit(card.suit)}
+        {effectForSuit(card.suit)}
     </div>
 </div>
 

@@ -9,33 +9,32 @@ import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
 import { ActivatingStateHandler } from './activating.js'
 import { drawCardsOrEndTurn } from './postActionHelper.js'
-import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 
-// Transition from StartOfTurn(Launch) -> Moving | StartOfTurn
-// Transition from StartOfTurn(Fly) -> Moving | StartOfTurn
-// Transition from StartOfTurn(Hurl) -> Moving | StartOfTurn
-// Transition from StartOfTurn(Convert) -> StartOfTurn
-// Transition from StartOfTurn(Activate) -> Activating | StartOfTurn
-// Transition from StartOfTurn(ActivateEffect) -> StartOfTurn
+// Transition from ActivatedEffect(Launch) -> Moving | StartOfTurn
+// Transition from ActivatedEffect(Fly) -> Moving | StartOfTurn
+// Transition from ActivatedEffect(Hurl) -> Moving | StartOfTurn
+// Transition from ActivatedEffect(Convert) -> StartOfTurn
+// Transition from ActivatedEffect(Activate) -> Activating
 
-type StartOfTurnAction =
+type ActivatedEffectAction =
     | HydratedLaunch
     | HydratedFly
     | HydratedHurl
     | HydratedConvert
     | HydratedActivate
-    | HydratedActivateEffect
 
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is StartOfTurnAction {
+export class ActivatedEffectStateHandler implements MachineStateHandler<ActivatedEffectAction> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext
+    ): action is ActivatedEffectAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.Launch ||
             action.type === ActionType.Fly ||
             action.type === ActionType.Hurl ||
             action.type === ActionType.Convert ||
-            action.type === ActionType.Activate ||
-            action.type === ActionType.ActivateEffect
+            action.type === ActionType.Activate
         )
     }
 
@@ -48,8 +47,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             ActionType.Fly,
             ActionType.Hurl,
             ActionType.Convert,
-            ActionType.Activate,
-            ActionType.ActivateEffect
+            ActionType.Activate
         ]
 
         for (const action of actions) {
@@ -81,11 +79,6 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                     }
                     break
                 }
-                case ActionType.ActivateEffect: {
-                    if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
-                        validActions.push(ActionType.ActivateEffect)
-                    }
-                }
             }
         }
 
@@ -93,28 +86,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         return validActions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedSolGameState
+    enter(_context: MachineContext) {}
 
-        gameState.hurled = false
-        gameState.activation = undefined
-        gameState.solarFlareActivations = undefined
-        gameState.paidPlayerIds = []
-        gameState.activeEffect = undefined
-        gameState.effectTracking = undefined
-
-        const lastPlayerId = gameState.turnManager.lastPlayer()
-        if (lastPlayerId) {
-            gameState.advanceMothership(lastPlayerId)
-        }
-
-        const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
-        gameState.activePlayerIds = [nextPlayerId]
-        const playerState = gameState.getPlayerState(nextPlayerId)
-        playerState.movementPoints = playerState.movement
-    }
-
-    onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
+    onAction(action: ActivatedEffectAction, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedSolGameState
         const playerState = gameState.getPlayerState(action.playerId)
 
@@ -133,9 +107,6 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             }
             case isActivate(action): {
                 return ActivatingStateHandler.handleActivation(gameState, action, context)
-            }
-            case isActivateEffect(action): {
-                return MachineState.ActivatedEffect
             }
             default: {
                 throw Error('Invalid action type')

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { SolPlayerState } from '@tabletop/sol'
+    import { ActionType, SolPlayerState } from '@tabletop/sol'
     import { Color, range, type Player } from '@tabletop/common'
     import BlueBoard from '$lib/images/blueBoard.jpg'
     import GreenBoard from '$lib/images/greenBoard.jpg'
@@ -71,6 +71,14 @@
     })
 
     let cardBackImage = `url(${CardBack})`
+
+    let canActivate = $derived.by(() => {
+        if (!gameSession.isMyTurn || gameSession.myPlayer?.id !== playerState.playerId) {
+            return false
+        }
+
+        return gameSession.validActionTypes.includes(ActionType.ActivateEffect)
+    })
 </script>
 
 <div class="relative">
@@ -89,8 +97,8 @@
         <div
             class="flex flex-row justify-between items-center rounded-lg dark:bg-black/70 w-full h-full p-1"
         >
-            <div class="flex flex-col justify-between items-center w-full">
-                <div class="flex flex-row space-x-1 justify-center items-center pb-2">
+            <div class="flex flex-col justify-between items-center w-full h-[136px]">
+                <div class="flex flex-row space-x-1 justify-center items-center pb-2 pt-1">
                     {#each range(3, 6) as i}
                         <div
                             style={playerState.movement === i
@@ -129,36 +137,42 @@
                         </div>
                     {/each}
                 </div>
-                <div class="flex flex-row justify-between items-center w-full px-3">
-                    <div class="shrink-0">
-                        <svg
-                            class="pointer-events-none"
-                            width="40"
-                            height="80"
-                            viewBox="0 0 250 450"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <g transform="">
-                                <Ship />
-                            </g>
-                        </svg>
+                <div class="flex flex-row justify-between items-center w-full h-full px-3 pb-1">
+                    <div class="flex flex-col justify-between items-center h-full">
+                        <div class="shrink-0">
+                            <svg
+                                class="pointer-events-none"
+                                width="40"
+                                height="80"
+                                viewBox="0 0 250 450"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <g transform="">
+                                    <Ship />
+                                </g>
+                            </svg>
+                        </div>
+                        <div class="text-[.5rem] tracking-normal sol-font text-[#cccccc]">
+                            RESERVE
+                        </div>
                     </div>
                     <div
                         class="flex flex-col justify-between items-center h-full w-fit text-[.75rem] sol-font-bold text-[#cccccc] leading-none tracking-widest"
                     >
-                        <div class="flex flex-row justify-start items-end gap-x-2 w-full mb-[-5px]">
+                        <div
+                            class="flex flex-row justify-start items-start gap-x-2 w-full mb-[-5px]"
+                        >
                             <div class="flex flex-col justify-center items-center gap-y-1">
-                                <Sundiver width={25 * 0.75} height={25} color={playerState.color} />
-
                                 <div>{playerState.holdSundivers.length}</div>
+                                <Sundiver width={25 * 0.75} height={25} color={playerState.color} />
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
+                                <div>{playerState.energyCubes}</div>
                                 <Cube
                                     id="{playerState.playerId}-energy-supply"
-                                    width={26}
-                                    height={26}
+                                    width={24}
+                                    height={24}
                                 />
-                                <div>{playerState.energyCubes}</div>
                             </div>
                         </div>
                         <div
@@ -218,7 +232,7 @@
             </div>
             <div class="rounded-lg w-[94px] h-[136px] overflow-hidden shrink-0">
                 {#if playerState.card}
-                    <Card card={playerState.card} />
+                    <Card showActivate={canActivate} card={playerState.card} />
 
                     <Popover
                         classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}

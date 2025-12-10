@@ -5,10 +5,16 @@ export class AnimationContext {
     readonly actionTimeline: gsap.core.Timeline
     readonly finalTimeline: gsap.core.Timeline
 
+    private afterAnimationCallbacks: (() => void)[] = []
+
     constructor() {
         this.masterTimeline = gsap.timeline({ autoRemoveChildren: true })
         this.actionTimeline = gsap.timeline({ autoRemoveChildren: true })
         this.finalTimeline = gsap.timeline({ autoRemoveChildren: true })
+    }
+
+    afterAnimations(callback: () => void) {
+        this.afterAnimationCallbacks.push(callback)
     }
 
     ensureDuration(duration: number) {
@@ -26,6 +32,12 @@ export class AnimationContext {
 
         console.log(`Playing ${animations.length} animations for action state change: `, animations)
         await this.masterTimeline.play()
+    }
+
+    runAfterAnimations() {
+        for (const callback of this.afterAnimationCallbacks) {
+            callback()
+        }
     }
 }
 

@@ -447,13 +447,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 await this.gatherAndPlayAnimations(newState, oldState)
             }
 
-            this.afterAnimations()
+            this.beforeNewState()
 
             this.gameState = newState
         } finally {
             this.busy = false
         }
     }
+
+    beforeNewState() {}
 
     private async gatherAndPlayAnimations(to: U, from?: U, action?: GameAction) {
         const animationContext = new AnimationContext()
@@ -469,6 +471,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         } finally {
             this.animating = false
         }
+
+        animationContext.runAfterAnimations()
     }
 
     initializeTimeline({
@@ -485,15 +489,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         // Do nothing by default
     }
 
-    afterAnimations() {}
-
     async onGameStateChange({
         to,
         from,
+        action,
         animationContext
     }: {
         to: U
         from?: U
+        action?: GameAction
         animationContext: AnimationContext
     }) {
         // Default implementation does nothing
