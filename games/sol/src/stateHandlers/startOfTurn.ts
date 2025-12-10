@@ -2,91 +2,64 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
-import { HydratedLaunch, isLaunch } from '../actions/launch.js'
-import { HydratedFly, isFly } from '../actions/fly.js'
-import { HydratedHurl, isHurl } from '../actions/hurl.js'
-import { HydratedConvert, isConvert } from '../actions/convert.js'
-import { HydratedActivate, isActivate } from '../actions/activate.js'
-import { ActivatingStateHandler } from './activating.js'
-import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
+import { HydratedChooseMove, isChooseMove } from '../actions/chooseMove.js'
+import { HydratedFly } from '../actions/fly.js'
+import { HydratedHurl } from '../actions/hurl.js'
+import { HydratedLaunch } from '../actions/launch.js'
+import { HydratedChooseConvert, isChooseConvert } from '../actions/chooseConvert.js'
+import { HydratedConvert } from '../actions/convert.js'
+import { HydratedChooseActivate, isChooseActivate } from '../actions/chooseActivate.js'
+import { HydratedActivate } from '../actions/activate.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 
-// Transition from StartOfTurn(Launch) -> Moving | StartOfTurn
-// Transition from StartOfTurn(Fly) -> Moving | StartOfTurn
-// Transition from StartOfTurn(Hurl) -> Moving | StartOfTurn
-// Transition from StartOfTurn(Convert) -> StartOfTurn
-// Transition from StartOfTurn(Activate) -> Activating | StartOfTurn
-// Transition from StartOfTurn(ActivateEffect) -> StartOfTurn
+// Transition from StartOfTurn(Pass) -> StartOfTurn
+// Transition from StartOfTurn(ChooseMove) -> Moving
+// Transition from StartOfTurn(ChooseActivate) -> Activating
+// Transition from StartOfTurn(ChooseConvert) -> Converting
+// Transition from StartOfTurn(ActivateEffect) -> ActivatedEffect
 
 type StartOfTurnAction =
-    | HydratedLaunch
-    | HydratedFly
-    | HydratedHurl
-    | HydratedConvert
-    | HydratedActivate
+    | HydratedChooseMove
+    | HydratedChooseConvert
+    | HydratedChooseActivate
     | HydratedActivateEffect
+    | HydratedPass
 
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is StartOfTurnAction {
         if (!action.playerId) return false
         return (
-            action.type === ActionType.Launch ||
-            action.type === ActionType.Fly ||
-            action.type === ActionType.Hurl ||
-            action.type === ActionType.Convert ||
-            action.type === ActionType.Activate ||
+            action.type === ActionType.Pass ||
+            action.type === ActionType.ChooseMove ||
+            action.type === ActionType.ChooseConvert ||
+            action.type === ActionType.ChooseActivate ||
             action.type === ActionType.ActivateEffect
         )
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
         const gameState = context.gameState as HydratedSolGameState
+        const validActions = [ActionType.Pass]
 
-        const validActions = []
-        const actions = [
-            ActionType.Launch,
-            ActionType.Fly,
-            ActionType.Hurl,
-            ActionType.Convert,
-            ActionType.Activate,
-            ActionType.ActivateEffect
-        ]
+        if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
+            validActions.push(ActionType.ActivateEffect)
+        }
 
-        for (const action of actions) {
-            switch (action) {
-                case ActionType.Launch: {
-                    if (HydratedLaunch.canLaunch(gameState, playerId)) {
-                        validActions.push(ActionType.Launch)
-                    }
-                    break
-                }
-                case ActionType.Fly: {
-                    if (HydratedFly.canFly(gameState, playerId)) {
-                        validActions.push(ActionType.Fly)
-                    }
-                    break
-                }
-                case ActionType.Hurl: {
-                    break
-                }
-                case ActionType.Convert: {
-                    if (HydratedConvert.canConvert(gameState, playerId)) {
-                        validActions.push(ActionType.Convert)
-                    }
-                    break
-                }
-                case ActionType.Activate: {
-                    if (HydratedActivate.canActivate(gameState, playerId)) {
-                        validActions.push(ActionType.Activate)
-                    }
-                    break
-                }
-                case ActionType.ActivateEffect: {
-                    if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
-                        validActions.push(ActionType.ActivateEffect)
-                    }
-                }
-            }
+        if (
+            HydratedLaunch.canLaunch(gameState, playerId) ||
+            HydratedFly.canFly(gameState, playerId) ||
+            HydratedHurl.canHurl(gameState, playerId)
+        ) {
+            validActions.push(ActionType.ChooseMove)
+        }
+
+        if (HydratedConvert.canConvert(gameState, playerId)) {
+            validActions.push(ActionType.ChooseConvert)
+        }
+
+        if (HydratedActivate.canActivate(gameState, playerId)) {
+            validActions.push(ActionType.ChooseActivate)
         }
 
         console.log('Valid actions', validActions)
@@ -115,24 +88,18 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
     }
 
     onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
-        const playerState = gameState.getPlayerState(action.playerId)
-
         switch (true) {
-            case isLaunch(action):
-            case isFly(action):
-            case isHurl(action): {
-                if (playerState.movementPoints > 0) {
-                    return MachineState.Moving
-                } else {
-                    return drawCardsOrEndTurn(gameState, context)
-                }
+            case isPass(action): {
+                return MachineState.StartOfTurn
             }
-            case isConvert(action): {
-                return drawCardsOrEndTurn(gameState, context)
+            case isChooseMove(action): {
+                return MachineState.Moving
             }
-            case isActivate(action): {
-                return ActivatingStateHandler.handleActivation(gameState, action, context)
+            case isChooseConvert(action): {
+                return MachineState.Converting
+            }
+            case isChooseActivate(action): {
+                return MachineState.Activating
             }
             case isActivateEffect(action): {
                 return MachineState.ActivatedEffect

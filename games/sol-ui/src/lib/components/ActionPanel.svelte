@@ -4,7 +4,6 @@
     import MoveArrows from '$lib/images/movearrows.svelte'
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
-    import { ActionCategory } from '$lib/definition/actionCategory.js'
     import LaunchPicker from './LaunchPicker.svelte'
     import Header from './Header.svelte'
     import { ActionType } from '@tabletop/sol'
@@ -29,23 +28,9 @@
         }
     }
 
-    let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
-    let convertChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Convert)
-    let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
-
-    const canMove = $derived(
-        (gameSession.validActionTypes.includes(ActionType.Launch) ||
-            gameSession.validActionTypes.includes(ActionType.Fly) ||
-            gameSession.validActionTypes.includes(ActionType.Hurl)) &&
-            !convertChosen &&
-            !activateChosen
-    )
-    const canConvert = $derived(
-        gameSession.validActionTypes.includes(ActionType.Convert) && !moveChosen && !activateChosen
-    )
-    const canActivate = $derived(
-        gameSession.validActionTypes.includes(ActionType.Activate) && !moveChosen && !convertChosen
-    )
+    const canMove = $derived(gameSession.validActionTypes.includes(ActionType.ChooseMove))
+    const canConvert = $derived(gameSession.validActionTypes.includes(ActionType.ChooseConvert))
+    const canActivate = $derived(gameSession.validActionTypes.includes(ActionType.ChooseActivate))
 
     const callToAction = $derived.by(() => {
         const result = { message: undefined, showSkip: false, yesNo: false } as CallToAction
@@ -55,7 +40,7 @@
             return result
         }
 
-        if (moveChosen || gameSession.isMoving) {
+        if (gameSession.isMoving) {
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
                 result.message = 'CHOOSE A MOVEMENT SOURCE'
                 result.showSkip = true
@@ -73,7 +58,7 @@
                     gameSession.chosenNumDivers > 1 ? 'S' : ''
                 }`
             }
-        } else if (convertChosen) {
+        } else if (gameSession.isConverting) {
             if (!gameSession.chosenConvertType) {
                 result.message = 'WHAT WILL YOU CONVERT?'
             } else if (gameSession.diverCellChoices) {
@@ -81,13 +66,10 @@
             } else if (!gameSession.chosenDestination) {
                 result.message = 'CHOOSE A LOCATION'
             }
-        } else if (activateChosen) {
-            result.message = 'CHOOSE A STATION'
         } else if (gameSession.isActivating) {
-            if (
-                gameSession.gameState.activation &&
-                !gameSession.gameState.activation.currentStationId
-            ) {
+            if (!gameSession.gameState.activation) {
+                result.message = 'CHOOSE A STATION'
+            } else if (!gameSession.gameState.activation.currentStationId) {
                 result.message = 'ACTIVATE ANOTHER?'
                 result.showSkip = true
             } else {
@@ -121,28 +103,32 @@
         }
     })
 
-    function chooseMove() {
+    async function chooseMove() {
         if (!canMove) {
             return
         }
-        gameSession.chosenActionCategory = ActionCategory.Move
-        if (gameSession.myPlayerState && !gameSession.myPlayerState.hasSundiversOnTheBoard()) {
-            gameSession.chosenMothership = gameSession.myPlayerState.playerId
-        }
+
+        await gameSession.chooseMove()
+
+        // if (gameSession.myPlayerState && !gameSession.myPlayerState.hasSundiversOnTheBoard()) {
+        //     gameSession.chosenMothership = gameSession.myPlayerState.playerId
+        // }
     }
 
-    function chooseConvert() {
+    async function chooseConvert() {
         if (!canConvert) {
             return
         }
-        gameSession.chosenActionCategory = ActionCategory.Convert
+
+        await gameSession.chooseConvert()
     }
 
-    function chooseActivate() {
+    async function chooseActivate() {
         if (!canActivate) {
             return
         }
-        gameSession.chosenActionCategory = ActionCategory.Activate
+
+        await gameSession.chooseActivate()
     }
 
     async function chooseBonus() {
@@ -228,9 +214,9 @@
 
     {#if gameSession.drawnCards.length > 0 || gameSession.isSolarFlares || gameSession.isChoosingCard}
         <CardPicker animator={cardPickerAnimator} />
-    {:else if (moveChosen || gameSession.isMoving) && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers}
+    {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers}
         <LaunchPicker />
-    {:else if convertChosen && !gameSession.chosenConvertType}
+    {:else if gameSession.isConverting && !gameSession.chosenConvertType}
         <ConvertPicker />
     {/if}
 </div>

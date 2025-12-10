@@ -28,13 +28,9 @@
     const gameSession = getContext('gameSession') as SolGameSession
     let location = $derived(getCirclePoint(position.radius, toRadians(position.angle)))
 
-    let myConvert = $derived(
-        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Convert
-    )
+    let myConvert = $derived(gameSession.isMyTurn && gameSession.isConverting)
 
-    let myMove = $derived(
-        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Move
-    )
+    let myMove = $derived(gameSession.isMyTurn && gameSession.isMoving)
 
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer

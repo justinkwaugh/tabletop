@@ -17,10 +17,22 @@ import { HydratedChooseCard, isChooseCard } from '../actions/chooseCard.js'
 import { HydratedSolarFlare, isSolarFlare } from '../actions/solarFlare.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
+import { HydratedChooseMove, isChooseMove } from '../actions/chooseMove.js'
+import { HydratedChooseConvert, isChooseConvert } from '../actions/chooseConvert.js'
+import { HydratedChooseActivate, isChooseActivate } from '../actions/chooseActivate.js'
 
 export class SolHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
+            case isChooseMove(data): {
+                return new HydratedChooseMove(data)
+            }
+            case isChooseConvert(data): {
+                return new HydratedChooseConvert(data)
+            }
+            case isChooseActivate(data): {
+                return new HydratedChooseActivate(data)
+            }
             case isLaunch(data): {
                 return new HydratedLaunch(data)
             }

@@ -161,7 +161,9 @@ export class CardPickerAnimator extends StateAnimator<
                 ensureDuration(subTimeline, durationUntilNow + 0.3)
             }
         }
-        animationContext.actionTimeline.add(subTimeline, 0)
+        if (subTimeline.getChildren().length > 0) {
+            animationContext.actionTimeline.add(subTimeline, 0)
+        }
     }
 
     async animateAction(

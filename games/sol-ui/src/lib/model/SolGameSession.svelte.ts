@@ -35,7 +35,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     numPlayers = $derived.by(() => this.gameState.players.length)
 
     chosenAction?: string = $state(undefined)
-    chosenActionCategory?: ActionCategory = $state(undefined)
     chosenMothership?: string = $state(undefined)
     chosenNumDivers?: number = $state(undefined)
     chosenSource?: OffsetCoordinates = $state(undefined)
@@ -74,21 +73,20 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return this.chosenMothership || this.chosenNumDivers
         }
 
-        if (this.chosenConvertType) {
+        if (this.isConverting && this.chosenConvertType) {
             return true
         }
-
-        return this.chosenActionCategory
     })
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
+    isConverting = $derived(this.gameState.machineState === MachineState.Converting)
     isActivating = $derived(this.gameState.machineState === MachineState.Activating)
     isChoosingCard = $derived(this.gameState.machineState === MachineState.ChoosingCard)
     isSolarFlares = $derived(this.gameState.machineState === MachineState.SolarFlares)
     isDrawingCards = $derived(this.gameState.machineState === MachineState.DrawingCards)
 
     acting = $derived(
-        this.chosenActionCategory ||
-            this.isMoving ||
+        this.isMoving ||
+            this.isConverting ||
             this.isActivating ||
             this.isChoosingCard ||
             this.isSolarFlares ||
@@ -190,7 +188,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     override willUndo(action: GameAction) {
         if (isLaunch(action)) {
-            this.chosenActionCategory = ActionCategory.Move
             this.chosenMothership = action.mothership
             this.chosenNumDivers = action.numSundivers
             this.chosenDestination = undefined
@@ -198,7 +195,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     back() {
-        if (this.chosenActionCategory === ActionCategory.Convert) {
+        if (this.isConverting) {
             if (this.chosenDiverCell) {
                 this.chosenDiverCell = undefined
             } else if (this.chosenSource) {
@@ -207,8 +204,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 this.chosenDestination = undefined
             } else if (this.chosenConvertType) {
                 this.chosenConvertType = undefined
-            } else {
-                this.chosenActionCategory = undefined
             }
         } else if (this.chosenNumDivers) {
             this.chosenNumDivers = undefined
@@ -221,13 +216,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             }
         } else if (this.chosenMothership) {
             this.chosenMothership = undefined
-            if (!this.myPlayerState?.hasSundiversOnTheBoard()) {
-                this.chosenActionCategory = undefined
-            }
         } else if (this.chosenSource) {
             this.chosenSource = undefined
-        } else if (this.chosenActionCategory && !this.isMoving) {
-            this.chosenActionCategory = undefined
         } else if (this.chosenAction) {
             this.chosenAction = undefined
         }
@@ -235,7 +225,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     resetAction() {
         this.chosenAction = undefined
-        this.chosenActionCategory = undefined
         this.chosenMothership = undefined
         this.chosenSource = undefined
         this.chosenNumDivers = undefined
@@ -403,6 +392,40 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             range: this.myPlayerState?.movementPoints ?? 0,
             requiredGates: chosenGates
         })
+    }
+
+    async chooseMove() {
+        if (!this.myPlayer || this.isMoving) {
+            throw new Error('Invalid choose move')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.ChooseMove),
+            playerId: this.myPlayer.id
+        }
+        await this.doAction(action)
+    }
+
+    async chooseConvert() {
+        if (!this.myPlayer || this.isConverting) {
+            throw new Error('Invalid choose convert')
+        }
+        const action = {
+            ...this.createBaseAction(ActionType.ChooseConvert),
+            playerId: this.myPlayer.id
+        }
+        await this.doAction(action)
+    }
+
+    async chooseActivate() {
+        if (!this.myPlayer || this.isActivating) {
+            throw new Error('Invalid choose activate')
+        }
+        const action = {
+            ...this.createBaseAction(ActionType.ChooseActivate),
+            playerId: this.myPlayer.id
+        }
+        await this.doAction(action)
     }
 
     async convertGate() {

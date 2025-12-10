@@ -2,26 +2,21 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
-import { HydratedLaunch, isLaunch } from '../actions/launch.js'
-import { HydratedFly, isFly } from '../actions/fly.js'
-import { HydratedHurl, isHurl } from '../actions/hurl.js'
-import { HydratedConvert, isConvert } from '../actions/convert.js'
-import { HydratedActivate, isActivate } from '../actions/activate.js'
-import { ActivatingStateHandler } from './activating.js'
-import { drawCardsOrEndTurn } from './postActionHelper.js'
-
-// Transition from ActivatedEffect(Launch) -> Moving | StartOfTurn
-// Transition from ActivatedEffect(Fly) -> Moving | StartOfTurn
-// Transition from ActivatedEffect(Hurl) -> Moving | StartOfTurn
-// Transition from ActivatedEffect(Convert) -> StartOfTurn
-// Transition from ActivatedEffect(Activate) -> Activating
+import { HydratedLaunch } from '../actions/launch.js'
+import { HydratedFly } from '../actions/fly.js'
+import { HydratedHurl } from '../actions/hurl.js'
+import { HydratedConvert } from '../actions/convert.js'
+import { HydratedActivate } from '../actions/activate.js'
+import { HydratedChooseActivate, isChooseActivate } from '../actions/chooseActivate.js'
+import { HydratedChooseConvert, isChooseConvert } from '../actions/chooseConvert.js'
+import { HydratedChooseMove, isChooseMove } from '../actions/chooseMove.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 
 type ActivatedEffectAction =
-    | HydratedLaunch
-    | HydratedFly
-    | HydratedHurl
-    | HydratedConvert
-    | HydratedActivate
+    | HydratedChooseMove
+    | HydratedChooseConvert
+    | HydratedChooseActivate
+    | HydratedPass
 
 export class ActivatedEffectStateHandler implements MachineStateHandler<ActivatedEffectAction> {
     isValidAction(
@@ -30,56 +25,32 @@ export class ActivatedEffectStateHandler implements MachineStateHandler<Activate
     ): action is ActivatedEffectAction {
         if (!action.playerId) return false
         return (
-            action.type === ActionType.Launch ||
-            action.type === ActionType.Fly ||
-            action.type === ActionType.Hurl ||
-            action.type === ActionType.Convert ||
-            action.type === ActionType.Activate
+            action.type === ActionType.Pass ||
+            action.type === ActionType.ChooseMove ||
+            action.type === ActionType.ChooseConvert ||
+            action.type === ActionType.ChooseActivate
         )
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
         const gameState = context.gameState as HydratedSolGameState
 
-        const validActions = []
-        const actions = [
-            ActionType.Launch,
-            ActionType.Fly,
-            ActionType.Hurl,
-            ActionType.Convert,
-            ActionType.Activate
-        ]
+        const validActions = [ActionType.Pass]
 
-        for (const action of actions) {
-            switch (action) {
-                case ActionType.Launch: {
-                    if (HydratedLaunch.canLaunch(gameState, playerId)) {
-                        validActions.push(ActionType.Launch)
-                    }
-                    break
-                }
-                case ActionType.Fly: {
-                    if (HydratedFly.canFly(gameState, playerId)) {
-                        validActions.push(ActionType.Fly)
-                    }
-                    break
-                }
-                case ActionType.Hurl: {
-                    break
-                }
-                case ActionType.Convert: {
-                    if (HydratedConvert.canConvert(gameState, playerId)) {
-                        validActions.push(ActionType.Convert)
-                    }
-                    break
-                }
-                case ActionType.Activate: {
-                    if (HydratedActivate.canActivate(gameState, playerId)) {
-                        validActions.push(ActionType.Activate)
-                    }
-                    break
-                }
-            }
+        if (
+            HydratedLaunch.canLaunch(gameState, playerId) ||
+            HydratedFly.canFly(gameState, playerId) ||
+            HydratedHurl.canHurl(gameState, playerId)
+        ) {
+            validActions.push(ActionType.ChooseMove)
+        }
+
+        if (HydratedConvert.canConvert(gameState, playerId)) {
+            validActions.push(ActionType.ChooseConvert)
+        }
+
+        if (HydratedActivate.canActivate(gameState, playerId)) {
+            validActions.push(ActionType.ChooseActivate)
         }
 
         console.log('Valid actions', validActions)
@@ -89,24 +60,18 @@ export class ActivatedEffectStateHandler implements MachineStateHandler<Activate
     enter(_context: MachineContext) {}
 
     onAction(action: ActivatedEffectAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
-        const playerState = gameState.getPlayerState(action.playerId)
-
         switch (true) {
-            case isLaunch(action):
-            case isFly(action):
-            case isHurl(action): {
-                if (playerState.movementPoints > 0) {
-                    return MachineState.Moving
-                } else {
-                    return drawCardsOrEndTurn(gameState, context)
-                }
+            case isPass(action): {
+                return MachineState.StartOfTurn
             }
-            case isConvert(action): {
-                return drawCardsOrEndTurn(gameState, context)
+            case isChooseMove(action): {
+                return MachineState.Moving
             }
-            case isActivate(action): {
-                return ActivatingStateHandler.handleActivation(gameState, action, context)
+            case isChooseConvert(action): {
+                return MachineState.Converting
+            }
+            case isChooseActivate(action): {
+                return MachineState.Activating
             }
             default: {
                 throw Error('Invalid action type')

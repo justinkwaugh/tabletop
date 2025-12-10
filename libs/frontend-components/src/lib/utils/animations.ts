@@ -22,14 +22,17 @@ export class AnimationContext {
     }
 
     async play() {
+        if (
+            this.actionTimeline.getChildren().length === 0 &&
+            this.finalTimeline.getChildren().length === 0
+        ) {
+            return
+        }
+
         this.masterTimeline.add(this.actionTimeline, 0)
         this.masterTimeline.add(this.finalTimeline, this.actionTimeline.duration())
 
         const animations = this.masterTimeline.getChildren()
-        if (animations.length === 0) {
-            return
-        }
-
         console.log(`Playing ${animations.length} animations for action state change: `, animations)
         await this.masterTimeline.play()
     }

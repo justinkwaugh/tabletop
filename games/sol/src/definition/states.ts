@@ -3,6 +3,7 @@ export enum MachineState {
     ActivatedEffect = 'ActivatedEffect', // If this is all we have done so far
     Moving = 'Moving',
     Activating = 'Activating',
+    Converting = 'Converting',
     DrawingCards = 'DrawingCards',
     ChoosingCard = 'ChoosingCard',
     SolarFlares = 'SolarFlares',

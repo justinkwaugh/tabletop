@@ -21,10 +21,6 @@
         await gameSession.undo()
     }
 
-    let moveChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Move)
-    let convertChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Convert)
-    let activateChosen = $derived(gameSession.chosenActionCategory === ActionCategory.Activate)
-
     let currentSolarFlare = $derived(
         (gameSession.gameState.solarFlares ?? 0) -
             (gameSession.gameState.solarFlaresRemaining ?? 0) +
@@ -37,7 +33,7 @@
 >
     <div class="header-grid grid">
         {#key gameSession.gameState.machineState}
-            {#if moveChosen || gameSession.isMoving}
+            {#if gameSession.isMoving}
                 <div
                     in:fade={{ duration: 300, delay: 100 }}
                     out:fade={{ duration: 100 }}
@@ -46,7 +42,7 @@
                     <MoveArrows />
                     <div>MOVING</div>
                 </div>
-            {:else if convertChosen}
+            {:else if gameSession.isConverting}
                 <div
                     in:fade={{ duration: 300, delay: 100 }}
                     out:fade={{ duration: 100 }}
@@ -55,7 +51,7 @@
                     <ConvertAtom />
                     <div>CONVERTING</div>
                 </div>
-            {:else if activateChosen || gameSession.isActivating}
+            {:else if gameSession.isActivating}
                 <div
                     in:fade={{ duration: 300, delay: 100 }}
                     out:fade={{ duration: 100 }}
@@ -100,7 +96,7 @@
             {/if}
         {/key}
     </div>
-    {#if moveChosen || gameSession.isMoving}
+    {#if gameSession.isMoving}
         <div>
             REMAINING: {gameSession.myPlayerState?.movementPoints}
         </div>

@@ -43,19 +43,12 @@
         gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }
     )
 
-    let myMove = $derived(
-        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Move
-    )
+    let myMove = $derived(gameSession.isMyTurn && gameSession.isMoving)
 
-    let myConvert = $derived(
-        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Convert
-    )
+    let myConvert = $derived(gameSession.isMyTurn && gameSession.isConverting)
 
     let myActivate = $derived(
-        gameSession.isMyTurn &&
-            (gameSession.isActivating ||
-                gameSession.isSolarFlares ||
-                gameSession.chosenActionCategory === ActionCategory.Activate)
+        gameSession.isMyTurn && (gameSession.isActivating || gameSession.isSolarFlares)
     )
 
     let interactable = $derived.by(() => {

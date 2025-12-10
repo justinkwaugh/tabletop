@@ -50,9 +50,7 @@
     )
     let outlined = $derived(hovered || selected)
 
-    let myMove = $derived(
-        gameSession.isMyTurn && gameSession.chosenActionCategory === ActionCategory.Move
-    )
+    let myMove = $derived(gameSession.isMyTurn && gameSession.isMoving)
 
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer
