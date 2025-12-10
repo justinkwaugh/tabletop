@@ -10,11 +10,12 @@ import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
-import { Effect } from '../components/effects.js'
+import { Effect, EffectType } from '../components/effects.js'
 import { Deck, HydratedDeck } from '../components/deck.js'
-import { Sundiver } from 'src/components/sundiver.js'
+import { Sundiver } from '../components/sundiver.js'
 import { Station } from '../components/stations.js'
 import { Activation } from './activation.js'
+import { Suit } from 'src/components/cards.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Evaluate(
@@ -34,7 +35,13 @@ export const SolGameState = Type.Evaluate(
             solarFlaresRemaining: Type.Optional(Type.Number({ default: 0 })),
             solarFlareActivations: Type.Optional(Type.Array(Activation)),
             hurled: Type.Optional(Type.Boolean({ default: false })),
-            paidPlayerIds: Type.Optional(Type.Array(Type.String()))
+            paidPlayerIds: Type.Optional(Type.Array(Type.String())),
+            activeEffect: Type.Optional(Type.Enum(EffectType)),
+            effectTracking: Type.Optional(
+                Type.Object({
+                    outerRingLaunches: Type.Number()
+                })
+            )
         })
     ])
 )
@@ -68,6 +75,10 @@ export class HydratedSolGameState
     declare solarFlareActivations?: Activation[]
     declare hurled?: boolean
     declare paidPlayerIds?: string[]
+    declare activeEffect?: EffectType
+    declare effectTracking?: {
+        outerRingLaunches: number
+    }
 
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)

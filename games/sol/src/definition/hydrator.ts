@@ -16,6 +16,7 @@ import { HydratedDrawCards, isDrawCards } from '../actions/drawCards.js'
 import { HydratedChooseCard, isChooseCard } from '../actions/chooseCard.js'
 import { HydratedSolarFlare, isSolarFlare } from '../actions/solarFlare.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
+import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 
 export class SolHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -49,6 +50,9 @@ export class SolHydrator implements GameHydrator {
             }
             case isSolarFlare(data): {
                 return new HydratedSolarFlare(data)
+            }
+            case isActivateEffect(data): {
+                return new HydratedActivateEffect(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

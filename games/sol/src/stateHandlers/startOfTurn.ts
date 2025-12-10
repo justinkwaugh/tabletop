@@ -1,9 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    ActionSource,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -13,14 +8,15 @@ import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
 import { ActivatingStateHandler } from './activating.js'
-import { DrawCards } from '../actions/drawCards.js'
 import { drawCardsOrEndTurn } from './postActionHelper.js'
+import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 
 // Transition from StartOfTurn(Launch) -> Moving | TakingActions
 // Transition from StartOfTurn(Fly) -> Moving | TakingActions
 // Transition from StartOfTurn(Hurl) -> Moving | TakingActions ???
 // Transition from StartOfTurn(Convert) -> StartOfTurn
 // Transition from StartOfTurn(Activate) -> Activating | StartOfTurn
+// Transition from StartOfTurn(ActivateEffect) -> StartOfTurn
 
 type StartOfTurnAction =
     | HydratedLaunch
@@ -28,6 +24,7 @@ type StartOfTurnAction =
     | HydratedHurl
     | HydratedConvert
     | HydratedActivate
+    | HydratedActivateEffect
 
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is StartOfTurnAction {
@@ -37,7 +34,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             action.type === ActionType.Fly ||
             action.type === ActionType.Hurl ||
             action.type === ActionType.Convert ||
-            action.type === ActionType.Activate
+            action.type === ActionType.Activate ||
+            action.type === ActionType.ActivateEffect
         )
     }
 
@@ -50,7 +48,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             ActionType.Fly,
             ActionType.Hurl,
             ActionType.Convert,
-            ActionType.Activate
+            ActionType.Activate,
+            ActionType.ActivateEffect
         ]
 
         for (const action of actions) {
@@ -82,6 +81,11 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                     }
                     break
                 }
+                case ActionType.ActivateEffect: {
+                    if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
+                        validActions.push(ActionType.ActivateEffect)
+                    }
+                }
             }
         }
 
@@ -96,6 +100,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         gameState.activation = undefined
         gameState.solarFlareActivations = undefined
         gameState.paidPlayerIds = []
+        gameState.effectTracking = undefined
 
         const lastPlayerId = gameState.turnManager.lastPlayer()
         if (lastPlayerId) {
@@ -128,12 +133,12 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             case isActivate(action): {
                 return ActivatingStateHandler.handleActivation(gameState, action, context)
             }
+            case isActivateEffect(action): {
+                return MachineState.StartOfTurn
+            }
             default: {
                 throw Error('Invalid action type')
             }
         }
     }
-}
-function nanoid(): string {
-    throw new Error('Function not implemented.')
 }

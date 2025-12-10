@@ -201,13 +201,18 @@ export class HydratedSolGameBoard
             }
 
             const distanceTraveled = pathThroughGate.length - 1
+
+            if (remainingRange !== undefined && distanceTraveled >= remainingRange) {
+                return false
+            }
+
             const extendedPath = path.concat(pathThroughGate.slice(1))
 
             // Check path from other side of gate to destination
             const pathFromGate = this.pathToDestination({
                 start: otherSideOfGate,
                 destination: end,
-                range: range !== undefined ? range - distanceTraveled : undefined,
+                range: remainingRange !== undefined ? remainingRange - distanceTraveled : undefined,
                 illegalCoordinates: allowLoops ? undefined : extendedPath
             })
 

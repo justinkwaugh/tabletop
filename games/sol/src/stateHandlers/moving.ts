@@ -7,13 +7,20 @@ import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { drawCardsOrEndTurn } from './postActionHelper.js'
+import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 
 // Transition from Moving(Launch) -> Moving | StartOfTurn
 // Transition from Moving(Fly) -> Moving | StartOfTurn
 // Transition from Moving(Hurl) -> Moving | StartOfTurn
 // Transition from Moving(Pass) -> StartOfTurn
+// Transition from Moving(ActivateEffect) -> Moving
 
-type MovingAction = HydratedLaunch | HydratedFly | HydratedHurl | HydratedPass
+type MovingAction =
+    | HydratedLaunch
+    | HydratedFly
+    | HydratedHurl
+    | HydratedPass
+    | HydratedActivateEffect
 
 export class MovingStateHandler implements MachineStateHandler<MovingAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is MovingAction {
@@ -22,7 +29,8 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
             action.type === ActionType.Launch ||
             action.type === ActionType.Fly ||
             action.type === ActionType.Hurl ||
-            action.type === ActionType.Pass
+            action.type === ActionType.Pass ||
+            action.type === ActionType.ActivateEffect
         )
     }
 
@@ -30,7 +38,12 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
         const gameState = context.gameState as HydratedSolGameState
 
         const validActions = [ActionType.Pass]
-        const actions = [ActionType.Launch, ActionType.Fly, ActionType.Hurl]
+        const actions = [
+            ActionType.Launch,
+            ActionType.Fly,
+            ActionType.Hurl,
+            ActionType.ActivateEffect
+        ]
 
         for (const action of actions) {
             switch (action) {
@@ -47,6 +60,15 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
                     break
                 }
                 case ActionType.Hurl: {
+                    if (HydratedHurl.canHurl(gameState, playerId)) {
+                        validActions.push(ActionType.Hurl)
+                    }
+                    break
+                }
+                case ActionType.ActivateEffect: {
+                    if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
+                        validActions.push(ActionType.ActivateEffect)
+                    }
                     break
                 }
             }
@@ -74,6 +96,9 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
             }
             case isPass(action): {
                 return drawCardsOrEndTurn(gameState, context)
+            }
+            case isActivateEffect(action): {
+                return MachineState.Moving
             }
             default: {
                 throw Error('Invalid action type')

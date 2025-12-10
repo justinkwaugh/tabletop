@@ -224,7 +224,7 @@
                         classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
                         placement="right"
                         triggeredBy={`[id='${playerState.card.id}']`}
-                        trigger="click"
+                        trigger="hover"
                         arrow={false}
                         offset={15}
                         ><EffectCard

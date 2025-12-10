@@ -9,6 +9,8 @@ import {
 } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { EffectType } from '../components/effects.js'
+import { Ring } from '../utils/solGraph.js'
 
 export type LaunchMetadata = Static<typeof LaunchMetadata>
 export const LaunchMetadata = Type.Object({
@@ -62,6 +64,16 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
         state.board.addSundiversToCell(launchedSundivers, this.destination)
         this.metadata = { sundiverIds: launchedSundivers.map((diver) => diver.id) }
         playerState.movementPoints -= this.numSundivers
+
+        // Effect related
+        if (this.destination.row === Ring.Outer) {
+            state.effectTracking = state.effectTracking || { outerRingLaunches: 0 }
+            state.effectTracking.outerRingLaunches += this.numSundivers
+
+            if (state.activeEffect === EffectType.Ceremony) {
+                playerState.energyCubes += this.numSundivers
+            }
+        }
     }
 
     static canLaunch(state: HydratedSolGameState, playerId: string): boolean {
