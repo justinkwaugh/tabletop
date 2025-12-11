@@ -10,7 +10,8 @@ import { HydratedActivate } from './activate.js'
 import { StationType } from '../components/stations.js'
 import { HydratedConvert } from './convert.js'
 import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
-import { Ring } from '../utils/solGraph.js'
+import { Direction, Ring } from '../utils/solGraph.js'
+import { HydratedFly } from './fly.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -162,6 +163,8 @@ export class HydratedActivateEffect
                 return this.canActivateSqueeze(state, playerId)
             case EffectType.Hyperdrive:
                 return this.canActivateHyperdrive(state, playerId)
+            case EffectType.Puncture:
+                return this.canActivatePuncture(state, playerId)
             default:
                 return false
         }
@@ -268,6 +271,21 @@ export class HydratedActivateEffect
 
     static canActivateHyperdrive(state: HydratedSolGameState, playerId: string): boolean {
         return state.machineState === MachineState.Moving && !state.moved
+    }
+
+    static canActivatePuncture(state: HydratedSolGameState, playerId: string): boolean {
+        if (state.machineState !== MachineState.Moving) {
+            return false
+        }
+
+        const playerState = state.getPlayerState(playerId)
+        if (playerState.movementPoints < 1 || playerState.solarGates.length === 0) {
+            return false
+        }
+
+        return Iterator.from(state.board).some((cell) =>
+            HydratedFly.canPunctureFrom(cell.coords, state, playerId)
+        )
     }
 
     static hasCardForEffect(

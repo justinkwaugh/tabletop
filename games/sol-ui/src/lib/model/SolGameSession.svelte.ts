@@ -155,7 +155,11 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             availableFromSource = this.myPlayerState.numSundiversInHold()
         }
 
-        if (availableFromSource > 1 && this.gameState.activeEffect === EffectType.Hyperdrive) {
+        if (
+            availableFromSource > 1 &&
+            (this.gameState.activeEffect === EffectType.Hyperdrive ||
+                this.gameState.activeEffect === EffectType.Puncture)
+        ) {
             availableFromSource = 1
         }
 

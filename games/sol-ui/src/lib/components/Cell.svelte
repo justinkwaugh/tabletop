@@ -101,6 +101,14 @@
                     return false
                 }
 
+                if (gameSession.gameState.activeEffect === EffectType.Puncture) {
+                    return HydratedFly.canPunctureFrom(
+                        cell.coords,
+                        gameSession.gameState,
+                        myPlayer.id
+                    )
+                }
+
                 if (
                     gameSession.gameState.activeEffect === EffectType.Hyperdrive &&
                     gameSession.gameState.effectTracking?.flownSundiverId
@@ -194,7 +202,6 @@
                 }
             } else {
                 gameSession.chosenSource = cell.coords
-
                 if (gameSession.numPlayerCanMoveFromSource() === 1) {
                     gameSession.chosenNumDivers = 1
                 }

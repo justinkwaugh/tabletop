@@ -5,10 +5,13 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { SolarGate } from '../components/solarGate.js'
 import { EffectType } from '../components/effects.js'
+import { Direction, Ring } from '../utils/solGraph.js'
+import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 
 export type FlyMetadata = Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({
-    flightPath: Type.Array(OffsetCoordinates)
+    flightPath: Type.Array(OffsetCoordinates),
+    puncturedGate: Type.Optional(SolarGate)
 })
 
 export type Fly = Static<typeof Fly>
@@ -65,7 +68,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
         const distanceMoved = path.length - 1
         const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
-        state.board.addSundiversToCell(removedSundivers, this.destination)
+
         if (this.cluster) {
             playerState.movementPoints -= distanceMoved
             state.getEffectTracking().clustersRemaining -= 1
@@ -73,6 +76,22 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             playerState.movementPoints -= distanceMoved * this.sundiverIds.length
         }
 
+        if (state.activeEffect === EffectType.Puncture) {
+            playerState.addSundiversToReserve(removedSundivers)
+            const playerGate = playerState.removeSolarGate()
+            this.metadata.puncturedGate = playerGate
+
+            if (this.start.row < this.destination.row) {
+                state.board.addGateAt(playerGate, this.start, this.destination)
+            } else {
+                state.board.addGateAt(playerGate, this.destination, this.start)
+            }
+            state.activeEffect = undefined
+            state.cardsToDraw +=
+                CARDS_DRAWN_PER_RING[Math.min(this.start.row, this.destination.row)]
+        } else {
+            state.board.addSundiversToCell(removedSundivers, this.destination)
+        }
         if (state.activeEffect === EffectType.Hyperdrive) {
             state.getEffectTracking().flownSundiverId = this.sundiverIds[0]
             state.getEffectTracking().movementUsed += distanceMoved
@@ -134,6 +153,9 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             return
         }
 
+        if (state.activeEffect === EffectType.Puncture) {
+            return [this.start, this.destination]
+        }
         return state.board.pathToDestination({
             start: this.start,
             destination: this.destination,
@@ -161,6 +183,10 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     }): boolean {
         const playerState = state.getPlayerState(playerId)
 
+        if (state.activeEffect === EffectType.Puncture) {
+            return this.isValidPuncture({ state, playerId, numSundivers, start, destination })
+        }
+
         // Check to see if destination can hold the pieces
         if (
             numSundivers > 0 &&
@@ -186,5 +212,69 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         return true
+    }
+
+    static isValidPuncture({
+        state,
+        playerId,
+        numSundivers,
+        start,
+        destination
+    }: {
+        state: HydratedSolGameState
+        playerId: string
+        numSundivers: number
+        start: OffsetCoordinates
+        destination: OffsetCoordinates
+    }) {
+        const playerState = state.getPlayerState(playerId)
+        // Adjacent across barrier without gate, 1 movement point
+        if (
+            playerState.movementPoints < 1 ||
+            playerState.solarGates.length === 0 ||
+            numSundivers > 1
+        ) {
+            return false
+        }
+        const startCell = state.board.cellAt(start)
+        const destinationCell = state.board.cellAt(destination)
+        if (startCell.coords.row === Ring.Outer || destinationCell.coords.row === Ring.Outer) {
+            return false
+        }
+        if (Math.abs(startCell.coords.row - destinationCell.coords.row) !== 1) {
+            return false
+        }
+        if (!state.board.areNeighbors(start, destination)) {
+            return false
+        }
+        if (state.board.hasGateBetween(start, destination)) {
+            return false
+        }
+        return true
+    }
+
+    static canPunctureFrom(
+        coords: OffsetCoordinates,
+        state: HydratedSolGameState,
+        playerId: string
+    ): boolean {
+        if (coords.row === Ring.Outer) {
+            return false
+        }
+        const sundivers = state.board.sundiversForPlayerAt(playerId, coords)
+        if (sundivers.length === 0) {
+            return false
+        }
+        const neighbors = [
+            ...state.board.neighborsAt(coords, Direction.In),
+            ...state.board.neighborsAt(coords, Direction.Out)
+        ]
+        for (const neighbor of neighbors) {
+            if (!state.board.hasGateBetween(coords, neighbor.coords)) {
+                return true
+            }
+        }
+
+        return false
     }
 }

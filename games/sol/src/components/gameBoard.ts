@@ -99,6 +99,11 @@ export class HydratedSolGameBoard
             .map((neighbor) => this.cellAt(neighbor.coords))
     }
 
+    public areNeighbors(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
+        const aNeighbors = this.graph.neighborsAt(coordsA)
+        return aNeighbors.some((neighbor) => sameCoordinates(neighbor.coords, coordsB))
+    }
+
     public reachableCoordinates(coords: OffsetCoordinates, range: number): OffsetCoordinates[] {
         const traverser = solTraverser({ board: this, start: coords, range })
         return Array.from(this.graph.traverse(traverser)).map((node) => node.coords)
