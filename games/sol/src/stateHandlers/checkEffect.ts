@@ -13,6 +13,7 @@ import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEff
 import { EffectType } from '../components/effects.js'
 import { Activate } from '../actions/activate.js'
 import { nanoid } from 'nanoid'
+import { ActivatingStateHandler } from './activating.js'
 
 // Transition from CheckEffect(ActivateEffect) -> ??
 // Transition from CheckEffect(Pass) -> ??
@@ -47,6 +48,12 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
 
         switch (true) {
             case isPass(action): {
+                const playerState = gameState.getPlayerState(action.playerId)
+                if (playerState.card) {
+                    if (gameState.effects[playerState.card.suit].type === EffectType.Augment) {
+                        return ActivatingStateHandler.handleActivation(gameState, context)
+                    }
+                }
                 return drawCardsOrEndTurn(gameState, context)
             }
             case isActivateEffect(action): {
@@ -66,6 +73,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     }
                     context.addPendingAction(activateAction)
                     return MachineState.Activating
+                } else if (gameState.activeEffect === EffectType.Augment) {
+                    return ActivatingStateHandler.handleActivation(gameState, context)
                 } else {
                     return drawCardsOrEndTurn(gameState, context)
                 }

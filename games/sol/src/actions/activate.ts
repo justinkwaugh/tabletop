@@ -99,7 +99,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 break
             case StationType.TransmitTower:
                 playerState.energyCubes -= BASE_AWARD_PER_RING[ring]
-                playerState.momentum = playerState.momentum ?? 0 + BASE_AWARD_PER_RING[ring]
+                playerState.momentum = (playerState.momentum ?? 0) + BASE_AWARD_PER_RING[ring]
                 this.metadata.momentumAdded = BASE_AWARD_PER_RING[ring]
                 break
         }

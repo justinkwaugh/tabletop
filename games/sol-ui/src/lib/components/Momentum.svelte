@@ -8,7 +8,7 @@
 
     const playersOrderedByMomentum = $derived.by(() => {
         return [...gameSession.gameState.players].sort((a, b) => {
-            return (b.momentum ?? 0) - (a.momentum ?? 0)
+            return (a.momentum ?? 0) - (b.momentum ?? 0)
         })
     })
 </script>

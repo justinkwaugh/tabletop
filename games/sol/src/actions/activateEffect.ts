@@ -6,11 +6,15 @@ import { ActionType } from '../definition/actions.js'
 import { EffectType } from '../components/effects.js'
 import { HydratedSolPlayerState } from 'src/model/playerState.js'
 import { MachineState } from '../definition/states.js'
-import { Convert } from './convert.js'
 import { HydratedActivate } from './activate.js'
+import { StationType } from '../components/stations.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
-export const ActivateEffectMetadata = Type.Object({})
+export const ActivateEffectMetadata = Type.Object({
+    energyAdded: Type.Number(),
+    createdSundiverIds: Type.Array(Type.String()),
+    momentumAdded: Type.Number()
+})
 
 export type ActivateEffect = Static<typeof ActivateEffect>
 export const ActivateEffect = Type.Evaluate(
@@ -30,6 +34,8 @@ export const ActivateEffectValidator = Compile(ActivateEffect)
 export function isActivateEffect(action?: GameAction): action is ActivateEffect {
     return action?.type === ActionType.ActivateEffect
 }
+
+export const AUGMENT_AWARD_INCREASE_PER_RING = [0, 3, 2, 1, 1, 1]
 
 export class HydratedActivateEffect
     extends HydratableAction<typeof ActivateEffect>
@@ -53,13 +59,53 @@ export class HydratedActivateEffect
         state.activeEffect = this.effect
         playerState.card = undefined
 
+        this.metadata = {
+            energyAdded: 0,
+            createdSundiverIds: [],
+            momentumAdded: 0
+        }
         // Retroactive ceremony application
         if (
             this.effect === EffectType.Ceremony &&
             (state.effectTracking?.outerRingLaunches ?? 0) > 0
         ) {
-            const playerState = state.getPlayerState(this.playerId)
             playerState.energyCubes += state.effectTracking?.outerRingLaunches ?? 0
+        } else if (this.effect === EffectType.Augment) {
+            const activation = state.activation!
+            const currentStationCoords = activation.currentStationCoords!
+            const cellDivers = state.board.cellAt(currentStationCoords).sundivers
+
+            const additionalReward =
+                AUGMENT_AWARD_INCREASE_PER_RING[currentStationCoords.row] * cellDivers.length
+            console.log('Augment additional reward:', additionalReward)
+            if (
+                activation.stationType === StationType.SundiverFoundry ||
+                activation.stationType === StationType.TransmitTower
+            ) {
+                playerState.energyCubes -= additionalReward
+            }
+
+            switch (activation.stationType) {
+                case StationType.EnergyNode:
+                    console.log('Applying augment energy reward:', additionalReward)
+                    playerState.energyCubes += additionalReward
+                    this.metadata.energyAdded = additionalReward
+                    break
+                case StationType.SundiverFoundry:
+                    console.log('Applying augment sundiver reward:', additionalReward)
+                    const awardedSundivers = playerState.reserveSundivers.splice(
+                        -additionalReward,
+                        additionalReward
+                    )
+                    playerState.holdSundivers.push(...awardedSundivers)
+                    this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
+                    break
+                case StationType.TransmitTower:
+                    console.log('Applying augment momentum reward:', additionalReward)
+                    playerState.momentum = (playerState.momentum ?? 0) + additionalReward
+                    this.metadata.momentumAdded = additionalReward
+                    break
+            }
         }
     }
 
@@ -97,6 +143,8 @@ export class HydratedActivateEffect
                 return this.canActivateCeremony(state, playerId)
             case EffectType.Motivate:
                 return this.canActivateMotivate(state, playerId)
+            case EffectType.Augment:
+                return this.canActivateAugment(state, playerId)
             default:
                 return false
         }
@@ -114,6 +162,38 @@ export class HydratedActivateEffect
             return false
         }
         return HydratedActivate.canActivateStationAt(state, playerId, station.coords)
+    }
+
+    static canActivateAugment(state: HydratedSolGameState, playerId: string): boolean {
+        const activation = state.activation
+        if (!activation) {
+            return false
+        }
+
+        if (activation.playerId !== playerId) {
+            return false
+        }
+
+        const station = state.getActivatingStation()
+        if (!station) {
+            return false
+        }
+
+        const cellDivers = state.board.cellAt(station.coords!).sundivers
+
+        if (
+            activation.stationType === StationType.SundiverFoundry ||
+            activation.stationType === StationType.TransmitTower
+        ) {
+            const additionalCost =
+                AUGMENT_AWARD_INCREASE_PER_RING[station.coords!.row] * cellDivers.length
+            const playerState = state.getPlayerState(playerId)
+            if (playerState.energyCubes < additionalCost) {
+                return false
+            }
+        }
+
+        return true
     }
 
     static hasCardForEffect(

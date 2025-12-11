@@ -7,6 +7,8 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
 import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { Activation } from '../model/activation.js'
+import { HydratedActivateEffect } from '../actions/activateEffect.js'
+import { EffectType } from '../components/effects.js'
 
 // Transition from Activating(Pass) -> Activating | DrawingCards | StartOfTurn
 // Transition from Activating(ActivateBonus) -> Activating | DrawingCards | StartOfTurn
@@ -50,7 +52,17 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
 
         switch (true) {
             case isActivate(action): {
-                return ActivatingStateHandler.handleActivation(gameState, action, context)
+                if (
+                    HydratedActivateEffect.canActivateEffect(
+                        gameState,
+                        action.playerId,
+                        EffectType.Augment
+                    )
+                ) {
+                    return MachineState.CheckEffect
+                }
+
+                return ActivatingStateHandler.handleActivation(gameState, context)
                 break
             }
             case isActivateBonus(action): {
@@ -103,11 +115,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         }
     }
 
-    static handleActivation(
-        state: HydratedSolGameState,
-        activate: HydratedActivate,
-        context: MachineContext
-    ): MachineState {
+    static handleActivation(state: HydratedSolGameState, context: MachineContext): MachineState {
         const activation = state.activation
         if (!activation) {
             throw Error('Cannot find activation')
@@ -119,11 +127,11 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             state.activePlayerIds = [station.playerId]
             return MachineState.Activating
         } else if (
-            activate.playerId !== station.playerId &&
-            HydratedActivateBonus.canActivateBonus(state, activate.playerId)
+            activation.playerId !== station.playerId &&
+            HydratedActivateBonus.canActivateBonus(state, activation.playerId)
         ) {
             // Give activating player a chance to do bonus activation
-            state.activePlayerIds = [activate.playerId]
+            state.activePlayerIds = [activation.playerId]
             return MachineState.Activating
         } else {
             return this.continueActivatingOrEnd(state, context, activation)
