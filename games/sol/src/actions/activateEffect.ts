@@ -8,6 +8,9 @@ import { HydratedSolPlayerState } from 'src/model/playerState.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedActivate } from './activate.js'
 import { StationType } from '../components/stations.js'
+import { HydratedConvert } from './convert.js'
+import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
+import { Ring } from '../utils/solGraph.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -107,11 +110,9 @@ export class HydratedActivateEffect
                     break
             }
         } else if (this.effect === EffectType.Cluster) {
-            state.effectTracking = state.effectTracking || {
-                clustersRemaining: 0,
-                outerRingLaunches: 0
-            }
-            state.effectTracking.clustersRemaining = 2
+            state.getEffectTracking().clustersRemaining = 2
+        } else if (this.effect === EffectType.Squeeze) {
+            state.getEffectTracking().squeezed = true
         }
     }
 
@@ -153,6 +154,10 @@ export class HydratedActivateEffect
                 return this.canActivateAugment(state, playerId)
             case EffectType.Cluster:
                 return this.canActivateCluster(state, playerId)
+            case EffectType.Cascade:
+                return this.canActivateCascade(state, playerId)
+            case EffectType.Squeeze:
+                return this.canActivateSqueeze(state, playerId)
             default:
                 return false
         }
@@ -190,6 +195,9 @@ export class HydratedActivateEffect
         }
 
         const cellDivers = state.board.cellAt(station.coords!).sundivers
+        if (cellDivers.length === 0) {
+            return false
+        }
 
         if (
             activation.stationType === StationType.SundiverFoundry ||
@@ -208,6 +216,51 @@ export class HydratedActivateEffect
 
     static canActivateCluster(state: HydratedSolGameState, playerId: string): boolean {
         return state.machineState === MachineState.Moving
+    }
+
+    static canActivateCascade(state: HydratedSolGameState, playerId: string): boolean {
+        return HydratedConvert.canConvert(state, playerId)
+    }
+
+    // Special... needs stationId
+    static canActivateSqueeze(state: HydratedSolGameState, playerId: string): boolean {
+        const activation = state.activation
+        if (!activation) {
+            return false
+        }
+        let station
+        try {
+            station = state.getActivatingStation()
+        } catch {
+            return false
+        }
+
+        if (
+            !station ||
+            station.playerId !== playerId ||
+            (station.coords?.row ?? 0) > Ring.Convective
+        ) {
+            return false
+        }
+
+        if (
+            station.type === StationType.SundiverFoundry ||
+            station.type === StationType.TransmitTower
+        ) {
+            const energyCost = BASE_AWARD_PER_RING[station.coords!.row] * 2
+            if (state.getPlayerState(playerId).energyCubes < energyCost) {
+                return false
+            }
+        }
+
+        if (station.type === StationType.SundiverFoundry) {
+            const diversNeeded = BASE_AWARD_PER_RING[station.coords!.row] * 2
+            if (state.getPlayerState(playerId).reserveSundivers.length < diversNeeded) {
+                return false
+            }
+        }
+
+        return true
     }
 
     static hasCardForEffect(

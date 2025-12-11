@@ -3,11 +3,11 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { StationType } from '../components/stations.js'
+import { Station, StationType } from '../components/stations.js'
 import { Activation } from '../model/activation.js'
 import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { MachineState } from '../definition/states.js'
-import { EffectType, Ring } from '../index.js'
+import { EffectType, Ring, SolPlayerState } from '../index.js'
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({
@@ -82,27 +82,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             momentumAdded: 0
         }
 
-        switch (station.type) {
-            case StationType.EnergyNode:
-                playerState.energyCubes += BASE_AWARD_PER_RING[ring]
-                this.metadata.energyAdded = BASE_AWARD_PER_RING[ring]
-                break
-            case StationType.SundiverFoundry:
-                playerState.energyCubes -= BASE_AWARD_PER_RING[ring]
-                const awardCount = BASE_AWARD_PER_RING[ring]
-                const awardedSundivers = playerState.reserveSundivers.splice(
-                    -awardCount,
-                    awardCount
-                )
-                playerState.holdSundivers.push(...awardedSundivers)
-                this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
-                break
-            case StationType.TransmitTower:
-                playerState.energyCubes -= BASE_AWARD_PER_RING[ring]
-                playerState.momentum = (playerState.momentum ?? 0) + BASE_AWARD_PER_RING[ring]
-                this.metadata.momentumAdded = BASE_AWARD_PER_RING[ring]
-                break
-        }
+        const awardMetadata = HydratedActivate.applyActivationAward(playerState, station)
+        Object.assign(this.metadata, awardMetadata)
 
         if (state.machineState !== MachineState.SolarFlares) {
             const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
@@ -120,6 +101,40 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 state.cardsToDraw = (state.cardsToDraw ?? 0) + cardsToDraw
             }
         }
+    }
+
+    static applyActivationAward(
+        playerState: SolPlayerState,
+        station: Station
+    ): { energyAdded: number; createdSundiverIds: string[]; momentumAdded: number } {
+        const award = BASE_AWARD_PER_RING[station.coords!.row]
+        const metadata: {
+            energyAdded: number
+            createdSundiverIds: string[]
+            momentumAdded: number
+        } = { energyAdded: 0, createdSundiverIds: [], momentumAdded: 0 }
+        switch (station.type) {
+            case StationType.EnergyNode:
+                playerState.energyCubes += award
+                metadata.energyAdded = award
+                break
+            case StationType.SundiverFoundry:
+                playerState.energyCubes -= award
+                const awardCount = award
+                const awardedSundivers = playerState.reserveSundivers.splice(
+                    -awardCount,
+                    awardCount
+                )
+                playerState.holdSundivers.push(...awardedSundivers)
+                metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
+                break
+            case StationType.TransmitTower:
+                playerState.energyCubes -= award
+                playerState.momentum = (playerState.momentum ?? 0) + award
+                metadata.momentumAdded = award
+                break
+        }
+        return metadata
     }
 
     static canActivate(state: HydratedSolGameState, playerId: string): boolean {

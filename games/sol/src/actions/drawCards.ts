@@ -3,11 +3,20 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { Card } from '../components/cards.js'
+import { Card, Suit } from '../components/cards.js'
+import { EffectType } from '../components/effects.js'
+import { Station } from '../components/stations.js'
+import { BASE_AWARD_PER_RING } from 'src/utils/solConstants.js'
+import { HydratedActivate } from './activate.js'
 
 export type DrawCardsMetadata = Static<typeof DrawCardsMetadata>
 export const DrawCardsMetadata = Type.Object({
-    drawnCards: Type.Array(Card)
+    drawnCards: Type.Array(Card),
+    squeezedCards: Type.Array(Card),
+    removedStation: Type.Optional(Station),
+    energyAdded: Type.Number(),
+    createdSundiverIds: Type.Array(Type.String()),
+    momentumAdded: Type.Number()
 })
 
 export type DrawCards = Static<typeof DrawCards>
@@ -45,8 +54,32 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
         }
         const cards = state.deck.drawItems(state.cardsToDraw)
         const playerState = state.getPlayerState(this.playerId)
-        playerState.drawnCards = cards
-        this.metadata = { drawnCards: cards }
+        if (!playerState.drawnCards) {
+            playerState.drawnCards = []
+        }
+        const squeezedCards = structuredClone(playerState.drawnCards)
+        playerState.drawnCards.push(...cards)
+        this.metadata = {
+            drawnCards: cards,
+            squeezedCards: squeezedCards,
+            energyAdded: 0,
+            createdSundiverIds: [],
+            momentumAdded: 0
+        }
         state.cardsToDraw = 0
+
+        if (state.activeEffect === EffectType.Squeeze) {
+            const station = state.getActivatingStation()
+            if (!station || !station.coords) {
+                throw Error('Invalid station for squeeze effect')
+            }
+            if (cards.some((card) => card.suit === Suit.Flare)) {
+                this.metadata.removedStation = state.board.removeStationAt(station.coords)
+            } else {
+                // Award the activation again
+                const awardMetadata = HydratedActivate.applyActivationAward(playerState, station)
+                Object.assign(this.metadata, awardMetadata)
+            }
+        }
     }
 }

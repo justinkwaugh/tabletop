@@ -6,6 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
 import { Ring } from '../utils/solGraph.js'
 import { BONUS_AWARD_PER_RING } from '../utils/solConstants.js'
+import { EffectType } from '../components/effects.js'
 
 export type ActivateBonusMetadata = Static<typeof ActivateBonusMetadata>
 export const ActivateBonusMetadata = Type.Object({
@@ -69,22 +70,25 @@ export class HydratedActivateBonus
             momentumAdded: 0
         }
 
+        const award =
+            BONUS_AWARD_PER_RING[ring] * (state.activeEffect === EffectType.Squeeze ? 2 : 1)
+
         switch (station.type) {
             case StationType.EnergyNode:
-                playerState.energyCubes += BONUS_AWARD_PER_RING[ring]
-                this.metadata.energyAdded = BONUS_AWARD_PER_RING[ring]
+                playerState.energyCubes += award
+                this.metadata.energyAdded = award
                 break
             case StationType.SundiverFoundry:
-                const awardCost = BONUS_AWARD_PER_RING[ring]
+                const awardCost = award
                 playerState.energyCubes -= awardCost
                 const awardedSundivers = playerState.reserveSundivers.splice(-awardCost, awardCost)
                 playerState.holdSundivers.push(...awardedSundivers)
                 this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
             case StationType.TransmitTower:
-                playerState.energyCubes -= BONUS_AWARD_PER_RING[ring]
-                playerState.momentum = (playerState.momentum ?? 0) + BONUS_AWARD_PER_RING[ring]
-                this.metadata.momentumAdded = BONUS_AWARD_PER_RING[ring]
+                playerState.energyCubes -= award
+                playerState.momentum = (playerState.momentum ?? 0) + award
+                this.metadata.momentumAdded = award
                 break
         }
     }
@@ -119,16 +123,18 @@ export class HydratedActivateBonus
     static canActivateSundiverFoundryBonus(state: HydratedSolGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
         const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
-        const awardCost = BONUS_AWARD_PER_RING[ring]
+        const awardCost =
+            BONUS_AWARD_PER_RING[ring] * (state.activeEffect === EffectType.Squeeze ? 2 : 1)
         return (
-            playerState.energyCubes >= awardCost && playerState.reserveSundivers.length > awardCost
+            playerState.energyCubes >= awardCost && playerState.reserveSundivers.length >= awardCost
         )
     }
 
     static canActivateTransmitTowerBonus(state: HydratedSolGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
         const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
-        const awardCost = BONUS_AWARD_PER_RING[ring]
+        const awardCost =
+            BONUS_AWARD_PER_RING[ring] * (state.activeEffect === EffectType.Squeeze ? 2 : 1)
         return playerState.energyCubes >= awardCost
     }
 

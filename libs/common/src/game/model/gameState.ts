@@ -59,7 +59,10 @@ export abstract class HydratableGameState<T extends TSchema, U extends PlayerSta
     declare result?: GameResult
     declare winningPlayerIds: string[]
 
-    getPlayerState(playerId: string): U {
+    getPlayerState(playerId?: string): U {
+        if (!playerId) {
+            throw Error('playerId is required to get player state')
+        }
         const player = this.players.find((player) => player.playerId === playerId)
         if (!player) {
             throw Error(`State for player ${playerId} not found`)

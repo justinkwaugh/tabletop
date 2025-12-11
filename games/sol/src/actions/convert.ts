@@ -7,6 +7,7 @@ import { Station, StationType } from '../components/stations.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { SolarGate } from '../components/solarGate.js'
+import { EffectType } from '../components/effects.js'
 
 export type ConvertMetadata = Static<typeof ConvertMetadata>
 export const ConvertMetadata = Type.Object({
@@ -77,7 +78,12 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         }
 
         const removedSundivers = state.board.removeSundiversFromBoard(this.sundiverIds)
-        playerState.addSundiversToReserve(removedSundivers)
+
+        if (state.activeEffect === EffectType.Cascade) {
+            playerState.addSundiversToHold(removedSundivers)
+        } else {
+            playerState.addSundiversToReserve(removedSundivers)
+        }
 
         const playerMovement = Iterator.from(Object.values(Ring)).reduce(
             (acc, ring) =>
@@ -88,7 +94,7 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         playerState.movement = playerMovement
 
         const ring = this.isGate ? this.innerCoords.row : this.coords.row
-        state.cardsToDraw = CARDS_DRAWN_PER_RING[ring]
+        state.cardsToDraw = (state.cardsToDraw ?? 0) + CARDS_DRAWN_PER_RING[ring]
         state.getEffectTracking().convertedStation = this.metadata?.convertedStation
     }
 

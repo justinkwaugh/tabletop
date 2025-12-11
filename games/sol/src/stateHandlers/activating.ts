@@ -7,7 +7,7 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
 import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { Activation } from '../model/activation.js'
-import { HydratedActivateEffect } from '../actions/activateEffect.js'
+import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
 
 // Transition from Activating(Pass) -> Activating | DrawingCards | StartOfTurn
@@ -22,6 +22,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
 
         return (
             isPass(action) ||
+            isActivateEffect(action) ||
             (isActivate(action) && gameState.activation?.currentStationId === undefined) ||
             (isActivateBonus(action) && gameState.activation?.currentStationId !== undefined)
         )
@@ -30,6 +31,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
         const gameState = context.gameState as HydratedSolGameState
 
+        // Maybe need to check activate effect more?
         const validActions = [ActionType.Pass]
 
         if (!gameState.activation?.currentStationId) {
@@ -39,6 +41,10 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             HydratedActivateBonus.canActivateBonus(gameState, playerId)
         ) {
             validActions.push(ActionType.ActivateBonus)
+        }
+
+        if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
+            validActions.push(ActionType.ActivateEffect)
         }
 
         console.log('Valid activating actions', validActions)
@@ -57,6 +63,16 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                         gameState,
                         action.playerId,
                         EffectType.Augment
+                    )
+                ) {
+                    return MachineState.CheckEffect
+                }
+
+                if (
+                    HydratedActivateEffect.canActivateEffect(
+                        gameState,
+                        action.playerId,
+                        EffectType.Squeeze
                     )
                 ) {
                     return MachineState.CheckEffect
@@ -134,6 +150,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             state.activePlayerIds = [activation.playerId]
             return MachineState.Activating
         } else {
+            console.log('Continuing activating or ending turn')
             return this.continueActivatingOrEnd(state, context, activation)
         }
     }
@@ -143,6 +160,10 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         context: MachineContext,
         activation: Activation
     ): MachineState {
+        // Squeeze ends after one activation
+        if (state.activeEffect === EffectType.Squeeze) {
+            state.activeEffect = undefined
+        }
         if (HydratedActivate.canActivate(state, activation.playerId)) {
             // Allow activating player to continue if possible
             activation.currentStationId = undefined

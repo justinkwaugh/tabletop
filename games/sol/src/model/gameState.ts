@@ -15,7 +15,6 @@ import { Deck, HydratedDeck } from '../components/deck.js'
 import { Sundiver } from '../components/sundiver.js'
 import { Station } from '../components/stations.js'
 import { Activation } from './activation.js'
-import { Suit } from 'src/components/cards.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Evaluate(
@@ -41,7 +40,8 @@ export const SolGameState = Type.Evaluate(
                 Type.Object({
                     outerRingLaunches: Type.Number(), // For Ceremony effect
                     convertedStation: Type.Optional(Station), // For Motivate effect
-                    clustersRemaining: Type.Number() // For Cluster effect
+                    clustersRemaining: Type.Number(), // For Cluster effect
+                    squeezed: Type.Boolean() // For Squeeze effect
                 })
             )
         })
@@ -82,6 +82,7 @@ export class HydratedSolGameState
         outerRingLaunches: number
         convertedStation?: Station
         clustersRemaining: number
+        squeezed: boolean
     }
 
     constructor(data: SolGameState) {
@@ -95,7 +96,7 @@ export class HydratedSolGameState
 
     getEffectTracking() {
         if (!this.effectTracking) {
-            this.effectTracking = { outerRingLaunches: 0, clustersRemaining: 0 }
+            this.effectTracking = { outerRingLaunches: 0, clustersRemaining: 0, squeezed: false }
         }
         return this.effectTracking
     }

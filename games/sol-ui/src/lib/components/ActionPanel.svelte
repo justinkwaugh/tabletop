@@ -6,7 +6,7 @@
     import ActivateBolt from '$lib/images/activatebolt.svelte'
     import LaunchPicker from './LaunchPicker.svelte'
     import Header from './Header.svelte'
-    import { ActionType, EffectType } from '@tabletop/sol'
+    import { ActionType, EffectType, HydratedActivate, HydratedActivateEffect } from '@tabletop/sol'
     import ConvertPicker from './ConvertPicker.svelte'
     import CardPicker from './CardPicker.svelte'
     import { fade } from 'svelte/transition'
@@ -14,12 +14,14 @@
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
-        ActivateBonus = 'ActivateBonus'
+        ActivateBonus = 'ActivateBonus',
+        SqueezeEffect = 'SqueezeEffect'
     }
 
     enum NoActions {
         Pass = 'Pass',
-        NoClusterEffect = 'NoClusterEffect'
+        NoClusterEffect = 'NoClusterEffect',
+        NoSqueezeEffect = 'NoSqueezeEffect'
     }
 
     type CallToAction = {
@@ -100,7 +102,11 @@
                 result.noAction = NoActions.Pass
             }
         } else if (gameSession.isDrawingCards) {
-            result.message = `DRAW ${gameSession.gameState.cardsToDraw ?? 0} CARD${
+            const myPlayerState = gameSession.myPlayerState
+            const squeezed =
+                gameSession.gameState.effectTracking?.squeezed &&
+                (myPlayerState?.drawnCards ?? []).length > 0
+            result.message = `DRAW ${gameSession.gameState.cardsToDraw ?? 0} ${squeezed ? 'MORE ' : ''}CARD${
                 (gameSession.gameState.cardsToDraw ?? 0) !== 1 ? 'S' : ''
             }...`
         } else if (gameSession.isChoosingCard) {
@@ -175,6 +181,8 @@
             gameSession.clusterChoice = true
         } else if (action === YesActions.ActivateBonus) {
             await gameSession.activateBonus()
+        } else if (action === YesActions.SqueezeEffect) {
+            await gameSession.activateEffect(EffectType.Squeeze)
         } else {
             throw new Error('Unknown yes action')
         }
@@ -185,6 +193,8 @@
             await gameSession.pass()
         } else if (action === NoActions.NoClusterEffect) {
             gameSession.clusterChoice = false
+        } else if (action === NoActions.NoSqueezeEffect) {
+            await gameSession.activateStation()
         } else {
             throw new Error('Unknown no action')
         }
@@ -268,7 +278,7 @@
         {/if}
     </div>
 
-    {#if gameSession.drawnCards.length > 0 || gameSession.isSolarFlares || gameSession.isChoosingCard}
+    {#if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
         <CardPicker animator={cardPickerAnimator} />
     {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers}
         <LaunchPicker />

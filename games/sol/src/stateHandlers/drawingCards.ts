@@ -12,6 +12,9 @@ import { Suit } from '../components/cards.js'
 import { SolarFlare } from '../actions/solarFlare.js'
 import { nanoid } from 'nanoid'
 import { Pass } from '../actions/pass.js'
+import { EffectType } from '../components/effects.js'
+import { Activate } from '../actions/activate.js'
+import { ActivatingStateHandler } from './activating.js'
 
 // Transition from DrawingCards(DrawCards) -> SolarFlares | ChoosingCard
 
@@ -33,12 +36,35 @@ export class DrawingCardsStateHandler implements MachineStateHandler<HydratedDra
         const playerState = gameState.getPlayerState(action.playerId)
         const drawnCards = playerState.drawnCards ?? []
 
-        // Check for solar flares and handle them first
+        const numSolarFlares = drawnCards.filter((card) => card.suit === Suit.Flare).length
+        if (gameState.activeEffect === EffectType.Squeeze) {
+            if (numSolarFlares > 0) {
+                return ActivatingStateHandler.continueActivatingOrEnd(
+                    gameState,
+                    context,
+                    gameState.activation!
+                )
+            } else {
+                return ActivatingStateHandler.handleActivation(gameState, context)
+            }
+        } else {
+            return DrawingCardsStateHandler.handleDrawnCards(gameState, context, action.playerId)
+        }
+    }
+
+    static handleDrawnCards(
+        state: HydratedSolGameState,
+        context: MachineContext,
+        playerId: string
+    ) {
+        const playerState = state.getPlayerState(playerId)
+        const drawnCards = playerState.drawnCards ?? []
         const numSolarFlares = drawnCards.filter((card) => card.suit === Suit.Flare).length
 
         if (numSolarFlares > 0) {
-            gameState.solarFlares = numSolarFlares
-            gameState.solarFlaresRemaining = numSolarFlares
+            state.solarFlares = numSolarFlares
+            state.solarFlaresRemaining = numSolarFlares
+
             const solarFlareAction: SolarFlare = {
                 type: ActionType.SolarFlare,
                 id: nanoid(),
@@ -53,7 +79,7 @@ export class DrawingCardsStateHandler implements MachineStateHandler<HydratedDra
                     type: ActionType.Pass,
                     id: nanoid(),
                     gameId: context.gameState.gameId,
-                    playerId: action.playerId,
+                    playerId,
                     source: ActionSource.System
                 }
                 context.addPendingAction(passAction)

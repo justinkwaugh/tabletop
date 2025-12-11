@@ -50,7 +50,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
             case isPass(action): {
                 const playerState = gameState.getPlayerState(action.playerId)
                 if (playerState.card) {
-                    if (gameState.effects[playerState.card.suit].type === EffectType.Augment) {
+                    const effect = gameState.effects[playerState.card.suit].type
+                    if (effect === EffectType.Augment) {
                         return ActivatingStateHandler.handleActivation(gameState, context)
                     }
                 }
@@ -75,6 +76,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     return MachineState.Activating
                 } else if (gameState.activeEffect === EffectType.Augment) {
                     return ActivatingStateHandler.handleActivation(gameState, context)
+                } else if (gameState.activeEffect === EffectType.Cascade) {
+                    return MachineState.Converting
                 } else {
                     return drawCardsOrEndTurn(gameState, context)
                 }

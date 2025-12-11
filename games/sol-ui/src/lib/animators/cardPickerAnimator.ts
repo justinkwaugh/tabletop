@@ -189,7 +189,17 @@ export class CardPickerAnimator extends StateAnimator<
         fromState?: HydratedSolGameState
     ) {
         // Set the drawn cards so that the card picker will render them
-        this.gameSession.drawnCards = action.metadata?.drawnCards ?? []
+        const drawnCards = action.metadata?.drawnCards ?? []
+        const squeezedCards = action.metadata?.squeezedCards ?? []
+
+        const cardsToAnimateMoving = Array.from(this.cards.values()).filter((ce) =>
+            squeezedCards.find((sc) => sc.id === ce.card.id)
+        )
+
+        // Get the initial state of the squeezed cards
+        const squeezedInitialState = Flip.getState(cardsToAnimateMoving.map((ce) => ce.element))
+
+        this.gameSession.drawnCards = [...drawnCards, ...squeezedCards]
 
         // Wait for cards to appear in dom and be attached to us
         await tick()
@@ -198,16 +208,36 @@ export class CardPickerAnimator extends StateAnimator<
         const flipDuration = 0.3
         const startTime = 0.3
 
-        // Get the initial state of the cards laid out in a row
+        // Get the destination state of all the cards laid out in a row
         const state = Flip.getState(
             Array.from(this.cards.values())
                 .map((ce) => ce.element)
                 .reverse()
         )
 
-        // Hide them all and z-order them oppositely
+        // Handle the squeezed cards moving into position
+        for (const cardAndElement of cardsToAnimateMoving) {
+            Flip.fit(cardAndElement.element, squeezedInitialState, { absolute: true })
+            timeline.call(
+                () => {
+                    Flip.to(state, {
+                        duration: flipDuration,
+                        ease: 'power1.out',
+                        targets: cardAndElement.element
+                    })
+                },
+                [],
+                startTime
+            )
+        }
+
+        const cardsToAnimateDrawing = Array.from(this.cards.values()).filter((ce) =>
+            drawnCards.find((dc) => dc.id === ce.card.id)
+        )
+
+        // Hide newly drawn cards them all and z-order them oppositely
         let zIndex = 0
-        for (const cardAndElement of Array.from(this.cards.values()).reverse()) {
+        for (const cardAndElement of cardsToAnimateDrawing.reverse()) {
             gsap.set(cardAndElement.element, {
                 opacity: 0,
                 zIndex
@@ -218,7 +248,7 @@ export class CardPickerAnimator extends StateAnimator<
         // At 0.2 seconds (this sucks, but gives time for the board to resize), fit them to the deck position
         timeline.call(
             () => {
-                for (const cardAndElement of Array.from(this.cards.values()).reverse()) {
+                for (const cardAndElement of cardsToAnimateDrawing.reverse()) {
                     Flip.fit(cardAndElement.element, '#sol-deck', {
                         absolute: true
                     })
@@ -230,7 +260,7 @@ export class CardPickerAnimator extends StateAnimator<
 
         // Now animate them back from the deck.  We don't use flip's stagger because we want to control the order
         let index = 0
-        for (const cardAndElement of this.cards.values()) {
+        for (const cardAndElement of cardsToAnimateDrawing) {
             fadeIn({
                 object: cardAndElement.element,
                 timeline,

@@ -310,6 +310,17 @@ export class HydratedSolGameBoard
         return path.length > 0 ? path : undefined
     }
 
+    public requiresGateBetween(start: OffsetCoordinates, end: OffsetCoordinates): boolean {
+        if (start.row === end.row) {
+            return false
+        }
+        const innerOuter = [Ring.Inner, Ring.Outer]
+        if (innerOuter.includes(start.row) && innerOuter.includes(end.row)) {
+            return false
+        }
+        return true
+    }
+
     public gatesForCell(
         coords: OffsetCoordinates,
         direction: Direction.In | Direction.Out
@@ -385,6 +396,18 @@ export class HydratedSolGameBoard
         station.coords = coords
         cell.station = station
         this.setCell(cell)
+    }
+
+    public removeStationAt(coords: OffsetCoordinates): Station | undefined {
+        let cell = this.cellAt(coords)
+        const station = cell.station
+        if (!station) {
+            return undefined
+        }
+
+        cell.station = undefined
+        this.setCell(cell)
+        return station
     }
 
     public addSundiversToCell(sundivers: Sundiver[], coords: OffsetCoordinates) {

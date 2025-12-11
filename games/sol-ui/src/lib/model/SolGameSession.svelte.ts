@@ -6,6 +6,8 @@ import {
     CENTER_COORDS,
     Direction,
     EffectType,
+    HydratedActivate,
+    HydratedActivateEffect,
     HydratedSolGameState,
     isActivateEffect,
     isLaunch,
@@ -209,6 +211,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             } else if (this.chosenConvertType) {
                 this.chosenConvertType = undefined
             }
+        } else if (this.clusterChoice !== undefined) {
+            this.clusterChoice = undefined
         } else if (this.chosenNumDivers) {
             this.chosenNumDivers = undefined
             if (this.numPlayerCanMoveFromSource() === 1) {
@@ -294,29 +298,40 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return gate
         })
 
-        do {
-            const gates = this.getGateChoices(
-                this.chosenSource,
-                this.chosenDestination,
-                chosenGates
-            )
-            if (gates.length > 1) {
-                this.gateChoices = gates.map((gate) =>
-                    this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
+        if (this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)) {
+            do {
+                const gates = this.getGateChoices(
+                    this.chosenSource,
+                    this.chosenDestination,
+                    chosenGates
                 )
-                return
-            } else if (gates.length === 1) {
-                if (!this.chosenGates) {
-                    this.chosenGates = []
+                if (gates.length > 1) {
+                    this.gateChoices = gates.map((gate) =>
+                        this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
+                    )
+                    return
+                } else if (gates.length === 1) {
+                    // If we want to allow non-direct flights... this will happen
+                    if (this.chosenSource.row === this.chosenDestination.row) {
+                        // We could just go straight there....
+                        this.gateChoices = gates.map((gate) =>
+                            this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
+                        )
+                        return
+                    }
+
+                    if (!this.chosenGates) {
+                        this.chosenGates = []
+                    }
+                    this.chosenGates.push(
+                        this.gameState.board.gateKey(gates[0].outerCoords!, gates[0].innerCoords!)
+                    )
+                    chosenGates.push(gates[0])
+                } else {
+                    break
                 }
-                this.chosenGates.push(
-                    this.gameState.board.gateKey(gates[0].outerCoords!, gates[0].innerCoords!)
-                )
-                chosenGates.push(gates[0])
-            } else {
-                break
-            }
-        } while (true)
+            } while (true)
+        }
 
         // We want to take the last ones first
         const diverIds = playerDivers
@@ -828,6 +843,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         if (!this.myPlayer) {
             throw new Error('Invalid activate effect')
         }
+
         const action = {
             ...this.createBaseAction(ActionType.ActivateEffect),
             playerId: this.myPlayer.id,

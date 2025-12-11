@@ -57,6 +57,16 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
                     return MachineState.CheckEffect
                 }
 
+                if (
+                    HydratedActivateEffect.canActivateEffect(
+                        gameState,
+                        action.playerId,
+                        EffectType.Cascade
+                    )
+                ) {
+                    return MachineState.CheckEffect
+                }
+
                 return drawCardsOrEndTurn(gameState, context)
             }
             case isActivateEffect(action): {
