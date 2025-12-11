@@ -618,6 +618,24 @@ export class HydratedSolGameBoard
         )
     }
 
+    stationsInRing(playerId: string, ring: Ring): Station[] {
+        if (ring === Ring.Center) {
+            return []
+        }
+        const ringPattern = solRingPattern({ numPlayers: this.numPlayers, ring })
+        return Array.from(
+            Iterator.from(this.graph.traversePattern(ringPattern))
+                .map((node) => {
+                    const cell = this.cellAt(node.coords)
+                    if (cell.station?.playerId === playerId) {
+                        return cell.station
+                    }
+                    return undefined
+                })
+                .filter((station): station is Station => station !== undefined)
+        )
+    }
+
     get graph(): SolGraph {
         if (!this.internalGraph) {
             this.internalGraph = new SolGraph(this.numPlayers)

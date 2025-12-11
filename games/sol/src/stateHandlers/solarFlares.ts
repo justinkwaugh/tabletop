@@ -37,7 +37,16 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         switch (true) {
             case isSolarFlare(action): {
                 const activatingPlayerIds = gameState.players
-                    .filter((ps) => gameState.board.hasStationInRing(ps.playerId, Ring.Outer))
+                    .filter((ps) => {
+                        const stations = gameState.board.stationsInRing(ps.playerId, Ring.Outer)
+                        return stations.some((station) =>
+                            HydratedActivate.canActivateStationAt(
+                                gameState,
+                                ps.playerId,
+                                station.coords!
+                            )
+                        )
+                    })
                     .map((ps) => ps.playerId)
 
                 // Let current player go first for efficiency
