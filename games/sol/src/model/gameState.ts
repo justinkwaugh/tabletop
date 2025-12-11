@@ -40,7 +40,8 @@ export const SolGameState = Type.Evaluate(
             effectTracking: Type.Optional(
                 Type.Object({
                     outerRingLaunches: Type.Number(), // For Ceremony effect
-                    convertedStation: Type.Optional(Station) // For Motivate effect
+                    convertedStation: Type.Optional(Station), // For Motivate effect
+                    clustersRemaining: Type.Number() // For Cluster effect
                 })
             )
         })
@@ -80,6 +81,7 @@ export class HydratedSolGameState
     declare effectTracking?: {
         outerRingLaunches: number
         convertedStation?: Station
+        clustersRemaining: number
     }
 
     constructor(data: SolGameState) {
@@ -93,7 +95,7 @@ export class HydratedSolGameState
 
     getEffectTracking() {
         if (!this.effectTracking) {
-            this.effectTracking = { outerRingLaunches: 0 }
+            this.effectTracking = { outerRingLaunches: 0, clustersRemaining: 0 }
         }
         return this.effectTracking
     }

@@ -6,16 +6,28 @@
     import ActivateBolt from '$lib/images/activatebolt.svelte'
     import LaunchPicker from './LaunchPicker.svelte'
     import Header from './Header.svelte'
-    import { ActionType } from '@tabletop/sol'
+    import { ActionType, EffectType } from '@tabletop/sol'
     import ConvertPicker from './ConvertPicker.svelte'
     import CardPicker from './CardPicker.svelte'
     import { fade } from 'svelte/transition'
     import { CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
 
+    enum YesActions {
+        ClusterEffect = 'ClusterEffect',
+        ActivateBonus = 'ActivateBonus'
+    }
+
+    enum NoActions {
+        Pass = 'Pass',
+        NoClusterEffect = 'NoClusterEffect'
+    }
+
     type CallToAction = {
         message?: string
         showSkip: boolean
         yesNo: boolean
+        yesAction?: YesActions
+        noAction?: NoActions
     }
 
     let gameSession = getContext('gameSession') as SolGameSession
@@ -44,19 +56,28 @@
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
                 result.message = 'CHOOSE A MOVEMENT SOURCE'
                 result.showSkip = true
-            }
-            if (gameSession.chosenSource && !gameSession.chosenNumDivers) {
+            } else if (gameSession.chosenSource && !gameSession.chosenNumDivers) {
                 result.message = 'HOW MANY TO MOVE?'
-            }
-            if (gameSession.chosenMothership && !gameSession.chosenNumDivers) {
+            } else if (gameSession.chosenMothership && !gameSession.chosenNumDivers) {
                 result.message = 'HOW MANY TO LAUNCH?'
-            }
-            if (gameSession.gateChoices && gameSession.gateChoices.length > 0) {
+            } else if (gameSession.gateChoices && gameSession.gateChoices.length > 0) {
                 result.message = 'CHOOSE A GATE TO USE'
             } else if (gameSession.chosenNumDivers) {
-                result.message = `CHOOSE A DESTINATION FOR ${gameSession.chosenNumDivers} SUNDIVER${
-                    gameSession.chosenNumDivers > 1 ? 'S' : ''
-                }`
+                if (
+                    gameSession.chosenNumDivers > 1 &&
+                    gameSession.gameState.activeEffect === EffectType.Cluster &&
+                    (gameSession.gameState.effectTracking?.clustersRemaining ?? 0) > 0 &&
+                    gameSession.clusterChoice === undefined
+                ) {
+                    result.message = `USE CLUSTER EFFECT?`
+                    result.yesNo = true
+                    result.yesAction = YesActions.ClusterEffect
+                    result.noAction = NoActions.NoClusterEffect
+                } else {
+                    result.message = `CHOOSE A DESTINATION FOR ${gameSession.chosenNumDivers} SUNDIVER${
+                        gameSession.chosenNumDivers > 1 ? 'S' : ''
+                    }`
+                }
             }
         } else if (gameSession.isConverting) {
             if (!gameSession.chosenConvertType) {
@@ -75,6 +96,8 @@
             } else {
                 result.message = 'CLAIM THE BONUS?'
                 result.yesNo = true
+                result.yesAction = YesActions.ActivateBonus
+                result.noAction = NoActions.Pass
             }
         } else if (gameSession.isDrawingCards) {
             result.message = `DRAW ${gameSession.gameState.cardsToDraw ?? 0} CARD${
@@ -147,6 +170,26 @@
         await gameSession.pass()
     }
 
+    async function yes(action?: YesActions) {
+        if (action === YesActions.ClusterEffect) {
+            gameSession.clusterChoice = true
+        } else if (action === YesActions.ActivateBonus) {
+            await gameSession.activateBonus()
+        } else {
+            throw new Error('Unknown yes action')
+        }
+    }
+
+    async function no(action?: NoActions) {
+        if (action === NoActions.Pass) {
+            await gameSession.pass()
+        } else if (action === NoActions.NoClusterEffect) {
+            gameSession.clusterChoice = false
+        } else {
+            throw new Error('Unknown no action')
+        }
+    }
+
     const cardPickerAnimator = new CardPickerAnimator(gameSession)
     cardPickerAnimator.register()
 </script>
@@ -208,12 +251,12 @@
                             >
                         {:else if callToAction.yesNo}
                             <button
-                                onclick={chooseBonus}
+                                onclick={() => yes(callToAction.yesAction)}
                                 class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
                                 >YES</button
                             >
                             <button
-                                onclick={pass}
+                                onclick={() => no(callToAction.noAction)}
                                 class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
                             >
                                 NO</button

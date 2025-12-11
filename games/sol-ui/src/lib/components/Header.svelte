@@ -102,7 +102,8 @@
     </div>
     {#if gameSession.isMoving}
         <div>
-            REMAINING: {gameSession.myPlayerState?.movementPoints}
+            REMAINING: {(gameSession.myPlayerState?.movementPoints ?? 0) -
+                (gameSession.clusterChoice ? 1 : 0)}
         </div>
     {/if}
     <div>

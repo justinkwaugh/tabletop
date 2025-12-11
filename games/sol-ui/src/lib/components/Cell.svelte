@@ -80,14 +80,15 @@
                     if (isCenterCell) {
                         return HydratedHurl.canHurl(gameSession.gameState, myPlayer.id)
                     } else {
-                        return HydratedFly.isValidFlightDestination(
-                            gameSession.gameState,
-                            myPlayer.id,
-                            gameSession.chosenNumDivers,
-                            false,
-                            gameSession.chosenSource,
-                            cell.coords
-                        )
+                        return HydratedFly.isValidFlightDestination({
+                            state: gameSession.gameState,
+                            playerId: myPlayer.id,
+                            numSundivers: gameSession.chosenNumDivers,
+                            station: false,
+                            start: gameSession.chosenSource,
+                            destination: cell.coords,
+                            cluster: gameSession.clusterChoice
+                        })
                     }
                 }
             } else {

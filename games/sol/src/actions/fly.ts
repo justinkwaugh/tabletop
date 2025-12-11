@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from 
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { SolarGate } from '../components/solarGate.js'
+import { EffectType } from '../components/effects.js'
 
 export type FlyMetadata = Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({
@@ -22,6 +23,7 @@ export const Fly = Type.Evaluate(
             gates: Type.Optional(Type.Array(SolarGate)), // Ordered list of required gates to pass through
             start: OffsetCoordinates,
             destination: OffsetCoordinates,
+            cluster: Type.Optional(Type.Boolean()),
             metadata: Type.Optional(FlyMetadata)
         })
     ])
@@ -41,6 +43,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     declare gates?: SolarGate[]
     declare start: OffsetCoordinates
     declare destination: OffsetCoordinates
+    declare cluster?: boolean
     declare metadata?: FlyMetadata
 
     constructor(data: Fly) {
@@ -58,10 +61,16 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         this.metadata = {
             flightPath: path
         }
+
         const distanceMoved = path.length - 1
         const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
         state.board.addSundiversToCell(removedSundivers, this.destination)
-        playerState.movementPoints -= distanceMoved * this.sundiverIds.length
+        if (this.cluster) {
+            playerState.movementPoints -= distanceMoved + 1
+            state.getEffectTracking().clustersRemaining -= 1
+        } else {
+            playerState.movementPoints -= distanceMoved * this.sundiverIds.length
+        }
 
         const paidPlayerIds = state.paidPlayerIds ?? []
         for (const gate of this.gates ?? []) {
@@ -91,15 +100,23 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
     isValidFlight(state: HydratedSolGameState): OffsetCoordinates[] | undefined {
         const playerState = state.getPlayerState(this.playerId)
+
         if (
-            !HydratedFly.isValidFlightDestination(
+            this.cluster &&
+            (state.activeEffect !== EffectType.Cluster || !state.effectTracking?.clustersRemaining)
+        ) {
+            return
+        }
+
+        if (
+            !HydratedFly.isValidFlightDestination({
                 state,
-                this.playerId,
-                this.sundiverIds.length,
-                false,
-                this.start,
-                this.destination
-            )
+                playerId: this.playerId,
+                numSundivers: this.sundiverIds.length,
+                start: this.start,
+                destination: this.destination,
+                cluster: this.cluster
+            })
         ) {
             return
         }
@@ -112,14 +129,23 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         })
     }
 
-    static isValidFlightDestination(
-        state: HydratedSolGameState,
-        playerId: string,
-        numSundivers: number,
-        station: boolean,
-        start: OffsetCoordinates,
+    static isValidFlightDestination({
+        state,
+        playerId,
+        numSundivers,
+        station = false,
+        start,
+        destination,
+        cluster = false
+    }: {
+        state: HydratedSolGameState
+        playerId: string
+        numSundivers: number
+        station?: boolean
+        start: OffsetCoordinates
         destination: OffsetCoordinates
-    ): boolean {
+        cluster?: boolean
+    }): boolean {
         const playerState = state.getPlayerState(playerId)
 
         // Check to see if destination can hold the pieces
@@ -135,7 +161,12 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         // Check range
-        const range = Math.floor(playerState.movementPoints / numSundivers)
+        let range = playerState.movementPoints
+        if (cluster) {
+            range -= 1
+        } else {
+            range = Math.floor(range / numSundivers)
+        }
         const path = state.board.pathToDestination({ start, destination, range })
         if (!path) {
             return false

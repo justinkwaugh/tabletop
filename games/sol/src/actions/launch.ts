@@ -67,8 +67,7 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
 
         // Effect related
         if (this.destination.row === Ring.Outer) {
-            state.effectTracking = state.effectTracking || { outerRingLaunches: 0 }
-            state.effectTracking.outerRingLaunches += this.numSundivers
+            state.getEffectTracking().outerRingLaunches += this.numSundivers
 
             if (state.activeEffect === EffectType.Ceremony) {
                 playerState.energyCubes += this.numSundivers

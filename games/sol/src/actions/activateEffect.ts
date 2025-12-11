@@ -106,6 +106,12 @@ export class HydratedActivateEffect
                     this.metadata.momentumAdded = additionalReward
                     break
             }
+        } else if (this.effect === EffectType.Cluster) {
+            state.effectTracking = state.effectTracking || {
+                clustersRemaining: 0,
+                outerRingLaunches: 0
+            }
+            state.effectTracking.clustersRemaining = 2
         }
     }
 
@@ -145,13 +151,17 @@ export class HydratedActivateEffect
                 return this.canActivateMotivate(state, playerId)
             case EffectType.Augment:
                 return this.canActivateAugment(state, playerId)
+            case EffectType.Cluster:
+                return this.canActivateCluster(state, playerId)
             default:
                 return false
         }
     }
 
     static canActivateCeremony(state: HydratedSolGameState, playerId: string): boolean {
-        state.machineState === MachineState.Moving
+        if (state.machineState !== MachineState.Moving) {
+            return false
+        }
         const playerState = state.getPlayerState(playerId)
         return playerState.holdSundivers.length > 0
     }
@@ -194,6 +204,10 @@ export class HydratedActivateEffect
         }
 
         return true
+    }
+
+    static canActivateCluster(state: HydratedSolGameState, playerId: string): boolean {
+        return state.machineState === MachineState.Moving
     }
 
     static hasCardForEffect(

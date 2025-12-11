@@ -47,6 +47,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     gateChoices?: number[] = $state(undefined)
     diverCellChoices?: number[] = $state(undefined)
 
+    clusterChoice?: boolean = $state(undefined)
+
     drawnCards: Card[] = $derived.by(() => {
         const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId
         if (!currentPlayer) {
@@ -240,6 +242,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.diverCellChoices = undefined
         this.gateChoices = undefined
 
+        this.clusterChoice = undefined
+
         this.forcedCallToAction = undefined
     }
 
@@ -326,7 +330,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             sundiverIds: diverIds,
             start: this.chosenSource,
             destination: this.chosenDestination,
-            gates: chosenGates
+            gates: chosenGates,
+            cluster: this.clusterChoice
         }
 
         await this.doAction(action)
