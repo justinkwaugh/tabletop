@@ -15,6 +15,7 @@ import { Deck, HydratedDeck } from '../components/deck.js'
 import { Sundiver } from '../components/sundiver.js'
 import { Station } from '../components/stations.js'
 import { Activation } from './activation.js'
+import { Suit } from '../components/cards.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Evaluate(
@@ -44,7 +45,8 @@ export const SolGameState = Type.Evaluate(
                     clustersRemaining: Type.Number(), // For Cluster effect
                     squeezed: Type.Boolean(), // For Squeeze effect
                     flownSundiverId: Type.Optional(Type.String()), // For Hyperdrive effect
-                    movementUsed: Type.Number() // For Hyperdrive effect
+                    movementUsed: Type.Number(), // For Hyperdrive effect
+                    suitChosen: Type.Optional(Type.Enum(Suit)) // For Pillar effect
                 })
             )
         })
@@ -89,6 +91,7 @@ export class HydratedSolGameState
         squeezed: boolean
         flownSundiverId?: string
         movementUsed: number
+        suitChosen?: Suit
     }
 
     constructor(data: SolGameState) {

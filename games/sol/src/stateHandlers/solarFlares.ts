@@ -48,6 +48,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                         )
                     })
                     .map((ps) => ps.playerId)
+                console.log('Activating player IDs for solar flare:', activatingPlayerIds)
 
                 // Let current player go first for efficiency
                 const currentPlayerId = gameState.turnManager.currentTurn()?.playerId
@@ -93,10 +94,12 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                     gameState.solarFlareActivations &&
                     gameState.solarFlareActivations.length > 0
                 ) {
+                    console.log('Moving to next solar flare player activation')
                     gameState.activation = gameState.solarFlareActivations.shift()
                     gameState.activePlayerIds = [gameState.activation!.playerId]
                     return MachineState.SolarFlares
                 } else {
+                    console.log('Continuing solar flares or ending turn')
                     return SolarFlaresStateHandler.continueSolarFlaresOrEnd(gameState, context)
                 }
                 break
@@ -122,6 +125,9 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         context: MachineContext
     ): MachineState {
         state.solarFlaresRemaining = state.solarFlaresRemaining! - 1
+        state.activation = undefined
+        state.solarFlareActivations = []
+
         if (state.solarFlaresRemaining! > 0) {
             const solarFlareAction: SolarFlare = {
                 type: ActionType.SolarFlare,
@@ -133,8 +139,6 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
             return MachineState.SolarFlares
         } else {
             state.solarFlares = 0
-            state.activation = undefined
-            state.solarFlareActivations = []
 
             const currentPlayerId = state.turnManager.currentTurn()?.playerId
             if (!currentPlayerId) {

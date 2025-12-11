@@ -13,25 +13,44 @@ import { SolarFlare } from '../actions/solarFlare.js'
 import { nanoid } from 'nanoid'
 import { Pass } from '../actions/pass.js'
 import { EffectType } from '../components/effects.js'
-import { Activate } from '../actions/activate.js'
 import { ActivatingStateHandler } from './activating.js'
+import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 
 // Transition from DrawingCards(DrawCards) -> SolarFlares | ChoosingCard
+// Transition from DrawingCards(ActivateEffect) -> ChoosingCard
 
-export class DrawingCardsStateHandler implements MachineStateHandler<HydratedDrawCards> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedDrawCards {
+type DrawingCardsActions = HydratedDrawCards | HydratedActivateEffect
+
+export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCardsActions> {
+    isValidAction(action: HydratedAction, context: MachineContext): action is DrawingCardsActions {
         if (!action.playerId) return false
-        return isDrawCards(action)
+        return isDrawCards(action) || isActivateEffect(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        return [ActionType.DrawCards]
+        const actions = [ActionType.DrawCards]
+        if (
+            HydratedActivateEffect.canActivateHeldEffect(
+                context.gameState as HydratedSolGameState,
+                playerId
+            )
+        ) {
+            actions.push(ActionType.ActivateEffect)
+        }
+        return actions
     }
 
     enter(_context: MachineContext) {}
 
-    onAction(action: HydratedDrawCards, context: MachineContext): MachineState {
+    onAction(action: DrawingCardsActions, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedSolGameState
+
+        if (isActivateEffect(action)) {
+            if (action.effect !== EffectType.Pillar) {
+                throw Error('Only Pillar effect can be activated during drawing cards')
+            }
+            return MachineState.DrawingCards
+        }
 
         const playerState = gameState.getPlayerState(action.playerId)
         const drawnCards = playerState.drawnCards ?? []

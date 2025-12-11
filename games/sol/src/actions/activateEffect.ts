@@ -165,6 +165,8 @@ export class HydratedActivateEffect
                 return this.canActivateHyperdrive(state, playerId)
             case EffectType.Puncture:
                 return this.canActivatePuncture(state, playerId)
+            case EffectType.Pillar:
+                return this.canActivatePillar(state, playerId)
             default:
                 return false
         }
@@ -286,6 +288,10 @@ export class HydratedActivateEffect
         return Iterator.from(state.board).some((cell) =>
             HydratedFly.canPunctureFrom(cell.coords, state, playerId)
         )
+    }
+
+    static canActivatePillar(state: HydratedSolGameState, playerId: string): boolean {
+        return state.machineState === MachineState.DrawingCards && state.cardsToDraw > 0
     }
 
     static hasCardForEffect(
