@@ -94,7 +94,7 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         playerState.movement = playerMovement
 
         const ring = this.isGate ? this.innerCoords.row : this.coords.row
-        state.cardsToDraw = (state.cardsToDraw ?? 0) + CARDS_DRAWN_PER_RING[ring]
+        state.cardsToDraw += CARDS_DRAWN_PER_RING[ring]
         state.getEffectTracking().convertedStation = this.metadata?.convertedStation
     }
 

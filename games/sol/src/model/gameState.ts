@@ -29,12 +29,12 @@ export const SolGameState = Type.Evaluate(
             instability: Type.Number(),
             energyCubes: Type.Number(),
             activation: Type.Optional(Activation),
-            cardsToDraw: Type.Optional(Type.Number({ default: 0 })),
-            solarFlares: Type.Optional(Type.Number({ default: 0 })),
-            solarFlaresRemaining: Type.Optional(Type.Number({ default: 0 })),
-            solarFlareActivations: Type.Optional(Type.Array(Activation)),
-            hurled: Type.Optional(Type.Boolean({ default: false })),
-            paidPlayerIds: Type.Optional(Type.Array(Type.String())),
+            cardsToDraw: Type.Number({ default: 0 }),
+            solarFlares: Type.Number({ default: 0 }),
+            solarFlaresRemaining: Type.Number({ default: 0 }),
+            solarFlareActivations: Type.Array(Activation),
+            hurled: Type.Boolean({ default: false }),
+            paidPlayerIds: Type.Array(Type.String()),
             activeEffect: Type.Optional(Type.Enum(EffectType)),
             effectTracking: Type.Optional(
                 Type.Object({
@@ -71,12 +71,12 @@ export class HydratedSolGameState
     declare instability: number
     declare energyCubes: number
     declare activation?: Activation
-    declare cardsToDraw?: number
-    declare solarFlares?: number
-    declare solarFlaresRemaining?: number
-    declare solarFlareActivations?: Activation[]
-    declare hurled?: boolean
-    declare paidPlayerIds?: string[]
+    declare cardsToDraw: number
+    declare solarFlares: number
+    declare solarFlaresRemaining: number
+    declare solarFlareActivations: Activation[]
+    declare hurled: boolean
+    declare paidPlayerIds: string[]
     declare activeEffect?: EffectType
     declare effectTracking?: {
         outerRingLaunches: number

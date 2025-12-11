@@ -17,7 +17,7 @@ export const Hurl = Type.Evaluate(
             type: Type.Literal(ActionType.Hurl),
             playerId: Type.String(),
             sundiverIds: Type.Array(Type.String()),
-            gates: Type.Optional(Type.Array(SolarGate)), // Ordered list of required gates to pass through
+            gates: Type.Array(SolarGate), // Ordered list of required gates to pass through
             start: OffsetCoordinates,
             metadata: Type.Optional(HurlMetadata)
         })
@@ -34,7 +34,7 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
     declare type: ActionType.Hurl
     declare playerId: string
     declare sundiverIds: string[]
-    declare gates?: SolarGate[]
+    declare gates: SolarGate[]
     declare start: OffsetCoordinates
     declare metadata?: HurlMetadata
 
@@ -54,20 +54,18 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
         state.board.removeSundiversAt(this.sundiverIds, this.start)
 
         playerState.movementPoints -= this.sundiverIds.length * pathLength
-        playerState.momentum = (playerState.momentum ?? 0) + this.sundiverIds.length
+        playerState.momentum += this.sundiverIds.length
 
         state.hurled = true
-        state.cardsToDraw = (state.cardsToDraw ?? 0) + this.sundiverIds.length
+        state.cardsToDraw += this.sundiverIds.length
 
-        const paidPlayerIds = state.paidPlayerIds ?? []
-        for (const gate of this.gates ?? []) {
-            if (gate.playerId !== this.playerId && !paidPlayerIds.includes(gate.playerId)) {
+        for (const gate of this.gates) {
+            if (gate.playerId !== this.playerId && !state.paidPlayerIds.includes(gate.playerId)) {
                 const gateOwner = state.getPlayerState(gate.playerId)
                 gateOwner.energyCubes += 1
-                paidPlayerIds.push(gate.playerId)
+                state.paidPlayerIds.push(gate.playerId)
             }
         }
-        state.paidPlayerIds = paidPlayerIds
     }
 
     static canHurl(state: HydratedSolGameState, playerId: string): boolean {

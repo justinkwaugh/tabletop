@@ -22,9 +22,7 @@
     }
 
     let currentSolarFlare = $derived(
-        (gameSession.gameState.solarFlares ?? 0) -
-            (gameSession.gameState.solarFlaresRemaining ?? 0) +
-            1
+        gameSession.gameState.solarFlares - gameSession.gameState.solarFlaresRemaining + 1
     )
 </script>
 

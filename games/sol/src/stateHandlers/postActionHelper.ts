@@ -9,8 +9,8 @@ export function drawCardsOrEndTurn(
 ): MachineState {
     const currentPlayerId = state.turnManager.currentTurn()?.playerId
     const playerState = state.getPlayerState(currentPlayerId)
-    const drawnCards = playerState.drawnCards ?? []
-    if (!state.cardsToDraw && drawnCards.length > 0) {
+
+    if (!state.cardsToDraw && playerState.drawnCards.length > 0) {
         if (!currentPlayerId) {
             throw Error('No current player')
         }

@@ -71,7 +71,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
         gameState.hurled = false
         gameState.activation = undefined
-        gameState.solarFlareActivations = undefined
+        gameState.solarFlareActivations = []
         gameState.paidPlayerIds = []
         gameState.activeEffect = undefined
         gameState.effectTracking = undefined

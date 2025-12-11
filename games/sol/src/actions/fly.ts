@@ -20,10 +20,10 @@ export const Fly = Type.Evaluate(
             playerId: Type.String(),
             sundiverIds: Type.Array(Type.String()),
             stationId: Type.Optional(Type.String()), // For juggernaut effect
-            gates: Type.Optional(Type.Array(SolarGate)), // Ordered list of required gates to pass through
+            gates: Type.Array(SolarGate), // Ordered list of required gates to pass through
             start: OffsetCoordinates,
             destination: OffsetCoordinates,
-            cluster: Type.Optional(Type.Boolean()),
+            cluster: Type.Boolean(),
             metadata: Type.Optional(FlyMetadata)
         })
     ])
@@ -40,10 +40,10 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     declare playerId: string
     declare sundiverIds: string[]
     declare stationId?: string
-    declare gates?: SolarGate[]
+    declare gates: SolarGate[]
     declare start: OffsetCoordinates
     declare destination: OffsetCoordinates
-    declare cluster?: boolean
+    declare cluster: boolean
     declare metadata?: FlyMetadata
 
     constructor(data: Fly) {
@@ -72,15 +72,13 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             playerState.movementPoints -= distanceMoved * this.sundiverIds.length
         }
 
-        const paidPlayerIds = state.paidPlayerIds ?? []
-        for (const gate of this.gates ?? []) {
-            if (gate.playerId !== this.playerId && !paidPlayerIds.includes(gate.playerId)) {
+        for (const gate of this.gates) {
+            if (gate.playerId !== this.playerId && !state.paidPlayerIds.includes(gate.playerId)) {
                 const gateOwner = state.getPlayerState(gate.playerId)
                 gateOwner.energyCubes += 1
-                paidPlayerIds.push(gate.playerId)
+                state.paidPlayerIds.push(gate.playerId)
             }
         }
-        state.paidPlayerIds = paidPlayerIds
     }
 
     static canFly(state: HydratedSolGameState, playerId: string): boolean {

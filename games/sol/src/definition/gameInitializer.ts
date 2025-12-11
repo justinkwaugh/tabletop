@@ -87,7 +87,13 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             deck,
             effects,
             instability: 13,
-            energyCubes: 89
+            energyCubes: 89,
+            cardsToDraw: 0,
+            solarFlares: 0,
+            solarFlaresRemaining: 0,
+            solarFlareActivations: [],
+            hurled: false,
+            paidPlayerIds: []
         })
 
         return new HydratedSolGameState(solState)
@@ -168,7 +174,9 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
                 sundiverFoundries,
                 transmitTowers,
                 movement: 3,
-                movementPoints: 0
+                movementPoints: 0,
+                drawnCards: [],
+                momentum: 0
             })
         })
 

@@ -134,7 +134,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         } else {
             state.solarFlares = 0
             state.activation = undefined
-            state.solarFlareActivations = undefined
+            state.solarFlareActivations = []
 
             const currentPlayerId = state.turnManager.currentTurn()?.playerId
             if (!currentPlayerId) {

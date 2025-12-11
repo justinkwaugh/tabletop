@@ -98,7 +98,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
             if (state.activeEffect !== EffectType.Motivate) {
                 const cardsToDraw = CARDS_DRAWN_PER_RING[ring]
-                state.cardsToDraw = (state.cardsToDraw ?? 0) + cardsToDraw
+                state.cardsToDraw += cardsToDraw
             }
         }
     }
@@ -130,7 +130,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 break
             case StationType.TransmitTower:
                 playerState.energyCubes -= award
-                playerState.momentum = (playerState.momentum ?? 0) + award
+                playerState.momentum += award
                 metadata.momentumAdded = award
                 break
         }

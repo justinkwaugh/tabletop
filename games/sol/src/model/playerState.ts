@@ -23,8 +23,8 @@ export const SolPlayerState = Type.Evaluate(
             movement: Type.Number(),
             movementPoints: Type.Number(),
             card: Type.Optional(Card),
-            drawnCards: Type.Optional(Type.Array(Card)),
-            momentum: Type.Optional(Type.Number({ default: 0 })) // TODO: Make not optional
+            drawnCards: Type.Array(Card),
+            momentum: Type.Number({ default: 0 })
         })
     ])
 )
@@ -48,8 +48,8 @@ export class HydratedSolPlayerState
     declare movement: number
     declare movementPoints: number
     declare card?: Card
-    declare drawnCards?: Card[]
-    declare momentum?: number
+    declare drawnCards: Card[]
+    declare momentum: number
 
     constructor(data: SolPlayerState) {
         super(data, SolPlayerStateValidator)

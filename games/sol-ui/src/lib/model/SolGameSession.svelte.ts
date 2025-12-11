@@ -119,7 +119,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         // not reset the action before the state change.  This allows for the user to do it
         // in the middle of other actions like moving.  Undo may be an issue here though.
         if (isActivateEffect(action)) {
-            this.skipReset = true
+            if (action.effect !== EffectType.Motivate) {
+                this.skipReset = true
+            }
         }
     }
 
@@ -346,7 +348,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             start: this.chosenSource,
             destination: this.chosenDestination,
             gates: chosenGates,
-            cluster: this.clusterChoice
+            cluster: this.clusterChoice ?? false
         }
 
         await this.doAction(action)

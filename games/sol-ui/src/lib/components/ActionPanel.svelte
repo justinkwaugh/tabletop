@@ -68,7 +68,7 @@
                 if (
                     gameSession.chosenNumDivers > 1 &&
                     gameSession.gameState.activeEffect === EffectType.Cluster &&
-                    (gameSession.gameState.effectTracking?.clustersRemaining ?? 0) > 0 &&
+                    gameSession.gameState.getEffectTracking().clustersRemaining > 0 &&
                     gameSession.clusterChoice === undefined
                 ) {
                     result.message = `USE CLUSTER EFFECT?`
@@ -104,10 +104,10 @@
         } else if (gameSession.isDrawingCards) {
             const myPlayerState = gameSession.myPlayerState
             const squeezed =
-                gameSession.gameState.effectTracking?.squeezed &&
+                gameSession.gameState.getEffectTracking().squeezed &&
                 (myPlayerState?.drawnCards ?? []).length > 0
-            result.message = `DRAW ${gameSession.gameState.cardsToDraw ?? 0} ${squeezed ? 'MORE ' : ''}CARD${
-                (gameSession.gameState.cardsToDraw ?? 0) !== 1 ? 'S' : ''
+            result.message = `DRAW ${gameSession.gameState.cardsToDraw} ${squeezed ? 'MORE ' : ''}CARD${
+                gameSession.gameState.cardsToDraw !== 1 ? 'S' : ''
             }...`
         } else if (gameSession.isChoosingCard) {
             result.message = 'CHOOSE CARD TO KEEP'

@@ -87,7 +87,7 @@ export class HydratedActivateBonus
                 break
             case StationType.TransmitTower:
                 playerState.energyCubes -= award
-                playerState.momentum = (playerState.momentum ?? 0) + award
+                playerState.momentum += award
                 this.metadata.momentumAdded = award
                 break
         }

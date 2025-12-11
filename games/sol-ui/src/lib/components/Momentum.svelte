@@ -8,7 +8,7 @@
 
     const playersOrderedByMomentum = $derived.by(() => {
         return [...gameSession.gameState.players].sort((a, b) => {
-            return (a.momentum ?? 0) - (b.momentum ?? 0)
+            return a.momentum - b.momentum
         })
     })
 </script>
@@ -39,7 +39,7 @@
                         stroke-width="1"
                         stroke="#dddddd"
                         opacity="1"
-                        fill="#dddddd">{playerState.momentum ?? 0}</text
+                        fill="#dddddd">{playerState.momentum}</text
                     >
                 </svg>
             </div>

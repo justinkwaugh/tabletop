@@ -70,9 +70,9 @@ export class HydratedActivateEffect
         // Retroactive ceremony application
         if (
             this.effect === EffectType.Ceremony &&
-            (state.effectTracking?.outerRingLaunches ?? 0) > 0
+            state.getEffectTracking().outerRingLaunches > 0
         ) {
-            playerState.energyCubes += state.effectTracking?.outerRingLaunches ?? 0
+            playerState.energyCubes += state.getEffectTracking().outerRingLaunches
         } else if (this.effect === EffectType.Augment) {
             const activation = state.activation!
             const currentStationCoords = activation.currentStationCoords!
@@ -105,7 +105,7 @@ export class HydratedActivateEffect
                     break
                 case StationType.TransmitTower:
                     console.log('Applying augment momentum reward:', additionalReward)
-                    playerState.momentum = (playerState.momentum ?? 0) + additionalReward
+                    playerState.momentum += additionalReward
                     this.metadata.momentumAdded = additionalReward
                     break
             }

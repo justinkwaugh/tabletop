@@ -12,7 +12,7 @@
         if (!playerState) {
             return 0
         }
-        const movementPoints = playerState.movementPoints ?? 0
+        const movementPoints = playerState.movementPoints
 
         if (gameSession.chosenMothership) {
             const numShipsInHold = playerState.numSundiversInHold() ?? 0

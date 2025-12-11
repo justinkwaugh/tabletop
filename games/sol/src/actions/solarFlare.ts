@@ -45,7 +45,7 @@ export class HydratedSolarFlare extends HydratableAction<typeof SolarFlare> impl
                 throw Error('No current player')
             }
             const playerState = state.getPlayerState(currentPlayerId)
-            playerState.momentum = (playerState.momentum ?? 0) + 1
+            playerState.momentum += 1
         }
     }
 }

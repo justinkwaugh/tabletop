@@ -15,8 +15,8 @@ import { Activate } from '../actions/activate.js'
 import { nanoid } from 'nanoid'
 import { ActivatingStateHandler } from './activating.js'
 
-// Transition from CheckEffect(ActivateEffect) -> ??
-// Transition from CheckEffect(Pass) -> ??
+// Transition from CheckEffect(ActivateEffect) -> Lots of places
+// Transition from CheckEffect(Pass) -> Lots of places
 
 type CheckEffectAction = HydratedPass | HydratedActivateEffect
 
