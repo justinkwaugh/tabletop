@@ -66,7 +66,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
         state.board.addSundiversToCell(removedSundivers, this.destination)
         if (this.cluster) {
-            playerState.movementPoints -= distanceMoved + 1
+            playerState.movementPoints -= distanceMoved
             state.getEffectTracking().clustersRemaining -= 1
         } else {
             playerState.movementPoints -= distanceMoved * this.sundiverIds.length
@@ -163,7 +163,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         // Check range
         let range = playerState.movementPoints
         if (cluster) {
-            range -= 1
+            range = 1
         } else {
             range = Math.floor(range / numSundivers)
         }
