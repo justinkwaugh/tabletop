@@ -50,6 +50,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     diverCellChoices?: number[] = $state(undefined)
 
     clusterChoice?: boolean = $state(undefined)
+    hyperdriveChoice?: boolean = $state(undefined)
 
     drawnCards: Card[] = $derived.by(() => {
         const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId
@@ -119,6 +120,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         // not reset the action before the state change.  This allows for the user to do it
         // in the middle of other actions like moving.  Undo may be an issue here though.
         if (isActivateEffect(action)) {
+            if (action.effect === EffectType.Hyperdrive && (this.chosenNumDivers ?? 0) > 1) {
+                this.chosenNumDivers = 1
+            }
             if (action.effect !== EffectType.Motivate) {
                 this.skipReset = true
             }
@@ -149,6 +153,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             ).length
         } else if (this.chosenMothership) {
             availableFromSource = this.myPlayerState.numSundiversInHold()
+        }
+
+        if (availableFromSource > 1 && this.gameState.activeEffect === EffectType.Hyperdrive) {
+            availableFromSource = 1
         }
 
         return Math.min(this.myPlayerState.movementPoints, availableFromSource)
@@ -215,6 +223,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             }
         } else if (this.clusterChoice !== undefined) {
             this.clusterChoice = undefined
+        } else if (this.hyperdriveChoice !== undefined) {
+            this.hyperdriveChoice = undefined
         } else if (this.chosenNumDivers) {
             this.chosenNumDivers = undefined
             if (this.numPlayerCanMoveFromSource() === 1) {
@@ -249,6 +259,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.gateChoices = undefined
 
         this.clusterChoice = undefined
+        this.hyperdriveChoice = undefined
 
         this.forcedCallToAction = undefined
     }
@@ -348,7 +359,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             start: this.chosenSource,
             destination: this.chosenDestination,
             gates: chosenGates,
-            cluster: this.clusterChoice ?? false
+            cluster: this.clusterChoice ?? false,
+            hyperdrive: this.hyperdriveChoice ?? false
         }
 
         await this.doAction(action)

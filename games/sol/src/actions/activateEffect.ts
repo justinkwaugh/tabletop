@@ -113,6 +113,8 @@ export class HydratedActivateEffect
             state.getEffectTracking().clustersRemaining = 2
         } else if (this.effect === EffectType.Squeeze) {
             state.getEffectTracking().squeezed = true
+        } else if (this.effect === EffectType.Hyperdrive) {
+            playerState.movementPoints *= 2
         }
     }
 
@@ -158,6 +160,8 @@ export class HydratedActivateEffect
                 return this.canActivateCascade(state, playerId)
             case EffectType.Squeeze:
                 return this.canActivateSqueeze(state, playerId)
+            case EffectType.Hyperdrive:
+                return this.canActivateHyperdrive(state, playerId)
             default:
                 return false
         }
@@ -222,7 +226,6 @@ export class HydratedActivateEffect
         return HydratedConvert.canConvert(state, playerId)
     }
 
-    // Special... needs stationId
     static canActivateSqueeze(state: HydratedSolGameState, playerId: string): boolean {
         const activation = state.activation
         if (!activation) {
@@ -261,6 +264,10 @@ export class HydratedActivateEffect
         }
 
         return true
+    }
+
+    static canActivateHyperdrive(state: HydratedSolGameState, playerId: string): boolean {
+        return state.machineState === MachineState.Moving && !state.moved
     }
 
     static hasCardForEffect(

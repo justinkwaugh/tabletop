@@ -55,6 +55,8 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
             throw Error('Invalid launch')
         }
 
+        state.moved = true
+
         const playerState = state.getPlayerState(this.playerId)
         const mothershipPlayer = state.getPlayerState(this.mothership)
         const launchedSundivers = mothershipPlayer.removeSundiversFromHold(
@@ -72,6 +74,11 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
             if (state.activeEffect === EffectType.Ceremony) {
                 playerState.energyCubes += this.numSundivers
             }
+        }
+
+        if (state.activeEffect === EffectType.Hyperdrive) {
+            state.getEffectTracking().flownSundiverId = launchedSundivers[0].id
+            state.getEffectTracking().movementUsed += this.numSundivers
         }
     }
 
@@ -108,6 +115,13 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
 
     isValidLaunch(state: HydratedSolGameState): boolean {
         const playerState = state.getPlayerState(this.playerId)
+
+        if (
+            state.activeEffect === EffectType.Hyperdrive &&
+            (state.moved || this.numSundivers !== 1)
+        ) {
+            return false
+        }
 
         if (playerState.movementPoints < this.numSundivers) {
             return false

@@ -8,6 +8,7 @@ import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
+import { EffectType } from '../components/effects.js'
 
 // Transition from Moving(Launch) -> Moving | StartOfTurn
 // Transition from Moving(Fly) -> Moving | StartOfTurn

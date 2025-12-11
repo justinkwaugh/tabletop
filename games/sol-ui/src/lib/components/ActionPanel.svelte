@@ -14,6 +14,7 @@
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
+        HyperdriveEffect = 'HyperdriveEffect',
         ActivateBonus = 'ActivateBonus',
         SqueezeEffect = 'SqueezeEffect'
     }
@@ -21,6 +22,7 @@
     enum NoActions {
         Pass = 'Pass',
         NoClusterEffect = 'NoClusterEffect',
+        NoHyperdriveEffect = 'NoHyperdriveEffect',
         NoSqueezeEffect = 'NoSqueezeEffect'
     }
 
@@ -179,6 +181,8 @@
     async function yes(action?: YesActions) {
         if (action === YesActions.ClusterEffect) {
             gameSession.clusterChoice = true
+        } else if (action === YesActions.HyperdriveEffect) {
+            gameSession.hyperdriveChoice = true
         } else if (action === YesActions.ActivateBonus) {
             await gameSession.activateBonus()
         } else if (action === YesActions.SqueezeEffect) {
@@ -193,6 +197,8 @@
             await gameSession.pass()
         } else if (action === NoActions.NoClusterEffect) {
             gameSession.clusterChoice = false
+        } else if (action === NoActions.NoHyperdriveEffect) {
+            gameSession.hyperdriveChoice = false
         } else if (action === NoActions.NoSqueezeEffect) {
             await gameSession.activateStation()
         } else {

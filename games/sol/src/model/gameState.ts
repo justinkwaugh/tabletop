@@ -34,6 +34,7 @@ export const SolGameState = Type.Evaluate(
             solarFlaresRemaining: Type.Number({ default: 0 }),
             solarFlareActivations: Type.Array(Activation),
             hurled: Type.Boolean({ default: false }),
+            moved: Type.Optional(Type.Boolean({ default: false })),
             paidPlayerIds: Type.Array(Type.String()),
             activeEffect: Type.Optional(Type.Enum(EffectType)),
             effectTracking: Type.Optional(
@@ -41,7 +42,9 @@ export const SolGameState = Type.Evaluate(
                     outerRingLaunches: Type.Number(), // For Ceremony effect
                     convertedStation: Type.Optional(Station), // For Motivate effect
                     clustersRemaining: Type.Number(), // For Cluster effect
-                    squeezed: Type.Boolean() // For Squeeze effect
+                    squeezed: Type.Boolean(), // For Squeeze effect
+                    flownSundiverId: Type.Optional(Type.String()), // For Hyperdrive effect
+                    movementUsed: Type.Number() // For Hyperdrive effect
                 })
             )
         })
@@ -76,6 +79,7 @@ export class HydratedSolGameState
     declare solarFlaresRemaining: number
     declare solarFlareActivations: Activation[]
     declare hurled: boolean
+    declare moved?: boolean
     declare paidPlayerIds: string[]
     declare activeEffect?: EffectType
     declare effectTracking?: {
@@ -83,6 +87,8 @@ export class HydratedSolGameState
         convertedStation?: Station
         clustersRemaining: number
         squeezed: boolean
+        flownSundiverId?: string
+        movementUsed: number
     }
 
     constructor(data: SolGameState) {
@@ -96,7 +102,12 @@ export class HydratedSolGameState
 
     getEffectTracking() {
         if (!this.effectTracking) {
-            this.effectTracking = { outerRingLaunches: 0, clustersRemaining: 0, squeezed: false }
+            this.effectTracking = {
+                outerRingLaunches: 0,
+                clustersRemaining: 0,
+                squeezed: false,
+                movementUsed: 0
+            }
         }
         return this.effectTracking
     }

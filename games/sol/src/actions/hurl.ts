@@ -5,6 +5,8 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { SolarGate } from '../components/solarGate.js'
 import { CENTER_COORDS } from '../components/gameBoard.js'
+import { EffectType } from '../components/effects.js'
+import { HydratedFly } from './fly.js'
 
 export type HurlMetadata = Static<typeof HurlMetadata>
 export const HurlMetadata = Type.Object({})
@@ -19,6 +21,7 @@ export const Hurl = Type.Evaluate(
             sundiverIds: Type.Array(Type.String()),
             gates: Type.Array(SolarGate), // Ordered list of required gates to pass through
             start: OffsetCoordinates,
+            cluster: Type.Boolean(),
             metadata: Type.Optional(HurlMetadata)
         })
     ])
@@ -36,6 +39,7 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
     declare sundiverIds: string[]
     declare gates: SolarGate[]
     declare start: OffsetCoordinates
+    declare cluster: boolean
     declare metadata?: HurlMetadata
 
     constructor(data: Hurl) {
@@ -45,15 +49,17 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
 
-        const pathLength = this.pathLengthToCenter(state)
-        if (!pathLength) {
+        const path = this.isValidHurl(state)
+        if (!path || path.length < 2) {
             throw Error('Invalid hurl')
         }
+        state.moved = true
 
         // These divers are gone for good
         state.board.removeSundiversAt(this.sundiverIds, this.start)
 
-        playerState.movementPoints -= this.sundiverIds.length * pathLength
+        const distanceMoved = this.sundiverIds.length * (path.length - 1)
+        playerState.movementPoints -= distanceMoved
         playerState.momentum += this.sundiverIds.length
 
         state.hurled = true
@@ -65,6 +71,11 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
                 gateOwner.energyCubes += 1
                 state.paidPlayerIds.push(gate.playerId)
             }
+        }
+
+        if (state.activeEffect === EffectType.Hyperdrive) {
+            state.getEffectTracking().flownSundiverId = this.sundiverIds[0]
+            state.getEffectTracking().movementUsed += distanceMoved
         }
     }
 
@@ -88,14 +99,43 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
         return false
     }
 
-    pathLengthToCenter(state: HydratedSolGameState): number {
+    isValidHurl(state: HydratedSolGameState): OffsetCoordinates[] | undefined {
         const playerState = state.getPlayerState(this.playerId)
-        const path = state.board.pathToDestination({
+
+        if (
+            this.cluster &&
+            (state.activeEffect !== EffectType.Cluster || !state.effectTracking?.clustersRemaining)
+        ) {
+            return
+        }
+
+        if (
+            state.activeEffect === EffectType.Hyperdrive &&
+            (this.sundiverIds.length !== 1 ||
+                (state.effectTracking?.flownSundiverId &&
+                    state.effectTracking?.flownSundiverId !== this.sundiverIds[0]))
+        ) {
+            return
+        }
+
+        if (
+            !HydratedFly.isValidFlightDestination({
+                state,
+                playerId: this.playerId,
+                numSundivers: this.sundiverIds.length,
+                start: this.start,
+                destination: CENTER_COORDS,
+                cluster: this.cluster
+            })
+        ) {
+            return
+        }
+
+        return state.board.pathToDestination({
             start: this.start,
             destination: CENTER_COORDS,
             range: playerState.movementPoints / this.sundiverIds.length,
             requiredGates: this.gates
         })
-        return path ? path.length - 1 : 0
     }
 }

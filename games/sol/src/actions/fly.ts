@@ -58,6 +58,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             throw Error('Invalid flight')
         }
 
+        state.moved = true
         this.metadata = {
             flightPath: path
         }
@@ -70,6 +71,11 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             state.getEffectTracking().clustersRemaining -= 1
         } else {
             playerState.movementPoints -= distanceMoved * this.sundiverIds.length
+        }
+
+        if (state.activeEffect === EffectType.Hyperdrive) {
+            state.getEffectTracking().flownSundiverId = this.sundiverIds[0]
+            state.getEffectTracking().movementUsed += distanceMoved
         }
 
         for (const gate of this.gates) {
@@ -102,6 +108,15 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         if (
             this.cluster &&
             (state.activeEffect !== EffectType.Cluster || !state.effectTracking?.clustersRemaining)
+        ) {
+            return
+        }
+
+        if (
+            state.activeEffect === EffectType.Hyperdrive &&
+            (this.sundiverIds.length !== 1 ||
+                (state.effectTracking?.flownSundiverId &&
+                    state.effectTracking?.flownSundiverId !== this.sundiverIds[0]))
         ) {
             return
         }

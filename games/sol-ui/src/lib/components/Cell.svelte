@@ -13,6 +13,7 @@
     } from '$lib/utils/boardGeometry.js'
     import {
         CENTER_COORDS,
+        EffectType,
         HydratedActivate,
         HydratedFly,
         HydratedHurl,
@@ -92,7 +93,22 @@
                     }
                 }
             } else {
-                return gameSession.gameState.board.sundiversForPlayer(myPlayer.id, cell).length > 0
+                const sundivers = gameSession.gameState.board.sundiversForPlayerAt(
+                    myPlayer.id,
+                    cell.coords
+                )
+                if (!sundivers || sundivers.length === 0) {
+                    return false
+                }
+
+                if (
+                    gameSession.gameState.activeEffect === EffectType.Hyperdrive &&
+                    gameSession.gameState.effectTracking?.flownSundiverId
+                ) {
+                    const flownSundiverId = gameSession.gameState.effectTracking.flownSundiverId
+                    return sundivers.some((sundiver) => sundiver.id === flownSundiverId)
+                }
+                return sundivers.length > 0
             }
         } else if (myConvert) {
             if (gameSession.chosenConvertType === ConvertType.SolarGate) {

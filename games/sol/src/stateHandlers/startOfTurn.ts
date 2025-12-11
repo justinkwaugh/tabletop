@@ -70,6 +70,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const gameState = context.gameState as HydratedSolGameState
 
         gameState.hurled = false
+        gameState.moved = false
         gameState.activation = undefined
         gameState.solarFlareActivations = []
         gameState.paidPlayerIds = []
