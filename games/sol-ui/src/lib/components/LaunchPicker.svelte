@@ -2,9 +2,31 @@
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import Sundiver from './Sundiver.svelte'
+    import { EffectType, StationType } from '@tabletop/sol'
+    import EnergyNode from '$lib/images/energynode.svelte'
+    import Foundry from '$lib/images/foundry.svelte'
+    import Tower from '$lib/images/tower.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let playerColor = $derived(gameSession.colors.getPlayerColor(gameSession.myPlayer?.id))
+    let station = $derived.by(() => {
+        if (
+            !gameSession.myPlayer ||
+            !gameSession.chosenSource ||
+            gameSession.gameState.activeEffect !== EffectType.Juggernaut
+        ) {
+            return
+        }
+        if (
+            !gameSession.gameState.board.hasStationAt(
+                gameSession.chosenSource,
+                gameSession.myPlayer.id
+            )
+        ) {
+            return
+        }
+        return gameSession.gameState.board.cellAt(gameSession.chosenSource).station
+    })
 
     // Also need to incorporate how many available spaces are around the mothership
     let maxPieces = $derived.by(() => {
@@ -34,6 +56,33 @@
 </script>
 
 <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
+    {#if station}
+        {#if station.type === StationType.EnergyNode}
+            <button>
+                <EnergyNode
+                    width={46}
+                    height={48}
+                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                />
+            </button>
+        {:else if station.type === StationType.SundiverFoundry}
+            <button>
+                <Foundry
+                    width={46}
+                    height={48}
+                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                />
+            </button>
+        {:else if station.type === StationType.TransmitTower}
+            <button>
+                <Tower
+                    width={40}
+                    height={80}
+                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                />
+            </button>
+        {/if}
+    {/if}
     {#if maxPieces > 0}
         <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">
             <Sundiver

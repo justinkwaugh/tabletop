@@ -145,9 +145,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         let availableFromSource = 0
         if (this.chosenSource) {
             const cell = this.gameState.board.cellAt(this.chosenSource)
-            if (!cell) {
-                return 0
-            }
             availableFromSource = this.gameState.board.sundiversForPlayer(
                 this.myPlayerState.playerId,
                 cell
@@ -165,6 +162,15 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
 
         return Math.min(this.myPlayerState.movementPoints, availableFromSource)
+    }
+
+    canMoveStationFromSource(): boolean {
+        return (
+            this.myPlayer !== undefined &&
+            this.chosenSource !== undefined &&
+            this.gameState.activeEffect === EffectType.Juggernaut &&
+            this.gameState.board.hasStationAt(this.chosenSource, this.myPlayer.id)
+        )
     }
 
     locationForDiverInCell(playerId: string, cell: Cell): Point | undefined {

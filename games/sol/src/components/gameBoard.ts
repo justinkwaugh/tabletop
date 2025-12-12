@@ -546,6 +546,17 @@ export class HydratedSolGameBoard
         return undefined
     }
 
+    public hasStationAt(coords: OffsetCoordinates, playerId?: string): boolean {
+        const cell = this.cellAt(coords)
+        if (!cell.station) {
+            return false
+        }
+        if (playerId && cell.station.playerId !== playerId) {
+            return false
+        }
+        return true
+    }
+
     public findStation(stationId: string): Station | undefined {
         for (const [key, cell] of Object.entries(this.cells)) {
             if (cell.station?.id === stationId) {

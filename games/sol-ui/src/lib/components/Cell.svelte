@@ -98,6 +98,14 @@
                     myPlayer.id,
                     cell.coords
                 )
+
+                if (
+                    gameSession.gameState.activeEffect === EffectType.Juggernaut &&
+                    gameSession.gameState.board.hasStationAt(cell.coords, myPlayer.id)
+                ) {
+                    return true
+                }
+
                 if (!sundivers || sundivers.length === 0) {
                     return false
                 }
@@ -117,7 +125,7 @@
                     const flownSundiverId = gameSession.gameState.effectTracking.flownSundiverId
                     return sundivers.some((sundiver) => sundiver.id === flownSundiverId)
                 }
-                return sundivers.length > 0
+                return true
             }
         } else if (myConvert) {
             if (gameSession.gameState.activeEffect === EffectType.Invade) {
@@ -207,7 +215,11 @@
                 }
             } else {
                 gameSession.chosenSource = cell.coords
-                if (gameSession.numPlayerCanMoveFromSource() === 1) {
+
+                const canMoveStation = gameSession.canMoveStationFromSource()
+                if (gameSession.numPlayerCanMoveFromSource() === 1 && !canMoveStation) {
+                    gameSession.chosenNumDivers = 1
+                } else if (canMoveStation && gameSession.numPlayerCanMoveFromSource() === 0) {
                     gameSession.chosenNumDivers = 1
                 }
             }
