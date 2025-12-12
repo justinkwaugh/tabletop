@@ -104,28 +104,6 @@ export class HydratedSolGameBoard
         return aNeighbors.some((neighbor) => sameCoordinates(neighbor.coords, coordsB))
     }
 
-    public reachableCoordinates(
-        coords: OffsetCoordinates,
-        range: number,
-        portal?: boolean
-    ): OffsetCoordinates[] {
-        if (portal) {
-            this.graph.setPortals(Object.values(this.motherships))
-        }
-        try {
-            const traverser = solTraverser({
-                board: this,
-                start: coords,
-                range
-            })
-            return Array.from(this.graph.traverse(traverser)).map((node) => node.coords)
-        } finally {
-            if (portal) {
-                this.graph.clearPortals()
-            }
-        }
-    }
-
     public hasGateBetween(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
         const gateKey = this.gateKey(coordsA, coordsB)
         return !!this.gates[gateKey]

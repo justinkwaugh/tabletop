@@ -3,26 +3,40 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedChooseCard, isChooseCard } from '../actions/chooseCard.js'
-import { isPass } from '../actions/pass.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 
 // Transition from ChoosingCard(ChooseCard) -> StartOfTurn
 // Transition from ChoosingCard(Pass) -> StartOfTurn
+// Transition from ChoosingCard(ActivateEffect) -> ChoosingCard
 
-export class ChoosingCardStateHandler implements MachineStateHandler<HydratedChooseCard> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedChooseCard {
+type ChoosingCardAction = HydratedChooseCard | HydratedActivateEffect | HydratedPass
+
+export class ChoosingCardStateHandler implements MachineStateHandler<ChoosingCardAction> {
+    isValidAction(action: HydratedAction, context: MachineContext): action is ChoosingCardAction {
         if (!action.playerId) return false
-        return isChooseCard(action) || isPass(action)
+        return isChooseCard(action) || isPass(action) || isActivateEffect(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        return [ActionType.Pass, ActionType.ChooseCard]
+        const gameState = context.gameState as HydratedSolGameState
+        const validActions = [ActionType.Pass, ActionType.ChooseCard]
+
+        if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
+            validActions.push(ActionType.ActivateEffect)
+        }
+
+        return validActions
     }
 
     enter(_context: MachineContext) {}
 
-    onAction(action: HydratedChooseCard, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: ChoosingCardAction, context: MachineContext): MachineState {
+        if (isActivateEffect(action)) {
+            return MachineState.ChoosingCard
+        }
 
+        const gameState = context.gameState as HydratedSolGameState
         const playerState = gameState.getPlayerState(action.playerId)
         playerState.drawnCards = []
 

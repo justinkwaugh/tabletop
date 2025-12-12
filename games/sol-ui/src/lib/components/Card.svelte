@@ -56,6 +56,10 @@
 
         gameSession.activateEffect(effectForSuit(card.suit))
     }
+
+    function labelSize(name: string): string {
+        return name.length > 8 ? 'card-label-small' : ''
+    }
 </script>
 
 <div
@@ -77,7 +81,8 @@
         {/if}
     </div>
     <div
-        class="card-label w-full text-center {card.suit === Suit.Flare
+        class="card-label {labelSize(effectForSuit(card.suit))} w-full text-center {card.suit ===
+        Suit.Flare
             ? 'text-[#fdfdfd]'
             : 'text-black'} text-xs uppercase tracking-widest"
     >
@@ -96,5 +101,9 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    .card-label-small {
+        font-size: clamp(0.15rem, 14cqi, 2rem);
     }
 </style>

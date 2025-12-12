@@ -117,6 +117,20 @@ export class HydratedActivateEffect
             state.getEffectTracking().squeezed = true
         } else if (this.effect === EffectType.Hyperdrive) {
             playerState.movementPoints *= 2
+        } else if (this.effect === EffectType.Procreate) {
+            for (const cell of state.board) {
+                const sundiversInCell = state.board.sundiversForPlayerAt(this.playerId, cell.coords)
+                if (
+                    sundiversInCell.length >= 2 &&
+                    state.board.canAddSundiversToCell(this.playerId, 1, cell.coords)
+                ) {
+                    const newDiver = playerState.reserveSundivers.pop()
+                    if (newDiver) {
+                        state.board.addSundiversToCell([newDiver], cell.coords)
+                        this.metadata.createdSundiverIds.push(newDiver.id)
+                    }
+                }
+            }
         }
     }
 
@@ -174,6 +188,8 @@ export class HydratedActivateEffect
                 return this.canActivateFestival(state, playerId)
             case EffectType.Portal:
                 return this.canActivatePortal(state, playerId)
+            case EffectType.Procreate:
+                return this.canActivateProcreate(state, playerId)
             default:
                 return false
         }
@@ -315,6 +331,20 @@ export class HydratedActivateEffect
 
     static canActivatePortal(state: HydratedSolGameState, playerId: string): boolean {
         return state.machineState === MachineState.Moving
+    }
+
+    static canActivateProcreate(state: HydratedSolGameState, playerId: string): boolean {
+        const numReserveSundiversNeeded = Iterator.from(state.board).reduce((acc, cell) => {
+            if (
+                state.board.sundiversForPlayerAt(playerId, cell.coords).length >= 2 &&
+                state.board.canAddSundiversToCell(playerId, 1, cell.coords)
+            ) {
+                return acc + 1
+            }
+            return acc
+        }, 0)
+        const playerState = state.getPlayerState(playerId)
+        return playerState.reserveSundivers.length >= numReserveSundiversNeeded
     }
 
     static hasCardForEffect(

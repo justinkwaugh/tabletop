@@ -13,20 +13,34 @@ import { Ring } from '../utils/solGraph.js'
 import { nanoid } from 'nanoid'
 import { Activation } from '../model/activation.js'
 import { HydratedPass, isPass, Pass } from '../actions/pass.js'
+import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 
 // Transition from SolarFlares(SolarFlare) -> SolarFlares | ChoosingCard
 // Transition from SolarFlares(Activate) -> SolarFlares | ChoosingCard
 // Transition from SolarFlares(Pass) -> SolarFlares | ChoosingCard
+// Transition from SolarFlares(ActivateEffect) -> SolarFlares
 
-type SolarFlaresActions = HydratedPass | HydratedSolarFlare | HydratedActivate
+type SolarFlaresActions =
+    | HydratedPass
+    | HydratedSolarFlare
+    | HydratedActivate
+    | HydratedActivateEffect
 
 export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresActions> {
     isValidAction(action: HydratedAction, context: MachineContext): action is SolarFlaresActions {
-        return isSolarFlare(action) || isActivate(action) || isPass(action)
+        return (
+            isSolarFlare(action) || isActivate(action) || isPass(action) || isActivateEffect(action)
+        )
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        return [ActionType.Pass, ActionType.Activate]
+        const gameState = context.gameState as HydratedSolGameState
+        const validActionns = [ActionType.Pass, ActionType.Activate]
+        if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
+            validActionns.push(ActionType.ActivateEffect)
+        }
+        console.log('Valid solar flares actions', validActionns)
+        return validActionns
     }
 
     enter(_context: MachineContext) {}
@@ -35,6 +49,9 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         const gameState = context.gameState as HydratedSolGameState
 
         switch (true) {
+            case isActivateEffect(action): {
+                return MachineState.SolarFlares
+            }
             case isSolarFlare(action): {
                 const activatingPlayerIds = gameState.players
                     .filter((ps) => {

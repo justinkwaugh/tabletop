@@ -46,9 +46,6 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
         const gameState = context.gameState as HydratedSolGameState
 
         if (isActivateEffect(action)) {
-            if (action.effect !== EffectType.Pillar) {
-                throw Error('Only Pillar effect can be activated during drawing cards')
-            }
             return MachineState.DrawingCards
         }
 
