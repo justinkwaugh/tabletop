@@ -138,8 +138,9 @@
                 </div>
                 <div class="flex flex-row justify-between items-center w-full h-full px-3 pb-1">
                     <div class="flex flex-col justify-between items-center h-full">
+                        <div class="text-[.5rem] tracking-normal sol-font text-[#cccccc]">HOLD</div>
                         <div class="shrink-0">
-                            <Ship width={35} height={80} />
+                            <Ship width={35} height={60} />
                         </div>
                         <div class="text-[.5rem] tracking-normal sol-font text-[#cccccc]">
                             RESERVE
