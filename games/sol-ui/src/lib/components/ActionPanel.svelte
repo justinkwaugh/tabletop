@@ -225,7 +225,7 @@
 <div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">
     <Header />
 
-    <div class="header-grid grid {gameSession.acting ? 'h-[50px]' : 'h-[68px]'}">
+    <div class="header-grid grid {gameSession.acting ? 'h-[50px]' : 'h-[68px]'} overflow-hidden">
         {#if !gameSession.acting}
             <div
                 out:fade={{ duration: 100 }}
@@ -262,7 +262,6 @@
             </div>
         {:else}
             <!-- Call to action -->
-
             {#if callToAction.message}
                 {#key callToAction}
                     <div
@@ -301,7 +300,9 @@
     {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers}
         <LaunchPicker />
     {:else if gameSession.isConverting && !gameSession.chosenConvertType}
-        <ConvertPicker />
+        <div in:fade={{ duration: 200 }}>
+            <ConvertPicker />
+        </div>
     {:else if gameSession.gameState.activeEffect === EffectType.Pillar && !gameSession.pillarGuess}
         <SuitPicker />
     {/if}

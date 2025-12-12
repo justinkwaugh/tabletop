@@ -16,6 +16,8 @@ export class SolGameColorizer extends DefaultColorizer {
                 return '#804796'
             case Color.Gray:
                 return '#888888'
+            case Color.Black:
+                return '#444444'
             default:
                 return '#555555'
         }
@@ -35,6 +37,8 @@ export class SolGameColorizer extends DefaultColorizer {
                 return 'bg-[#804796]'
             case Color.Gray:
                 return 'bg-[#888888]'
+            case Color.Black:
+                return 'bg-[#444444]'
             default:
                 return 'bg-[#555555]'
         }
