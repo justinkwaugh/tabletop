@@ -89,7 +89,7 @@
         <h1
             class="ms-2 text-left tracking-widest {isTurn
                 ? 'text-xl font-semibold'
-                : 'text-lg font-medium'} mb-1"
+                : 'text-lg font-medium'}"
         >
             {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
         </h1>
