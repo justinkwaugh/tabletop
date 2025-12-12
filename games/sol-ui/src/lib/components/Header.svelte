@@ -37,7 +37,7 @@
                 class="inline-flex items-center gap-x-2"
             >
                 <MoveArrows />
-                <div>MOVING</div>
+                <div>MOVING - {gameSession.myPlayerState?.movementPoints ?? 0} LEFT</div>
             </div>
         {:else if gameSession.isConverting}
             <div
@@ -96,12 +96,7 @@
             </div>
         {/if}
     </div>
-    {#if gameSession.isMoving}
-        <div>
-            REMAINING: {(gameSession.myPlayerState?.movementPoints ?? 0) *
-                (gameSession.hyperdriveChoice ? 2 : 1)}
-        </div>
-    {/if}
+
     <div>
         <div class="header-grid grid">
             {#if gameSession.midAction}

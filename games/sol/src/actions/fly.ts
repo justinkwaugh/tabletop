@@ -128,6 +128,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             this.cluster &&
             (state.activeEffect !== EffectType.Cluster || !state.effectTracking?.clustersRemaining)
         ) {
+            console.log('no more clusters remaining')
             return
         }
 
@@ -137,6 +138,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 (state.effectTracking?.flownSundiverId &&
                     state.effectTracking?.flownSundiverId !== this.sundiverIds[0]))
         ) {
+            console.log('invalid hyperdrive flight')
             return
         }
 
@@ -150,6 +152,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 cluster: this.cluster
             })
         ) {
+            console.log('invalid flight destination')
             return
         }
 
@@ -193,6 +196,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             numSundivers > 0 &&
             !state.board.canAddSundiversToCell(playerId, numSundivers, destination)
         ) {
+            console.log('Cannot add sundivers to cell')
             return false
         }
 
@@ -210,6 +214,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         const portal = state.activeEffect === EffectType.Portal
         const path = state.board.pathToDestination({ start, destination, range, portal })
         if (!path) {
+            console.log('No path found')
             return false
         }
 

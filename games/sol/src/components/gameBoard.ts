@@ -245,7 +245,8 @@ export class HydratedSolGameBoard
             const pathThroughGates = this.pathThroughGates({
                 start,
                 requiredGates,
-                range
+                range,
+                portal
             })
             if (!pathThroughGates) {
                 return undefined
