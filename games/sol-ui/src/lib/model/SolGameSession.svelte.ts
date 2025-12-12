@@ -51,6 +51,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     clusterChoice?: boolean = $state(undefined)
     hyperdriveChoice?: boolean = $state(undefined)
+    pillarGuess?: Suit = $state(undefined)
 
     drawnCards: Card[] = $derived.by(() => {
         const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId
@@ -264,6 +265,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         this.clusterChoice = undefined
         this.hyperdriveChoice = undefined
+        this.pillarGuess = undefined
 
         this.forcedCallToAction = undefined
     }
@@ -835,8 +837,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         if (!this.myPlayer || !this.isDrawingCards) {
             throw new Error('Invalid draw card')
         }
+
+        if (this.gameState.activeEffect !== EffectType.Pillar || !this.pillarGuess) {
+            throw new Error('Missing pillar guess')
+        }
+
         const action = {
             ...this.createBaseAction(ActionType.DrawCards),
+            suitGuess: this.pillarGuess,
             playerId: this.myPlayer.id,
             revealsInfo: true
         }

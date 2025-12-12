@@ -11,6 +11,7 @@
     import CardPicker from './CardPicker.svelte'
     import { fade } from 'svelte/transition'
     import { CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
+    import SuitPicker from './SuitPicker.svelte'
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
@@ -104,13 +105,20 @@
                 result.noAction = NoActions.Pass
             }
         } else if (gameSession.isDrawingCards) {
-            const myPlayerState = gameSession.myPlayerState
-            const squeezed =
-                gameSession.gameState.getEffectTracking().squeezed &&
-                (myPlayerState?.drawnCards ?? []).length > 0
-            result.message = `DRAW ${gameSession.gameState.cardsToDraw} ${squeezed ? 'MORE ' : ''}CARD${
-                gameSession.gameState.cardsToDraw !== 1 ? 'S' : ''
-            }...`
+            if (
+                gameSession.gameState.activeEffect === EffectType.Pillar &&
+                !gameSession.pillarGuess
+            ) {
+                result.message = 'GUESS A SUIT'
+            } else {
+                const myPlayerState = gameSession.myPlayerState
+                const squeezed =
+                    gameSession.gameState.getEffectTracking().squeezed &&
+                    (myPlayerState?.drawnCards ?? []).length > 0
+                result.message = `DRAW ${gameSession.gameState.cardsToDraw} ${squeezed ? 'MORE ' : ''}CARD${
+                    gameSession.gameState.cardsToDraw !== 1 ? 'S' : ''
+                }...`
+            }
         } else if (gameSession.isChoosingCard) {
             result.message = 'CHOOSE CARD TO KEEP'
             result.showSkip = true
@@ -290,6 +298,8 @@
         <LaunchPicker />
     {:else if gameSession.isConverting && !gameSession.chosenConvertType}
         <ConvertPicker />
+    {:else if gameSession.gameState.activeEffect === EffectType.Pillar && !gameSession.pillarGuess}
+        <SuitPicker />
     {/if}
 </div>
 

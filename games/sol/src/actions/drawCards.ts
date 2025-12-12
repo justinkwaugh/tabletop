@@ -27,6 +27,7 @@ export const DrawCards = Type.Evaluate(
             type: Type.Literal(ActionType.DrawCards),
             playerId: Type.String(),
             revealsInfo: Type.Literal(true),
+            suitGuess: Type.Optional(Type.Enum(Suit)),
             metadata: Type.Optional(DrawCardsMetadata)
         })
     ])
@@ -42,6 +43,7 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
     declare type: ActionType.DrawCards
     declare playerId: string
     declare revealsInfo: true
+    declare suitGuess?: Suit
     declare metadata?: DrawCardsMetadata
 
     constructor(data: DrawCards) {
@@ -67,6 +69,13 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
             momentumAdded: 0
         }
         state.cardsToDraw = 0
+
+        if (state.activeEffect === EffectType.Pillar) {
+            const guessedCards = cards.filter((card) => card.suit === this.suitGuess)
+            const momentumGained = guessedCards.length * 3
+            playerState.momentum += momentumGained
+            this.metadata.momentumAdded = momentumGained
+        }
 
         if (state.activeEffect === EffectType.Squeeze) {
             const station = state.getActivatingStation()

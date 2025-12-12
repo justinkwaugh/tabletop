@@ -5,6 +5,7 @@
     import CardBack from '$lib/images/cardBack2.png'
     import { DeckAnimator } from '$lib/animators/deckAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import { EffectType } from '@tabletop/sol'
 
     let {
         width = 35,
@@ -24,7 +25,11 @@
         await gameSession.drawCards()
     }
 
-    const interactable = $derived(gameSession.isMyTurn && gameSession.isDrawingCards)
+    const interactable = $derived(
+        gameSession.isMyTurn &&
+            gameSession.isDrawingCards &&
+            !(gameSession.gameState.activeEffect === EffectType.Pillar && !gameSession.pillarGuess)
+    )
     const animator = new DeckAnimator(gameSession)
 </script>
 
