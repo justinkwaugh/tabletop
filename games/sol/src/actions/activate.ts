@@ -67,7 +67,11 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         const activation: Activation = state.activation ?? {
             playerId: this.playerId,
             activatedIds: [],
-            stationType: state.activeEffect === EffectType.Festival ? undefined : station.type
+            stationType:
+                state.activeEffect === EffectType.Festival ||
+                state.activeEffect === EffectType.Pulse
+                    ? undefined
+                    : station.type
         }
 
         activation.activatedIds.push(this.stationId)
@@ -86,15 +90,17 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         Object.assign(this.metadata, awardMetadata)
 
         if (state.machineState !== MachineState.SolarFlares) {
-            const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
-            const removed = playerDivers.at(-1)
-            if (!removed) {
-                throw new Error('No sundiver to remove')
-            }
-            this.metadata.sundiverId = removed.id
+            if (state.activeEffect !== EffectType.Pulse) {
+                const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
+                const removed = playerDivers.at(-1)
+                if (!removed) {
+                    throw new Error('No sundiver to remove')
+                }
+                this.metadata.sundiverId = removed.id
 
-            const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
-            playerState.addSundiversToHold(removedDivers)
+                const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)
+                playerState.addSundiversToHold(removedDivers)
+            }
 
             if (state.activeEffect !== EffectType.Motivate) {
                 const cardsToDraw = CARDS_DRAWN_PER_RING[ring]
@@ -188,7 +194,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
     static canActivateStationAt(
         state: HydratedSolGameState,
         playerId: string,
-        coords: OffsetCoordinates
+        coords: OffsetCoordinates,
+        pulse: boolean = false
     ): boolean {
         const cell = state.board.cellAt(coords)
         const station = cell.station
@@ -201,7 +208,11 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             return false
         }
 
-        if (state.machineState === MachineState.SolarFlares) {
+        if (pulse || state.activeEffect === EffectType.Pulse) {
+            if (coords.row !== Ring.Outer && coords.row !== Ring.Inner) {
+                return false
+            }
+        } else if (state.machineState === MachineState.SolarFlares) {
             if (station.playerId !== playerId || coords.row !== Ring.Outer) {
                 return false
             }
@@ -223,5 +234,15 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
     static isValidActivation(state: HydratedSolGameState, activate: Activate): boolean {
         return this.canActivateStationAt(state, activate.playerId, activate.coords)
+    }
+
+    static canPulse(state: HydratedSolGameState, playerId: string): boolean {
+        const stations = [
+            ...state.board.stationsInRing(Ring.Outer),
+            ...state.board.stationsInRing(Ring.Inner)
+        ]
+        return stations.some((station) =>
+            HydratedActivate.canActivateStationAt(state, playerId, station.coords!, true)
+        )
     }
 }

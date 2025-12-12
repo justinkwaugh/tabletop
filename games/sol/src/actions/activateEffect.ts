@@ -1,6 +1,6 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { EffectType } from '../components/effects.js'
@@ -9,8 +9,8 @@ import { MachineState } from '../definition/states.js'
 import { HydratedActivate } from './activate.js'
 import { StationType } from '../components/stations.js'
 import { HydratedConvert } from './convert.js'
-import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
-import { Direction, Ring } from '../utils/solGraph.js'
+import { BASE_AWARD_PER_RING } from '../utils/solConstants.js'
+import { Ring } from '../utils/solGraph.js'
 import { HydratedFly } from './fly.js'
 import { HydratedInvade } from './invade.js'
 
@@ -164,32 +164,34 @@ export class HydratedActivateEffect
         }
 
         switch (effect) {
-            case EffectType.Ceremony:
-                return this.canActivateCeremony(state, playerId)
-            case EffectType.Motivate:
-                return this.canActivateMotivate(state, playerId)
             case EffectType.Augment:
                 return this.canActivateAugment(state, playerId)
-            case EffectType.Cluster:
-                return this.canActivateCluster(state, playerId)
             case EffectType.Cascade:
                 return this.canActivateCascade(state, playerId)
-            case EffectType.Squeeze:
-                return this.canActivateSqueeze(state, playerId)
-            case EffectType.Hyperdrive:
-                return this.canActivateHyperdrive(state, playerId)
-            case EffectType.Puncture:
-                return this.canActivatePuncture(state, playerId)
-            case EffectType.Pillar:
-                return this.canActivatePillar(state, playerId)
-            case EffectType.Invade:
-                return this.canActivateInvade(state, playerId)
+            case EffectType.Ceremony:
+                return this.canActivateCeremony(state, playerId)
+            case EffectType.Cluster:
+                return this.canActivateCluster(state, playerId)
             case EffectType.Festival:
                 return this.canActivateFestival(state, playerId)
+            case EffectType.Hyperdrive:
+                return this.canActivateHyperdrive(state, playerId)
+            case EffectType.Invade:
+                return this.canActivateInvade(state, playerId)
+            case EffectType.Motivate:
+                return this.canActivateMotivate(state, playerId)
+            case EffectType.Pillar:
+                return this.canActivatePillar(state, playerId)
             case EffectType.Portal:
                 return this.canActivatePortal(state, playerId)
             case EffectType.Procreate:
                 return this.canActivateProcreate(state, playerId)
+            case EffectType.Pulse:
+                return this.canActivatePulse(state, playerId)
+            case EffectType.Puncture:
+                return this.canActivatePuncture(state, playerId)
+            case EffectType.Squeeze:
+                return this.canActivateSqueeze(state, playerId)
             default:
                 return false
         }
@@ -345,6 +347,14 @@ export class HydratedActivateEffect
         }, 0)
         const playerState = state.getPlayerState(playerId)
         return playerState.reserveSundivers.length >= numReserveSundiversNeeded
+    }
+
+    static canActivatePulse(state: HydratedSolGameState, playerId: string): boolean {
+        if (state.machineState !== MachineState.Activating) {
+            return false
+        }
+
+        return HydratedActivate.canPulse(state, playerId)
     }
 
     static hasCardForEffect(

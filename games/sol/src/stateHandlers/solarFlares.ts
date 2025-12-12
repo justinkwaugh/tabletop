@@ -55,7 +55,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
             case isSolarFlare(action): {
                 const activatingPlayerIds = gameState.players
                     .filter((ps) => {
-                        const stations = gameState.board.stationsInRing(ps.playerId, Ring.Outer)
+                        const stations = gameState.board.stationsInRing(Ring.Outer, ps.playerId)
                         return stations.some((station) =>
                             HydratedActivate.canActivateStationAt(
                                 gameState,

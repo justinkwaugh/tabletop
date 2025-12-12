@@ -792,7 +792,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('No station to activate')
         }
 
-        if (!this.isSolarFlares) {
+        if (!this.isSolarFlares && this.gameState.activeEffect !== EffectType.Pulse) {
             const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
             if (playerDivers.length < 1) {
                 throw new Error('Not enough divers')

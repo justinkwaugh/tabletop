@@ -64,7 +64,11 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             validActions.push(ActionType.ChooseConvert)
         }
 
-        if (HydratedActivate.canActivate(gameState, playerId)) {
+        if (
+            HydratedActivate.canActivate(gameState, playerId) ||
+            (gameState.playerHasCardForEffect(playerId, EffectType.Pulse) &&
+                HydratedActivate.canPulse(gameState, playerId))
+        ) {
             validActions.push(ActionType.ChooseActivate)
         }
 

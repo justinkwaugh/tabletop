@@ -670,7 +670,7 @@ export class HydratedSolGameBoard
         )
     }
 
-    stationsInRing(playerId: string, ring: Ring): Station[] {
+    stationsInRing(ring: Ring, playerId?: string): Station[] {
         if (ring === Ring.Center) {
             return []
         }
@@ -679,7 +679,7 @@ export class HydratedSolGameBoard
             Iterator.from(this.graph.traversePattern(ringPattern))
                 .map((node) => {
                     const cell = this.cellAt(node.coords)
-                    if (cell.station?.playerId === playerId) {
+                    if (!playerId || cell.station?.playerId === playerId) {
                         return cell.station
                     }
                     return undefined
