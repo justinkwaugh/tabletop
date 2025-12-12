@@ -17,12 +17,12 @@
         HydratedActivate,
         HydratedFly,
         HydratedHurl,
+        HydratedInvade,
         Ring,
         Station,
         StationType,
         type Cell
     } from '@tabletop/sol'
-    import { ActionCategory } from '$lib/definition/actionCategory.js'
     import Sundiver from './Sundiver.svelte'
     import { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
     import { ConvertType } from '$lib/definition/convertType.js'
@@ -119,7 +119,9 @@
                 return sundivers.length > 0
             }
         } else if (myConvert) {
-            if (gameSession.chosenConvertType === ConvertType.SolarGate) {
+            if (gameSession.gameState.activeEffect === EffectType.Invade) {
+                return HydratedInvade.canInvadeAt(gameSession.gameState, myPlayer.id, cell.coords)
+            } else if (gameSession.chosenConvertType === ConvertType.SolarGate) {
                 return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
             } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
                 return gameSession.gameState.board.canConvertStationAt(
@@ -162,7 +164,9 @@
     let disabled = $derived(
         !gameSession.animating &&
             (myMove ||
-                (myConvert && gameSession.chosenConvertType) ||
+                (myConvert &&
+                    (gameSession.chosenConvertType ||
+                        gameSession.gameState.activeEffect === EffectType.Invade)) ||
                 (myActivate &&
                     !gameSession.chosenSource &&
                     !gameSession.gameState.activation?.currentStationId)) &&
@@ -207,7 +211,10 @@
                 }
             }
         } else if (myConvert) {
-            if (gameSession.diverCellChoices) {
+            if (gameSession.gameState.activeEffect === EffectType.Invade) {
+                gameSession.chosenDestination = cell.coords
+                await gameSession.invade()
+            } else if (gameSession.diverCellChoices) {
                 if (gameSession.chosenDiverCell) {
                     gameSession.chosenSecondDiverCell = cell.coords
                 } else {

@@ -12,5 +12,6 @@ export enum ActionType {
     DrawCards = 'DrawCards',
     SolarFlare = 'SolarFlare',
     ChooseCard = 'ChooseCard',
-    ActivateEffect = 'ActivateEffect'
+    ActivateEffect = 'ActivateEffect',
+    Invade = 'Invade'
 }

@@ -12,6 +12,8 @@ import { HydratedConvert } from '../actions/convert.js'
 import { HydratedChooseActivate, isChooseActivate } from '../actions/chooseActivate.js'
 import { HydratedActivate } from '../actions/activate.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedInvade } from '../actions/invade.js'
+import { EffectType } from '../components/effects.js'
 
 // Transition from StartOfTurn(Pass) -> StartOfTurn
 // Transition from StartOfTurn(ChooseMove) -> Moving
@@ -54,7 +56,11 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             validActions.push(ActionType.ChooseMove)
         }
 
-        if (HydratedConvert.canConvert(gameState, playerId)) {
+        if (
+            HydratedConvert.canConvert(gameState, playerId) ||
+            (gameState.playerHasCardForEffect(playerId, EffectType.Invade) &&
+                HydratedInvade.canInvade(gameState, playerId))
+        ) {
             validActions.push(ActionType.ChooseConvert)
         }
 

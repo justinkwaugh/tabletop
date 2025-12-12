@@ -160,4 +160,9 @@ export class HydratedSolGameState
     hasActivatedStation(stationId: string): boolean {
         return this.activation?.activatedIds.includes(stationId) ?? false
     }
+
+    playerHasCardForEffect(playerId: string, effect: EffectType): boolean {
+        const player = this.getPlayerState(playerId)
+        return player.card !== undefined && this.effects[player.card.suit].type === effect
+    }
 }

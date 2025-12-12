@@ -7,6 +7,7 @@ import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
+import { HydratedInvade, isInvade } from '../actions/invade.js'
 
 // Transition from Converting(Pass) -> DrawingCards | StartOfTurn
 // Transition from Converting(Convert) -> Converting | DrawingCards | StartOfTurn
@@ -19,7 +20,7 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
         if (!action.playerId) return false
         const gameState = context.gameState as HydratedSolGameState
 
-        return isPass(action) || isConvert(action) || isActivateEffect(action)
+        return isPass(action) || isConvert(action) || isActivateEffect(action) || isInvade(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
@@ -35,6 +36,13 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
             validActions.push(ActionType.ActivateEffect)
         }
 
+        if (
+            gameState.activeEffect === EffectType.Invade &&
+            HydratedInvade.canInvade(gameState, playerId)
+        ) {
+            validActions.push(ActionType.Invade)
+        }
+
         console.log('Valid converting actions', validActions)
         return validActions
     }
@@ -45,6 +53,9 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
         const gameState = context.gameState as HydratedSolGameState
 
         switch (true) {
+            case isInvade(action): {
+                return drawCardsOrEndTurn(gameState, context)
+            }
             case isConvert(action): {
                 // Check for motivate
                 if (

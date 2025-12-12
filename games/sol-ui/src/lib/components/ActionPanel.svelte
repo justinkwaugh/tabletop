@@ -85,7 +85,11 @@
                 }
             }
         } else if (gameSession.isConverting) {
-            if (!gameSession.chosenConvertType) {
+            if (gameSession.gameState.activeEffect === EffectType.Invade) {
+                if (!gameSession.chosenDestination) {
+                    result.message = 'WHO WILL YOU INVADE?'
+                }
+            } else if (!gameSession.chosenConvertType) {
                 result.message = 'WHAT WILL YOU CONVERT?'
             } else if (gameSession.diverCellChoices) {
                 result.message = 'CHOOSE A SUNDIVER'

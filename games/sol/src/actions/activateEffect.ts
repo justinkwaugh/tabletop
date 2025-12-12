@@ -1,6 +1,6 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { EffectType } from '../components/effects.js'
@@ -12,6 +12,7 @@ import { HydratedConvert } from './convert.js'
 import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { HydratedFly } from './fly.js'
+import { HydratedInvade } from './invade.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -167,6 +168,8 @@ export class HydratedActivateEffect
                 return this.canActivatePuncture(state, playerId)
             case EffectType.Pillar:
                 return this.canActivatePillar(state, playerId)
+            case EffectType.Invade:
+                return this.canActivateInvade(state, playerId)
             default:
                 return false
         }
@@ -292,6 +295,14 @@ export class HydratedActivateEffect
 
     static canActivatePillar(state: HydratedSolGameState, playerId: string): boolean {
         return state.machineState === MachineState.DrawingCards && state.cardsToDraw > 0
+    }
+
+    static canActivateInvade(state: HydratedSolGameState, playerId: string): boolean {
+        if (state.machineState !== MachineState.Converting) {
+            return false
+        }
+
+        return HydratedInvade.canInvade(state, playerId)
     }
 
     static hasCardForEffect(

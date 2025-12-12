@@ -411,6 +411,7 @@ export class HydratedSolGameBoard
         }
 
         cell.station = undefined
+        station.coords = undefined
         this.setCell(cell)
         return station
     }
