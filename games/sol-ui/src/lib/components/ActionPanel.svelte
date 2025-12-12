@@ -52,6 +52,10 @@
     const callToAction = $derived.by(() => {
         const result = { message: undefined, showSkip: false, yesNo: false } as CallToAction
 
+        if (!gameSession.myPlayer) {
+            return result
+        }
+
         if (gameSession.forcedCallToAction) {
             result.message = gameSession.forcedCallToAction
             return result
@@ -97,7 +101,13 @@
                 result.message = 'CHOOSE A LOCATION'
             }
         } else if (gameSession.isActivating) {
-            if (!gameSession.gameState.activation) {
+            if (
+                !HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id) &&
+                HydratedActivate.canPulse(gameSession.gameState, gameSession.myPlayer.id)
+            ) {
+                result.message = 'ACTIVATE PULSE TO CONTINUE'
+                return result
+            } else if (!gameSession.gameState.activation) {
                 result.message = 'CHOOSE A STATION'
             } else if (!gameSession.gameState.activation.currentStationId) {
                 result.message = 'ACTIVATE ANOTHER?'
