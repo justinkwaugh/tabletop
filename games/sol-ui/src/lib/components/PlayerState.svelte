@@ -22,7 +22,6 @@
     import Foundry from '$lib/images/foundry.svelte'
     import EnergyNode from '$lib/images/energynode.svelte'
     import Sun from '$lib/images/sun.png'
-    import Ark from '$lib/images/ark.svelte'
     import { Popover } from 'flowbite-svelte'
     import EffectCard from './EffectCard.svelte'
 
@@ -140,17 +139,7 @@
                 <div class="flex flex-row justify-between items-center w-full h-full px-3 pb-1">
                     <div class="flex flex-col justify-between items-center h-full">
                         <div class="shrink-0">
-                            <svg
-                                class="pointer-events-none"
-                                width="40"
-                                height="80"
-                                viewBox="0 0 250 450"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <g transform="">
-                                    <Ship />
-                                </g>
-                            </svg>
+                            <Ship width={35} height={80} />
                         </div>
                         <div class="text-[.5rem] tracking-normal sol-font text-[#cccccc]">
                             RESERVE

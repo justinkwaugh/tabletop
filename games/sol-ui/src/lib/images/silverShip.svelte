@@ -1,9 +1,20 @@
+<script lang="ts">
+    import type { SVGAttributes } from 'svelte/elements'
+
+    let {
+        width = 244,
+        height = 400,
+        ...svgProps
+    }: { width?: number; height?: number } & SVGAttributes<SVGElement> = $props()
+</script>
+
 <svg
     id="silvership"
-    width="244"
-    height="400"
+    {width}
+    {height}
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 665.36 1084.67"
+    {...svgProps}
 >
     <defs>
         <style>
