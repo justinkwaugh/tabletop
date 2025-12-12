@@ -688,6 +688,10 @@ export class HydratedSolGameBoard
         )
     }
 
+    hasStationOnBoard(playerId: string): boolean {
+        return Iterator.from(this).some((cell) => cell.station?.playerId === playerId)
+    }
+
     get graph(): SolGraph {
         if (!this.internalGraph) {
             this.internalGraph = new SolGraph(this.numPlayers)

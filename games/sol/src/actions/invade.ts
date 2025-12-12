@@ -89,8 +89,11 @@ export class HydratedInvade extends HydratableAction<typeof Invade> implements I
                 break
             }
         }
+        previousOwnerState.movement = state.calculatePlayerMovement(previousOwnerState.playerId)
+
         // Place invader station on board
         state.board.addStationAt(invaderStation, this.coords)
+        playerState.movement = state.calculatePlayerMovement(this.playerId)
 
         this.metadata = {
             invadedStation: station,

@@ -85,13 +85,7 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
             playerState.addSundiversToReserve(removedSundivers)
         }
 
-        const playerMovement = Iterator.from(Object.values(Ring)).reduce(
-            (acc, ring) =>
-                state.board.hasStationInRing(this.playerId, ring as Ring) ? acc + 1 : acc,
-            3
-        )
-
-        playerState.movement = playerMovement
+        playerState.movement = state.calculatePlayerMovement(this.playerId)
 
         const ring = this.isGate ? this.innerCoords.row : this.coords.row
         state.cardsToDraw += CARDS_DRAWN_PER_RING[ring]

@@ -103,7 +103,14 @@
         } else if (gameSession.isActivating) {
             if (
                 !HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id) &&
-                HydratedActivate.canPulse(gameSession.gameState, gameSession.myPlayer.id)
+                gameSession.gameState.playerHasCardForEffect(
+                    gameSession.myPlayer.id,
+                    EffectType.Pulse
+                ) &&
+                HydratedActivateEffect.canActivatePulse(
+                    gameSession.gameState,
+                    gameSession.myPlayer.id
+                )
             ) {
                 result.message = 'ACTIVATE PULSE TO CONTINUE'
                 return result

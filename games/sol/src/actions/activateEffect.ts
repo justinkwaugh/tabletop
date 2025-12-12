@@ -159,6 +159,11 @@ export class HydratedActivateEffect
 
         const playerState = state.getPlayerState(playerId)
 
+        const currentPlayerId = state.turnManager.currentTurn()?.playerId
+        if (currentPlayerId !== playerId) {
+            return false
+        }
+
         if (!this.hasCardForEffect(state, playerState, effect)) {
             return false
         }
@@ -178,6 +183,8 @@ export class HydratedActivateEffect
                 return this.canActivateHyperdrive(state, playerId)
             case EffectType.Invade:
                 return this.canActivateInvade(state, playerId)
+            case EffectType.Juggernaut:
+                return this.canActivateJuggernaut(state, playerId)
             case EffectType.Motivate:
                 return this.canActivateMotivate(state, playerId)
             case EffectType.Pillar:
@@ -355,6 +362,16 @@ export class HydratedActivateEffect
         }
 
         return HydratedActivate.canPulse(state, playerId)
+    }
+
+    static canActivateJuggernaut(state: HydratedSolGameState, playerId: string): boolean {
+        if (state.machineState !== MachineState.Moving) {
+            return false
+        }
+
+        const hasStation = state.board.hasStationOnBoard(playerId)
+        console.log('Can activate juggernaut:', hasStation)
+        return hasStation
     }
 
     static hasCardForEffect(

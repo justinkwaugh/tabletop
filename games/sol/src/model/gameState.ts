@@ -16,6 +16,7 @@ import { Sundiver } from '../components/sundiver.js'
 import { Station } from '../components/stations.js'
 import { Activation } from './activation.js'
 import { Suit } from '../components/cards.js'
+import { Ring } from '../utils/solGraph.js'
 
 export type SolGameState = Static<typeof SolGameState>
 export const SolGameState = Type.Evaluate(
@@ -164,5 +165,12 @@ export class HydratedSolGameState
     playerHasCardForEffect(playerId: string, effect: EffectType): boolean {
         const player = this.getPlayerState(playerId)
         return player.card !== undefined && this.effects[player.card.suit].type === effect
+    }
+
+    calculatePlayerMovement(playerId: string): number {
+        return Iterator.from(Object.values(Ring)).reduce(
+            (acc, ring) => (this.board.hasStationInRing(playerId, ring as Ring) ? acc + 1 : acc),
+            3
+        )
     }
 }

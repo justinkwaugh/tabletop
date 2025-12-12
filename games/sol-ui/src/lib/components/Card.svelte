@@ -58,7 +58,7 @@
     }
 
     function labelSize(name: string): string {
-        return name.length > 8 ? 'card-label-small' : ''
+        return name.length > 8 ? `card-label-${name.length}` : ''
     }
 </script>
 
@@ -103,7 +103,11 @@
         text-overflow: ellipsis;
     }
 
-    .card-label-small {
-        font-size: clamp(0.15rem, 14cqi, 2rem);
+    .card-label-9 {
+        font-size: clamp(0.3rem, 14cqi, 2rem);
+    }
+
+    .card-label-10 {
+        font-size: clamp(0.3rem, 12cqi, 2rem);
     }
 </style>

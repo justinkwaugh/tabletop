@@ -84,6 +84,7 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
             }
             if (cards.some((card) => card.suit === Suit.Flare)) {
                 this.metadata.removedStation = state.board.removeStationAt(station.coords)
+                playerState.movement = state.calculatePlayerMovement(playerState.playerId)
             } else {
                 // Award the activation again
                 const awardMetadata = HydratedActivate.applyActivationAward(playerState, station)
