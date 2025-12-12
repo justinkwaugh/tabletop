@@ -225,7 +225,7 @@
 <div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">
     <Header />
 
-    <div class="header-grid grid {gameSession.acting ? 'h-[50px]' : 'h-[68px]'} overflow-hidden">
+    <div class="panel-grid grid {gameSession.acting ? 'h-[50px]' : 'h-[68px]'}">
         {#if !gameSession.acting}
             <div
                 out:fade={{ duration: 100 }}
@@ -260,51 +260,54 @@
                     <div class="ms-3">ACTIVATE</div></button
                 >
             </div>
-        {:else}
-            <!-- Call to action -->
-            {#if callToAction.message}
-                {#key callToAction}
-                    <div
-                        in:fade={{ duration: 300, delay: 100 }}
-                        out:fade={{ duration: 100 }}
-                        class="ms-3 py-2 flex flex-row justify-center items-center h-[50px]"
-                    >
-                        <div class="me-2">{callToAction.message}</div>
-                        {#if callToAction.showSkip}
-                            <button
-                                onclick={pass}
-                                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                                >SKIP</button
-                            >
-                        {:else if callToAction.yesNo}
-                            <button
-                                onclick={() => yes(callToAction.yesAction)}
-                                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                                >YES</button
-                            >
-                            <button
-                                onclick={() => no(callToAction.noAction)}
-                                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                            >
-                                NO</button
-                            >
-                        {/if}
-                    </div>
-                {/key}
-            {/if}
         {/if}
+        <!-- Call to action -->
+        {#key callToAction.message}
+            <div
+                in:fade={{ duration: 300, delay: 100 }}
+                out:fade={{ duration: 100 }}
+                class="ms-3 py-2 flex flex-row justify-center items-center h-[50px] {callToAction.message
+                    ? ''
+                    : 'pointer-events-none'}"
+            >
+                <div class="me-2">{callToAction.message}</div>
+                {#if callToAction.showSkip}
+                    <button
+                        onclick={pass}
+                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                        >SKIP</button
+                    >
+                {:else if callToAction.yesNo}
+                    <button
+                        onclick={() => yes(callToAction.yesAction)}
+                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                        >YES</button
+                    >
+                    <button
+                        onclick={() => no(callToAction.noAction)}
+                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                    >
+                        NO</button
+                    >
+                {/if}
+            </div>
+        {/key}
     </div>
 
     {#if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
         <CardPicker animator={cardPickerAnimator} />
     {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers}
-        <LaunchPicker />
+        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
+            <LaunchPicker />
+        </div>
     {:else if gameSession.isConverting && !gameSession.chosenConvertType}
-        <div in:fade={{ duration: 200 }}>
+        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
             <ConvertPicker />
         </div>
     {:else if gameSession.gameState.activeEffect === EffectType.Pillar && !gameSession.pillarGuess}
-        <SuitPicker />
+        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
+            <SuitPicker />
+        </div>
     {/if}
 </div>
 
