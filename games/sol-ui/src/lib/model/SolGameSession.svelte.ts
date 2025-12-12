@@ -838,7 +838,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('Invalid draw card')
         }
 
-        if (this.gameState.activeEffect !== EffectType.Pillar || !this.pillarGuess) {
+        if (this.gameState.activeEffect === EffectType.Pillar && !this.pillarGuess) {
             throw new Error('Missing pillar guess')
         }
 

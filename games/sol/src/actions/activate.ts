@@ -67,7 +67,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         const activation: Activation = state.activation ?? {
             playerId: this.playerId,
             activatedIds: [],
-            stationType: station.type
+            stationType: state.activeEffect === EffectType.Festival ? undefined : station.type
         }
 
         activation.activatedIds.push(this.stationId)

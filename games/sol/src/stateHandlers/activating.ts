@@ -13,7 +13,11 @@ import { EffectType } from '../components/effects.js'
 // Transition from Activating(Pass) -> Activating | DrawingCards | StartOfTurn
 // Transition from Activating(ActivateBonus) -> Activating | DrawingCards | StartOfTurn
 
-type ActivatingAction = HydratedActivateBonus | HydratedPass | HydratedActivate
+type ActivatingAction =
+    | HydratedActivateBonus
+    | HydratedPass
+    | HydratedActivate
+    | HydratedActivateEffect
 
 export class ActivatingStateHandler implements MachineStateHandler<ActivatingAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is ActivatingAction {
@@ -57,6 +61,10 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         const gameState = context.gameState as HydratedSolGameState
 
         switch (true) {
+            case isActivateEffect(action): {
+                return MachineState.Activating
+                break
+            }
             case isActivate(action): {
                 if (
                     HydratedActivateEffect.canActivateEffect(

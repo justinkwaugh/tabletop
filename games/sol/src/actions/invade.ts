@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from 
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Station, StationType } from '../components/stations.js'
+import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 
 export type InvadeMetadata = Static<typeof InvadeMetadata>
 export const InvadeMetadata = Type.Object({
@@ -97,6 +98,8 @@ export class HydratedInvade extends HydratableAction<typeof Invade> implements I
             removedSundiverIds: diversToRemove,
             addedSundiverIds: promotedSundivers.map((diver) => diver.id)
         }
+
+        state.cardsToDraw += CARDS_DRAWN_PER_RING[this.coords.row]
     }
 
     static canInvade(state: HydratedSolGameState, playerId: string): boolean {

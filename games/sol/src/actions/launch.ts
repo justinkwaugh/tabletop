@@ -98,6 +98,10 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
             return false
         }
 
+        if (state.activeEffect === EffectType.Hyperdrive && state.moved) {
+            return false
+        }
+
         const mothershipPlayer = state.getPlayerState(mothershipPlayerId)
         if (mothershipPlayer.numSundiversInHold(playerId) === 0) {
             return false
