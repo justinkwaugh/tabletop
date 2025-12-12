@@ -3,7 +3,8 @@ import {
     OffsetCoordinates,
     BaseCoordinatedGraph,
     type CoordinatedGraph,
-    type CoordinatedNode
+    type CoordinatedNode,
+    sameCoordinates
 } from '@tabletop/common'
 
 export enum Direction {
@@ -76,7 +77,7 @@ export class SolGraph
     extends BaseCoordinatedGraph<SolNode, OffsetCoordinates>
     implements CoordinatedGraph<SolNode, OffsetCoordinates>
 {
-    constructor(playerCount: number) {
+    constructor(private playerCount: number) {
         if (playerCount < 1 || playerCount > 5) {
             throw new Error('Invalid player count')
         }
@@ -261,5 +262,48 @@ export class SolGraph
                     .filter((node) => node !== undefined)
             ]
         }
+    }
+
+    public setPortals(mothershipIndices: number[]) {
+        // Clear existing Portal neighbors
+        this.clearPortals()
+
+        // Set new Portal neighbors
+        const adjacentCoords: OffsetCoordinates[] = []
+        for (const index of mothershipIndices) {
+            adjacentCoords.push(...this.mothershipAdjacentCoords(index))
+        }
+
+        for (const index of mothershipIndices) {
+            for (const coords of this.mothershipAdjacentCoords(index)) {
+                const node = this.nodeAt(coords)
+                if (!node) {
+                    continue
+                }
+                for (const adjacent of adjacentCoords) {
+                    if (sameCoordinates(adjacent, coords)) {
+                        continue
+                    }
+                    node.neighbors[Direction.Portal].push(adjacent)
+                }
+            }
+        }
+    }
+
+    public clearPortals() {
+        for (const node of this) {
+            node.neighbors[Direction.Portal] = []
+        }
+    }
+
+    public mothershipAdjacentCoords(mothershipIndex: number): OffsetCoordinates[] {
+        const numMothershipPositions = this.playerCount === 5 ? 16 : 13
+        const secondCol = (mothershipIndex + numMothershipPositions - 1) % numMothershipPositions
+        return [
+            { row: Ring.Outer, col: mothershipIndex },
+            { row: Ring.Inner, col: mothershipIndex },
+            { row: Ring.Outer, col: secondCol },
+            { row: Ring.Inner, col: secondCol }
+        ]
     }
 }

@@ -432,7 +432,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             start,
             end,
             range: this.myPlayerState?.movementPoints ?? 0,
-            requiredGates: chosenGates
+            requiredGates: chosenGates,
+            portal: this.gameState.activeEffect === EffectType.Portal
         })
     }
 

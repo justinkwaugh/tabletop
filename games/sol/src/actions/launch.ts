@@ -107,7 +107,10 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
             return false
         }
 
-        const launchCoordinates = state.board.launchCoordinatesForMothership(mothershipPlayerId)
+        const launchCoordinates = state.board.launchCoordinatesForMothership(
+            mothershipPlayerId,
+            state.activeEffect === EffectType.Portal
+        )
 
         return (
             launchCoordinates.length > 0 &&
@@ -136,7 +139,10 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
             return false
         }
 
-        const launchCoordinates = state.board.launchCoordinatesForMothership(this.mothership)
+        const launchCoordinates = state.board.launchCoordinatesForMothership(
+            this.mothership,
+            state.activeEffect === EffectType.Portal
+        )
         if (!launchCoordinates.find((coords) => sameCoordinates(coords, this.destination))) {
             return false
         }

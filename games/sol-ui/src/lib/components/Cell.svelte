@@ -62,7 +62,8 @@
             if (gameSession.chosenMothership) {
                 if (gameSession.chosenNumDivers) {
                     const launchCoords = gameSession.gameState.board.launchCoordinatesForMothership(
-                        gameSession.chosenMothership
+                        gameSession.chosenMothership,
+                        gameSession.gameState.activeEffect === EffectType.Portal
                     )
                     const isLaunchCell = launchCoords.some((coords) =>
                         sameCoordinates(coords, cell.coords)

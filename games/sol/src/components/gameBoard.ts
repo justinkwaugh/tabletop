@@ -104,9 +104,26 @@ export class HydratedSolGameBoard
         return aNeighbors.some((neighbor) => sameCoordinates(neighbor.coords, coordsB))
     }
 
-    public reachableCoordinates(coords: OffsetCoordinates, range: number): OffsetCoordinates[] {
-        const traverser = solTraverser({ board: this, start: coords, range })
-        return Array.from(this.graph.traverse(traverser)).map((node) => node.coords)
+    public reachableCoordinates(
+        coords: OffsetCoordinates,
+        range: number,
+        portal?: boolean
+    ): OffsetCoordinates[] {
+        if (portal) {
+            this.graph.setPortals(Object.values(this.motherships))
+        }
+        try {
+            const traverser = solTraverser({
+                board: this,
+                start: coords,
+                range
+            })
+            return Array.from(this.graph.traverse(traverser)).map((node) => node.coords)
+        } finally {
+            if (portal) {
+                this.graph.clearPortals()
+            }
+        }
     }
 
     public hasGateBetween(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
@@ -151,19 +168,21 @@ export class HydratedSolGameBoard
         end,
         range,
         requiredGates,
-        allowLoops = false
+        allowLoops = false,
+        portal = false
     }: {
         start: OffsetCoordinates
         end: OffsetCoordinates
         range?: number
         requiredGates?: SolarGate[]
         allowLoops?: boolean
+        portal?: boolean
     }): SolarGate[] {
         const path = [start]
 
         // First travel through any required gates
         if (requiredGates && requiredGates.length > 0) {
-            const requiredPath = this.pathThroughGates({ start, requiredGates, range })
+            const requiredPath = this.pathThroughGates({ start, requiredGates, range, portal })
             if (!requiredPath) {
                 return []
             }
@@ -191,7 +210,8 @@ export class HydratedSolGameBoard
                 start: current,
                 requiredGates: [gate],
                 range: remainingRange,
-                illegalCoordinates: allowLoops ? undefined : path
+                illegalCoordinates: allowLoops ? undefined : path,
+                portal
             })
 
             if (!pathThroughGate || pathThroughGate.length < 2) {
@@ -218,7 +238,8 @@ export class HydratedSolGameBoard
                 start: otherSideOfGate,
                 destination: end,
                 range: remainingRange !== undefined ? remainingRange - distanceTraveled : undefined,
-                illegalCoordinates: allowLoops ? undefined : extendedPath
+                illegalCoordinates: allowLoops ? undefined : extendedPath,
+                portal
             })
 
             return pathFromGate !== undefined && pathFromGate.length >= 2
@@ -230,13 +251,15 @@ export class HydratedSolGameBoard
         destination,
         range,
         requiredGates, // Ordered list of gates to pass through
-        illegalCoordinates
+        illegalCoordinates,
+        portal = false
     }: {
         start: OffsetCoordinates
         destination: OffsetCoordinates
         range?: number
         requiredGates?: SolarGate[]
         illegalCoordinates?: OffsetCoordinates[]
+        portal?: boolean
     }): OffsetCoordinates[] | undefined {
         const path = [start]
 
@@ -256,18 +279,27 @@ export class HydratedSolGameBoard
         let current = path.at(-1)!
 
         if (!sameCoordinates(current, destination)) {
-            const pathFinder = solPathfinder({
-                board: this,
-                start: current,
-                end: destination,
-                range: remainingRange,
-                illegalCoordinates
-            })
-            const finalSegment = this.graph.findFirstPath(pathFinder)
-            if (!finalSegment) {
-                return undefined
+            if (portal) {
+                this.graph.setPortals(Object.values(this.motherships))
             }
-            path.push(...finalSegment.slice(1).map((node) => node.coords))
+            try {
+                const pathFinder = solPathfinder({
+                    board: this,
+                    start: current,
+                    end: destination,
+                    range: remainingRange,
+                    illegalCoordinates
+                })
+                const finalSegment = this.graph.findFirstPath(pathFinder)
+                if (!finalSegment) {
+                    return undefined
+                }
+                path.push(...finalSegment.slice(1).map((node) => node.coords))
+            } finally {
+                if (portal) {
+                    this.graph.clearPortals()
+                }
+            }
         }
         return path.length > 0 ? path : undefined
     }
@@ -276,41 +308,54 @@ export class HydratedSolGameBoard
         start,
         requiredGates, // Ordered list of gates to pass through
         range,
-        illegalCoordinates
+        illegalCoordinates,
+        portal = false
     }: {
         start: OffsetCoordinates
         requiredGates?: SolarGate[]
         range?: number
         illegalCoordinates?: OffsetCoordinates[]
+        portal?: boolean
     }): OffsetCoordinates[] | undefined {
         const path = [start]
         let current = start
         let remainingRange = range
-        for (const gate of requiredGates || []) {
-            if (!gate.innerCoords || !gate.outerCoords) {
-                return undefined
-            }
-            const nextDestination =
-                current.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
 
-            const pathFinder = solPathfinder({
-                board: this,
-                start: current,
-                end: nextDestination,
-                allowedGates: [gate],
-                range: remainingRange,
-                illegalCoordinates
-            })
-            const segment = this.graph.findFirstPath(pathFinder)
-            if (!segment) {
-                return undefined
-            }
-            path.push(...segment.slice(1).map((node) => node.coords))
+        if (portal) {
+            this.graph.setPortals(Object.values(this.motherships))
+        }
 
-            if (remainingRange !== undefined) {
-                remainingRange -= segment.length - 1
+        try {
+            for (const gate of requiredGates || []) {
+                if (!gate.innerCoords || !gate.outerCoords) {
+                    return undefined
+                }
+                const nextDestination =
+                    current.row <= gate.innerCoords.row ? gate.outerCoords : gate.innerCoords
+
+                const pathFinder = solPathfinder({
+                    board: this,
+                    start: current,
+                    end: nextDestination,
+                    allowedGates: [gate],
+                    range: remainingRange,
+                    illegalCoordinates
+                })
+                const segment = this.graph.findFirstPath(pathFinder)
+                if (!segment) {
+                    return undefined
+                }
+                path.push(...segment.slice(1).map((node) => node.coords))
+
+                if (remainingRange !== undefined) {
+                    remainingRange -= segment.length - 1
+                }
+                current = nextDestination
             }
-            current = nextDestination
+        } finally {
+            if (portal) {
+                this.graph.clearPortals()
+            }
         }
         return path.length > 0 ? path : undefined
     }
@@ -478,19 +523,18 @@ export class HydratedSolGameBoard
         return removedDivers
     }
 
-    public launchCoordinatesForMothership(playerId: string): OffsetCoordinates[] {
-        const mothershipIndex = this.motherships[playerId]
-        if (mothershipIndex === undefined) {
-            return []
-        }
-        const numMothershipPositions = this.numPlayers === 5 ? 16 : 13
-        const secondCol = (mothershipIndex + numMothershipPositions - 1) % numMothershipPositions
-        return [
-            { row: Ring.Outer, col: mothershipIndex },
-            { row: Ring.Inner, col: mothershipIndex },
-            { row: Ring.Outer, col: secondCol },
-            { row: Ring.Inner, col: secondCol }
-        ]
+    public launchCoordinatesForMothership(
+        playerId: string,
+        portal: boolean = false
+    ): OffsetCoordinates[] {
+        const mothershipIndices = portal
+            ? Object.values(this.motherships)
+            : [this.motherships[playerId]]
+
+        return mothershipIndices.reduce((acc: OffsetCoordinates[], mothershipIndex: number) => {
+            acc.push(...this.graph.mothershipAdjacentCoords(mothershipIndex))
+            return acc
+        }, [])
     }
 
     public playersWithSundiversAt(coords: OffsetCoordinates): string[] {

@@ -172,6 +172,8 @@ export class HydratedActivateEffect
                 return this.canActivateInvade(state, playerId)
             case EffectType.Festival:
                 return this.canActivateFestival(state, playerId)
+            case EffectType.Portal:
+                return this.canActivatePortal(state, playerId)
             default:
                 return false
         }
@@ -309,6 +311,10 @@ export class HydratedActivateEffect
 
     static canActivateFestival(state: HydratedSolGameState, playerId: string): boolean {
         return state.machineState === MachineState.Activating
+    }
+
+    static canActivatePortal(state: HydratedSolGameState, playerId: string): boolean {
+        return state.machineState === MachineState.Moving
     }
 
     static hasCardForEffect(

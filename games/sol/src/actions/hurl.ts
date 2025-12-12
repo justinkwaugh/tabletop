@@ -90,7 +90,8 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
                 state.board.pathToDestination({
                     start: cell.coords,
                     destination: CENTER_COORDS,
-                    range: playerState.movementPoints
+                    range: playerState.movementPoints,
+                    portal: state.activeEffect === EffectType.Portal
                 })
             ) {
                 return true
@@ -135,7 +136,8 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
             start: this.start,
             destination: CENTER_COORDS,
             range: playerState.movementPoints / this.sundiverIds.length,
-            requiredGates: this.gates
+            requiredGates: this.gates,
+            portal: state.activeEffect === EffectType.Portal
         })
     }
 }

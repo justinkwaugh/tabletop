@@ -160,7 +160,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             start: this.start,
             destination: this.destination,
             range: playerState.movementPoints / this.sundiverIds.length,
-            requiredGates: this.gates
+            requiredGates: this.gates,
+            portal: state.activeEffect === EffectType.Portal
         })
     }
 
@@ -206,7 +207,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         } else {
             range = Math.floor(range / numSundivers)
         }
-        const path = state.board.pathToDestination({ start, destination, range })
+        const portal = state.activeEffect === EffectType.Portal
+        const path = state.board.pathToDestination({ start, destination, range, portal })
         if (!path) {
             return false
         }
