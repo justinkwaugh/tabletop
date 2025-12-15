@@ -45,6 +45,7 @@ export class MothershipAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }) {
+        console.log('handling mothership animation for action', action)
         const direction =
             to.actionCount >= (from?.actionCount ?? 0)
                 ? Direction.CounterClockwise
@@ -65,25 +66,28 @@ export class MothershipAnimator extends StateAnimator<
         endIndex: number,
         direction: Direction.Clockwise | Direction.CounterClockwise = Direction.CounterClockwise
     ) {
-        const startDegrees = getMothershipAngle(this.gameSession.numPlayers, this.color, startIndex)
+        console.log(
+            `Moving mothership ${this.playerId} from ${startIndex} to ${endIndex} in direction ${direction}`
+        )
+        let startDegrees = getMothershipAngle(this.gameSession.numPlayers, this.color, startIndex)
         const endDegrees = getMothershipAngle(this.gameSession.numPlayers, this.color, endIndex)
 
-        if (direction === Direction.CounterClockwise && startDegrees < endDegrees) {
-            gsap.set(this.element!, {
-                rotation: startDegrees + 360
-            })
-        } else if (direction === Direction.Clockwise && startDegrees > endDegrees) {
-            gsap.set(this.element!, {
-                rotation: startDegrees - 360
-            })
-        }
+        console.log(`Rotating from ${startDegrees} to ${endDegrees}`)
 
+        if (direction === Direction.CounterClockwise && startDegrees < endDegrees) {
+            startDegrees += 360
+        } else if (direction === Direction.Clockwise && startDegrees > endDegrees) {
+            startDegrees -= 360
+        }
+        gsap.set(this.element!, {
+            rotation: startDegrees
+        })
         rotate({
             timeline,
             object: this.element,
             degrees: `${endDegrees}`,
             svgOrigin: SVG_ORIGIN,
-            duration: 0.5,
+            duration: 0.5 + 0.1 * (Math.abs(endDegrees - startDegrees) / 72),
             position: 0
         })
     }

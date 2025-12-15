@@ -11,9 +11,6 @@
         if (amount < maxAmount) {
             amount += 1
         }
-        for (const playerId of gameSession.gameState.players.map((p) => p.playerId)) {
-            gameSession.gameState.advanceMothership(playerId)
-        }
     }
 
     function decreaseAmount() {
