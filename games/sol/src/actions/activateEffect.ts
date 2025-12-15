@@ -105,7 +105,7 @@ export class HydratedActivateEffect
                         -additionalReward,
                         additionalReward
                     )
-                    playerState.holdSundivers.push(...awardedSundivers)
+                    playerState.addSundiversToHold(awardedSundivers)
                     this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                     break
                 case StationType.TransmitTower:
@@ -227,7 +227,7 @@ export class HydratedActivateEffect
             return false
         }
         const playerState = state.getPlayerState(playerId)
-        return playerState.holdSundivers.length > 0
+        return playerState.numSundiversInHold(playerId) > 0
     }
 
     static canActivateMotivate(state: HydratedSolGameState, playerId: string): boolean {

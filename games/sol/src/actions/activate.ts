@@ -7,7 +7,7 @@ import { Station, StationType } from '../components/stations.js'
 import { Activation } from '../model/activation.js'
 import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { MachineState } from '../definition/states.js'
-import { EffectType, Ring, SolPlayerState } from '../index.js'
+import { EffectType, HydratedSolPlayerState, Ring, SolPlayerState } from '../index.js'
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({
@@ -114,7 +114,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
     }
 
     static applyActivationAward(
-        playerState: SolPlayerState,
+        playerState: HydratedSolPlayerState,
         station: Station
     ): { energyAdded: number; createdSundiverIds: string[]; momentumAdded: number } {
         const award = BASE_AWARD_PER_RING[station.coords!.row]
@@ -135,7 +135,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                     -awardCount,
                     awardCount
                 )
-                playerState.holdSundivers.push(...awardedSundivers)
+                playerState.addSundiversToHold(awardedSundivers)
                 metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
             case StationType.TransmitTower:

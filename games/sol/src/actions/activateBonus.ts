@@ -82,7 +82,7 @@ export class HydratedActivateBonus
                 const awardCost = award
                 playerState.energyCubes -= awardCost
                 const awardedSundivers = playerState.reserveSundivers.splice(-awardCost, awardCost)
-                playerState.holdSundivers.push(...awardedSundivers)
+                playerState.addSundiversToHold(awardedSundivers)
                 this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
             case StationType.TransmitTower:
