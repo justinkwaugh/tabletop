@@ -164,7 +164,7 @@
                         >
                             {#each holdDiversByPlayer as [playerId, sundivers] (playerId)}
                                 <div class="flex flex-col justify-center items-center gap-y-1">
-                                    <div>{sundivers.length}</div>
+                                    <div class="tracking-normal">{sundivers.length}</div>
                                     <Sundiver
                                         width={25 * 0.75}
                                         height={25}
@@ -173,7 +173,7 @@
                                 </div>
                             {/each}
                             <div class="flex flex-col justify-center items-center gap-y-1">
-                                <div>{playerState.energyCubes}</div>
+                                <div class="tracking-normal">{playerState.energyCubes}</div>
                                 <Cube
                                     id="{playerState.playerId}-energy-supply"
                                     width={24}
@@ -191,7 +191,9 @@
                                     color={playerState.color}
                                     opacity={playerState.reserveSundivers.length > 0 ? 1 : 0.3}
                                 />
-                                <div>{playerState.reserveSundivers.length}</div>
+                                <div class="tracking-normal">
+                                    {playerState.reserveSundivers.length}
+                                </div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <Gate
@@ -200,7 +202,7 @@
                                     color={playerState.color}
                                     opacity={playerState.solarGates.length > 0 ? 1 : 0.3}
                                 />
-                                <div>{playerState.solarGates.length}</div>
+                                <div class="tracking-normal">{playerState.solarGates.length}</div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <EnergyNode
@@ -209,7 +211,7 @@
                                     color={playerState.color}
                                     opacity={playerState.energyNodes.length > 0 ? 1 : 0.3}
                                 />
-                                <div>{playerState.energyNodes.length}</div>
+                                <div class="tracking-normal">{playerState.energyNodes.length}</div>
                             </div>
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <Foundry
@@ -218,7 +220,7 @@
                                     color={playerState.color}
                                     opacity={playerState.sundiverFoundries.length > 0 ? 1 : 0.3}
                                 />
-                                <div>
+                                <div class="tracking-normal">
                                     {playerState.sundiverFoundries.length}
                                 </div>
                             </div>
@@ -230,7 +232,9 @@
                                     color={playerState.color}
                                     opacity={playerState.transmitTowers.length > 0 ? 1 : 0.3}
                                 />
-                                <div>{playerState.transmitTowers.length}</div>
+                                <div class="tracking-normal">
+                                    {playerState.transmitTowers.length}
+                                </div>
                             </div>
                         </div>
                     </div>
