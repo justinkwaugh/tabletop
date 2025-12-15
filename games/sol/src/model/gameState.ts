@@ -48,7 +48,7 @@ export const SolGameState = Type.Evaluate(
                     flownSundiverId: Type.Optional(Type.String()), // For Hyperdrive effect
                     movementUsed: Type.Number(), // For Hyperdrive effect
                     suitChosen: Type.Optional(Type.Enum(Suit)), // For Pillar effect
-                    preHatchState: Type.Optional(Type.String()) // For Hatch effect
+                    preEffectState: Type.Optional(Type.Enum(MachineState)) // For Hatch / Accelerate effect
                 })
             )
         })
@@ -94,7 +94,7 @@ export class HydratedSolGameState
         flownSundiverId?: string
         movementUsed: number
         suitChosen?: Suit
-        preHatchState?: MachineState
+        preEffectState?: MachineState
     }
 
     constructor(data: SolGameState) {
@@ -126,7 +126,7 @@ export class HydratedSolGameState
         let newLocation = currentLocation - 1
         if (newLocation < 0) {
             const numSpots = this.board.numMothershipLocations
-            newLocation = numSpots
+            newLocation = numSpots - 1
         }
         this.board.motherships[playerId] = newLocation
     }

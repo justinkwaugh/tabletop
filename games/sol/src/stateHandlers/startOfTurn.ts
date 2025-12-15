@@ -16,6 +16,7 @@ import { HydratedInvade } from '../actions/invade.js'
 import { EffectType } from '../components/effects.js'
 import { HydratedSacrifice } from '../actions/sacrifice.js'
 import { HydratedBlight } from '../actions/blight.js'
+import { onActivateEffect } from './postActionHelper.js'
 
 // Transition from StartOfTurn(Pass) -> StartOfTurn
 // Transition from StartOfTurn(ChooseMove) -> Moving
@@ -85,10 +86,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedSolGameState
 
-        const preHatchState = gameState.getEffectTracking()?.preHatchState
-        if (preHatchState === MachineState.StartOfTurn) {
-            // If hatch came from here.. just clear it and don't reset the turn
-            gameState.getEffectTracking().preHatchState = undefined
+        const preEffectState = gameState.getEffectTracking()?.preEffectState
+        if (preEffectState === MachineState.StartOfTurn) {
+            // If effect came from here.. just clear it and don't reset the turn
+            gameState.getEffectTracking().preEffectState = undefined
             return
         }
 
@@ -126,10 +127,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 return MachineState.Activating
             }
             case isActivateEffect(action): {
-                if (action.effect === EffectType.Hatch) {
-                    return MachineState.Hatching
-                }
-                return MachineState.ActivatedEffect
+                return onActivateEffect(action, context)
             }
             default: {
                 throw Error('Invalid action type')

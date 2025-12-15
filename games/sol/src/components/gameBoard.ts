@@ -17,7 +17,6 @@ import {
     Ring,
     SolGraph
 } from '../utils/solGraph.js'
-import { solTraverser } from '../utils/solTraverser.js'
 import { solPathfinder } from '../utils/solPathfinder.js'
 import { solRingPattern } from '../utils/solRingPattern.js'
 
@@ -75,7 +74,7 @@ export class HydratedSolGameBoard
             this.numPlayers === 5
                 ? FIVE_PLAYER_RING_COUNTS[Ring.Outer]
                 : ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Outer]
-        return outerSpaces - 1
+        return outerSpaces
     }
 
     private emptyCell(coords: OffsetCoordinates): Cell {

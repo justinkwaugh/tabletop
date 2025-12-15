@@ -15,6 +15,7 @@ import { Pass } from '../actions/pass.js'
 import { EffectType } from '../components/effects.js'
 import { ActivatingStateHandler } from './activating.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
+import { onActivateEffect } from './postActionHelper.js'
 
 // Transition from DrawingCards(DrawCards) -> SolarFlares | ChoosingCard
 // Transition from DrawingCards(ActivateEffect) -> ChoosingCard
@@ -46,10 +47,7 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
         const gameState = context.gameState as HydratedSolGameState
 
         if (isActivateEffect(action)) {
-            if (action.effect === EffectType.Hatch) {
-                return MachineState.Hatching
-            }
-            return MachineState.DrawingCards
+            return onActivateEffect(action, context)
         }
 
         const playerState = gameState.getPlayerState(action.playerId)

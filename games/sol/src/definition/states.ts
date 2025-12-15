@@ -5,6 +5,7 @@ export enum MachineState {
     Activating = 'Activating',
     Converting = 'Converting',
     Hatching = 'Hatching',
+    Accelerating = 'Accelerating',
     DrawingCards = 'DrawingCards',
     ChoosingCard = 'ChoosingCard',
     SolarFlares = 'SolarFlares',

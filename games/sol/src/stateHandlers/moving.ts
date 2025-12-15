@@ -6,7 +6,7 @@ import { HydratedLaunch, isLaunch } from '../actions/launch.js'
 import { HydratedFly, isFly } from '../actions/fly.js'
 import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
-import { drawCardsOrEndTurn } from './postActionHelper.js'
+import { drawCardsOrEndTurn, onActivateEffect } from './postActionHelper.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
 
@@ -99,10 +99,7 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
                 return drawCardsOrEndTurn(gameState, context)
             }
             case isActivateEffect(action): {
-                if (action.effect === EffectType.Hatch) {
-                    return MachineState.Hatching
-                }
-                return MachineState.Moving
+                return onActivateEffect(action, context)
             }
             default: {
                 throw Error('Invalid action type')

@@ -134,8 +134,8 @@ export class HydratedActivateEffect
                     }
                 }
             }
-        } else if (this.effect === EffectType.Hatch) {
-            state.getEffectTracking().preHatchState = state.machineState
+        } else if (this.effect === EffectType.Hatch || this.effect === EffectType.Accelerate) {
+            state.getEffectTracking().preEffectState = state.machineState
         }
     }
 
@@ -174,6 +174,8 @@ export class HydratedActivateEffect
         }
 
         switch (effect) {
+            case EffectType.Accelerate:
+                return this.canActivateAccelerate(state, playerId)
             case EffectType.Augment:
                 return this.canActivateAugment(state, playerId)
             case EffectType.Blight:
@@ -425,6 +427,10 @@ export class HydratedActivateEffect
         }
 
         return HydratedBlight.canBlight(state, playerId)
+    }
+
+    static canActivateAccelerate(state: HydratedSolGameState, playerId: string): boolean {
+        return true
     }
 
     static hasCardForEffect(

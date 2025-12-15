@@ -6,6 +6,7 @@ import { HydratedChooseCard, isChooseCard } from '../actions/chooseCard.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
+import { onActivateEffect } from './postActionHelper.js'
 
 // Transition from ChoosingCard(ChooseCard) -> StartOfTurn
 // Transition from ChoosingCard(Pass) -> StartOfTurn
@@ -34,10 +35,7 @@ export class ChoosingCardStateHandler implements MachineStateHandler<ChoosingCar
 
     onAction(action: ChoosingCardAction, context: MachineContext): MachineState {
         if (isActivateEffect(action)) {
-            if (action.effect === EffectType.Hatch) {
-                return MachineState.Hatching
-            }
-            return MachineState.ChoosingCard
+            return onActivateEffect(action, context)
         }
 
         const gameState = context.gameState as HydratedSolGameState

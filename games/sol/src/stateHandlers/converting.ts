@@ -3,7 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
-import { drawCardsOrEndTurn } from './postActionHelper.js'
+import { drawCardsOrEndTurn, onActivateEffect } from './postActionHelper.js'
 import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
@@ -103,10 +103,7 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
                 return drawCardsOrEndTurn(gameState, context)
             }
             case isActivateEffect(action): {
-                if (action.effect === EffectType.Hatch) {
-                    return MachineState.Hatching
-                }
-                return MachineState.Converting
+                return onActivateEffect(action, context)
             }
             default: {
                 throw Error('Invalid action type')

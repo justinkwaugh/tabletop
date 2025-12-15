@@ -52,6 +52,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     hatchLocation?: OffsetCoordinates = $state(undefined)
     hatchTarget?: string = $state(undefined)
     teleportChoice?: boolean = $state(undefined)
+    accelerationAmount?: number = $state(undefined)
 
     drawnCards: Card[] = $derived.by(() => {
         const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId
@@ -95,6 +96,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isSolarFlares = $derived(this.gameState.machineState === MachineState.SolarFlares)
     isDrawingCards = $derived(this.gameState.machineState === MachineState.DrawingCards)
     isHatching = $derived(this.gameState.machineState === MachineState.Hatching)
+    isAccelerating = $derived(this.gameState.machineState === MachineState.Accelerating)
 
     acting = $derived(
         this.isMoving ||
@@ -104,7 +106,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.isSolarFlares ||
             this.isDrawingCards ||
             this.isCheckingEffect ||
-            this.isHatching
+            this.isHatching ||
+            this.isAccelerating
     )
 
     forcedCallToAction = $state<string | undefined>(undefined)
@@ -289,6 +292,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.hatchLocation = undefined
         this.hatchTarget = undefined
         this.teleportChoice = undefined
+        this.accelerationAmount = undefined
 
         this.forcedCallToAction = undefined
     }
@@ -987,6 +991,20 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             playerId: this.myPlayer.id,
             targetPlayerId: targetPlayerId,
             coords: this.chosenSource
+        }
+
+        await this.doAction(action)
+    }
+
+    async accelerate() {
+        if (!this.myPlayer || !this.accelerationAmount) {
+            throw new Error('Invalid accelerate')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Accelerate),
+            playerId: this.myPlayer.id,
+            amount: this.accelerationAmount
         }
 
         await this.doAction(action)

@@ -19,6 +19,7 @@
     import { CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
     import SuitPicker from './SuitPicker.svelte'
     import HatchPicker from './HatchPicker.svelte'
+    import AccelerationPicker from './AccelerationPicker.svelte'
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
@@ -71,10 +72,12 @@
         if (gameSession.isHatching) {
             if (!gameSession.hatchLocation) {
                 result.message = 'CHOOSE A LOCATION TO HATCH'
-                return result
             } else if (!gameSession.hatchTarget) {
                 result.message = 'CHOOSE A PLAYER TO TARGET'
-                return result
+            }
+        } else if (gameSession.isAccelerating) {
+            if (!gameSession.accelerationAmount) {
+                result.message = 'HOW MUCH ACCELERATION?'
             }
         } else if (gameSession.isMoving) {
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
@@ -364,6 +367,10 @@
     {#if gameSession.isHatching && !gameSession.hatchTarget}
         <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
             <HatchPicker />
+        </div>
+    {:else if gameSession.isAccelerating && !gameSession.accelerationAmount}
+        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
+            <AccelerationPicker />
         </div>
     {:else if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
         <CardPicker animator={cardPickerAnimator} />

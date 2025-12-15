@@ -3,6 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { DrawingCardsStateHandler } from './drawingCards.js'
 import { EffectType } from '../components/effects.js'
+import { ActivateEffect } from '../actions/activateEffect.js'
 
 export function drawCardsOrEndTurn(
     state: HydratedSolGameState,
@@ -27,4 +28,14 @@ export function drawCardsOrEndTurn(
         state.turnManager.endTurn(state.actionCount)
         return MachineState.StartOfTurn
     }
+}
+
+export function onActivateEffect(action: ActivateEffect, context: MachineContext): MachineState {
+    if (action.effect === EffectType.Hatch) {
+        return MachineState.Hatching
+    } else if (action.effect === EffectType.Accelerate) {
+        return MachineState.Accelerating
+    }
+    const state = context.gameState as HydratedSolGameState
+    return state.machineState
 }

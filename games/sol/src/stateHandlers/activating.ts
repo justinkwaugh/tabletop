@@ -5,7 +5,7 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedActivateBonus, isActivateBonus } from '../actions/activateBonus.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
-import { drawCardsOrEndTurn } from './postActionHelper.js'
+import { drawCardsOrEndTurn, onActivateEffect } from './postActionHelper.js'
 import { Activation } from '../model/activation.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
@@ -75,11 +75,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                 return drawCardsOrEndTurn(gameState, context)
             }
             case isActivateEffect(action): {
-                if (action.effect === EffectType.Hatch) {
-                    return MachineState.Hatching
-                }
-                return MachineState.Activating
-                break
+                return onActivateEffect(action, context)
             }
             case isActivate(action): {
                 if (
