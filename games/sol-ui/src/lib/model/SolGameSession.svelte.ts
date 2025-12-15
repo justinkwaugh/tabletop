@@ -309,7 +309,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         const action = {
             ...this.createBaseAction(ActionType.Launch),
-            mothership: this.myPlayer.id,
+            mothership: this.chosenMothership,
             numSundivers: this.chosenNumDivers,
             destination: this.chosenDestination
         }

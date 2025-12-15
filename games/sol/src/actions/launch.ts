@@ -143,6 +143,7 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
             this.mothership,
             state.activeEffect === EffectType.Portal
         )
+        console.log('launch coords', launchCoordinates, this.destination)
         if (!launchCoordinates.find((coords) => sameCoordinates(coords, this.destination))) {
             return false
         }
