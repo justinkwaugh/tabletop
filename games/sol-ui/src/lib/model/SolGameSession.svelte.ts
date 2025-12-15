@@ -51,6 +51,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     juggernautStationId?: string = $state(undefined)
     hatchLocation?: OffsetCoordinates = $state(undefined)
     hatchTarget?: string = $state(undefined)
+    teleportChoice?: boolean = $state(undefined)
 
     drawnCards: Card[] = $derived.by(() => {
         const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId
@@ -242,6 +243,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             } else if (this.chosenConvertType) {
                 this.chosenConvertType = undefined
             }
+        } else if (this.teleportChoice !== undefined) {
+            this.teleportChoice = undefined
         } else if (this.clusterChoice !== undefined) {
             this.clusterChoice = undefined
         } else if (this.chosenNumDivers) {
@@ -285,6 +288,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.juggernautStationId = undefined
         this.hatchLocation = undefined
         this.hatchTarget = undefined
+        this.teleportChoice = undefined
 
         this.forcedCallToAction = undefined
     }
@@ -316,12 +320,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     async fly() {
         if (
             !this.myPlayer ||
+            !this.myPlayerState ||
             !this.chosenSource ||
             (!this.chosenNumDivers && !this.juggernautStationId) ||
             !this.chosenDestination
         ) {
             throw new Error('Invalid flight')
         }
+
         const cell = this.gameState.board.cellAt(this.chosenSource)
 
         const chosenGates = (this.chosenGates ?? []).map((key) => {
@@ -332,7 +338,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return gate
         })
 
-        if (this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)) {
+        if (
+            !this.teleportChoice &&
+            this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)
+        ) {
             do {
                 const gates = this.getGateChoices(
                     this.chosenSource,
@@ -384,6 +393,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             destination: this.chosenDestination,
             gates: chosenGates,
             cluster: this.clusterChoice ?? false,
+            teleport: this.teleportChoice ?? false,
             stationId: this.juggernautStationId
         }
 

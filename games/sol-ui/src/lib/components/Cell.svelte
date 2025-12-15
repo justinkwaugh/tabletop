@@ -87,6 +87,8 @@
                 if (gameSession.chosenNumDivers || gameSession.juggernautStationId) {
                     if (isCenterCell) {
                         return HydratedHurl.canHurl(gameSession.gameState, myPlayer.id)
+                    } else if (gameSession.teleportChoice === true) {
+                        return true
                     } else {
                         return HydratedFly.isValidFlightDestination({
                             state: gameSession.gameState,

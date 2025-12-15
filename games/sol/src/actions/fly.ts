@@ -27,6 +27,7 @@ export const Fly = Type.Evaluate(
             start: OffsetCoordinates,
             destination: OffsetCoordinates,
             cluster: Type.Boolean(),
+            teleport: Type.Boolean(),
             metadata: Type.Optional(FlyMetadata)
         })
     ])
@@ -47,6 +48,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     declare start: OffsetCoordinates
     declare destination: OffsetCoordinates
     declare cluster: boolean
+    declare teleport: boolean
     declare metadata?: FlyMetadata
 
     constructor(data: Fly) {
@@ -71,6 +73,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         if (this.cluster) {
             playerState.movementPoints -= distanceMoved
             state.getEffectTracking().clustersRemaining -= 1
+        } else if (this.teleport) {
+            playerState.movementPoints -= 3
         } else {
             const numMovingPieces = this.stationId ? 1 : this.sundiverIds.length
             playerState.movementPoints -= distanceMoved * numMovingPieces
@@ -134,6 +138,13 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
     isValidFlight(state: HydratedSolGameState): OffsetCoordinates[] | undefined {
         const playerState = state.getPlayerState(this.playerId)
+
+        if (this.teleport) {
+            if (playerState.movementPoints < 3 || this.sundiverIds.length > 1) {
+                return
+            }
+            return [this.start, this.destination]
+        }
 
         if (
             this.cluster &&
@@ -321,5 +332,10 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         return false
+    }
+
+    static canTeleport(state: HydratedSolGameState, playerId: string): boolean {
+        const playerState = state.getPlayerState(playerId)
+        return playerState.movementPoints >= 3
     }
 }
