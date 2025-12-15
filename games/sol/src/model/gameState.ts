@@ -47,7 +47,8 @@ export const SolGameState = Type.Evaluate(
                     squeezed: Type.Boolean(), // For Squeeze effect
                     flownSundiverId: Type.Optional(Type.String()), // For Hyperdrive effect
                     movementUsed: Type.Number(), // For Hyperdrive effect
-                    suitChosen: Type.Optional(Type.Enum(Suit)) // For Pillar effect
+                    suitChosen: Type.Optional(Type.Enum(Suit)), // For Pillar effect
+                    preHatchState: Type.Optional(Type.String()) // For Hatch effect
                 })
             )
         })
@@ -93,6 +94,7 @@ export class HydratedSolGameState
         flownSundiverId?: string
         movementUsed: number
         suitChosen?: Suit
+        preHatchState?: MachineState
     }
 
     constructor(data: SolGameState) {

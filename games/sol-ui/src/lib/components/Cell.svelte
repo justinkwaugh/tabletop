@@ -16,6 +16,7 @@
         EffectType,
         HydratedActivate,
         HydratedFly,
+        HydratedHatch,
         HydratedHurl,
         HydratedInvade,
         HydratedSacrifice,
@@ -53,13 +54,17 @@
         gameSession.isMyTurn && (gameSession.isActivating || gameSession.isSolarFlares)
     )
 
+    let myHatch = $derived(gameSession.isMyTurn && gameSession.isHatching)
+
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer
-        if (!myPlayer || (!myMove && !myConvert && !myActivate)) {
+        if (!myPlayer || (!myMove && !myConvert && !myActivate && !myHatch)) {
             return false
         }
 
-        if (myMove) {
+        if (myHatch) {
+            return HydratedHatch.canHatchAt(gameSession.gameState, myPlayer.id, cell.coords)
+        } else if (myMove) {
             if (gameSession.chosenMothership) {
                 if (gameSession.chosenNumDivers) {
                     const launchCoords = gameSession.gameState.board.launchCoordinatesForMothership(
@@ -182,7 +187,8 @@
                         gameSession.gameState.activeEffect === EffectType.Sacrifice)) ||
                 (myActivate &&
                     !gameSession.chosenSource &&
-                    !gameSession.gameState.activation?.currentStationId)) &&
+                    !gameSession.gameState.activation?.currentStationId) ||
+                (myHatch && !gameSession.hatchLocation)) &&
             !interactable
     )
 
@@ -206,7 +212,16 @@
             return
         }
 
-        if (myMove) {
+        if (myHatch) {
+            gameSession.hatchLocation = cell.coords
+            const otherPlayersAt = gameSession.gameState.board
+                .playersWithSundiversAt(cell.coords)
+                .filter((playerId) => playerId !== gameSession.myPlayer?.id)
+            if (otherPlayersAt.length === 1) {
+                gameSession.hatchTarget = otherPlayersAt[0]
+                await gameSession.hatch()
+            }
+        } else if (myMove) {
             if (gameSession.chosenMothership) {
                 gameSession.chosenDestination = cell.coords
                 gameSession.launch()

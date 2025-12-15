@@ -6,8 +6,6 @@ import {
     CENTER_COORDS,
     Direction,
     EffectType,
-    HydratedActivate,
-    HydratedActivateEffect,
     HydratedSolGameState,
     isActivateEffect,
     isLaunch,
@@ -25,7 +23,6 @@ import {
     Point,
     sameCoordinates
 } from '@tabletop/common'
-import { ActionCategory } from '$lib/definition/actionCategory.js'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
 
@@ -52,6 +49,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     clusterChoice?: boolean = $state(undefined)
     pillarGuess?: Suit = $state(undefined)
     juggernautStationId?: string = $state(undefined)
+    hatchLocation?: OffsetCoordinates = $state(undefined)
+    hatchTarget?: string = $state(undefined)
 
     drawnCards: Card[] = $derived.by(() => {
         const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId
@@ -71,6 +70,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     })
 
     midAction = $derived.by(() => {
+        if (this.isHatching) {
+            return this.hatchLocation
+        }
+
         if (this.chosenSource) {
             return true
         }
@@ -90,6 +93,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isChoosingCard = $derived(this.gameState.machineState === MachineState.ChoosingCard)
     isSolarFlares = $derived(this.gameState.machineState === MachineState.SolarFlares)
     isDrawingCards = $derived(this.gameState.machineState === MachineState.DrawingCards)
+    isHatching = $derived(this.gameState.machineState === MachineState.Hatching)
 
     acting = $derived(
         this.isMoving ||
@@ -98,7 +102,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.isChoosingCard ||
             this.isSolarFlares ||
             this.isDrawingCards ||
-            this.isCheckingEffect
+            this.isCheckingEffect ||
+            this.isHatching
     )
 
     forcedCallToAction = $state<string | undefined>(undefined)
@@ -125,6 +130,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 this.chosenNumDivers = 1
             }
             if (action.effect !== EffectType.Motivate) {
+                this.skipReset = true
+            }
+            if (action.effect === EffectType.Hatch) {
                 this.skipReset = true
             }
         }
@@ -222,7 +230,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     back() {
-        if (this.isConverting) {
+        if (this.isHatching) {
+            this.hatchLocation = undefined
+        } else if (this.isConverting) {
             if (this.chosenDiverCell) {
                 this.chosenDiverCell = undefined
             } else if (this.chosenSource) {
@@ -273,6 +283,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.clusterChoice = undefined
         this.pillarGuess = undefined
         this.juggernautStationId = undefined
+        this.hatchLocation = undefined
+        this.hatchTarget = undefined
 
         this.forcedCallToAction = undefined
     }
@@ -916,6 +928,21 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             ...this.createBaseAction(ActionType.Sacrifice),
             playerId: this.myPlayer.id,
             coords: this.chosenDestination
+        }
+
+        await this.doAction(action)
+    }
+
+    async hatch() {
+        if (!this.myPlayer || !this.hatchLocation || !this.hatchTarget) {
+            throw new Error('Invalid hatch')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Hatch),
+            playerId: this.myPlayer.id,
+            coords: this.hatchLocation,
+            targetPlayerId: this.hatchTarget
         }
 
         await this.doAction(action)

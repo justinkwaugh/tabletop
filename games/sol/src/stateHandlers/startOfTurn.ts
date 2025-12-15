@@ -82,6 +82,13 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
     enter(context: MachineContext) {
         const gameState = context.gameState as HydratedSolGameState
 
+        const preHatchState = gameState.getEffectTracking()?.preHatchState
+        if (preHatchState === MachineState.StartOfTurn) {
+            // If hatch came from here.. just clear it and don't reset the turn
+            gameState.getEffectTracking().preHatchState = undefined
+            return
+        }
+
         gameState.hurled = false
         gameState.moved = false
         gameState.activation = undefined
@@ -116,6 +123,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 return MachineState.Activating
             }
             case isActivateEffect(action): {
+                if (action.effect === EffectType.Hatch) {
+                    return MachineState.Hatching
+                }
                 return MachineState.ActivatedEffect
             }
             default: {

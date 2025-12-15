@@ -9,7 +9,9 @@
         "email": "turbo watch dev --filter=@tabletop/email",
         "lint": "turbo run lint",
         "test": "vitest",
+        "watch:frontend": "turbo watch dev --filter=@tabletop/frontend",
         "watch:backend": "turbo watch dev --filter=@tabletop/backend",
+        "start:backend": "turbo run start --filter=@tabletop/backend",
         "update-games": "turbo update-games"
     },
     "devDependencies": {

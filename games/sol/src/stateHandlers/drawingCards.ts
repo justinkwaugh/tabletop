@@ -46,6 +46,9 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
         const gameState = context.gameState as HydratedSolGameState
 
         if (isActivateEffect(action)) {
+            if (action.effect === EffectType.Hatch) {
+                return MachineState.Hatching
+            }
             return MachineState.DrawingCards
         }
 

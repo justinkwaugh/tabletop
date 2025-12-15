@@ -14,6 +14,7 @@ import { nanoid } from 'nanoid'
 import { Activation } from '../model/activation.js'
 import { HydratedPass, isPass, Pass } from '../actions/pass.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
+import { EffectType } from '../components/effects.js'
 
 // Transition from SolarFlares(SolarFlare) -> SolarFlares | ChoosingCard
 // Transition from SolarFlares(Activate) -> SolarFlares | ChoosingCard
@@ -50,6 +51,9 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
 
         switch (true) {
             case isActivateEffect(action): {
+                if (action.effect === EffectType.Hatch) {
+                    return MachineState.Hatching
+                }
                 return MachineState.SolarFlares
             }
             case isSolarFlare(action): {

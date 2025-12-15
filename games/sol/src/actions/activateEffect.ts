@@ -14,6 +14,7 @@ import { Ring } from '../utils/solGraph.js'
 import { HydratedFly } from './fly.js'
 import { HydratedInvade } from './invade.js'
 import { HydratedSacrifice } from './sacrifice.js'
+import { HydratedHatch } from './hatch.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -132,6 +133,8 @@ export class HydratedActivateEffect
                     }
                 }
             }
+        } else if (this.effect === EffectType.Hatch) {
+            state.getEffectTracking().preHatchState = state.machineState
         }
     }
 
@@ -180,6 +183,8 @@ export class HydratedActivateEffect
                 return this.canActivateCluster(state, playerId)
             case EffectType.Festival:
                 return this.canActivateFestival(state, playerId)
+            case EffectType.Hatch:
+                return this.canActivateHatch(state, playerId)
             case EffectType.Hyperdrive:
                 return this.canActivateHyperdrive(state, playerId)
             case EffectType.Invade:
@@ -389,6 +394,10 @@ export class HydratedActivateEffect
             return false
         }
         return HydratedSacrifice.canSacrifice(state)
+    }
+
+    static canActivateHatch(state: HydratedSolGameState, playerId: string): boolean {
+        return HydratedHatch.canHatch(state, playerId)
     }
 
     static hasCardForEffect(

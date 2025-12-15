@@ -62,6 +62,9 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
 
         switch (true) {
             case isActivateEffect(action): {
+                if (action.effect === EffectType.Hatch) {
+                    return MachineState.Hatching
+                }
                 return MachineState.Activating
                 break
             }

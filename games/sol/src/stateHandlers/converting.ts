@@ -103,6 +103,9 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
                 return drawCardsOrEndTurn(gameState, context)
             }
             case isActivateEffect(action): {
+                if (action.effect === EffectType.Hatch) {
+                    return MachineState.Hatching
+                }
                 return MachineState.Converting
             }
             default: {

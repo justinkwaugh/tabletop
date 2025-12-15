@@ -12,6 +12,7 @@
     import { fade } from 'svelte/transition'
     import { CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
     import SuitPicker from './SuitPicker.svelte'
+    import HatchPicker from './HatchPicker.svelte'
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
@@ -59,7 +60,15 @@
             return result
         }
 
-        if (gameSession.isMoving) {
+        if (gameSession.isHatching) {
+            if (!gameSession.hatchLocation) {
+                result.message = 'CHOOSE A LOCATION TO HATCH'
+                return result
+            } else if (!gameSession.hatchTarget) {
+                result.message = 'CHOOSE A PLAYER TO TARGET'
+                return result
+            }
+        } else if (gameSession.isMoving) {
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
                 result.message = 'CHOOSE A MOVEMENT SOURCE'
                 result.showSkip = true
@@ -207,10 +216,6 @@
         await gameSession.chooseActivate()
     }
 
-    async function chooseBonus() {
-        await gameSession.activateBonus()
-    }
-
     async function pass() {
         await gameSession.pass()
     }
@@ -315,7 +320,11 @@
         {/key}
     </div>
 
-    {#if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
+    {#if gameSession.isHatching && !gameSession.hatchTarget}
+        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
+            <HatchPicker />
+        </div>
+    {:else if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
         <CardPicker animator={cardPickerAnimator} />
     {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers && !gameSession.juggernautStationId}
         <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>

@@ -5,6 +5,7 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
 import { Sundiver } from '../components/sundiver.js'
+import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 
 export type SacrificeMetadata = Static<typeof SacrificeMetadata>
 export const SacrificeMetadata = Type.Object({
@@ -54,6 +55,8 @@ export class HydratedSacrifice extends HydratableAction<typeof Sacrifice> implem
         this.metadata = {
             sacrificedSundivers: removedSundivers
         }
+
+        state.cardsToDraw += CARDS_DRAWN_PER_RING[this.coords.row]
     }
 
     static canSacrifice(state: HydratedSolGameState): boolean {

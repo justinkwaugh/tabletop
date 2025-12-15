@@ -13,6 +13,7 @@ import { SolarFlaresStateHandler } from '../stateHandlers/solarFlares.js'
 import { ActivatedEffectStateHandler } from '../stateHandlers/activatedEffect.js'
 import { ConvertingStateHandler } from '../stateHandlers/converting.js'
 import { CheckEffectStateHandler } from '../stateHandlers/checkEffect.js'
+import { HatchingStateHandler } from '../stateHandlers/hatching.js'
 
 export const SolStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
@@ -20,6 +21,7 @@ export const SolStateHandlers: Record<MachineState, MachineStateHandler<Hydrated
     [MachineState.Moving]: new MovingStateHandler(),
     [MachineState.Converting]: new ConvertingStateHandler(),
     [MachineState.Activating]: new ActivatingStateHandler(),
+    [MachineState.Hatching]: new HatchingStateHandler(),
     [MachineState.DrawingCards]: new DrawingCardsStateHandler(),
     [MachineState.ChoosingCard]: new ChoosingCardStateHandler(),
     [MachineState.SolarFlares]: new SolarFlaresStateHandler(),

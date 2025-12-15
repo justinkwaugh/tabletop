@@ -14,5 +14,6 @@ export enum ActionType {
     ChooseCard = 'ChooseCard',
     ActivateEffect = 'ActivateEffect',
     Invade = 'Invade',
-    Sacrifice = 'Sacrifice'
+    Sacrifice = 'Sacrifice',
+    Hatch = 'Hatch'
 }
