@@ -86,6 +86,17 @@ export class HydratedSolPlayerState
         this.holdSundivers.push(...sundivers)
     }
 
+    public holdSundiversPerPlayer(): Map<string, Sundiver[]> {
+        const map = new Map<string, Sundiver[]>()
+        for (const sundiver of this.holdSundivers) {
+            if (!map.has(sundiver.playerId)) {
+                map.set(sundiver.playerId, [])
+            }
+            map.get(sundiver.playerId)!.push(sundiver)
+        }
+        return map
+    }
+
     public addSundiversToReserve(sundivers: Sundiver[]) {
         for (const sundiver of sundivers) {
             sundiver.reserve = true

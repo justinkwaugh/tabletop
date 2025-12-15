@@ -16,7 +16,9 @@
 <div
     class="-mt-2 flex flex-row justify-between items-start bg-black py-2 ps-2 border-b-1 border-[#ad9c80]"
 >
-    <div class="sol-font-bold text-[#ad9c80] leading-none">MOMENTUM</div>
+    <div onclick={() => gameSession.setEffects()} class="sol-font-bold text-[#ad9c80] leading-none">
+        MOMENTUM
+    </div>
     <div class="flex justify-center items-center space-x-1">
         {#each playersOrderedByMomentum as playerState (playerState.playerId)}
             <div animate:flip={{ duration: 200 }}>

@@ -15,6 +15,7 @@
         CENTER_COORDS,
         EffectType,
         HydratedActivate,
+        HydratedBlight,
         HydratedFly,
         HydratedHatch,
         HydratedHurl,
@@ -168,7 +169,16 @@
                 )
             }
         } else if (myActivate) {
-            if (!gameSession.chosenSource && cell.station) {
+            if (
+                gameSession.gameState.activeEffect === EffectType.Blight &&
+                !gameSession.chosenSource
+            ) {
+                return HydratedBlight.canBlightAnyMothershipFrom(
+                    gameSession.gameState,
+                    myPlayer.id,
+                    cell.coords
+                )
+            } else if (!gameSession.chosenSource && cell.station) {
                 return HydratedActivate.canActivateStationAt(
                     gameSession.gameState,
                     myPlayer.id,
@@ -276,7 +286,12 @@
             }
         } else if (myActivate) {
             gameSession.chosenSource = cell.coords
-            await gameSession.activateStation()
+
+            if (gameSession.gameState.activeEffect === EffectType.Blight) {
+                await gameSession.blight()
+            } else {
+                await gameSession.activateStation()
+            }
         }
     }
 

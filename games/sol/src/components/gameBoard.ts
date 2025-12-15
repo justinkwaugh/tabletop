@@ -541,6 +541,13 @@ export class HydratedSolGameBoard
         }, [])
     }
 
+    public isAdjacentToMothership(coords: OffsetCoordinates, playerId: string): boolean {
+        const mothershipIndex = this.motherships[playerId]
+        return this.graph
+            .mothershipAdjacentCoords(mothershipIndex)
+            .some((mothershipCoords) => sameCoordinates(mothershipCoords, coords))
+    }
+
     public playersWithSundiversAt(coords: OffsetCoordinates): string[] {
         const cell = this.cellAt(coords)
         return this.playersWithSundivers(cell)

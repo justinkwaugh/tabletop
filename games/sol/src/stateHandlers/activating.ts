@@ -9,6 +9,7 @@ import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { Activation } from '../model/activation.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
+import { HydratedBlight, isBlight } from '../actions/blight.js'
 
 // Transition from Activating(Pass) -> Activating | DrawingCards | StartOfTurn
 // Transition from Activating(ActivateBonus) -> Activating | DrawingCards | StartOfTurn
@@ -18,6 +19,7 @@ type ActivatingAction =
     | HydratedPass
     | HydratedActivate
     | HydratedActivateEffect
+    | HydratedBlight
 
 export class ActivatingStateHandler implements MachineStateHandler<ActivatingAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is ActivatingAction {
@@ -27,6 +29,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         return (
             isPass(action) ||
             isActivateEffect(action) ||
+            (isBlight(action) && gameState.activeEffect === EffectType.Blight) ||
             (isActivate(action) && gameState.activation?.currentStationId === undefined) ||
             (isActivateBonus(action) && gameState.activation?.currentStationId !== undefined)
         )
@@ -51,6 +54,13 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             validActions.push(ActionType.ActivateEffect)
         }
 
+        if (
+            gameState.activeEffect === EffectType.Blight &&
+            HydratedBlight.canBlight(gameState, playerId)
+        ) {
+            validActions.push(ActionType.Blight)
+        }
+
         console.log('Valid activating actions', validActions)
         return validActions
     }
@@ -61,6 +71,9 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         const gameState = context.gameState as HydratedSolGameState
 
         switch (true) {
+            case isBlight(action): {
+                return drawCardsOrEndTurn(gameState, context)
+            }
             case isActivateEffect(action): {
                 if (action.effect === EffectType.Hatch) {
                     return MachineState.Hatching

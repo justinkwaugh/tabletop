@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { ActionType, SolPlayerState } from '@tabletop/sol'
+    import { ActionType, HydratedSolPlayerState, SolPlayerState } from '@tabletop/sol'
     import { Color, range, type Player } from '@tabletop/common'
     import BlueBoard from '$lib/images/blueBoard.jpg'
     import GreenBoard from '$lib/images/greenBoard.jpg'
@@ -26,7 +26,7 @@
     import EffectCard from './EffectCard.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
-    let { player, playerState }: { player: Player; playerState: SolPlayerState } = $props()
+    let { player, playerState }: { player: Player; playerState: HydratedSolPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(playerState.playerId))
     let color = gameSession.colors.getPlayerColor(playerState.playerId)
@@ -77,6 +77,16 @@
         }
 
         return gameSession.validActionTypes.includes(ActionType.ActivateEffect)
+    })
+
+    let holdDiversByPlayer = $derived.by(() => {
+        const holdSundivers = playerState.holdSundiversPerPlayer()
+        // Player's own sundivers first
+        return Array.from(holdSundivers.entries()).sort(([a], [b]) => {
+            const aVal = `${a === playerState.playerId ? 'a' : 'b'}:${a}`
+            const bVal = `${b === playerState.playerId ? 'a' : 'b'}:${b}`
+            return aVal.localeCompare(bVal)
+        })
     })
 </script>
 
@@ -152,10 +162,16 @@
                         <div
                             class="flex flex-row justify-start items-start gap-x-2 w-full mb-[-5px]"
                         >
-                            <div class="flex flex-col justify-center items-center gap-y-1">
-                                <div>{playerState.holdSundivers.length}</div>
-                                <Sundiver width={25 * 0.75} height={25} color={playerState.color} />
-                            </div>
+                            {#each holdDiversByPlayer as [playerId, sundivers] (playerId)}
+                                <div class="flex flex-col justify-center items-center gap-y-1">
+                                    <div>{sundivers.length}</div>
+                                    <Sundiver
+                                        width={25 * 0.75}
+                                        height={25}
+                                        color={gameSession.colors.getPlayerColor(playerId)}
+                                    />
+                                </div>
+                            {/each}
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <div>{playerState.energyCubes}</div>
                                 <Cube

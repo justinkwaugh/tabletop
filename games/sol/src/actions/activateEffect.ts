@@ -15,6 +15,7 @@ import { HydratedFly } from './fly.js'
 import { HydratedInvade } from './invade.js'
 import { HydratedSacrifice } from './sacrifice.js'
 import { HydratedHatch } from './hatch.js'
+import { HydratedBlight } from './blight.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -175,6 +176,8 @@ export class HydratedActivateEffect
         switch (effect) {
             case EffectType.Augment:
                 return this.canActivateAugment(state, playerId)
+            case EffectType.Blight:
+                return this.canActivateBlight(state, playerId)
             case EffectType.Cascade:
                 return this.canActivateCascade(state, playerId)
             case EffectType.Ceremony:
@@ -414,6 +417,14 @@ export class HydratedActivateEffect
 
     static canActivateSynchronize(state: HydratedSolGameState, playerId: string): boolean {
         return state.machineState === MachineState.Activating
+    }
+
+    static canActivateBlight(state: HydratedSolGameState, playerId: string): boolean {
+        if (state.machineState !== MachineState.Activating) {
+            return false
+        }
+
+        return HydratedBlight.canBlight(state, playerId)
     }
 
     static hasCardForEffect(

@@ -15,6 +15,7 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedInvade } from '../actions/invade.js'
 import { EffectType } from '../components/effects.js'
 import { HydratedSacrifice } from '../actions/sacrifice.js'
+import { HydratedBlight } from '../actions/blight.js'
 
 // Transition from StartOfTurn(Pass) -> StartOfTurn
 // Transition from StartOfTurn(ChooseMove) -> Moving
@@ -70,7 +71,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         if (
             HydratedActivate.canActivate(gameState, playerId) ||
             (gameState.playerHasCardForEffect(playerId, EffectType.Pulse) &&
-                HydratedActivate.canPulse(gameState, playerId))
+                HydratedActivate.canPulse(gameState, playerId)) ||
+            (gameState.playerHasCardForEffect(playerId, EffectType.Blight) &&
+                HydratedBlight.canBlight(gameState, playerId))
         ) {
             validActions.push(ActionType.ChooseActivate)
         }

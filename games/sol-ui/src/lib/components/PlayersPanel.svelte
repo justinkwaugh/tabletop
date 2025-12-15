@@ -1,14 +1,13 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import type { SolPlayerState } from '@tabletop/sol'
+    import type { HydratedSolPlayerState, SolPlayerState } from '@tabletop/sol'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import Momentum from './Momentum.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
-    type PlayerAndState = { player: Player; playerState: SolPlayerState }
+    type PlayerAndState = { player: Player; playerState: HydratedSolPlayerState }
 
     let playersAndStates: PlayerAndState[] = $derived.by(() => {
         const playersAndStates = gameSession.gameState.players.map((playerState) => {

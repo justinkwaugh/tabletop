@@ -958,6 +958,40 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
     }
 
+    async blight() {
+        if (!this.myPlayer || !this.chosenSource) {
+            throw new Error('Invalid blight')
+        }
+
+        // Need to figure out mothership
+        let targetPlayerId: string | undefined = undefined
+        const otherPlayers = this.gameState.players.filter((p) => p.playerId !== this.myPlayer!.id)
+        for (const otherPlayer of otherPlayers) {
+            const adjacentCoords = this.gameState.board.launchCoordinatesForMothership(
+                otherPlayer.playerId
+            )
+            for (const coords of adjacentCoords) {
+                if (sameCoordinates(coords, this.chosenSource)) {
+                    targetPlayerId = otherPlayer.playerId
+                    break
+                }
+            }
+        }
+
+        if (!targetPlayerId) {
+            throw new Error('Could not find target player for blight')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Blight),
+            playerId: this.myPlayer.id,
+            targetPlayerId: targetPlayerId,
+            coords: this.chosenSource
+        }
+
+        await this.doAction(action)
+    }
+
     async doAction(action: GameAction) {
         if (!this.isPlayable) {
             return
@@ -968,5 +1002,28 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         } catch (e) {
             console.error('Error for action', e, action)
         }
+    }
+
+    async setEffects() {
+        const desiredEffects = [
+            EffectType.Accelerate,
+            EffectType.Blight,
+            EffectType.Catapult,
+            EffectType.Channel,
+            EffectType.Duplicate,
+            EffectType.Fuel
+        ]
+
+        let i = 0
+        for (const key of Object.keys(this.gameState.effects)) {
+            this.gameState.effects[key].type = desiredEffects[i]
+            i++
+        }
+
+        await this.gameService.saveGameLocally({
+            game: this.game,
+            actions: this.actions,
+            state: this.gameState.dehydrate()
+        })
     }
 }

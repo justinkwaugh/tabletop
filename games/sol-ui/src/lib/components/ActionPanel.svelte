@@ -150,6 +150,24 @@
             ) {
                 result.message = 'ACTIVATE PULSE TO CONTINUE'
                 return result
+            } else if (
+                !HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id) &&
+                gameSession.gameState.playerHasCardForEffect(
+                    gameSession.myPlayer.id,
+                    EffectType.Blight
+                ) &&
+                HydratedActivateEffect.canActivateBlight(
+                    gameSession.gameState,
+                    gameSession.myPlayer.id
+                )
+            ) {
+                result.message = 'ACTIVATE BLIGHT TO CONTINUE'
+                return result
+            } else if (
+                gameSession.gameState.activeEffect === EffectType.Blight &&
+                !gameSession.chosenSource
+            ) {
+                result.message = 'CHOOSE A SUNDIVER TO BLIGHT WITH'
             } else if (!gameSession.gameState.activation) {
                 result.message = 'CHOOSE A STATION'
             } else if (!gameSession.gameState.activation.currentStationId) {
