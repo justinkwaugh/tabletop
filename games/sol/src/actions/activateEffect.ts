@@ -13,6 +13,7 @@ import { BASE_AWARD_PER_RING } from '../utils/solConstants.js'
 import { Ring } from '../utils/solGraph.js'
 import { HydratedFly } from './fly.js'
 import { HydratedInvade } from './invade.js'
+import { HydratedSacrifice } from './sacrifice.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -197,10 +198,13 @@ export class HydratedActivateEffect
                 return this.canActivatePulse(state, playerId)
             case EffectType.Puncture:
                 return this.canActivatePuncture(state, playerId)
+            case EffectType.Sacrifice:
+                return this.canActivateSacrifice(state, playerId)
             case EffectType.Squeeze:
                 return this.canActivateSqueeze(state, playerId)
             case EffectType.Transcend:
                 return this.canActivateTranscend(state, playerId)
+
             default:
                 return false
         }
@@ -378,6 +382,13 @@ export class HydratedActivateEffect
 
     static canActivateTranscend(state: HydratedSolGameState, playerId: string): boolean {
         return state.machineState === MachineState.Moving
+    }
+
+    static canActivateSacrifice(state: HydratedSolGameState, playerId: string): boolean {
+        if (state.machineState !== MachineState.Converting) {
+            return false
+        }
+        return HydratedSacrifice.canSacrifice(state)
     }
 
     static hasCardForEffect(

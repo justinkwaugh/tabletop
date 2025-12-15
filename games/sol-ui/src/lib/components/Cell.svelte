@@ -18,6 +18,7 @@
         HydratedFly,
         HydratedHurl,
         HydratedInvade,
+        HydratedSacrifice,
         Ring,
         Station,
         StationType,
@@ -130,6 +131,8 @@
         } else if (myConvert) {
             if (gameSession.gameState.activeEffect === EffectType.Invade) {
                 return HydratedInvade.canInvadeAt(gameSession.gameState, myPlayer.id, cell.coords)
+            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
+                return HydratedSacrifice.canSacrificeAt(gameSession.gameState, cell.coords)
             } else if (gameSession.chosenConvertType === ConvertType.SolarGate) {
                 return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
             } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
@@ -175,7 +178,8 @@
             (myMove ||
                 (myConvert &&
                     (gameSession.chosenConvertType ||
-                        gameSession.gameState.activeEffect === EffectType.Invade)) ||
+                        gameSession.gameState.activeEffect === EffectType.Invade ||
+                        gameSession.gameState.activeEffect === EffectType.Sacrifice)) ||
                 (myActivate &&
                     !gameSession.chosenSource &&
                     !gameSession.gameState.activation?.currentStationId)) &&
@@ -227,6 +231,9 @@
             if (gameSession.gameState.activeEffect === EffectType.Invade) {
                 gameSession.chosenDestination = cell.coords
                 await gameSession.invade()
+            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
+                gameSession.chosenDestination = cell.coords
+                await gameSession.sacrifice()
             } else if (gameSession.diverCellChoices) {
                 if (gameSession.chosenDiverCell) {
                     gameSession.chosenSecondDiverCell = cell.coords

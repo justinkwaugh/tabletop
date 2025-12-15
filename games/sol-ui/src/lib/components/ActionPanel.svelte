@@ -97,6 +97,10 @@
                 if (!gameSession.chosenDestination) {
                     result.message = 'WHO WILL YOU INVADE?'
                 }
+            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
+                if (!gameSession.chosenDestination) {
+                    result.message = 'WHERE WILL YOU SACRIFICE?'
+                }
             } else if (!gameSession.chosenConvertType) {
                 result.message = 'WHAT WILL YOU CONVERT?'
             } else if (gameSession.diverCellChoices) {

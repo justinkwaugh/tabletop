@@ -21,6 +21,7 @@ import { HydratedChooseMove, isChooseMove } from '../actions/chooseMove.js'
 import { HydratedChooseConvert, isChooseConvert } from '../actions/chooseConvert.js'
 import { HydratedChooseActivate, isChooseActivate } from '../actions/chooseActivate.js'
 import { HydratedInvade, isInvade } from '../actions/invade.js'
+import { HydratedSacrifice, isSacrifice } from '../actions/sacrifice.js'
 
 export class SolHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -69,6 +70,9 @@ export class SolHydrator implements GameHydrator {
             }
             case isInvade(data): {
                 return new HydratedInvade(data)
+            }
+            case isSacrifice(data): {
+                return new HydratedSacrifice(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

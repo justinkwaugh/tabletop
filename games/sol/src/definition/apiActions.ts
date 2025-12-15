@@ -11,6 +11,9 @@ import { ChooseMove } from '../actions/chooseMove.js'
 import { ChooseConvert } from '../actions/chooseConvert.js'
 import { ChooseActivate } from '../actions/chooseActivate.js'
 import { Invade } from '../actions/invade.js'
+import { Hurl } from '../actions/hurl.js'
+import { Activate } from '../actions/activate.js'
+import { Sacrifice } from '../actions/sacrifice.js'
 
 export const SolApiActions = {
     [ActionType.ChooseMove]: ChooseMove,
@@ -18,11 +21,14 @@ export const SolApiActions = {
     [ActionType.ChooseActivate]: ChooseActivate,
     [ActionType.Launch]: Launch,
     [ActionType.Fly]: Fly,
+    [ActionType.Hurl]: Hurl,
+    [ActionType.Activate]: Activate,
     [ActionType.Convert]: Convert,
     [ActionType.ActivateBonus]: ActivateBonus,
     [ActionType.Pass]: Pass,
     [ActionType.DrawCards]: DrawCards,
     [ActionType.ChooseCard]: ChooseCard,
     [ActionType.ActivateEffect]: ActivateEffect,
-    [ActionType.Invade]: Invade
+    [ActionType.Invade]: Invade,
+    [ActionType.Sacrifice]: Sacrifice
 }

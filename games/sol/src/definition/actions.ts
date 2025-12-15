@@ -13,5 +13,6 @@ export enum ActionType {
     SolarFlare = 'SolarFlare',
     ChooseCard = 'ChooseCard',
     ActivateEffect = 'ActivateEffect',
-    Invade = 'Invade'
+    Invade = 'Invade',
+    Sacrifice = 'Sacrifice'
 }

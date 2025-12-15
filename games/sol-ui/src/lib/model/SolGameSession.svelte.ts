@@ -907,6 +907,20 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
     }
 
+    async sacrifice() {
+        if (!this.myPlayer || !this.chosenDestination) {
+            throw new Error('Invalid invade')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Sacrifice),
+            playerId: this.myPlayer.id,
+            coords: this.chosenDestination
+        }
+
+        await this.doAction(action)
+    }
+
     async doAction(action: GameAction) {
         if (!this.isPlayable) {
             return
