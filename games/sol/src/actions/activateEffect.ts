@@ -184,6 +184,8 @@ export class HydratedActivateEffect
                 return this.canActivateCascade(state, playerId)
             case EffectType.Ceremony:
                 return this.canActivateCeremony(state, playerId)
+            case EffectType.Channel:
+                return this.canActivateChannel(state, playerId)
             case EffectType.Cluster:
                 return this.canActivateCluster(state, playerId)
             case EffectType.Festival:
@@ -431,6 +433,15 @@ export class HydratedActivateEffect
 
     static canActivateAccelerate(state: HydratedSolGameState, playerId: string): boolean {
         return true
+    }
+
+    static canActivateChannel(state: HydratedSolGameState, playerId: string): boolean {
+        const playerState = state.getPlayerState(playerId)
+        return (
+            state.machineState === MachineState.DrawingCards &&
+            state.cardsToDraw > 0 &&
+            playerState.energyCubes >= state.cardsToDraw
+        )
     }
 
     static hasCardForEffect(

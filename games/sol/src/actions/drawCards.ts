@@ -91,5 +91,11 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
                 Object.assign(this.metadata, awardMetadata)
             }
         }
+
+        if (state.activeEffect === EffectType.Channel) {
+            const energySpent = cards.length
+            playerState.energyCubes -= energySpent
+            playerState.momentum += energySpent
+        }
     }
 }
