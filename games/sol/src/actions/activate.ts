@@ -107,6 +107,10 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 state.cardsToDraw += cardsToDraw
             }
         }
+
+        if (state.activeEffect === EffectType.Synchronize) {
+            playerState.momentum += 1
+        }
     }
 
     static applyActivationAward(

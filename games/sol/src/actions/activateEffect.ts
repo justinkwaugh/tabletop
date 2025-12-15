@@ -207,8 +207,10 @@ export class HydratedActivateEffect
                 return this.canActivateSacrifice(state, playerId)
             case EffectType.Squeeze:
                 return this.canActivateSqueeze(state, playerId)
+            case EffectType.Synchronize:
+                return this.canActivateSynchronize(state, playerId)
             case EffectType.Teleport:
-                return this.canTeleport(state, playerId)
+                return this.canActivateTeleport(state, playerId)
             case EffectType.Transcend:
                 return this.canActivateTranscend(state, playerId)
 
@@ -402,12 +404,16 @@ export class HydratedActivateEffect
         return HydratedHatch.canHatch(state, playerId)
     }
 
-    static canTeleport(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateTeleport(state: HydratedSolGameState, playerId: string): boolean {
         if (state.machineState !== MachineState.Moving) {
             return false
         }
-        const playerState = state.getPlayerState(playerId)
-        return playerState.movementPoints >= 3
+
+        return HydratedFly.canTeleport(state, playerId)
+    }
+
+    static canActivateSynchronize(state: HydratedSolGameState, playerId: string): boolean {
+        return state.machineState === MachineState.Activating
     }
 
     static hasCardForEffect(
