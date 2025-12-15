@@ -15,7 +15,6 @@
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
-        HyperdriveEffect = 'HyperdriveEffect',
         ActivateBonus = 'ActivateBonus',
         SqueezeEffect = 'SqueezeEffect'
     }
@@ -23,7 +22,6 @@
     enum NoActions {
         Pass = 'Pass',
         NoClusterEffect = 'NoClusterEffect',
-        NoHyperdriveEffect = 'NoHyperdriveEffect',
         NoSqueezeEffect = 'NoSqueezeEffect'
     }
 
@@ -65,7 +63,11 @@
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
                 result.message = 'CHOOSE A MOVEMENT SOURCE'
                 result.showSkip = true
-            } else if (gameSession.chosenSource && !gameSession.chosenNumDivers) {
+            } else if (
+                gameSession.chosenSource &&
+                !gameSession.chosenNumDivers &&
+                !gameSession.juggernautStationId
+            ) {
                 result.message = 'HOW MANY TO MOVE?'
             } else if (gameSession.chosenMothership && !gameSession.chosenNumDivers) {
                 result.message = 'HOW MANY TO LAUNCH?'
@@ -87,6 +89,8 @@
                         gameSession.chosenNumDivers > 1 ? 'S' : ''
                     }`
                 }
+            } else if (gameSession.juggernautStationId) {
+                result.message = 'CHOOSE A DESTINATION FOR JUGGERNAUT'
             }
         } else if (gameSession.isConverting) {
             if (gameSession.gameState.activeEffect === EffectType.Invade) {
@@ -210,8 +214,6 @@
     async function yes(action?: YesActions) {
         if (action === YesActions.ClusterEffect) {
             gameSession.clusterChoice = true
-        } else if (action === YesActions.HyperdriveEffect) {
-            gameSession.hyperdriveChoice = true
         } else if (action === YesActions.ActivateBonus) {
             await gameSession.activateBonus()
         } else if (action === YesActions.SqueezeEffect) {
@@ -226,8 +228,6 @@
             await gameSession.pass()
         } else if (action === NoActions.NoClusterEffect) {
             gameSession.clusterChoice = false
-        } else if (action === NoActions.NoHyperdriveEffect) {
-            gameSession.hyperdriveChoice = false
         } else if (action === NoActions.NoSqueezeEffect) {
             await gameSession.activateStation()
         } else {
@@ -313,7 +313,7 @@
 
     {#if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
         <CardPicker animator={cardPickerAnimator} />
-    {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers}
+    {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers && !gameSession.juggernautStationId}
         <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
             <LaunchPicker />
         </div>

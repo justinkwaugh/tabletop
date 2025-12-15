@@ -67,16 +67,17 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         const distanceMoved = path.length - 1
-        const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
 
         if (this.cluster) {
             playerState.movementPoints -= distanceMoved
             state.getEffectTracking().clustersRemaining -= 1
         } else {
-            playerState.movementPoints -= distanceMoved * this.sundiverIds.length
+            const numMovingPieces = this.stationId ? 1 : this.sundiverIds.length
+            playerState.movementPoints -= distanceMoved * numMovingPieces
         }
 
         if (state.activeEffect === EffectType.Puncture) {
+            const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
             playerState.addSundiversToReserve(removedSundivers)
             const playerGate = playerState.removeSolarGate()
             this.metadata.puncturedGate = playerGate
@@ -90,7 +91,17 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             state.cardsToDraw +=
                 CARDS_DRAWN_PER_RING[Math.min(this.start.row, this.destination.row)]
         } else {
-            state.board.addSundiversToCell(removedSundivers, this.destination)
+            if (this.stationId) {
+                const station = state.board.removeStationAt(this.start)
+                if (!station || station.id !== this.stationId) {
+                    throw Error('Invalid juggernaut station')
+                }
+                state.board.addStationAt(station, this.destination)
+                state.activeEffect = undefined
+            } else {
+                const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
+                state.board.addSundiversToCell(removedSundivers, this.destination)
+            }
         }
         if (state.activeEffect === EffectType.Hyperdrive) {
             state.getEffectTracking().flownSundiverId = this.sundiverIds[0]
@@ -149,7 +160,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 numSundivers: this.sundiverIds.length,
                 start: this.start,
                 destination: this.destination,
-                cluster: this.cluster
+                cluster: this.cluster,
+                juggernaut: this.stationId !== undefined
             })
         ) {
             console.log('invalid flight destination')
@@ -159,10 +171,12 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         if (state.activeEffect === EffectType.Puncture) {
             return [this.start, this.destination]
         }
+
+        const numMovingPieces = this.stationId ? 1 : this.sundiverIds.length
         return state.board.pathToDestination({
             start: this.start,
             destination: this.destination,
-            range: playerState.movementPoints / this.sundiverIds.length,
+            range: playerState.movementPoints / numMovingPieces,
             requiredGates: this.gates,
             portal: state.activeEffect === EffectType.Portal
         })
@@ -172,18 +186,18 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         state,
         playerId,
         numSundivers,
-        station = false,
         start,
         destination,
-        cluster = false
+        cluster = false,
+        juggernaut = false
     }: {
         state: HydratedSolGameState
         playerId: string
         numSundivers: number
-        station?: boolean
         start: OffsetCoordinates
         destination: OffsetCoordinates
         cluster?: boolean
+        juggernaut?: boolean
     }): boolean {
         const playerState = state.getPlayerState(playerId)
 
@@ -192,15 +206,14 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         // Check to see if destination can hold the pieces
-        if (
-            numSundivers > 0 &&
+        if (juggernaut && !state.board.canAddStationToCell(destination)) {
+            console.log('Cannot add station to cell')
+            return false
+        } else if (
+            !juggernaut &&
             !state.board.canAddSundiversToCell(playerId, numSundivers, destination)
         ) {
             console.log('Cannot add sundivers to cell')
-            return false
-        }
-
-        if (station && !state.board.canAddStationToCell(destination)) {
             return false
         }
 
@@ -209,10 +222,16 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         if (cluster) {
             range = 1
         } else {
-            range = Math.floor(range / numSundivers)
+            const numMovingPieces = juggernaut ? 1 : numSundivers
+            range = Math.floor(range / numMovingPieces)
         }
         const portal = state.activeEffect === EffectType.Portal
-        const path = state.board.pathToDestination({ start, destination, range, portal })
+        const path = state.board.pathToDestination({
+            start,
+            destination,
+            range,
+            portal
+        })
         if (!path) {
             console.log('No path found')
             return false

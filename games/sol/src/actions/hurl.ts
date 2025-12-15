@@ -19,6 +19,7 @@ export const Hurl = Type.Evaluate(
             type: Type.Literal(ActionType.Hurl),
             playerId: Type.String(),
             sundiverIds: Type.Array(Type.String()),
+            stationId: Type.Optional(Type.String()),
             gates: Type.Array(SolarGate), // Ordered list of required gates to pass through
             start: OffsetCoordinates,
             cluster: Type.Boolean(),
@@ -37,6 +38,7 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
     declare type: ActionType.Hurl
     declare playerId: string
     declare sundiverIds: string[]
+    declare stationId?: string
     declare gates: SolarGate[]
     declare start: OffsetCoordinates
     declare cluster: boolean
@@ -56,7 +58,12 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
         state.moved = true
 
         // These divers are gone for good
-        state.board.removeSundiversAt(this.sundiverIds, this.start)
+        if (this.stationId) {
+            state.board.removeStationAt(this.start)
+            state.activeEffect = undefined
+        } else {
+            state.board.removeSundiversAt(this.sundiverIds, this.start)
+        }
 
         const distanceMoved = this.sundiverIds.length * (path.length - 1)
         playerState.movementPoints -= distanceMoved
@@ -126,16 +133,18 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
                 numSundivers: this.sundiverIds.length,
                 start: this.start,
                 destination: CENTER_COORDS,
-                cluster: this.cluster
+                cluster: this.cluster,
+                juggernaut: this.stationId !== undefined
             })
         ) {
             return
         }
 
+        const piecesMoving = this.stationId ? 1 : this.sundiverIds.length
         return state.board.pathToDestination({
             start: this.start,
             destination: CENTER_COORDS,
-            range: playerState.movementPoints / this.sundiverIds.length,
+            range: playerState.movementPoints / piecesMoving,
             requiredGates: this.gates,
             portal: state.activeEffect === EffectType.Portal
         })

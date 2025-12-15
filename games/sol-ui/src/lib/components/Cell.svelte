@@ -78,18 +78,18 @@
                     )
                 }
             } else if (gameSession.chosenSource) {
-                if (gameSession.chosenNumDivers) {
+                if (gameSession.chosenNumDivers || gameSession.juggernautStationId) {
                     if (isCenterCell) {
                         return HydratedHurl.canHurl(gameSession.gameState, myPlayer.id)
                     } else {
                         return HydratedFly.isValidFlightDestination({
                             state: gameSession.gameState,
                             playerId: myPlayer.id,
-                            numSundivers: gameSession.chosenNumDivers,
-                            station: false,
+                            numSundivers: gameSession.chosenNumDivers ?? 0,
                             start: gameSession.chosenSource,
                             destination: cell.coords,
-                            cluster: gameSession.clusterChoice
+                            cluster: gameSession.clusterChoice,
+                            juggernaut: gameSession.juggernautStationId !== undefined
                         })
                     }
                 }
@@ -220,7 +220,7 @@
                 if (gameSession.numPlayerCanMoveFromSource() === 1 && !canMoveStation) {
                     gameSession.chosenNumDivers = 1
                 } else if (canMoveStation && gameSession.numPlayerCanMoveFromSource() === 0) {
-                    gameSession.chosenNumDivers = 1
+                    gameSession.juggernautStationId = cell.station?.id
                 }
             }
         } else if (myConvert) {

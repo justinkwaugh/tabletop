@@ -53,35 +53,37 @@
     function selectAmount(amount: number) {
         gameSession.chosenNumDivers = amount
     }
+
+    function selectStation() {
+        if (station) {
+            gameSession.juggernautStationId = station.id
+        }
+    }
 </script>
 
 <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
     {#if station}
-        {#if station.type === StationType.EnergyNode}
-            <button>
+        <button onclick={selectStation}>
+            {#if station.type === StationType.EnergyNode}
                 <EnergyNode
                     width={46}
                     height={48}
                     color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
                 />
-            </button>
-        {:else if station.type === StationType.SundiverFoundry}
-            <button>
+            {:else if station.type === StationType.SundiverFoundry}
                 <Foundry
                     width={46}
                     height={48}
                     color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
                 />
-            </button>
-        {:else if station.type === StationType.TransmitTower}
-            <button>
+            {:else if station.type === StationType.TransmitTower}
                 <Tower
                     width={40}
                     height={80}
                     color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
                 />
-            </button>
-        {/if}
+            {/if}
+        </button>
     {/if}
     {#if maxPieces > 0}
         <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">

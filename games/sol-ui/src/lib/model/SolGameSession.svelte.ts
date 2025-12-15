@@ -50,8 +50,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     diverCellChoices?: number[] = $state(undefined)
 
     clusterChoice?: boolean = $state(undefined)
-    hyperdriveChoice?: boolean = $state(undefined)
     pillarGuess?: Suit = $state(undefined)
+    juggernautStationId?: string = $state(undefined)
 
     drawnCards: Card[] = $derived.by(() => {
         const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId
@@ -76,7 +76,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
 
         if (this.isMoving) {
-            return this.chosenMothership || this.chosenNumDivers
+            return this.chosenMothership || this.chosenNumDivers || this.juggernautStationId
         }
 
         if (this.isConverting && this.chosenConvertType) {
@@ -234,8 +234,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             }
         } else if (this.clusterChoice !== undefined) {
             this.clusterChoice = undefined
-        } else if (this.hyperdriveChoice !== undefined) {
-            this.hyperdriveChoice = undefined
         } else if (this.chosenNumDivers) {
             this.chosenNumDivers = undefined
             if (this.numPlayerCanMoveFromSource() === 1) {
@@ -270,8 +268,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.gateChoices = undefined
 
         this.clusterChoice = undefined
-        this.hyperdriveChoice = undefined
         this.pillarGuess = undefined
+        this.juggernautStationId = undefined
 
         this.forcedCallToAction = undefined
     }
@@ -304,16 +302,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         if (
             !this.myPlayer ||
             !this.chosenSource ||
-            !this.chosenNumDivers ||
+            (!this.chosenNumDivers && !this.juggernautStationId) ||
             !this.chosenDestination
         ) {
             throw new Error('Invalid flight')
         }
         const cell = this.gameState.board.cellAt(this.chosenSource)
-        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
-        if (playerDivers.length < this.chosenNumDivers) {
-            throw new Error('Not enough divers')
-        }
 
         const chosenGates = (this.chosenGates ?? []).map((key) => {
             const gate = this.gameState.board.gates[key]
@@ -358,11 +352,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             } while (true)
         }
 
+        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
         // We want to take the last ones first
-        const diverIds = playerDivers
-            .toReversed()
-            .slice(0, this.chosenNumDivers)
-            .map((diver) => diver.id)
+        const diverIds = this.juggernautStationId
+            ? []
+            : playerDivers
+                  .toReversed()
+                  .slice(0, this.chosenNumDivers)
+                  .map((diver) => diver.id)
 
         const action = {
             ...this.createBaseAction(ActionType.Fly),
@@ -372,7 +369,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             destination: this.chosenDestination,
             gates: chosenGates,
             cluster: this.clusterChoice ?? false,
-            hyperdrive: this.hyperdriveChoice ?? false
+            stationId: this.juggernautStationId
         }
 
         await this.doAction(action)
@@ -382,17 +379,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         if (
             !this.myPlayer ||
             !this.chosenSource ||
-            !this.chosenNumDivers ||
+            (!this.chosenNumDivers && !this.juggernautStationId) ||
             !this.chosenDestination ||
             !sameCoordinates(this.chosenDestination, CENTER_COORDS)
         ) {
             throw new Error('Invalid hurl')
         }
         const cell = this.gameState.board.cellAt(this.chosenSource)
-        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
-        if (playerDivers.length < this.chosenNumDivers) {
-            throw new Error('Not enough divers')
-        }
 
         const chosenGates = (this.chosenGates ?? []).map((key) => {
             const gate = this.gameState.board.gates[key]
@@ -411,11 +404,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return
         }
 
+        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
         // We want to take the last ones first
-        const diverIds = playerDivers
-            .toReversed()
-            .slice(0, this.chosenNumDivers)
-            .map((diver) => diver.id)
+        const diverIds = this.juggernautStationId
+            ? []
+            : playerDivers
+                  .toReversed()
+                  .slice(0, this.chosenNumDivers)
+                  .map((diver) => diver.id)
 
         const action = {
             ...this.createBaseAction(ActionType.Hurl),
@@ -423,7 +419,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             sundiverIds: diverIds,
             start: this.chosenSource,
             destination: this.chosenDestination,
-            gates: chosenGates
+            gates: chosenGates,
+            stationId: this.juggernautStationId
         }
 
         await this.doAction(action)
