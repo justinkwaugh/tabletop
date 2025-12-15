@@ -251,7 +251,8 @@ export class HydratedSolGameBoard
         range,
         requiredGates, // Ordered list of gates to pass through
         illegalCoordinates,
-        portal = false
+        portal = false,
+        transcend = false
     }: {
         start: OffsetCoordinates
         destination: OffsetCoordinates
@@ -259,10 +260,12 @@ export class HydratedSolGameBoard
         requiredGates?: SolarGate[]
         illegalCoordinates?: OffsetCoordinates[]
         portal?: boolean
+        transcend?: boolean
     }): OffsetCoordinates[] | undefined {
         const path = [start]
 
-        if (requiredGates && requiredGates.length > 0) {
+        // No gates with transcend
+        if (!transcend && requiredGates && requiredGates.length > 0) {
             const pathThroughGates = this.pathThroughGates({
                 start,
                 requiredGates,
@@ -288,7 +291,8 @@ export class HydratedSolGameBoard
                     start: current,
                     end: destination,
                     range: remainingRange,
-                    illegalCoordinates
+                    illegalCoordinates,
+                    transcend
                 })
                 const finalSegment = this.graph.findFirstPath(pathFinder)
                 if (!finalSegment) {

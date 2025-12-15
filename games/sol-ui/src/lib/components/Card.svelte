@@ -104,7 +104,7 @@
     }
 
     .card-label-9 {
-        font-size: clamp(0.3rem, 14cqi, 2rem);
+        font-size: clamp(0.25rem, 13cqi, 2rem);
     }
 
     .card-label-10 {

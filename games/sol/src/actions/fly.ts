@@ -186,7 +186,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             range: playerState.movementPoints / numMovingPieces,
             requiredGates: this.gates,
             portal: state.activeEffect === EffectType.Portal,
-            illegalCoordinates
+            illegalCoordinates,
+            transcend: state.activeEffect === EffectType.Transcend
         })
     }
 
@@ -246,8 +247,10 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             destination,
             range,
             portal,
-            illegalCoordinates
+            illegalCoordinates,
+            transcend: state.activeEffect === EffectType.Transcend
         })
+
         if (!path) {
             console.log('No path found')
             return false

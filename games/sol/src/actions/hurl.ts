@@ -98,7 +98,8 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
                     start: cell.coords,
                     destination: CENTER_COORDS,
                     range: playerState.movementPoints,
-                    portal: state.activeEffect === EffectType.Portal
+                    portal: state.activeEffect === EffectType.Portal,
+                    transcend: state.activeEffect === EffectType.Transcend
                 })
             ) {
                 return true
@@ -153,7 +154,8 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
             range: playerState.movementPoints / piecesMoving,
             requiredGates: this.gates,
             portal: state.activeEffect === EffectType.Portal,
-            illegalCoordinates
+            illegalCoordinates,
+            transcend: state.activeEffect === EffectType.Transcend
         })
     }
 }

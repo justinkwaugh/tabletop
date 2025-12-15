@@ -199,6 +199,8 @@ export class HydratedActivateEffect
                 return this.canActivatePuncture(state, playerId)
             case EffectType.Squeeze:
                 return this.canActivateSqueeze(state, playerId)
+            case EffectType.Transcend:
+                return this.canActivateTranscend(state, playerId)
             default:
                 return false
         }
@@ -372,6 +374,10 @@ export class HydratedActivateEffect
         const hasStation = state.board.hasStationOnBoard(playerId)
         console.log('Can activate juggernaut:', hasStation)
         return hasStation
+    }
+
+    static canActivateTranscend(state: HydratedSolGameState, playerId: string): boolean {
+        return state.machineState === MachineState.Moving
     }
 
     static hasCardForEffect(

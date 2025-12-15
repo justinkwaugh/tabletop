@@ -15,7 +15,8 @@ export function solPathfinder({
     end,
     allowedGates,
     range,
-    illegalCoordinates
+    illegalCoordinates,
+    transcend = false
 }: {
     board: HydratedSolGameBoard
     start: OffsetCoordinates
@@ -23,6 +24,7 @@ export function solPathfinder({
     allowedGates?: SolarGate[] //This allows us to only allow movement through certain gates
     range?: number
     illegalCoordinates?: OffsetCoordinates[]
+    transcend?: boolean
 }) {
     const startNode = board.graph.nodeAt(start)
     if (!startNode) {
@@ -38,7 +40,7 @@ export function solPathfinder({
         start: startNode,
         end: endNode,
         range,
-        canTraverse: solTraverseChecker(board, allowedGates, illegalCoordinates)
+        canTraverse: solTraverseChecker(board, allowedGates, illegalCoordinates, transcend)
     })
 }
 

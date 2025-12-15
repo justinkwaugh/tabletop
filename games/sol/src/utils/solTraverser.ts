@@ -27,7 +27,8 @@ export function solTraverser({
 export function solTraverseChecker(
     board: HydratedSolGameBoard,
     allowedGates?: SolarGate[],
-    illegalCoordinates?: OffsetCoordinates[]
+    illegalCoordinates?: OffsetCoordinates[],
+    transcend: boolean = false
 ) {
     const illegalKeys = new Set(illegalCoordinates?.map((coords) => coordinatesToNumber(coords)))
 
@@ -56,6 +57,11 @@ export function solTraverseChecker(
         }
 
         // Traversing between other rings is allowed if there is a gate between them
+        // or if transcend is active
+        if (transcend) {
+            return true
+        }
+
         if (allowedGates) {
             return allowedGates.some((gate) => {
                 return board.isGateBetween(gate, from.coords, to.coords)
