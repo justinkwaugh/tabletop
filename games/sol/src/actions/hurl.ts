@@ -140,13 +140,20 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
             return
         }
 
+        const illegalCoordinates: OffsetCoordinates[] = []
+        if (this.stationId !== undefined || state.activeEffect === EffectType.Hyperdrive) {
+            // No 5 diver spots for juggernaut or hyperdrive
+            illegalCoordinates.push(...state.board.getFiveDiverCoords(this.playerId))
+        }
+
         const piecesMoving = this.stationId ? 1 : this.sundiverIds.length
         return state.board.pathToDestination({
             start: this.start,
             destination: CENTER_COORDS,
             range: playerState.movementPoints / piecesMoving,
             requiredGates: this.gates,
-            portal: state.activeEffect === EffectType.Portal
+            portal: state.activeEffect === EffectType.Portal,
+            illegalCoordinates
         })
     }
 }

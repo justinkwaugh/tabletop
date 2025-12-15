@@ -141,11 +141,19 @@ export class HydratedSolGameBoard
         })
     }
 
+    public getFiveDiverCoords(playerId: string): OffsetCoordinates[] {
+        return Iterator.from(this)
+            .filter((cell) => this.sundiversForPlayer(playerId, cell).length >= 5)
+            .map((cell) => cell.coords)
+            .toArray()
+    }
+
     public gateChoicesForDestination({
         start,
         end,
         range,
         requiredGates,
+        illegalCoordinates,
         allowLoops = false,
         portal = false
     }: {
@@ -153,6 +161,7 @@ export class HydratedSolGameBoard
         end: OffsetCoordinates
         range?: number
         requiredGates?: SolarGate[]
+        illegalCoordinates?: OffsetCoordinates[]
         allowLoops?: boolean
         portal?: boolean
     }): SolarGate[] {
@@ -160,7 +169,13 @@ export class HydratedSolGameBoard
 
         // First travel through any required gates
         if (requiredGates && requiredGates.length > 0) {
-            const requiredPath = this.pathThroughGates({ start, requiredGates, range, portal })
+            const requiredPath = this.pathThroughGates({
+                start,
+                requiredGates,
+                range,
+                portal,
+                illegalCoordinates
+            })
             if (!requiredPath) {
                 return []
             }
@@ -183,12 +198,16 @@ export class HydratedSolGameBoard
                 return false
             }
 
+            const currentIllegalCoordinates = illegalCoordinates ? [...illegalCoordinates] : []
+            if (!allowLoops) {
+                currentIllegalCoordinates.push(...path)
+            }
             // First travel through the gate
             const pathThroughGate = this.pathThroughGates({
                 start: current,
                 requiredGates: [gate],
                 range: remainingRange,
-                illegalCoordinates: allowLoops ? undefined : path,
+                illegalCoordinates: currentIllegalCoordinates,
                 portal
             })
 
@@ -209,14 +228,16 @@ export class HydratedSolGameBoard
                 return false
             }
 
-            const extendedPath = path.concat(pathThroughGate.slice(1))
+            if (!allowLoops) {
+                currentIllegalCoordinates.push(...pathThroughGate.slice(1))
+            }
 
             // Check path from other side of gate to destination
             const pathFromGate = this.pathToDestination({
                 start: otherSideOfGate,
                 destination: end,
                 range: remainingRange !== undefined ? remainingRange - distanceTraveled : undefined,
-                illegalCoordinates: allowLoops ? undefined : extendedPath,
+                illegalCoordinates: currentIllegalCoordinates,
                 portal
             })
 

@@ -243,6 +243,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                     this.chosenSource = undefined
                 }
             }
+        } else if (this.juggernautStationId) {
+            this.juggernautStationId = undefined
+            this.chosenSource = undefined
         } else if (this.chosenMothership) {
             this.chosenMothership = undefined
         } else if (this.chosenSource) {
@@ -431,12 +434,19 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         end: OffsetCoordinates,
         chosenGates: SolarGate[]
     ): SolarGate[] {
+        const illegalCoordinates: OffsetCoordinates[] = []
+        if (this.juggernautStationId || this.gameState.activeEffect === EffectType.Hyperdrive) {
+            // No 5 diver spots for juggernaut or hyperdrive
+            illegalCoordinates.push(...this.gameState.board.getFiveDiverCoords(this.myPlayer!.id))
+        }
+
         return this.gameState.board.gateChoicesForDestination({
             start,
             end,
             range: this.myPlayerState?.movementPoints ?? 0,
             requiredGates: chosenGates,
-            portal: this.gameState.activeEffect === EffectType.Portal
+            portal: this.gameState.activeEffect === EffectType.Portal,
+            illegalCoordinates
         })
     }
 

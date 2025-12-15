@@ -173,12 +173,20 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         const numMovingPieces = this.stationId ? 1 : this.sundiverIds.length
+
+        const illegalCoordinates: OffsetCoordinates[] = []
+        if (this.stationId !== undefined || state.activeEffect === EffectType.Hyperdrive) {
+            // No 5 diver spots for juggernaut or hyperdrive
+            illegalCoordinates.push(...state.board.getFiveDiverCoords(this.playerId))
+        }
+
         return state.board.pathToDestination({
             start: this.start,
             destination: this.destination,
             range: playerState.movementPoints / numMovingPieces,
             requiredGates: this.gates,
-            portal: state.activeEffect === EffectType.Portal
+            portal: state.activeEffect === EffectType.Portal,
+            illegalCoordinates
         })
     }
 
@@ -226,11 +234,19 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             range = Math.floor(range / numMovingPieces)
         }
         const portal = state.activeEffect === EffectType.Portal
+
+        const illegalCoordinates: OffsetCoordinates[] = []
+        if (juggernaut || state.activeEffect === EffectType.Hyperdrive) {
+            // No 5 diver spots for juggernaut or hyperdrive
+            illegalCoordinates.push(...state.board.getFiveDiverCoords(playerId))
+        }
+
         const path = state.board.pathToDestination({
             start,
             destination,
             range,
-            portal
+            portal,
+            illegalCoordinates
         })
         if (!path) {
             console.log('No path found')
