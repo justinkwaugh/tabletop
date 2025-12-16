@@ -78,21 +78,10 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                 return onActivateEffect(action, context)
             }
             case isActivate(action): {
+                const effects = [EffectType.Augment, EffectType.Squeeze, EffectType.Duplicate]
                 if (
-                    HydratedActivateEffect.canActivateEffect(
-                        gameState,
-                        action.playerId,
-                        EffectType.Augment
-                    )
-                ) {
-                    return MachineState.CheckEffect
-                }
-
-                if (
-                    HydratedActivateEffect.canActivateEffect(
-                        gameState,
-                        action.playerId,
-                        EffectType.Squeeze
+                    effects.some((e) =>
+                        HydratedActivateEffect.canActivateEffect(gameState, action.playerId, e)
                     )
                 ) {
                     return MachineState.CheckEffect

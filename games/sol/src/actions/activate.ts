@@ -86,7 +86,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             momentumAdded: 0
         }
 
-        const awardMetadata = HydratedActivate.applyActivationAward(playerState, station)
+        const duplicate = state.activeEffect === EffectType.Duplicate
+        const awardMetadata = HydratedActivate.applyActivationAward(playerState, station, duplicate)
         Object.assign(this.metadata, awardMetadata)
 
         if (state.machineState !== MachineState.SolarFlares) {
@@ -115,7 +116,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
     static applyActivationAward(
         playerState: HydratedSolPlayerState,
-        station: Station
+        station: Station,
+        duplicate: boolean = false
     ): { energyAdded: number; createdSundiverIds: string[]; momentumAdded: number } {
         const award = BASE_AWARD_PER_RING[station.coords!.row]
         const metadata: {
@@ -130,10 +132,11 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 break
             case StationType.SundiverFoundry:
                 playerState.energyCubes -= award
-                const awardCount = award
+
+                const buildAmount = duplicate ? 2 * award : award
                 const awardedSundivers = playerState.reserveSundivers.splice(
-                    -awardCount,
-                    awardCount
+                    -buildAmount,
+                    buildAmount
                 )
                 playerState.addSundiversToHold(awardedSundivers)
                 metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
@@ -179,9 +182,12 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         coords: OffsetCoordinates
     ): boolean {
         const awardCost = BASE_AWARD_PER_RING[coords.row]
+        const numToBuild = state.activeEffect === EffectType.Duplicate ? 2 * awardCost : awardCost
         const playerState = state.getPlayerState(playerId)
+
         return (
-            playerState.energyCubes >= awardCost && playerState.reserveSundivers.length >= awardCost
+            playerState.energyCubes >= awardCost &&
+            playerState.reserveSundivers.length >= numToBuild
         )
     }
 

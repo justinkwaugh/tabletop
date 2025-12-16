@@ -81,7 +81,15 @@ export class HydratedActivateBonus
             case StationType.SundiverFoundry:
                 const awardCost = award
                 playerState.energyCubes -= awardCost
-                const awardedSundivers = playerState.reserveSundivers.splice(-awardCost, awardCost)
+                const numToBuild =
+                    state.activation?.playerId === this.playerId &&
+                    state.activeEffect === EffectType.Duplicate
+                        ? 2 * awardCost
+                        : awardCost
+                const awardedSundivers = playerState.reserveSundivers.splice(
+                    -numToBuild,
+                    numToBuild
+                )
                 playerState.addSundiversToHold(awardedSundivers)
                 this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
@@ -125,8 +133,14 @@ export class HydratedActivateBonus
         const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
         const awardCost =
             BONUS_AWARD_PER_RING[ring] * (state.activeEffect === EffectType.Squeeze ? 2 : 1)
+
+        const numToBuild =
+            state.activation?.playerId === playerId && state.activeEffect === EffectType.Duplicate
+                ? 2 * awardCost
+                : awardCost
         return (
-            playerState.energyCubes >= awardCost && playerState.reserveSundivers.length >= awardCost
+            playerState.energyCubes >= awardCost &&
+            playerState.reserveSundivers.length >= numToBuild
         )
     }
 

@@ -188,6 +188,8 @@ export class HydratedActivateEffect
                 return this.canActivateChannel(state, playerId)
             case EffectType.Cluster:
                 return this.canActivateCluster(state, playerId)
+            case EffectType.Duplicate:
+                return this.canActivateDuplicate(state, playerId)
             case EffectType.Festival:
                 return this.canActivateFestival(state, playerId)
             case EffectType.Hatch:
@@ -442,6 +444,25 @@ export class HydratedActivateEffect
             state.cardsToDraw > 0 &&
             playerState.energyCubes >= state.cardsToDraw
         )
+    }
+
+    static canActivateDuplicate(state: HydratedSolGameState, playerId: string): boolean {
+        if (state.machineState !== MachineState.Activating) {
+            return false
+        }
+
+        return Iterator.from(state.board).some((cell) => {
+            if (!cell.station || cell.station.type !== StationType.SundiverFoundry) {
+                return false
+            }
+            const sundivers = state.board.sundiversForPlayerAt(playerId, cell.coords)
+            if (sundivers.length === 0) {
+                return false
+            }
+            const award = BASE_AWARD_PER_RING[cell.coords.row]
+            const playerState = state.getPlayerState(playerId)
+            return playerState.reserveSundivers.length >= award * 2
+        })
     }
 
     static hasCardForEffect(
