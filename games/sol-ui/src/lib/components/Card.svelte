@@ -6,20 +6,20 @@
     import ReverberationCard from '$lib/images/reverberationCard.png'
     import SolarFlareCard from '$lib/images/solarFlareCard.png'
     import SubductionCard from '$lib/images/subductionCard.png'
-    import { ActionType, Card, EffectType, HydratedActivateEffect, Suit } from '@tabletop/sol'
+    import { Card, EffectType, Suit } from '@tabletop/sol'
     import type { HTMLAttributes } from 'svelte/elements'
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 
     let {
         card,
-        showActivate,
-        style = 'full',
+        showActivate = false,
+        showActive = false,
         ...htmlProps
     }: {
         card: Card
         showActivate?: boolean
-        style?: 'full' | 'partial'
+        showActive?: boolean
     } & HTMLAttributes<HTMLDivElement> = $props()
 
     let gameSession = getContext('gameSession') as SolGameSession
@@ -65,33 +65,40 @@
 <div
     {...htmlProps}
     id={card.id}
-    class="card-container px-2 py-1 sol-font-bold flex flex-col justify-between items-center bg-gray-900 w-full h-full border-0 {style ===
-    'full'
-        ? 'bg-center bg-cover'
-        : 'bg-right bg-cover'}"
+    class="pt-2 pb-1 sol-font-bold flex flex-col justify-between items-center w-full h-full border-0 bg-center bg-cover"
     style="background-image: {cardImageForSuit(card.suit)}"
 >
-    <div>
-        {#if showActivate}
-            <button
-                onclick={onActivate}
-                class="rounded-lg bg-black/80 text-[#cccccc] text-xs tracking-widest p-2 hover:border-white border-transparent border-2"
-                >ACTIVATE</button
-            >
-        {/if}
-    </div>
-    <div
-        class="card-label {labelSize(effectForSuit(card.suit))} w-full text-center {card.suit ===
-        Suit.Flare
-            ? 'text-[#fdfdfd]'
-            : 'text-black'} text-xs uppercase tracking-widest"
-    >
-        {effectForSuit(card.suit)}
+    {#if showActivate}
+        <button
+            onclick={onActivate}
+            class="rounded-lg bg-black/80 text-[#cccccc] text-xs tracking-widest p-1 hover:border-white border-transparent border-2"
+            >ACTIVATE</button
+        >
+    {:else if showActive}
+        <div
+            class="tracking-widest w-full dark:bg-red-900 border-t-1 border-b-1 border-black text-[#fdfdfd] text-xs pb-1 pt-[6px]"
+        >
+            ACTIVE
+        </div>
+    {:else}
+        <div></div>
+    {/if}
+
+    <div class="card-label-container px-2 w-full">
+        <div
+            class="card-label {labelSize(
+                effectForSuit(card.suit)
+            )} w-full text-center {card.suit === Suit.Flare
+                ? 'text-[#fdfdfd]'
+                : 'text-black'} text-xs uppercase tracking-widest"
+        >
+            {effectForSuit(card.suit)}
+        </div>
     </div>
 </div>
 
 <style>
-    .card-container {
+    .card-label-container {
         container-type: inline-size;
     }
 

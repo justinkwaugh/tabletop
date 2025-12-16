@@ -13,6 +13,7 @@
     import SilverShip from '$lib/images/silverShip.svelte'
     import BlackShip from '$lib/images/blackShip.svelte'
     import BlueShip from '$lib/images/blueShip.svelte'
+    import type { Card as SolCard, Suit } from '@tabletop/sol'
     import Card from './Card.svelte'
     import CardBack from '$lib/images/cardBack.png'
     import Cube from '$lib/images/cube.svelte'
@@ -69,6 +70,24 @@
         }
     })
 
+    let card = $derived.by(() => {
+        if (playerState.card) {
+            return playerState.card
+        }
+
+        const currentTurnPlayer = gameSession.gameState.turnManager.currentTurn()?.playerId
+        if (currentTurnPlayer === playerState.playerId && gameSession.gameState.activeEffect) {
+            const activeSuit = Object.entries(gameSession.gameState.effects).find(
+                ([, effect]) => effect.type === gameSession.gameState.activeEffect
+            )?.[0]
+            if (activeSuit) {
+                return { id: 'active-effect-card', suit: activeSuit as Suit } satisfies SolCard
+            }
+        }
+
+        return
+    })
+
     let cardBackImage = `url(${CardBack})`
 
     let canActivate = $derived.by(() => {
@@ -77,6 +96,20 @@
         }
 
         return gameSession.validActionTypes.includes(ActionType.ActivateEffect)
+    })
+
+    let isActiveCard = $derived.by(() => {
+        if (!card) {
+            return false
+        }
+        const currentTurnPlayer = gameSession.gameState.turnManager.currentTurn()?.playerId
+        if (currentTurnPlayer !== playerState.playerId) {
+            return false
+        }
+        return (
+            gameSession.gameState.activeEffect !== null &&
+            gameSession.gameState.effects[card.suit].type === gameSession.gameState.activeEffect
+        )
     })
 
     let holdDiversByPlayer = $derived.by(() => {
@@ -240,26 +273,27 @@
                     </div>
                 </div>
             </div>
-            <div class="rounded-lg w-[94px] h-[136px] overflow-hidden shrink-0">
-                {#if playerState.card}
-                    <Card showActivate={canActivate} card={playerState.card} />
+            <div class="rounded-lg w-[94px] h-[136px] overflow-hidden shrink-0 grid card-grid">
+                <div
+                    style="background-image: {cardBackImage}"
+                    class="bg-center bg-cover w-full h-full opacity-30"
+                ></div>
+                {#if card}
+                    <div class="w-full h-full z-10">
+                        <Card showActivate={canActivate} showActive={isActiveCard} {card} />
 
-                    <Popover
-                        classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
-                        placement="right"
-                        triggeredBy={`[id='${playerState.card.id}']`}
-                        trigger="hover"
-                        arrow={false}
-                        offset={15}
-                        ><EffectCard
-                            effectType={gameSession.gameState.effects[playerState.card.suit].type}
-                        /></Popover
-                    >
-                {:else}
-                    <div
-                        style="background-image: {cardBackImage}"
-                        class="bg-center bg-cover w-full h-full opacity-30"
-                    ></div>
+                        <Popover
+                            classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
+                            placement="right"
+                            triggeredBy={`[id='${card.id}']`}
+                            trigger="hover"
+                            arrow={false}
+                            offset={15}
+                            ><EffectCard
+                                effectType={gameSession.gameState.effects[card.suit].type}
+                            /></Popover
+                        >
+                    </div>
                 {/if}
             </div>
         </div>
@@ -288,5 +322,9 @@
     .pulse-border {
         border-color: white;
         animation: border-pulsate 2.5s infinite;
+    }
+
+    .card-grid > * {
+        grid-area: 1 / 1;
     }
 </style>

@@ -41,7 +41,6 @@ import { GameHistory } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
 import { GameExplorations } from './gameExplorations.svelte.js'
-import { on } from 'svelte/events'
 import { AnimationContext } from '$lib/utils/animations.js'
 
 export enum GameSessionMode {
