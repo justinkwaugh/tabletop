@@ -37,17 +37,17 @@ const bgColorForColor = {
 }
 
 const borderColorForColor = {
-    [Color.Red]: 'bg-red-700',
-    [Color.Orange]: 'bg-orange-500',
-    [Color.Yellow]: 'bg-yellow-300',
-    [Color.Green]: 'bg-green-600',
-    [Color.Blue]: 'bg-blue-600',
-    [Color.Purple]: 'bg-purple-600',
-    [Color.Pink]: 'bg-pink-500',
-    [Color.Brown]: 'bg-yellow-900',
-    [Color.Gray]: 'bg-gray-500',
-    [Color.Black]: 'bg-black',
-    [Color.White]: 'bg-white'
+    [Color.Red]: 'border-red-700',
+    [Color.Orange]: 'border-orange-500',
+    [Color.Yellow]: 'border-yellow-300',
+    [Color.Green]: 'border-green-600',
+    [Color.Blue]: 'border-blue-600',
+    [Color.Purple]: 'border-purple-600',
+    [Color.Pink]: 'border-pink-500',
+    [Color.Brown]: 'border-yellow-900',
+    [Color.Gray]: 'border-gray-500',
+    [Color.Black]: 'border-black',
+    [Color.White]: 'border-white'
 }
 
 const textColorForColor = {

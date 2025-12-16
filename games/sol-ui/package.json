@@ -38,7 +38,8 @@
         "@tabletop/frontend-components": "*",
         "gsap": "^3.12.5",
         "javascript-time-ago": "^2.5.10",
-        "nanoid": "^5.1.6"
+        "nanoid": "^5.1.6",
+        "@floating-ui/dom": "^1.7.4"
     },
     "devDependencies": {
         "@playwright/test": "^1.42.1",

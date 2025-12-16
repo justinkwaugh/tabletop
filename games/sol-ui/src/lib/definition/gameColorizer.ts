@@ -43,4 +43,25 @@ export class SolGameColorizer extends DefaultColorizer {
                 return 'bg-[#555555]'
         }
     }
+
+    override getBorderColor(color?: string): string {
+        switch (color) {
+            case Color.Blue:
+                return 'border-[#539ad1]'
+            case Color.Red:
+                return 'border-[#e55649]'
+            case Color.Yellow:
+                return 'border-[#f3c244]'
+            case Color.Green:
+                return 'border-[#63b878]'
+            case Color.Purple:
+                return 'border-[#804796]'
+            case Color.Gray:
+                return 'border-[#888888]'
+            case Color.Black:
+                return 'border-[#444444]'
+            default:
+                return 'border-[#555555]'
+        }
+    }
 }

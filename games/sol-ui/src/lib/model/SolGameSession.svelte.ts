@@ -25,6 +25,7 @@ import {
 } from '@tabletop/common'
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
+import { getMothershipSpotPoint, getSpaceCentroid } from '$lib/utils/boardGeometry.js'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
@@ -53,6 +54,17 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     hatchTarget?: string = $state(undefined)
     teleportChoice?: boolean = $state(undefined)
     accelerationAmount?: number = $state(undefined)
+
+    movementPickerLocation = $derived.by(() => {
+        if (this.chosenSource) {
+            return getSpaceCentroid(this.numPlayers, this.chosenSource)
+        } else if (this.chosenMothership) {
+            const mothershipIndex = this.gameState.board.motherships[this.chosenMothership]
+            return getMothershipSpotPoint(this.numPlayers, mothershipIndex)
+        }
+
+        return { x: 0, y: 0 }
+    })
 
     drawnCards: Card[] = $derived.by(() => {
         const currentPlayer = this.gameState.turnManager.currentTurn()?.playerId

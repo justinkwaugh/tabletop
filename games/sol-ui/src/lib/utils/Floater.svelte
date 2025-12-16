@@ -1,0 +1,100 @@
+<script lang="ts">
+    import type { Middleware, Placement } from '@floating-ui/dom'
+    import * as dom from '@floating-ui/dom'
+    import type { Snippet } from 'svelte'
+    import { sineIn } from 'svelte/easing'
+    import { fade } from 'svelte/transition'
+
+    const DEFAULT_OFFSET = 8
+
+    let {
+        reference,
+        placement = 'top',
+        offset = DEFAULT_OFFSET,
+        strategy = 'absolute',
+        middlewares = [dom.flip(), dom.shift()],
+        isOpen = $bindable(false),
+        onClose,
+        children,
+        ...restProps
+    }: {
+        reference: string
+        placement?: Placement
+        offset?: number
+        strategy?: 'absolute' | 'fixed'
+        middlewares?: Middleware[]
+        isOpen?: boolean
+        onClose?: () => void
+        children: Snippet
+    } = $props()
+
+    let popover: HTMLElement | null = $state(null)
+    let referenceElement: HTMLElement | null = null
+
+    $effect(() => {
+        if (reference && popover) {
+            referenceElement = popover.ownerDocument.querySelector<HTMLElement>(reference)
+            popover.showPopover()
+        }
+    })
+
+    let middleware: Middleware[] = $derived.by(() => {
+        const base = [...middlewares, dom.offset(offset)]
+        return base
+    })
+
+    const px = (n: number | undefined) => (n ? `${n}px` : '')
+
+    function updatePopoverPosition() {
+        if (!referenceElement || !popover) {
+            return
+        }
+        return dom
+            .computePosition(referenceElement, popover, { placement, middleware, strategy })
+            .then(({ x, y, middlewareData: { arrow }, placement: pl, strategy }) => {
+                if (popover) {
+                    Object.assign(popover.style, {
+                        position: strategy,
+                        left: px(x),
+                        right: 'auto',
+                        top: px(y)
+                    })
+                }
+            })
+    }
+
+    $effect(() => {
+        // Floating UI instance when it's closed we need to keep a autoUpdate destroy function
+        let autoUpdateDestroy: (() => void) | null = null
+
+        if (popover && referenceElement) {
+            autoUpdateDestroy = dom.autoUpdate(referenceElement, popover, updatePopoverPosition)
+        }
+
+        return () => {
+            autoUpdateDestroy?.()
+            autoUpdateDestroy = null
+        }
+    })
+
+    function onToggle(event: ToggleEvent) {
+        event.stopPropagation()
+        if (event.newState === 'closed') {
+            if (onClose) {
+                onClose()
+            }
+        }
+    }
+</script>
+
+<div
+    class="bg-transparent"
+    popover="auto"
+    role="tooltip"
+    bind:this={popover}
+    transition:fade={{ duration: 100, easing: sineIn }}
+    ontoggle={onToggle}
+    {...restProps}
+>
+    {@render children()}
+</div>

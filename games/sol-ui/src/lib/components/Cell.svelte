@@ -410,6 +410,7 @@
 {/if}
 
 <g
+    id={`cell-${coordinatesToNumber(cell.coords)}`}
     class="focusable-control"
     role="button"
     tabindex={interactable ? 0 : -1}

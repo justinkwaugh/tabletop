@@ -10,7 +10,11 @@
     import { Direction, gateKey, Ring, SolarGate, type Sundiver } from '@tabletop/sol'
     import UISundiver from './Sundiver.svelte'
     import { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
-    import { getGatePosition, type GatePosition } from '$lib/utils/boardGeometry.js'
+    import {
+        getGatePosition,
+        offsetFromCenter,
+        type GatePosition
+    } from '$lib/utils/boardGeometry.js'
     import type { OffsetCoordinates } from '@tabletop/common'
     import GateDestination from './GateDestination.svelte'
     import Gate from './BoardGate.svelte'
@@ -18,7 +22,6 @@
     import Deck from './Deck.svelte'
     import Cube from '$lib/images/cube.svelte'
     import { animateCube, EnergyCubeAnimator } from '$lib/animators/energyCubeAnimator.js'
-    import BoardSvg from './BoardSvg.svelte'
     import { animateGate, GateAnimator } from '$lib/animators/gateAnimator.js'
     import { SvelteMap } from 'svelte/reactivity'
 
@@ -81,7 +84,7 @@
     <div class="absolute top left w-[1280px] h-[1280px]">
         <img src={boardImage} alt="game board" />
     </div>
-    <svg class="absolute z-0" width="1280" height="1280" viewBox="0 0 1280 1280">
+    <svg id="board" class="absolute z-0" width="1280" height="1280" viewBox="0 0 1280 1280">
         <defs>
             <DropShadow id="textshadow" />
             <DropShadow id="pieceshadow" offset={{ x: 0, y: 0 }} amount={20} />
@@ -129,5 +132,10 @@
         {#each gameSession.gameState.players as player}
             <Mothership playerId={player.playerId} />
         {/each}
+        <g
+            id="movement-picker-ref"
+            style="transform:translate({offsetFromCenter(gameSession.movementPickerLocation)
+                .x}px, {offsetFromCenter(gameSession.movementPickerLocation).y}px);"
+        ></g>
     </svg>
 </div>

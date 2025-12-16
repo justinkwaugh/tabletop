@@ -20,6 +20,7 @@
     import SuitPicker from './SuitPicker.svelte'
     import HatchPicker from './HatchPicker.svelte'
     import AccelerationPicker from './AccelerationPicker.svelte'
+    import MovementPicker from './MovementPicker.svelte'
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
@@ -375,9 +376,7 @@
     {:else if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
         <CardPicker animator={cardPickerAnimator} />
     {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers && !gameSession.juggernautStationId}
-        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
-            <LaunchPicker />
-        </div>
+        <MovementPicker coords={gameSession.chosenSource ?? { row: 0, col: 0 }} />
     {:else if gameSession.isConverting && !gameSession.chosenConvertType}
         <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
             <ConvertPicker />
