@@ -447,7 +447,7 @@ export class HydratedActivateEffect
     }
 
     static canActivateDuplicate(state: HydratedSolGameState, playerId: string): boolean {
-        if (state.machineState !== MachineState.Activating) {
+        if (state.machineState !== MachineState.Activating || state.activation) {
             return false
         }
 
