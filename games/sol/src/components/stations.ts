@@ -24,6 +24,10 @@ export const EnergyNode = Type.Evaluate(
     ])
 )
 
+export function isEnergyNode(station: Station): station is EnergyNode {
+    return station.type === StationType.EnergyNode
+}
+
 export type SundiverFoundry = Static<typeof SundiverFoundry>
 export const SundiverFoundry = Type.Evaluate(
     Type.Intersect([
@@ -34,6 +38,10 @@ export const SundiverFoundry = Type.Evaluate(
     ])
 )
 
+export function isSundiverFoundry(station: Station): station is SundiverFoundry {
+    return station.type === StationType.SundiverFoundry
+}
+
 export type TransmitTower = Static<typeof TransmitTower>
 export const TransmitTower = Type.Evaluate(
     Type.Intersect([
@@ -43,6 +51,10 @@ export const TransmitTower = Type.Evaluate(
         })
     ])
 )
+
+export function isTransmitTower(station: Station): station is TransmitTower {
+    return station.type === StationType.TransmitTower
+}
 
 export type Station = Static<typeof Station>
 export const Station = Type.Union([EnergyNode, SundiverFoundry, TransmitTower])

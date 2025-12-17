@@ -55,6 +55,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     teleportChoice?: boolean = $state(undefined)
     accelerationAmount?: number = $state(undefined)
     catapultChoice?: boolean = $state(undefined)
+    metamorphosisType?: StationType = $state(undefined)
 
     movementPickerLocation = $derived.by(() => {
         if (this.chosenSource) {
@@ -111,6 +112,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isHatching = $derived(this.gameState.machineState === MachineState.Hatching)
     isAccelerating = $derived(this.gameState.machineState === MachineState.Accelerating)
     isTributing = $derived(this.gameState.machineState === MachineState.Tributing)
+    isMetamorphosizing = $derived(this.gameState.machineState === MachineState.Metamorphosizing)
 
     acting = $derived(
         this.isMoving ||
@@ -122,7 +124,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.isCheckingEffect ||
             this.isHatching ||
             this.isAccelerating ||
-            this.isTributing
+            this.isTributing || this.isMetamorphosizing
     )
 
     forcedCallToAction = $state<string | undefined>(undefined)
@@ -309,6 +311,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.teleportChoice = undefined
         this.accelerationAmount = undefined
         this.catapultChoice = undefined
+        this.metamorphosisType = undefined
 
         this.forcedCallToAction = undefined
     }
@@ -367,36 +370,30 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         ) {
             console.log('checking gates')
             do {
-                const gates = this.getGateChoices(
+                const choiceData = this.getGateChoices(
                     this.chosenSource,
                     this.chosenDestination,
                     chosenGates,
                     catapult
                 )
-                if (gates.length > 1) {
-                    this.gateChoices = gates.map((gate) =>
+                if (choiceData.gates.length > 1) {
+                    this.gateChoices = choiceData.gates.map((gate) =>
                         this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
                     )
                     console.log('gate choices', this.gateChoices)
                     return
-                } else if (gates.length === 1) {
-                    // If we want to allow non-direct flights... this will happen
-                    if (this.chosenSource.row === this.chosenDestination.row) {
-                        // We could just go straight there....
-                        this.gateChoices = gates.map((gate) =>
+                } else if (choiceData.gates.length === 1) {
+                    if (!choiceData.direct) {
+                        if (!this.chosenGates) {
+                            this.chosenGates = []
+                        }
+                        const gate = choiceData.gates[0]
+                        this.chosenGates.push(
                             this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
                         )
-                        console.log('gate choices', this.gateChoices)
-                        return
+                        chosenGates.push(gate)
                     }
-
-                    if (!this.chosenGates) {
-                        this.chosenGates = []
-                    }
-                    this.chosenGates.push(
-                        this.gameState.board.gateKey(gates[0].outerCoords!, gates[0].innerCoords!)
-                    )
-                    chosenGates.push(gates[0])
+                    break
                 } else {
                     break
                 }
@@ -451,6 +448,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         ) {
             throw new Error('Invalid hurl')
         }
+
+        const catapult =
+            this.gameState.activeEffect === EffectType.Catapult && this.catapultChoice === true
+
         const cell = this.gameState.board.cellAt(this.chosenSource)
 
         const chosenGates = (this.chosenGates ?? []).map((key) => {
@@ -461,13 +462,41 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return gate
         })
 
-        const gates = this.getGateChoices(this.chosenSource, this.chosenDestination, chosenGates)
-
-        if (gates.length > 0) {
-            this.gateChoices = gates.map((gate) =>
-                this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
-            )
-            return
+        if (
+            !this.teleportChoice &&
+            this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)
+        ) {
+            console.log('checking gates')
+            do {
+                const choiceData = this.getGateChoices(
+                    this.chosenSource,
+                    this.chosenDestination,
+                    chosenGates,
+                    catapult
+                )
+                if (choiceData.gates.length > 1) {
+                    this.gateChoices = choiceData.gates.map((gate) =>
+                        this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
+                    )
+                    console.log('gate choices', this.gateChoices)
+                    return
+                } else if (choiceData.gates.length === 1) {
+                    if (!choiceData.direct) {
+                        if (!this.chosenGates) {
+                            this.chosenGates = []
+                        }
+                        const gate = choiceData.gates[0]
+                        this.chosenGates.push(
+                            this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
+                        )
+                        chosenGates.push(gate)
+                    }
+                    console.log('direct path auto chosen')
+                    break
+                } else {
+                    break
+                }
+            } while (true)
         }
 
         const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
@@ -497,7 +526,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         end: OffsetCoordinates,
         chosenGates: SolarGate[],
         catapult: boolean = false
-    ): SolarGate[] {
+    ): { gates: SolarGate[]; direct: boolean } {
         const illegalCoordinates: OffsetCoordinates[] = []
         if (this.juggernautStationId || this.gameState.activeEffect === EffectType.Hyperdrive) {
             // No 5 diver spots for juggernaut or hyperdrive
@@ -1071,6 +1100,26 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             ...this.createBaseAction(ActionType.Tribute),
             playerId: this.myPlayer.id,
             coords: this.chosenSource
+        }
+
+        await this.doAction(action)
+    }
+
+    async metamorphosize() {
+        if (!this.myPlayer || !this.metamorphosisType) {
+            throw new Error('Invalid tribute')
+        }
+
+        const station = this.gameState.getActivatingStation()
+        if (!station) {
+            throw new Error('No station to metamorphosize')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Metamorphosize),
+            playerId: this.myPlayer.id,
+            stationId: station.id,
+            stationType: this.metamorphosisType
         }
 
         await this.doAction(action)

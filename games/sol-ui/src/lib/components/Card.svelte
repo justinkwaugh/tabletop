@@ -141,4 +141,8 @@
     .card-label-11 {
         font-size: clamp(0.25rem, 11cqi, 2rem);
     }
+
+    .card-label-13 {
+        font-size: clamp(0.2rem, 9cqi, 2rem);
+    }
 </style>

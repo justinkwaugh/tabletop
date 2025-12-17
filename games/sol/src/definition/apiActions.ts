@@ -19,6 +19,7 @@ import { Blight } from '../actions/blight.js'
 import { Accelerate } from '../actions/accelerate.js'
 import { Fuel } from '../actions/fuel.js'
 import { Tribute } from '../actions/tribute.js'
+import { Metamorphosize } from '../actions/metamorphosize.js'
 
 export const SolApiActions = {
     [ActionType.ChooseMove]: ChooseMove,
@@ -40,5 +41,6 @@ export const SolApiActions = {
     [ActionType.Blight]: Blight,
     [ActionType.Accelerate]: Accelerate,
     [ActionType.Fuel]: Fuel,
-    [ActionType.Tribute]: Tribute
+    [ActionType.Tribute]: Tribute,
+    [ActionType.Metamorphosize]: Metamorphosize
 }

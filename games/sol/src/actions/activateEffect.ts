@@ -213,6 +213,8 @@ export class HydratedActivateEffect
                 return this.canActivateInvade(state, playerId)
             case EffectType.Juggernaut:
                 return this.canActivateJuggernaut(state, playerId)
+            case EffectType.Metamorphosis:
+                return this.canActivateMetamorphosis(state, playerId)
             case EffectType.Motivate:
                 return this.canActivateMotivate(state, playerId)
             case EffectType.Pillar:
@@ -491,6 +493,48 @@ export class HydratedActivateEffect
 
     static canActivateTribute(state: HydratedSolGameState, playerId: string): boolean {
         return HydratedTribute.canTribute(state, playerId)
+    }
+
+    static canActivateMetamorphosis(state: HydratedSolGameState, playerId: string): boolean {
+        if (!state.activation) {
+            return false
+        }
+
+        const station = state.getActivatingStation()
+        if (!station || station.playerId !== playerId) {
+            return false
+        }
+
+        const playerState = state.getPlayerState(playerId)
+        const stationTypes = [
+            StationType.EnergyNode,
+            StationType.SundiverFoundry,
+            StationType.TransmitTower
+        ]
+        for (const type of stationTypes) {
+            if (type === station.type) {
+                continue
+            }
+
+            switch (type) {
+                case StationType.EnergyNode:
+                    if (playerState.energyNodes.length > 0) {
+                        return true
+                    }
+                    break
+                case StationType.SundiverFoundry:
+                    if (playerState.sundiverFoundries.length > 0) {
+                        return true
+                    }
+                    break
+                case StationType.TransmitTower:
+                    if (playerState.transmitTowers.length > 0) {
+                        return true
+                    }
+                    break
+            }
+        }
+        return false
     }
 
     static hasCardForEffect(

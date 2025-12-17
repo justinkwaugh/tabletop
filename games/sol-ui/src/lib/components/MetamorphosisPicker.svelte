@@ -1,0 +1,93 @@
+<script lang="ts">
+    import { getContext } from 'svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import { StationType } from '@tabletop/sol'
+    import Gate from '$lib/images/gate.svelte'
+    import Tower from '$lib/images/tower.svelte'
+    import Foundry from '$lib/images/foundry.svelte'
+    import EnergyNode from '$lib/images/energynode.svelte'
+    import { ConvertType } from '$lib/definition/convertType.js'
+
+    let gameSession = getContext('gameSession') as SolGameSession
+
+    let station = $derived(gameSession.gameState.getActivatingStation())
+
+    let stationTypes = $derived.by(() => {
+        const playerState = gameSession.myPlayerState
+        if (!playerState) {
+            return []
+        }
+
+        const types = [
+            StationType.EnergyNode,
+            StationType.SundiverFoundry,
+            StationType.TransmitTower
+        ]
+
+        return types.filter((type) => {
+            if (type === station.type) {
+                return false
+            }
+            switch (type) {
+                case StationType.EnergyNode:
+                    return playerState.energyNodes.length > 0
+                case StationType.SundiverFoundry:
+                    return playerState.sundiverFoundries.length > 0
+                case StationType.TransmitTower:
+                    return playerState.transmitTowers.length > 0
+                default:
+                    return false
+            }
+        })
+    })
+
+    async function chooseMetamorphosisType(type: StationType) {
+        gameSession.metamorphosisType = type
+        await gameSession.metamorphosize()
+    }
+</script>
+
+<div class="flex flex-row flex-wrap justify-center items-end gap-x-2 mb-2">
+    {#if stationTypes.includes(StationType.EnergyNode)}
+        <div class="flex flex-col items-center">
+            <button onclick={() => chooseMetamorphosisType(StationType.EnergyNode)}>
+                <EnergyNode
+                    width={46}
+                    height={48}
+                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                />
+            </button>
+            <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                ENERGY<br />NODE
+            </div>
+        </div>
+    {/if}
+    {#if stationTypes.includes(StationType.SundiverFoundry)}
+        <div class="flex flex-col items-center">
+            <button onclick={() => chooseMetamorphosisType(StationType.SundiverFoundry)}>
+                <Foundry
+                    width={46}
+                    height={48}
+                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                />
+            </button>
+            <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                SUNDIVER<br />FOUNDRY
+            </div>
+        </div>
+    {/if}
+    {#if stationTypes.includes(StationType.TransmitTower)}
+        <div class="flex flex-col items-center">
+            <button onclick={() => chooseMetamorphosisType(StationType.TransmitTower)}>
+                <Tower
+                    width={40}
+                    height={80}
+                    color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                />
+            </button>
+            <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                TRANSMIT<br />TOWER
+            </div>
+        </div>
+    {/if}
+</div>

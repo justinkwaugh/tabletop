@@ -91,6 +91,7 @@
     stroke="none"
 >
     {#if interactable && !gameSession.animating}
-        <circle cx="0" cy="0" r="20" stroke="yellow" fill="white" opacity="0.8"></circle>
+        <circle cx="0" cy="0" r="20" stroke="black" stroke-width="2" fill="white" opacity="1"
+        ></circle>
     {/if}
 </g>

@@ -71,9 +71,9 @@ describe('Sol Game Board Tests', () => {
 
         const start = { row: Ring.Convective, col: 0 }
         const end = { row: Ring.Inner, col: 11 }
-        const gates = board.gateChoicesForDestination({ start, end, range: 4 })
-        expect(gates.length).toEqual(1)
-        expect(gates[0].id).toEqual(gate.id)
+        const choiceData = board.gateChoicesForDestination({ start, end, range: 4 })
+        expect(choiceData.gates.length).toEqual(1)
+        expect(choiceData.gates[0].id).toEqual(gate.id)
     })
 
     it<LocalTestContext>('should find gate choices even for same ring', ({ board }) => {
@@ -92,13 +92,13 @@ describe('Sol Game Board Tests', () => {
         const end = { row: Ring.Convective, col: 5 }
 
         // Not enough range to go out and back in
-        let gates = board.gateChoicesForDestination({ start, end, range: 7 })
-        expect(gates.length).toEqual(0)
+        let choiceData = board.gateChoicesForDestination({ start, end, range: 7 })
+        expect(choiceData.gates.length).toEqual(0)
 
         // Enough range to go out and back in
-        gates = board.gateChoicesForDestination({ start, end, range: 11 })
-        expect(gates.length).toEqual(1)
-        expect(gates[0].id).toEqual(gate.id)
+        choiceData = board.gateChoicesForDestination({ start, end, range: 11 })
+        expect(choiceData.gates.length).toEqual(1)
+        expect(choiceData.gates[0].id).toEqual(gate.id)
     })
 
     it<LocalTestContext>('should find gate choice with target at gate', ({ board }) => {
@@ -110,9 +110,9 @@ describe('Sol Game Board Tests', () => {
 
         const start = { row: Ring.Convective, col: 0 }
         const end = { row: Ring.Inner, col: 2 }
-        const gates = board.gateChoicesForDestination({ start, end, range: 3 })
-        expect(gates.length).toEqual(1)
-        expect(gates[0].id).toEqual(gate.id)
+        const choiceData = board.gateChoicesForDestination({ start, end, range: 3 })
+        expect(choiceData.gates.length).toEqual(1)
+        expect(choiceData.gates[0].id).toEqual(gate.id)
     })
 
     it<LocalTestContext>('calculates path through defined gates', ({ board }) => {
@@ -174,23 +174,33 @@ describe('Sol Game Board Tests', () => {
         const start = { row: Ring.Outer, col: 6 }
         const end = { row: Ring.Core, col: 0 }
 
-        const gates = board.gateChoicesForDestination({ start, end, range: 50 })
+        const choiceData = board.gateChoicesForDestination({ start, end, range: 50 })
 
-        expect(gates.length).toEqual(2)
-        expect(gates[0]).toEqual(gate)
-        expect(gates[1]).toEqual(gate2)
+        expect(choiceData.gates.length).toEqual(2)
+        expect(choiceData.gates[0]).toEqual(gate)
+        expect(choiceData.gates[1]).toEqual(gate2)
 
         const requiredGates = [gate]
-        const nextGates = board.gateChoicesForDestination({ start, end, range: 50, requiredGates })
+        const nextChoiceData = board.gateChoicesForDestination({
+            start,
+            end,
+            range: 50,
+            requiredGates
+        })
 
-        expect(nextGates.length).toEqual(2)
-        expect(nextGates[0]).toEqual(gate3)
-        expect(nextGates[1]).toEqual(gate4)
+        expect(nextChoiceData.gates.length).toEqual(2)
+        expect(nextChoiceData.gates[0]).toEqual(gate3)
+        expect(nextChoiceData.gates[1]).toEqual(gate4)
 
         requiredGates.push(gate3)
-        const finalGates = board.gateChoicesForDestination({ start, end, range: 50, requiredGates })
+        const finalChoiceData = board.gateChoicesForDestination({
+            start,
+            end,
+            range: 50,
+            requiredGates
+        })
 
-        expect(finalGates.length).toEqual(1)
-        expect(finalGates[0]).toEqual(gate5)
+        expect(finalChoiceData.gates.length).toEqual(1)
+        expect(finalChoiceData.gates[0]).toEqual(gate5)
     })
 })

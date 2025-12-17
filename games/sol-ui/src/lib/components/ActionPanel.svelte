@@ -4,7 +4,6 @@
     import MoveArrows from '$lib/images/movearrows.svelte'
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
-    import LaunchPicker from './LaunchPicker.svelte'
     import Header from './Header.svelte'
     import {
         ActionType,
@@ -21,6 +20,7 @@
     import HatchPicker from './HatchPicker.svelte'
     import AccelerationPicker from './AccelerationPicker.svelte'
     import MovementPicker from './MovementPicker.svelte'
+    import MetamorphosisPicker from './MetamorphosisPicker.svelte'
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
@@ -83,6 +83,10 @@
         } else if (gameSession.isTributing) {
             if (!gameSession.chosenSource) {
                 result.message = 'CHOOSE A STATION'
+            }
+        } else if (gameSession.isMetamorphosizing) {
+            if (!gameSession.metamorphosisType) {
+                result.message = 'CHOOSE A STATION TYPE'
             }
         } else if (gameSession.isMoving) {
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
@@ -376,6 +380,10 @@
     {:else if gameSession.isAccelerating && !gameSession.accelerationAmount}
         <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
             <AccelerationPicker />
+        </div>
+    {:else if gameSession.isMetamorphosizing && !gameSession.metamorphosisType}
+        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
+            <MetamorphosisPicker />
         </div>
     {:else if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
         <CardPicker animator={cardPickerAnimator} />

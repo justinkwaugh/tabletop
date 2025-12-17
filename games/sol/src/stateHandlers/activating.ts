@@ -96,6 +96,18 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                     throw Error('Cannot find activation')
                 }
 
+                if (
+                    HydratedActivateEffect.canActivateEffect(
+                        gameState,
+                        action.playerId,
+                        EffectType.Metamorphosis
+                    )
+                ) {
+                    return MachineState.CheckEffect
+                } else if (gameState.activeEffect === EffectType.Metamorphosis) {
+                    return MachineState.Metamorphosizing
+                }
+
                 return ActivatingStateHandler.continueActivatingOrEnd(
                     gameState,
                     context,
@@ -124,6 +136,16 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                     console.log('Giving activating player a chance to do bonus activation')
                     gameState.activePlayerIds = [activation.playerId]
                     return MachineState.Activating
+                } else if (
+                    HydratedActivateEffect.canActivateEffect(
+                        gameState,
+                        action.playerId,
+                        EffectType.Metamorphosis
+                    )
+                ) {
+                    return MachineState.CheckEffect
+                } else if (gameState.activeEffect === EffectType.Metamorphosis) {
+                    return MachineState.Metamorphosizing
                 } else {
                     console.log('Continuing activating or ending turn')
                     return ActivatingStateHandler.continueActivatingOrEnd(

@@ -53,6 +53,16 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     const effect = gameState.effects[playerState.card.suit].type
                     if (effect === EffectType.Augment) {
                         return ActivatingStateHandler.handleActivation(gameState, context)
+                    } else if (effect === EffectType.Metamorphosis) {
+                        const activation = gameState.activation
+                        if (!activation) {
+                            throw Error('No activation found for Metamorphosis effect')
+                        }
+                        return ActivatingStateHandler.continueActivatingOrEnd(
+                            gameState,
+                            context,
+                            activation
+                        )
                     }
                 }
                 return drawCardsOrEndTurn(gameState, context)
@@ -78,6 +88,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     return ActivatingStateHandler.handleActivation(gameState, context)
                 } else if (gameState.activeEffect === EffectType.Cascade) {
                     return MachineState.Converting
+                } else if (gameState.activeEffect === EffectType.Metamorphosis) {
+                    return MachineState.Metamorphosizing
                 } else {
                     return drawCardsOrEndTurn(gameState, context)
                 }

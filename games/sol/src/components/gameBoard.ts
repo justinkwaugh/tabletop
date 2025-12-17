@@ -165,7 +165,7 @@ export class HydratedSolGameBoard
         allowLoops?: boolean
         portal?: boolean
         catapult?: boolean
-    }): SolarGate[] {
+    }): { gates: SolarGate[]; direct: boolean } {
         const path = [start]
 
         let effectiveRange = range
@@ -186,7 +186,7 @@ export class HydratedSolGameBoard
                 illegalCoordinates
             })
             if (!requiredPath) {
-                return []
+                return { gates: [], direct: false }
             }
             path.push(...requiredPath.slice(1))
         }
@@ -195,64 +195,72 @@ export class HydratedSolGameBoard
         const current = path.at(-1)!
         // If we've reached the destination, we're done
         if (sameCoordinates(current, end)) {
-            return []
+            return { gates: [], direct: false }
         }
+
+        const directPath = current.row === end.row
 
         const localGates = this.findGatesLocalToRing(current.row)
         const remainingRange =
             effectiveRange !== undefined ? effectiveRange - (path.length - 1) : undefined
 
         // Check each gate to see if the path from the opposite side of the gate to the destination is valid
-        return localGates.filter((gate) => {
-            if (!gate.innerCoords || !gate.outerCoords) {
-                return false
-            }
+        return {
+            direct: directPath,
+            gates: localGates.filter((gate) => {
+                if (!gate.innerCoords || !gate.outerCoords) {
+                    return false
+                }
 
-            const currentIllegalCoordinates = illegalCoordinates ? [...illegalCoordinates] : []
-            if (!allowLoops) {
-                currentIllegalCoordinates.push(...path)
-            }
-            // First travel through the gate
-            const pathThroughGate = this.pathThroughGates({
-                start: current,
-                requiredGates: [gate],
-                range: remainingRange,
-                illegalCoordinates: currentIllegalCoordinates,
-                portal
+                const currentIllegalCoordinates = illegalCoordinates ? [...illegalCoordinates] : []
+                if (!allowLoops) {
+                    currentIllegalCoordinates.push(...path)
+                }
+                // First travel through the gate
+                const pathThroughGate = this.pathThroughGates({
+                    start: current,
+                    requiredGates: [gate],
+                    range: remainingRange,
+                    illegalCoordinates: currentIllegalCoordinates,
+                    portal
+                })
+
+                if (!pathThroughGate || pathThroughGate.length < 2) {
+                    return false
+                }
+
+                const otherSideOfGate = pathThroughGate.at(-1)!
+
+                // We might just be done
+                if (sameCoordinates(end, otherSideOfGate)) {
+                    return true
+                }
+
+                const distanceTraveled = pathThroughGate.length - 1
+
+                if (remainingRange !== undefined && distanceTraveled >= remainingRange) {
+                    return false
+                }
+
+                if (!allowLoops) {
+                    currentIllegalCoordinates.push(...pathThroughGate.slice(1))
+                }
+
+                // Check path from other side of gate to destination
+                const pathFromGate = this.pathToDestination({
+                    start: otherSideOfGate,
+                    destination: end,
+                    range:
+                        remainingRange !== undefined
+                            ? remainingRange - distanceTraveled
+                            : undefined,
+                    illegalCoordinates: currentIllegalCoordinates,
+                    portal
+                })
+
+                return pathFromGate !== undefined && pathFromGate.length >= 2
             })
-
-            if (!pathThroughGate || pathThroughGate.length < 2) {
-                return false
-            }
-
-            const otherSideOfGate = pathThroughGate.at(-1)!
-
-            // We might just be done
-            if (sameCoordinates(end, otherSideOfGate)) {
-                return true
-            }
-
-            const distanceTraveled = pathThroughGate.length - 1
-
-            if (remainingRange !== undefined && distanceTraveled >= remainingRange) {
-                return false
-            }
-
-            if (!allowLoops) {
-                currentIllegalCoordinates.push(...pathThroughGate.slice(1))
-            }
-
-            // Check path from other side of gate to destination
-            const pathFromGate = this.pathToDestination({
-                start: otherSideOfGate,
-                destination: end,
-                range: remainingRange !== undefined ? remainingRange - distanceTraveled : undefined,
-                illegalCoordinates: currentIllegalCoordinates,
-                portal
-            })
-
-            return pathFromGate !== undefined && pathFromGate.length >= 2
-        })
+        }
     }
 
     public pathToDestination({
