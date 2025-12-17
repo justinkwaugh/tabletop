@@ -21,6 +21,7 @@
         HydratedHurl,
         HydratedInvade,
         HydratedSacrifice,
+        HydratedTribute,
         Ring,
         Station,
         StationType,
@@ -56,15 +57,22 @@
     )
 
     let myHatch = $derived(gameSession.isMyTurn && gameSession.isHatching)
+    let myTribute = $derived(gameSession.isMyTurn && gameSession.isTributing)
 
     let interactable = $derived.by(() => {
         const myPlayerState = gameSession.myPlayerState
-        if (!myPlayerState || (!myMove && !myConvert && !myActivate && !myHatch)) {
+        if (!myPlayerState || (!myMove && !myConvert && !myActivate && !myHatch && !myTribute)) {
             return false
         }
 
         if (myHatch) {
             return HydratedHatch.canHatchAt(
+                gameSession.gameState,
+                myPlayerState.playerId,
+                cell.coords
+            )
+        } else if (myTribute) {
+            return HydratedTribute.canTributeAt(
                 gameSession.gameState,
                 myPlayerState.playerId,
                 cell.coords
@@ -223,7 +231,8 @@
                 (myActivate &&
                     !gameSession.chosenSource &&
                     !gameSession.gameState.activation?.currentStationId) ||
-                (myHatch && !gameSession.hatchLocation)) &&
+                (myHatch && !gameSession.hatchLocation) ||
+                (myTribute && !gameSession.chosenSource)) &&
             !interactable
     )
 
@@ -256,6 +265,9 @@
                 gameSession.hatchTarget = otherPlayersAt[0]
                 await gameSession.hatch()
             }
+        } else if (myTribute) {
+            gameSession.chosenSource = cell.coords
+            await gameSession.tribute()
         } else if (myMove) {
             if (gameSession.chosenMothership) {
                 gameSession.chosenDestination = cell.coords

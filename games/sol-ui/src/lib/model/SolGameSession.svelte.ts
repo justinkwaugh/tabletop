@@ -110,6 +110,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isDrawingCards = $derived(this.gameState.machineState === MachineState.DrawingCards)
     isHatching = $derived(this.gameState.machineState === MachineState.Hatching)
     isAccelerating = $derived(this.gameState.machineState === MachineState.Accelerating)
+    isTributing = $derived(this.gameState.machineState === MachineState.Tributing)
 
     acting = $derived(
         this.isMoving ||
@@ -120,7 +121,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.isDrawingCards ||
             this.isCheckingEffect ||
             this.isHatching ||
-            this.isAccelerating
+            this.isAccelerating ||
+            this.isTributing
     )
 
     forcedCallToAction = $state<string | undefined>(undefined)
@@ -1060,6 +1062,20 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
     }
 
+    async tribute() {
+        if (!this.myPlayer || !this.chosenSource) {
+            throw new Error('Invalid tribute')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Tribute),
+            playerId: this.myPlayer.id,
+            coords: this.chosenSource
+        }
+
+        await this.doAction(action)
+    }
+
     async doAction(action: GameAction) {
         if (!this.isPlayable) {
             return
@@ -1075,10 +1091,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     async setEffects() {
         const desiredEffects = [
             EffectType.Accelerate,
-            EffectType.Blight,
-            EffectType.Catapult,
-            EffectType.Channel,
-            EffectType.Duplicate,
+            EffectType.Metamorphosis,
+            EffectType.Chain,
+            EffectType.Passage,
+            EffectType.Tribute,
             EffectType.Fuel
         ]
 

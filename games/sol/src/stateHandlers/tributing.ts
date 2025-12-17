@@ -2,31 +2,31 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
-import { HydratedAccelerate, isAccelerate } from '../actions/accelerate.js'
+import { HydratedTribute, isTribute } from '../actions/tribute.js'
 
-// Transition from Accelerating(Accelerate) -> PREVIOUS STATE
+// Transition from Tributing(Tribute) -> PREVIOUS STATE
 
-export class AcceleratingStateHandler implements MachineStateHandler<HydratedAccelerate> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedAccelerate {
+export class TributingStateHandler implements MachineStateHandler<HydratedTribute> {
+    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedTribute {
         if (!action.playerId) return false
-        return isAccelerate(action)
+        return isTribute(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        return [ActionType.Accelerate]
+        return [ActionType.Tribute]
     }
 
     enter(_context: MachineContext) {}
 
-    onAction(action: HydratedAccelerate, context: MachineContext): MachineState {
+    onAction(action: HydratedTribute, context: MachineContext): MachineState {
         const gameState = context.gameState as HydratedSolGameState
 
         switch (true) {
-            case isAccelerate(action): {
+            case isTribute(action): {
                 const effectTracking = gameState.getEffectTracking()
                 const preEffectState = effectTracking.preEffectState
                 if (!preEffectState) {
-                    throw Error('No pre-accelerate state recorded')
+                    throw Error('No pre-tribute state recorded')
                 }
                 gameState.activeEffect = undefined
                 return preEffectState

@@ -4,9 +4,6 @@ import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from 
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
-import { Sundiver } from '../components/sundiver.js'
-import { Hatch } from './hatch.js'
-
 export type FuelMetadata = Static<typeof FuelMetadata>
 export const FuelMetadata = Type.Object({})
 
@@ -31,8 +28,6 @@ export function isFuel(action?: GameAction): action is Fuel {
 export class HydratedFuel extends HydratableAction<typeof Fuel> implements Fuel {
     declare type: ActionType.Fuel
     declare playerId: string
-    declare coords: OffsetCoordinates
-    declare targetPlayerId: string
     declare metadata?: FuelMetadata
     constructor(data: Fuel) {
         super(data, FuelValidator)

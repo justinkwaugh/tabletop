@@ -80,6 +80,10 @@
             if (!gameSession.accelerationAmount) {
                 result.message = 'HOW MUCH ACCELERATION?'
             }
+        } else if (gameSession.isTributing) {
+            if (!gameSession.chosenSource) {
+                result.message = 'CHOOSE A STATION'
+            }
         } else if (gameSession.isMoving) {
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
                 result.message = 'CHOOSE A MOVEMENT SOURCE'

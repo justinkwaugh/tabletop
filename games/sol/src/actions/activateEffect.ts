@@ -16,6 +16,7 @@ import { HydratedInvade } from './invade.js'
 import { HydratedSacrifice } from './sacrifice.js'
 import { HydratedHatch } from './hatch.js'
 import { HydratedBlight } from './blight.js'
+import { HydratedTribute } from './tribute.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -122,6 +123,7 @@ export class HydratedActivateEffect
             playerState.movementPoints *= 2
         } else if (this.effect === EffectType.Procreate) {
             for (const cell of state.board) {
+                state.getEffectTracking().preEffectState = state.machineState
                 const sundiversInCell = state.board.sundiversForPlayerAt(this.playerId, cell.coords)
                 if (
                     sundiversInCell.length >= 2 &&
@@ -134,7 +136,12 @@ export class HydratedActivateEffect
                     }
                 }
             }
-        } else if (this.effect === EffectType.Hatch || this.effect === EffectType.Accelerate) {
+        } else if (
+            this.effect === EffectType.Hatch ||
+            this.effect === EffectType.Accelerate ||
+            this.effect === EffectType.Tribute ||
+            this.effect === EffectType.Chain
+        ) {
             state.getEffectTracking().preEffectState = state.machineState
         } else if (this.effect === EffectType.Fuel) {
             state.getEffectTracking().fuelRemaining = 3
@@ -228,6 +235,8 @@ export class HydratedActivateEffect
                 return this.canActivateTeleport(state, playerId)
             case EffectType.Transcend:
                 return this.canActivateTranscend(state, playerId)
+            case EffectType.Tribute:
+                return this.canActivateTribute(state, playerId)
 
             default:
                 return false
@@ -478,6 +487,10 @@ export class HydratedActivateEffect
     static canActivateFuel(state: HydratedSolGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
         return state.machineState === MachineState.Moving && playerState.energyCubes > 0
+    }
+
+    static canActivateTribute(state: HydratedSolGameState, playerId: string): boolean {
+        return HydratedTribute.canTribute(state, playerId)
     }
 
     static hasCardForEffect(

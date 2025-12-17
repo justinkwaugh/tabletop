@@ -35,7 +35,10 @@ export function onActivateEffect(action: ActivateEffect, context: MachineContext
         return MachineState.Hatching
     } else if (action.effect === EffectType.Accelerate) {
         return MachineState.Accelerating
+    } else if (action.effect === EffectType.Tribute) {
+        return MachineState.Tributing
     }
+
     const state = context.gameState as HydratedSolGameState
     return state.machineState
 }

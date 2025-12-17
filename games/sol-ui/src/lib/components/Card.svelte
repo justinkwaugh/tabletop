@@ -83,7 +83,10 @@
         >
     {:else if showActive}
         <div
-            class="tracking-widest w-full dark:bg-red-900 border-t-1 border-b-1 border-black text-[#fdfdfd] text-xs pb-1 pt-[6px]"
+            class="tracking-widest w-full dark:bg-red-900 border-t-1 border-b-1 {card.suit ===
+            Suit.Flare
+                ? 'border-white'
+                : 'border-black'} text-[#fdfdfd] text-xs pb-1 pt-[6px]"
         >
             ACTIVE
         </div>

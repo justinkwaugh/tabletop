@@ -26,6 +26,7 @@ import { HydratedHatch, isHatch } from '../actions/hatch.js'
 import { HydratedBlight, isBlight } from '../actions/blight.js'
 import { HydratedAccelerate, isAccelerate } from '../actions/accelerate.js'
 import { HydratedFuel, isFuel } from '../actions/fuel.js'
+import { HydratedTribute, isTribute } from '../actions/tribute.js'
 
 export class SolHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -89,6 +90,9 @@ export class SolHydrator implements GameHydrator {
             }
             case isFuel(data): {
                 return new HydratedFuel(data)
+            }
+            case isTribute(data): {
+                return new HydratedTribute(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)
