@@ -56,7 +56,13 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
         const cell = state.board.cellAt(coords)
         return (
             cell.sundivers.length > 0 &&
-            state.board.neighborsAt(coords).some((neighbor) => neighbor.sundivers.length > 0)
+            state.board
+                .neighborsAt(coords)
+                .some(
+                    (neighbor) =>
+                        neighbor.sundivers.length > 0 &&
+                        state.board.areAdjacent(coords, neighbor.coords)
+                )
         )
     }
 

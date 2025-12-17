@@ -243,7 +243,10 @@
     let disabled = $derived(
         !gameSession.animating &&
             (myMove ||
-                myChain ||
+                (myChain &&
+                    !gameSession.chain?.find((entry) =>
+                        sameCoordinates(entry.coords, cell.coords)
+                    )) ||
                 (myConvert &&
                     (gameSession.chosenConvertType ||
                         gameSession.gameState.activeEffect === EffectType.Invade ||

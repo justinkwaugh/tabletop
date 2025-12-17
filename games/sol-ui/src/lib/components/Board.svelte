@@ -25,6 +25,7 @@
     import { animateGate, GateAnimator } from '$lib/animators/gateAnimator.js'
     import { SvelteMap } from 'svelte/reactivity'
     import CellOutline from './CellOutline.svelte'
+    import ChainOverlay from './ChainOverlay.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -81,15 +82,7 @@
     gateAnimator.register()
 
     const cellsToOutline = $derived.by(() => {
-        const chainCells = gameSession.chain?.map((entry) => entry.coords) ?? []
-        const outlineCells = [...gameSession.outlinedCells]
-        // dumb way
-        for (const coords of chainCells) {
-            if (!outlineCells.find((c) => sameCoordinates(c, coords))) {
-                outlineCells.push(coords)
-            }
-        }
-        return outlineCells
+        return gameSession.outlinedCells
     })
 </script>
 
@@ -141,6 +134,8 @@
                 </g>
             {/if}
         {/each}
+
+        <ChainOverlay />
 
         {#each cellsToOutline as coords (coordinatesToNumber(coords))}
             <CellOutline {coords} />
