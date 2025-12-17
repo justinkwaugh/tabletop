@@ -58,13 +58,17 @@
     let myHatch = $derived(gameSession.isMyTurn && gameSession.isHatching)
 
     let interactable = $derived.by(() => {
-        const myPlayer = gameSession.myPlayer
-        if (!myPlayer || (!myMove && !myConvert && !myActivate && !myHatch)) {
+        const myPlayerState = gameSession.myPlayerState
+        if (!myPlayerState || (!myMove && !myConvert && !myActivate && !myHatch)) {
             return false
         }
 
         if (myHatch) {
-            return HydratedHatch.canHatchAt(gameSession.gameState, myPlayer.id, cell.coords)
+            return HydratedHatch.canHatchAt(
+                gameSession.gameState,
+                myPlayerState.playerId,
+                cell.coords
+            )
         } else if (myMove) {
             if (gameSession.chosenMothership) {
                 if (gameSession.chosenNumDivers) {
@@ -78,7 +82,7 @@
                     return (
                         isLaunchCell &&
                         gameSession.gameState.board.canAddSundiversToCell(
-                            myPlayer.id,
+                            myPlayerState.playerId,
                             gameSession.chosenNumDivers,
                             cell.coords
                         )
@@ -87,30 +91,32 @@
             } else if (gameSession.chosenSource) {
                 if (gameSession.chosenNumDivers || gameSession.juggernautStationId) {
                     if (isCenterCell) {
-                        return HydratedHurl.canHurl(gameSession.gameState, myPlayer.id)
+                        return HydratedHurl.canHurl(gameSession.gameState, myPlayerState.playerId)
                     } else if (gameSession.teleportChoice === true) {
                         return true
                     } else {
+                        console.log('catapultchoice', gameSession.catapultChoice)
                         return HydratedFly.isValidFlightDestination({
                             state: gameSession.gameState,
-                            playerId: myPlayer.id,
+                            playerId: myPlayerState.playerId,
                             numSundivers: gameSession.chosenNumDivers ?? 0,
                             start: gameSession.chosenSource,
                             destination: cell.coords,
                             cluster: gameSession.clusterChoice,
-                            juggernaut: gameSession.juggernautStationId !== undefined
+                            juggernaut: gameSession.juggernautStationId !== undefined,
+                            catapult: gameSession.catapultChoice ?? false
                         })
                     }
                 }
             } else {
                 const sundivers = gameSession.gameState.board.sundiversForPlayerAt(
-                    myPlayer.id,
+                    myPlayerState.playerId,
                     cell.coords
                 )
 
                 if (
                     gameSession.gameState.activeEffect === EffectType.Juggernaut &&
-                    gameSession.gameState.board.hasStationAt(cell.coords, myPlayer.id)
+                    gameSession.gameState.board.hasStationAt(cell.coords, myPlayerState.playerId)
                 ) {
                     return true
                 }
@@ -119,11 +125,24 @@
                     return false
                 }
 
+                if (myPlayerState.movementPoints === 0) {
+                    return (
+                        sundivers.some(
+                            (sundiver) =>
+                                !gameSession.gameState
+                                    .getEffectTracking()
+                                    .catapultedIds.includes(sundiver.id)
+                        ) &&
+                        gameSession.gameState.activeEffect === EffectType.Catapult &&
+                        gameSession.gameState.board.isNextToGateAt(cell.coords)
+                    )
+                }
+
                 if (gameSession.gameState.activeEffect === EffectType.Puncture) {
                     return HydratedFly.canPunctureFrom(
                         cell.coords,
                         gameSession.gameState,
-                        myPlayer.id
+                        myPlayerState.playerId
                     )
                 }
 
@@ -138,14 +157,18 @@
             }
         } else if (myConvert) {
             if (gameSession.gameState.activeEffect === EffectType.Invade) {
-                return HydratedInvade.canInvadeAt(gameSession.gameState, myPlayer.id, cell.coords)
+                return HydratedInvade.canInvadeAt(
+                    gameSession.gameState,
+                    myPlayerState.playerId,
+                    cell.coords
+                )
             } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
                 return HydratedSacrifice.canSacrificeAt(gameSession.gameState, cell.coords)
             } else if (gameSession.chosenConvertType === ConvertType.SolarGate) {
                 return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
             } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
                 return gameSession.gameState.board.canConvertStationAt(
-                    myPlayer.id,
+                    myPlayerState.playerId,
                     StationType.EnergyNode,
                     cell.coords
                 )
@@ -154,7 +177,7 @@
                     return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
                 }
                 return gameSession.gameState.board.canConvertStationAt(
-                    myPlayer.id,
+                    myPlayerState.playerId,
                     StationType.SundiverFoundry,
                     cell.coords
                 )
@@ -163,7 +186,7 @@
                     return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
                 }
                 return gameSession.gameState.board.canConvertStationAt(
-                    myPlayer.id,
+                    myPlayerState.playerId,
                     StationType.TransmitTower,
                     cell.coords
                 )
@@ -175,13 +198,13 @@
             ) {
                 return HydratedBlight.canBlightAnyMothershipFrom(
                     gameSession.gameState,
-                    myPlayer.id,
+                    myPlayerState.playerId,
                     cell.coords
                 )
             } else if (!gameSession.chosenSource && cell.station) {
                 return HydratedActivate.canActivateStationAt(
                     gameSession.gameState,
-                    myPlayer.id,
+                    myPlayerState.playerId,
                     cell.coords
                 )
             }
@@ -248,7 +271,11 @@
                 gameSession.chosenSource = cell.coords
 
                 const canMoveStation = gameSession.canMoveStationFromSource()
-                if (gameSession.numPlayerCanMoveFromSource() === 1 && !canMoveStation) {
+                if (
+                    gameSession.gameState.activeEffect !== EffectType.Catapult &&
+                    gameSession.numPlayerCanMoveFromSource() === 1 &&
+                    !canMoveStation
+                ) {
                     gameSession.chosenNumDivers = 1
                 } else if (canMoveStation && gameSession.numPlayerCanMoveFromSource() === 0) {
                     gameSession.juggernautStationId = cell.station?.id

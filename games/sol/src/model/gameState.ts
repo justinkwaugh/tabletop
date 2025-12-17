@@ -48,7 +48,8 @@ export const SolGameState = Type.Evaluate(
                     flownSundiverId: Type.Optional(Type.String()), // For Hyperdrive effect
                     movementUsed: Type.Number(), // For Hyperdrive effect
                     suitChosen: Type.Optional(Type.Enum(Suit)), // For Pillar effect
-                    preEffectState: Type.Optional(Type.Enum(MachineState)) // For Hatch / Accelerate effect
+                    preEffectState: Type.Optional(Type.Enum(MachineState)), // For Hatch / Accelerate effect
+                    catapultedIds: Type.Array(Type.String()) // For Catapult effect
                 })
             )
         })
@@ -95,6 +96,7 @@ export class HydratedSolGameState
         movementUsed: number
         suitChosen?: Suit
         preEffectState?: MachineState
+        catapultedIds: string[]
     }
 
     constructor(data: SolGameState) {
@@ -112,7 +114,8 @@ export class HydratedSolGameState
                 outerRingLaunches: 0,
                 clustersRemaining: 0,
                 squeezed: false,
-                movementUsed: 0
+                movementUsed: 0,
+                catapultedIds: []
             }
         }
         return this.effectTracking

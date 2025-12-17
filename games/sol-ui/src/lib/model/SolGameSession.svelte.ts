@@ -54,6 +54,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     hatchTarget?: string = $state(undefined)
     teleportChoice?: boolean = $state(undefined)
     accelerationAmount?: number = $state(undefined)
+    catapultChoice?: boolean = $state(undefined)
 
     movementPickerLocation = $derived.by(() => {
         if (this.chosenSource) {
@@ -305,6 +306,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.hatchTarget = undefined
         this.teleportChoice = undefined
         this.accelerationAmount = undefined
+        this.catapultChoice = undefined
 
         this.forcedCallToAction = undefined
     }
@@ -344,6 +346,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('Invalid flight')
         }
 
+        const catapult =
+            this.gameState.activeEffect === EffectType.Catapult && this.catapultChoice === true
+
         const cell = this.gameState.board.cellAt(this.chosenSource)
 
         const chosenGates = (this.chosenGates ?? []).map((key) => {
@@ -358,16 +363,19 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             !this.teleportChoice &&
             this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)
         ) {
+            console.log('checking gates')
             do {
                 const gates = this.getGateChoices(
                     this.chosenSource,
                     this.chosenDestination,
-                    chosenGates
+                    chosenGates,
+                    catapult
                 )
                 if (gates.length > 1) {
                     this.gateChoices = gates.map((gate) =>
                         this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
                     )
+                    console.log('gate choices', this.gateChoices)
                     return
                 } else if (gates.length === 1) {
                     // If we want to allow non-direct flights... this will happen
@@ -376,6 +384,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                         this.gateChoices = gates.map((gate) =>
                             this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
                         )
+                        console.log('gate choices', this.gateChoices)
                         return
                     }
 
@@ -392,14 +401,27 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             } while (true)
         }
 
-        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
-        // We want to take the last ones first
-        const diverIds = this.juggernautStationId
-            ? []
-            : playerDivers
-                  .toReversed()
-                  .slice(0, this.chosenNumDivers)
-                  .map((diver) => diver.id)
+        const playerDivers = this.gameState.board
+            .sundiversForPlayer(this.myPlayer.id, cell)
+            .toReversed()
+
+        // Confusing... choosing to catapult means non catapulted divers but so does not the choice not being
+        // made as in the normal case
+        let chosenDivers = playerDivers
+
+        if (this.gameState.activeEffect === EffectType.Catapult) {
+            chosenDivers = chosenDivers.filter((diver) =>
+                catapult
+                    ? !this.gameState.getEffectTracking().catapultedIds.includes(diver.id)
+                    : this.gameState.getEffectTracking().catapultedIds.includes(diver.id)
+            )
+        }
+        chosenDivers = chosenDivers.slice(0, this.chosenNumDivers)
+        const diverIds = this.juggernautStationId ? [] : chosenDivers.map((diver) => diver.id)
+
+        if (diverIds.length === 0 && !this.juggernautStationId) {
+            throw new Error('No sundivers to fly')
+        }
 
         const action = {
             ...this.createBaseAction(ActionType.Fly),
@@ -410,9 +432,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             gates: chosenGates,
             cluster: this.clusterChoice ?? false,
             teleport: this.teleportChoice ?? false,
-            stationId: this.juggernautStationId
+            stationId: this.juggernautStationId,
+            catapult: this.catapultChoice ?? false
         }
-
+        console.log('Flying with action', action)
         await this.doAction(action)
     }
 
@@ -470,7 +493,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     getGateChoices(
         start: OffsetCoordinates,
         end: OffsetCoordinates,
-        chosenGates: SolarGate[]
+        chosenGates: SolarGate[],
+        catapult: boolean = false
     ): SolarGate[] {
         const illegalCoordinates: OffsetCoordinates[] = []
         if (this.juggernautStationId || this.gameState.activeEffect === EffectType.Hyperdrive) {
@@ -484,7 +508,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             range: this.myPlayerState?.movementPoints ?? 0,
             requiredGates: chosenGates,
             portal: this.gameState.activeEffect === EffectType.Portal,
-            illegalCoordinates
+            illegalCoordinates,
+            catapult
         })
     }
 

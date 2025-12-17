@@ -28,6 +28,7 @@ export const Fly = Type.Evaluate(
             destination: OffsetCoordinates,
             cluster: Type.Boolean(),
             teleport: Type.Boolean(),
+            catapult: Type.Boolean(),
             metadata: Type.Optional(FlyMetadata)
         })
     ])
@@ -39,6 +40,11 @@ export function isFly(action?: GameAction): action is Fly {
     return action?.type === ActionType.Fly
 }
 
+const EffectsThatDisallowFiveDiverTraversal = [
+    EffectType.Hyperdrive,
+    EffectType.Catapult,
+    EffectType.Passage
+]
 export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     declare type: ActionType.Fly
     declare playerId: string
@@ -49,6 +55,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     declare destination: OffsetCoordinates
     declare cluster: boolean
     declare teleport: boolean
+    declare catapult: boolean
     declare metadata?: FlyMetadata
 
     constructor(data: Fly) {
@@ -76,8 +83,21 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         } else if (this.teleport) {
             playerState.movementPoints -= 3
         } else {
-            const numMovingPieces = this.stationId ? 1 : this.sundiverIds.length
-            playerState.movementPoints -= distanceMoved * numMovingPieces
+            for (const sundiverId of this.sundiverIds) {
+                let sundiverMovement = distanceMoved
+                if (this.catapult && this.gates.length > 0) {
+                    if (!state.getEffectTracking().catapultedIds.includes(sundiverId)) {
+                        state.getEffectTracking().catapultedIds.push(sundiverId)
+                        sundiverMovement -= 1
+                    }
+                }
+                playerState.movementPoints -= sundiverMovement
+            }
+
+            if (this.stationId) {
+                // Juggernaut
+                playerState.movementPoints -= distanceMoved
+            }
         }
 
         if (state.activeEffect === EffectType.Puncture) {
@@ -96,6 +116,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 CARDS_DRAWN_PER_RING[Math.min(this.start.row, this.destination.row)]
         } else {
             if (this.stationId) {
+                // Juggernaut
                 const station = state.board.removeStationAt(this.start)
                 if (!station || station.id !== this.stationId) {
                     throw Error('Invalid juggernaut station')
@@ -124,6 +145,11 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     static canFly(state: HydratedSolGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
         if (playerState.movementPoints <= 0) {
+            if (state.activeEffect === EffectType.Catapult) {
+                if (this.hasUncatapultedSundiverNextToGate(state, playerId)) {
+                    return true
+                }
+            }
             return false
         }
 
@@ -172,7 +198,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 start: this.start,
                 destination: this.destination,
                 cluster: this.cluster,
-                juggernaut: this.stationId !== undefined
+                juggernaut: this.stationId !== undefined,
+                catapult: this.catapult
             })
         ) {
             console.log('invalid flight destination')
@@ -186,7 +213,12 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         const numMovingPieces = this.stationId ? 1 : this.sundiverIds.length
 
         const illegalCoordinates: OffsetCoordinates[] = []
-        if (this.stationId !== undefined || state.activeEffect === EffectType.Hyperdrive) {
+
+        if (
+            this.stationId !== undefined ||
+            (state.activeEffect &&
+                EffectsThatDisallowFiveDiverTraversal.includes(state.activeEffect))
+        ) {
             // No 5 diver spots for juggernaut or hyperdrive
             illegalCoordinates.push(...state.board.getFiveDiverCoords(this.playerId))
         }
@@ -194,7 +226,9 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         return state.board.pathToDestination({
             start: this.start,
             destination: this.destination,
-            range: playerState.movementPoints / numMovingPieces,
+            range:
+                playerState.movementPoints / numMovingPieces +
+                (this.catapult && this.gates && this.gates.length > 0 ? 1 : 0),
             requiredGates: this.gates,
             portal: state.activeEffect === EffectType.Portal,
             illegalCoordinates,
@@ -209,7 +243,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         start,
         destination,
         cluster = false,
-        juggernaut = false
+        juggernaut = false,
+        catapult = false
     }: {
         state: HydratedSolGameState
         playerId: string
@@ -218,6 +253,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         destination: OffsetCoordinates
         cluster?: boolean
         juggernaut?: boolean
+        catapult?: boolean
     }): boolean {
         const playerState = state.getPlayerState(playerId)
 
@@ -248,26 +284,52 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         const portal = state.activeEffect === EffectType.Portal
 
         const illegalCoordinates: OffsetCoordinates[] = []
-        if (juggernaut || state.activeEffect === EffectType.Hyperdrive) {
-            // No 5 diver spots for juggernaut or hyperdrive
+        if (
+            juggernaut ||
+            (state.activeEffect &&
+                EffectsThatDisallowFiveDiverTraversal.includes(state.activeEffect))
+        ) {
             illegalCoordinates.push(...state.board.getFiveDiverCoords(playerId))
         }
 
-        const path = state.board.pathToDestination({
-            start,
-            destination,
-            range,
-            portal,
-            illegalCoordinates,
-            transcend: state.activeEffect === EffectType.Transcend
-        })
+        // With catapult we try first with extra range.  If that succeeds and there was a gate, then it's valid.
+        // If no gate, then we try again without extra range to be sure.
+        let path
+        if (catapult) {
+            console.log('Trying catapult flight with extra range')
+            const firstTry = state.board.pathToDestination({
+                start,
+                destination,
+                range: range + 1,
+                portal,
+                illegalCoordinates,
+                transcend: state.activeEffect === EffectType.Transcend
+            })
 
-        if (!path) {
-            console.log('No path found')
-            return false
+            if (firstTry) {
+                // See if any gates were passed through
+                for (let i = 0; i < firstTry.length - 1; i++) {
+                    if (state.board.hasGateBetween(firstTry[i], firstTry[i + 1])) {
+                        path = firstTry
+                        break
+                    }
+                }
+            }
         }
 
-        return true
+        // Normal path, or catapult without gate
+        if (!path) {
+            path = state.board.pathToDestination({
+                start,
+                destination,
+                range,
+                portal,
+                illegalCoordinates,
+                transcend: state.activeEffect === EffectType.Transcend
+            })
+        }
+
+        return path !== undefined && path.length > 1
     }
 
     static isValidPuncture({
@@ -337,5 +399,36 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     static canTeleport(state: HydratedSolGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
         return playerState.movementPoints >= 3
+    }
+
+    static hasUncatapultedSundiverNextToGate(
+        state: HydratedSolGameState,
+        playerId: string
+    ): boolean {
+        // Need a non-catapulted diver next to a gate
+        for (const cell of state.board) {
+            if (cell.coords.row === Ring.Outer) {
+                continue
+            }
+            const sundiversInCell = state.board.sundiversForPlayerAt(playerId, cell.coords)
+            const nonCatapultedDivers = sundiversInCell.filter(
+                (diver) => !state.getEffectTracking().catapultedIds.includes(diver.id)
+            )
+            if (nonCatapultedDivers.length === 0) {
+                continue
+            }
+            const neighbors = [
+                ...state.board.neighborsAt(cell.coords, Direction.Out),
+                ...(cell.coords.row === Ring.Core
+                    ? []
+                    : state.board.neighborsAt(cell.coords, Direction.In))
+            ]
+            for (const neighbor of neighbors) {
+                if (state.board.hasGateBetween(cell.coords, neighbor.coords)) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 }

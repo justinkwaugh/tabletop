@@ -182,6 +182,8 @@ export class HydratedActivateEffect
                 return this.canActivateBlight(state, playerId)
             case EffectType.Cascade:
                 return this.canActivateCascade(state, playerId)
+            case EffectType.Catapult:
+                return this.canActivateCatapult(state, playerId)
             case EffectType.Ceremony:
                 return this.canActivateCeremony(state, playerId)
             case EffectType.Channel:
@@ -463,6 +465,9 @@ export class HydratedActivateEffect
             const playerState = state.getPlayerState(playerId)
             return playerState.reserveSundivers.length >= award * 2
         })
+    }
+    static canActivateCatapult(state: HydratedSolGameState, playerId: string): boolean {
+        return state.machineState === MachineState.Moving
     }
 
     static hasCardForEffect(

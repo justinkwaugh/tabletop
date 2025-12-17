@@ -154,7 +154,8 @@ export class HydratedSolGameBoard
         requiredGates,
         illegalCoordinates,
         allowLoops = false,
-        portal = false
+        portal = false,
+        catapult = false
     }: {
         start: OffsetCoordinates
         end: OffsetCoordinates
@@ -163,15 +164,24 @@ export class HydratedSolGameBoard
         illegalCoordinates?: OffsetCoordinates[]
         allowLoops?: boolean
         portal?: boolean
+        catapult?: boolean
     }): SolarGate[] {
         const path = [start]
+
+        let effectiveRange = range
+
+        // Catapult increases range by 1 for a single gate, which this method
+        // requires to return anything anyway
+        if (effectiveRange !== undefined && catapult) {
+            effectiveRange += 1
+        }
 
         // First travel through any required gates
         if (requiredGates && requiredGates.length > 0) {
             const requiredPath = this.pathThroughGates({
                 start,
                 requiredGates,
-                range,
+                range: effectiveRange,
                 portal,
                 illegalCoordinates
             })
@@ -189,7 +199,8 @@ export class HydratedSolGameBoard
         }
 
         const localGates = this.findGatesLocalToRing(current.row)
-        const remainingRange = range !== undefined ? range - (path.length - 1) : undefined
+        const remainingRange =
+            effectiveRange !== undefined ? effectiveRange - (path.length - 1) : undefined
 
         // Check each gate to see if the path from the opposite side of the gate to the destination is valid
         return localGates.filter((gate) => {
@@ -304,6 +315,7 @@ export class HydratedSolGameBoard
                 }
             }
         }
+
         return path.length > 0 ? path : undefined
     }
 
@@ -315,7 +327,7 @@ export class HydratedSolGameBoard
         portal = false
     }: {
         start: OffsetCoordinates
-        requiredGates?: SolarGate[]
+        requiredGates: SolarGate[]
         range?: number
         illegalCoordinates?: OffsetCoordinates[]
         portal?: boolean
@@ -329,7 +341,7 @@ export class HydratedSolGameBoard
         }
 
         try {
-            for (const gate of requiredGates || []) {
+            for (const gate of requiredGates) {
                 if (!gate.innerCoords || !gate.outerCoords) {
                     return undefined
                 }
@@ -412,6 +424,19 @@ export class HydratedSolGameBoard
         gate.innerCoords = innerCoords
         gate.outerCoords = outerCoords
         this.gates[gateKey] = gate
+    }
+
+    public isNextToGateAt(coords: OffsetCoordinates): boolean {
+        if (coords.row === Ring.Outer) {
+            return false
+        }
+
+        const neighbors = [
+            ...this.graph.neighborsAt(coords, Direction.Out),
+            ...(coords.row === Ring.Core ? [] : this.graph.neighborsAt(coords, Direction.In))
+        ]
+
+        return neighbors.some((neighbor) => this.hasGateBetween(coords, neighbor.coords))
     }
 
     public canAddSundiversToCell(

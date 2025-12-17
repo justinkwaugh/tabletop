@@ -89,7 +89,7 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
             case isLaunch(action):
             case isFly(action):
             case isHurl(action): {
-                if (playerState.movementPoints > 0) {
+                if (HydratedFly.canFly(gameState, action.playerId)) {
                     return MachineState.Moving
                 } else {
                     return drawCardsOrEndTurn(gameState, context)
