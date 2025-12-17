@@ -150,9 +150,9 @@
         {/each}
 
         <g
-            id="movement-picker-ref"
-            style="transform:translate({offsetFromCenter(gameSession.movementPickerLocation)
-                .x}px, {offsetFromCenter(gameSession.movementPickerLocation).y}px);"
+            id="board-picker-ref"
+            style="transform:translate({offsetFromCenter(gameSession.boardPickerLocation)
+                .x}px, {offsetFromCenter(gameSession.boardPickerLocation).y}px);"
         ></g>
     </svg>
 </div>

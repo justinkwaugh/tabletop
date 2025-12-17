@@ -113,9 +113,9 @@
     }
 </script>
 
-<Floater placement="top" reference={`#movement-picker-ref`} offset={20} {onClose}>
+<Floater placement="top" reference={`#board-picker-ref`} offset={20} {onClose}>
     <div
-        class="flex flex-col justify-center items-center space-y-2 rounded-lg dark:bg-black/90 p-2 border-2 {borderColor}"
+        class="flex flex-col justify-center items-center space-y-2 rounded-lg dark:bg-black/90 p-2"
     >
         <div class="sol-font text-xs select-none text-[#ad9c80] tracking-widest">HOW MANY?</div>
         <div class="flex flex-row justify-center items-center gap-x-2">

@@ -13,6 +13,7 @@
     } from '$lib/utils/boardGeometry.js'
     import {
         CENTER_COORDS,
+        ChainEntry,
         EffectType,
         HydratedActivate,
         HydratedBlight,
@@ -83,6 +84,10 @@
                 cell.coords
             )
         } else if (myChain) {
+            if (gameSession.chain?.find((entry) => entry.sundiverId === undefined)) {
+                return false
+            }
+
             if (!gameSession.chain || gameSession.chain.length === 0) {
                 return HydratedChain.canInitiateChainAt(gameSession.gameState, cell.coords)
             }
@@ -266,6 +271,15 @@
         return `M${start.x} ${start.y} L${startOuter.x} ${startOuter.y} A${outerRadius} ${outerRadius} 0 0 1 ${endOuter.x} ${endOuter.y} L${end.x} ${end.y} A${innerRadius} ${innerRadius} 0 0 0 ${start.x} ${start.y}Z`
     }
 
+    function makeChainEntry() {
+        const entry: ChainEntry = { sundiverId: undefined, coords: cell.coords }
+        const players = gameSession.gameState.board.playersWithSundiversAt(cell.coords)
+        if (players.length === 1) {
+            entry.sundiverId = gameSession.gameState.board.cellAt(cell.coords).sundivers[0].id
+        }
+        return entry
+    }
+
     async function onClick() {
         if (!interactable) {
             return
@@ -284,26 +298,16 @@
             gameSession.chosenSource = cell.coords
             await gameSession.tribute()
         } else if (myChain) {
+            const entry = makeChainEntry()
             // Start
             if (!gameSession.chain || gameSession.chain.length === 0) {
-                gameSession.chain = [
-                    {
-                        sundiverId: gameSession.gameState.board.cellAt(cell.coords).sundivers[0].id,
-                        coords: cell.coords
-                    }
-                ]
+                gameSession.chain = [entry]
             } else {
                 const firstEnd = gameSession.chain[0]
                 if (gameSession.gameState.board.areAdjacent(firstEnd.coords, cell.coords)) {
-                    gameSession.chain.unshift({
-                        sundiverId: gameSession.gameState.board.cellAt(cell.coords).sundivers[0].id,
-                        coords: cell.coords
-                    })
+                    gameSession.chain.unshift(entry)
                 } else {
-                    gameSession.chain.push({
-                        sundiverId: gameSession.gameState.board.cellAt(cell.coords).sundivers[0].id,
-                        coords: cell.coords
-                    })
+                    gameSession.chain.push(entry)
                 }
             }
         } else if (myMove) {

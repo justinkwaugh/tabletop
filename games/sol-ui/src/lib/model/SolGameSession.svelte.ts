@@ -61,8 +61,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     outlinedCells: OffsetCoordinates[] = $state([])
 
-    movementPickerLocation = $derived.by(() => {
-        if (this.chosenSource) {
+    boardPickerLocation = $derived.by(() => {
+        if (this.isChaining) {
+            const chainEntry = this.chain?.find((entry) => !entry.sundiverId)
+            if (chainEntry) {
+                return getSpaceCentroid(this.numPlayers, chainEntry.coords)
+            }
+        } else if (this.chosenSource) {
             return getSpaceCentroid(this.numPlayers, this.chosenSource)
         } else if (this.chosenMothership) {
             const mothershipIndex = this.gameState.board.motherships[this.chosenMothership]

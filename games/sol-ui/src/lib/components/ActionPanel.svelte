@@ -21,6 +21,7 @@
     import AccelerationPicker from './AccelerationPicker.svelte'
     import MovementPicker from './MovementPicker.svelte'
     import MetamorphosisPicker from './MetamorphosisPicker.svelte'
+    import ChainSundiverPicker from './ChainSundiverPicker.svelte'
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
@@ -301,6 +302,8 @@
 
     const cardPickerAnimator = new CardPickerAnimator(gameSession)
     cardPickerAnimator.register()
+
+    const chainEntryWithoutDiver = $derived(gameSession.chain?.find((entry) => !entry.sundiverId))
 </script>
 
 <div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">
@@ -399,6 +402,8 @@
         <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
             <SuitPicker />
         </div>
+    {:else if gameSession.isChaining && chainEntryWithoutDiver}
+        <ChainSundiverPicker coords={chainEntryWithoutDiver.coords} />
     {/if}
 </div>
 
