@@ -10,6 +10,7 @@
         EffectType,
         HydratedActivate,
         HydratedActivateEffect,
+        HydratedChain,
         HydratedFly
     } from '@tabletop/sol'
     import ConvertPicker from './ConvertPicker.svelte'
@@ -90,7 +91,15 @@
                 result.message = 'CHOOSE A STATION TYPE'
             }
         } else if (gameSession.isChaining) {
-            result.message = 'BUILD A CHAIN'
+            if (
+                gameSession.chain &&
+                HydratedChain.isChainComplete(gameSession.gameState, gameSession.chain) &&
+                !gameSession.chainStart
+            ) {
+                result.message = 'WHICH END IS THE START?'
+            } else {
+                result.message = 'BUILD A CHAIN'
+            }
         } else if (gameSession.isMoving) {
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
                 result.message = 'CHOOSE A MOVEMENT SOURCE'

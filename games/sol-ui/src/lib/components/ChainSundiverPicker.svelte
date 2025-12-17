@@ -4,6 +4,7 @@
     import Sundiver from './Sundiver.svelte'
     import { sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
     import Floater from '$lib/utils/Floater.svelte'
+    import { HydratedChain } from '@tabletop/sol'
 
     let {
         coords
@@ -26,6 +27,14 @@
         const entry = gameSession.chain?.find((entry) => sameCoordinates(entry.coords, coords))
         if (sundiver && entry) {
             entry.sundiverId = sundiver.id
+        }
+
+        if (
+            HydratedChain.isChainComplete(gameSession.gameState, gameSession.chain!) &&
+            gameSession.chain!.length % 2 === 1
+        ) {
+            gameSession.chainStart = 'beginning'
+            gameSession.doChain()
         }
     }
 </script>

@@ -91,6 +91,19 @@
             if (!gameSession.chain || gameSession.chain.length === 0) {
                 return HydratedChain.canInitiateChainAt(gameSession.gameState, cell.coords)
             }
+
+            if (
+                HydratedChain.isChainComplete(gameSession.gameState, gameSession.chain) &&
+                !gameSession.chainStart
+            ) {
+                return (
+                    sameCoordinates(gameSession.chain[0].coords, cell.coords) ||
+                    sameCoordinates(
+                        gameSession.chain[gameSession.chain.length - 1].coords,
+                        cell.coords
+                    )
+                )
+            }
             return HydratedChain.canContinueChainAt(
                 gameSession.gameState,
                 gameSession.chain,
@@ -305,12 +318,27 @@
             // Start
             if (!gameSession.chain || gameSession.chain.length === 0) {
                 gameSession.chain = [entry]
+            } else if (HydratedChain.isChainComplete(gameSession.gameState, gameSession.chain)) {
+                if (sameCoordinates(gameSession.chain[0].coords, cell.coords)) {
+                    gameSession.chainStart = 'beginning'
+                } else {
+                    gameSession.chainStart = 'end'
+                }
+                await gameSession.doChain()
             } else {
                 const firstEnd = gameSession.chain[0]
                 if (gameSession.gameState.board.areAdjacent(firstEnd.coords, cell.coords)) {
                     gameSession.chain.unshift(entry)
                 } else {
                     gameSession.chain.push(entry)
+                }
+
+                if (
+                    HydratedChain.isChainComplete(gameSession.gameState, gameSession.chain) &&
+                    gameSession.chain.length % 2 === 1
+                ) {
+                    gameSession.chainStart = 'beginning'
+                    await gameSession.doChain()
                 }
             }
         } else if (myMove) {

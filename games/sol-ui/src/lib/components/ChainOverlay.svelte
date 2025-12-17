@@ -1,21 +1,9 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import {
-        coordinatesToNumber,
-        OffsetCoordinates,
-        Point,
-        sameCoordinates
-    } from '@tabletop/common'
-    import {
-        dimensionsForSpace,
-        getCirclePoint,
-        offsetFromCenter,
-        RING_RADII,
-        toRadians,
-        translateFromCenter
-    } from '$lib/utils/boardGeometry.js'
-    import { CENTER_COORDS, Ring } from '@tabletop/sol'
+    import { Point } from '@tabletop/common'
+    import { offsetFromCenter, translateFromCenter } from '$lib/utils/boardGeometry.js'
+    import { HydratedChain } from '@tabletop/sol'
 
     const CIRCLE_RADIUS = 25
 
@@ -71,6 +59,12 @@
         }
         return segments
     })
+
+    const highlightEnds = $derived(
+        gameSession.chain &&
+            HydratedChain.isChainComplete(gameSession.gameState, gameSession.chain) &&
+            !gameSession.chainStart
+    )
 </script>
 
 {#each locations as location (location.x + ',' + location.y)}
@@ -92,9 +86,16 @@
     {/each}
 </g>
 
-{#each locations as location (location.x + ',' + location.y)}
+{#each locations as location, index (location.x + ',' + location.y)}
     <g class="pointer-events-none" transform={translateFromCenter(location.x, location.y)}>
-        <circle r={CIRCLE_RADIUS} fill="none" stroke="white" stroke-width={5}></circle>
+        <circle
+            r={CIRCLE_RADIUS}
+            fill="none"
+            stroke={highlightEnds && (index === 0 || index === locations.length - 1)
+                ? 'yellow'
+                : 'white'}
+            stroke-width={5}
+        ></circle>
     </g>
 {/each}
 

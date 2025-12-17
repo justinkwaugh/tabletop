@@ -58,6 +58,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     catapultChoice?: boolean = $state(undefined)
     metamorphosisType?: StationType = $state(undefined)
     chain?: SundiverChain = $state(undefined)
+    chainStart?: 'beginning' | 'end' = $state(undefined)
 
     outlinedCells: OffsetCoordinates[] = $state([])
 
@@ -313,6 +314,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.catapultChoice = undefined
         this.metamorphosisType = undefined
         this.chain = undefined
+        this.chainStart = undefined
 
         this.outlinedCells = []
 
@@ -1123,6 +1125,22 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             playerId: this.myPlayer.id,
             stationId: station.id,
             stationType: this.metamorphosisType
+        }
+
+        await this.doAction(action)
+    }
+
+    async doChain() {
+        if (!this.myPlayer || !this.chain || !this.chainStart) {
+            throw new Error('Invalid chain')
+        }
+
+        const chainToSend = this.chainStart === 'beginning' ? this.chain : this.chain.toReversed()
+
+        const action = {
+            ...this.createBaseAction(ActionType.Chain),
+            playerId: this.myPlayer.id,
+            chain: chainToSend
         }
 
         await this.doAction(action)

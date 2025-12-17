@@ -1,6 +1,7 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
+    coordinatesToNumber,
     GameAction,
     HydratableAction,
     MachineContext,
@@ -46,10 +47,58 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
         if (!this.isValidChain(state, this.playerId)) {
             throw Error('Invalid chain')
         }
+
+        for (let i = 0; i < this.chain.length; i++) {
+            const entry = this.chain[i]
+            const cell = state.board.cellAt(entry.coords)
+            const sundiver = cell.sundivers.find((diver) => diver.id === entry.sundiverId)
+            if (!sundiver) {
+                throw Error('Cannot find chain sundiver')
+            }
+
+            const owner = state.getPlayerState(sundiver.playerId)
+            owner.momentum += 1
+
+            if (i % 2 === 0) {
+                const removed = state.board.removeSundiversAt([sundiver.id], entry.coords)
+                if (removed.length === 0) {
+                    throw Error('No sundiver removed for chain')
+                }
+                owner.addSundiversToHold(removed)
+            }
+        }
     }
 
-    isValidChain(state: HydratedSolGameState, playerId: string): boolean {
-        return false
+    isValidChain(state: HydratedSolGameState, _playerId: string): boolean {
+        if (!HydratedChain.isChainComplete(state, this.chain)) {
+            return false
+        }
+
+        const visited = new Set<number>()
+        for (let i = 0; i < this.chain.length; i++) {
+            const entry = this.chain[i]
+            const { coords, sundiverId } = entry
+            if (!sundiverId) {
+                return false
+            }
+
+            const key = coordinatesToNumber(coords)
+            if (visited.has(key)) {
+                return false
+            }
+            visited.add(key)
+
+            const cell = state.board.cellAt(coords)
+            if (!cell.sundivers.find((diver) => diver.id === sundiverId)) {
+                return false
+            }
+
+            if (i > 0 && !state.board.areAdjacent(coords, this.chain[i - 1].coords)) {
+                return false
+            }
+        }
+
+        return true
     }
 
     static canInitiateChainAt(state: HydratedSolGameState, coords: OffsetCoordinates): boolean {
@@ -89,5 +138,22 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
         }
 
         return chainEnds.some((chainEntry) => state.board.areAdjacent(chainEntry.coords, coords))
+    }
+
+    static isChainComplete(state: HydratedSolGameState, chain: SundiverChain): boolean {
+        if (chain.length < 2) {
+            return false
+        }
+
+        if (chain.some((entry) => entry.sundiverId === undefined)) {
+            return false
+        }
+
+        const ends = [chain[0], chain.at(-1)!]
+        return !ends.some((end) =>
+            state.board
+                .neighborsAt(end.coords)
+                .some((neighbor) => this.canContinueChainAt(state, chain, neighbor.coords))
+        )
     }
 }
