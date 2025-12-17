@@ -195,6 +195,8 @@ export class HydratedActivateEffect
                 return this.canActivateCatapult(state, playerId)
             case EffectType.Ceremony:
                 return this.canActivateCeremony(state, playerId)
+            case EffectType.Chain:
+                return this.canActivateChain(state, playerId)
             case EffectType.Channel:
                 return this.canActivateChannel(state, playerId)
             case EffectType.Cluster:
@@ -535,6 +537,16 @@ export class HydratedActivateEffect
             }
         }
         return false
+    }
+
+    static canActivateChain(state: HydratedSolGameState, playerId: string): boolean {
+        return Iterator.from(state.board).some(
+            (cell) =>
+                cell.sundivers.length > 0 &&
+                state.board.neighborsAt(cell.coords).some(
+                    (neighbor) => neighbor.sundivers.length > 0
+                )
+        )
     }
 
     static hasCardForEffect(

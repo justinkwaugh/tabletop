@@ -4,6 +4,7 @@ import {
     Card,
     Cell,
     CENTER_COORDS,
+    SundiverChain,
     Direction,
     EffectType,
     HydratedSolGameState,
@@ -56,6 +57,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     accelerationAmount?: number = $state(undefined)
     catapultChoice?: boolean = $state(undefined)
     metamorphosisType?: StationType = $state(undefined)
+    chain?: SundiverChain = $state(undefined)
 
     movementPickerLocation = $derived.by(() => {
         if (this.chosenSource) {
@@ -124,7 +126,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.isCheckingEffect ||
             this.isHatching ||
             this.isAccelerating ||
-            this.isTributing || this.isMetamorphosizing
+            this.isTributing ||
+            this.isMetamorphosizing
     )
 
     forcedCallToAction = $state<string | undefined>(undefined)
@@ -312,6 +315,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.accelerationAmount = undefined
         this.catapultChoice = undefined
         this.metamorphosisType = undefined
+        this.chain = undefined
 
         this.forcedCallToAction = undefined
     }

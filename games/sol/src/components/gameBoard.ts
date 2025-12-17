@@ -92,7 +92,7 @@ export class HydratedSolGameBoard
         this.cells[coordinatesToNumber(cell.coords)] = cell
     }
 
-    public neighborsAt(coords: OffsetCoordinates, direction: Direction): Cell[] {
+    public neighborsAt(coords: OffsetCoordinates, direction?: Direction): Cell[] {
         return this.graph
             .neighborsAt(coords, direction)
             .map((neighbor) => this.cellAt(neighbor.coords))

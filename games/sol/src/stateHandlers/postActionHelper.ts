@@ -37,6 +37,8 @@ export function onActivateEffect(action: ActivateEffect, context: MachineContext
         return MachineState.Accelerating
     } else if (action.effect === EffectType.Tribute) {
         return MachineState.Tributing
+    } else if (action.effect === EffectType.Chain) {
+        return MachineState.Chaining
     }
 
     const state = context.gameState as HydratedSolGameState

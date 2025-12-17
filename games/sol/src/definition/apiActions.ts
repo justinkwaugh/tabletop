@@ -20,6 +20,7 @@ import { Accelerate } from '../actions/accelerate.js'
 import { Fuel } from '../actions/fuel.js'
 import { Tribute } from '../actions/tribute.js'
 import { Metamorphosize } from '../actions/metamorphosize.js'
+import { Chain } from '../actions/chain.js'
 
 export const SolApiActions = {
     [ActionType.ChooseMove]: ChooseMove,
@@ -42,5 +43,6 @@ export const SolApiActions = {
     [ActionType.Accelerate]: Accelerate,
     [ActionType.Fuel]: Fuel,
     [ActionType.Tribute]: Tribute,
-    [ActionType.Metamorphosize]: Metamorphosize
+    [ActionType.Metamorphosize]: Metamorphosize,
+    [ActionType.Chain]: Chain
 }
