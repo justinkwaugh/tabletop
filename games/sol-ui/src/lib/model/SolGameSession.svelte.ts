@@ -106,6 +106,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return true
         }
     })
+
     isMoving = $derived(this.gameState.machineState === MachineState.Moving)
     isConverting = $derived(this.gameState.machineState === MachineState.Converting)
     isActivating = $derived(this.gameState.machineState === MachineState.Activating)
@@ -117,20 +118,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isAccelerating = $derived(this.gameState.machineState === MachineState.Accelerating)
     isTributing = $derived(this.gameState.machineState === MachineState.Tributing)
     isMetamorphosizing = $derived(this.gameState.machineState === MachineState.Metamorphosizing)
+    isChaining = $derived(this.gameState.machineState === MachineState.Chaining)
 
-    acting = $derived(
-        this.isMoving ||
-            this.isConverting ||
-            this.isActivating ||
-            this.isChoosingCard ||
-            this.isSolarFlares ||
-            this.isDrawingCards ||
-            this.isCheckingEffect ||
-            this.isHatching ||
-            this.isAccelerating ||
-            this.isTributing ||
-            this.isMetamorphosizing
-    )
+    acting = $derived(this.gameState.machineState !== MachineState.StartOfTurn)
 
     forcedCallToAction = $state<string | undefined>(undefined)
     movingCubeIds: string[] = $state([])

@@ -17,6 +17,7 @@ import { HydratedSacrifice } from './sacrifice.js'
 import { HydratedHatch } from './hatch.js'
 import { HydratedBlight } from './blight.js'
 import { HydratedTribute } from './tribute.js'
+import { HydratedChain } from './chain.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -540,12 +541,8 @@ export class HydratedActivateEffect
     }
 
     static canActivateChain(state: HydratedSolGameState, playerId: string): boolean {
-        return Iterator.from(state.board).some(
-            (cell) =>
-                cell.sundivers.length > 0 &&
-                state.board.neighborsAt(cell.coords).some(
-                    (neighbor) => neighbor.sundivers.length > 0
-                )
+        return Iterator.from(state.board).some((cell) =>
+            HydratedChain.canInitiateChainAt(state, cell.coords)
         )
     }
 

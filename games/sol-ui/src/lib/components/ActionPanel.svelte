@@ -88,6 +88,8 @@
             if (!gameSession.metamorphosisType) {
                 result.message = 'CHOOSE A STATION TYPE'
             }
+        } else if (gameSession.isChaining) {
+            result.message = 'BUILD A CHAIN'
         } else if (gameSession.isMoving) {
             if (!gameSession.chosenMothership && !gameSession.chosenSource) {
                 result.message = 'CHOOSE A MOVEMENT SOURCE'

@@ -92,6 +92,14 @@ export class HydratedSolGameBoard
         this.cells[coordinatesToNumber(cell.coords)] = cell
     }
 
+    public areAdjacent(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
+        const neighbors = this.areNeighbors(coordsA, coordsB)
+        if (!neighbors) {
+            return false
+        }
+        return (!this.requiresGateBetween(coordsA, coordsB) || this.hasGateBetween(coordsA, coordsB))
+    }
+
     public neighborsAt(coords: OffsetCoordinates, direction?: Direction): Cell[] {
         return this.graph
             .neighborsAt(coords, direction)

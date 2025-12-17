@@ -15,7 +15,7 @@
         offsetFromCenter,
         type GatePosition
     } from '$lib/utils/boardGeometry.js'
-    import type { OffsetCoordinates } from '@tabletop/common'
+    import { coordinatesToNumber, sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
     import GateDestination from './GateDestination.svelte'
     import Gate from './BoardGate.svelte'
     import InstabilityTrack from './InstabilityTrack.svelte'
@@ -79,6 +79,18 @@
         }
     })
     gateAnimator.register()
+
+    const cellsToOutline = $derived.by(() => {
+        const chainCells = gameSession.chain?.map((entry) => entry.coords) ?? []
+        const outlineCells = [...gameSession.outlinedCells]
+        // dumb way
+        for (const coords of chainCells) {
+            if (!outlineCells.find((c) => sameCoordinates(c, coords))) {
+                outlineCells.push(coords)
+            }
+        }
+        return outlineCells
+    })
 </script>
 
 <div class="relative w-[1280px] h-[1280px]">
@@ -130,10 +142,10 @@
             {/if}
         {/each}
 
-        {#each gameSession.outlinedCells as coords}
+        {#each cellsToOutline as coords (coordinatesToNumber(coords))}
             <CellOutline {coords} />
         {/each}
-        {#each gameSession.gameState.players as player}
+        {#each gameSession.gameState.players as player (player.playerId)}
             <Mothership playerId={player.playerId} />
         {/each}
 

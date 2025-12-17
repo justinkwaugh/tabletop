@@ -16,6 +16,7 @@
         EffectType,
         HydratedActivate,
         HydratedBlight,
+        HydratedChain,
         HydratedFly,
         HydratedHatch,
         HydratedHurl,
@@ -58,10 +59,14 @@
 
     let myHatch = $derived(gameSession.isMyTurn && gameSession.isHatching)
     let myTribute = $derived(gameSession.isMyTurn && gameSession.isTributing)
+    let myChain = $derived(gameSession.isMyTurn && gameSession.isChaining)
 
     let interactable = $derived.by(() => {
         const myPlayerState = gameSession.myPlayerState
-        if (!myPlayerState || (!myMove && !myConvert && !myActivate && !myHatch && !myTribute)) {
+        if (
+            !myPlayerState ||
+            (!myMove && !myConvert && !myActivate && !myHatch && !myTribute && !myChain)
+        ) {
             return false
         }
 
@@ -75,6 +80,15 @@
             return HydratedTribute.canTributeAt(
                 gameSession.gameState,
                 myPlayerState.playerId,
+                cell.coords
+            )
+        } else if (myChain) {
+            if (!gameSession.chain || gameSession.chain.length === 0) {
+                return HydratedChain.canInitiateChainAt(gameSession.gameState, cell.coords)
+            }
+            return HydratedChain.canContinueChainAt(
+                gameSession.gameState,
+                gameSession.chain,
                 cell.coords
             )
         } else if (myMove) {
@@ -224,6 +238,7 @@
     let disabled = $derived(
         !gameSession.animating &&
             (myMove ||
+                myChain ||
                 (myConvert &&
                     (gameSession.chosenConvertType ||
                         gameSession.gameState.activeEffect === EffectType.Invade ||
@@ -268,6 +283,29 @@
         } else if (myTribute) {
             gameSession.chosenSource = cell.coords
             await gameSession.tribute()
+        } else if (myChain) {
+            // Start
+            if (!gameSession.chain || gameSession.chain.length === 0) {
+                gameSession.chain = [
+                    {
+                        sundiverId: gameSession.gameState.board.cellAt(cell.coords).sundivers[0].id,
+                        coords: cell.coords
+                    }
+                ]
+            } else {
+                const firstEnd = gameSession.chain[0]
+                if (gameSession.gameState.board.areAdjacent(firstEnd.coords, cell.coords)) {
+                    gameSession.chain.unshift({
+                        sundiverId: gameSession.gameState.board.cellAt(cell.coords).sundivers[0].id,
+                        coords: cell.coords
+                    })
+                } else {
+                    gameSession.chain.push({
+                        sundiverId: gameSession.gameState.board.cellAt(cell.coords).sundivers[0].id,
+                        coords: cell.coords
+                    })
+                }
+            }
         } else if (myMove) {
             if (gameSession.chosenMothership) {
                 gameSession.chosenDestination = cell.coords
