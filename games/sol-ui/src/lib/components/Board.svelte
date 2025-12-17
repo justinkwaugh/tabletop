@@ -24,6 +24,7 @@
     import { animateCube, EnergyCubeAnimator } from '$lib/animators/energyCubeAnimator.js'
     import { animateGate, GateAnimator } from '$lib/animators/gateAnimator.js'
     import { SvelteMap } from 'svelte/reactivity'
+    import CellOutline from './CellOutline.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -116,7 +117,7 @@
 
         {#each [...gates] as [key, gate] (key)}
             {#if gate.innerCoords && gate.outerCoords}
-                <g use:animateGate={{ animator: gateAnimator, gate }}>
+                <g class="pointer-events-none" use:animateGate={{ animator: gateAnimator, gate }}>
                     <Gate
                         color={gameSession.colors.getPlayerColor(gate.playerId)}
                         position={getGatePosition(
@@ -129,9 +130,13 @@
             {/if}
         {/each}
 
+        {#each gameSession.outlinedCells as coords}
+            <CellOutline {coords} />
+        {/each}
         {#each gameSession.gameState.players as player}
             <Mothership playerId={player.playerId} />
         {/each}
+
         <g
             id="movement-picker-ref"
             style="transform:translate({offsetFromCenter(gameSession.movementPickerLocation)

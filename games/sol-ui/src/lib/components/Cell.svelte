@@ -370,6 +370,23 @@
         }
     )
     stationAnimator.register()
+
+    let hovered = false
+    function onMouseEnter() {
+        if (interactable) {
+            gameSession.outlinedCells.push(cell.coords)
+            hovered = true
+        }
+    }
+
+    function onMouseLeave() {
+        if (hovered) {
+            hovered = false
+            gameSession.outlinedCells = gameSession.outlinedCells.filter(
+                (coords) => !sameCoordinates(coords, cell.coords)
+            )
+        }
+    }
 </script>
 
 {#snippet renderStation(station: Station, width: number, height: number)}
@@ -458,6 +475,8 @@
     onkeydown={onKeyDown}
     transform={translateFromCenter(0, 0)}
     stroke="none"
+    onmouseenter={onMouseEnter}
+    onmouseleave={onMouseLeave}
 >
     {#if isCenterCell}
         <circle r={RING_RADII[Ring.Center][1]} fill="transparent"></circle>

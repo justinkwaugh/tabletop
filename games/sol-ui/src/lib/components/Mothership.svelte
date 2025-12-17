@@ -139,7 +139,7 @@
     const animator = attachAnimator(new MothershipAnimator(gameSession, playerId))
 </script>
 
-<g {@attach animator}>
+<g class={interactable ? '' : 'pointer-events-none'} {@attach animator}>
     <g
         bind:this={shipElement}
         onclick={onMouseClick}

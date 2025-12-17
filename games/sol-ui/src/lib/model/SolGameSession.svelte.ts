@@ -59,6 +59,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     metamorphosisType?: StationType = $state(undefined)
     chain?: SundiverChain = $state(undefined)
 
+    outlinedCells: OffsetCoordinates[] = $state([])
+
     movementPickerLocation = $derived.by(() => {
         if (this.chosenSource) {
             return getSpaceCentroid(this.numPlayers, this.chosenSource)
@@ -316,6 +318,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.catapultChoice = undefined
         this.metamorphosisType = undefined
         this.chain = undefined
+
+        this.outlinedCells = []
 
         this.forcedCallToAction = undefined
     }
