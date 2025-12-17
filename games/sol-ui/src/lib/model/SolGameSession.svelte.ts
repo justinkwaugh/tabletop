@@ -1047,6 +1047,19 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
     }
 
+    async fuel() {
+        if (!this.myPlayer) {
+            throw new Error('Invalid fuel')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Fuel),
+            playerId: this.myPlayer.id
+        }
+
+        await this.doAction(action)
+    }
+
     async doAction(action: GameAction) {
         if (!this.isPlayable) {
             return

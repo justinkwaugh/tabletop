@@ -57,6 +57,13 @@
         gameSession.activateEffect(effectForSuit(card.suit))
     }
 
+    function onFuel() {
+        if (!gameSession.isMyTurn) {
+            return
+        }
+        gameSession.fuel()
+    }
+
     function labelSize(name: string): string {
         return name.length > 8 ? `card-label-${name.length}` : ''
     }
@@ -82,6 +89,16 @@
         </div>
     {:else}
         <div></div>
+    {/if}
+
+    {#if showActive && gameSession.gameState.activeEffect === EffectType.Fuel}
+        <button
+            onclick={onFuel}
+            class="rounded-lg bg-black/80 text-[#cccccc] text-xs tracking-widest p-1 hover:border-white border-transparent border-2"
+            >ADD FUEL<br /><span class="text-[.75rem]"
+                >{gameSession.gameState.getEffectTracking().fuelRemaining} left</span
+            ></button
+        >
     {/if}
 
     <div class="card-label-container px-2 w-full">

@@ -17,5 +17,6 @@ export enum ActionType {
     Sacrifice = 'Sacrifice',
     Hatch = 'Hatch',
     Blight = 'Blight',
-    Accelerate = 'Accelerate'
+    Accelerate = 'Accelerate',
+    Fuel = 'Fuel'
 }

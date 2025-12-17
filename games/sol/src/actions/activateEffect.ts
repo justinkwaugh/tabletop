@@ -136,6 +136,8 @@ export class HydratedActivateEffect
             }
         } else if (this.effect === EffectType.Hatch || this.effect === EffectType.Accelerate) {
             state.getEffectTracking().preEffectState = state.machineState
+        } else if (this.effect === EffectType.Fuel) {
+            state.getEffectTracking().fuelRemaining = 3
         }
     }
 
@@ -194,6 +196,8 @@ export class HydratedActivateEffect
                 return this.canActivateDuplicate(state, playerId)
             case EffectType.Festival:
                 return this.canActivateFestival(state, playerId)
+            case EffectType.Fuel:
+                return this.canActivateFuel(state, playerId)
             case EffectType.Hatch:
                 return this.canActivateHatch(state, playerId)
             case EffectType.Hyperdrive:
@@ -466,8 +470,14 @@ export class HydratedActivateEffect
             return playerState.reserveSundivers.length >= award * 2
         })
     }
+
     static canActivateCatapult(state: HydratedSolGameState, playerId: string): boolean {
         return state.machineState === MachineState.Moving
+    }
+
+    static canActivateFuel(state: HydratedSolGameState, playerId: string): boolean {
+        const playerState = state.getPlayerState(playerId)
+        return state.machineState === MachineState.Moving && playerState.energyCubes > 0
     }
 
     static hasCardForEffect(

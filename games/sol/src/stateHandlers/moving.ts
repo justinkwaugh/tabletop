@@ -8,7 +8,7 @@ import { HydratedHurl, isHurl } from '../actions/hurl.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { drawCardsOrEndTurn, onActivateEffect } from './postActionHelper.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
-import { EffectType } from '../components/effects.js'
+import { HydratedFuel, isFuel } from '../actions/fuel.js'
 
 // Transition from Moving(Launch) -> Moving | StartOfTurn
 // Transition from Moving(Fly) -> Moving | StartOfTurn
@@ -22,6 +22,7 @@ type MovingAction =
     | HydratedHurl
     | HydratedPass
     | HydratedActivateEffect
+    | HydratedFuel
 
 export class MovingStateHandler implements MachineStateHandler<MovingAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is MovingAction {
@@ -31,7 +32,8 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
             action.type === ActionType.Fly ||
             action.type === ActionType.Hurl ||
             action.type === ActionType.Pass ||
-            action.type === ActionType.ActivateEffect
+            action.type === ActionType.ActivateEffect ||
+            action.type === ActionType.Fuel
         )
     }
 
@@ -75,6 +77,10 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
             }
         }
 
+        if (HydratedFuel.canFuel(gameState, playerId)) {
+            validActions.push(ActionType.Fuel)
+        }
+
         console.log('Valid moving actions', validActions)
         return validActions
     }
@@ -94,6 +100,9 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
                 } else {
                     return drawCardsOrEndTurn(gameState, context)
                 }
+            }
+            case isFuel(action): {
+                return MachineState.Moving
             }
             case isPass(action): {
                 return drawCardsOrEndTurn(gameState, context)

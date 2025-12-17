@@ -17,6 +17,7 @@ import { Sacrifice } from '../actions/sacrifice.js'
 import { Hatch } from '../actions/hatch.js'
 import { Blight } from '../actions/blight.js'
 import { Accelerate } from '../actions/accelerate.js'
+import { Fuel } from '../actions/fuel.js'
 
 export const SolApiActions = {
     [ActionType.ChooseMove]: ChooseMove,
@@ -36,5 +37,6 @@ export const SolApiActions = {
     [ActionType.Sacrifice]: Sacrifice,
     [ActionType.Hatch]: Hatch,
     [ActionType.Blight]: Blight,
-    [ActionType.Accelerate]: Accelerate
+    [ActionType.Accelerate]: Accelerate,
+    [ActionType.Fuel]: Fuel
 }
