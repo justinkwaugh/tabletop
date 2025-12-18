@@ -47,6 +47,5 @@ export class HydratedSolarFlare extends HydratableAction<typeof SolarFlare> impl
             const playerState = state.getPlayerState(currentPlayerId)
             playerState.momentum += 1
         }
-        state.solarFlaresDrawnInGame += 1
     }
 }

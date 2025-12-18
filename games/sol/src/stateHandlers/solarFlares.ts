@@ -156,7 +156,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
             }
             context.addPendingAction(solarFlareAction)
             return MachineState.SolarFlares
-        } else if (state.solarFlaresDrawnInGame === 13) {
+        } else if (state.instability === 0) {
             return MachineState.EndOfGame
         } else {
             state.solarFlares = 0
