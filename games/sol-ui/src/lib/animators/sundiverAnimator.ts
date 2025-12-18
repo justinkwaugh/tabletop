@@ -2,10 +2,12 @@ import {
     Activate,
     ActivateBonus,
     ActivateEffect,
+    CENTER_COORDS,
     Convert,
     DrawCards,
     EffectType,
     Fly,
+    Hurl,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
@@ -13,12 +15,13 @@ import {
     isConvert,
     isDrawCards,
     isFly,
+    isHurl,
     isLaunch,
     Launch,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import { GameAction, OffsetCoordinates, type Point } from '@tabletop/common'
+import { GameAction, OffsetCoordinates, sameCoordinates, type Point } from '@tabletop/common'
 import {
     getCirclePoint,
     getGatePosition,
@@ -169,8 +172,8 @@ export class SundiverAnimator extends StateAnimator<
             this.animateActivateBonusAction(action, timeline, toState, fromState)
         } else if (isLaunch(action)) {
             this.animateLaunchAction(action, timeline, toState, fromState)
-        } else if (isFly(action)) {
-            this.animateFlyAction(action, timeline, toState, fromState)
+        } else if (isFly(action) || isHurl(action)) {
+            this.animateFlyOrHurlAction(action, timeline, toState, fromState)
         } else if (isActivateEffect(action)) {
             this.animateActivateEffectAction(action, timeline, toState, fromState)
         } else if (isDrawCards(action)) {
@@ -238,8 +241,8 @@ export class SundiverAnimator extends StateAnimator<
         })
     }
 
-    animateFlyAction(
-        fly: Fly,
+    animateFlyOrHurlAction(
+        fly: Fly | Hurl,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
@@ -298,12 +301,22 @@ export class SundiverAnimator extends StateAnimator<
             position: index * delayBetween
         })
 
-        fadeOut({
-            object: this.element!,
-            duration: 0,
-            timeline,
-            position: '>'
-        })
+        if (sameCoordinates(endCoords, CENTER_COORDS)) {
+            // Special case for center space - just fade out
+            fadeOut({
+                object: this.element!,
+                duration: 0.3,
+                timeline,
+                position: '>'
+            })
+        } else {
+            fadeOut({
+                object: this.element!,
+                duration: 0,
+                timeline,
+                position: '>'
+            })
+        }
     }
 
     animateConvertAction(

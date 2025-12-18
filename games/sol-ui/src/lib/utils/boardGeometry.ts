@@ -1,5 +1,5 @@
-import { Color, Point, type OffsetCoordinates } from '@tabletop/common'
-import { Ring } from '@tabletop/sol'
+import { Color, Point, sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
+import { CENTER_COORDS, Ring } from '@tabletop/sol'
 
 export const CENTER_POINT = { x: 640, y: 640 }
 export const CENTER_TRANSLATION = `translate(${CENTER_POINT.x}, ${CENTER_POINT.y})`
@@ -214,7 +214,10 @@ export function getGatePosition(
     }
 }
 
-export function getSpaceCentroid(numPlayers: number, coords: OffsetCoordinates) {
+export function getSpaceCentroid(numPlayers: number, coords: OffsetCoordinates): Point {
+    if (sameCoordinates(coords, CENTER_COORDS)) {
+        return { x: 0, y: 0 }
+    }
     const { angle, radius } = getSpaceCentroidAngleAndRadius(numPlayers, coords)
     return getCirclePoint(radius, toRadians(angle))
 }

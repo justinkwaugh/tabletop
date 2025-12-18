@@ -208,6 +208,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     locationForDiverInCell(playerId: string, cell: Cell): Point | undefined {
+        if (sameCoordinates(cell.coords, CENTER_COORDS)) {
+            return { x: 0, y: 0 }
+        }
         const cellLayout = getCellLayout(cell, this.numPlayers, this.gameState.board)
 
         const seen = new Set()

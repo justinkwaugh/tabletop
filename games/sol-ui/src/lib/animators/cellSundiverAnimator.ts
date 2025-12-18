@@ -1,11 +1,14 @@
 import {
     Activate,
+    CENTER_COORDS,
     Convert,
     Fly,
+    Hurl,
     HydratedSolGameState,
     isActivate,
     isConvert,
     isFly,
+    isHurl,
     isLaunch,
     Launch,
     type SolGameState
@@ -151,8 +154,8 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateActivateAction(action, timeline, toState, fromState)
         } else if (isLaunch(action)) {
             this.animateLaunchAction(action, timeline, toState, fromState)
-        } else if (isFly(action)) {
-            this.animateFlyAction(action, timeline, toState, fromState)
+        } else if (isFly(action) || isHurl(action)) {
+            this.animateFlyOrHurlAction(action, timeline, toState, fromState)
         }
     }
 
@@ -233,15 +236,18 @@ export class CellSundiverAnimator extends StateAnimator<
         }
     }
 
-    animateFlyAction(
-        fly: Fly,
+    animateFlyOrHurlAction(
+        action: Fly | Hurl,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
-        const isStart = this.playerId === fly.playerId && sameCoordinates(fly.start, this.coords)
+        const isStart =
+            this.playerId === action.playerId && sameCoordinates(action.start, this.coords)
         const isDestination =
-            this.playerId === fly.playerId && sameCoordinates(fly.destination, this.coords)
+            this.playerId === action.playerId &&
+            sameCoordinates(action.destination, this.coords) &&
+            !sameCoordinates(action.destination, CENTER_COORDS)
         if (!isStart && !isDestination) {
             return
         }
@@ -251,15 +257,21 @@ export class CellSundiverAnimator extends StateAnimator<
 
         if (isStart && fromState) {
             const board = fromState.board
-            const startCell = board.cellAt(fly.start)
-            const startLocation = this.gameSession.locationForDiverInCell(fly.playerId, startCell)
+            const startCell = board.cellAt(action.start)
+            const startLocation = this.gameSession.locationForDiverInCell(
+                action.playerId,
+                startCell
+            )
 
             if (!startLocation) {
                 return
             }
 
-            const numBefore = fromState.board.sundiversForPlayerAt(fly.playerId, this.coords).length
-            const numAfter = toState.board.sundiversForPlayerAt(fly.playerId, this.coords).length
+            const numBefore = fromState.board.sundiversForPlayerAt(
+                action.playerId,
+                this.coords
+            ).length
+            const numAfter = toState.board.sundiversForPlayerAt(action.playerId, this.coords).length
             const leaving = numBefore - numAfter
 
             if (!numAfter) {
@@ -285,18 +297,18 @@ export class CellSundiverAnimator extends StateAnimator<
 
         if (isDestination) {
             const board = toState.board
-            const destCell = board.cellAt(fly.destination)
-            const destLocation = this.gameSession.locationForDiverInCell(fly.playerId, destCell)
+            const destCell = board.cellAt(action.destination)
+            const destLocation = this.gameSession.locationForDiverInCell(action.playerId, destCell)
 
             if (!destLocation) {
                 return
             }
 
             const numBefore =
-                fromState?.board.sundiversForPlayerAt(fly.playerId, this.coords).length ?? 0
-            const numAfter = toState.board.sundiversForPlayerAt(fly.playerId, this.coords).length
+                fromState?.board.sundiversForPlayerAt(action.playerId, this.coords).length ?? 0
+            const numAfter = toState.board.sundiversForPlayerAt(action.playerId, this.coords).length
 
-            const flightPath = fly.metadata?.flightPath
+            const flightPath = action.metadata?.flightPath
             if (!flightPath || flightPath.length < 2) {
                 return
             }
