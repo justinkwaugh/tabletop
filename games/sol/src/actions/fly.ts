@@ -7,6 +7,7 @@ import { gateKey, SolarGate } from '../components/solarGate.js'
 import { EffectType } from '../components/effects.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
+import { Hurl } from './hurl.js'
 
 export type FlyMetadata = Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({
@@ -67,45 +68,16 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
 
-        const path = this.isValidFlight(state)
+        const path = HydratedFly.isValidFlight(state, this)
         if (!path) {
             throw Error('Invalid flight')
         }
 
-        state.moved = true
         this.metadata = {
             flightPath: path
         }
 
-        if (this.passage) {
-            // Initialize passage sundiver tracking
-            state.getEffectTracking().passageSundiverId = this.sundiverIds[0]
-        }
-
-        const distanceMoved = path.length - 1
-
-        if (this.cluster) {
-            playerState.movementPoints -= distanceMoved
-            state.getEffectTracking().clustersRemaining -= 1
-        } else if (this.teleport) {
-            playerState.movementPoints -= 3
-        } else {
-            for (const sundiverId of this.sundiverIds) {
-                let sundiverMovement = distanceMoved
-                if (this.catapult && this.gates.length > 0) {
-                    if (!state.getEffectTracking().catapultedIds.includes(sundiverId)) {
-                        state.getEffectTracking().catapultedIds.push(sundiverId)
-                        sundiverMovement -= 1
-                    }
-                }
-                playerState.movementPoints -= sundiverMovement
-            }
-
-            if (this.stationId) {
-                // Juggernaut
-                playerState.movementPoints -= distanceMoved
-            }
-        }
+        HydratedFly.handleFlightEffects(state, this, path)
 
         if (state.activeEffect === EffectType.Puncture) {
             const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
@@ -121,22 +93,60 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             state.activeEffect = undefined
             state.cardsToDraw +=
                 CARDS_DRAWN_PER_RING[Math.min(this.start.row, this.destination.row)]
+        } else if (this.stationId) {
+            // Juggernaut
+            const station = state.board.removeStationAt(this.start)
+            if (!station || station.id !== this.stationId) {
+                throw Error('Invalid juggernaut station')
+            }
+            state.board.addStationAt(station, this.destination)
+            state.activeEffect = undefined
         } else {
-            if (this.stationId) {
-                // Juggernaut
-                const station = state.board.removeStationAt(this.start)
-                if (!station || station.id !== this.stationId) {
-                    throw Error('Invalid juggernaut station')
+            const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
+            state.board.addSundiversToCell(removedSundivers, this.destination)
+        }
+    }
+
+    static handleFlightEffects(
+        state: HydratedSolGameState,
+        flyOrHurl: Fly | Hurl,
+        path: OffsetCoordinates[]
+    ) {
+        const playerState = state.getPlayerState(flyOrHurl.playerId)
+        state.moved = true
+
+        if (flyOrHurl.passage) {
+            // Initialize passage sundiver tracking
+            state.getEffectTracking().passageSundiverId = flyOrHurl.sundiverIds[0]
+        }
+
+        const distanceMoved = path.length - 1
+
+        if (flyOrHurl.cluster) {
+            playerState.movementPoints -= distanceMoved
+            state.getEffectTracking().clustersRemaining -= 1
+        } else if (flyOrHurl.teleport) {
+            playerState.movementPoints -= 3
+        } else {
+            for (const sundiverId of flyOrHurl.sundiverIds) {
+                let sundiverMovement = distanceMoved
+                if (flyOrHurl.catapult && flyOrHurl.gates.length > 0) {
+                    if (!state.getEffectTracking().catapultedIds.includes(sundiverId)) {
+                        state.getEffectTracking().catapultedIds.push(sundiverId)
+                        sundiverMovement -= 1
+                    }
                 }
-                state.board.addStationAt(station, this.destination)
-                state.activeEffect = undefined
-            } else {
-                const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
-                state.board.addSundiversToCell(removedSundivers, this.destination)
+                playerState.movementPoints -= sundiverMovement
+            }
+
+            if (flyOrHurl.stationId) {
+                // Juggernaut
+                playerState.movementPoints -= distanceMoved
             }
         }
+
         if (state.activeEffect === EffectType.Hyperdrive) {
-            state.getEffectTracking().flownSundiverId = this.sundiverIds[0]
+            state.getEffectTracking().flownSundiverId = flyOrHurl.sundiverIds[0]
             state.getEffectTracking().movementUsed += distanceMoved
         }
 
@@ -144,7 +154,10 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         const gates = state.board.gatesForPath(path)
 
         for (const gate of gates) {
-            if (gate.playerId !== this.playerId && !state.paidPlayerIds.includes(gate.playerId)) {
+            if (
+                gate.playerId !== flyOrHurl.playerId &&
+                !state.paidPlayerIds.includes(gate.playerId)
+            ) {
                 const gateOwner = state.getPlayerState(gate.playerId)
                 gateOwner.energyCubes += 1
                 state.paidPlayerIds.push(gate.playerId)
@@ -152,7 +165,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
             const key = gateKey(gate.innerCoords, gate.outerCoords)
             if (
-                this.hasPassageSundiver(state) &&
+                this.hasPassageSundiver(state, flyOrHurl.sundiverIds) &&
                 !state.getEffectTracking().passageGates.includes(key)
             ) {
                 state.getEffectTracking().passageGates.push(key)
@@ -161,12 +174,12 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
     }
 
-    hasPassageSundiver(state: HydratedSolGameState): boolean {
+    static hasPassageSundiver(state: HydratedSolGameState, sundivers: string[]): boolean {
         const passageSundiverId = state.getEffectTracking().passageSundiverId
         if (!passageSundiverId) {
             return false
         }
-        return this.sundiverIds.includes(passageSundiverId)
+        return sundivers.includes(passageSundiverId)
     }
 
     static canFly(state: HydratedSolGameState, playerId: string): boolean {
@@ -182,33 +195,43 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
         for (const cell of state.board) {
             const sundiversInCell = state.board.sundiversForPlayerAt(playerId, cell.coords)
-            if (sundiversInCell.length > 0) {
+            if (
+                state.activeEffect === EffectType.Hyperdrive &&
+                sundiversInCell.find(
+                    (sundiver) => state.getEffectTracking().flownSundiverId === sundiver.id
+                )
+            ) {
+                return true
+            } else if (sundiversInCell.length > 0) {
                 return true
             }
         }
         return false
     }
 
-    isValidFlight(state: HydratedSolGameState): OffsetCoordinates[] | undefined {
-        const playerState = state.getPlayerState(this.playerId)
+    static isValidFlight(
+        state: HydratedSolGameState,
+        flyOrHurl: Fly | Hurl
+    ): OffsetCoordinates[] | undefined {
+        const playerState = state.getPlayerState(flyOrHurl.playerId)
 
         if (
-            this.passage &&
-            (state.getEffectTracking().passageSundiverId || this.sundiverIds.length !== 1)
+            flyOrHurl.passage &&
+            (state.getEffectTracking().passageSundiverId || flyOrHurl.sundiverIds.length !== 1)
         ) {
             console.log('invalid passage flight')
             return
         }
 
-        if (this.teleport) {
-            if (playerState.movementPoints < 3 || this.sundiverIds.length > 1) {
+        if (flyOrHurl.teleport) {
+            if (playerState.movementPoints < 3 || flyOrHurl.sundiverIds.length > 1) {
                 return
             }
-            return [this.start, this.destination]
+            return [flyOrHurl.start, flyOrHurl.destination]
         }
 
         if (
-            this.cluster &&
+            flyOrHurl.cluster &&
             (state.activeEffect !== EffectType.Cluster || !state.effectTracking?.clustersRemaining)
         ) {
             console.log('no more clusters remaining')
@@ -217,9 +240,9 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
         if (
             state.activeEffect === EffectType.Hyperdrive &&
-            (this.sundiverIds.length !== 1 ||
+            (flyOrHurl.sundiverIds.length !== 1 ||
                 (state.effectTracking?.flownSundiverId &&
-                    state.effectTracking?.flownSundiverId !== this.sundiverIds[0]))
+                    state.effectTracking?.flownSundiverId !== flyOrHurl.sundiverIds[0]))
         ) {
             console.log('invalid hyperdrive flight')
             return
@@ -228,13 +251,13 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         if (
             !HydratedFly.isValidFlightDestination({
                 state,
-                playerId: this.playerId,
-                numSundivers: this.sundiverIds.length,
-                start: this.start,
-                destination: this.destination,
-                cluster: this.cluster,
-                juggernaut: this.stationId !== undefined,
-                catapult: this.catapult
+                playerId: flyOrHurl.playerId,
+                numSundivers: flyOrHurl.sundiverIds.length,
+                start: flyOrHurl.start,
+                destination: flyOrHurl.destination,
+                cluster: flyOrHurl.cluster,
+                juggernaut: flyOrHurl.stationId !== undefined,
+                catapult: flyOrHurl.catapult
             })
         ) {
             console.log('invalid flight destination')
@@ -242,29 +265,29 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         if (state.activeEffect === EffectType.Puncture) {
-            return [this.start, this.destination]
+            return [flyOrHurl.start, flyOrHurl.destination]
         }
 
-        const numMovingPieces = this.stationId ? 1 : this.sundiverIds.length
+        const numMovingPieces = flyOrHurl.stationId ? 1 : flyOrHurl.sundiverIds.length
 
         const illegalCoordinates: OffsetCoordinates[] = []
 
         if (
-            this.stationId !== undefined ||
+            flyOrHurl.stationId !== undefined ||
             (state.activeEffect &&
                 EffectsThatDisallowFiveDiverTraversal.includes(state.activeEffect))
         ) {
             // No 5 diver spots for juggernaut or hyperdrive
-            illegalCoordinates.push(...state.board.getFiveDiverCoords(this.playerId))
+            illegalCoordinates.push(...state.board.getFiveDiverCoords(flyOrHurl.playerId))
         }
 
         return state.board.pathToDestination({
-            start: this.start,
-            destination: this.destination,
+            start: flyOrHurl.start,
+            destination: flyOrHurl.destination,
             range:
                 playerState.movementPoints / numMovingPieces +
-                (this.catapult && this.gates && this.gates.length > 0 ? 1 : 0),
-            requiredGates: this.gates,
+                (flyOrHurl.catapult && flyOrHurl.gates && flyOrHurl.gates.length > 0 ? 1 : 0),
+            requiredGates: flyOrHurl.gates,
             portal: state.activeEffect === EffectType.Portal,
             illegalCoordinates,
             transcend: state.activeEffect === EffectType.Transcend

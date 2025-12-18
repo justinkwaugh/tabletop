@@ -347,7 +347,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
     }
 
-    async fly() {
+    async fly(hurl: boolean = false) {
         if (
             !this.myPlayer ||
             !this.myPlayerState ||
@@ -407,8 +407,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             } while (true)
         }
 
-
-
         const playerDivers = this.gameState.board
             .sundiversForPlayer(this.myPlayer.id, cell)
             .toReversed()
@@ -418,9 +416,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         let chosenDivers = playerDivers
 
         if (this.passageChoice) {
-            chosenDivers = chosenDivers.filter((diver) => diver.id === this.gameState.getEffectTracking().passageSundiverId)
-        }
-        else if (this.gameState.activeEffect === EffectType.Catapult) {
+            chosenDivers = chosenDivers.filter(
+                (diver) => diver.id === this.gameState.getEffectTracking().passageSundiverId
+            )
+        } else if (this.gameState.activeEffect === EffectType.Catapult) {
             chosenDivers = chosenDivers.filter((diver) =>
                 catapult
                     ? !this.gameState.getEffectTracking().catapultedIds.includes(diver.id)
@@ -440,7 +439,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             diverIds.length === 1
 
         const action = {
-            ...this.createBaseAction(ActionType.Fly),
+            ...this.createBaseAction(hurl ? ActionType.Hurl : ActionType.Fly),
             playerId: this.myPlayer.id,
             sundiverIds: diverIds,
             start: this.chosenSource,
@@ -452,91 +451,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             catapult: this.catapultChoice ?? false,
             passage
         }
-        console.log('Flying with action', action)
+        console.log((hurl ? 'Hurling' : 'Flying') + ' with action', action)
         await this.doAction(action)
     }
 
     async hurl() {
-        if (
-            !this.myPlayer ||
-            !this.chosenSource ||
-            (!this.chosenNumDivers && !this.juggernautStationId) ||
-            !this.chosenDestination ||
-            !sameCoordinates(this.chosenDestination, CENTER_COORDS)
-        ) {
-            throw new Error('Invalid hurl')
-        }
-
-        const catapult =
-            this.gameState.activeEffect === EffectType.Catapult && this.catapultChoice === true
-
-        const cell = this.gameState.board.cellAt(this.chosenSource)
-
-        const chosenGates = (this.chosenGates ?? []).map((key) => {
-            const gate = this.gameState.board.gates[key]
-            if (!gate) {
-                throw new Error('Invalid gate for flight')
-            }
-            return gate
-        })
-
-        if (
-            !this.teleportChoice &&
-            this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)
-        ) {
-            console.log('checking gates')
-            do {
-                const choiceData = this.getGateChoices(
-                    this.chosenSource,
-                    this.chosenDestination,
-                    chosenGates,
-                    catapult
-                )
-                if (choiceData.gates.length > 1) {
-                    this.gateChoices = choiceData.gates.map((gate) =>
-                        this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
-                    )
-                    console.log('gate choices', this.gateChoices)
-                    return
-                } else if (choiceData.gates.length === 1) {
-                    if (!choiceData.direct) {
-                        if (!this.chosenGates) {
-                            this.chosenGates = []
-                        }
-                        const gate = choiceData.gates[0]
-                        this.chosenGates.push(
-                            this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
-                        )
-                        chosenGates.push(gate)
-                    }
-                    console.log('direct path auto chosen')
-                    break
-                } else {
-                    break
-                }
-            } while (true)
-        }
-
-        const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
-        // We want to take the last ones first
-        const diverIds = this.juggernautStationId
-            ? []
-            : playerDivers
-                  .toReversed()
-                  .slice(0, this.chosenNumDivers)
-                  .map((diver) => diver.id)
-
-        const action = {
-            ...this.createBaseAction(ActionType.Hurl),
-            playerId: this.myPlayer.id,
-            sundiverIds: diverIds,
-            start: this.chosenSource,
-            destination: this.chosenDestination,
-            gates: chosenGates,
-            stationId: this.juggernautStationId
-        }
-
-        await this.doAction(action)
+        return this.fly(true)
     }
 
     getGateChoices(
