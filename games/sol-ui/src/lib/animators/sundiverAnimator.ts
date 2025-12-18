@@ -23,6 +23,7 @@ import {
 import { StateAnimator } from './stateAnimator.js'
 import { GameAction, OffsetCoordinates, sameCoordinates, type Point } from '@tabletop/common'
 import {
+    dimensionsForSpace,
     getCirclePoint,
     getGatePosition,
     getMothershipSpotPoint,
@@ -247,6 +248,9 @@ export class SundiverAnimator extends StateAnimator<
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
+        if (!fromState) {
+            return
+        }
         const index = fly.sundiverIds.indexOf(this.id)
         if (index === -1) {
             return
@@ -257,29 +261,19 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
-        const startCoords = flightPath.shift()!
-        const startCell = fromState?.board.cellAt(startCoords)
-        if (!startCell) {
+        const locations = SundiverAnimator.getFlightPath(
+            this.gameSession,
+            fly.playerId,
+            flightPath,
+            toState,
+            fromState
+        )
+        if (locations.length === 0) {
             return
         }
+        const flightDuration = SundiverAnimator.getFlightDuration(locations.length)
 
-        const startLocation = this.gameSession.locationForDiverInCell(fly.playerId, startCell)
-        if (!startLocation) {
-            return
-        }
-
-        const endCoords = flightPath.pop()!
-        const endCell = toState.board.cellAt(endCoords)
-        const endLocation = this.gameSession.locationForDiverInCell(fly.playerId, endCell)
-        if (!endLocation) {
-            return
-        }
-
-        const locations = flightPath.map((coords) => {
-            return getSpaceCentroid(this.gameSession.numPlayers, coords)
-        })
-
-        locations.push(endLocation)
+        const startLocation = locations.shift()
 
         // Appear... move... disappear
         gsap.set(this.element!, {
@@ -288,20 +282,18 @@ export class SundiverAnimator extends StateAnimator<
             y: offsetFromCenter(startLocation).y
         })
 
-        const moveDuration = 0.5
         const delayBetween = 0.3
-
         path({
             object: this.element,
             path: locations.map((loc) => offsetFromCenter(loc)),
-            curviness: 0.5,
-            duration: moveDuration * locations.length,
+            curviness: 1,
+            duration: flightDuration,
             ease: 'power1.inOut',
             timeline,
             position: index * delayBetween
         })
 
-        if (sameCoordinates(endCoords, CENTER_COORDS)) {
+        if (sameCoordinates(flightPath.at(-1), CENTER_COORDS)) {
             // Special case for center space - just fade out
             fadeOut({
                 object: this.element!,
@@ -317,6 +309,86 @@ export class SundiverAnimator extends StateAnimator<
                 position: '>'
             })
         }
+    }
+
+    static getFlightPath(
+        gameSession: SolGameSession,
+        playerId: string,
+        pathCoords: OffsetCoordinates[],
+        toState: HydratedSolGameState,
+        fromState: HydratedSolGameState
+    ): Point[] {
+        const flightPath: Point[] = []
+
+        let hadGate = false
+        for (let i = 0; i < pathCoords.length; i++) {
+            const coords = pathCoords[i]
+            let location: Point | undefined
+            if (i === 0) {
+                const cell = fromState.board.cellAt(coords)
+                location = gameSession.locationForDiverInCell(playerId, cell)
+            } else if (i === pathCoords.length - 1) {
+                const cell = toState.board.cellAt(coords)
+                location = gameSession.locationForDiverInCell(playerId, cell)
+            } else if (!hadGate) {
+                location = getSpaceCentroid(gameSession.numPlayers, coords)
+            }
+            hadGate = false
+            if (location) {
+                flightPath.push(location)
+            }
+            if (i < pathCoords.length - 1) {
+                const nextCoords = pathCoords[i + 1]
+                if (fromState.board.hasGateBetween(coords, nextCoords)) {
+                    hadGate = true
+                    const gatePosition = getGatePosition(gameSession.numPlayers, coords, nextCoords)
+
+                    const firstDimensions = dimensionsForSpace(gameSession.numPlayers, coords)
+                    const firstOffset =
+                        (firstDimensions.outerRadius - firstDimensions.innerRadius) / 4
+
+                    const secondDimensions = dimensionsForSpace(gameSession.numPlayers, nextCoords)
+                    const secondOffset =
+                        (secondDimensions.outerRadius - secondDimensions.innerRadius) / 4
+
+                    if (coords.row > nextCoords.row) {
+                        // Moving inward
+                        flightPath.push(
+                            getCirclePoint(
+                                gatePosition.radius + firstOffset,
+                                toRadians(gatePosition.angle)
+                            )
+                        )
+                        flightPath.push(
+                            getCirclePoint(
+                                gatePosition.radius - secondOffset,
+                                toRadians(gatePosition.angle)
+                            )
+                        )
+                    } else {
+                        // Moving outward
+                        flightPath.push(
+                            getCirclePoint(
+                                gatePosition.radius - firstOffset,
+                                toRadians(gatePosition.angle)
+                            )
+                        )
+                        flightPath.push(
+                            getCirclePoint(
+                                gatePosition.radius + secondOffset,
+                                toRadians(gatePosition.angle)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        return flightPath
+    }
+
+    static getFlightDuration(pathLength: number): number {
+        return Math.min(2, Math.max(1, pathLength * 0.3))
     }
 
     animateConvertAction(

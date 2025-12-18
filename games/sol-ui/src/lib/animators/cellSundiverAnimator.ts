@@ -20,6 +20,7 @@ import { fadeIn, fadeOut, move } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
+import { SundiverAnimator } from './sundiverAnimator.js'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -242,6 +243,10 @@ export class CellSundiverAnimator extends StateAnimator<
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
+        if (!fromState) {
+            return
+        }
+
         const isStart =
             this.playerId === action.playerId && sameCoordinates(action.start, this.coords)
         const isDestination =
@@ -313,7 +318,14 @@ export class CellSundiverAnimator extends StateAnimator<
                 return
             }
 
-            const firstArrivalTime = (flightPath.length - 1) * moveDuration
+            const actualFlightPath = SundiverAnimator.getFlightPath(
+                this.gameSession,
+                action.playerId,
+                flightPath,
+                toState,
+                fromState
+            )
+            const flightDuration = SundiverAnimator.getFlightDuration(actualFlightPath.length)
 
             if (!numBefore) {
                 gsap.set(this.element!, {
@@ -327,7 +339,7 @@ export class CellSundiverAnimator extends StateAnimator<
                     object: this.element,
                     duration: 0,
                     timeline,
-                    position: firstArrivalTime
+                    position: flightDuration
                 })
             }
 
@@ -337,7 +349,7 @@ export class CellSundiverAnimator extends StateAnimator<
                         this.quantityCallback!(numBefore + arriving)
                     },
                     [],
-                    firstArrivalTime + delayBetween * (arriving - 1)
+                    flightDuration + delayBetween * (arriving - 1)
                 )
             }
         }
