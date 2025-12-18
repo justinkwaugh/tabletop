@@ -256,10 +256,6 @@
         }
 
         await gameSession.chooseMove()
-
-        // if (gameSession.myPlayerState && !gameSession.myPlayerState.hasSundiversOnTheBoard()) {
-        //     gameSession.chosenMothership = gameSession.myPlayerState.playerId
-        // }
     }
 
     async function chooseConvert() {

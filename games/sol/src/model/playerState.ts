@@ -117,10 +117,6 @@ export class HydratedSolPlayerState
         return removedSundivers
     }
 
-    public hasSundiversOnTheBoard(): boolean {
-        return this.reserveSundivers.length + this.holdSundivers.length < 13
-    }
-
     public removeSolarGate(): SolarGate {
         const solarGate = this.solarGates.pop()
         if (!solarGate) {

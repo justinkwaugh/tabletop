@@ -97,15 +97,17 @@ export class NotifierAnimator extends StateAnimator<
     }
 
     animateDrawCards(action: DrawCards, animationContext: AnimationContext) {
+        const message = action.metadata?.removedStation
+            ? `SYSTEM MALFUNCTION! YOUR STATION WAS DESTROYED`
+            : `SAFE! YOUR STATION SURVIVED THE SQUEEZE`
+        animationContext.actionTimeline.call(
+            () => {
+                this.gameSession.forcedCallToAction = message
+            },
+            [],
+            0.5
+        )
         if (!action.metadata?.removedStation) {
-            animationContext.actionTimeline.call(
-                () => {
-                    this.gameSession.forcedCallToAction = `SAFE! YOUR STATION SURVIVED THE SQUEEZE`
-                },
-                [],
-                0.5
-            )
-
             animationContext.actionTimeline.call(
                 () => {
                     this.animateActivate(action, animationContext)
