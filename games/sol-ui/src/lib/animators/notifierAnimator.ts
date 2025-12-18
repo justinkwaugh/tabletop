@@ -15,10 +15,12 @@ import {
     isDrawCards,
     isFuel,
     isSolarFlare,
+    isTribute,
     MachineState,
     SolarFlare,
     Station,
     StationType,
+    Tribute,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
@@ -54,29 +56,64 @@ export class NotifierAnimator extends StateAnimator<
             isActivateEffect(action) &&
             (action.effect === EffectType.Squeeze || action.effect === EffectType.Augment)
         ) {
-            this.animateActivate(action, animationContext, false)
+            this.animateActivate(action, animationContext)
+        } else if (isTribute(action)) {
+            this.animateTribute(action, animationContext)
+        } else if (isDrawCards(action)) {
+            if (from?.activeEffect === EffectType.Squeeze) {
+                this.animateDrawCards(action, animationContext)
+            }
         }
     }
 
     animateActivate(
-        action: Activate | ActivateBonus | ActivateEffect,
+        action: Activate | ActivateBonus | ActivateEffect | DrawCards,
         animationContext: AnimationContext,
-        isBonus: boolean
+        isBonus: boolean = false
     ) {
         if (action.metadata?.energyAdded ?? 0 > 0) {
             this.gameSession.forcedCallToAction = `${action.metadata?.energyAdded ?? 0} ${isBonus ? 'BONUS ' : ''} ENERGY ADDED`
-        } else if (action.metadata?.createdSundiverIds ?? 0 > 0) {
+            animationContext.ensureDuration(1.5)
+        } else if (action.metadata?.createdSundiverIds.length ?? 0 > 0) {
             const plural = (action.metadata?.createdSundiverIds?.length ?? 0) === 1 ? '' : 'S'
             this.gameSession.forcedCallToAction = `${action.metadata?.createdSundiverIds?.length ?? 0} ${isBonus ? 'BONUS ' : ''} SUN DIVER${plural} BUILT`
+            animationContext.ensureDuration(1.5)
         } else if (action.metadata?.momentumAdded ?? 0 > 0) {
             this.gameSession.forcedCallToAction = `${action.metadata?.momentumAdded ?? 0} ${isBonus ? 'BONUS ' : ''} MOMENTUM GAINED`
+            animationContext.ensureDuration(1.5)
         }
-
-        animationContext.ensureDuration(1.5)
     }
 
     animateFuel(animationContext: AnimationContext) {
         this.gameSession.forcedCallToAction = 'ADDED 3 MOVEMENT POINTS'
         animationContext.ensureDuration(1.5)
+    }
+
+    animateTribute(action: Tribute, animationContext: AnimationContext) {
+        const payments = action.metadata?.payments ?? {}
+        const numCubes = Object.values(payments).reduce((sum, val) => sum + val, 0)
+        this.gameSession.forcedCallToAction = `COLLECTED TRIBUTE OF ${numCubes} ENERGY`
+        animationContext.ensureDuration(1.5)
+    }
+
+    animateDrawCards(action: DrawCards, animationContext: AnimationContext) {
+        if (!action.metadata?.removedStation) {
+            animationContext.actionTimeline.call(
+                () => {
+                    this.gameSession.forcedCallToAction = `SAFE! YOUR STATION SURVIVED THE SQUEEZE`
+                },
+                [],
+                0.5
+            )
+
+            animationContext.actionTimeline.call(
+                () => {
+                    this.animateActivate(action, animationContext)
+                },
+                [],
+                2.5
+            )
+            animationContext.ensureDuration(4)
+        }
     }
 }

@@ -314,7 +314,10 @@ export class HydratedActivateEffect
     }
 
     static canActivateCascade(state: HydratedSolGameState, playerId: string): boolean {
-        return HydratedConvert.canConvert(state, playerId)
+        return (
+            state.machineState === MachineState.CheckEffect &&
+            HydratedConvert.canConvert(state, playerId)
+        )
     }
 
     static canActivateSqueeze(state: HydratedSolGameState, playerId: string): boolean {
@@ -338,14 +341,14 @@ export class HydratedActivateEffect
             station.type === StationType.SundiverFoundry ||
             station.type === StationType.TransmitTower
         ) {
-            const energyCost = BASE_AWARD_PER_RING[station.coords!.row] * 2
+            const energyCost = BASE_AWARD_PER_RING[station.coords!.row]
             if (state.getPlayerState(playerId).energyCubes < energyCost) {
                 return false
             }
         }
 
         if (station.type === StationType.SundiverFoundry) {
-            const diversNeeded = BASE_AWARD_PER_RING[station.coords!.row] * 2
+            const diversNeeded = BASE_AWARD_PER_RING[station.coords!.row]
             if (state.getPlayerState(playerId).reserveSundivers.length < diversNeeded) {
                 return false
             }

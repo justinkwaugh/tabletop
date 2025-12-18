@@ -1,18 +1,22 @@
 import {
     Activate,
     ActivateBonus,
+    ActivateEffect,
+    EffectType,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
+    isActivateEffect,
+    isTribute,
+    Tribute,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
-import { tick, untrack } from 'svelte'
+import { tick } from 'svelte'
 import { Point, range, type GameAction } from '@tabletop/common'
 import { ensureDuration, fadeIn, fadeOut, move, scale } from '$lib/utils/animations.js'
-import { Flip } from 'gsap/dist/Flip'
 import { nanoid } from 'nanoid'
 import { getMothershipSpotPoint, offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
@@ -46,7 +50,9 @@ export class EnergyCubeAnimator extends StateAnimator<
         animationContext: AnimationContext
     }) {
         if (isActivate(action) || isActivateBonus(action)) {
-            this.animateActivate(action, animationContext.actionTimeline, to, from)
+            await this.animateActivate(action, animationContext.actionTimeline, to, from)
+        } else if (isTribute(action)) {
+            await this.animateTribute(action, animationContext.actionTimeline, from)
         }
     }
 
@@ -70,7 +76,7 @@ export class EnergyCubeAnimator extends StateAnimator<
         await tick()
 
         const delayBetween = 0.2
-        const moveDuration = 0.5
+        const moveDuration = 1
         const startTime = 0
 
         // Set the initial location of the cubes at the energy node
@@ -121,6 +127,68 @@ export class EnergyCubeAnimator extends StateAnimator<
             startTime + moveDuration + delayBetween * (numCubes - 1)
         )
     }
+
+    async animateTribute(
+        tribute: Tribute,
+        timeline: gsap.core.Timeline,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !tribute.metadata) {
+            return
+        }
+
+        const numCubes = Object.values(tribute.metadata.payments).reduce((a, b) => a + b, 0)
+        this.gameSession.movingCubeIds = range(0, numCubes).map(() => nanoid())
+
+        await tick()
+
+        const toLocation = this.getMothershipLocationForPlayer(fromState, tribute.playerId)
+
+        const delayBetween = 0.2
+        const moveDuration = 1
+
+        const cubesCopy = Array.from(this.cubes.values())
+        let maxDuration = 0
+        for (const [fromPlayerId, count] of Object.entries(tribute.metadata.payments)) {
+            const startTime = 0
+
+            const fromLocation = this.getMothershipLocationForPlayer(fromState, fromPlayerId)
+            const cubeElements = cubesCopy.splice(0, count)
+
+            for (const cube of cubeElements) {
+                gsap.set(cube, {
+                    x: offsetFromCenter(fromLocation).x,
+                    y: offsetFromCenter(fromLocation).y
+                })
+            }
+
+            let i = 0
+            for (const cube of cubeElements) {
+                move({
+                    object: cube,
+                    location: offsetFromCenter(toLocation),
+                    timeline,
+                    duration: moveDuration,
+                    position: startTime + delayBetween * i
+                })
+                i++
+            }
+
+            const duration = moveDuration + delayBetween * (count - 1)
+            if (duration > maxDuration) {
+                maxDuration = duration
+            }
+        }
+
+        timeline.call(
+            () => {
+                this.gameSession.movingCubeIds = []
+            },
+            [],
+            maxDuration
+        )
+    }
+
     getMothershipLocationForPlayer(gameState: HydratedSolGameState, playerId: string): Point {
         const mothershipIndex = gameState.board.motherships[playerId]
         const spotPoint = getMothershipSpotPoint(gameState.players.length, mothershipIndex)

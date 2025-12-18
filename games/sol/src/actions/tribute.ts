@@ -5,7 +5,9 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 export type TributeMetadata = Static<typeof TributeMetadata>
-export const TributeMetadata = Type.Object({})
+export const TributeMetadata = Type.Object({
+    payments: Type.Record(Type.String(), Type.Number())
+})
 
 export type Tribute = Static<typeof Tribute>
 export const Tribute = Type.Evaluate(
@@ -39,10 +41,11 @@ export class HydratedTribute extends HydratableAction<typeof Tribute> implements
         if (!HydratedTribute.canTributeAt(state, this.playerId, this.coords)) {
             throw Error('Invalid tribute')
         }
-
         const otherPlayers = state.board
             .playersWithSundiversAt(this.coords)
             .filter((id) => id !== this.playerId)
+
+        this.metadata = { payments: {} }
 
         const playerState = state.getPlayerState(this.playerId)
         for (const otherPlayerId of otherPlayers) {
@@ -50,6 +53,8 @@ export class HydratedTribute extends HydratableAction<typeof Tribute> implements
             if (otherPlayerState.energyCubes > 0) {
                 otherPlayerState.energyCubes -= 1
                 playerState.energyCubes += 1
+                this.metadata.payments[otherPlayerId] =
+                    this.metadata.payments[otherPlayerId] ?? 0 + 1
             }
         }
     }

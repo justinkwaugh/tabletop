@@ -1,12 +1,11 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Card, Suit } from '../components/cards.js'
 import { EffectType } from '../components/effects.js'
 import { Station } from '../components/stations.js'
-import { BASE_AWARD_PER_RING } from 'src/utils/solConstants.js'
 import { HydratedActivate } from './activate.js'
 
 export type DrawCardsMetadata = Static<typeof DrawCardsMetadata>
@@ -16,7 +15,8 @@ export const DrawCardsMetadata = Type.Object({
     removedStation: Type.Optional(Station),
     energyAdded: Type.Number(),
     createdSundiverIds: Type.Array(Type.String()),
-    momentumAdded: Type.Number()
+    momentumAdded: Type.Number(),
+    coords: Type.Optional(OffsetCoordinates)
 })
 
 export type DrawCards = Static<typeof DrawCards>
@@ -82,6 +82,7 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
             if (!station || !station.coords) {
                 throw Error('Invalid station for squeeze effect')
             }
+            this.metadata.coords = station.coords
             if (cards.some((card) => card.suit === Suit.Flare)) {
                 this.metadata.removedStation = state.board.removeStationAt(station.coords)
                 playerState.movement = state.calculatePlayerMovement(playerState.playerId)

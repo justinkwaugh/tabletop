@@ -3,6 +3,7 @@ import {
     ActivateBonus,
     ActivateEffect,
     Convert,
+    DrawCards,
     EffectType,
     Fly,
     HydratedSolGameState,
@@ -10,6 +11,7 @@ import {
     isActivateBonus,
     isActivateEffect,
     isConvert,
+    isDrawCards,
     isFly,
     isLaunch,
     Launch,
@@ -171,6 +173,8 @@ export class SundiverAnimator extends StateAnimator<
             this.animateFlyAction(action, timeline, toState, fromState)
         } else if (isActivateEffect(action)) {
             this.animateActivateEffectAction(action, timeline, toState, fromState)
+        } else if (isDrawCards(action)) {
+            this.animateDrawCardsAction(action, timeline, toState, fromState)
         }
     }
 
@@ -355,6 +359,26 @@ export class SundiverAnimator extends StateAnimator<
             position: 0
         })
 
+        if (fromState.activeEffect === EffectType.Cascade) {
+            const targetLocation = this.getMothershipLocationForPlayer(
+                fromState ?? toState,
+                convert.playerId
+            )
+
+            const index = convert.sundiverIds.indexOf(this.id)
+            if (targetLocation) {
+                move({
+                    object: this.element,
+                    location: offsetFromCenter(targetLocation),
+                    duration: 0.5,
+                    ease: 'power2.in',
+                    timeline,
+                    position: '>' + (index > 0 ? '+' + index * 0.2 : '')
+                })
+                return
+            }
+        }
+
         fadeOut({
             object: this.element!,
             duration: 0.1,
@@ -455,6 +479,30 @@ export class SundiverAnimator extends StateAnimator<
         fromState?: HydratedSolGameState
     ) {
         if (action.effect !== EffectType.Squeeze && action.effect !== EffectType.Augment) {
+            return
+        }
+
+        if (!fromState || !action.metadata || !action.metadata.coords) {
+            return
+        }
+
+        this.animateCreatedSundivers(
+            action.metadata.createdSundiverIds,
+            action.metadata.coords,
+            action.playerId,
+            timeline,
+            toState,
+            fromState
+        )
+    }
+
+    animateDrawCardsAction(
+        action: DrawCards,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (fromState?.activeEffect !== EffectType.Squeeze) {
             return
         }
 

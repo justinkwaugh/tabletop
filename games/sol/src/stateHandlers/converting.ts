@@ -90,12 +90,14 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
                     return MachineState.CheckEffect
                 }
 
+                const playerState = gameState.getPlayerState(action.playerId)
                 if (
-                    HydratedActivateEffect.canActivateEffect(
+                    HydratedActivateEffect.hasCardForEffect(
                         gameState,
-                        action.playerId,
+                        playerState,
                         EffectType.Cascade
-                    )
+                    ) &&
+                    HydratedConvert.canConvert(gameState, action.playerId)
                 ) {
                     return MachineState.CheckEffect
                 }

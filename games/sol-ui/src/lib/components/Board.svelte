@@ -108,7 +108,9 @@
         {/each}
         {#each gameSession.movingCubeIds as cubeId (cubeId)}
             <g use:animateCube={{ animator: cubeAnimator, cubeId }}>
-                <Cube width={30} height={30} />
+                <g transform="translate(-17.5, -17.5)">
+                    <Cube width={35} height={35} />
+                </g>
             </g>
         {/each}
 
