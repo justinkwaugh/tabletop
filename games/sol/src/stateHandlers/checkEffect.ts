@@ -63,6 +63,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                             context,
                             activation
                         )
+                    } else if (effect === EffectType.Squeeze) {
+                        return ActivatingStateHandler.handleActivation(gameState, context)
                     }
                 }
                 return drawCardsOrEndTurn(gameState, context)
@@ -90,6 +92,12 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     return MachineState.Converting
                 } else if (gameState.activeEffect === EffectType.Metamorphosis) {
                     return MachineState.Metamorphosizing
+                } else if (gameState.activeEffect === EffectType.Squeeze) {
+                    if (gameState.cardsToDraw > 0) {
+                        return MachineState.DrawingCards
+                    } else {
+                        return ActivatingStateHandler.handleActivation(gameState, context)
+                    }
                 } else {
                     return drawCardsOrEndTurn(gameState, context)
                 }

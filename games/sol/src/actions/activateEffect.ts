@@ -120,6 +120,11 @@ export class HydratedActivateEffect
             state.getEffectTracking().clustersRemaining = 2
         } else if (this.effect === EffectType.Squeeze) {
             state.getEffectTracking().squeezed = true
+            if (state.cardsToDraw === 0) {
+                const station = state.getActivatingStation()
+                const awardMetadata = HydratedActivate.applyActivationAward(playerState, station)
+                Object.assign(this.metadata, awardMetadata)
+            }
         } else if (this.effect === EffectType.Hyperdrive) {
             playerState.movementPoints *= 2
         } else if (this.effect === EffectType.Procreate) {
@@ -310,6 +315,7 @@ export class HydratedActivateEffect
     }
 
     static canActivateSqueeze(state: HydratedSolGameState, playerId: string): boolean {
+        console.log('Checking can activate squeeze for player:', playerId)
         const activation = state.activation
         if (!activation) {
             return false
@@ -321,11 +327,7 @@ export class HydratedActivateEffect
             return false
         }
 
-        if (
-            !station ||
-            station.playerId !== playerId ||
-            (station.coords?.row ?? 0) > Ring.Convective
-        ) {
+        if (!station || station.playerId !== playerId) {
             return false
         }
 

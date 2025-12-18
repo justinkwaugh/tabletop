@@ -22,7 +22,12 @@ export class AnimationContext {
     }
 
     async play() {
+        console.log('num master timeline children:', this.masterTimeline.getChildren().length)
+        console.log('num action timeline children:', this.actionTimeline.getChildren().length)
+        console.log('num final timeline children:', this.finalTimeline.getChildren().length)
+
         if (
+            this.masterTimeline.getChildren().length === 0 &&
             this.actionTimeline.getChildren().length === 0 &&
             this.finalTimeline.getChildren().length === 0
         ) {

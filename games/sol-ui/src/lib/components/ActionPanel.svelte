@@ -23,6 +23,7 @@
     import MovementPicker from './MovementPicker.svelte'
     import MetamorphosisPicker from './MetamorphosisPicker.svelte'
     import ChainSundiverPicker from './ChainSundiverPicker.svelte'
+    import { NotifierAnimator } from '$lib/animators/notifierAnimator.js'
 
     enum YesActions {
         ClusterEffect = 'ClusterEffect',
@@ -313,6 +314,8 @@
     cardPickerAnimator.register()
 
     const chainEntryWithoutDiver = $derived(gameSession.chain?.find((entry) => !entry.sundiverId))
+    const notifierAnimator = new NotifierAnimator(gameSession)
+    notifierAnimator.register()
 </script>
 
 <div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">

@@ -39,6 +39,7 @@ export class HydratedFuel extends HydratableAction<typeof Fuel> implements Fuel 
         }
 
         const playerState = state.getPlayerState(this.playerId)
+        playerState.energyCubes -= 1
         playerState.movementPoints += 3
         state.getEffectTracking().fuelRemaining -= 1
 

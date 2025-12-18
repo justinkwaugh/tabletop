@@ -63,9 +63,7 @@ export class CellStationAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        if (isActivate(action) || isActivateBonus(action)) {
-            this.animateActivate(action, animationContext, to, from)
-        } else if (isConvert(action)) {
+        if (isConvert(action)) {
             await this.animateConvert(action, animationContext.actionTimeline, to, from)
         }
 
@@ -84,40 +82,6 @@ export class CellStationAnimator extends StateAnimator<
                 duration: 0.3
             })
         }
-    }
-
-    animateActivate(
-        action: Activate | ActivateBonus,
-        animationContext: AnimationContext,
-        toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
-    ) {
-        if (!this.station) {
-            return
-        }
-        const stationId = isActivate(action) ? action.stationId : action.metadata?.stationId
-
-        if (stationId !== this.station.id) {
-            return
-        }
-
-        switch (this.station.type) {
-            case StationType.EnergyNode: {
-                this.gameSession.forcedCallToAction = `${action.metadata?.energyAdded ?? 0} ENERGY ADDED`
-                break
-            }
-            case StationType.SundiverFoundry: {
-                const plural = (action.metadata?.createdSundiverIds?.length ?? 0) === 1 ? '' : 'S'
-                this.gameSession.forcedCallToAction = `${action.metadata?.createdSundiverIds?.length ?? 0} SUN DIVER${plural} BUILT`
-                break
-            }
-            case StationType.TransmitTower: {
-                this.gameSession.forcedCallToAction = `${action.metadata?.momentumAdded ?? 0} MOMENTUM GAINED`
-                break
-            }
-        }
-
-        animationContext.ensureDuration(1.5)
     }
 
     async animateConvert(

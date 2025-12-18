@@ -163,6 +163,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     override beforeNewState(): void {
+        // Always clear forced call to action
+        this.forcedCallToAction = undefined
         if (!this.skipReset) {
             this.resetAction()
         }
