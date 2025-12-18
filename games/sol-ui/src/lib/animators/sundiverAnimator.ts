@@ -320,27 +320,30 @@ export class SundiverAnimator extends StateAnimator<
     ): Point[] {
         const flightPath: Point[] = []
 
+        let hasGate = false
         let hadGate = false
         for (let i = 0; i < pathCoords.length; i++) {
             const coords = pathCoords[i]
+
             let location: Point | undefined
             if (i === 0) {
                 const cell = fromState.board.cellAt(coords)
                 location = gameSession.locationForDiverInCell(playerId, cell)
+                if (location) {
+                    flightPath.push(location)
+                }
             } else if (i === pathCoords.length - 1) {
                 const cell = toState.board.cellAt(coords)
                 location = gameSession.locationForDiverInCell(playerId, cell)
-            } else if (!hadGate) {
-                location = getSpaceCentroid(gameSession.numPlayers, coords)
+                if (location) {
+                    flightPath.push(location)
+                }
             }
-            hadGate = false
-            if (location) {
-                flightPath.push(location)
-            }
+
             if (i < pathCoords.length - 1) {
                 const nextCoords = pathCoords[i + 1]
                 if (fromState.board.hasGateBetween(coords, nextCoords)) {
-                    hadGate = true
+                    hasGate = true
                     const gatePosition = getGatePosition(gameSession.numPlayers, coords, nextCoords)
 
                     const firstDimensions = dimensionsForSpace(gameSession.numPlayers, coords)
@@ -380,7 +383,11 @@ export class SundiverAnimator extends StateAnimator<
                             )
                         )
                     }
+                } else if (!location && !hadGate && !hasGate) {
+                    location = getSpaceCentroid(gameSession.numPlayers, coords)
+                    flightPath.push(location)
                 }
+                hadGate = hasGate
             }
         }
 

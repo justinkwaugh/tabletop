@@ -91,6 +91,8 @@ export class CardPickerAnimator extends StateAnimator<
         }
 
         if (to.machineState === MachineState.ChoosingCard) {
+            const choosingStart = subTimeline.duration()
+
             console.log('CardPickerAnimator: Going to ChoosingCard state')
             const currentPlayerId = to.turnManager.currentTurn()?.playerId
             if (!currentPlayerId) {
@@ -100,6 +102,11 @@ export class CardPickerAnimator extends StateAnimator<
             if (!playerState) {
                 return
             }
+
+            // // Add back in all the drawn cards
+            // this.gameSession.drawnCards = playerState.drawnCards
+
+            // await tick()
 
             const seenSuits = new Set<Suit>()
             if (playerState.card) {
@@ -123,13 +130,14 @@ export class CardPickerAnimator extends StateAnimator<
                 (card) => !removedCards.find((rc) => rc.id === card.id)
             )
 
+            console.log(`CardPickerAnimator: remaining cards: ${remainingCards.length}`)
             if (remainingCards.length === 0) {
                 subTimeline.call(
                     () => {
                         this.gameSession.forcedCallToAction = 'NO NEW CARDS TO CHOOSE FROM...'
                     },
                     [],
-                    '<'
+                    '>'
                 )
                 ensureDuration(subTimeline, 2)
             }
@@ -140,7 +148,7 @@ export class CardPickerAnimator extends StateAnimator<
                     object: element,
                     duration: 0.3,
                     timeline: animationContext.finalTimeline,
-                    position: remainingCards.length === 0 && first ? 0 : '<'
+                    position: remainingCards.length === 0 && first ? 0 : '>'
                 })
                 first = false
             }

@@ -34,6 +34,7 @@
     let Ship = componentForColor(color)
     let Mask = maskForColor(color)
     let shadowId = `shipshadow-${playerId}`
+    let highlightId = `highlight-${shadowId}`
 
     let locationIndex = $derived(gameSession.gameState.board.motherships[playerId])
 
@@ -148,14 +149,40 @@
         transform={shapeTransformation}
     >
         <DropShadow id={shadowId} width="150%" height="150%" offset={shadowOffset} amount={10} />
-        {#if Mask}
+        {#if interactable}
+            <DropShadow
+                id={highlightId}
+                x="-50%"
+                y="-50%"
+                width="200%"
+                height="200%"
+                offset={{ x: 0, y: 0 }}
+                amount={40}
+                source="graphic"
+            />
+            <g transform="scale(1.2)" style="transform-box:fill-box; transform-origin: center;">
+                <Mask
+                    fill={'white'}
+                    opacity="1"
+                    overflow="visible"
+                    style="filter: url(#{highlightId})"
+                />
+            </g>
+            <Mask
+                fill={'transparent'}
+                stroke={'black'}
+                stroke-width={'10px'}
+                opacity=".8"
+                overflow="visible"
+            />
+        {:else}
             <Mask fill={'black'} opacity=".5" overflow="visible" style="filter: url(#{shadowId})" />
         {/if}
-        {#if outlined && Mask}
+        {#if outlined}
             <Mask fill={'transparent'} stroke={'white'} stroke-width={'50px'} overflow="visible" />
         {/if}
         <Ship />
-        {#if disabled && Mask}
+        {#if disabled}
             <Mask fill={'black'} opacity={0.5} />
         {/if}
     </g>
