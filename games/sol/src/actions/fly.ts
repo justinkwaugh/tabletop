@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { SolarGate } from '../components/solarGate.js'
+import { gateKey, SolarGate } from '../components/solarGate.js'
 import { EffectType } from '../components/effects.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
@@ -29,6 +29,7 @@ export const Fly = Type.Evaluate(
             cluster: Type.Boolean(),
             teleport: Type.Boolean(),
             catapult: Type.Boolean(),
+            passage: Type.Boolean(),
             metadata: Type.Optional(FlyMetadata)
         })
     ])
@@ -56,6 +57,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
     declare cluster: boolean
     declare teleport: boolean
     declare catapult: boolean
+    declare passage: boolean
     declare metadata?: FlyMetadata
 
     constructor(data: Fly) {
@@ -73,6 +75,11 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         state.moved = true
         this.metadata = {
             flightPath: path
+        }
+
+        if (this.passage) {
+            // Initialize passage sundiver tracking
+            state.getEffectTracking().passageSundiverId = this.sundiverIds[0]
         }
 
         const distanceMoved = path.length - 1
@@ -133,13 +140,33 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             state.getEffectTracking().movementUsed += distanceMoved
         }
 
-        for (const gate of this.gates) {
+        // Find all the gates traversed
+        const gates = state.board.gatesForPath(path)
+
+        for (const gate of gates) {
             if (gate.playerId !== this.playerId && !state.paidPlayerIds.includes(gate.playerId)) {
                 const gateOwner = state.getPlayerState(gate.playerId)
                 gateOwner.energyCubes += 1
                 state.paidPlayerIds.push(gate.playerId)
             }
+
+            const key = gateKey(gate.innerCoords, gate.outerCoords)
+            if (
+                this.hasPassageSundiver(state) &&
+                !state.getEffectTracking().passageGates.includes(key)
+            ) {
+                state.getEffectTracking().passageGates.push(key)
+                playerState.momentum += 1
+            }
         }
+    }
+
+    hasPassageSundiver(state: HydratedSolGameState): boolean {
+        const passageSundiverId = state.getEffectTracking().passageSundiverId
+        if (!passageSundiverId) {
+            return false
+        }
+        return this.sundiverIds.includes(passageSundiverId)
     }
 
     static canFly(state: HydratedSolGameState, playerId: string): boolean {
@@ -164,6 +191,14 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
     isValidFlight(state: HydratedSolGameState): OffsetCoordinates[] | undefined {
         const playerState = state.getPlayerState(this.playerId)
+
+        if (
+            this.passage &&
+            (state.getEffectTracking().passageSundiverId || this.sundiverIds.length !== 1)
+        ) {
+            console.log('invalid passage flight')
+            return
+        }
 
         if (this.teleport) {
             if (playerState.movementPoints < 3 || this.sundiverIds.length > 1) {

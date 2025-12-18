@@ -59,6 +59,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     metamorphosisType?: StationType = $state(undefined)
     chain?: SundiverChain = $state(undefined)
     chainStart?: 'beginning' | 'end' = $state(undefined)
+    passageChoice?: boolean = $state(undefined)
 
     outlinedCells: OffsetCoordinates[] = $state([])
 
@@ -315,6 +316,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.metamorphosisType = undefined
         this.chain = undefined
         this.chainStart = undefined
+        this.passageChoice = undefined
 
         this.outlinedCells = []
 
@@ -405,6 +407,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             } while (true)
         }
 
+
+
         const playerDivers = this.gameState.board
             .sundiversForPlayer(this.myPlayer.id, cell)
             .toReversed()
@@ -413,7 +417,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         // made as in the normal case
         let chosenDivers = playerDivers
 
-        if (this.gameState.activeEffect === EffectType.Catapult) {
+        if (this.passageChoice) {
+            chosenDivers = chosenDivers.filter((diver) => diver.id === this.gameState.getEffectTracking().passageSundiverId)
+        }
+        else if (this.gameState.activeEffect === EffectType.Catapult) {
             chosenDivers = chosenDivers.filter((diver) =>
                 catapult
                     ? !this.gameState.getEffectTracking().catapultedIds.includes(diver.id)
@@ -427,6 +434,11 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('No sundivers to fly')
         }
 
+        const passage =
+            this.gameState.activeEffect === EffectType.Passage &&
+            !this.gameState.getEffectTracking().passageSundiverId &&
+            diverIds.length === 1
+
         const action = {
             ...this.createBaseAction(ActionType.Fly),
             playerId: this.myPlayer.id,
@@ -437,7 +449,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             cluster: this.clusterChoice ?? false,
             teleport: this.teleportChoice ?? false,
             stationId: this.juggernautStationId,
-            catapult: this.catapultChoice ?? false
+            catapult: this.catapultChoice ?? false,
+            passage
         }
         console.log('Flying with action', action)
         await this.doAction(action)

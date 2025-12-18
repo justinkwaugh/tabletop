@@ -50,7 +50,9 @@ export const SolGameState = Type.Evaluate(
                     suitChosen: Type.Optional(Type.Enum(Suit)), // For Pillar effect
                     preEffectState: Type.Optional(Type.Enum(MachineState)), // For Hatch / Accelerate effect
                     catapultedIds: Type.Array(Type.String()), // For Catapult effect
-                    fuelRemaining: Type.Number() // For Fuel effect
+                    fuelRemaining: Type.Number(), // For Fuel effect
+                    passageSundiverId: Type.Optional(Type.String()), // For Passage effect
+                    passageGates: Type.Array(Type.Number()) // For Passage effect
                 })
             )
         })
@@ -99,6 +101,8 @@ export class HydratedSolGameState
         preEffectState?: MachineState
         catapultedIds: string[]
         fuelRemaining: number
+        passageSundiverId?: string
+        passageGates: number[]
     }
 
     constructor(data: SolGameState) {
@@ -118,7 +122,8 @@ export class HydratedSolGameState
                 squeezed: false,
                 movementUsed: 0,
                 catapultedIds: [],
-                fuelRemaining: 0
+                fuelRemaining: 0,
+                passageGates: []
             }
         }
         return this.effectTracking

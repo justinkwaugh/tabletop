@@ -97,7 +97,7 @@ export class HydratedSolGameBoard
         if (!neighbors) {
             return false
         }
-        return (!this.requiresGateBetween(coordsA, coordsB) || this.hasGateBetween(coordsA, coordsB))
+        return !this.requiresGateBetween(coordsA, coordsB) || this.hasGateBetween(coordsA, coordsB)
     }
 
     public neighborsAt(coords: OffsetCoordinates, direction?: Direction): Cell[] {
@@ -389,6 +389,22 @@ export class HydratedSolGameBoard
             }
         }
         return path.length > 0 ? path : undefined
+    }
+
+    public gatesForPath(path: OffsetCoordinates[]): SolarGate[] {
+        const gates: SolarGate[] = []
+        for (let i = 0; i < path.length - 1; i++) {
+            const start = path[i]
+            const end = path[i + 1]
+            if (!this.hasGateBetween(start, end)) {
+                continue
+            }
+            const gate = this.gates[this.gateKey(start, end)]
+            if (gate) {
+                gates.push(gate)
+            }
+        }
+        return gates
     }
 
     public requiresGateBetween(start: OffsetCoordinates, end: OffsetCoordinates): boolean {

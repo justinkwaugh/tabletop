@@ -38,6 +38,17 @@
         return gameSession.gameState.board.cellAt(gameSession.chosenSource).station
     })
 
+    let passageSundiver: Sundiver | undefined = $derived.by(() => {
+        const passageSundiverId = gameSession.gameState.getEffectTracking().passageSundiverId
+        if (!passageSundiverId || !coords) {
+            return
+        }
+
+        return gameSession.gameState.board
+            .cellAt(coords)
+            .sundivers.find((diver) => diver.id === passageSundiverId)
+    })
+
     let regularSundivers: Sundiver[] = $derived.by(() => {
         const playerState = gameSession.myPlayerState
         if (!playerState) {
@@ -59,9 +70,12 @@
                 playerState.playerId,
                 gameSession.chosenSource
             )
+
+            const effectTracking = gameSession.gameState.getEffectTracking()
             const regularDivers = sundivers.filter(
                 (diver) =>
-                    !gameSession.gameState.getEffectTracking().catapultedIds.includes(diver.id)
+                    !effectTracking.catapultedIds.includes(diver.id) &&
+                    diver.id !== effectTracking.passageSundiverId
             )
 
             let numDivers = Math.min(regularDivers.length, 5)
@@ -95,10 +109,11 @@
         return []
     })
 
-    function selectAmount(amount: number, catapult: boolean = false) {
-        console.log('MovementPicker selectAmount', amount, catapult)
+    function selectAmount(amount: number, catapult: boolean = false, passage: boolean = false) {
+        console.log('MovementPicker selectAmount', amount, catapult, passage)
         gameSession.catapultChoice = catapult
         gameSession.chosenNumDivers = amount
+        gameSession.passageChoice = passage
     }
 
     function selectStation() {
@@ -142,45 +157,31 @@
                     {/if}
                 </button>
             {/if}
-            {#if regularSundivers.length > 0}
+
+            {#if passageSundiver}
                 <div class="flex flex-col justify-center items-center gap-y-2">
                     <div class="flex flex-row justify-center items-center gap-x-2">
-                        {#each range(1, regularSundivers.length) as amount}
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24px"
-                                height="32px"
-                                viewBox="0 0 24 32"
-                            >
-                                <UISundiver
-                                    color={playerColor}
-                                    width={24}
-                                    height={32}
-                                    fontSize={19}
-                                    quantity={amount}
-                                    offBoard={true}
-                                    alwaysShowQuantity={true}
-                                    onclick={() =>
-                                        selectAmount(
-                                            amount,
-                                            gameSession.gameState.activeEffect ===
-                                                EffectType.Catapult
-                                        )}
-                                />
-                            </svg>
-                        {/each}
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24px"
+                            height="32px"
+                            viewBox="0 0 24 32"
+                        >
+                            <UISundiver
+                                color={playerColor}
+                                width={24}
+                                height={32}
+                                fontSize={19}
+                                quantity={1}
+                                offBoard={true}
+                                alwaysShowQuantity={true}
+                                onclick={() => selectAmount(1, false, true)}
+                            />
+                        </svg>
                     </div>
-                    {#if gameSession.gameState.activeEffect === EffectType.Catapult}
-                        <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">
-                            REGULAR
-                        </div>
-                    {/if}
-                </div>
-            {/if}
-            {#if catapultedDivers.length > 0 && regularSundivers.length > 0}
-                <div class="flex flex-col justify-center items-center gap-y-2">
-                    <div class="p-2 h-full text-[#ad9c80] tracking-widest">OR</div>
-                    <div class="text-[.5rem]">&nbsp;</div>
+                    <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">
+                        PASSAGE
+                    </div>
                 </div>
             {/if}
             {#if catapultedDivers.length > 0}
@@ -209,6 +210,47 @@
                     <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">
                         CATAPULTED
                     </div>
+                </div>
+            {/if}
+            {#if (catapultedDivers.length > 0 || passageSundiver) && regularSundivers.length > 0}
+                <div class="flex flex-col justify-center items-center gap-y-2">
+                    <div class="p-2 h-full text-[#ad9c80] tracking-widest">OR</div>
+                    <div class="text-[.5rem]">&nbsp;</div>
+                </div>
+            {/if}
+            {#if regularSundivers.length > 0}
+                <div class="flex flex-col justify-center items-center gap-y-2">
+                    <div class="flex flex-row justify-center items-center gap-x-2">
+                        {#each range(1, regularSundivers.length) as amount}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24px"
+                                height="32px"
+                                viewBox="0 0 24 32"
+                            >
+                                <UISundiver
+                                    color={playerColor}
+                                    width={24}
+                                    height={32}
+                                    fontSize={19}
+                                    quantity={amount}
+                                    offBoard={true}
+                                    alwaysShowQuantity={true}
+                                    onclick={() =>
+                                        selectAmount(
+                                            amount,
+                                            gameSession.gameState.activeEffect ===
+                                                EffectType.Catapult
+                                        )}
+                                />
+                            </svg>
+                        {/each}
+                    </div>
+                    {#if gameSession.gameState.activeEffect === EffectType.Catapult || passageSundiver}
+                        <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">
+                            REGULAR
+                        </div>
+                    {/if}
                 </div>
             {/if}
         </div>

@@ -220,6 +220,8 @@ export class HydratedActivateEffect
                 return this.canActivateMetamorphosis(state, playerId)
             case EffectType.Motivate:
                 return this.canActivateMotivate(state, playerId)
+            case EffectType.Passage:
+                return this.canActivatePassage(state, playerId)
             case EffectType.Pillar:
                 return this.canActivatePillar(state, playerId)
             case EffectType.Portal:
@@ -544,6 +546,10 @@ export class HydratedActivateEffect
         return Iterator.from(state.board).some((cell) =>
             HydratedChain.canInitiateChainAt(state, cell.coords)
         )
+    }
+
+    static canActivatePassage(state: HydratedSolGameState, playerId: string): boolean {
+        return state.machineState === MachineState.Moving
     }
 
     static hasCardForEffect(
