@@ -554,7 +554,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     // internally, rather than having to pass it in.  No server generated actions go through
     // here.
     async applyAction(action: GameAction) {
-        if (this.busy || !this.isPlayable) {
+        if (this.busy || this.animating || !this.isPlayable) {
             return
         }
 
@@ -705,6 +705,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     async undo() {
         if (
             this.busy ||
+            this.animating ||
             !this.undoableAction ||
             (this.processingActions && this.mode === GameSessionMode.Play) ||
             this.isViewingHistory
