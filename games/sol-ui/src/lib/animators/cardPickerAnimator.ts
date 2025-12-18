@@ -63,6 +63,12 @@ export class CardPickerAnimator extends StateAnimator<
         action: GameAction
         animationContext: AnimationContext
     }) {
+        const undo = to.actionCount < (from?.actionCount ?? 0)
+        if (undo) {
+            console.log('CardPickerAnimator: Undo detected, skipping animations')
+            return
+        }
+
         // This subtimeline helps us sequence things locally, particularly with the flip
         // animation not being added to the timeline directly
         const subTimeline = gsap.timeline({
@@ -113,30 +119,41 @@ export class CardPickerAnimator extends StateAnimator<
                 .map((card) => this.cards.get(card.id)?.element)
                 .filter((ce) => ce !== undefined)
 
-            for (const element of removedElements) {
-                fadeOut({
-                    object: element,
-                    duration: 0.3,
-                    timeline: subTimeline,
-                    position: '<'
-                })
-            }
-
             const remainingCards = this.gameSession.drawnCards.filter(
                 (card) => !removedCards.find((rc) => rc.id === card.id)
             )
 
             if (remainingCards.length === 0) {
-                const durationUntilNow = subTimeline.duration()
                 subTimeline.call(
                     () => {
                         this.gameSession.forcedCallToAction = 'NO NEW CARDS TO CHOOSE FROM...'
+                    },
+                    [],
+                    '<'
+                )
+                ensureDuration(subTimeline, 2)
+            }
+
+            let first = true
+            for (const element of removedElements) {
+                fadeOut({
+                    object: element,
+                    duration: 0.3,
+                    timeline: animationContext.finalTimeline,
+                    position: remainingCards.length === 0 && first ? 0 : '<'
+                })
+                first = false
+            }
+
+            if (remainingCards.length === 0) {
+                const durationUntilNow = animationContext.finalTimeline.duration()
+                animationContext.finalTimeline.call(
+                    () => {
                         this.gameSession.drawnCards = []
                     },
                     [],
                     durationUntilNow
                 )
-                ensureDuration(subTimeline, 3)
             } else {
                 const remainingCardElements = remainingCards
                     .map((card) => this.cards.get(card.id)?.element)

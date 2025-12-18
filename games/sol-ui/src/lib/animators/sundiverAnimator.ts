@@ -1,20 +1,22 @@
 import {
     Activate,
     ActivateBonus,
+    ActivateEffect,
     Convert,
+    EffectType,
     Fly,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
+    isActivateEffect,
     isConvert,
     isFly,
     isLaunch,
     Launch,
-    type SolGameState,
-    type Sundiver
+    type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import { GameAction, sameCoordinates, type Point } from '@tabletop/common'
+import { GameAction, OffsetCoordinates, type Point } from '@tabletop/common'
 import {
     getCirclePoint,
     getGatePosition,
@@ -167,6 +169,8 @@ export class SundiverAnimator extends StateAnimator<
             this.animateLaunchAction(action, timeline, toState, fromState)
         } else if (isFly(action)) {
             this.animateFlyAction(action, timeline, toState, fromState)
+        } else if (isActivateEffect(action)) {
+            this.animateActivateEffectAction(action, timeline, toState, fromState)
         }
     }
 
@@ -365,15 +369,22 @@ export class SundiverAnimator extends StateAnimator<
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
-        if (
-            !fromState ||
-            (activate.metadata?.sundiverId !== this.id &&
-                !activate.metadata?.createdSundiverIds.includes(this.id))
-        ) {
+        if (!fromState || !activate.metadata) {
             return
         }
 
-        const isActivatingSundiver = activate.metadata?.sundiverId === this.id
+        const isActivatingSundiver = activate.metadata.sundiverId === this.id
+        if (!isActivatingSundiver) {
+            this.animateCreatedSundivers(
+                activate.metadata.createdSundiverIds,
+                activate.coords,
+                activate.playerId,
+                timeline,
+                toState,
+                fromState
+            )
+            return
+        }
 
         const fromBoard = fromState.board
         const toBoard = toState.board
@@ -381,18 +392,10 @@ export class SundiverAnimator extends StateAnimator<
         let diverLocation: Point | undefined
         let startOffset = 0
 
-        if (isActivatingSundiver) {
-            // Activating sundiver starts in cell
-            const diverCoords = fromBoard.findSundiverCoords(this.id)
-            const diverCell = fromBoard.cellAt(diverCoords!)
-            diverLocation = this.gameSession.locationForDiverInCell(activate.playerId, diverCell)
-        } else {
-            // Newly created sundiver - appear at the foundry
-            const createdIndex = activate.metadata?.createdSundiverIds.indexOf(this.id)
-            startOffset = (createdIndex + 1) * 0.2
-            const stationCell = toBoard.cellAt(activate.coords)
-            diverLocation = this.gameSession.locationForStationInCell(stationCell)
-        }
+        // Activating sundiver starts in cell
+        const diverCoords = fromBoard.findSundiverCoords(this.id)
+        const diverCell = fromBoard.cellAt(diverCoords!)
+        diverLocation = this.gameSession.locationForDiverInCell(activate.playerId, diverCell)
 
         const targetLocation = this.getMothershipLocationForPlayer(fromState, activate.playerId)
 
@@ -407,17 +410,6 @@ export class SundiverAnimator extends StateAnimator<
             x: offsetFromCenter(diverLocation).x,
             y: offsetFromCenter(diverLocation).y
         })
-
-        if (!isActivatingSundiver) {
-            scale({
-                object: this.element,
-                to: 1,
-                duration: 0.1,
-                ease: 'power2.in',
-                timeline,
-                position: startOffset
-            })
-        }
 
         move({
             object: this.element,
@@ -442,7 +434,53 @@ export class SundiverAnimator extends StateAnimator<
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
-        const index = activateBonus.metadata?.createdSundiverIds.indexOf(this.id)
+        if (!activateBonus.metadata) {
+            return
+        }
+
+        this.animateCreatedSundivers(
+            activateBonus.metadata.createdSundiverIds,
+            activateBonus.metadata.coords,
+            activateBonus.playerId,
+            timeline,
+            toState,
+            fromState
+        )
+    }
+
+    animateActivateEffectAction(
+        action: ActivateEffect,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (action.effect !== EffectType.Squeeze && action.effect !== EffectType.Augment) {
+            return
+        }
+
+        if (!fromState || !action.metadata || !action.metadata.coords) {
+            return
+        }
+
+        this.animateCreatedSundivers(
+            action.metadata.createdSundiverIds,
+            action.metadata.coords,
+            action.playerId,
+            timeline,
+            toState,
+            fromState
+        )
+    }
+
+    animateCreatedSundivers(
+        createdSundiverIds: string[],
+        startCoords: OffsetCoordinates,
+        playerId: string,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        const index = createdSundiverIds.indexOf(this.id)
         if (index === undefined || index < 0) {
             return
         }
@@ -450,13 +488,10 @@ export class SundiverAnimator extends StateAnimator<
         const board = this.gameSession.gameState.board
 
         let startOffset = index * 0.2
-        const stationCell = board.cellAt(activateBonus.metadata!.coords)
+        const stationCell = board.cellAt(startCoords)
         const diverLocation = this.gameSession.locationForStationInCell(stationCell)
 
-        const targetLocation = this.getMothershipLocationForPlayer(
-            fromState ?? toState,
-            activateBonus.playerId
-        )
+        const targetLocation = this.getMothershipLocationForPlayer(fromState ?? toState, playerId)
 
         if (!diverLocation || !targetLocation) {
             return

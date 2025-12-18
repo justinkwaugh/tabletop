@@ -24,7 +24,7 @@
         </TabItem>
         <TabItem title="Actions">
             <div style="--json-tree-font-size: 14px;">
-                <JSONTree value={gameSession.actions} />
+                <JSONTree value={gameSession.actions.toReversed()} />
             </div>
         </TabItem>
     </Tabs>

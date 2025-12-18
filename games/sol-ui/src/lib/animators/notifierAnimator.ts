@@ -50,7 +50,10 @@ export class NotifierAnimator extends StateAnimator<
             this.animateActivate(action, animationContext, isActivateBonus(action))
         } else if (isFuel(action)) {
             this.animateFuel(animationContext)
-        } else if (isActivateEffect(action) && action.effect === EffectType.Squeeze) {
+        } else if (
+            isActivateEffect(action) &&
+            (action.effect === EffectType.Squeeze || action.effect === EffectType.Augment)
+        ) {
             this.animateActivate(action, animationContext, false)
         }
     }

@@ -1,6 +1,6 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { EffectType } from '../components/effects.js'
@@ -21,6 +21,7 @@ import { HydratedChain } from './chain.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
+    coords: Type.Optional(OffsetCoordinates),
     energyAdded: Type.Number(),
     createdSundiverIds: Type.Array(Type.String()),
     momentumAdded: Type.Number()
@@ -95,6 +96,7 @@ export class HydratedActivateEffect
                 playerState.energyCubes -= additionalReward
             }
 
+            this.metadata.coords = currentStationCoords
             switch (activation.stationType) {
                 case StationType.EnergyNode:
                     console.log('Applying augment energy reward:', additionalReward)
@@ -122,6 +124,7 @@ export class HydratedActivateEffect
             state.getEffectTracking().squeezed = true
             if (state.cardsToDraw === 0) {
                 const station = state.getActivatingStation()
+                this.metadata.coords = station.coords
                 const awardMetadata = HydratedActivate.applyActivationAward(playerState, station)
                 Object.assign(this.metadata, awardMetadata)
             }
