@@ -2,38 +2,38 @@
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { GameResult } from '@tabletop/common'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import Header from './Header.svelte'
+    import Ship from './Ship.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let isWin = $derived(gameSession.gameState.result === GameResult.Win)
-    let winner = $derived(isWin ? gameSession.gameState.winningPlayerIds[0] : undefined)
+
+    const numbers: Map<number, string> = new Map<number, string>([
+        [1, 'One'],
+        [2, 'Two'],
+        [3, 'Three'],
+        [4, 'Four'],
+        [5, 'Five']
+    ])
+    const number = $derived(numbers.get(gameSession.gameState.winningPlayerIds.length) ?? 'Unknown')
+    const plural = $derived(gameSession.gameState.winningPlayerIds.length > 1 ? 'S' : '')
 </script>
 
-<div
-    class="mb-2 rounded-lg bg-gray-300 px-2 pt-2 pb-4 text-center flex flex-row flex-wrap justify-center items-center opacity-0"
->
-    <div class="flex flex-col justify-center items-center mx-4 w-full">
-        <h1 class="text-3xl mb-2">Game Over</h1>
+<div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">
+    <Header />
 
-        <div class="flex flex-row justify-center items-center mb-2">
-            {#if isWin}
-                <h1 class="text-md sm:text-lg">
-                    <PlayerName playerId={winner} />
-                    won with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')
-                        ?.score}
-                </h1>
-            {:else}
-                <h1 class="text-lg">
-                    {#each gameSession.gameState.winningPlayerIds as winner, i}
-                        {#if i > 0}
-                            and
-                        {/if}
-                        <PlayerName playerId={winner} />
-                    {/each} tied with a score of {gameSession.gameState.getPlayerState(
-                        gameSession.gameState.winningPlayerIds[0]
-                    )?.score}
-                </h1>
-            {/if}
-        </div>
+    <div class="pt-2 pb-0 flex flex-row flex-wrap justify-center items-center gap-x-4">
+        <h1 class="text-lg mb-2">
+            {number} CIVILIZATION{plural}
+            {plural ? 'HAVE' : 'HAS'} SURVIVED
+        </h1>
+    </div>
+
+    <div class="pt-0 pb-2 flex flex-row justify-center items-center gap-x-4">
+        {#each gameSession.gameState.winningPlayerIds as winnerId (winnerId)}
+            <div class="shrink-0">
+                <Ship playerId={winnerId} width={40} height={80} />
+            </div>
+        {/each}
     </div>
 </div>

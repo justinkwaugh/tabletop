@@ -18,6 +18,7 @@
     // import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import starsBg from '$lib/images/stars.jpg'
     import Momentum from './Momentum.svelte'
+    import GameEndPanel from './GameEndPanel.svelte'
     // import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
@@ -65,7 +66,7 @@
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
                 {#if gameSession.gameState.result}
-                    <!-- <GameEndPanel /> -->
+                    <GameEndPanel />
                 {:else if gameSession.isViewingHistory}
                     <!-- <LastActionDescription /> -->
                 {:else if gameSession.isPlayable}

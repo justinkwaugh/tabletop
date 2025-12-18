@@ -110,7 +110,9 @@
                 cell.coords
             )
         } else if (myMove) {
-            if (gameSession.chosenMothership) {
+            if (gameSession.gateChoices && gameSession.gateChoices.length > 0) {
+                return false
+            } else if (gameSession.chosenMothership) {
                 if (gameSession.chosenNumDivers) {
                     const launchCoords = gameSession.gameState.board.launchCoordinatesForMothership(
                         gameSession.chosenMothership,
@@ -253,24 +255,38 @@
         return false
     })
 
-    let disabled = $derived(
-        !gameSession.animating &&
-            (myMove ||
-                (myChain &&
-                    !gameSession.chain?.find((entry) =>
-                        sameCoordinates(entry.coords, cell.coords)
-                    )) ||
-                (myConvert &&
-                    (gameSession.chosenConvertType ||
-                        gameSession.gameState.activeEffect === EffectType.Invade ||
-                        gameSession.gameState.activeEffect === EffectType.Sacrifice)) ||
-                (myActivate &&
-                    !gameSession.chosenSource &&
+    let disabled = $derived.by(() => {
+        if (gameSession.animating) {
+            return false
+        }
+        if (interactable) {
+            return false
+        }
+
+        if (myActivate) {
+            return (
+                (!gameSession.chosenSource &&
                     !gameSession.gameState.activation?.currentStationId) ||
-                (myHatch && !gameSession.hatchLocation) ||
-                (myTribute && !gameSession.chosenSource)) &&
-            !interactable
-    )
+                (gameSession.gameState.activation &&
+                    !sameCoordinates(
+                        gameSession.gameState.activation.currentStationCoords,
+                        cell.coords
+                    ))
+            )
+        }
+
+        return (
+            myMove ||
+            (myChain &&
+                !gameSession.chain?.find((entry) => sameCoordinates(entry.coords, cell.coords))) ||
+            (myConvert &&
+                (gameSession.chosenConvertType ||
+                    gameSession.gameState.activeEffect === EffectType.Invade ||
+                    gameSession.gameState.activeEffect === EffectType.Sacrifice)) ||
+            (myHatch && !gameSession.hatchLocation) ||
+            (myTribute && !gameSession.chosenSource)
+        )
+    })
 
     function cellPath(
         innerRadius: number,

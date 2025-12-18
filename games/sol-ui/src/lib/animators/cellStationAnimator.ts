@@ -13,6 +13,7 @@ import {
     MachineState,
     SolarFlare,
     Station,
+    StationType,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
@@ -100,7 +101,22 @@ export class CellStationAnimator extends StateAnimator<
             return
         }
 
-        this.gameSession.forcedCallToAction = `${action.metadata?.energyAdded ?? 0} ENERGY ADDED`
+        switch (this.station.type) {
+            case StationType.EnergyNode: {
+                this.gameSession.forcedCallToAction = `${action.metadata?.energyAdded ?? 0} ENERGY ADDED`
+                break
+            }
+            case StationType.SundiverFoundry: {
+                const plural = (action.metadata?.createdSundiverIds?.length ?? 0) === 1 ? '' : 'S'
+                this.gameSession.forcedCallToAction = `${action.metadata?.createdSundiverIds?.length ?? 0} SUN DIVER${plural} BUILT`
+                break
+            }
+            case StationType.TransmitTower: {
+                this.gameSession.forcedCallToAction = `${action.metadata?.momentumAdded ?? 0} MOMENTUM GAINED`
+                break
+            }
+        }
+
         animationContext.ensureDuration(1.5)
     }
 

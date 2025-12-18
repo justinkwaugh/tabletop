@@ -1,13 +1,8 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { ActionType, HydratedSolPlayerState, SolPlayerState } from '@tabletop/sol'
+    import { ActionType, HydratedSolPlayerState } from '@tabletop/sol'
     import { Color, range, type Player } from '@tabletop/common'
-    import BlueBoard from '$lib/images/blueBoard.jpg'
-    import GreenBoard from '$lib/images/greenBoard.jpg'
-    import BlackBoard from '$lib/images/blackBoard.jpg'
-    import SilverBoard from '$lib/images/silverBoard.jpg'
-    import PurpleBoard from '$lib/images/purpleBoard.jpg'
     import GreenShip from '$lib/images/greenShip.svelte'
     import PurpleShip from '$lib/images/purpleShip.svelte'
     import SilverShip from '$lib/images/silverShip.svelte'
@@ -32,7 +27,6 @@
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(playerState.playerId))
     let color = gameSession.colors.getPlayerColor(playerState.playerId)
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(playerState.playerId))
-    let textColor = $derived(gameSession.colors.getPlayerTextColor(playerState.playerId))
 
     let Ship = componentForColor(color)
 
@@ -52,23 +46,6 @@
                 return GreenShip
         }
     }
-
-    let backgroundImage = $derived.by(() => {
-        switch (color) {
-            case Color.Black:
-                return `url(${BlackBoard})`
-            case Color.Green:
-                return `url(${GreenBoard})`
-            case Color.Blue:
-                return `url(${BlueBoard})`
-            case Color.Purple:
-                return `url(${PurpleBoard})`
-            case Color.Gray:
-                return `url(${SilverBoard})`
-            default:
-                return ''
-        }
-    })
 
     let card = $derived.by(() => {
         if (playerState.card) {

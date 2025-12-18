@@ -1,0 +1,43 @@
+<script lang="ts">
+    import { getContext } from 'svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import { Color } from '@tabletop/common'
+    import GreenShip from '$lib/images/greenShip.svelte'
+    import PurpleShip from '$lib/images/purpleShip.svelte'
+    import SilverShip from '$lib/images/silverShip.svelte'
+    import BlackShip from '$lib/images/blackShip.svelte'
+    import BlueShip from '$lib/images/blueShip.svelte'
+
+    let {
+        playerId,
+        width = 40,
+        height = 80
+    }: {
+        playerId: string
+        width?: number
+        height?: number
+    } = $props()
+
+    let gameSession = getContext('gameSession') as SolGameSession
+    let color = gameSession.gameState.getPlayerState(playerId).color
+    let Ship = componentForColor(color)
+
+    function componentForColor(color: Color) {
+        switch (color) {
+            case Color.Green:
+                return GreenShip
+            case Color.Purple:
+                return PurpleShip
+            case Color.Gray:
+                return SilverShip
+            case Color.Black:
+                return BlackShip
+            case Color.Blue:
+                return BlueShip
+            default:
+                return GreenShip
+        }
+    }
+</script>
+
+<Ship {width} {height} />

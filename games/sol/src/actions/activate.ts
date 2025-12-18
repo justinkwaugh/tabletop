@@ -207,6 +207,10 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         coords: OffsetCoordinates,
         pulse: boolean = false
     ): boolean {
+        if (state.activation && state.activation.currentStationId) {
+            return false
+        }
+
         const cell = state.board.cellAt(coords)
         const station = cell.station
 

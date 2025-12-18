@@ -195,15 +195,25 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         if (state.activeEffect === EffectType.Squeeze) {
             state.activeEffect = undefined
         }
+        if (
+            HydratedActivateEffect.canActivateEffect(
+                state,
+                activation.playerId,
+                EffectType.Metamorphosis
+            )
+        ) {
+            return MachineState.CheckEffect
+        }
+
+        activation.currentStationId = undefined
+        activation.currentStationCoords = undefined
+        state.activePlayerIds = [activation.playerId]
+
         if (HydratedActivate.canActivate(state, activation.playerId)) {
             // Allow activating player to continue if possible
-            activation.currentStationId = undefined
-            activation.currentStationCoords = undefined
-            state.activePlayerIds = [activation.playerId]
             return MachineState.Activating
         } else {
             // No more activations possible, end turn
-            state.activePlayerIds = [activation.playerId]
             state.activation = undefined
             return drawCardsOrEndTurn(state, context)
         }

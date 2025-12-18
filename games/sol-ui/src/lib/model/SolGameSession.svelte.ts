@@ -126,6 +126,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isTributing = $derived(this.gameState.machineState === MachineState.Tributing)
     isMetamorphosizing = $derived(this.gameState.machineState === MachineState.Metamorphosizing)
     isChaining = $derived(this.gameState.machineState === MachineState.Chaining)
+    isEndOfGame = $derived(this.gameState.machineState === MachineState.EndOfGame)
 
     acting = $derived(this.gameState.machineState !== MachineState.StartOfTurn)
 
@@ -1080,7 +1081,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async doAction(action: GameAction) {
-        if (!this.isPlayable) {
+        if (!this.isPlayable || this.animating) {
             return
         }
 

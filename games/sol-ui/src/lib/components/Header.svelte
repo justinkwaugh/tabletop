@@ -4,7 +4,6 @@
     import MoveArrows from '$lib/images/movearrows.svelte'
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
-    import { ActionCategory } from '$lib/definition/actionCategory.js'
     import CardBack from '$lib/images/cardBack2.png'
     import { Suit } from '@tabletop/sol'
     import Card from './Card.svelte'
@@ -30,7 +29,15 @@
     class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[44px] border-b border-[#ad9c80]"
 >
     <div class="header-grid grid">
-        {#if gameSession.isMoving}
+        {#if gameSession.isEndOfGame}
+            <div
+                in:fade={{ duration: 300, delay: 100 }}
+                out:fade={{ duration: 100 }}
+                class="inline-flex items-center gap-x-2"
+            >
+                <div>END OF GAME</div>
+            </div>
+        {:else if gameSession.isMoving}
             <div
                 in:fade={{ duration: 300, delay: 100 }}
                 out:fade={{ duration: 100 }}

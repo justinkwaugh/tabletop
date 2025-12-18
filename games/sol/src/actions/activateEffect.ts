@@ -381,7 +381,7 @@ export class HydratedActivateEffect
     }
 
     static canActivateFestival(state: HydratedSolGameState, playerId: string): boolean {
-        return state.machineState === MachineState.Activating
+        return state.machineState === MachineState.Activating && !state.activation
     }
 
     static canActivatePortal(state: HydratedSolGameState, playerId: string): boolean {
@@ -501,7 +501,7 @@ export class HydratedActivateEffect
     }
 
     static canActivateMetamorphosis(state: HydratedSolGameState, playerId: string): boolean {
-        if (!state.activation) {
+        if (!state.activation || !state.activation.currentStationId) {
             return false
         }
 

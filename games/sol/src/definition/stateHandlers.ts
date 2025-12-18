@@ -18,6 +18,7 @@ import { AcceleratingStateHandler } from '../stateHandlers/accelerating.js'
 import { TributingStateHandler } from '../stateHandlers/tributing.js'
 import { MetamorphosizingStateHandler } from '../stateHandlers/metamorphosizing.js'
 import { ChainingStateHandler } from '../stateHandlers/chaining.js'
+import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 
 export const SolStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
@@ -34,5 +35,5 @@ export const SolStateHandlers: Record<MachineState, MachineStateHandler<Hydrated
     [MachineState.ChoosingCard]: new ChoosingCardStateHandler(),
     [MachineState.SolarFlares]: new SolarFlaresStateHandler(),
     [MachineState.CheckEffect]: new CheckEffectStateHandler(),
-    [MachineState.EndOfGame]: new TerminalStateHandler()
+    [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }
