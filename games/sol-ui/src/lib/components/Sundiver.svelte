@@ -53,49 +53,51 @@
     {@attach animator && attachAnimator(animator)}
     on:click={onClick}
     transform={offBoard
-        ? ''
-        : translateFromCenter((location?.x ?? 0) - width / 2, (location?.y ?? 0) - height / 2)}
+        ? `translate(${width / 2}, ${height / 2})`
+        : translateFromCenter(location?.x ?? 0, location?.y ?? 0)}
 >
-    <g transform="translate(-2, -2)">
-        <SundiverMask
-            width={width + 4}
-            height={height + 4}
-            fill={'black'}
-            opacity=".5"
-            overflow="visible"
-            style="filter: url(#pieceshadow)"
-        />
-    </g>
-    <SundiverIcon {width} {height} {color} />
+    <g transform="translate({-(width / 2)}, {-(height / 2)})">
+        <g transform="translate(-2, -2)">
+            <SundiverMask
+                width={width + 4}
+                height={height + 4}
+                fill={'black'}
+                opacity=".5"
+                overflow="visible"
+                style="filter: url(#pieceshadow)"
+            />
+        </g>
+        <SundiverIcon {width} {height} {color} />
 
-    {#if updateableQuantity > 1 || alwaysShowQuantity}
-        <text
-            class="select-none pointer-events-none"
-            style="filter: url(#textshadow); fill: black; letter-spacing:0"
-            x={width / 2}
-            y={height / 2}
-            text-anchor="middle"
-            dominant-baseline="middle"
-            font-size={fontSize}
-            font-weight="bold"
-            stroke-width="1"
-            stroke="#000000"
-            opacity=".5"
-            fill="black">{updateableQuantity}</text
-        >
-        <text
-            x={width / 2}
-            y={height / 2}
-            class="select-none pointer-events-none"
-            style="letter-spacing:0"
-            text-anchor="middle"
-            dominant-baseline="middle"
-            font-size={fontSize}
-            font-weight="bold"
-            stroke-width="1"
-            stroke="#FFFFFF"
-            fill="white"
-            >{updateableQuantity}
-        </text>
-    {/if}
+        {#if updateableQuantity > 1 || alwaysShowQuantity}
+            <text
+                class="select-none pointer-events-none"
+                style="filter: url(#textshadow); fill: black; letter-spacing:0"
+                x={width / 2}
+                y={height / 2}
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size={fontSize}
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#000000"
+                opacity=".5"
+                fill="black">{updateableQuantity}</text
+            >
+            <text
+                x={width / 2}
+                y={height / 2}
+                class="select-none pointer-events-none"
+                style="letter-spacing:0"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size={fontSize}
+                font-weight="bold"
+                stroke-width="1"
+                stroke="#FFFFFF"
+                fill="white"
+                >{updateableQuantity}
+            </text>
+        {/if}
+    </g>
 </g>
