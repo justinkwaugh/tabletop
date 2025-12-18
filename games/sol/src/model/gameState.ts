@@ -39,6 +39,7 @@ export const SolGameState = Type.Evaluate(
             moved: Type.Optional(Type.Boolean({ default: false })),
             paidPlayerIds: Type.Array(Type.String()),
             activeEffect: Type.Optional(Type.Enum(EffectType)),
+            solarFlaresDrawnInGame: Type.Number(),
             effectTracking: Type.Optional(
                 Type.Object({
                     outerRingLaunches: Type.Number(), // For Ceremony effect
@@ -90,6 +91,7 @@ export class HydratedSolGameState
     declare moved?: boolean
     declare paidPlayerIds: string[]
     declare activeEffect?: EffectType
+    declare solarFlaresDrawnInGame: number
     declare effectTracking?: {
         outerRingLaunches: number
         convertedStation?: Station

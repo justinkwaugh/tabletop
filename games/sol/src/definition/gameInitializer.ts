@@ -93,7 +93,8 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             solarFlaresRemaining: 0,
             solarFlareActivations: [],
             hurled: false,
-            paidPlayerIds: []
+            paidPlayerIds: [],
+            solarFlaresDrawnInGame: 0
         })
 
         return new HydratedSolGameState(solState)
@@ -111,8 +112,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
                     id: prng.randId(),
                     playerId: player.id,
                     hold: player.id,
-                    reserve: false,
-                    sacrificed: false
+                    reserve: false
                 })
             }
 
@@ -122,8 +122,7 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
                     id: prng.randId(),
                     playerId: player.id,
                     hold: undefined,
-                    reserve: true,
-                    sacrificed: false
+                    reserve: true
                 })
             }
 
