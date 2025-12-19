@@ -62,8 +62,18 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     outlinedCells: OffsetCoordinates[] = $state([])
 
+    shouldPickCluster: boolean = $derived(
+        (this.chosenNumDivers ?? 0) > 1 &&
+            this.chosenSource !== undefined &&
+            this.gameState.activeEffect === EffectType.Cluster &&
+            this.gameState.getEffectTracking().clustersRemaining > 0 &&
+            this.clusterChoice === undefined
+    )
+
     boardPickerLocation = $derived.by(() => {
-        if (this.isChaining) {
+        if (this.shouldPickCluster) {
+            return getSpaceCentroid(this.numPlayers, this.chosenSource!)
+        } else if (this.isChaining) {
             const chainEntry = this.chain?.find((entry) => !entry.sundiverId)
             if (chainEntry) {
                 return getSpaceCentroid(this.numPlayers, chainEntry.coords)
@@ -192,6 +202,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 this.gameState.activeEffect === EffectType.Puncture)
         ) {
             availableFromSource = 1
+        }
+
+        if (this.chosenSource && this.gameState.getEffectTracking().clustersRemaining > 0) {
+            return availableFromSource
         }
 
         return Math.min(this.myPlayerState.movementPoints, availableFromSource)

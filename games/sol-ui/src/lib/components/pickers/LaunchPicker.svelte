@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import Sundiver from './Sundiver.svelte'
+    import Sundiver from '$lib/components/Sundiver.svelte'
     import { EffectType, StationType } from '@tabletop/sol'
     import EnergyNode from '$lib/images/energynode.svelte'
     import Foundry from '$lib/images/foundry.svelte'

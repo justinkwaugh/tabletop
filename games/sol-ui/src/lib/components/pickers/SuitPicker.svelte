@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Card, Suit } from '@tabletop/sol'
-    import CardComponent from './Card.svelte'
+    import CardComponent from '$lib/components/Card.svelte'
     import { nanoid } from 'nanoid'
 
     let gameSession = getContext('gameSession') as SolGameSession

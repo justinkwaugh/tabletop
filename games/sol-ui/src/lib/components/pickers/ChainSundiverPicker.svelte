@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import Sundiver from './Sundiver.svelte'
+    import Sundiver from '$lib/components/Sundiver.svelte'
     import { sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
     import Floater from '$lib/utils/Floater.svelte'
     import { HydratedChain } from '@tabletop/sol'

@@ -13,20 +13,20 @@
         HydratedChain,
         HydratedFly
     } from '@tabletop/sol'
-    import ConvertPicker from './ConvertPicker.svelte'
-    import CardPicker from './CardPicker.svelte'
+    import ConvertPicker from '$lib/components/pickers/ConvertPicker.svelte'
+    import CardPicker from '$lib/components/pickers/CardPicker.svelte'
     import { fade } from 'svelte/transition'
     import { CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
-    import SuitPicker from './SuitPicker.svelte'
-    import HatchPicker from './HatchPicker.svelte'
-    import AccelerationPicker from './AccelerationPicker.svelte'
-    import MovementPicker from './MovementPicker.svelte'
-    import MetamorphosisPicker from './MetamorphosisPicker.svelte'
-    import ChainSundiverPicker from './ChainSundiverPicker.svelte'
+    import SuitPicker from '$lib/components/pickers/SuitPicker.svelte'
+    import HatchPicker from '$lib/components/pickers/HatchPicker.svelte'
+    import AccelerationPicker from '$lib/components/pickers/AccelerationPicker.svelte'
+    import MovementPicker from '$lib/components/pickers/MovementPicker.svelte'
+    import MetamorphosisPicker from '$lib/components/pickers/MetamorphosisPicker.svelte'
+    import ChainSundiverPicker from '$lib/components/pickers/ChainSundiverPicker.svelte'
     import { NotifierAnimator } from '$lib/animators/notifierAnimator.js'
+    import ClusterPicker from '$lib/components/pickers/ClusterPicker.svelte'
 
     enum YesActions {
-        ClusterEffect = 'ClusterEffect',
         ActivateBonus = 'ActivateBonus',
         SqueezeEffect = 'SqueezeEffect',
         TeleportEffect = 'TeleportEffect'
@@ -34,7 +34,6 @@
 
     enum NoActions {
         Pass = 'Pass',
-        NoClusterEffect = 'NoClusterEffect',
         NoSqueezeEffect = 'NoSqueezeEffect',
         NoTeleportEffect = 'NoTeleportEffect'
     }
@@ -108,16 +107,8 @@
             } else if (gameSession.gateChoices && gameSession.gateChoices.length > 0) {
                 result.message = 'CHOOSE A GATE TO USE'
             } else if (gameSession.chosenNumDivers) {
-                if (
-                    gameSession.chosenNumDivers > 1 &&
-                    gameSession.gameState.activeEffect === EffectType.Cluster &&
-                    gameSession.gameState.getEffectTracking().clustersRemaining > 0 &&
-                    gameSession.clusterChoice === undefined
-                ) {
+                if (gameSession.shouldPickCluster) {
                     result.message = `USE CLUSTER EFFECT?`
-                    result.yesNo = true
-                    result.yesAction = YesActions.ClusterEffect
-                    result.noAction = NoActions.NoClusterEffect
                 } else if (
                     !gameSession.chosenMothership &&
                     gameSession.chosenNumDivers === 1 &&
@@ -268,9 +259,7 @@
     }
 
     async function yes(action?: YesActions) {
-        if (action === YesActions.ClusterEffect) {
-            gameSession.clusterChoice = true
-        } else if (action === YesActions.ActivateBonus) {
+        if (action === YesActions.ActivateBonus) {
             await gameSession.activateBonus()
         } else if (action === YesActions.SqueezeEffect) {
             await gameSession.activateEffect(EffectType.Squeeze)
@@ -284,8 +273,6 @@
     async function no(action?: NoActions) {
         if (action === NoActions.Pass) {
             await gameSession.pass()
-        } else if (action === NoActions.NoClusterEffect) {
-            gameSession.clusterChoice = false
         } else if (action === NoActions.NoSqueezeEffect) {
             await gameSession.activateStation()
         } else if (action === NoActions.NoTeleportEffect) {
@@ -401,6 +388,8 @@
         </div>
     {:else if gameSession.isChaining && chainEntryWithoutDiver}
         <ChainSundiverPicker coords={chainEntryWithoutDiver.coords} />
+    {:else if gameSession.shouldPickCluster}
+        <ClusterPicker />
     {/if}
 </div>
 

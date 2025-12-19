@@ -1,14 +1,13 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import UISundiver from './Sundiver.svelte'
+    import UISundiver from '$lib/components/Sundiver.svelte'
     import { Sundiver, EffectType, StationType } from '@tabletop/sol'
     import EnergyNode from '$lib/images/energynode.svelte'
     import Foundry from '$lib/images/foundry.svelte'
     import Tower from '$lib/images/tower.svelte'
     import { range, type OffsetCoordinates } from '@tabletop/common'
     import Floater from '$lib/utils/Floater.svelte'
-    import { getSpaceCentroid, offsetFromCenter } from '$lib/utils/boardGeometry.js'
 
     let {
         coords
@@ -18,7 +17,13 @@
 
     let gameSession = getContext('gameSession') as SolGameSession
     let playerColor = $derived(gameSession.colors.getPlayerColor(gameSession.myPlayer?.id))
-    let borderColor = $derived(gameSession.colors.getBorderColor(playerColor))
+    let choiceMade = false
+
+    let canCluster = $derived(
+        gameSession.gameState.activeEffect === EffectType.Cluster &&
+            gameSession.gameState.getEffectTracking().clustersRemaining > 0
+    )
+
     let station = $derived.by(() => {
         if (
             !gameSession.myPlayer ||
@@ -79,7 +84,7 @@
             )
 
             let numDivers = Math.min(regularDivers.length, 5)
-            if (!catapultNextToGate) {
+            if (!catapultNextToGate && !canCluster) {
                 numDivers = Math.min(movementPoints, numDivers)
             }
             return regularDivers.slice(0, numDivers)
@@ -114,15 +119,28 @@
         gameSession.catapultChoice = catapult
         gameSession.chosenNumDivers = amount
         gameSession.passageChoice = passage
+
+        if (canCluster) {
+            const playerState = gameSession.myPlayerState!
+            let movementPoints = playerState.movementPoints
+            if (movementPoints < amount) {
+                gameSession.clusterChoice = true
+            }
+        }
+        choiceMade = true
     }
 
     function selectStation() {
         if (station) {
             gameSession.juggernautStationId = station.id
+            choiceMade = true
         }
     }
 
     function onClose() {
+        if (choiceMade) {
+            return
+        }
         console.log('MovementPicker onClose')
         gameSession.back()
     }
