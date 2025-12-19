@@ -123,7 +123,7 @@ export class StationAnimator extends StateAnimator<
             path: locations.map((loc) => offsetFromCenter(loc)),
             curviness: 1,
             duration: flightDuration,
-            ease: fly.teleport ? 'power2.inOut' : 'power1.inOut',
+            ease: fly.teleport ? 'power2.inOut' : 'power2.inOut',
             timeline,
             position: flightStart
         })
