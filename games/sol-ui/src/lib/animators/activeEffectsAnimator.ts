@@ -2,6 +2,7 @@ import { EffectType } from '@tabletop/sol'
 
 import { gsap } from 'gsap'
 import { Flip } from 'gsap/dist/Flip'
+import type { Point } from '@tabletop/common'
 
 const CARD_WIDTH = 135
 const CARD_HEIGHT = 100
@@ -11,6 +12,7 @@ const GAP = 20
 
 export class ActiveEffectsAnimator {
     private deckElement?: Element
+    private deckLocation?: Point
     private effectElements: Map<EffectType, Element> = new Map()
 
     addDeck(element: Element): void {
@@ -19,6 +21,11 @@ export class ActiveEffectsAnimator {
 
     removeDeck(): void {
         this.deckElement = undefined
+        this.deckLocation = undefined
+    }
+
+    setDeckLocation(location: Point): void {
+        this.deckLocation = location
     }
 
     addEffect(effect: EffectType, element: Element): void {
@@ -33,27 +40,28 @@ export class ActiveEffectsAnimator {
         if (!this.deckElement) {
             return
         }
-        const elements = Array.from(this.effectElements.values()).toReversed()
-        const state = Flip.getState([...elements, this.deckElement])
+        const elements = Array.from(this.effectElements.values())
+        const state = Flip.getState(elements)
 
-        const leftX = 0 + (1280 - (CARD_WIDTH * SCALE * 2 + GAP)) / 2
-        const topY = 10
+        const boardLeft = (1280 - (CARD_WIDTH * SCALE * 2 + GAP)) / 2
+        const boardTop = 10
 
-        gsap.set(this.deckElement, {
-            translateX: leftX,
-            translateY: topY
-        })
+        const deckOrigin = this.deckLocation ?? {
+            x: 0,
+            y: 0
+        }
 
         let i = 0
-        for (const element of elements) {
-            const x = (i % 2) * (CARD_WIDTH * SCALE + GAP)
-            const y = Math.floor(i / 2) * (CARD_HEIGHT * SCALE + GAP)
+        for (const element of elements.toReversed()) {
+            const x = boardLeft - deckOrigin.x + (i % 2) * (CARD_WIDTH * SCALE + GAP)
+            const y = boardTop - deckOrigin.y + Math.floor(i / 2) * (CARD_HEIGHT * SCALE + GAP)
             i++
 
             gsap.set(element, {
                 translateX: x,
                 translateY: y,
-                scale: SCALE
+                scale: SCALE,
+                transformOrigin: '0 0'
             })
         }
 
@@ -79,10 +87,19 @@ export function animateEffectCard(
 
 export function animateDeck(
     node: HTMLElement | SVGElement,
-    params: { animator: ActiveEffectsAnimator }
-): { destroy: () => void } | undefined {
+    params: { animator: ActiveEffectsAnimator; location: Point }
+):
+    | {
+          update: (params: { animator: ActiveEffectsAnimator; location: Point }) => void
+          destroy: () => void
+      }
+    | undefined {
     params.animator.addDeck(node)
+    params.animator.setDeckLocation(params.location)
     return {
+        update(nextParams: { animator: ActiveEffectsAnimator; location: Point }) {
+            nextParams.animator.setDeckLocation(nextParams.location)
+        },
         destroy() {
             params.animator.removeDeck()
         }

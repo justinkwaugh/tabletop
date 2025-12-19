@@ -33,7 +33,7 @@
 </script>
 
 <g
-    use:animateDeck={{ animator }}
+    use:animateDeck={{ animator, location }}
     onclick={toggleDeck}
     class="stroke-[#5a5141] hover:stroke-[#ffffff]"
     transform={`translate(${location.x}, ${location.y})`}
