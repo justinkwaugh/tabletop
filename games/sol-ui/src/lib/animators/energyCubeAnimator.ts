@@ -29,13 +29,11 @@ export class EnergyCubeAnimator extends StateAnimator<
     private cubes: Map<string, HTMLElement | SVGElement> = new Map()
 
     addCube(id: string, element: HTMLElement | SVGElement): void {
-        console.log('add cube to animator:', id)
         this.cubes.set(id, element)
     }
 
     removeCube(id: string): void {
         this.cubes.delete(id)
-        console.log('remove cube from animator:', id)
     }
 
     override async onGameStateChange({

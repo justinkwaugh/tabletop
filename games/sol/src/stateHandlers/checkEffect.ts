@@ -14,6 +14,7 @@ import { EffectType } from '../components/effects.js'
 import { Activate } from '../actions/activate.js'
 import { nanoid } from 'nanoid'
 import { ActivatingStateHandler } from './activating.js'
+import { Ring } from '../utils/solGraph.js'
 
 // Transition from CheckEffect(ActivateEffect) -> Lots of places
 // Transition from CheckEffect(Pass) -> Lots of places
@@ -93,7 +94,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                 } else if (gameState.activeEffect === EffectType.Metamorphosis) {
                     return MachineState.Metamorphosizing
                 } else if (gameState.activeEffect === EffectType.Squeeze) {
-                    if (gameState.cardsToDraw > 0) {
+                    const station = gameState.getActivatingStation()
+                    if (station.coords!.row < Ring.Inner) {
                         return MachineState.DrawingCards
                     } else {
                         return ActivatingStateHandler.handleActivation(gameState, context)

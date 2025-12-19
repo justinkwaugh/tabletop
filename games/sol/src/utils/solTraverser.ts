@@ -62,7 +62,7 @@ export function solTraverseChecker(
             return true
         }
 
-        if (allowedGates) {
+        if (allowedGates != undefined) {
             return allowedGates.some((gate) => {
                 return board.isGateBetween(gate, from.coords, to.coords)
             })

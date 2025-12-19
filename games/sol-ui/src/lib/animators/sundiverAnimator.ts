@@ -320,11 +320,11 @@ export class SundiverAnimator extends StateAnimator<
     ): Point[] {
         const flightPath: Point[] = []
 
-        let hasGate = false
         let hadGate = false
         for (let i = 0; i < pathCoords.length; i++) {
             const coords = pathCoords[i]
 
+            let hasGate = false
             let location: Point | undefined
             if (i === 0) {
                 const cell = fromState.board.cellAt(coords)

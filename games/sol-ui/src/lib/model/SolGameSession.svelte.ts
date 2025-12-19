@@ -35,7 +35,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     numPlayers = $derived.by(() => this.gameState.players.length)
 
-    chosenAction?: string = $state(undefined)
     chosenMothership?: string = $state(undefined)
     chosenNumDivers?: number = $state(undefined)
     chosenSource?: OffsetCoordinates = $state(undefined)
@@ -271,33 +270,38 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             } else if (this.chosenConvertType) {
                 this.chosenConvertType = undefined
             }
-        } else if (this.teleportChoice !== undefined) {
-            this.teleportChoice = undefined
-        } else if (this.clusterChoice !== undefined) {
-            this.clusterChoice = undefined
-        } else if (this.chosenNumDivers) {
-            this.chosenNumDivers = undefined
-            if (this.numPlayerCanMoveFromSource() === 1) {
-                if (this.chosenMothership) {
-                    this.chosenMothership = undefined
-                } else if (this.chosenSource) {
-                    this.chosenSource = undefined
-                }
+        } else if (this.isMoving) {
+            if (this.gateChoices) {
+                this.gateChoices = undefined
             }
-        } else if (this.juggernautStationId) {
-            this.juggernautStationId = undefined
-            this.chosenSource = undefined
-        } else if (this.chosenMothership) {
-            this.chosenMothership = undefined
-        } else if (this.chosenSource) {
-            this.chosenSource = undefined
-        } else if (this.chosenAction) {
-            this.chosenAction = undefined
+
+            if (this.teleportChoice !== undefined) {
+                this.teleportChoice = undefined
+            } else if (this.clusterChoice !== undefined) {
+                this.clusterChoice = undefined
+            } else if (this.chosenGates && this.chosenGates.length > 0) {
+                this.chosenGates.pop()
+            } else if (this.chosenNumDivers) {
+                this.chosenNumDivers = undefined
+                if (this.numPlayerCanMoveFromSource() === 1) {
+                    if (this.chosenMothership) {
+                        this.chosenMothership = undefined
+                    } else if (this.chosenSource) {
+                        this.chosenSource = undefined
+                    }
+                }
+            } else if (this.juggernautStationId) {
+                this.juggernautStationId = undefined
+                this.chosenSource = undefined
+            } else if (this.chosenMothership) {
+                this.chosenMothership = undefined
+            } else if (this.chosenSource) {
+                this.chosenSource = undefined
+            }
         }
     }
 
     resetAction() {
-        this.chosenAction = undefined
         this.chosenMothership = undefined
         this.chosenSource = undefined
         this.chosenNumDivers = undefined
@@ -389,6 +393,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                     chosenGates,
                     catapult
                 )
+                console.log('choice data', choiceData)
                 if (choiceData.gates.length > 1) {
                     this.gateChoices = choiceData.gates.map((gate) =>
                         this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
@@ -396,6 +401,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                     console.log('gate choices', this.gateChoices)
                     return
                 } else if (choiceData.gates.length === 1) {
+                    if (choiceData.direct) {
+                        break
+                    }
                     if (!choiceData.direct) {
                         if (!this.chosenGates) {
                             this.chosenGates = []
@@ -406,7 +414,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                         )
                         chosenGates.push(gate)
                     }
-                    break
                 } else {
                     break
                 }
@@ -1099,12 +1106,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     async setEffects() {
         const desiredEffects = [
-            EffectType.Accelerate,
-            EffectType.Metamorphosis,
+            EffectType.Catapult,
+            EffectType.Juggernaut,
             EffectType.Chain,
             EffectType.Passage,
-            EffectType.Tribute,
-            EffectType.Fuel
+            EffectType.Teleport,
+            EffectType.Cluster
         ]
 
         let i = 0

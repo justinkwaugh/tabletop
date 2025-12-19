@@ -290,7 +290,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             requiredGates: flyOrHurl.gates,
             portal: state.activeEffect === EffectType.Portal,
             illegalCoordinates,
-            transcend: state.activeEffect === EffectType.Transcend
+            transcend: state.activeEffect === EffectType.Transcend,
+            requiredGatesOnly: true
         })
     }
 

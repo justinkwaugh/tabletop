@@ -211,7 +211,7 @@ export class HydratedSolGameBoard
         const localGates = this.findGatesLocalToRing(current.row)
         const remainingRange =
             effectiveRange !== undefined ? effectiveRange - (path.length - 1) : undefined
-
+        console.log('found local gates:', localGates, 'remaining range:', remainingRange)
         // Check each gate to see if the path from the opposite side of the gate to the destination is valid
         return {
             direct: directPath,
@@ -278,7 +278,8 @@ export class HydratedSolGameBoard
         requiredGates, // Ordered list of gates to pass through
         illegalCoordinates,
         portal = false,
-        transcend = false
+        transcend = false,
+        requiredGatesOnly = false
     }: {
         start: OffsetCoordinates
         destination: OffsetCoordinates
@@ -287,6 +288,7 @@ export class HydratedSolGameBoard
         illegalCoordinates?: OffsetCoordinates[]
         portal?: boolean
         transcend?: boolean
+        requiredGatesOnly?: boolean
     }): OffsetCoordinates[] | undefined {
         const path = [start]
 
@@ -316,6 +318,7 @@ export class HydratedSolGameBoard
                     board: this,
                     start: current,
                     end: destination,
+                    allowedGates: requiredGatesOnly ? [] : undefined,
                     range: remainingRange,
                     illegalCoordinates,
                     transcend

@@ -27,7 +27,6 @@
         {#if gameSession.undoableAction && !gameSession.isViewingHistory}
             <Button
                 onclick={async () => {
-                    gameSession.chosenAction = undefined
                     await gameSession.undo()
                 }}
                 size="xs"

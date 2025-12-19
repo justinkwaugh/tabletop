@@ -41,13 +41,11 @@ export class CellStationAnimator extends StateAnimator<
     }
 
     addStation(station: Station, element: HTMLElement | SVGElement): void {
-        console.log('CellStationAnimator addStation:', station.id, station.type)
         this.station = station
         this.setElement(element)
     }
 
     removeStation(): void {
-        console.log('CellStationAnimator removeStation:', this.station?.id, this.station?.type)
         delete this.station
         this.setElement(undefined)
     }

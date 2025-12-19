@@ -49,14 +49,6 @@
 
     let gameSession = getContext('gameSession') as SolGameSession
 
-    async function chooseAction(action: string) {
-        switch (action) {
-            default:
-                gameSession.chosenAction = action
-                break
-        }
-    }
-
     const canMove = $derived(gameSession.validActionTypes.includes(ActionType.ChooseMove))
     const canConvert = $derived(gameSession.validActionTypes.includes(ActionType.ChooseConvert))
     const canActivate = $derived(gameSession.validActionTypes.includes(ActionType.ChooseActivate))
@@ -238,10 +230,7 @@
     })
 
     $effect(() => {
-        if (gameSession.validActionTypes.length === 1) {
-            const singleAction = gameSession.validActionTypes[0]
-            chooseAction(singleAction)
-        } else if (gameSession.validActionTypes.length === 0) {
+        if (gameSession.validActionTypes.length === 0) {
             gameSession.resetAction()
         }
 

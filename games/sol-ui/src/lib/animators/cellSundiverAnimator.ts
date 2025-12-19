@@ -44,7 +44,6 @@ export class CellSundiverAnimator extends StateAnimator<
     }
 
     override onAttach(): void {
-        // console.log('CellSundiverAnimator attached for player', this.playerId, 'at', this.coords)
         gsap.set(this.element!, { opacity: 0 })
         if (
             this.gameSession.gameState.board.sundiversForPlayerAt(this.playerId, this.coords)
@@ -116,7 +115,6 @@ export class CellSundiverAnimator extends StateAnimator<
                     fromCell!
                 )
                 if (sourceLocation && !samePoint(sourceLocation, targetLocation)) {
-                    console.log('animating sundiver from ', sourceLocation, 'to', targetLocation)
                     gsap.set(this.element!, {
                         opacity: 1,
                         translateX: offsetFromCenter(sourceLocation).x,

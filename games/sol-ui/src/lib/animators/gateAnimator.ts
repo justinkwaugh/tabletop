@@ -36,14 +36,12 @@ export class GateAnimator extends StateAnimator<
     }
 
     addGate(gate: SolarGate, element: HTMLElement | SVGElement): void {
-        console.log('GateAnimator addGate:', gate.id)
         const gateAndElement: GateAndElement = { gate, element }
         this.gatesById.set(gate.id, gateAndElement)
         this.gatesByKey.set(gateKey(gate.innerCoords!, gate.outerCoords!), gateAndElement)
     }
 
     removeGate(id: string): void {
-        console.log('GateAnimator removeGate:', this.gatesById.get(id)?.gate.id)
         const gateAndElement = this.gatesById.get(id)
         if (gateAndElement) {
             this.gatesById.delete(id)

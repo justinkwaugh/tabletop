@@ -10,7 +10,6 @@ import { HydratedActivate } from './activate.js'
 import { StationType } from '../components/stations.js'
 import { HydratedConvert } from './convert.js'
 import { BASE_AWARD_PER_RING } from '../utils/solConstants.js'
-import { Ring } from '../utils/solGraph.js'
 import { HydratedFly } from './fly.js'
 import { HydratedInvade } from './invade.js'
 import { HydratedSacrifice } from './sacrifice.js'
@@ -18,6 +17,7 @@ import { HydratedHatch } from './hatch.js'
 import { HydratedBlight } from './blight.js'
 import { HydratedTribute } from './tribute.js'
 import { HydratedChain } from './chain.js'
+import { Ring } from '../utils/solGraph.js'
 
 export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
@@ -122,8 +122,9 @@ export class HydratedActivateEffect
             state.getEffectTracking().clustersRemaining = 2
         } else if (this.effect === EffectType.Squeeze) {
             state.getEffectTracking().squeezed = true
-            if (state.cardsToDraw === 0) {
-                const station = state.getActivatingStation()
+            const station = state.getActivatingStation()
+
+            if (station.coords!.row >= Ring.Inner) {
                 this.metadata.coords = station.coords
                 const awardMetadata = HydratedActivate.applyActivationAward(playerState, station)
                 Object.assign(this.metadata, awardMetadata)
@@ -284,8 +285,10 @@ export class HydratedActivateEffect
             return false
         }
 
-        const station = state.getActivatingStation()
-        if (!station) {
+        let station
+        try {
+            station = state.getActivatingStation()
+        } catch {
             return false
         }
 
