@@ -31,6 +31,7 @@ export class CardPickerAnimator extends StateAnimator<
     HydratedSolGameState,
     SolGameSession
 > {
+    private transitioning: boolean = false
     private cards: Map<string, CardAndElement> = new Map()
     private tweensPerCard: Map<string, gsap.core.Tween> = new Map()
 
@@ -42,7 +43,9 @@ export class CardPickerAnimator extends StateAnimator<
     addCard(card: Card, element: HTMLElement | SVGElement): void {
         console.log('add card to animator:', card.id, card.suit)
         this.cards.set(card.id, { card, element })
-        this.pulseCorrectFlare(this.gameSession.gameState)
+        if (!this.transitioning) {
+            this.pulseCorrectFlare(this.gameSession.gameState)
+        }
     }
 
     removeCard(card: Card): void {
@@ -75,24 +78,26 @@ export class CardPickerAnimator extends StateAnimator<
             autoRemoveChildren: true
         })
         if (action) {
+            console.log('CardPickerAnimator: animating action:', action.type)
             await this.animateAction(action, subTimeline, to, from)
         }
 
+        console.log('to machineState:', to.machineState, 'from machineState:', from?.machineState)
         if (to.machineState === MachineState.SolarFlares) {
             if (!action) {
                 this.pulseCorrectFlare(to)
             }
         } else {
+            console.log('stop pulsing all cards - not in SolarFlares state')
             const pulseIds = Array.from(this.tweensPerCard.keys())
             for (const id of pulseIds) {
-                this.stopPulsingCard(id, animationContext.actionTimeline)
+                console.log('stopping pulsing for card id:', id)
+                this.stopPulsingCard(id, subTimeline)
             }
             this.tweensPerCard.clear()
         }
 
         if (to.machineState === MachineState.ChoosingCard) {
-            const choosingStart = subTimeline.duration()
-
             console.log('CardPickerAnimator: Going to ChoosingCard state')
             const currentPlayerId = to.turnManager.currentTurn()?.playerId
             if (!currentPlayerId) {
@@ -103,10 +108,55 @@ export class CardPickerAnimator extends StateAnimator<
                 return
             }
 
-            // // Add back in all the drawn cards
-            // this.gameSession.drawnCards = playerState.drawnCards
+            const addedCards = from?.machineState === MachineState.SolarFlares
+            if (addedCards) {
+                // If we are coming from solar flares, we may need to add some cards back in, or at least better detect
+                // the remaining card count.
+                const currentCardElements = Array.from(
+                    this.cards.values().map((card) => card.element)
+                )
+                const state = Flip.getState(currentCardElements)
 
-            // await tick()
+                // Add back in all the drawn cards
+                this.transitioning = true
+
+                this.gameSession.drawnCards = playerState.drawnCards
+                await tick()
+                this.transitioning = false
+
+                // Find all non-flare and set them to opacity 0 to fade them in after
+                const nonSolarCardElements = this.cards
+                    .values()
+                    .filter((card) => card.card.suit !== Suit.Flare)
+                    .map((ce) => ce.element)
+
+                for (const element of nonSolarCardElements) {
+                    console.log('CardPickerAnimator: setting non-flare card element to opacity 0')
+                    gsap.set(element, { opacity: 0 })
+                    fadeIn({
+                        object: element,
+                        timeline: subTimeline,
+                        duration: 0.3,
+                        position: 0.7
+                    })
+                }
+
+                console.log('CardPickerAnimator: flipping in remaining cards after solar flare')
+
+                subTimeline.add(
+                    Flip.from(state, {
+                        duration: 0.5,
+                        ease: 'power2.in',
+                        onComplete: () => {
+                            for (const element of currentCardElements) {
+                                gsap.set(element, { scale: 1 })
+                            }
+                        }
+                    }),
+                    0.2
+                )
+                ensureDuration(subTimeline, 1)
+            }
 
             const seenSuits = new Set<Suit>()
             if (playerState.card) {
@@ -167,23 +217,27 @@ export class CardPickerAnimator extends StateAnimator<
                     .map((card) => this.cards.get(card.id)?.element)
                     .filter((ce) => ce !== undefined)
 
-                const durationUntilNow = subTimeline.duration()
-                subTimeline.call(
+                const durationUntilNow = animationContext.finalTimeline.duration()
+                animationContext.finalTimeline.call(
                     () => {
                         const state = Flip.getState(remainingCardElements)
                         this.gameSession.drawnCards = remainingCards
 
-                        tick().then(() => {
-                            Flip.from(state, {
-                                duration: 0.5,
-                                ease: 'power2.in'
+                        tick()
+                            .then(() => {
+                                Flip.from(state, {
+                                    duration: 0.5,
+                                    ease: 'power2.in'
+                                })
                             })
-                        })
+                            .catch((err) => {
+                                console.error('Error during tick after choosing card:', err)
+                            })
                     },
                     [],
                     durationUntilNow
                 )
-                ensureDuration(subTimeline, durationUntilNow + 0.3)
+                ensureDuration(animationContext.finalTimeline, durationUntilNow + 0.3)
             }
         }
         if (subTimeline.getChildren().length > 0) {
@@ -418,6 +472,7 @@ export class CardPickerAnimator extends StateAnimator<
     }
 
     pulseCorrectFlare(state: HydratedSolGameState) {
+        console.log('starting pulsing correct flare card')
         const flares = Array.from(this.cards.values()).filter((ce) => ce.card.suit === Suit.Flare)
 
         const flareIndex = this.flareIndexToPulse(state)

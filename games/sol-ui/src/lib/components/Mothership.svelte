@@ -54,6 +54,9 @@
     let myMove = $derived(gameSession.isMyTurn && gameSession.isMoving)
 
     let interactable = $derived.by(() => {
+        if (gameSession.animating) {
+            return false
+        }
         const myPlayer = gameSession.myPlayer
         if (!myPlayer || !myMove) {
             return false
@@ -67,7 +70,7 @@
         return HydratedLaunch.canLaunchFromMothership(gameSession.gameState, myPlayer.id, playerId)
     })
 
-    let disabled = $derived(myMove && !interactable)
+    let disabled = $derived(myMove && !interactable && !gameSession.animating)
 
     $effect(() => {
         if (!interactable) {
@@ -157,10 +160,10 @@
                 width="200%"
                 height="200%"
                 offset={{ x: 0, y: 0 }}
-                amount={40}
+                amount={30}
                 source="graphic"
             />
-            <g transform="scale(1.2)" style="transform-box:fill-box; transform-origin: center;">
+            <g transform="scale(1.1)" style="transform-box:fill-box; transform-origin: center;">
                 <Mask
                     fill={'white'}
                     opacity="1"
