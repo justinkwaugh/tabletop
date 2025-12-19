@@ -3,6 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedChain, isChain } from '../actions/chain.js'
+import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from Chaining(Chain) -> PREVIOUS STATE
 
@@ -23,13 +24,13 @@ export class ChainingStateHandler implements MachineStateHandler<HydratedChain> 
 
         switch (true) {
             case isChain(action): {
-                // Pre-effect state may no longer be valid after chain
                 const effectTracking = gameState.getEffectTracking()
                 const preEffectState = effectTracking.preEffectState
-                if (!preEffectState) {
-                    throw Error('No pre-tribute state recorded')
+
+                if (!preEffectState || preEffectState === MachineState.CheckEffect) {
+                    return drawCardsOrEndTurn(gameState, context)
                 }
-                gameState.activeEffect = undefined
+
                 return preEffectState
             }
             default: {

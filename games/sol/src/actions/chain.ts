@@ -67,6 +67,8 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
                 owner.addSundiversToHold(removed)
             }
         }
+
+        state.activeEffect = undefined
     }
 
     isValidChain(state: HydratedSolGameState, _playerId: string): boolean {

@@ -323,10 +323,11 @@
             >
                 <div class="me-2">{callToAction.message}</div>
                 {#if callToAction.showSkip}
+                    OR&nbsp;
                     <button
                         onclick={pass}
-                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                        >SKIP</button
+                        class="w-fit box-border py-1 px-2 bg-transparent border border-[#ad9c80] rounded-lg"
+                        >PASS</button
                     >
                 {:else if callToAction.yesNo}
                     <button

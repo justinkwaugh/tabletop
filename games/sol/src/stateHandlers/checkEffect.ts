@@ -100,8 +100,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     } else {
                         return ActivatingStateHandler.handleActivation(gameState, context)
                     }
-                } else {
-                    return drawCardsOrEndTurn(gameState, context)
+                } else if (gameState.activeEffect === EffectType.Chain) {
+                    return MachineState.Chaining
                 }
             }
             default: {

@@ -9,6 +9,7 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 import { drawCardsOrEndTurn, onActivateEffect } from './postActionHelper.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { HydratedFuel, isFuel } from '../actions/fuel.js'
+import { EffectType } from '../components/effects.js'
 
 // Transition from Moving(Launch) -> Moving | StartOfTurn
 // Transition from Moving(Fly) -> Moving | StartOfTurn
@@ -100,6 +101,14 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
                     HydratedLaunch.canLaunch(gameState, action.playerId)
                 ) {
                     return MachineState.Moving
+                } else if (
+                    HydratedActivateEffect.canActivateEffect(
+                        gameState,
+                        action.playerId,
+                        EffectType.Chain
+                    )
+                ) {
+                    return MachineState.CheckEffect
                 } else {
                     return drawCardsOrEndTurn(gameState, context)
                 }
