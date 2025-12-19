@@ -15,7 +15,7 @@
         offsetFromCenter,
         type GatePosition
     } from '$lib/utils/boardGeometry.js'
-    import { coordinatesToNumber, sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
+    import { coordinatesToNumber, type OffsetCoordinates } from '@tabletop/common'
     import GateDestination from './GateDestination.svelte'
     import Gate from './BoardGate.svelte'
     import InstabilityTrack from './InstabilityTrack.svelte'
@@ -26,6 +26,8 @@
     import { SvelteMap } from 'svelte/reactivity'
     import CellOutline from './CellOutline.svelte'
     import ChainOverlay from './ChainOverlay.svelte'
+    import { animateStation, StationAnimator } from '$lib/animators/stationAnimator.js'
+    import Station from './Station.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -74,6 +76,9 @@
     const cubeAnimator = new EnergyCubeAnimator(gameSession)
     cubeAnimator.register()
 
+    const stationAnimator = new StationAnimator(gameSession)
+    stationAnimator.register()
+
     const gateAnimator = new GateAnimator(gameSession, (gate) => {
         if (gate) {
             gates.set(gateKey(gate.innerCoords!, gate.outerCoords!), gate)
@@ -113,6 +118,22 @@
                 </g>
             </g>
         {/each}
+        {#if gameSession.movingStation}
+            <g
+                use:animateStation={{
+                    animator: stationAnimator
+                }}
+            >
+                {#if gameSession.movingStation}
+                    <Station
+                        color={gameSession.colors.getPlayerColor(
+                            gameSession.movingStation.playerId
+                        )}
+                        station={gameSession.movingStation}
+                    />
+                {/if}
+            </g>
+        {/if}
 
         {#each gameSession.gameState.board as cell}
             <Cell {cell} />

@@ -16,7 +16,8 @@ import {
     StationType,
     Suit,
     Sundiver,
-    HydratedFly
+    HydratedFly,
+    Station
 } from '@tabletop/sol'
 import {
     coordinatesToNumber,
@@ -153,6 +154,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     forcedCallToAction = $state<string | undefined>(undefined)
     movingCubeIds: string[] = $state([])
+    movingStation?: Station = $state(undefined)
 
     skipReset = false
 
@@ -171,6 +173,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         // not reset the action before the state change.  This allows for the user to do it
         // in the middle of other actions like moving.  Undo may be an issue here though.
         if (isActivateEffect(action)) {
+            if (action.effect === EffectType.Catapult) {
+                this.chosenNumDivers = undefined
+            }
             if (action.effect === EffectType.Hyperdrive && (this.chosenNumDivers ?? 0) > 1) {
                 this.chosenNumDivers = 1
             }

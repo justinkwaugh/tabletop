@@ -32,14 +32,9 @@
     import Sundiver from './Sundiver.svelte'
     import { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
     import { ConvertType } from '$lib/definition/convertType.js'
-    import EnergyNode from '$lib/images/energynode.svelte'
-    import EnergyNodeMask from '$lib/images/energynodeMask.svelte'
-    import Foundry from '$lib/images/foundry.svelte'
-    import FoundryMask from '$lib/images/foundryMask.svelte'
-    import Tower from '$lib/images/tower.svelte'
-    import TowerMask from '$lib/images/towerMask.svelte'
-    import BoardSvg from './BoardSvg.svelte'
     import { animateStation, CellStationAnimator } from '$lib/animators/cellStationAnimator.js'
+    import UIStation from './Station.svelte'
+    import BoardSvg from './BoardSvg.svelte'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getContext('gameSession') as SolGameSession
@@ -158,7 +153,10 @@
 
                 if (
                     gameSession.gameState.activeEffect === EffectType.Juggernaut &&
-                    gameSession.gameState.board.hasStationAt(cell.coords, myPlayerState.playerId)
+                    gameSession.gameState.board.hasStationAt(cell.coords, myPlayerState.playerId) &&
+                    (gameSession.gameState.getEffectTracking().flownStationId === undefined ||
+                        gameSession.gameState.getEffectTracking().flownStationId ===
+                            gameSession.gameState.board.cellAt(cell.coords).station?.id)
                 ) {
                     return true
                 }
@@ -479,59 +477,16 @@
 </script>
 
 {#snippet renderStation(station: Station, width: number, height: number)}
-    <g use:animateStation={{ animator: stationAnimator, station }}>
-        <BoardSvg {width} {height} location={stationLocation}>
-            {#if station.type === StationType.EnergyNode}
-                <g transform="translate(-2, -2)">
-                    <EnergyNodeMask
-                        width={width + 4}
-                        height={height + 4}
-                        fill={'black'}
-                        opacity=".5"
-                        overflow="visible"
-                        style="filter: url(#pieceshadow)"
-                    />
-                </g>
-                <EnergyNode
-                    id={station.id}
-                    {width}
-                    {height}
-                    color={gameSession.colors.getPlayerColor(station.playerId)}
-                />
-            {:else if station.type === StationType.SundiverFoundry}
-                <g transform="translate(-2, -2)">
-                    <FoundryMask
-                        width={width + 4}
-                        height={height + 4}
-                        fill={'black'}
-                        opacity=".5"
-                        overflow="visible"
-                        style="filter: url(#pieceshadow)"
-                    />
-                </g>
-                <Foundry
-                    {width}
-                    {height}
-                    color={gameSession.colors.getPlayerColor(station.playerId)}
-                />
-            {:else if station.type === StationType.TransmitTower}
-                <g transform="translate(-2, -2)">
-                    <TowerMask
-                        width={width + 4}
-                        height={height + 4}
-                        fill={'black'}
-                        opacity=".5"
-                        overflow="visible"
-                        style="filter: url(#pieceshadow)"
-                    />
-                </g>
-                <Tower
-                    {width}
-                    {height}
-                    color={gameSession.colors.getPlayerColor(station.playerId)}
-                />
-            {/if}
-        </BoardSvg>
+    <g
+        use:animateStation={{ animator: stationAnimator, station }}
+        transform={translateFromCenter(stationLocation.x, stationLocation.y)}
+    >
+        <UIStation
+            {station}
+            {width}
+            {height}
+            color={gameSession.colors.getPlayerColor(station.playerId)}
+        />
     </g>
 {/snippet}
 

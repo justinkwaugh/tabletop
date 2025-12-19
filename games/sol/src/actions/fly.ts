@@ -100,10 +100,13 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 throw Error('Invalid juggernaut station')
             }
             state.board.addStationAt(station, this.destination)
-            state.activeEffect = undefined
         } else {
             const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
             state.board.addSundiversToCell(removedSundivers, this.destination)
+        }
+
+        if (this.stationId) {
+            playerState.movement = state.calculatePlayerMovement(this.playerId)
         }
     }
 
@@ -118,6 +121,10 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         if (flyOrHurl.passage) {
             // Initialize passage sundiver tracking
             state.getEffectTracking().passageSundiverId = flyOrHurl.sundiverIds[0]
+        }
+
+        if (flyOrHurl.stationId) {
+            state.getEffectTracking().flownStationId = flyOrHurl.stationId
         }
 
         const distanceMoved = path.length - 1
@@ -246,6 +253,16 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         ) {
             console.log('invalid hyperdrive flight')
             return
+        }
+
+        if (state.activeEffect === EffectType.Juggernaut && flyOrHurl.stationId) {
+            if (
+                state.effectTracking?.flownStationId &&
+                state.effectTracking?.flownStationId !== flyOrHurl.stationId
+            ) {
+                console.log('invalid juggernaut flight')
+                return
+            }
         }
 
         if (

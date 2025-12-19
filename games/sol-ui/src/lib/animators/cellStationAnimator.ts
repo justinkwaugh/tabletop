@@ -1,29 +1,24 @@
 import {
-    Activate,
-    ActivateBonus,
+    CENTER_COORDS,
     Convert,
-    DrawCards,
-    EnergyNode,
+    Fly,
+    Hurl,
     HydratedSolGameState,
-    isActivate,
-    isActivateBonus,
     isConvert,
-    isDrawCards,
-    isSolarFlare,
-    MachineState,
-    SolarFlare,
+    isFly,
+    isHurl,
     Station,
-    StationType,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import { Point, sameCoordinates, type GameAction, type OffsetCoordinates } from '@tabletop/common'
-import { animate, ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
+import { animate, fadeIn, fadeOut } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
+import { getFlightDuration, getFlightPath } from '$lib/utils/flight.js'
 
 export class CellStationAnimator extends StateAnimator<
     SolGameState,
@@ -63,22 +58,24 @@ export class CellStationAnimator extends StateAnimator<
     }) {
         if (isConvert(action)) {
             await this.animateConvert(action, animationContext.actionTimeline, to, from)
-        }
+        } else if (isFly(action) || isHurl(action)) {
+            this.animateFlyOrHurlAction(action, animationContext.actionTimeline, to, from)
+        } else {
+            const toBoard = to.board
+            const fromBoard = from?.board
+            const toCell = toBoard.cellAt(this.coords)
+            const fromCell = fromBoard?.cellAt(this.coords)
 
-        const toBoard = to.board
-        const fromBoard = from?.board
-        const toCell = toBoard.cellAt(this.coords)
-        const fromCell = fromBoard?.cellAt(this.coords)
+            const toStation = toCell.station
+            const fromStation = fromCell?.station
 
-        const toStation = toCell.station
-        const fromStation = fromCell?.station
-
-        if (fromStation && !toStation) {
-            fadeOut({
-                object: this.element!,
-                timeline: animationContext.actionTimeline,
-                duration: 0.3
-            })
+            if (fromStation && !toStation) {
+                fadeOut({
+                    object: this.element!,
+                    timeline: animationContext.actionTimeline,
+                    duration: 0.3
+                })
+            }
         }
     }
 
@@ -120,6 +117,94 @@ export class CellStationAnimator extends StateAnimator<
             ease: 'power1.in',
             position: 0.4
         })
+    }
+
+    async animateFlyOrHurlAction(
+        action: Fly | Hurl,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !action.stationId) {
+            return
+        }
+
+        const isStart = sameCoordinates(action.start, this.coords)
+        const isDestination =
+            sameCoordinates(action.destination, this.coords) &&
+            !sameCoordinates(action.destination, CENTER_COORDS)
+        if (!isStart && !isDestination) {
+            return
+        }
+
+        if (isStart) {
+            const board = fromState.board
+            const startCell = board.cellAt(action.start)
+            const startLocation = this.gameSession.locationForStationInCell(startCell)
+
+            if (!startLocation) {
+                return
+            }
+
+            // Disappear right when the last one leaves
+            fadeOut({
+                object: this.element,
+                duration: 0,
+                timeline,
+                position: 0
+            })
+        }
+
+        if (isDestination) {
+            console.log('Animating destination for station:', this.station?.id)
+            const board = toState.board
+            const destCell = board.cellAt(action.destination)
+            const destLocation = this.gameSession.locationForStationInCell(destCell)
+
+            if (!destLocation) {
+                return
+            }
+
+            const station = toState.board.findStation(action.stationId)
+            if (!station) {
+                return
+            }
+
+            const flightPath = action.metadata?.flightPath
+            if (!flightPath || flightPath.length < 2) {
+                return
+            }
+
+            if (this.callback) {
+                this.callback(station, destLocation)
+            }
+            await tick()
+
+            const actualFlightPath = getFlightPath({
+                action,
+                gameSession: this.gameSession,
+                playerId: action.playerId,
+                pathCoords: flightPath,
+                toState,
+                fromState
+            })
+            const flightDuration = getFlightDuration(action, actualFlightPath.length)
+
+            gsap.set(this.element!, {
+                opacity: 0,
+                x: offsetFromCenter(destLocation).x,
+                y: offsetFromCenter(destLocation).y
+            })
+
+            console.log('Animating arrival for station:', this.station?.id)
+            // Appear right when they arrive
+            fadeIn({
+                object: this.element,
+                duration: 0,
+                timeline,
+                position: flightDuration
+            })
+        }
     }
 }
 

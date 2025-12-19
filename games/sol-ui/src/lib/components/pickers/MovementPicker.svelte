@@ -40,6 +40,13 @@
         ) {
             return
         }
+
+        const flownStationId = gameSession.gameState.getEffectTracking().flownStationId
+
+        const station = gameSession.gameState.board.cellAt(gameSession.chosenSource).station
+        if (flownStationId && flownStationId !== station?.id) {
+            return
+        }
         return gameSession.gameState.board.cellAt(gameSession.chosenSource).station
     })
 
@@ -265,8 +272,10 @@
                         {/each}
                     </div>
                     {#if gameSession.gameState.activeEffect === EffectType.Catapult || passageSundiver}
-                        <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">
-                            REGULAR
+                        <div
+                            class="text-[.5rem] select-none text-[#ad9c80] tracking-widest text-center"
+                        >
+                            {#if passageSundiver}REGULAR{:else}NOT<br />CATAPULTED{/if}
                         </div>
                     {/if}
                 </div>

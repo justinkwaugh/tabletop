@@ -46,6 +46,7 @@ export const SolGameState = Type.Evaluate(
                     clustersRemaining: Type.Number(), // For Cluster effect
                     squeezed: Type.Boolean(), // For Squeeze effect
                     flownSundiverId: Type.Optional(Type.String()), // For Hyperdrive effect
+                    flownStationId: Type.Optional(Type.String()), // For Juggernaut effect
                     movementUsed: Type.Number(), // For Hyperdrive effect
                     suitChosen: Type.Optional(Type.Enum(Suit)), // For Pillar effect
                     preEffectState: Type.Optional(Type.Enum(MachineState)), // For Hatch / Accelerate effect
@@ -96,6 +97,7 @@ export class HydratedSolGameState
         clustersRemaining: number
         squeezed: boolean
         flownSundiverId?: string
+        flownStationId?: string
         movementUsed: number
         suitChosen?: Suit
         preEffectState?: MachineState

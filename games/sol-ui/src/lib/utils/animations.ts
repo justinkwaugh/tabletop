@@ -1,9 +1,13 @@
 import type { Point } from '@tabletop/common'
 import { MotionPathPlugin } from 'gsap/dist/MotionPathPlugin'
+import { CustomEase } from 'gsap/dist/CustomEase'
+import { CustomWiggle } from 'gsap/dist/CustomWiggle'
 import { Flip } from 'gsap/dist/Flip'
 import { gsap } from 'gsap'
 
 gsap.registerPlugin(MotionPathPlugin)
+gsap.registerPlugin(CustomEase)
+gsap.registerPlugin(CustomWiggle)
 gsap.registerPlugin(Flip)
 
 export function fadeOut({

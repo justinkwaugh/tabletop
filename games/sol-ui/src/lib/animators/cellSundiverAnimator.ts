@@ -21,6 +21,7 @@ import { gsap } from 'gsap'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { SundiverAnimator } from './sundiverAnimator.js'
+import { getFlightDuration, getFlightPath } from '$lib/utils/flight.js'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -164,9 +165,9 @@ export class CellSundiverAnimator extends StateAnimator<
                 action.playerId !== this.playerId &&
                 sameCoordinates(action.destination, this.coords)
             )
-        } else if (isFly(action)) {
+        } else if (isFly(action) || isHurl(action)) {
             return (
-                action.playerId !== this.playerId &&
+                (action.playerId !== this.playerId || action.stationId !== undefined) &&
                 (sameCoordinates(action.start, this.coords) ||
                     sameCoordinates(action.destination, this.coords))
             )
@@ -316,17 +317,15 @@ export class CellSundiverAnimator extends StateAnimator<
                 return
             }
 
-            const actualFlightPath = SundiverAnimator.getFlightPath(
-                this.gameSession,
-                action.playerId,
-                flightPath,
+            const actualFlightPath = getFlightPath({
+                action,
+                gameSession: this.gameSession,
+                playerId: action.playerId,
+                pathCoords: flightPath,
                 toState,
                 fromState
-            )
-            const flightDuration = SundiverAnimator.getFlightDuration(
-                action,
-                actualFlightPath.length
-            )
+            })
+            const flightDuration = getFlightDuration(action, actualFlightPath.length)
 
             if (!numBefore) {
                 gsap.set(this.element!, {

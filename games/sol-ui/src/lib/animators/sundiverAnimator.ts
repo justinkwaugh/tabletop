@@ -35,6 +35,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeOut, move, scale, path, fadeIn } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
+import { getFlightDuration, getFlightPath } from '$lib/utils/flight.js'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -261,19 +262,20 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
-        const locations = SundiverAnimator.getFlightPath(
-            this.gameSession,
-            fly.playerId,
-            flightPath,
+        const locations = getFlightPath({
+            action: fly,
+            gameSession: this.gameSession,
+            playerId: fly.playerId,
+            pathCoords: flightPath,
             toState,
             fromState
-        )
+        })
 
         if (locations.length === 0) {
             return
         }
 
-        const flightDuration = SundiverAnimator.getFlightDuration(fly, locations.length)
+        const flightDuration = getFlightDuration(fly, locations.length)
         const startLocation = locations.shift()
 
         // Appear... move... disappear
@@ -327,96 +329,6 @@ export class SundiverAnimator extends StateAnimator<
                 position: '>'
             })
         }
-    }
-
-    static getFlightPath(
-        gameSession: SolGameSession,
-        playerId: string,
-        pathCoords: OffsetCoordinates[],
-        toState: HydratedSolGameState,
-        fromState: HydratedSolGameState
-    ): Point[] {
-        const flightPath: Point[] = []
-
-        let hadGate = false
-        for (let i = 0; i < pathCoords.length; i++) {
-            const coords = pathCoords[i]
-
-            let hasGate = false
-            let location: Point | undefined
-            if (i === 0) {
-                const cell = fromState.board.cellAt(coords)
-                location = gameSession.locationForDiverInCell(playerId, cell)
-                if (location) {
-                    flightPath.push(location)
-                }
-            } else if (i === pathCoords.length - 1) {
-                const cell = toState.board.cellAt(coords)
-                location = gameSession.locationForDiverInCell(playerId, cell)
-                if (location) {
-                    flightPath.push(location)
-                }
-            }
-
-            if (i < pathCoords.length - 1) {
-                const nextCoords = pathCoords[i + 1]
-                if (fromState.board.hasGateBetween(coords, nextCoords)) {
-                    hasGate = true
-                    const gatePosition = getGatePosition(gameSession.numPlayers, coords, nextCoords)
-
-                    const firstDimensions = dimensionsForSpace(gameSession.numPlayers, coords)
-                    const firstOffset =
-                        (firstDimensions.outerRadius - firstDimensions.innerRadius) / 4
-
-                    const secondDimensions = dimensionsForSpace(gameSession.numPlayers, nextCoords)
-                    const secondOffset =
-                        (secondDimensions.outerRadius - secondDimensions.innerRadius) / 4
-
-                    if (coords.row > nextCoords.row) {
-                        // Moving inward
-                        flightPath.push(
-                            getCirclePoint(
-                                gatePosition.radius + firstOffset,
-                                toRadians(gatePosition.angle)
-                            )
-                        )
-                        flightPath.push(
-                            getCirclePoint(
-                                gatePosition.radius - secondOffset,
-                                toRadians(gatePosition.angle)
-                            )
-                        )
-                    } else {
-                        // Moving outward
-                        flightPath.push(
-                            getCirclePoint(
-                                gatePosition.radius - firstOffset,
-                                toRadians(gatePosition.angle)
-                            )
-                        )
-                        flightPath.push(
-                            getCirclePoint(
-                                gatePosition.radius + secondOffset,
-                                toRadians(gatePosition.angle)
-                            )
-                        )
-                    }
-                } else if (!location && !hadGate && !hasGate) {
-                    location = getSpaceCentroid(gameSession.numPlayers, coords)
-                    flightPath.push(location)
-                }
-                hadGate = hasGate
-            }
-        }
-
-        return flightPath
-    }
-
-    static getFlightDuration(action: Fly | Hurl, pathLength: number): number {
-        if (action.teleport) {
-            return 1.5
-        }
-        return Math.min(2, Math.max(1, pathLength * 0.3))
     }
 
     animateConvertAction(

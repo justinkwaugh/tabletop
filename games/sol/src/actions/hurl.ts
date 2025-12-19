@@ -85,6 +85,10 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
             state.board.removeSundiversAt(this.sundiverIds, this.start)
         }
 
+        if (this.stationId) {
+            playerState.movement = state.calculatePlayerMovement(this.playerId)
+        }
+
         playerState.momentum += this.sundiverIds.length
 
         state.hurled = true
