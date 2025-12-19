@@ -16,6 +16,7 @@ export class ActiveEffectsAnimator {
     private effectElements: Map<EffectType, Element> = new Map()
     private collapsedState?: Flip.FlipState
     private expanded = false
+    private currentTimeline?: gsap.core.Timeline = undefined
 
     addDeck(element: Element): void {
         this.deckElement = element
@@ -41,6 +42,11 @@ export class ActiveEffectsAnimator {
     }
 
     toggle() {
+        if (this.currentTimeline) {
+            this.currentTimeline.kill()
+            this.currentTimeline = undefined
+        }
+
         if (this.expanded) {
             this.contract()
             return
@@ -57,7 +63,9 @@ export class ActiveEffectsAnimator {
             return
         }
 
-        this.collapsedState = Flip.getState(elements)
+        if (!this.collapsedState) {
+            this.collapsedState = Flip.getState(elements)
+        }
         const state = this.collapsedState
         this.expanded = true
 
@@ -83,11 +91,14 @@ export class ActiveEffectsAnimator {
             })
         }
 
-        Flip.from(state, {
+        this.currentTimeline = Flip.from(state, {
             duration: 0.5,
             ease: 'power1.inOut',
             stagger: 0.2,
-            scale: true
+            scale: true,
+            onComplete: () => {
+                this.currentTimeline = undefined
+            }
         })
     }
 
@@ -97,14 +108,16 @@ export class ActiveEffectsAnimator {
         }
 
         const state = this.collapsedState
-        this.collapsedState = undefined
         this.expanded = false
 
-        Flip.to(state, {
+        this.currentTimeline = Flip.to(state, {
             duration: 0.5,
             ease: 'power1.inOut',
-            stagger: 0.2,
-            scale: true
+            stagger: { each: 0.2, from: 'end' },
+            scale: true,
+            onComplete: () => {
+                this.currentTimeline = undefined
+            }
         })
     }
 }
