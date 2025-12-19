@@ -14,6 +14,8 @@ export class ActiveEffectsAnimator {
     private deckElement?: Element
     private deckLocation?: Point
     private effectElements: Map<EffectType, Element> = new Map()
+    private collapsedState?: Flip.FlipState
+    private expanded = false
 
     addDeck(element: Element): void {
         this.deckElement = element
@@ -22,6 +24,8 @@ export class ActiveEffectsAnimator {
     removeDeck(): void {
         this.deckElement = undefined
         this.deckLocation = undefined
+        this.collapsedState = undefined
+        this.expanded = false
     }
 
     setDeckLocation(location: Point): void {
@@ -36,12 +40,26 @@ export class ActiveEffectsAnimator {
         this.effectElements?.delete(effect)
     }
 
+    toggle() {
+        if (this.expanded) {
+            this.contract()
+            return
+        }
+        this.expand()
+    }
+
     expand() {
-        if (!this.deckElement) {
+        if (!this.deckElement || this.expanded) {
             return
         }
         const elements = Array.from(this.effectElements.values())
-        const state = Flip.getState(elements)
+        if (elements.length === 0) {
+            return
+        }
+
+        this.collapsedState = Flip.getState(elements)
+        const state = this.collapsedState
+        this.expanded = true
 
         const boardLeft = (1280 - (CARD_WIDTH * SCALE * 2 + GAP)) / 2
         const boardTop = 10
@@ -66,6 +84,22 @@ export class ActiveEffectsAnimator {
         }
 
         Flip.from(state, {
+            duration: 0.5,
+            ease: 'power1.inOut',
+            stagger: 0.2
+        })
+    }
+
+    contract() {
+        if (!this.expanded || !this.collapsedState) {
+            return
+        }
+
+        const state = this.collapsedState
+        this.collapsedState = undefined
+        this.expanded = false
+
+        Flip.to(state, {
             duration: 0.5,
             ease: 'power1.inOut',
             stagger: 0.2

@@ -28,19 +28,24 @@
     const animator = new ActiveEffectsAnimator()
 
     function toggleDeck() {
-        animator.expand()
+        animator.toggle()
+    }
+
+    function handleCardClick(event: MouseEvent) {
+        event.stopPropagation()
+        animator.toggle()
     }
 </script>
 
 <g
     use:animateDeck={{ animator, location }}
-    onclick={toggleDeck}
     class="stroke-[#5a5141] hover:stroke-[#ffffff]"
     transform={`translate(${location.x}, ${location.y})`}
 >
     {#each effects as effect, index (effect)}
         <g
             use:animateEffectCard={{ animator, effect }}
+            onclick={handleCardClick}
             transform={`translate(${effects.length - index * 3}, ${effects.length - index * 3})`}
         >
             <EffectCardSvg effectType={effect} {width} {height} />
