@@ -28,6 +28,7 @@
     import ChainOverlay from './ChainOverlay.svelte'
     import { animateStation, StationAnimator } from '$lib/animators/stationAnimator.js'
     import Station from './Station.svelte'
+    import { ConvertType } from '$lib/definition/convertType.js'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -39,9 +40,11 @@
     }
 
     const gates = $derived.by(() => {
-        const entries: [number, SolarGate][] = Object.entries(
-            gameSession.gameState.board.gates
-        ).map(([key, gate]) => [Number(key), gate])
+        let entries: [number, SolarGate][] = Object.entries(gameSession.gameState.board.gates).map(
+            ([key, gate]) => [Number(key), gate]
+        )
+
+        entries = entries.filter(([key, gate]) => showGate(key))
         return new SvelteMap<number, SolarGate>(entries)
     })
 
@@ -89,6 +92,24 @@
     const cellsToOutline = $derived.by(() => {
         return gameSession.outlinedCells
     })
+
+    function showGate(key: number) {
+        if (gameSession.animating || !gameSession.myPlayer) return true
+
+        if (!gameSession.isConverting && !gameSession.isMoving) {
+            return true
+        }
+
+        if (gameSession.isConverting && gameSession.chosenConvertType === ConvertType.SolarGate) {
+            return !gameSession.validGateDestinations.includes(key)
+        }
+
+        if (gameSession.isMoving) {
+            return !gameSession.gateChoices?.includes(key)
+        }
+
+        return true
+    }
 </script>
 
 <div class="relative w-[1280px] h-[1280px]">
@@ -137,14 +158,6 @@
             </g>
         {/if}
 
-        {#each gameSession.gameState.board as cell}
-            <Cell {cell} />
-        {/each}
-
-        {#each gatePositions as gate (gate.key)}
-            <GateDestination {...gate} />
-        {/each}
-
         {#each [...gates] as [key, gate] (key)}
             {#if gate.innerCoords && gate.outerCoords}
                 <g class="pointer-events-none" use:animateGate={{ animator: gateAnimator, gate }}>
@@ -158,6 +171,14 @@
                     />
                 </g>
             {/if}
+        {/each}
+
+        {#each gameSession.gameState.board as cell}
+            <Cell {cell} />
+        {/each}
+
+        {#each gatePositions as gate (gate.key)}
+            <GateDestination {...gate} />
         {/each}
 
         <ChainOverlay />

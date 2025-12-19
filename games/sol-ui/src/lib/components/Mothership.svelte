@@ -152,7 +152,7 @@
         transform={shapeTransformation}
     >
         <DropShadow id={shadowId} width="150%" height="150%" offset={shadowOffset} amount={10} />
-        {#if interactable}
+        {#if interactable && color === Color.Black}
             <DropShadow
                 id={highlightId}
                 x="-50%"
