@@ -371,9 +371,11 @@
         </div>
     {:else if gameSession.isChaining && chainEntryWithoutDiver}
         <ChainSundiverPicker coords={chainEntryWithoutDiver.coords} />
-    {:else if gameSession.shouldPickCluster}
+    {/if}
+    {#if gameSession.shouldPickCluster}
         <ClusterPicker />
-    {:else if gameSession.shouldPickTeleport}
+    {/if}
+    {#if gameSession.shouldPickTeleport}
         <TeleportPicker />
     {/if}
 </div>

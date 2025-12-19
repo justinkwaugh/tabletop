@@ -24,7 +24,7 @@
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: HydratedSolPlayerState } = $props()
 
-    let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(playerState.playerId))
+    let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(playerState.playerId))
     let color = gameSession.colors.getPlayerColor(playerState.playerId)
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(playerState.playerId))
 
@@ -104,14 +104,12 @@
     <div
         class="sol-font-bold uppercase bg-cover rounded-lg {bgColor} pt-[3px] px-1 pb-1 text-center {gameSession.colors.getPlayerTextColor(
             playerState.playerId
-        )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
+        )} font-medium flex flex-col justify-between border-2 {isTurn
+            ? 'border-white pulse-border'
+            : gameSession.colors.getPlayerBorderColor(playerState.playerId)}"
     >
-        <h1
-            class="ms-2 text-left tracking-widest {isTurn
-                ? 'text-xl font-semibold'
-                : 'text-lg font-medium'}"
-        >
-            {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
+        <h1 class="ms-2 text-left tracking-widest text-lg">
+            {isTurn ? '\u21e2 ' : ''}{player.name}
         </h1>
         <div
             class="flex flex-row justify-between items-center rounded-lg dark:bg-black/70 w-full h-full p-1"

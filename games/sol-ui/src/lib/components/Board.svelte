@@ -106,10 +106,12 @@
 
         <!-- <Sandbox /> -->
         {#each [...sundiversById] as [, sundiver] (sundiver.id)}
-            <UISundiver
-                color={gameSession.colors.getPlayerColor(sundiver.playerId)}
-                animator={new SundiverAnimator(gameSession, sundiver.id)}
-            />
+            <g class="pointer-events-none">
+                <UISundiver
+                    color={gameSession.colors.getPlayerColor(sundiver.playerId)}
+                    animator={new SundiverAnimator(gameSession, sundiver.id)}
+                />
+            </g>
         {/each}
         {#each gameSession.movingCubeIds as cubeId (cubeId)}
             <g use:animateCube={{ animator: cubeAnimator, cubeId }}>

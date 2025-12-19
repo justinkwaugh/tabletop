@@ -2,14 +2,13 @@
     import { getContext } from 'svelte'
     import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { OffsetCoordinates, sameCoordinates } from '@tabletop/common'
+    import { Color, OffsetCoordinates, sameCoordinates } from '@tabletop/common'
     import {
         getCirclePoint,
         toRadians,
         translateFromCenter,
         type GatePosition
     } from '$lib/utils/boardGeometry.js'
-    import { ActionCategory } from '$lib/definition/actionCategory.js'
     import { ConvertType } from '$lib/definition/convertType.js'
     import { CENTER_COORDS } from '@tabletop/sol'
 
@@ -31,6 +30,8 @@
     let myConvert = $derived(gameSession.isMyTurn && gameSession.isConverting)
 
     let myMove = $derived(gameSession.isMyTurn && gameSession.isMoving)
+
+    let playerId = $derived(gameSession.gameState.board.gates[key]?.playerId)
 
     let interactable = $derived.by(() => {
         const myPlayer = gameSession.myPlayer
@@ -80,18 +81,26 @@
     }
 </script>
 
-<g
-    class="focusable-control"
-    role="button"
-    tabindex={interactable ? 0 : -1}
-    aria-disabled={interactable}
-    onclick={onClick}
-    onkeydown={onKeyDown}
-    transform={translateFromCenter(location.x, location.y)}
-    stroke="none"
->
-    {#if interactable && !gameSession.animating}
-        <circle cx="0" cy="0" r="24" stroke="black" stroke-width="4" fill="white" opacity="1"
+{#if interactable && !gameSession.animating}
+    <g
+        class="focusable-control"
+        role="button"
+        tabindex={interactable ? 0 : -1}
+        aria-disabled={interactable}
+        onclick={onClick}
+        onkeydown={onKeyDown}
+        transform={translateFromCenter(location.x, location.y)}
+        stroke="none"
+    >
+        <circle
+            class="hover:stroke-white"
+            cx="0"
+            cy="0"
+            r="24"
+            stroke="black"
+            stroke-width="4"
+            fill={playerId ? gameSession.colors.getPlayerUiColor(playerId) : Color.White}
+            opacity="1"
         ></circle>
-    {/if}
-</g>
+    </g>
+{/if}
