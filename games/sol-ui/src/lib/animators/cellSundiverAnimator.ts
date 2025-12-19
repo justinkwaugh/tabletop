@@ -3,11 +3,13 @@ import {
     CENTER_COORDS,
     Convert,
     Fly,
+    Hatch,
     Hurl,
     HydratedSolGameState,
     isActivate,
     isConvert,
     isFly,
+    isHatch,
     isHurl,
     isLaunch,
     Launch,
@@ -156,6 +158,8 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateLaunchAction(action, timeline, toState, fromState)
         } else if (isFly(action) || isHurl(action)) {
             this.animateFlyOrHurlAction(action, timeline, toState, fromState)
+        } else if (isHatch(action)) {
+            this.animateHatchAction(action, timeline, toState, fromState)
         }
     }
 
@@ -235,6 +239,13 @@ export class CellSundiverAnimator extends StateAnimator<
             )
         }
     }
+
+    animateHatchAction(
+        action: Hatch,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {}
 
     animateFlyOrHurlAction(
         action: Fly | Hurl,

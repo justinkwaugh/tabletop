@@ -49,6 +49,7 @@
                 dimensions.startDegrees,
                 dimensions.endDegrees
             )}
+            stroke-linejoin="round"
             fill="transparent"
         ></path>
     {/if}

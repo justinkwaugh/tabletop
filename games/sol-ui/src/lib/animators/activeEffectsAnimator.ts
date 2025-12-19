@@ -92,9 +92,9 @@ export class ActiveEffectsAnimator {
         }
 
         this.currentTimeline = Flip.from(state, {
-            duration: 0.5,
+            duration: 0.3,
             ease: 'power1.inOut',
-            stagger: 0.2,
+            stagger: 0.15,
             scale: true,
             onComplete: () => {
                 this.currentTimeline = undefined
@@ -111,9 +111,9 @@ export class ActiveEffectsAnimator {
         this.expanded = false
 
         this.currentTimeline = Flip.to(state, {
-            duration: 0.5,
+            duration: 0.3,
             ease: 'power1.inOut',
-            stagger: { each: 0.2, from: 'end' },
+            stagger: { each: 0.15, from: 'end' },
             scale: true,
             onComplete: () => {
                 this.currentTimeline = undefined

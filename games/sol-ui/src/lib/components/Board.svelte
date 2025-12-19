@@ -191,7 +191,7 @@
         {/each}
 
         <Deck width={100} height={142} location={{ x: 80, y: 10 }} />
-        <ActiveEffects width={135} height={100} location={{ x: 1100, y: 10 }} />
+        <ActiveEffects width={135} height={100} location={{ x: 1100, y: 16 }} />
         <g
             id="board-picker-ref"
             style="transform:translate({offsetFromCenter(gameSession.boardPickerLocation)
