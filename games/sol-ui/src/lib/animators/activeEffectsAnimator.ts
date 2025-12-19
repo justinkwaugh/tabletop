@@ -86,7 +86,8 @@ export class ActiveEffectsAnimator {
         Flip.from(state, {
             duration: 0.5,
             ease: 'power1.inOut',
-            stagger: 0.2
+            stagger: 0.2,
+            scale: true
         })
     }
 
@@ -102,7 +103,8 @@ export class ActiveEffectsAnimator {
         Flip.to(state, {
             duration: 0.5,
             ease: 'power1.inOut',
-            stagger: 0.2
+            stagger: 0.2,
+            scale: true
         })
     }
 }
