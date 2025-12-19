@@ -15,7 +15,8 @@ import {
     SolGameState,
     StationType,
     Suit,
-    Sundiver
+    Sundiver,
+    HydratedFly
 } from '@tabletop/sol'
 import {
     coordinatesToNumber,
@@ -63,15 +64,26 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     outlinedCells: OffsetCoordinates[] = $state([])
 
     shouldPickCluster: boolean = $derived(
-        (this.chosenNumDivers ?? 0) > 1 &&
+        this.myPlayer !== undefined &&
+            (this.chosenNumDivers ?? 0) > 1 &&
             this.chosenSource !== undefined &&
             this.gameState.activeEffect === EffectType.Cluster &&
             this.gameState.getEffectTracking().clustersRemaining > 0 &&
             this.clusterChoice === undefined
     )
 
+    shouldPickTeleport: boolean = $derived(
+        this.myPlayer !== undefined &&
+            this.chosenSource !== undefined &&
+            !this.chosenMothership &&
+            this.chosenNumDivers === 1 &&
+            this.gameState.activeEffect === EffectType.Teleport &&
+            HydratedFly.canTeleport(this.gameState, this.myPlayer.id) &&
+            this.teleportChoice === undefined
+    )
+
     boardPickerLocation = $derived.by(() => {
-        if (this.shouldPickCluster) {
+        if (this.shouldPickCluster || this.shouldPickTeleport) {
             return getSpaceCentroid(this.numPlayers, this.chosenSource!)
         } else if (this.isChaining) {
             const chainEntry = this.chain?.find((entry) => !entry.sundiverId)

@@ -323,7 +323,10 @@ export class CellSundiverAnimator extends StateAnimator<
                 toState,
                 fromState
             )
-            const flightDuration = SundiverAnimator.getFlightDuration(actualFlightPath.length)
+            const flightDuration = SundiverAnimator.getFlightDuration(
+                action,
+                actualFlightPath.length
+            )
 
             if (!numBefore) {
                 gsap.set(this.element!, {

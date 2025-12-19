@@ -10,8 +10,7 @@
         EffectType,
         HydratedActivate,
         HydratedActivateEffect,
-        HydratedChain,
-        HydratedFly
+        HydratedChain
     } from '@tabletop/sol'
     import ConvertPicker from '$lib/components/pickers/ConvertPicker.svelte'
     import CardPicker from '$lib/components/pickers/CardPicker.svelte'
@@ -25,17 +24,16 @@
     import ChainSundiverPicker from '$lib/components/pickers/ChainSundiverPicker.svelte'
     import { NotifierAnimator } from '$lib/animators/notifierAnimator.js'
     import ClusterPicker from '$lib/components/pickers/ClusterPicker.svelte'
+    import TeleportPicker from '$lib/components/pickers/TeleportPicker.svelte'
 
     enum YesActions {
         ActivateBonus = 'ActivateBonus',
-        SqueezeEffect = 'SqueezeEffect',
-        TeleportEffect = 'TeleportEffect'
+        SqueezeEffect = 'SqueezeEffect'
     }
 
     enum NoActions {
         Pass = 'Pass',
-        NoSqueezeEffect = 'NoSqueezeEffect',
-        NoTeleportEffect = 'NoTeleportEffect'
+        NoSqueezeEffect = 'NoSqueezeEffect'
     }
 
     type CallToAction = {
@@ -109,17 +107,6 @@
             } else if (gameSession.chosenNumDivers) {
                 if (gameSession.shouldPickCluster) {
                     result.message = `USE CLUSTER EFFECT?`
-                } else if (
-                    !gameSession.chosenMothership &&
-                    gameSession.chosenNumDivers === 1 &&
-                    gameSession.gameState.activeEffect === EffectType.Teleport &&
-                    HydratedFly.canTeleport(gameSession.gameState, gameSession.myPlayer.id) &&
-                    gameSession.teleportChoice === undefined
-                ) {
-                    result.message = 'USE TELEPORT EFFECT?'
-                    result.yesNo = true
-                    result.yesAction = YesActions.TeleportEffect
-                    result.noAction = NoActions.NoTeleportEffect
                 } else {
                     result.message = `CHOOSE A DESTINATION FOR ${gameSession.chosenNumDivers} SUNDIVER${
                         gameSession.chosenNumDivers > 1 ? 'S' : ''
@@ -263,8 +250,6 @@
             await gameSession.activateBonus()
         } else if (action === YesActions.SqueezeEffect) {
             await gameSession.activateEffect(EffectType.Squeeze)
-        } else if (action === YesActions.TeleportEffect) {
-            gameSession.teleportChoice = true
         } else {
             throw new Error('Unknown yes action')
         }
@@ -275,8 +260,6 @@
             await gameSession.pass()
         } else if (action === NoActions.NoSqueezeEffect) {
             await gameSession.activateStation()
-        } else if (action === NoActions.NoTeleportEffect) {
-            gameSession.teleportChoice = false
         } else {
             throw new Error('Unknown no action')
         }
@@ -390,6 +373,8 @@
         <ChainSundiverPicker coords={chainEntryWithoutDiver.coords} />
     {:else if gameSession.shouldPickCluster}
         <ClusterPicker />
+    {:else if gameSession.shouldPickTeleport}
+        <TeleportPicker />
     {/if}
 </div>
 

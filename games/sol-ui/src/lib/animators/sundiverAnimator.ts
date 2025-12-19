@@ -32,7 +32,7 @@ import {
     toRadians
 } from '$lib/utils/boardGeometry.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { fadeOut, move, scale, path } from '$lib/utils/animations.js'
+import { fadeOut, move, scale, path, fadeIn } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
 
@@ -268,11 +268,12 @@ export class SundiverAnimator extends StateAnimator<
             toState,
             fromState
         )
+
         if (locations.length === 0) {
             return
         }
-        const flightDuration = SundiverAnimator.getFlightDuration(locations.length)
 
+        const flightDuration = SundiverAnimator.getFlightDuration(fly, locations.length)
         const startLocation = locations.shift()
 
         // Appear... move... disappear
@@ -283,12 +284,29 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         const delayBetween = 0.3
+        const flightStart = index * delayBetween
+
+        if (fly.teleport) {
+            fadeOut({
+                object: this.element,
+                duration: 0.3,
+                timeline,
+                position: flightStart + 0.2
+            })
+            fadeIn({
+                object: this.element,
+                duration: 0.3,
+                timeline,
+                position: flightStart + flightDuration - 0.5
+            })
+        }
+
         path({
             object: this.element,
             path: locations.map((loc) => offsetFromCenter(loc)),
             curviness: 1,
             duration: flightDuration,
-            ease: 'power1.inOut',
+            ease: fly.teleport ? 'power2.inOut' : 'power1.inOut',
             timeline,
             position: index * delayBetween
         })
@@ -394,7 +412,10 @@ export class SundiverAnimator extends StateAnimator<
         return flightPath
     }
 
-    static getFlightDuration(pathLength: number): number {
+    static getFlightDuration(action: Fly | Hurl, pathLength: number): number {
+        if (action.teleport) {
+            return 1.5
+        }
         return Math.min(2, Math.max(1, pathLength * 0.3))
     }
 
