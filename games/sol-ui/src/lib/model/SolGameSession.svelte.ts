@@ -1137,12 +1137,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     async setEffects() {
         const desiredEffects = [
-            EffectType.Catapult,
-            EffectType.Juggernaut,
-            EffectType.Chain,
-            EffectType.Passage,
-            EffectType.Teleport,
-            EffectType.Cluster
+            EffectType.Portal,
+            EffectType.Accelerate,
+            EffectType.Metamorphosis,
+            EffectType.Procreate,
+            EffectType.Sacrifice,
+            EffectType.Hatch
         ]
 
         let i = 0

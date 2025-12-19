@@ -4,7 +4,6 @@ import {
     HydratedSolGameState,
     isActivate,
     isDrawCards,
-    isPass,
     isSolarFlare,
     MachineState,
     SolarFlare,
@@ -14,11 +13,10 @@ import {
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
-import { tick, untrack } from 'svelte'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { tick } from 'svelte'
+import { type GameAction } from '@tabletop/common'
 import { ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
 import { Flip } from 'gsap/dist/Flip'
-import { fade } from 'svelte/transition'
 import type { AnimationContext } from '@tabletop/frontend-components'
 
 type CardAndElement = {

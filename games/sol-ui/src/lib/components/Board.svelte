@@ -29,6 +29,7 @@
     import { animateStation, StationAnimator } from '$lib/animators/stationAnimator.js'
     import Station from './Station.svelte'
     import { ConvertType } from '$lib/definition/convertType.js'
+    import ActiveEffects from './ActiveEffects.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
@@ -123,7 +124,6 @@
         </defs>
 
         <InstabilityTrack width={760} height={35} location={{ x: (1280 - 760) / 2, y: 12 }} />
-        <Deck width={100} height={142} location={{ x: 80, y: 10 }} />
 
         <!-- <Sandbox /> -->
         {#each [...sundiversById] as [, sundiver] (sundiver.id)}
@@ -190,6 +190,8 @@
             <Mothership playerId={player.playerId} />
         {/each}
 
+        <Deck width={100} height={142} location={{ x: 80, y: 10 }} />
+        <ActiveEffects width={135} height={100} location={{ x: 1100, y: 10 }} />
         <g
             id="board-picker-ref"
             style="transform:translate({offsetFromCenter(gameSession.boardPickerLocation)
