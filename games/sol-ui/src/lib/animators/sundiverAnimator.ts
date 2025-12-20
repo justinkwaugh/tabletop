@@ -6,6 +6,7 @@ import {
     Convert,
     DrawCards,
     EffectType,
+    Hatch,
     Fly,
     Hurl,
     HydratedSolGameState,
@@ -14,6 +15,7 @@ import {
     isActivateEffect,
     isConvert,
     isDrawCards,
+    isHatch,
     isFly,
     isHurl,
     isLaunch,
@@ -180,6 +182,8 @@ export class SundiverAnimator extends StateAnimator<
             this.animateActivateEffectAction(action, timeline, toState, fromState)
         } else if (isDrawCards(action)) {
             this.animateDrawCardsAction(action, timeline, toState, fromState)
+        } else if (isHatch(action)) {
+            this.animateHatchAction(action, timeline, toState, fromState)
         }
     }
 
@@ -329,6 +333,58 @@ export class SundiverAnimator extends StateAnimator<
                 position: '>'
             })
         }
+    }
+
+    animateHatchAction(
+        action: Hatch,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !action.metadata?.replacedSundiver) {
+            return
+        }
+
+        if (action.metadata.replacedSundiver.id !== this.id) {
+            return
+        }
+
+        const startCell = fromState.board.cellAt(action.coords)
+        const startLocation = startCell
+            ? this.gameSession.locationForDiverInCell(action.targetPlayerId, startCell)
+            : undefined
+        const targetLocation = this.getMothershipLocationForPlayer(
+            fromState ?? toState,
+            action.targetPlayerId
+        )
+
+        if (!startLocation || !targetLocation) {
+            return
+        }
+
+        const leaveStart = 0.5
+
+        gsap.set(this.element!, {
+            opacity: 1,
+            x: offsetFromCenter(startLocation).x,
+            y: offsetFromCenter(startLocation).y
+        })
+
+        move({
+            object: this.element,
+            location: offsetFromCenter(targetLocation),
+            duration: 0.5,
+            ease: 'power2.in',
+            timeline,
+            position: leaveStart
+        })
+
+        fadeOut({
+            object: this.element!,
+            duration: 0.1,
+            timeline,
+            position: '>'
+        })
     }
 
     animateConvertAction(

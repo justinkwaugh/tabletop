@@ -18,7 +18,7 @@ import {
 import { StateAnimator } from './stateAnimator.js'
 import { GameAction, OffsetCoordinates, range, sameCoordinates, samePoint } from '@tabletop/common'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { fadeIn, fadeOut, move } from '$lib/utils/animations.js'
+import { fadeIn, fadeOut, move, scale } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
@@ -245,7 +245,91 @@ export class CellSundiverAnimator extends StateAnimator<
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
-    ) {}
+    ) {
+        if (!fromState || !sameCoordinates(action.coords, this.coords)) {
+            return
+        }
+
+        if (this.playerId === action.playerId) {
+            const numBefore = fromState.board.sundiversForPlayerAt(
+                action.playerId,
+                this.coords
+            ).length
+
+            const scaleUp = 1.3
+            const scaleUpDuration = 0.2
+            const delayBetween = 0.2
+            const scaleDownDuration = 0.3
+
+            gsap.set(this.element!, { transformOrigin: 'center center' })
+
+            scale({
+                object: this.element,
+                to: scaleUp,
+                duration: scaleUpDuration,
+                ease: 'power2.out',
+                timeline,
+                position: 0
+            })
+
+            timeline.call(
+                () => {
+                    this.quantityCallback?.(numBefore + 1)
+                },
+                [],
+                scaleUpDuration
+            )
+            timeline.call(
+                () => {
+                    this.quantityCallback?.(numBefore + 2)
+                },
+                [],
+                scaleUpDuration + delayBetween
+            )
+
+            const scaleDownStart = scaleUpDuration + delayBetween + 0.1
+            scale({
+                object: this.element,
+                to: 1,
+                duration: scaleDownDuration,
+                ease: 'back.out(2)',
+                timeline,
+                position: scaleDownStart
+            })
+            return
+        }
+
+        if (this.playerId === action.targetPlayerId) {
+            const numBefore = fromState.board.sundiversForPlayerAt(
+                action.targetPlayerId,
+                this.coords
+            ).length
+
+            if (numBefore <= 0) {
+                return
+            }
+
+            const numAfter = numBefore - 1
+
+            const leaveStart = 0.5
+            timeline.call(
+                () => {
+                    this.quantityCallback?.(numBefore - 1)
+                },
+                [],
+                leaveStart
+            )
+
+            if (numAfter === 0) {
+                fadeOut({
+                    object: this.element!,
+                    duration: 0,
+                    timeline,
+                    position: leaveStart
+                })
+            }
+        }
+    }
 
     animateFlyOrHurlAction(
         action: Fly | Hurl,
