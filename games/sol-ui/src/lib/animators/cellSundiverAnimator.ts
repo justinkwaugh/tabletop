@@ -1,12 +1,15 @@
 import {
     Activate,
+    ActivateEffect,
     CENTER_COORDS,
     Convert,
+    EffectType,
     Fly,
     Hatch,
     Hurl,
     HydratedSolGameState,
     isActivate,
+    isActivateEffect,
     isConvert,
     isFly,
     isHatch,
@@ -160,6 +163,8 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateFlyOrHurlAction(action, timeline, toState, fromState)
         } else if (isHatch(action)) {
             this.animateHatchAction(action, timeline, toState, fromState)
+        } else if (isActivateEffect(action)) {
+            this.animateActivateEffectAction(action, timeline, toState, fromState)
         }
     }
 
@@ -256,7 +261,7 @@ export class CellSundiverAnimator extends StateAnimator<
                 this.coords
             ).length
 
-            const scaleUp = 1.3
+            const scaleUp = 1.4
             const scaleUpDuration = 0.2
             const delayBetween = 0.2
             const scaleDownDuration = 0.3
@@ -292,7 +297,7 @@ export class CellSundiverAnimator extends StateAnimator<
                 object: this.element,
                 to: 1,
                 duration: scaleDownDuration,
-                ease: 'back.out(2)',
+                ease: 'back.out(3)',
                 timeline,
                 position: scaleDownStart
             })
@@ -329,6 +334,71 @@ export class CellSundiverAnimator extends StateAnimator<
                 })
             }
         }
+    }
+
+    animateActivateEffectAction(
+        action: ActivateEffect,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (
+            !fromState ||
+            action.effect !== EffectType.Procreate ||
+            this.playerId !== action.playerId
+        ) {
+            return
+        }
+
+        const procreatedCoords = action.metadata?.procreatedCoords
+        if (!procreatedCoords?.length) {
+            return
+        }
+
+        const isTargetCell = procreatedCoords.some((coords) =>
+            sameCoordinates(coords, this.coords)
+        )
+        if (!isTargetCell) {
+            return
+        }
+
+        const numBefore = fromState.board.sundiversForPlayerAt(
+            action.playerId,
+            this.coords
+        ).length
+
+        const scaleUp = 1.4
+        const scaleUpDuration = 0.2
+        const scaleDownDuration = 0.3
+
+        gsap.set(this.element!, { transformOrigin: 'center center' })
+
+        scale({
+            object: this.element,
+            to: scaleUp,
+            duration: scaleUpDuration,
+            ease: 'power2.out',
+            timeline,
+            position: 0
+        })
+
+        timeline.call(
+            () => {
+                this.quantityCallback?.(numBefore + 1)
+            },
+            [],
+            scaleUpDuration
+        )
+
+        const scaleDownStart = scaleUpDuration + 0.1
+        scale({
+            object: this.element,
+            to: 1,
+            duration: scaleDownDuration,
+            ease: 'back.out(3)',
+            timeline,
+            position: scaleDownStart
+        })
     }
 
     animateFlyOrHurlAction(

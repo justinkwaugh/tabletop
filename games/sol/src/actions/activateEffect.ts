@@ -24,7 +24,8 @@ export const ActivateEffectMetadata = Type.Object({
     coords: Type.Optional(OffsetCoordinates),
     energyAdded: Type.Number(),
     createdSundiverIds: Type.Array(Type.String()),
-    momentumAdded: Type.Number()
+    momentumAdded: Type.Number(),
+    procreatedCoords: Type.Array(OffsetCoordinates)
 })
 
 export type ActivateEffect = Static<typeof ActivateEffect>
@@ -73,7 +74,8 @@ export class HydratedActivateEffect
         this.metadata = {
             energyAdded: 0,
             createdSundiverIds: [],
-            momentumAdded: 0
+            momentumAdded: 0,
+            procreatedCoords: []
         }
         // Retroactive ceremony application
         if (
@@ -143,6 +145,7 @@ export class HydratedActivateEffect
                     if (newDiver) {
                         state.board.addSundiversToCell([newDiver], cell.coords)
                         this.metadata.createdSundiverIds.push(newDiver.id)
+                        this.metadata.procreatedCoords.push(cell.coords)
                     }
                 }
             }
