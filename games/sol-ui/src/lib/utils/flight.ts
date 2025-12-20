@@ -5,9 +5,97 @@ import {
     dimensionsForSpace,
     getCirclePoint,
     getGatePosition,
+    getMothershipSpotPoint,
     getSpaceCentroid,
     toRadians
-} from './boardGeometry.js'
+} from '$lib/utils/boardGeometry.js'
+
+export function getFlightPaths({
+    action,
+    gameSession,
+    playerId,
+    pathCoords,
+    toState,
+    fromState
+}: {
+    action: Fly | Hurl
+    gameSession: SolGameSession
+    playerId: string
+    pathCoords: OffsetCoordinates[]
+    toState: HydratedSolGameState
+    fromState: HydratedSolGameState
+}): Point[][] {
+    const board = fromState.board
+    let flightLegs: OffsetCoordinates[][] = action.teleport
+        ? [pathCoords]
+        : getFlightLegs(pathCoords, board)
+
+    console.log(flightLegs)
+
+    // First leg cannot start at a mothership
+    const flightPaths: Point[][] = []
+    flightLegs.forEach((leg, i) => {
+        const path = getFlightPath({
+            action,
+            gameSession,
+            playerId,
+            pathCoords: leg,
+            toState: i < flightLegs.length - 1 ? fromState : toState, // Only last leg is going to toState
+            fromState
+        })
+        console.log('path before', [...path])
+        if (i < flightLegs.length - 1) {
+            // Ends at mothership
+            const mothership = fromState.findAdjacentMothership(leg.at(-1)!) ?? playerId
+            const mothershipIndex = board.motherships[mothership]
+            const mothershipLocation = getMothershipSpotPoint(
+                gameSession.numPlayers,
+                mothershipIndex
+            )
+            path.push(mothershipLocation)
+        } else if (i > 0) {
+            // Starts at mothership
+            const mothership = toState.findAdjacentMothership(leg.at(0)!) ?? playerId
+            const mothershipIndex = board.motherships[mothership]
+            const mothershipLocation = getMothershipSpotPoint(
+                gameSession.numPlayers,
+                mothershipIndex
+            )
+            path.unshift(mothershipLocation)
+        }
+        console.log('Path after', [...path])
+        flightPaths.push(path)
+        i++
+    })
+    console.log('flightPaths', flightPaths)
+    return flightPaths
+}
+
+function getFlightLegs(pathCoords: OffsetCoordinates[], board: any): OffsetCoordinates[][] {
+    let flightLegs: OffsetCoordinates[][] = []
+
+    let currentFlightLeg: OffsetCoordinates[] = []
+    for (const coord of pathCoords) {
+        const lastCoord = currentFlightLeg.at(-1)
+        if (!lastCoord) {
+            currentFlightLeg.push(coord)
+            continue
+        }
+
+        if (board.areAdjacent(lastCoord, coord)) {
+            currentFlightLeg.push(coord)
+            continue
+        }
+
+        flightLegs.push(currentFlightLeg)
+        currentFlightLeg = [coord]
+    }
+    if (currentFlightLeg.length > 0) {
+        flightLegs.push(currentFlightLeg)
+    }
+
+    return flightLegs
+}
 
 export function getFlightPath({
     action,
@@ -26,6 +114,21 @@ export function getFlightPath({
 }): Point[] {
     const flightPath: Point[] = []
 
+    // Special case that arises during portal second leg
+    if (pathCoords.length === 1) {
+        const coords = pathCoords[0]
+        const cell = toState.board.cellAt(coords)
+        const location = action.stationId
+            ? gameSession.locationForStationInCell(cell)
+            : gameSession.locationForDiverInCell(playerId, cell)
+        if (location) {
+            flightPath.push(location)
+        } else {
+            flightPath.push(getSpaceCentroid(gameSession.numPlayers, coords))
+        }
+        return flightPath
+    }
+
     let hadGate = false
     for (let i = 0; i < pathCoords.length; i++) {
         const coords = pathCoords[i]
@@ -34,23 +137,19 @@ export function getFlightPath({
         let location: Point | undefined
         if (i === 0) {
             const cell = fromState.board.cellAt(coords)
-            if (action.stationId) {
-                console.log('using station location')
-                location = gameSession.locationForStationInCell(cell)
-            } else {
-                location = gameSession.locationForDiverInCell(playerId, cell)
-            }
+            console.log('First coord', coords, cell)
+            const location = action.stationId
+                ? gameSession.locationForStationInCell(cell)
+                : gameSession.locationForDiverInCell(playerId, cell)
+            console.log('Location', location)
             if (location) {
                 flightPath.push(location)
             }
         } else if (i === pathCoords.length - 1) {
             const cell = toState.board.cellAt(coords)
-            if (action.stationId) {
-                console.log('using station location')
-                location = gameSession.locationForStationInCell(cell)
-            } else {
-                location = gameSession.locationForDiverInCell(playerId, cell)
-            }
+            const location = action.stationId
+                ? gameSession.locationForStationInCell(cell)
+                : gameSession.locationForDiverInCell(playerId, cell)
             if (location) {
                 flightPath.push(location)
             }

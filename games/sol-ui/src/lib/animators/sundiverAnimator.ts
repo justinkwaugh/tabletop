@@ -23,7 +23,13 @@ import {
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import { GameAction, OffsetCoordinates, sameCoordinates, type Point } from '@tabletop/common'
+import {
+    GameAction,
+    OffsetCoordinates,
+    sameCoordinates,
+    samePoint,
+    type Point
+} from '@tabletop/common'
 import {
     getCirclePoint,
     getGatePosition,
@@ -35,7 +41,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeOut, move, scale, path, fadeIn } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import { getFlightDuration, getFlightPath } from '$lib/utils/flight.js'
+import { getFlightDuration, getFlightPath, getFlightPaths } from '$lib/utils/flight.js'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -258,77 +264,90 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
-        const flightPath = structuredClone(fly.metadata?.flightPath)
-        if (!flightPath || flightPath.length < 2) {
+        const flightPathCoords = structuredClone(fly.metadata?.flightPath)
+        if (!flightPathCoords || flightPathCoords.length < 2) {
             return
         }
 
-        const locations = getFlightPath({
+        const flightPaths = getFlightPaths({
             action: fly,
             gameSession: this.gameSession,
             playerId: fly.playerId,
-            pathCoords: flightPath,
+            pathCoords: flightPathCoords,
             toState,
             fromState
         })
 
-        if (locations.length === 0) {
+        if (flightPaths.length === 0) {
             return
         }
 
-        const flightDuration = getFlightDuration(fly, locations.length)
-        const startLocation = locations.shift()
+        let flightLegStart = 0
 
-        // Appear... move... disappear
-        gsap.set(this.element!, {
-            opacity: 1,
-            x: offsetFromCenter(startLocation).x,
-            y: offsetFromCenter(startLocation).y
-        })
+        for (const flightLeg of flightPaths) {
+            const flightDuration = getFlightDuration(fly, flightLeg.length)
+            const [startLocation, ...pathPoints] = flightLeg
+            if (!startLocation) {
+                continue
+            }
 
-        const delayBetween = 0.3
-        const flightStart = index * delayBetween
+            const delayBetween = 0.3
+            const flightStart = flightLegStart + index * delayBetween
 
-        if (fly.teleport) {
-            fadeOut({
+            // Appear... move... disappear
+            timeline.set(
+                this.element!,
+                {
+                    opacity: 1,
+                    x: offsetFromCenter(startLocation).x,
+                    y: offsetFromCenter(startLocation).y
+                },
+                flightStart
+            )
+
+            if (fly.teleport) {
+                fadeOut({
+                    object: this.element,
+                    duration: 0.3,
+                    timeline,
+                    position: flightStart + 0.2
+                })
+                fadeIn({
+                    object: this.element,
+                    duration: 0.3,
+                    timeline,
+                    position: flightStart + flightDuration - 0.5
+                })
+            }
+
+            path({
                 object: this.element,
-                duration: 0.3,
+                path: pathPoints.map((loc) => offsetFromCenter(loc)),
+                curviness: 1,
+                duration: flightDuration,
+                ease: fly.teleport ? 'power2.inOut' : 'power1.inOut',
                 timeline,
-                position: flightStart + 0.2
+                position: flightStart
             })
-            fadeIn({
-                object: this.element,
-                duration: 0.3,
-                timeline,
-                position: flightStart + flightDuration - 0.5
-            })
-        }
 
-        path({
-            object: this.element,
-            path: locations.map((loc) => offsetFromCenter(loc)),
-            curviness: 1,
-            duration: flightDuration,
-            ease: fly.teleport ? 'power2.inOut' : 'power1.inOut',
-            timeline,
-            position: index * delayBetween
-        })
-
-        if (sameCoordinates(flightPath.at(-1), CENTER_COORDS)) {
-            // Special case for center space - just fade out
-            fadeOut({
-                object: this.element!,
-                duration: 0.3,
-                timeline,
-                position: '>'
-            })
-        } else {
-            fadeOut({
-                object: this.element!,
-                duration: 0,
-                timeline,
-                position: '>'
-            })
+            if (samePoint(pathPoints.at(-1), { x: 0, y: 0 })) {
+                // Special case for center space - just fade out
+                fadeOut({
+                    object: this.element!,
+                    duration: 0.3,
+                    timeline,
+                    position: '>'
+                })
+            } else {
+                timeline.set(
+                    this.element!,
+                    {
+                        opacity: 0
+                    },
+                    '>'
+                )
+            }
+            flightLegStart = flightStart + flightDuration
         }
     }
 
@@ -659,11 +678,6 @@ export class SundiverAnimator extends StateAnimator<
 
     getMothershipLocationForPlayer(gameState: HydratedSolGameState, playerId: string): Point {
         const mothershipIndex = gameState.board.motherships[playerId]
-        const spotPoint = getMothershipSpotPoint(gameState.players.length, mothershipIndex)
-
-        return {
-            x: spotPoint.x,
-            y: spotPoint.y
-        }
+        return getMothershipSpotPoint(gameState.players.length, mothershipIndex)
     }
 }

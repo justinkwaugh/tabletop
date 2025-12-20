@@ -12,7 +12,8 @@ import { Hurl } from './hurl.js'
 export type FlyMetadata = Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({
     flightPath: Type.Array(OffsetCoordinates),
-    puncturedGate: Type.Optional(SolarGate)
+    puncturedGate: Type.Optional(SolarGate),
+    portal: Type.Boolean()
 })
 
 export type Fly = Static<typeof Fly>
@@ -74,7 +75,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         this.metadata = {
-            flightPath: path
+            flightPath: path,
+            portal: state.activeEffect === EffectType.Portal
         }
 
         HydratedFly.handleFlightEffects(state, this, path)

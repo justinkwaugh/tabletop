@@ -26,7 +26,7 @@ import { gsap } from 'gsap'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { SundiverAnimator } from './sundiverAnimator.js'
-import { getFlightDuration, getFlightPath } from '$lib/utils/flight.js'
+import { getFlightDuration, getFlightPaths } from '$lib/utils/flight.js'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -477,20 +477,26 @@ export class CellSundiverAnimator extends StateAnimator<
                 fromState?.board.sundiversForPlayerAt(action.playerId, this.coords).length ?? 0
             const numAfter = toState.board.sundiversForPlayerAt(action.playerId, this.coords).length
 
-            const flightPath = action.metadata?.flightPath
-            if (!flightPath || flightPath.length < 2) {
+            const flightPathCoords = action.metadata?.flightPath
+            if (!flightPathCoords || flightPathCoords.length < 2) {
                 return
             }
 
-            const actualFlightPath = getFlightPath({
+            const actualFlightPaths = getFlightPaths({
                 action,
                 gameSession: this.gameSession,
                 playerId: action.playerId,
-                pathCoords: flightPath,
+                pathCoords: flightPathCoords,
                 toState,
                 fromState
             })
-            const flightDuration = getFlightDuration(action, actualFlightPath.length)
+            if (actualFlightPaths.length === 0) {
+                return
+            }
+
+            const flightDuration = actualFlightPaths.reduce((total, path) => {
+                return total + getFlightDuration(action, path.length)
+            }, 0)
 
             if (!numBefore) {
                 gsap.set(this.element!, {

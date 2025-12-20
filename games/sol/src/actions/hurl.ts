@@ -11,12 +11,13 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { SolarGate } from '../components/solarGate.js'
 import { CENTER_COORDS } from '../components/gameBoard.js'
-import { EffectType } from '../components/effects.js'
+import { Effect, EffectType } from '../components/effects.js'
 import { HydratedFly } from './fly.js'
 
 export type HurlMetadata = Static<typeof HurlMetadata>
 export const HurlMetadata = Type.Object({
-    flightPath: Type.Array(OffsetCoordinates)
+    flightPath: Type.Array(OffsetCoordinates),
+    portal: Type.Boolean()
 })
 
 export type Hurl = Static<typeof Hurl>
@@ -72,7 +73,8 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
             throw Error('Invalid hurl')
         }
         this.metadata = {
-            flightPath: path
+            flightPath: path,
+            portal: state.activeEffect === EffectType.Portal
         }
 
         HydratedFly.handleFlightEffects(state, this, path)

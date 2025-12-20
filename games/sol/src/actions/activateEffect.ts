@@ -415,7 +415,10 @@ export class HydratedActivateEffect
             return acc
         }, 0)
         const playerState = state.getPlayerState(playerId)
-        return playerState.reserveSundivers.length >= numReserveSundiversNeeded
+        return (
+            numReserveSundiversNeeded > 0 &&
+            playerState.reserveSundivers.length >= numReserveSundiversNeeded
+        )
     }
 
     static canActivatePulse(state: HydratedSolGameState, playerId: string): boolean {
