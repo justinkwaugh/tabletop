@@ -57,6 +57,8 @@ export class NotifierAnimator extends StateAnimator<
             (action.effect === EffectType.Squeeze || action.effect === EffectType.Augment)
         ) {
             this.animateActivate(action, animationContext)
+        } else if (isActivateEffect(action) && action.effect === EffectType.Procreate) {
+            this.animateProcreate(action, animationContext)
         } else if (isTribute(action)) {
             this.animateTribute(action, animationContext)
         } else if (isDrawCards(action)) {
@@ -86,6 +88,14 @@ export class NotifierAnimator extends StateAnimator<
 
     animateFuel(animationContext: AnimationContext) {
         this.gameSession.forcedCallToAction = 'ADDED 3 MOVEMENT POINTS'
+        animationContext.ensureDuration(1.5)
+    }
+
+    animateProcreate(action: ActivateEffect, animationContext: AnimationContext) {
+        const createdCount = action.metadata?.createdSundiverIds?.length ?? 0
+
+        const plural = createdCount === 1 ? '' : 'S'
+        this.gameSession.forcedCallToAction = `${createdCount} SUN DIVER${plural} PROCREATED`
         animationContext.ensureDuration(1.5)
     }
 

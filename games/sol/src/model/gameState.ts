@@ -3,6 +3,7 @@ import {
     GameState,
     HydratableGameState,
     HydratedSimpleTurnManager,
+    OffsetCoordinates,
     PrngState
 } from '@tabletop/common'
 import { SolPlayerState, HydratedSolPlayerState } from './playerState.js'
@@ -187,5 +188,11 @@ export class HydratedSolGameState
             (acc, ring) => (this.board.hasStationInRing(playerId, ring as Ring) ? acc + 1 : acc),
             3
         )
+    }
+
+    findAdjacentMothership(coords: OffsetCoordinates): string | undefined {
+        return this.players
+            .map((player) => player.playerId)
+            .find((playerId) => this.board.isAdjacentToMothership(coords, playerId))
     }
 }

@@ -149,6 +149,8 @@ export class HydratedActivateEffect
                     }
                 }
             }
+            // We did it, no need
+            state.activeEffect = undefined
         } else if (
             this.effect === EffectType.Hatch ||
             this.effect === EffectType.Accelerate ||

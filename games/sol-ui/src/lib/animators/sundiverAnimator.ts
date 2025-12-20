@@ -25,11 +25,9 @@ import {
 import { StateAnimator } from './stateAnimator.js'
 import { GameAction, OffsetCoordinates, sameCoordinates, type Point } from '@tabletop/common'
 import {
-    dimensionsForSpace,
     getCirclePoint,
     getGatePosition,
     getMothershipSpotPoint,
-    getSpaceCentroid,
     offsetFromCenter,
     toRadians
 } from '$lib/utils/boardGeometry.js'
@@ -199,10 +197,9 @@ export class SundiverAnimator extends StateAnimator<
         }
         const board = toState.board
 
-        const diverLocation = this.getMothershipLocationForPlayer(
-            fromState ?? toState,
-            launch.mothership
-        )
+        // Determine which mothership, because portal can make it any
+        const mothership = toState.findAdjacentMothership(launch.destination) ?? launch.mothership
+        const diverLocation = this.getMothershipLocationForPlayer(fromState ?? toState, mothership)
 
         const targetCell = board.cellAt(launch.destination)
         const targetLocation = this.gameSession.locationForDiverInCell(launch.playerId, targetCell)
