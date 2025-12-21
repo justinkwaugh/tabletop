@@ -85,6 +85,12 @@ export const MOTHERSHIP_OFFSETS: Record<string, MothershipOffsets> = {
     }
 }
 
+export function numMothershipSpots(numPlayers: number) {
+    return numPlayers === 5
+        ? FIVE_PLAYER_ANGLES[Ring.Outer].length
+        : ONE_TO_FOUR_PLAYER_ANGLES[Ring.Outer].length
+}
+
 export function getCirclePoint(radius: number, radians: number) {
     return {
         x: radius * Math.cos(radians),

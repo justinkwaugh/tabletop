@@ -84,8 +84,8 @@ export function rotate({
     position?: gsap.Position
     timeline?: gsap.core.Timeline
     onComplete?: () => void
-}) {
-    performAnimation({
+}): gsap.core.Timeline | undefined {
+    return performAnimation({
         object,
         params: {
             rotation: degrees,
@@ -240,7 +240,7 @@ function performAnimation({
     params?: any
     position?: gsap.Position
     timeline?: gsap.core.Timeline
-}) {
+}): gsap.core.Timeline | undefined {
     if (!object) {
         return
     }
@@ -251,4 +251,6 @@ function performAnimation({
     if (!timeline) {
         myTimeline.play()
     }
+
+    return myTimeline
 }

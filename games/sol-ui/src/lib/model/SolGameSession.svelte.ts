@@ -29,6 +29,7 @@ import {
 import { getCellLayout } from '$lib/utils/cellLayouts.js'
 import { ConvertType } from '$lib/definition/convertType.js'
 import { getMothershipSpotPoint, getSpaceCentroid } from '$lib/utils/boardGeometry.js'
+import { SvelteMap } from 'svelte/reactivity'
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
@@ -99,6 +100,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
 
         return { x: 0, y: 0 }
+    })
+
+    mothershipLocations = $derived.by(() => {
+        return new SvelteMap<string, number>(Object.entries(this.gameState.board.motherships))
     })
 
     drawnCards: Card[] = $derived.by(() => {

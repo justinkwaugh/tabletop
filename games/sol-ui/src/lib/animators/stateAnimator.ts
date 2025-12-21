@@ -56,3 +56,17 @@ export function attachAnimator(
         }
     }
 }
+
+export function animate(
+    node: HTMLElement | SVGElement,
+    params: { animator: StateAnimator<any, any, any> }
+): { destroy: () => void } {
+    params.animator.setElement(node)
+    params.animator.onAttach()
+    params.animator.register()
+    return {
+        destroy() {
+            params.animator.unregister()
+        }
+    }
+}

@@ -20,10 +20,9 @@
         toRadians
     } from '$lib/utils/boardGeometry.js'
     import { Color } from '@tabletop/common'
-    import { ActionCategory } from '$lib/definition/actionCategory.js'
     import { HydratedLaunch } from '@tabletop/sol'
     import DropShadow from './DropShadow.svelte'
-    import { MothershipAnimator } from '$lib/animators/mothershipAnimator.js'
+    import { animateMothership, MothershipAnimator } from '$lib/animators/mothershipAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
 
     let { playerId }: { playerId: string } = $props()
@@ -36,7 +35,7 @@
     let shadowId = `shipshadow-${playerId}`
     let highlightId = `highlight-${shadowId}`
 
-    let locationIndex = $derived(gameSession.gameState.board.motherships[playerId])
+    let locationIndex = $derived(gameSession.mothershipLocations.get(playerId) ?? 0)
 
     const offsets = MOTHERSHIP_OFFSETS[color]
 
@@ -140,10 +139,13 @@
         return offset
     })
 
-    const animator = attachAnimator(new MothershipAnimator(gameSession, playerId))
+    const animator = new MothershipAnimator(gameSession, playerId)
 </script>
 
-<g class={interactable ? '' : 'pointer-events-none'} {@attach animator}>
+<g
+    use:animateMothership={{ animator, index: locationIndex }}
+    class={interactable ? '' : 'pointer-events-none'}
+>
     <g
         bind:this={shipElement}
         onclick={onMouseClick}

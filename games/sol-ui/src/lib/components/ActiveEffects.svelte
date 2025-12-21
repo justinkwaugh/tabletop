@@ -27,10 +27,6 @@
 
     const animator = new ActiveEffectsAnimator()
 
-    function toggleDeck() {
-        animator.toggle()
-    }
-
     function handleCardClick(event: MouseEvent) {
         event.stopPropagation()
         animator.toggle()
