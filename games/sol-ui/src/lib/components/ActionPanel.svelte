@@ -70,7 +70,7 @@
             }
         } else if (gameSession.isAccelerating) {
             if (!gameSession.accelerationAmount) {
-                result.message = 'HOW MUCH ACCELERATION?'
+                result.message = 'MOVE THE MOTHERSHIPS'
             }
         } else if (gameSession.isTributing) {
             if (!gameSession.chosenSource) {
@@ -351,9 +351,7 @@
             <HatchPicker />
         </div>
     {:else if gameSession.isAccelerating && !gameSession.accelerationAmount}
-        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
-            <AccelerationPicker />
-        </div>
+        <AccelerationPicker />
     {:else if gameSession.isMetamorphosizing && !gameSession.metamorphosisType}
         <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
             <MetamorphosisPicker />

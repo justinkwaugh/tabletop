@@ -85,7 +85,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     )
 
     boardPickerLocation = $derived.by(() => {
-        if (this.shouldPickCluster || this.shouldPickTeleport) {
+        if (this.isAccelerating && !this.accelerationAmount) {
+            return { x: 0, y: -515 }
+        } else if (this.shouldPickCluster || this.shouldPickTeleport) {
             return getSpaceCentroid(this.numPlayers, this.chosenSource!)
         } else if (this.isChaining) {
             const chainEntry = this.chain?.find((entry) => !entry.sundiverId)
