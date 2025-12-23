@@ -34,6 +34,7 @@ export class CellStationAnimator extends StateAnimator<
     SolGameSession
 > {
     private station?: Station
+    private clipRect?: SVGRectElement
 
     constructor(
         gameSession: SolGameSession,
@@ -43,15 +44,25 @@ export class CellStationAnimator extends StateAnimator<
         super(gameSession)
     }
 
-    addStation(station: Station, element: HTMLElement | SVGElement): void {
+    addStation(
+        station: Station,
+        element: HTMLElement | SVGElement,
+        clipRect?: SVGRectElement
+    ): void {
         console.log('adding cell station')
         this.station = station
         this.setElement(element)
+        this.setClipRect(clipRect)
     }
 
     removeStation(): void {
         delete this.station
         this.setElement(undefined)
+        this.setClipRect(undefined)
+    }
+
+    setClipRect(clipRect?: SVGRectElement): void {
+        this.clipRect = clipRect
     }
 
     override async onGameStateChange({
@@ -241,13 +252,26 @@ export class CellStationAnimator extends StateAnimator<
             return
         }
 
-        fadeOut({
-            object: this.element,
-            duration: 0.3,
-            timeline: animationContext.actionTimeline,
-            ease: 'power1.out',
-            position: 0
-        })
+        const hasClip = Boolean(this.clipRect)
+        const hideDuration = hasClip ? 1 : 0
+        const revealDuration = hasClip ? 1 : 0
+
+        if (this.clipRect) {
+            gsap.set(this.clipRect, { attr: { y: 0, height: 1 } })
+            animate({
+                object: this.clipRect,
+                params: {
+                    attr: {
+                        y: 1,
+                        height: 0
+                    }
+                },
+                timeline: animationContext.actionTimeline,
+                duration: hideDuration,
+                ease: 'none',
+                position: 0
+            })
+        }
 
         if (!newStation.coords) {
             return
@@ -262,31 +286,52 @@ export class CellStationAnimator extends StateAnimator<
 
                 tick()
                     .then(() => {
-                        gsap.set(this.element!, {
-                            opacity: 0
-                        })
-                        fadeIn({
-                            object: this.element,
-                            duration: 1
-                        })
+                        const nextClipRect = this.clipRect
+                        if (nextClipRect) {
+                            gsap.set(nextClipRect, { attr: { y: 1, height: 0 } })
+                            animate({
+                                object: nextClipRect,
+                                params: {
+                                    attr: {
+                                        y: 0,
+                                        height: 1
+                                    }
+                                },
+                                duration: revealDuration,
+                                ease: 'power2.in'
+                            })
+                        }
                     })
                     .catch(() => {
                         console.log('error')
                     })
             },
-
-            position: 0.5,
-            duration: 1
+            timeline: animationContext.actionTimeline,
+            position: hideDuration,
+            duration: hasClip ? revealDuration : undefined
         })
     }
 }
 
 export function animateStation(
     node: HTMLElement | SVGElement,
-    params: { animator: CellStationAnimator; station: Station }
-): { destroy: () => void } | undefined {
-    params.animator.addStation(params.station, node)
+    params: { animator: CellStationAnimator; station: Station; clipRect?: SVGRectElement }
+):
+    | {
+          destroy: () => void
+          update: (params: {
+              animator: CellStationAnimator
+              station: Station
+              clipRect?: SVGRectElement
+          }) => void
+      }
+    | undefined {
+    params.animator.addStation(params.station, node, params.clipRect)
     return {
+        update(nextParams) {
+            params = nextParams
+            params.animator.addStation(params.station, node, params.clipRect)
+        },
         destroy() {
             params.animator.removeStation()
         }

@@ -457,6 +457,7 @@
         }
     )
     stationAnimator.register()
+    let stationClipRect: SVGRectElement | undefined
 
     let hovered = false
     function onMouseEnter() {
@@ -477,8 +478,17 @@
 </script>
 
 {#snippet renderStation(station: Station, width: number, height: number)}
+    <defs>
+        <clipPath
+            id={`station-clip-${coordinatesToNumber(cell.coords)}`}
+            clipPathUnits="objectBoundingBox"
+        >
+            <rect bind:this={stationClipRect} x="0" y="0" width="1" height="1" />
+        </clipPath>
+    </defs>
     <g
-        use:animateStation={{ animator: stationAnimator, station }}
+        use:animateStation={{ animator: stationAnimator, station, clipRect: stationClipRect }}
+        clip-path={`url(#station-clip-${coordinatesToNumber(cell.coords)})`}
         transform={translateFromCenter(stationLocation.x, stationLocation.y)}
     >
         <UIStation
