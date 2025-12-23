@@ -196,6 +196,7 @@
             id="board-picker-ref"
             style="transform:translate({offsetFromCenter(gameSession.boardPickerLocation)
                 .x}px, {offsetFromCenter(gameSession.boardPickerLocation).y}px);"
-        ></g>
+            ><rect width="1" height="1" fill="transparent"></rect></g
+        >
     </svg>
 </div>

@@ -51,9 +51,11 @@
         if (!referenceElement || !popover) {
             return
         }
+
         return dom
             .computePosition(referenceElement, popover, { placement, middleware, strategy })
             .then(({ x, y, middlewareData: { arrow }, placement: pl, strategy }) => {
+                console.log('to ', { x, y, pl, strategy })
                 if (popover) {
                     Object.assign(popover.style, {
                         position: strategy,
