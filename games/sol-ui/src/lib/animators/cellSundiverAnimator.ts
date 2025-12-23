@@ -15,7 +15,9 @@ import {
     isHatch,
     isHurl,
     isLaunch,
+    isSacrifice,
     Launch,
+    Sacrifice,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
@@ -95,6 +97,7 @@ export class CellSundiverAnimator extends StateAnimator<
         const fromDivers = from?.board.sundiversForPlayerAt(this.playerId, this.coords) ?? []
 
         if (toDivers.length > 0) {
+            gsap.set(this.element!, { scale: 1 })
             // Check locations
             const targetLocation = this.gameSession.locationForDiverInCell(this.playerId, toCell)
             if (!targetLocation) {
@@ -165,6 +168,8 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateHatchAction(action, timeline, toState, fromState)
         } else if (isActivateEffect(action)) {
             this.animateActivateEffectAction(action, timeline, toState, fromState)
+        } else if (isSacrifice(action)) {
+            this.animateSacrificeAction(action, timeline)
         }
     }
 
@@ -396,6 +401,69 @@ export class CellSundiverAnimator extends StateAnimator<
             to: 1,
             duration: scaleDownDuration,
             ease: 'back.out(3)',
+            timeline,
+            position: scaleDownStart
+        })
+    }
+
+    animateSacrificeAction(action: Sacrifice, timeline: gsap.core.Timeline) {
+        if (!sameCoordinates(action.coords, this.coords)) {
+            return
+        }
+
+        const sacrificedSundivers = action.metadata?.sacrificedSundivers
+        if (!sacrificedSundivers?.length) {
+            return
+        }
+
+        const playerIds = Array.from(
+            new Set(sacrificedSundivers.map((sundiver) => sundiver.playerId))
+        )
+        const playerIndex = playerIds.indexOf(this.playerId)
+        if (playerIndex < 0) {
+            return
+        }
+
+        const staggerDelay = 0.15
+        const start = playerIndex * staggerDelay
+
+        const scaleUp = 1.4
+        const scaleUpDuration = 0.2
+        const scaleDownDuration = 0.3
+
+        gsap.set(this.element!, { transformOrigin: 'center center' })
+
+        scale({
+            object: this.element,
+            to: scaleUp,
+            duration: scaleUpDuration,
+            ease: 'power2.out',
+            timeline,
+            position: start
+        })
+
+        const scaleDownStart = start + scaleUpDuration
+        timeline.call(
+            () => {
+                this.quantityCallback?.(0)
+            },
+            [],
+            scaleDownStart
+        )
+
+        scale({
+            object: this.element,
+            to: 0,
+            duration: scaleDownDuration,
+            ease: 'power2.in',
+            timeline,
+            position: scaleDownStart
+        })
+
+        fadeOut({
+            object: this.element,
+            duration: scaleDownDuration,
+            ease: 'power2.in',
             timeline,
             position: scaleDownStart
         })
