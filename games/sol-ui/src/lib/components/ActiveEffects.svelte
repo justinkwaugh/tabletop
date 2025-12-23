@@ -8,6 +8,7 @@
         animateDeck,
         animateEffectCard
     } from '$lib/animators/activeEffectsAnimator.js'
+    import type { Effect, Suit } from '@tabletop/sol'
 
     let {
         width = 35,
@@ -21,9 +22,7 @@
 
     let gameSession = getContext('gameSession') as SolGameSession
 
-    let effects = $derived(
-        Object.values(gameSession.gameState.effects).map((effect) => effect.type)
-    )
+    let effects = $derived(Object.entries(gameSession.gameState.effects) as [Suit, Effect][])
 
     const animator = new ActiveEffectsAnimator()
 
@@ -38,13 +37,13 @@
     class="stroke-[#5a5141] hover:stroke-[#ffffff]"
     transform={`translate(${location.x}, ${location.y})`}
 >
-    {#each effects as effect, index (effect)}
+    {#each effects as [suit, effect], index (effect)}
         <g
-            use:animateEffectCard={{ animator, effect }}
+            use:animateEffectCard={{ animator, effect: effect.type }}
             onclick={handleCardClick}
             transform={`translate(${effects.length - index * 3}, ${effects.length - index * 3})`}
         >
-            <EffectCardSvg effectType={effect} {width} {height} />
+            <EffectCardSvg effectType={effect.type} effectSuit={suit} {width} {height} />
         </g>
     {/each}
 </g>

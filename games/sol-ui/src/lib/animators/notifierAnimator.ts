@@ -14,9 +14,11 @@ import {
     isConvert,
     isDrawCards,
     isFuel,
+    isMetamorphosize,
     isSolarFlare,
     isTribute,
     MachineState,
+    Metamorphosize,
     SolarFlare,
     Station,
     StationType,
@@ -65,6 +67,8 @@ export class NotifierAnimator extends StateAnimator<
             if (from?.activeEffect === EffectType.Squeeze) {
                 this.animateDrawCards(action, animationContext)
             }
+        } else if (isMetamorphosize(action)) {
+            this.animateMetamorphisis(action, animationContext)
         }
     }
 
@@ -127,5 +131,46 @@ export class NotifierAnimator extends StateAnimator<
             )
             animationContext.ensureDuration(4)
         }
+    }
+
+    animateMetamorphisis(action: Metamorphosize, animationContext: AnimationContext) {
+        const originalStationType = action.metadata?.priorStation.type
+        const newStationType = action.metadata?.newStation.type
+        if (!originalStationType || !newStationType) {
+            return
+        }
+
+        const message = `CONVERTED ${this.nameForStationType(originalStationType)} TO ${this.nameForStationType(newStationType)}`
+        this.playMessage(message, animationContext)
+    }
+
+    nameForStationType(type: StationType) {
+        switch (type) {
+            case StationType.EnergyNode:
+                return 'ENERGY NODE'
+            case StationType.SundiverFoundry:
+                return 'SUNDIVER FOUNDRY'
+            case StationType.TransmitTower:
+                return 'TRANSMIT TOWER'
+        }
+    }
+
+    playMessage(
+        message: string,
+        animationContext: AnimationContext,
+        position: number = 0,
+        duration: number = 1.5
+    ) {
+        animationContext.actionTimeline.call(
+            () => {
+                this.gameSession.forcedCallToAction = message
+            },
+            [],
+            position
+        )
+
+        const currentDuration = animationContext.actionTimeline.duration()
+        const totalDuration = currentDuration + duration
+        animationContext.ensureDuration(totalDuration)
     }
 }

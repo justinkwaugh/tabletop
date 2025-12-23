@@ -353,9 +353,7 @@
     {:else if gameSession.isAccelerating && !gameSession.accelerationAmount}
         <AccelerationPicker />
     {:else if gameSession.isMetamorphosizing && !gameSession.metamorphosisType}
-        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
-            <MetamorphosisPicker />
-        </div>
+        <MetamorphosisPicker />
     {:else if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
         <CardPicker animator={cardPickerAnimator} />
     {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers && !gameSession.juggernautStationId}

@@ -66,7 +66,10 @@
                 triggeredBy={`[id='${card.id}']`}
                 trigger="hover"
                 arrow={false}
-                ><EffectCard effectType={gameSession.gameState.effects[card.suit].type} /></Popover
+                ><EffectCard
+                    effectType={gameSession.gameState.effects[card.suit].type}
+                    effectSuit={card.suit}
+                /></Popover
             >
         {/if}
     {/each}

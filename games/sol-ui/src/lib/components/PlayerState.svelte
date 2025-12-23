@@ -266,6 +266,7 @@
                             offset={15}
                             ><EffectCard
                                 effectType={gameSession.gameState.effects[card.suit].type}
+                                effectSuit={card.suit}
                             /></Popover
                         >
                     </div>

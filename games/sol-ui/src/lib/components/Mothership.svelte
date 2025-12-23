@@ -23,7 +23,6 @@
     import { HydratedLaunch } from '@tabletop/sol'
     import DropShadow from './DropShadow.svelte'
     import { animateMothership, MothershipAnimator } from '$lib/animators/mothershipAnimator.js'
-    import { attachAnimator } from '$lib/animators/stateAnimator.js'
 
     let { playerId }: { playerId: string } = $props()
     let gameSession = getContext('gameSession') as SolGameSession

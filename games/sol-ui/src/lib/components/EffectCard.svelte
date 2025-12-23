@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { EffectType } from '@tabletop/sol'
+    import { EffectType, Suit } from '@tabletop/sol'
     import Accelerate from '$lib/images/effects/accelerate.png'
     import Augment from '$lib/images/effects/augment.png'
     import Blight from '$lib/images/effects/blight.png'
@@ -30,8 +30,9 @@
     import Teleport from '$lib/images/effects/teleport.png'
     import Transcend from '$lib/images/effects/transcend.png'
     import Tribute from '$lib/images/effects/tribute.png'
+    import SuitMarker from './SuitMarker.svelte'
 
-    let { effectType }: { effectType: EffectType } = $props()
+    let { effectType, effectSuit }: { effectType: EffectType; effectSuit: Suit } = $props()
 
     const effectImages: Record<EffectType, string> = {
         [EffectType.Accelerate]: Accelerate,
@@ -76,6 +77,8 @@
 </script>
 
 <div
-    class="bg-cover bg-center bg-no-repeat w-[250px] h-[184px]"
+    class="bg-cover bg-center bg-no-repeat w-[250px] h-[184px] relative"
     style:background-image={effectTypeToBackgroundImage(effectType)}
-></div>
+>
+    <SuitMarker class="absolute top-[109px] left-[180px] w-[44px] h-[44px]" suit={effectSuit} />
+</div>

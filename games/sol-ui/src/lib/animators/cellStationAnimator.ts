@@ -7,14 +7,22 @@ import {
     isConvert,
     isFly,
     isHurl,
+    isMetamorphosize,
+    Metamorphosize,
     Station,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
-import { Point, sameCoordinates, type GameAction, type OffsetCoordinates } from '@tabletop/common'
-import { animate, fadeIn, fadeOut } from '$lib/utils/animations.js'
+import {
+    Point,
+    sameCoordinates,
+    samePoint,
+    type GameAction,
+    type OffsetCoordinates
+} from '@tabletop/common'
+import { animate, fadeIn, fadeOut, move } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
@@ -60,6 +68,8 @@ export class CellStationAnimator extends StateAnimator<
             await this.animateConvert(action, animationContext.actionTimeline, to, from)
         } else if (isFly(action) || isHurl(action)) {
             this.animateFlyOrHurlAction(action, animationContext.actionTimeline, to, from)
+        } else if (isMetamorphosize(action)) {
+            this.animateMetamorphosize(action, animationContext, to, from)
         } else {
             const toBoard = to.board
             const fromBoard = from?.board
@@ -75,6 +85,25 @@ export class CellStationAnimator extends StateAnimator<
                     timeline: animationContext.actionTimeline,
                     duration: 0.3
                 })
+            } else if (toStation && !fromStation) {
+                fadeIn({
+                    object: this.element!,
+                    timeline: animationContext.actionTimeline,
+                    duration: 0.3
+                })
+            } else if (fromCell && toCell) {
+                const fromLocation = this.gameSession.locationForStationInCell(fromCell)
+                const toLocation = this.gameSession.locationForStationInCell(toCell)
+                if (!samePoint(fromLocation, toLocation)) {
+                    move({
+                        object: this.element,
+                        timeline: animationContext.actionTimeline,
+                        location: offsetFromCenter(toLocation),
+                        ease: 'power2.inOut',
+                        duration: 1,
+                        position: 0
+                    })
+                }
             }
         }
     }
@@ -205,6 +234,60 @@ export class CellStationAnimator extends StateAnimator<
                 position: flightDuration
             })
         }
+    }
+
+    animateMetamorphosize(
+        action: Metamorphosize,
+        animationContext: AnimationContext,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || this.station?.id !== action.stationId) {
+            return
+        }
+        const station = fromState?.board.findStation(action.stationId)
+        const newStation = action.metadata?.newStation
+        if (!station || !newStation) {
+            return
+        }
+
+        fadeOut({
+            object: this.element,
+            duration: 0.3,
+            timeline: animationContext.actionTimeline,
+            ease: 'power1.out',
+            position: 0
+        })
+
+        if (!newStation.coords) {
+            return
+        }
+        const newCell = toState.board.cellAt(newStation.coords)
+
+        animationContext.actionTimeline.call(
+            () => {
+                if (this.callback) {
+                    this.callback(newStation, this.gameSession.locationForStationInCell(newCell))
+                }
+
+                tick()
+                    .then(() => {
+                        gsap.set(this.element!, {
+                            opacity: 0
+                        })
+                        fadeIn({
+                            object: this.element,
+                            duration: 1
+                        })
+                    })
+                    .catch(() => {
+                        console.log('error')
+                    })
+            },
+            [],
+            0.5
+        )
+        animationContext.ensureDuration(2)
     }
 }
 

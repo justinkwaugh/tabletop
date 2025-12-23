@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { EffectType } from '@tabletop/sol'
+    import { EffectType, Suit } from '@tabletop/sol'
     import Accelerate from '$lib/images/effects/accelerate.png'
     import Augment from '$lib/images/effects/augment.png'
     import Blight from '$lib/images/effects/blight.png'
@@ -31,13 +31,16 @@
     import Transcend from '$lib/images/effects/transcend.png'
     import Tribute from '$lib/images/effects/tribute.png'
     import type { SVGAttributes } from 'svelte/elements'
+    import SuitMarker from './SuitMarker.svelte'
 
     let {
         effectType,
+        effectSuit,
         width = 184,
         height = 100
     }: {
         effectType: EffectType
+        effectSuit?: Suit
         width?: number
         height?: number
     } & SVGAttributes<SVGElement> = $props()
@@ -82,8 +85,23 @@
     export function effectTypeToBackgroundImage(effectType: EffectType): string {
         return `url("${effectTypeToImage(effectType)}")`
     }
+
+    let markerWidth = 27
 </script>
 
-<image xlink:href={effectTypeToImage(effectType)} {width} {height} clip-path="inset(0% round 10px)"
-></image>
-<rect rx="10" ry="10" {width} {height} fill="transparent" stroke="#5a5141" stroke-width="2"></rect>
+<g {width} {height}>
+    <image
+        xlink:href={effectTypeToImage(effectType)}
+        {width}
+        {height}
+        clip-path="inset(0% round 10px)"
+    ></image>
+    {#if effectSuit}
+        <g transform="translate(97.25, 59.25)">
+            <SuitMarker suit={effectSuit} svg={true} width={23.5} height={23.5} />
+        </g>
+    {/if}
+    <rect rx="10" ry="10" {width} {height} fill="transparent" stroke="#5a5141" stroke-width="2"
+    ></rect>
+</g>
+<!-- <g transform="translate(95.5, 57.5)"><image xlink:href="/@fs/Users/justin.w/dev/tabletop/games/sol-ui/dist/images/suitMarkers/refraction.png" width="27" height="27"></image></g> -->

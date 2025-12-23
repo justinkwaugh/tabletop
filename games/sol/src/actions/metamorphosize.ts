@@ -7,11 +7,15 @@ import {
     isEnergyNode,
     isSundiverFoundry,
     isTransmitTower,
+    Station,
     StationType
 } from '../components/stations.js'
 
 export type MetamorphosizeMetadata = Static<typeof MetamorphosizeMetadata>
-export const MetamorphosizeMetadata = Type.Object({})
+export const MetamorphosizeMetadata = Type.Object({
+    priorStation: Station,
+    newStation: Station
+})
 
 export type Metamorphosize = Static<typeof Metamorphosize>
 export const Metamorphosize = Type.Evaluate(
@@ -62,6 +66,7 @@ export class HydratedMetamorphosize
         if (!removedStation) {
             throw Error('Failed to remove station')
         }
+
         switch (true) {
             case isEnergyNode(removedStation):
                 playerState.energyNodes.push(removedStation)
@@ -80,14 +85,17 @@ export class HydratedMetamorphosize
             case StationType.EnergyNode:
                 const playerNode = playerState.removeEnergyNode()
                 state.board.addStationAt(playerNode, coords)
+                this.metadata = { priorStation: removedStation, newStation: playerNode }
                 break
             case StationType.SundiverFoundry:
                 const playerFoundry = playerState.removeSundiverFoundry()
                 state.board.addStationAt(playerFoundry, coords)
+                this.metadata = { priorStation: removedStation, newStation: playerFoundry }
                 break
             case StationType.TransmitTower:
                 const playerTower = playerState.removeTransmitTower()
                 state.board.addStationAt(playerTower, coords)
+                this.metadata = { priorStation: removedStation, newStation: playerTower }
                 break
         }
 

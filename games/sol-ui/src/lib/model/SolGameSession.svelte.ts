@@ -89,6 +89,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return { x: 0, y: -515 }
         } else if (this.shouldPickCluster || this.shouldPickTeleport) {
             return getSpaceCentroid(this.numPlayers, this.chosenSource!)
+        } else if (this.isMetamorphosizing && !this.metamorphosisType) {
+            try {
+                const station = this.gameState.getActivatingStation()
+                return getSpaceCentroid(this.numPlayers, station.coords!)
+            } catch {
+                console.log("can't find activating station")
+            }
         } else if (this.isChaining) {
             const chainEntry = this.chain?.find((entry) => !entry.sundiverId)
             if (chainEntry) {
