@@ -120,10 +120,6 @@
                 if (!gameSession.chosenDestination) {
                     result.message = 'WHO WILL YOU INVADE?'
                 }
-            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
-                if (!gameSession.chosenDestination) {
-                    result.message = 'WHERE WILL YOU SACRIFICE?'
-                }
             } else if (!gameSession.chosenConvertType) {
                 result.message = 'WHAT WILL YOU CONVERT?'
             } else if (gameSession.diverCellChoices) {
@@ -163,6 +159,10 @@
                 !gameSession.chosenSource
             ) {
                 result.message = 'CHOOSE A SUNDIVER TO BLIGHT WITH'
+            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
+                if (!gameSession.chosenDestination) {
+                    result.message = 'WHERE WILL YOU SACRIFICE?'
+                }
             } else if (!gameSession.gameState.activation) {
                 result.message = 'CHOOSE A STATION'
             } else if (!gameSession.gameState.activation.currentStationId) {
@@ -346,10 +346,8 @@
         {/key}
     </div>
 
-    {#if gameSession.isHatching && !gameSession.hatchTarget}
-        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
-            <HatchPicker />
-        </div>
+    {#if gameSession.isHatching && gameSession.hatchLocation && !gameSession.hatchTarget}
+        <HatchPicker />
     {:else if gameSession.isAccelerating && !gameSession.accelerationAmount}
         <AccelerationPicker />
     {:else if gameSession.isMetamorphosizing && !gameSession.metamorphosisType}

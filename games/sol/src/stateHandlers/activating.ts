@@ -10,6 +10,7 @@ import { Activation } from '../model/activation.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
 import { HydratedBlight, isBlight } from '../actions/blight.js'
+import { HydratedSacrifice, isSacrifice } from '../actions/sacrifice.js'
 
 // Transition from Activating(Pass) -> Activating | DrawingCards | StartOfTurn
 // Transition from Activating(ActivateBonus) -> Activating | DrawingCards | StartOfTurn
@@ -20,6 +21,7 @@ type ActivatingAction =
     | HydratedActivate
     | HydratedActivateEffect
     | HydratedBlight
+    | HydratedSacrifice
 
 export class ActivatingStateHandler implements MachineStateHandler<ActivatingAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is ActivatingAction {
@@ -31,7 +33,8 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             isActivateEffect(action) ||
             (isBlight(action) && gameState.activeEffect === EffectType.Blight) ||
             (isActivate(action) && gameState.activation?.currentStationId === undefined) ||
-            (isActivateBonus(action) && gameState.activation?.currentStationId !== undefined)
+            (isActivateBonus(action) && gameState.activation?.currentStationId !== undefined) ||
+            isSacrifice(action)
         )
     }
 
@@ -61,6 +64,13 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             validActions.push(ActionType.Blight)
         }
 
+        if (
+            gameState.activeEffect === EffectType.Sacrifice &&
+            HydratedSacrifice.canSacrifice(gameState)
+        ) {
+            validActions.push(ActionType.Sacrifice)
+        }
+
         console.log('Valid activating actions', validActions)
         return validActions
     }
@@ -76,6 +86,9 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             }
             case isActivateEffect(action): {
                 return onActivateEffect(action, context)
+            }
+            case isSacrifice(action): {
+                return drawCardsOrEndTurn(gameState, context)
             }
             case isActivate(action): {
                 const effects = [EffectType.Augment, EffectType.Squeeze, EffectType.Duplicate]

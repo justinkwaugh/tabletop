@@ -8,31 +8,19 @@ import { HydratedConvert, isConvert } from '../actions/convert.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
 import { HydratedInvade, isInvade } from '../actions/invade.js'
-import { HydratedSacrifice, isSacrifice } from '../actions/sacrifice.js'
 
 // Transition from Converting(Pass) -> DrawingCards | StartOfTurn
 // Transition from Converting(Convert) -> Converting | DrawingCards | StartOfTurn
 // Transition from Converting(ActivateEffect) -> Converting
 
-type ConvertingAction =
-    | HydratedConvert
-    | HydratedPass
-    | HydratedActivateEffect
-    | HydratedSacrifice
-    | HydratedInvade
+type ConvertingAction = HydratedConvert | HydratedPass | HydratedActivateEffect | HydratedInvade
 
 export class ConvertingStateHandler implements MachineStateHandler<ConvertingAction> {
     isValidAction(action: HydratedAction, context: MachineContext): action is ConvertingAction {
         if (!action.playerId) return false
         const gameState = context.gameState as HydratedSolGameState
 
-        return (
-            isPass(action) ||
-            isConvert(action) ||
-            isActivateEffect(action) ||
-            isInvade(action) ||
-            isSacrifice(action)
-        )
+        return isPass(action) || isConvert(action) || isActivateEffect(action) || isInvade(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
@@ -55,13 +43,6 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
             validActions.push(ActionType.Invade)
         }
 
-        if (
-            gameState.activeEffect === EffectType.Sacrifice &&
-            HydratedSacrifice.canSacrifice(gameState)
-        ) {
-            validActions.push(ActionType.Sacrifice)
-        }
-
         console.log('Valid converting actions', validActions)
         return validActions
     }
@@ -73,9 +54,6 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
 
         switch (true) {
             case isInvade(action): {
-                return drawCardsOrEndTurn(gameState, context)
-            }
-            case isSacrifice(action): {
                 return drawCardsOrEndTurn(gameState, context)
             }
             case isConvert(action): {

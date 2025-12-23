@@ -226,6 +226,35 @@ export function animate({
     })
 }
 
+export function call({
+    callback,
+    duration,
+    position,
+    timeline,
+    onComplete
+}: {
+    callback: gsap.Callback
+    params?: object
+    duration?: number
+    ease?: gsap.EaseString | gsap.EaseFunction
+    position?: gsap.Position
+    timeline?: gsap.core.Timeline
+    onComplete?: () => void
+}) {
+    const myTimeline = timeline || gsap.timeline()
+    myTimeline.call(callback, [], position)
+    if (duration !== undefined) {
+        const currentDuration = myTimeline.duration()
+        ensureDuration(myTimeline, currentDuration + duration)
+    }
+
+    if (!timeline) {
+        myTimeline.play()
+    }
+
+    return myTimeline
+}
+
 export function ensureDuration(timeline: gsap.core.Timeline, duration: number) {
     timeline.set({}, {}, duration)
 }

@@ -202,8 +202,6 @@
                     myPlayerState.playerId,
                     cell.coords
                 )
-            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
-                return HydratedSacrifice.canSacrificeAt(gameSession.gameState, cell.coords)
             } else if (gameSession.chosenConvertType === ConvertType.SolarGate) {
                 return gameSession.diverCellChoices?.includes(coordinatesToNumber(cell.coords))
             } else if (gameSession.chosenConvertType === ConvertType.EnergyNode) {
@@ -241,6 +239,8 @@
                     myPlayerState.playerId,
                     cell.coords
                 )
+            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
+                return HydratedSacrifice.canSacrificeAt(gameSession.gameState, cell.coords)
             } else if (!gameSession.chosenSource && cell.station) {
                 return HydratedActivate.canActivateStationAt(
                     gameSession.gameState,
@@ -384,9 +384,6 @@
             if (gameSession.gameState.activeEffect === EffectType.Invade) {
                 gameSession.chosenDestination = cell.coords
                 await gameSession.invade()
-            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
-                gameSession.chosenDestination = cell.coords
-                await gameSession.sacrifice()
             } else if (gameSession.diverCellChoices) {
                 if (gameSession.chosenDiverCell) {
                     gameSession.chosenSecondDiverCell = cell.coords
@@ -415,6 +412,9 @@
 
             if (gameSession.gameState.activeEffect === EffectType.Blight) {
                 await gameSession.blight()
+            } else if (gameSession.gameState.activeEffect === EffectType.Sacrifice) {
+                gameSession.chosenDestination = cell.coords
+                await gameSession.sacrifice()
             } else {
                 await gameSession.activateStation()
             }

@@ -40,6 +40,7 @@ export class AnimationContext {
         const animations = this.masterTimeline.getChildren()
         console.log(`Playing ${animations.length} animations for action state change: `, animations)
         await this.masterTimeline.play()
+        console.log('Finished playing animations')
     }
 
     runAfterAnimations() {

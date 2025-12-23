@@ -14,6 +14,7 @@
         strategy = 'absolute',
         middlewares = [dom.flip(), dom.shift()],
         isOpen = $bindable(false),
+        trigger = 'auto',
         onClose,
         children,
         ...restProps
@@ -24,6 +25,7 @@
         strategy?: 'absolute' | 'fixed'
         middlewares?: Middleware[]
         isOpen?: boolean
+        trigger?: 'auto' | 'manual'
         onClose?: () => void
         children: Snippet
     } = $props()
@@ -89,7 +91,7 @@
 
 <div
     class="bg-transparent"
-    popover="auto"
+    popover={trigger}
     role="tooltip"
     bind:this={popover}
     transition:fade={{ duration: 100, easing: sineIn }}

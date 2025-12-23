@@ -444,7 +444,7 @@ export class HydratedActivateEffect
     }
 
     static canActivateSacrifice(state: HydratedSolGameState, playerId: string): boolean {
-        if (state.machineState !== MachineState.Converting) {
+        if (state.machineState !== MachineState.Activating) {
             return false
         }
         return HydratedSacrifice.canSacrifice(state)

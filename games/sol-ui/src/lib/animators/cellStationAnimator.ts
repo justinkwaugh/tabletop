@@ -22,7 +22,7 @@ import {
     type GameAction,
     type OffsetCoordinates
 } from '@tabletop/common'
-import { animate, fadeIn, fadeOut, move } from '$lib/utils/animations.js'
+import { animate, call, fadeIn, fadeOut, move } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
@@ -44,6 +44,7 @@ export class CellStationAnimator extends StateAnimator<
     }
 
     addStation(station: Station, element: HTMLElement | SVGElement): void {
+        console.log('adding cell station')
         this.station = station
         this.setElement(element)
     }
@@ -67,9 +68,9 @@ export class CellStationAnimator extends StateAnimator<
         if (isConvert(action)) {
             await this.animateConvert(action, animationContext.actionTimeline, to, from)
         } else if (isFly(action) || isHurl(action)) {
-            this.animateFlyOrHurlAction(action, animationContext.actionTimeline, to, from)
+            await this.animateFlyOrHurlAction(action, animationContext.actionTimeline, to, from)
         } else if (isMetamorphosize(action)) {
-            this.animateMetamorphosize(action, animationContext, to, from)
+            await this.animateMetamorphosize(action, animationContext, to, from)
         } else {
             const toBoard = to.board
             const fromBoard = from?.board
@@ -175,13 +176,7 @@ export class CellStationAnimator extends StateAnimator<
                 return
             }
 
-            // Disappear right when the last one leaves
-            fadeOut({
-                object: this.element,
-                duration: 0,
-                timeline,
-                position: 0
-            })
+            timeline.set(this.element!, { opacity: 0 }, 0)
         }
 
         if (isDestination) {
@@ -227,16 +222,11 @@ export class CellStationAnimator extends StateAnimator<
 
             console.log('Animating arrival for station:', this.station?.id)
             // Appear right when they arrive
-            fadeIn({
-                object: this.element,
-                duration: 0,
-                timeline,
-                position: flightDuration
-            })
+            timeline.set(this.element!, { opacity: 1 }, flightDuration)
         }
     }
 
-    animateMetamorphosize(
+    async animateMetamorphosize(
         action: Metamorphosize,
         animationContext: AnimationContext,
         toState: HydratedSolGameState,
@@ -264,8 +254,8 @@ export class CellStationAnimator extends StateAnimator<
         }
         const newCell = toState.board.cellAt(newStation.coords)
 
-        animationContext.actionTimeline.call(
-            () => {
+        call({
+            callback: () => {
                 if (this.callback) {
                     this.callback(newStation, this.gameSession.locationForStationInCell(newCell))
                 }
@@ -284,10 +274,10 @@ export class CellStationAnimator extends StateAnimator<
                         console.log('error')
                     })
             },
-            [],
-            0.5
-        )
-        animationContext.ensureDuration(2)
+
+            position: 0.5,
+            duration: 1
+        })
     }
 }
 

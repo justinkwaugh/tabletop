@@ -11,8 +11,6 @@ import { HydratedChooseActivate, isChooseActivate } from '../actions/chooseActiv
 import { HydratedChooseConvert, isChooseConvert } from '../actions/chooseConvert.js'
 import { HydratedChooseMove, isChooseMove } from '../actions/chooseMove.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
-import { ActivateEffect } from '../actions/activateEffect.js'
-import { EffectType } from '../components/effects.js'
 
 type ActivatedEffectAction =
     | HydratedChooseMove

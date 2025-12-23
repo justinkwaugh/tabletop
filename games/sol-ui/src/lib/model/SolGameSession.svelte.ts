@@ -96,6 +96,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             } catch {
                 console.log("can't find activating station")
             }
+        } else if (this.isHatching && this.hatchLocation && !this.hatchTarget) {
+            return getSpaceCentroid(this.numPlayers, this.hatchLocation)
         } else if (this.isChaining) {
             const chainEntry = this.chain?.find((entry) => !entry.sundiverId)
             if (chainEntry) {
