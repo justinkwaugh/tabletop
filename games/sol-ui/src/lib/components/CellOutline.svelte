@@ -36,7 +36,7 @@
     id={`cell-outline-${coordinatesToNumber(coords)}`}
     class="pointer-events-none"
     transform={translateFromCenter(0, 0)}
-    stroke={gameSession.animating ? 'transparent' : 'white'}
+    stroke={gameSession.updatingVisibleState ? 'transparent' : 'white'}
     stroke-width={8}
 >
     {#if isCenterCell}

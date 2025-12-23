@@ -17,7 +17,13 @@ import {
     Suit,
     Sundiver,
     HydratedFly,
-    Station
+    Station,
+    ChooseActivate,
+    ChooseMove,
+    ChooseConvert,
+    isChooseActivate,
+    isChooseConvert,
+    isChooseMove
 } from '@tabletop/sol'
 import {
     coordinatesToNumber,
@@ -380,7 +386,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.forcedCallToAction = undefined
     }
 
-    override shouldAutoStepAction(_action: GameAction) {
+    override shouldAutoStepAction(action: GameAction) {
+        if (isChooseActivate(action) || isChooseConvert(action) || isChooseMove(action)) {
+            return true
+        }
         return false
     }
 
@@ -1140,7 +1149,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async doAction(action: GameAction) {
-        if (!this.isPlayable || this.animating) {
+        if (!this.isPlayable || this.busy) {
             return
         }
 

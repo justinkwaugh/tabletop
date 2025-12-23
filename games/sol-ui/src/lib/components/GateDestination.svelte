@@ -81,7 +81,7 @@
     }
 </script>
 
-{#if interactable && !gameSession.animating}
+{#if interactable && !gameSession.updatingVisibleState}
     <g
         class="focusable-control"
         role="button"

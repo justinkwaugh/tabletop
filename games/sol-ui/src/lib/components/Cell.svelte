@@ -254,7 +254,7 @@
     })
 
     let disabled = $derived.by(() => {
-        if (gameSession.animating) {
+        if (gameSession.updatingVisibleState) {
             return false
         }
         if (interactable) {
@@ -483,7 +483,7 @@
             id={`station-clip-${coordinatesToNumber(cell.coords)}`}
             clipPathUnits="objectBoundingBox"
         >
-            <rect bind:this={stationClipRect} x="0" y="0" width="1" height="1" />
+            <rect bind:this={stationClipRect} x="0" y="0" width="1" height="1"></rect>
         </clipPath>
     </defs>
     <g

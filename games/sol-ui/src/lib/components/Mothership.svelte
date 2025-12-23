@@ -52,7 +52,7 @@
     let myMove = $derived(gameSession.isMyTurn && gameSession.isMoving)
 
     let interactable = $derived.by(() => {
-        if (gameSession.animating) {
+        if (gameSession.updatingVisibleState) {
             return false
         }
         const myPlayer = gameSession.myPlayer
@@ -68,7 +68,7 @@
         return HydratedLaunch.canLaunchFromMothership(gameSession.gameState, myPlayer.id, playerId)
     })
 
-    let disabled = $derived(myMove && !interactable && !gameSession.animating)
+    let disabled = $derived(myMove && !interactable && !gameSession.updatingVisibleState)
 
     $effect(() => {
         if (!interactable) {
@@ -144,6 +144,7 @@
 <g
     use:animateMothership={{ animator, index: locationIndex }}
     class={interactable ? '' : 'pointer-events-none'}
+    style="will-change: transform"
 >
     <g
         bind:this={shipElement}

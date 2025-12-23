@@ -19,6 +19,7 @@
     import starsBg from '$lib/images/stars.jpg'
     import Momentum from './Momentum.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
+    import WaitingPanel from './WaitingPanel.svelte'
     // import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
@@ -74,7 +75,7 @@
                     {#if gameSession.isMyTurn}
                         <ActionPanel />
                     {:else}
-                        <!-- <WaitingPanel /> -->
+                        <WaitingPanel />
                     {/if}
                 {/if}
             </div>

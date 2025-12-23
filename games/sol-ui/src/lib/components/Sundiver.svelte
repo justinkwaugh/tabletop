@@ -52,6 +52,7 @@
 <g
     {@attach animator && attachAnimator(animator)}
     on:click={onClick}
+    style="will-change: transform"
     transform={offBoard
         ? `translate(${width / 2}, ${height / 2})`
         : translateFromCenter(location?.x ?? 0, location?.y ?? 0)}

@@ -207,16 +207,6 @@
         return result
     })
 
-    $effect(() => {
-        if (gameSession.validActionTypes.length === 0) {
-            gameSession.resetAction()
-        }
-
-        if (gameSession.isMoving) {
-            chooseMove()
-        }
-    })
-
     async function chooseMove() {
         if (!canMove) {
             return

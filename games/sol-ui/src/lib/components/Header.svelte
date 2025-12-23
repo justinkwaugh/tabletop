@@ -23,13 +23,30 @@
     let currentSolarFlare = $derived(
         gameSession.gameState.solarFlares - gameSession.gameState.solarFlaresRemaining + 1
     )
+
+    let turnPlayerName = $derived.by(() => {
+        const playerId = gameSession.gameState.turnManager.currentTurn()?.playerId
+        if (!playerId) {
+            return ''
+        }
+        const player = gameSession.game.players.find((p) => p.id === playerId)
+        return player ? player.name : ''
+    })
 </script>
 
 <div
     class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[44px] border-b border-[#ad9c80]"
 >
     <div class="header-grid grid">
-        {#if gameSession.isEndOfGame}
+        {#if !gameSession.isMyTurn}
+            <div
+                in:fade={{ duration: 300, delay: 100 }}
+                out:fade={{ duration: 100 }}
+                class="inline-flex items-center gap-x-2"
+            >
+                <div>{turnPlayerName}'s TURN</div>
+            </div>
+        {:else if gameSession.isEndOfGame}
             <div
                 in:fade={{ duration: 300, delay: 100 }}
                 out:fade={{ duration: 100 }}

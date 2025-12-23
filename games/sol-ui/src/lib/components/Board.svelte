@@ -95,7 +95,7 @@
     })
 
     function showGate(key: number) {
-        if (gameSession.animating || !gameSession.myPlayer) return true
+        if (gameSession.updatingVisibleState || !gameSession.myPlayer) return true
 
         if (!gameSession.isConverting && !gameSession.isMoving) {
             return true
