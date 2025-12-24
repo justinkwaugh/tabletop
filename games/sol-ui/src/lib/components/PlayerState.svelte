@@ -170,16 +170,29 @@
                         <div
                             class="flex flex-row justify-start items-start gap-x-2 w-full mb-[-5px]"
                         >
-                            {#each holdDiversByPlayer as [playerId, sundivers] (playerId)}
+                            {#if holdDiversByPlayer.length === 0}
                                 <div class="flex flex-col justify-center items-center gap-y-1">
-                                    <div class="tracking-normal">{sundivers.length}</div>
+                                    <div class="tracking-normal">0</div>
                                     <Sundiver
                                         width={25 * 0.75}
                                         height={25}
-                                        color={gameSession.colors.getPlayerColor(playerId)}
+                                        color={gameSession.colors.getPlayerColor(
+                                            playerState.playerId
+                                        )}
                                     />
                                 </div>
-                            {/each}
+                            {:else}
+                                {#each holdDiversByPlayer as [playerId, sundivers] (playerId)}
+                                    <div class="flex flex-col justify-center items-center gap-y-1">
+                                        <div class="tracking-normal">{sundivers.length}</div>
+                                        <Sundiver
+                                            width={25 * 0.75}
+                                            height={25}
+                                            color={gameSession.colors.getPlayerColor(playerId)}
+                                        />
+                                    </div>
+                                {/each}
+                            {/if}
                             <div class="flex flex-col justify-center items-center gap-y-1">
                                 <div class="tracking-normal">{playerState.energyCubes}</div>
                                 <Cube

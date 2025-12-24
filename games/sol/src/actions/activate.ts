@@ -11,6 +11,7 @@ import { EffectType, HydratedSolPlayerState, Ring, SolPlayerState } from '../ind
 
 export type ActivateMetadata = Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({
+    activatedStation: Station,
     sundiverId: Type.Optional(Type.String()),
     energyAdded: Type.Number(),
     createdSundiverIds: Type.Array(Type.String()),
@@ -83,7 +84,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             sundiverId: undefined,
             energyAdded: 0,
             createdSundiverIds: [],
-            momentumAdded: 0
+            momentumAdded: 0,
+            activatedStation: station
         }
 
         const duplicate = state.activeEffect === EffectType.Duplicate

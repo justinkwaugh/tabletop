@@ -13,7 +13,9 @@ export type FlyMetadata = Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({
     flightPath: Type.Array(OffsetCoordinates),
     puncturedGate: Type.Optional(SolarGate),
-    portal: Type.Boolean()
+    portal: Type.Boolean(),
+    momentumGained: Type.Number(),
+    paidPlayerIds: Type.Array(Type.String())
 })
 
 export type Fly = Static<typeof Fly>
@@ -76,7 +78,9 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
         this.metadata = {
             flightPath: path,
-            portal: state.activeEffect === EffectType.Portal
+            portal: state.activeEffect === EffectType.Portal,
+            momentumGained: 0,
+            paidPlayerIds: []
         }
 
         HydratedFly.handleFlightEffects(state, this, path)
@@ -170,6 +174,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 const gateOwner = state.getPlayerState(gate.playerId)
                 gateOwner.energyCubes += 1
                 state.paidPlayerIds.push(gate.playerId)
+                flyOrHurl.metadata!.paidPlayerIds.push(gate.playerId)
             }
 
             const key = gateKey(gate.innerCoords, gate.outerCoords)
@@ -179,6 +184,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             ) {
                 state.getEffectTracking().passageGates.push(key)
                 playerState.momentum += 1
+                flyOrHurl.metadata!.momentumGained += 1
             }
         }
     }

@@ -20,6 +20,7 @@
     import Momentum from './Momentum.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
     import WaitingPanel from './WaitingPanel.svelte'
+    import InformationPanel from './InformationPanel.svelte'
     // import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
@@ -72,11 +73,7 @@
                     <!-- <LastActionDescription /> -->
                 {:else if gameSession.isPlayable}
                     <!-- <LastActionDescription /> -->
-                    {#if gameSession.isMyTurn}
-                        <ActionPanel />
-                    {:else}
-                        <WaitingPanel />
-                    {/if}
+                    <InformationPanel />
                 {/if}
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.

@@ -17,7 +17,9 @@ import { HydratedFly } from './fly.js'
 export type HurlMetadata = Static<typeof HurlMetadata>
 export const HurlMetadata = Type.Object({
     flightPath: Type.Array(OffsetCoordinates),
-    portal: Type.Boolean()
+    portal: Type.Boolean(),
+    momentumGained: Type.Number(),
+    paidPlayerIds: Type.Array(Type.String())
 })
 
 export type Hurl = Static<typeof Hurl>
@@ -74,7 +76,9 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
         }
         this.metadata = {
             flightPath: path,
-            portal: state.activeEffect === EffectType.Portal
+            portal: state.activeEffect === EffectType.Portal,
+            momentumGained: 0,
+            paidPlayerIds: []
         }
 
         HydratedFly.handleFlightEffects(state, this, path)
@@ -91,7 +95,8 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
             playerState.movement = state.calculatePlayerMovement(this.playerId)
         }
 
-        playerState.momentum += this.sundiverIds.length
+        playerState.momentum += this.sundiverIds.length * 2
+        this.metadata.momentumGained += this.sundiverIds.length * 2
 
         state.hurled = true
         state.cardsToDraw += this.sundiverIds.length

@@ -359,7 +359,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         this.history = new GameHistory(this.gameContext, {
             onHistoryAction: (action) => this.onHistoryAction(action),
-            shouldAutoStepAction: (action) => this.shouldAutoStepAction(action),
+            shouldAutoStepAction: (action, next) => this.shouldAutoStepAction(action, next),
             onHistoryExit: () => {
                 this.onHistoryExit()
             }
@@ -860,7 +860,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         await this.applyServerActions(queuedActions)
     }
 
-    public shouldAutoStepAction(action: GameAction) {
+    public shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return action.source === ActionSource.System
     }
 

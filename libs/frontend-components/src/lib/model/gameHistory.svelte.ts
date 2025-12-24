@@ -5,7 +5,7 @@ export type StepDirection = 'forward' | 'backward'
 
 export type HistoryEnterCallback = () => void
 export type HistoryActionCallback = (action: GameAction | undefined) => void
-export type HistoryShouldAutoStepCallback = (action: GameAction) => boolean
+export type HistoryShouldAutoStepCallback = (action: GameAction, next?: GameAction) => boolean
 export type HistoryExitCallback = () => void
 
 export type HistoryCallbacks = {
@@ -167,7 +167,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         } while (
             this.actionIndex >= 0 &&
             ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
-                this.shouldAutoStepAction(this.historyContext.actions[this.actionIndex]))
+                this.shouldAutoStepAction(
+                    this.historyContext.actions[this.actionIndex],
+                    this.historyContext.actions.at(this.actionIndex + 1)
+                ))
         )
         this.historyContext.updateGameState(stateSnapshot)
         this.onHistoryAction(
@@ -214,7 +217,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         } while (
             this.actionIndex < this.historyContext.actions.length - 1 &&
             ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
-                this.shouldAutoStepAction(nextAction))
+                this.shouldAutoStepAction(
+                    nextAction,
+                    this.historyContext.actions.at(this.actionIndex + 1)
+                ))
         )
         this.historyContext.updateGameState(stateSnapshot)
         this.onHistoryAction(this.historyContext.actions[this.actionIndex])

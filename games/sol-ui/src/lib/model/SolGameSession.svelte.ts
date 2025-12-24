@@ -23,7 +23,10 @@ import {
     ChooseConvert,
     isChooseActivate,
     isChooseConvert,
-    isChooseMove
+    isChooseMove,
+    HydratedSolPlayerState,
+    isFly,
+    isHurl
 } from '@tabletop/sol'
 import {
     coordinatesToNumber,
@@ -41,6 +44,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
     )
+
+    turnPlayer: HydratedSolPlayerState | undefined = $derived.by(() => {
+        const playerId = this.gameState.turnManager.currentTurn()?.playerId
+        if (!playerId) {
+            return undefined
+        }
+        return this.gameState.players.find((player) => player.playerId === playerId)
+    })
 
     numPlayers = $derived.by(() => this.gameState.players.length)
 
@@ -386,10 +397,15 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.forcedCallToAction = undefined
     }
 
-    override shouldAutoStepAction(action: GameAction) {
+    override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         if (isChooseActivate(action) || isChooseConvert(action) || isChooseMove(action)) {
             return true
         }
+
+        if(action.playerId === next?.playerId && (isFly(action) || isLaunch(action) || isHurl(action)) && (isFly(next) || isLaunch(next) || isHurl(next))) {
+            return true
+        }
+        
         return false
     }
 

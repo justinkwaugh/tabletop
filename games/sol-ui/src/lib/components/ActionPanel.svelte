@@ -4,7 +4,6 @@
     import MoveArrows from '$lib/images/movearrows.svelte'
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
-    import Header from './Header.svelte'
     import {
         ActionType,
         EffectType,
@@ -27,13 +26,11 @@
     import TeleportPicker from '$lib/components/pickers/TeleportPicker.svelte'
 
     enum YesActions {
-        ActivateBonus = 'ActivateBonus',
-        SqueezeEffect = 'SqueezeEffect'
+        ActivateBonus = 'ActivateBonus'
     }
 
     enum NoActions {
-        Pass = 'Pass',
-        NoSqueezeEffect = 'NoSqueezeEffect'
+        Pass = 'Pass'
     }
 
     type CallToAction = {
@@ -238,8 +235,6 @@
     async function yes(action?: YesActions) {
         if (action === YesActions.ActivateBonus) {
             await gameSession.activateBonus()
-        } else if (action === YesActions.SqueezeEffect) {
-            await gameSession.activateEffect(EffectType.Squeeze)
         } else {
             throw new Error('Unknown yes action')
         }
@@ -248,125 +243,79 @@
     async function no(action?: NoActions) {
         if (action === NoActions.Pass) {
             await gameSession.pass()
-        } else if (action === NoActions.NoSqueezeEffect) {
-            await gameSession.activateStation()
         } else {
             throw new Error('Unknown no action')
         }
     }
 
-    const cardPickerAnimator = new CardPickerAnimator(gameSession)
-    cardPickerAnimator.register()
-
-    const chainEntryWithoutDiver = $derived(gameSession.chain?.find((entry) => !entry.sundiverId))
     const notifierAnimator = new NotifierAnimator(gameSession)
     notifierAnimator.register()
 </script>
 
-<div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">
-    <Header />
-
-    <div class="panel-grid grid {gameSession.acting ? 'h-[50px]' : 'h-[68px]'}">
-        {#if !gameSession.acting}
-            <div
-                out:fade={{ duration: 100 }}
-                in:fade={{ duration: 300, delay: 100 }}
-                class="p-2 flex flex-row flex-wrap justify-center items-center gap-x-4"
-            >
-                <div class="w-fit me-4 leading-tight text-center">
-                    CHOOSE<br />AN ACTION
-                </div>
-                <button
-                    onclick={chooseMove}
-                    class="{!canMove
-                        ? 'opacity-30'
-                        : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
-                    ><MoveArrows />
-                    <div class="ms-3">MOVE</div></button
-                >
-                <button
-                    onclick={chooseConvert}
-                    class="{!canConvert
-                        ? 'opacity-30'
-                        : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
-                    ><ConvertAtom />
-                    <div class="ms-3">CONVERT</div></button
-                >
-                <button
-                    onclick={chooseActivate}
-                    class="{!canActivate
-                        ? 'opacity-30'
-                        : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
-                    ><ActivateBolt />
-                    <div class="ms-3">ACTIVATE</div></button
-                >
-            </div>
-        {/if}
-        <!-- Call to action -->
-        {#key callToAction.message}
-            <div
-                in:fade={{ duration: 300, delay: 100 }}
-                out:fade={{ duration: 100 }}
-                class="ms-3 py-2 flex flex-row justify-center items-center h-[50px] {callToAction.message
-                    ? ''
-                    : 'pointer-events-none'}"
-            >
-                <div class="me-2">{callToAction.message}</div>
-                {#if callToAction.showSkip}
-                    OR&nbsp;
-                    <button
-                        onclick={pass}
-                        class="w-fit box-border py-1 px-2 bg-transparent border border-[#ad9c80] rounded-lg"
-                        >PASS</button
-                    >
-                {:else if callToAction.yesNo}
-                    <button
-                        onclick={() => yes(callToAction.yesAction)}
-                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                        >YES</button
-                    >
-                    <button
-                        onclick={() => no(callToAction.noAction)}
-                        class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
-                    >
-                        NO</button
-                    >
-                {/if}
-            </div>
-        {/key}
+{#if !gameSession.acting}
+    <div
+        out:fade={{ duration: 100 }}
+        in:fade={{ duration: 300, delay: 100 }}
+        class="p-1 flex flex-row flex-wrap justify-center items-center gap-x-4"
+    >
+        <div class="w-fit me-4 leading-tight text-center">
+            CHOOSE<br />AN ACTION
+        </div>
+        <button
+            onclick={chooseMove}
+            class="{!canMove
+                ? 'opacity-30'
+                : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
+            ><MoveArrows />
+            <div class="ms-3">MOVE</div></button
+        >
+        <button
+            onclick={chooseConvert}
+            class="{!canConvert
+                ? 'opacity-30'
+                : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
+            ><ConvertAtom />
+            <div class="ms-3">CONVERT</div></button
+        >
+        <button
+            onclick={chooseActivate}
+            class="{!canActivate
+                ? 'opacity-30'
+                : 'hover:border-[#ad9c80]'} w-fit box-border h-[52px] flex items-center justify-center p-2 px-4 bg-transparent border border-transparent rounded-lg"
+            ><ActivateBolt />
+            <div class="ms-3">ACTIVATE</div></button
+        >
     </div>
-
-    {#if gameSession.isHatching && gameSession.hatchLocation && !gameSession.hatchTarget}
-        <HatchPicker />
-    {:else if gameSession.isAccelerating && !gameSession.accelerationAmount}
-        <AccelerationPicker />
-    {:else if gameSession.isMetamorphosizing && !gameSession.metamorphosisType}
-        <MetamorphosisPicker />
-    {:else if (gameSession.isSolarFlares || gameSession.isChoosingCard || gameSession.isDrawingCards) && gameSession.drawnCards.length > 0}
-        <CardPicker animator={cardPickerAnimator} />
-    {:else if gameSession.isMoving && (gameSession.chosenSource || gameSession.chosenMothership) && !gameSession.chosenNumDivers && !gameSession.juggernautStationId}
-        <MovementPicker coords={gameSession.chosenSource ?? { row: 0, col: 0 }} />
-    {:else if gameSession.isConverting && !gameSession.chosenConvertType}
-        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
-            <ConvertPicker />
-        </div>
-    {:else if gameSession.gameState.activeEffect === EffectType.Pillar && !gameSession.pillarGuess}
-        <div in:fade={{ duration: 200, delay: 100 }} out:fade={{ duration: 100 }}>
-            <SuitPicker />
-        </div>
-    {:else if gameSession.isChaining && chainEntryWithoutDiver}
-        <ChainSundiverPicker coords={chainEntryWithoutDiver.coords} />
-    {/if}
-    {#if gameSession.shouldPickCluster}
-        <ClusterPicker />
-    {/if}
-    {#if gameSession.shouldPickTeleport}
-        <TeleportPicker />
-    {/if}
-</div>
-
-<style>
-    .panel-grid > * {
-        grid-area: 1 / 1;
-    }
-</style>
+{/if}
+<!-- Call to action -->
+{#key callToAction.message}
+    <div
+        in:fade={{ duration: 300, delay: 100 }}
+        out:fade={{ duration: 100 }}
+        class="ms-3 py-2 flex flex-row justify-center items-center h-[50px] {callToAction.message
+            ? ''
+            : 'pointer-events-none'}"
+    >
+        <div class="me-2">{callToAction.message}</div>
+        {#if callToAction.showSkip}
+            OR&nbsp;
+            <button
+                onclick={pass}
+                class="w-fit box-border py-1 px-2 bg-transparent border border-[#ad9c80] rounded-lg"
+                >PASS</button
+            >
+        {:else if callToAction.yesNo}
+            <button
+                onclick={() => yes(callToAction.yesAction)}
+                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+                >YES</button
+            >
+            <button
+                onclick={() => no(callToAction.noAction)}
+                class="w-fit box-border py-1 px-2 bg-transparent border border-transparent hover:border-[#ad9c80] rounded-lg"
+            >
+                NO</button
+            >
+        {/if}
+    </div>
+{/key}
