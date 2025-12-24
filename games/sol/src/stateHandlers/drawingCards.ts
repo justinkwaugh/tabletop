@@ -11,7 +11,7 @@ import { HydratedDrawCards, isDrawCards } from '../actions/drawCards.js'
 import { Suit } from '../components/cards.js'
 import { SolarFlare } from '../actions/solarFlare.js'
 import { nanoid } from 'nanoid'
-import { Pass } from '../actions/pass.js'
+import { Pass, PassContext } from '../actions/pass.js'
 import { EffectType } from '../components/effects.js'
 import { ActivatingStateHandler } from './activating.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
@@ -97,7 +97,8 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
                     id: nanoid(),
                     gameId: context.gameState.gameId,
                     playerId,
-                    source: ActionSource.System
+                    source: ActionSource.System,
+                    context: PassContext.NoCardChoice
                 }
                 context.addPendingAction(passAction)
             }

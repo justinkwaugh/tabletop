@@ -5,7 +5,17 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 export type SolarFlareMetadata = Static<typeof SolarFlareMetadata>
-export const SolarFlareMetadata = Type.Object({})
+export const SolarFlareMetadata = Type.Object({
+    newInstability: Type.Number(),
+    unstableEnergy: Type.Array(
+        Type.Object({
+            playerId: Type.String(),
+            initial: Type.Number(),
+            remaining: Type.Number()
+        })
+    ),
+    hurlBonus: Type.Optional(Type.String())
+})
 
 export type SolarFlare = Static<typeof SolarFlare>
 export const SolarFlare = Type.Evaluate(
@@ -34,9 +44,19 @@ export class HydratedSolarFlare extends HydratableAction<typeof SolarFlare> impl
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         state.instability -= 1
+        this.metadata = {
+            newInstability: state.instability,
+            unstableEnergy: []
+        }
         for (const playerState of state.players) {
             if (playerState.energyCubes > 12) {
-                playerState.energyCubes = Math.floor(playerState.energyCubes / 2)
+                const before = playerState.energyCubes
+                playerState.energyCubes = Math.ceil(before / 2)
+                this.metadata.unstableEnergy.push({
+                    playerId: playerState.playerId,
+                    initial: before,
+                    remaining: playerState.energyCubes
+                })
             }
         }
         if (state.hurled) {
@@ -46,6 +66,7 @@ export class HydratedSolarFlare extends HydratableAction<typeof SolarFlare> impl
             }
             const playerState = state.getPlayerState(currentPlayerId)
             playerState.momentum += 1
+            this.metadata.hurlBonus = playerState.playerId
         }
     }
 }

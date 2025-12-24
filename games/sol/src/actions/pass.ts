@@ -4,6 +4,10 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
+export enum PassContext {
+    NoCardChoice = 'noCardChoice'
+}
+
 export type PassMetadata = Static<typeof PassMetadata>
 export const PassMetadata = Type.Object({})
 
@@ -14,6 +18,7 @@ export const Pass = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Pass),
             playerId: Type.String(),
+            context: Type.Optional(Type.String()),
             metadata: Type.Optional(PassMetadata)
         })
     ])
