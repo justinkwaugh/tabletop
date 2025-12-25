@@ -14,7 +14,8 @@ import { Ring } from '../utils/solGraph.js'
 
 export type LaunchMetadata = Static<typeof LaunchMetadata>
 export const LaunchMetadata = Type.Object({
-    sundiverIds: Type.Array(Type.String())
+    sundiverIds: Type.Array(Type.String()),
+    energyGained: Type.Number()
 })
 
 export type Launch = Static<typeof Launch>
@@ -64,7 +65,7 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
             this.playerId
         )
         state.board.addSundiversToCell(launchedSundivers, this.destination)
-        this.metadata = { sundiverIds: launchedSundivers.map((diver) => diver.id) }
+        this.metadata = { sundiverIds: launchedSundivers.map((diver) => diver.id), energyGained: 0 }
         playerState.movementPoints -= this.numSundivers
 
         // Effect related
@@ -73,6 +74,7 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
 
             if (state.activeEffect === EffectType.Ceremony) {
                 playerState.energyCubes += this.numSundivers
+                this.metadata.energyGained += this.numSundivers
             }
         }
 

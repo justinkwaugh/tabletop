@@ -1,18 +1,12 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-
-    import Header from './Header.svelte'
     import { fade } from 'svelte/transition'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
     let waitingText = $derived.by(() => {
-        if (
-            !gameSession.myPlayerState ||
-            gameSession.myPlayerState.playerId !== gameSession.turnPlayer?.playerId ||
-            gameSession.activePlayers.length === 0
-        ) {
+        if (gameSession.activePlayers.length === 0) {
             return ''
         }
 
@@ -20,11 +14,21 @@
             (player) => player.id === gameSession.activePlayers[0].id
         )
 
-        if (activePlayer && gameSession.isActivating) {
-            return 'WAITING FOR ' + activePlayer.name + ' TO DECIDE ABOUT THE BONUS'
+        if (!activePlayer) {
+            return ''
         }
 
-        return ''
+        if (gameSession.isDrawingCards) {
+            return `WAITING FOR ${activePlayer.name} TO DRAW ${gameSession.myPlayerState?.drawnCards.length ?? 0} CARD${(gameSession.myPlayerState?.drawnCards.length ?? 1) === 1 ? '' : 'S'}`
+        } else if (
+            gameSession.isActivating &&
+            gameSession.myPlayerState &&
+            gameSession.myPlayerState.playerId !== gameSession.turnPlayer?.playerId
+        ) {
+            return 'WAITING FOR ' + activePlayer.name + ' TO DECIDE ABOUT THE BONUS'
+        } else {
+            return 'WAITING FOR ' + activePlayer.name
+        }
     })
 </script>
 

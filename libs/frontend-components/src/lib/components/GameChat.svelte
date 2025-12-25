@@ -13,17 +13,19 @@
     import emojiRegex from 'emoji-regex'
 
     let {
-        height = 'max-sm:h-[calc(100vh-16px-44px-44px-8px-24px-var(--table-height-offset))] sm:h-[calc(100vh-16px-44px-44px-8px-var(--table-height-offset))]',
+        height = 'max-sm:h-[calc(100vh-16px-44px-44px-8px-24px-var(--table-height-offset)-var(--chat-height-offset))] sm:h-[calc(100vh-16px-44px-44px-8px-var(--table-height-offset)-var(--chat-height-offset))]',
         timeColor = 'text-gray-600',
         bgColor = 'bg-transparent',
         inputBgColor = 'bg-gray-700',
-        inputBorderColor = 'border-gray-500'
+        inputBorderColor = 'border-gray-500',
+        borderColor = 'border-gray-700'
     }: {
         height?: string
         timeColor?: string
         bgColor?: string
         inputBgColor?: string
         inputBorderColor?: string
+        borderColor?: string
     } = $props()
     const timeAgo = new TimeAgo('en-US')
 
@@ -221,7 +223,7 @@
 {/snippet}
 
 <div
-    class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg border-gray-700 border-2 gap-y-2 text-sm {bgColor} {height} overflow-hidden"
+    class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg {borderColor} border gap-y-2 text-sm {bgColor} {height} overflow-hidden"
 >
     {#if chatService.hasUnreadMessages && messagePanel && messagePanel.scrollTop !== 0}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">

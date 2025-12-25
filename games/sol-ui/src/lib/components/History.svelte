@@ -19,7 +19,8 @@
     let unhighlightTimeout: ReturnType<typeof setTimeout>
 
     let reversedActions = $derived.by(() => {
-        const reversed = gameSession.actions
+        const aggregated = Array.from(aggregateActions(gameSession.actions))
+        const reversed = aggregated
             .filter(
                 (action) =>
                     !isChooseMove(action) && !isChooseConvert(action) && !isChooseActivate(action)
@@ -30,7 +31,7 @@
                     (b.createdAt?.getTime() ?? Date.now()) - (a.createdAt?.getTime() ?? Date.now())
             )
 
-        return Array.from(aggregateActions(reversed))
+        return reversed
     })
 
     function highlight(action: GameAction) {}
@@ -86,7 +87,7 @@
                             {#if action.playerId}
                                 <PlayerName playerId={action.playerId} />
                             {/if}
-                            <ActionDescription {action} />
+                            <ActionDescription {action} justify="start" />
                         </p>
                     </TimelineItem>
                 </div>

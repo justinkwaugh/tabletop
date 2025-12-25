@@ -1,6 +1,6 @@
 import { aggregateMoveActions } from '$lib/aggregates/aggregatedMove.js'
 import type { GameAction } from '@tabletop/common'
-import { Fly, Hurl, isFly, isHurl, isLaunch, Launch } from '@tabletop/sol'
+import { Fly, Hurl, isFly, isHurl, isLaunch, isPass, Launch } from '@tabletop/sol'
 
 export function* aggregateActions(actions: GameAction[]) {
     let currentPlayerId: string | undefined
@@ -17,13 +17,23 @@ export function* aggregateActions(actions: GameAction[]) {
                 currentPlayerId = action.playerId
                 aggregatedMoveActions = [action]
             }
+
+            if (actions.at(-1)?.id === action.id) {
+                yield aggregateMoveActions(aggregatedMoveActions)
+                aggregatedMoveActions = []
+                currentPlayerId = undefined
+            }
         } else {
+            const moved = aggregatedMoveActions.length > 0
+
             if (aggregatedMoveActions.length > 0) {
                 yield aggregateMoveActions(aggregatedMoveActions)
                 aggregatedMoveActions = []
                 currentPlayerId = undefined
             }
-            yield action
+            if (!isPass(action) || !moved) {
+                yield action
+            }
         }
     }
 }

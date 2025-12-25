@@ -11,15 +11,17 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { SolarGate } from '../components/solarGate.js'
 import { CENTER_COORDS } from '../components/gameBoard.js'
-import { Effect, EffectType } from '../components/effects.js'
+import { EffectType } from '../components/effects.js'
 import { HydratedFly } from './fly.js'
+import { Station } from '../components/stations.js'
 
 export type HurlMetadata = Static<typeof HurlMetadata>
 export const HurlMetadata = Type.Object({
     flightPath: Type.Array(OffsetCoordinates),
     portal: Type.Boolean(),
     momentumGained: Type.Number(),
-    paidPlayerIds: Type.Array(Type.String())
+    paidPlayerIds: Type.Array(Type.String()),
+    juggernaut: Type.Optional(Station)
 })
 
 export type Hurl = Static<typeof Hurl>
@@ -85,8 +87,9 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
 
         // These pieces are gone for good
         if (this.stationId) {
-            state.board.removeStationAt(this.start)
+            const station = state.board.removeStationAt(this.start)
             state.activeEffect = undefined
+            this.metadata.juggernaut = station
         } else {
             state.board.removeSundiversAt(this.sundiverIds, this.start)
         }

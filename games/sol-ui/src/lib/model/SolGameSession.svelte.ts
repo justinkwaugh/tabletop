@@ -18,15 +18,13 @@ import {
     Sundiver,
     HydratedFly,
     Station,
-    ChooseActivate,
-    ChooseMove,
-    ChooseConvert,
     isChooseActivate,
     isChooseConvert,
     isChooseMove,
     HydratedSolPlayerState,
     isFly,
-    isHurl
+    isHurl,
+    PassContext
 } from '@tabletop/sol'
 import {
     coordinatesToNumber,
@@ -51,6 +49,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return undefined
         }
         return this.gameState.players.find((player) => player.playerId === playerId)
+    })
+
+    justAfterMyTurn = $derived.by(() => {
+        if (this.gameState.turnManager.lastPlayer() !== this.myPlayer?.id) {
+            return false
+        }
+        return this.gameState.turnManager.currentTurn()?.start == this.gameState.actionCount
     })
 
     numPlayers = $derived.by(() => this.gameState.players.length)
@@ -402,10 +407,19 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return true
         }
 
-        if(action.playerId === next?.playerId && (isFly(action) || isLaunch(action) || isHurl(action)) && (isFly(next) || isLaunch(next) || isHurl(next))) {
+        if (isActivateEffect(action)) {
             return true
         }
-        
+
+        if (
+            (action.playerId === next?.playerId &&
+                (isFly(action) || isLaunch(action) || isHurl(action))) ||
+            (isActivateEffect(action) &&
+                (isFly(next) || isLaunch(next) || isHurl(next) || isActivateEffect(next)))
+        ) {
+            return true
+        }
+
         return false
     }
 
@@ -952,13 +966,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         await this.doAction(action)
     }
 
-    async pass() {
+    async pass(context?: PassContext) {
         if (!this.myPlayer) {
             throw new Error('Invalid pass')
         }
         const action = {
             ...this.createBaseAction(ActionType.Pass),
-            playerId: this.myPlayer.id
+            playerId: this.myPlayer.id,
+            context
         }
 
         await this.doAction(action)

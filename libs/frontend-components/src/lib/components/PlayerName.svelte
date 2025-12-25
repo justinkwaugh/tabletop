@@ -6,11 +6,13 @@
     let {
         playerId,
         possessive = false,
-        capitalization = 'capitalize'
+        capitalization = 'capitalize',
+        fontFamily = 'inherit'
     }: {
         playerId?: string
         possessive?: boolean
         capitalization?: 'none' | 'capitalize' | 'uppercase' | 'lowercase'
+        fontFamily?: string
     } = $props()
 
     let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
@@ -25,6 +27,7 @@
 </script>
 
 <span
+    style="font-family:{fontFamily}"
     class="rounded px-2 {gameSession.colors.getPlayerBgColor(
         playerId
     )} font-medium {gameSession.colors.getPlayerTextColor(playerId)} {capitalization ===

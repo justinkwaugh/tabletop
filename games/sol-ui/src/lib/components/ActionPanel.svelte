@@ -9,7 +9,8 @@
         EffectType,
         HydratedActivate,
         HydratedActivateEffect,
-        HydratedChain
+        HydratedChain,
+        PassContext
     } from '@tabletop/sol'
     import ConvertPicker from '$lib/components/pickers/ConvertPicker.svelte'
     import CardPicker from '$lib/components/pickers/CardPicker.svelte'
@@ -229,7 +230,19 @@
     }
 
     async function pass() {
-        await gameSession.pass()
+        let context
+        if (gameSession.isChoosingCard) {
+            context = PassContext.DeclinedCard
+        } else if (gameSession.isMoving) {
+            context = PassContext.DoneMoving
+        } else if (gameSession.isActivating) {
+            if (gameSession.gameState.activation?.currentStationId) {
+                context = PassContext.DeclinedBonus
+            } else {
+                context = PassContext.DoneActivating
+            }
+        }
+        await gameSession.pass(context)
     }
 
     async function yes(action?: YesActions) {
@@ -242,7 +255,7 @@
 
     async function no(action?: NoActions) {
         if (action === NoActions.Pass) {
-            await gameSession.pass()
+            await pass()
         } else {
             throw new Error('Unknown no action')
         }

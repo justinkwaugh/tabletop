@@ -12,7 +12,8 @@ export const Definition = <GameDefinition>{
     metadata: {
         name: 'Sol',
         designer: '',
-        description: 'A Game',
+        description:
+            'BETA: Games may have bugs and may not be finishable.  Not all of the history entries and waiting messsages are complete yet.  If you notice anything you think is weird or incorrect, please mention in it in our discord.',
         year: '2005',
         minPlayers: 2,
         maxPlayers: 5,

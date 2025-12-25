@@ -21,6 +21,7 @@
     import GameEndPanel from './GameEndPanel.svelte'
     import WaitingPanel from './WaitingPanel.svelte'
     import InformationPanel from './InformationPanel.svelte'
+    import LastActionDescription from './LastActionDescription.svelte'
     // import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
@@ -31,7 +32,11 @@
 </script>
 
 <!-- Full Height and Width with 8px padding-->
-<div bind:this={table} class="bg-repeat" style="background-image: url('{starsBg}')">
+<div
+    bind:this={table}
+    class="bg-repeat"
+    style="background-image: url('{starsBg}'); --chat-height-offset: 47px;"
+>
     <DefaultTableLayout>
         {#snippet sideContent()}
             <div class="max-sm:hidden">
@@ -56,10 +61,11 @@
                 {/snippet}
                 {#snippet chat()}
                     <GameChat
-                        timeColor={'text-[#8d794d]'}
-                        bgColor={'bg-[#302408]'}
-                        inputBgColor={'bg-[#634a11]'}
-                        inputBorderColor={'border-[#302408]'}
+                        timeColor={'text-[#ad9c80]'}
+                        bgColor={'bg-black'}
+                        inputBgColor={'bg-black'}
+                        inputBorderColor={'border-[#ad9c80]'}
+                        borderColor={'border-[#ad9c80]'}
                     />
                 {/snippet}
             </DefaultTabs>
@@ -69,10 +75,7 @@
             <div class="shrink-0">
                 {#if gameSession.gameState.result}
                     <GameEndPanel />
-                {:else if gameSession.isViewingHistory}
-                    <!-- <LastActionDescription /> -->
-                {:else if gameSession.isPlayable}
-                    <!-- <LastActionDescription /> -->
+                {:else}
                     <InformationPanel />
                 {/if}
             </div>

@@ -38,7 +38,15 @@
     class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[44px] border-b border-[#ad9c80]"
 >
     <div class="header-grid grid">
-        {#if !gameSession.isMyTurn}
+        {#if gameSession.isViewingHistory}
+            <div
+                in:fade={{ duration: 300, delay: 100 }}
+                out:fade={{ duration: 100 }}
+                class="inline-flex items-center gap-x-2"
+            >
+                <div>HISTORY</div>
+            </div>
+        {:else if !gameSession.isMyTurn}
             <div
                 in:fade={{ duration: 300, delay: 100 }}
                 out:fade={{ duration: 100 }}

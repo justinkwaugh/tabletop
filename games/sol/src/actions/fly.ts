@@ -8,6 +8,7 @@ import { EffectType } from '../components/effects.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { Hurl } from './hurl.js'
+import { Station } from '../components/stations.js'
 
 export type FlyMetadata = Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({
@@ -15,7 +16,8 @@ export const FlyMetadata = Type.Object({
     puncturedGate: Type.Optional(SolarGate),
     portal: Type.Boolean(),
     momentumGained: Type.Number(),
-    paidPlayerIds: Type.Array(Type.String())
+    paidPlayerIds: Type.Array(Type.String()),
+    juggernaut: Type.Optional(Station)
 })
 
 export type Fly = Static<typeof Fly>
@@ -106,6 +108,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 throw Error('Invalid juggernaut station')
             }
             state.board.addStationAt(station, this.destination)
+            this.metadata.juggernaut = station
         } else {
             const removedSundivers = state.board.removeSundiversAt(this.sundiverIds, this.start)
             state.board.addSundiversToCell(removedSundivers, this.destination)

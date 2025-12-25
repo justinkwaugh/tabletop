@@ -7,7 +7,11 @@
         ActivateBonus,
         isActivate,
         isActivateBonus,
+        isActivateEffect,
+        isChooseActivate,
         isChooseCard,
+        isChooseConvert,
+        isChooseMove,
         isConvert,
         isDrawCards,
         isPass,
@@ -17,12 +21,16 @@
     } from '@tabletop/sol'
     import Card from './Card.svelte'
     import { nanoid } from 'nanoid'
+    import { StationNames } from '$lib/utils/stationNames.js'
 
-    let { action }: { action: GameAction } = $props()
+    let {
+        action,
+        justify = 'start'
+    }: { action: GameAction; justify?: 'start' | 'center' | 'end' } = $props()
 </script>
 
 {#snippet commonActivateMetadata(action: Activate | ActivateBonus)}
-    {#if action.metadata?.createdSundiverIds ?? 0 > 0}<li>
+    {#if action.metadata?.createdSundiverIds?.length ?? 0 > 0}<li>
             {action.metadata?.createdSundiverIds.length} sundiver{action.metadata
                 ?.createdSundiverIds.length === 1
                 ? ''
@@ -40,6 +48,7 @@
 
 {#if isActivate(action)}
     activated <PlayerName
+        fontFamily="ui-sans-serif, system-ui, sans-serif"
         playerId={action.metadata?.activatedStation?.playerId}
         possessive={true}
     />
@@ -50,7 +59,7 @@
         {@render commonActivateMetadata(action)}
     </ul>
 {:else if isActivateBonus(action)}
-    accepted the activation bonus
+    accepted the bonus
     <ul class="ms-4 list-inside">
         {@render commonActivateMetadata(action)}
     </ul>
@@ -60,22 +69,31 @@
         {#if action.numLaunched > 0}<li>
                 {action.numLaunched} sundiver{action.numLaunched === 1 ? '' : 's'} launched
             </li>{/if}
+
         {#if action.numFlown > 0}<li>
                 {action.numFlown} sundiver{action.numFlown === 1 ? '' : 's'} flown
             </li>{/if}
         {#if action.numHurled > 0}<li>
                 {action.numHurled} sundiver{action.numHurled === 1 ? '' : 's'} hurled
             </li>{/if}
+        {#if action.stationFlown}<li>
+                <span class="capitalize">{StationNames[action.stationFlown.type]}</span> flown
+            </li>{/if}
+        {#if action.stationHurled}<li>
+                <span class="capitalize">{StationNames[action.stationHurled.type]}</span> hurled
+            </li>{/if}
+        {#if action.energyGained > 0}<li>{action.energyGained} energy gained</li>{/if}
         {#if action.momentumGained > 0}<li>{action.momentumGained} momentum gained</li>{/if}
         {#each action.paidPlayerIds as playerId (playerId)}<li>
-                <PlayerName {playerId} /> earned 1 energy cube
+                <PlayerName {playerId} fontFamily="ui-sans-serif, system-ui, sans-serif" /> earned 1
+                energy cube
             </li>{/each}
     </ul>
 {:else if isDrawCards(action)}
     drew {action.metadata?.drawnCards.length} card{(action.metadata?.drawnCards.length ?? 1) === 1
         ? ''
         : 's'}
-    <div class="flex flex-row justify-start items-center space-x-1 mt-2">
+    <div class="flex flex-row justify-{justify} items-center space-x-1 mt-2">
         {#each action.metadata?.drawnCards as card (card.id)}
             <div class="h-[50px] w-[35px]">
                 <Card {card} />
@@ -84,8 +102,10 @@
     </div>
 {:else if isChooseCard(action)}
     chose to keep a card
-    <div class="h-[50px] w-[35px] mt-2">
-        <Card card={{ id: nanoid(), suit: action.suit }} />
+    <div class="flex flex-row justify-{justify} items-center space-x-1 mt-2">
+        <div class="h-[50px] w-[35px]">
+            <Card card={{ id: nanoid(), suit: action.suit }} />
+        </div>
     </div>
 {:else if isConvert(action)}
     converted a {#if action.isGate}solar gate{:else if action.stationType === StationType.EnergyNode}energy
@@ -97,22 +117,44 @@
         <li>Instability decreased to {action.metadata?.newInstability}</li>
         {#each action.metadata?.unstableEnergy ?? [] as unstableEnergy}
             <li>
-                <PlayerName playerId={unstableEnergy.playerId} /> had their energy cubes reduced from
+                <PlayerName
+                    playerId={unstableEnergy.playerId}
+                    fontFamily="ui-sans-serif, system-ui, sans-serif"
+                /> had their energy cubes reduced from
                 {unstableEnergy.initial} to {unstableEnergy.remaining}
             </li>
         {/each}
         {#if action.metadata?.hurlBonus}
             <li>
-                <PlayerName playerId={action.metadata.hurlBonus} /> gained 1 hurl bonus momentum
+                <PlayerName
+                    playerId={action.metadata.hurlBonus}
+                    fontFamily="ui-sans-serif, system-ui, sans-serif"
+                /> gained 1 hurl bonus momentum
             </li>
         {/if}
     </ul>
 {:else if isPass(action)}
     {#if action.context === PassContext.NoCardChoice}
         had no new choice of card
+    {:else if action.context === PassContext.DeclinedCard}
+        declined to keep a card
+    {:else if action.context === PassContext.DoneMoving}
+        finished moving
+    {:else if action.context === PassContext.DoneActivating}
+        finished activating
+    {:else if action.context === PassContext.DeclinedBonus}
+        declined the bonus
     {:else}
         passed
     {/if}
+{:else if isActivateEffect(action)}
+    activated the <span class="capitalize">{action.effect}</span> effect
+{:else if isChooseMove(action)}
+    chose to move
+{:else if isChooseConvert(action)}
+    chose to convert
+{:else if isChooseActivate(action)}
+    chose to activate
 {:else}
     {action.type}
 {/if}

@@ -1,38 +1,38 @@
 <script lang="ts">
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
-    import { Button } from 'flowbite-svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
+    import { aggregateActions } from '$lib/utils/actionAggregator.js'
+    import ActionDescription from './ActionDescription.svelte'
+
+    let {
+        textColor = 'text-gray-200'
+    }: {
+        textColor?: string
+    } = $props()
 
     let gameSession = getContext('gameSession') as SolGameSession
-    let windowHeight: number | null | undefined = $state()
+
+    let lastAction = $derived.by(() => {
+        const aggregated = Array.from(aggregateActions(gameSession.actions))
+        return aggregated.at(-1)
+    })
 </script>
 
-<svelte:window bind:innerHeight={windowHeight} />
-
-{#if gameSession.currentAction}
+{#if lastAction}
     <div
-        class="rounded-lg bg-transparent text-gray-200 p-1 sm:p-2 text-center flex flex-row justify-center items-center mb-2"
+        class="bg-transparent {textColor} text-center flex flex-row justify-center items-center p-1 mb-2"
     >
         <div class="flex flex-col justify-center items-center w-full grow-1">
-            <h1 class="text-sm sm:text-lg text-pretty leading-tight">
-                {#if gameSession.currentAction.playerId}
-                    <PlayerName playerId={gameSession.currentAction.playerId} />
+            <h1 class="text-[16px] text-pretty tracking-widest">
+                {#if lastAction.playerId}
+                    <PlayerName
+                        playerId={lastAction.playerId}
+                        fontFamily="ui-sans-serif, system-ui, sans-serif"
+                    />
                 {/if}
-                {getDescriptionForAction(gameSession.currentAction)}
+                <ActionDescription action={lastAction} justify="center" />
             </h1>
         </div>
-
-        {#if gameSession.undoableAction && !gameSession.isViewingHistory}
-            <Button
-                onclick={async () => {
-                    await gameSession.undo()
-                }}
-                size="xs"
-                class="h-[24px] sm:h-[28px] grow-0 ms-2"
-                color="light">Undo</Button
-            >
-        {/if}
     </div>
 {/if}

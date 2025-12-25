@@ -5,7 +5,11 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 export enum PassContext {
-    NoCardChoice = 'noCardChoice'
+    DoneMoving = 'doneMoving',
+    DoneActivating = 'doneActivating',
+    NoCardChoice = 'noCardChoice',
+    DeclinedCard = 'declinedCard',
+    DeclinedBonus = 'declinedBonus'
 }
 
 export type PassMetadata = Static<typeof PassMetadata>
