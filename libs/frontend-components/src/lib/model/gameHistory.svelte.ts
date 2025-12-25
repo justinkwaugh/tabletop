@@ -57,9 +57,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     })
 
     playing: boolean = $state(false)
-    private disabled = false
+    private disabled = $state(false)
     private stepping: boolean = false
     private playTimer: ReturnType<typeof setTimeout> | null = null
+    private playOnEnable: boolean = false
 
     private onHistoryEnter: HistoryEnterCallback = () => {}
     private onHistoryAction: HistoryActionCallback = () => {}
@@ -88,6 +89,13 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
 
     enable() {
         this.disabled = false
+
+        // Resume playing if needed
+        if (this.playOnEnable) {
+            this.playOnEnable = false
+            this.stepForward({ stopPlayback: false })
+            this.schedulePlayTimer()
+        }
     }
 
     isDisabled() {
@@ -288,10 +296,26 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
             await this.stepForward({ stopPlayback: false })
         }
         if (this.playing) {
-            this.playTimer = setInterval(async () => {
-                await this.stepForward({ stopPlayback: false })
-            }, 1000)
+            this.schedulePlayTimer()
         }
+    }
+
+    private clearPlayTimer() {
+        if (this.playTimer) {
+            clearInterval(this.playTimer)
+            this.playTimer = null
+        }
+    }
+
+    private schedulePlayTimer() {
+        this.playTimer = setInterval(async () => {
+            if (this.disabled) {
+                this.playOnEnable = true
+                this.clearPlayTimer()
+            } else {
+                await this.stepForward({ stopPlayback: false })
+            }
+        }, 1000)
     }
 
     public async goToPlayersPreviousTurn(playerId: string) {
@@ -328,10 +352,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public stopHistoryPlayback() {
-        if (this.disabled || !this.playing) {
+        if (!this.playing) {
             return
         }
         this.playing = false
+        this.playOnEnable = false
         if (this.playTimer) {
             clearInterval(this.playTimer)
         }

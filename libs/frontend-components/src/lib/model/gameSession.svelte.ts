@@ -455,6 +455,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                 actions.push(...this.actions.slice(oldState.actionCount, newState.actionCount))
             }
         }
+        this.suppressStateChangeActions = false
 
         // With actions, generate intermediate states and notify for each, giving each their own
         // timeline so that the action animations will be sequenced properly
