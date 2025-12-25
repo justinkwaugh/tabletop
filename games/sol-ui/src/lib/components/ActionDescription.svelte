@@ -118,9 +118,10 @@
         {#each action.metadata?.unstableEnergy ?? [] as unstableEnergy}
             <li>
                 <PlayerName
+                    possessive={true}
                     playerId={unstableEnergy.playerId}
                     fontFamily="ui-sans-serif, system-ui, sans-serif"
-                /> had their energy cubes reduced from
+                /> energy cubes reduced from
                 {unstableEnergy.initial} to {unstableEnergy.remaining}
             </li>
         {/each}

@@ -379,6 +379,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         this.historyContext = undefined
         this.actionIndex = 0
 
+        console.log('exiting history')
         this.onHistoryExit()
     }
 }

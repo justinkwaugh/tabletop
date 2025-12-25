@@ -34,7 +34,6 @@ import {
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
 import type { ChatService } from '$lib/services/chatService'
 import { goto } from '$app/navigation'
-import { gsap } from 'gsap'
 import type { GameService } from '$lib/services/gameService.svelte'
 import { GameContext } from './gameContext.svelte.js'
 import { GameHistory } from './gameHistory.svelte.js'
@@ -87,6 +86,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     private gameContext: GameContext<T, U>
     explorationContext?: GameContext<T, U> = $state()
+
+    private suppressStateChangeActions = false
 
     history: GameHistory<T, U>
     explorations: GameExplorations<T, U>
@@ -361,6 +362,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             onHistoryAction: (action) => this.onHistoryAction(action),
             shouldAutoStepAction: (action, next) => this.shouldAutoStepAction(action, next),
             onHistoryExit: () => {
+                this.suppressStateChangeActions = true
                 this.onHistoryExit()
             }
         })
@@ -371,16 +373,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             this.definition,
             {
                 onExplorationEnter: (context) => {
+                    this.suppressStateChangeActions = true
                     this.mode = GameSessionMode.Explore
                     this.explorationContext = context
                     this.history.updateSourceGameContext(this.explorationContext)
                 },
                 onExplorationEnd: () => {
+                    this.suppressStateChangeActions = true
                     this.mode = GameSessionMode.Play
                     this.history.updateSourceGameContext(this.gameContext)
                     this.explorationContext = undefined
                 },
                 onExplorationSwitched: (context) => {
+                    this.suppressStateChangeActions = true
                     this.explorationContext = context
                 }
             }
@@ -437,12 +442,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async notifyStateChangeListeners(newState: U, oldState?: U) {
+        console.log('Notifying state change listeners')
         const actions: GameAction[] = []
-        if (oldState && newState.gameId === oldState.gameId) {
+
+        if (!this.suppressStateChangeActions && oldState && newState.gameId === oldState.gameId) {
             if (newState.actionCount >= oldState.actionCount) {
                 actions.push(...this.actions.slice(oldState.actionCount, newState.actionCount))
-            } else {
-                actions.push(...this.actions.slice(newState.actionCount, oldState.actionCount))
             }
         }
 
@@ -487,20 +492,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         await animationContext.play()
 
         animationContext.runAfterAnimations()
-    }
-
-    initializeTimeline({
-        to,
-        from,
-        actions,
-        timeline
-    }: {
-        to: U
-        from?: U
-        actions?: GameAction[]
-        timeline: gsap.core.Timeline
-    }) {
-        // Do nothing by default
     }
 
     async onGameStateChange({
