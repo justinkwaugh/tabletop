@@ -93,7 +93,8 @@
         </button>
         <button
             onclick={async () => await goToMyPreviousTurn()}
-            class="flex flex-row justify-center items-center {hasPriorPlayerAction
+            class="flex flex-row justify-center items-center {hasPriorPlayerAction &&
+            !gameSession.history.isDisabled()
                 ? enabledColor
                 : disabledColor}"
         >
@@ -122,7 +123,8 @@
                 aria-label="goto my last turn"
                 onclick={async () => await gameSession.history.goToBeginning()}
                 ><svg
-                    class="w-[25px] h-[25px] {gameSession.history.hasPreviousAction
+                    class="w-[25px] h-[25px] {gameSession.history.hasPreviousAction &&
+                    !gameSession.history.isDisabled()
                         ? enabledColor
                         : disabledColor}"
                     aria-hidden="true"
@@ -143,7 +145,8 @@
                 aria-label="step backwards"
                 onclick={async () => await gameSession.history.goToPreviousAction()}
                 ><svg
-                    class="w-[24px] h-[24px] {gameSession.history.hasPreviousAction
+                    class="w-[24px] h-[24px] {gameSession.history.hasPreviousAction &&
+                    !gameSession.history.isDisabled()
                         ? enabledColor
                         : disabledColor}"
                     aria-hidden="true"
@@ -167,7 +170,8 @@
                 onclick={async () => await gameSession.history.playHistory()}
                 class={gameSession.history.playing ? 'hidden' : ''}
                 ><svg
-                    class="w-[25px] h-[25px] {gameSession.actions.length === 0
+                    class="w-[25px] h-[25px] {gameSession.actions.length === 0 ||
+                    gameSession.history.isDisabled()
                         ? disabledColor
                         : enabledColor}"
                     aria-hidden="true"
@@ -186,7 +190,7 @@
             </button>
             <button
                 aria-label="stop history playback"
-                onclick={async () => await gameSession.history.stopHistoryPlayback()}
+                onclick={() => gameSession.history.stopHistoryPlayback()}
                 class={!gameSession.history.playing ? 'hidden' : ''}
             >
                 <svg
@@ -209,7 +213,8 @@
                 aria-label="step forwards"
                 onclick={async () => await gameSession.history.goToNextAction()}
                 ><svg
-                    class="w-[24px] h-[24px] {gameSession.history.hasNextAction
+                    class="w-[24px] h-[24px] {gameSession.history.hasNextAction &&
+                    !gameSession.history.isDisabled()
                         ? enabledColor
                         : disabledColor}"
                     aria-hidden="true"
@@ -233,7 +238,8 @@
                 onclick={async () => await gameSession.history.goToEnd()}
             >
                 <svg
-                    class="w-[25px] h-[25px] {gameSession.history.hasNextAction
+                    class="w-[25px] h-[25px] {gameSession.history.hasNextAction &&
+                    !gameSession.history.isDisabled()
                         ? enabledColor
                         : disabledColor}"
                     aria-hidden="true"
@@ -253,7 +259,8 @@
         </div>
         <button
             onclick={async () => goToMyNextTurn()}
-            class="flex flex-row justify-center items-center {hasFuturePlayerAction
+            class="flex flex-row justify-center items-center {hasFuturePlayerAction &&
+            !gameSession.history.isDisabled()
                 ? enabledColor
                 : disabledColor}"
         >

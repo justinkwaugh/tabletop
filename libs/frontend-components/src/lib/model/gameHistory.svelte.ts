@@ -57,6 +57,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     })
 
     playing: boolean = $state(false)
+    private disabled = false
     private stepping: boolean = false
     private playTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -81,8 +82,20 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         this.gameContext = gameContext
     }
 
+    disable() {
+        this.disabled = true
+    }
+
+    enable() {
+        this.disabled = false
+    }
+
+    isDisabled() {
+        return this.disabled
+    }
+
     public async goToBeginning() {
-        if (this.stepping) {
+        if (this.stepping || this.disabled) {
             return
         }
         this.stepping = true
@@ -94,7 +107,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public goToEnd() {
-        if (this.stepping || !this.historyContext) {
+        if (this.stepping || this.disabled || !this.historyContext) {
             return
         }
         this.stepping = true
@@ -107,7 +120,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public async goToPreviousAction() {
-        if (this.stepping) {
+        if (this.stepping || this.disabled) {
             return
         }
         this.stepping = true
@@ -122,7 +135,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public async goToNextAction() {
-        if (this.stepping) {
+        if (this.stepping || this.disabled) {
             return
         }
         this.stepping = true
@@ -138,8 +151,9 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
 
     private async stepBackward({
         toActionIndex,
-        stopPlayback = true
-    }: { toActionIndex?: number; stopPlayback?: boolean } = {}) {
+        stopPlayback = true,
+        predicate
+    }: { toActionIndex?: number; stopPlayback?: boolean; predicate?: () => boolean } = {}) {
         if (
             (this.inHistory && this.actionIndex < 0) ||
             (!this.inHistory && this.gameContext.actions.length === 0) ||
@@ -165,12 +179,13 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
             this.actionIndex -= 1
             stateSnapshot = updatedState
         } while (
-            this.actionIndex >= 0 &&
-            ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
-                this.shouldAutoStepAction(
-                    this.historyContext.actions[this.actionIndex],
-                    this.historyContext.actions.at(this.actionIndex + 1)
-                ))
+            (this.actionIndex >= 0 &&
+                ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
+                    this.shouldAutoStepAction(
+                        this.historyContext.actions[this.actionIndex],
+                        this.historyContext.actions.at(this.actionIndex + 1)
+                    ))) ||
+            (predicate && predicate() === false)
         )
         this.historyContext.updateGameState(stateSnapshot)
         this.onHistoryAction(
@@ -184,8 +199,9 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
 
     private async stepForward({
         toActionIndex,
-        stopPlayback = true
-    }: { toActionIndex?: number; stopPlayback?: boolean } = {}) {
+        stopPlayback = true,
+        predicate
+    }: { toActionIndex?: number; stopPlayback?: boolean; predicate?: () => boolean } = {}) {
         if (!this.historyContext) {
             return
         }
@@ -215,12 +231,13 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
             )
             stateSnapshot = updatedState as T
         } while (
-            this.actionIndex < this.historyContext.actions.length - 1 &&
-            ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
-                this.shouldAutoStepAction(
-                    nextAction,
-                    this.historyContext.actions.at(this.actionIndex + 1)
-                ))
+            (this.actionIndex < this.historyContext.actions.length - 1 &&
+                ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
+                    this.shouldAutoStepAction(
+                        nextAction,
+                        this.historyContext.actions.at(this.actionIndex + 1)
+                    ))) ||
+            (predicate && predicate() === false)
         )
         this.historyContext.updateGameState(stateSnapshot)
         this.onHistoryAction(this.historyContext.actions[this.actionIndex])
@@ -259,7 +276,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public async playHistory() {
-        if (this.playing || this.gameContext.actions.length === 0) {
+        if (this.disabled || this.playing || this.gameContext.actions.length === 0) {
             return
         }
 
@@ -278,11 +295,14 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public async goToPlayersPreviousTurn(playerId: string) {
-        if (this.stepping || this.gameContext.actions.length === 0 || this.actionIndex === -1) {
+        if (
+            this.disabled ||
+            this.stepping ||
+            this.gameContext.actions.length === 0 ||
+            this.actionIndex === -1
+        ) {
             return
         }
-
-        this.stepping = true
         await this.stepUntil('backward', () => {
             return (
                 this.actionIndex === -1 ||
@@ -293,7 +313,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public async goToPlayersNextTurn(playerId: string) {
-        if (this.stepping || !this.historyContext) {
+        if (this.disabled || this.stepping || !this.historyContext) {
             return
         }
 
@@ -308,7 +328,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public stopHistoryPlayback() {
-        if (!this.playing) {
+        if (this.disabled || !this.playing) {
             return
         }
         this.playing = false
@@ -347,19 +367,16 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     private async stepUntil(direction: StepDirection, predicate: () => boolean) {
-        if (direction === 'backward') {
-            await this.stepBackward({ stopPlayback: true })
-        } else {
-            await this.stepForward({ stopPlayback: true })
-        }
-
-        setTimeout(() => {
-            if (predicate()) {
-                this.stepping = false
+        this.stepping = true
+        try {
+            if (direction === 'backward') {
+                await this.stepBackward({ stopPlayback: true, predicate })
             } else {
-                void this.stepUntil(direction, predicate)
+                await this.stepForward({ stopPlayback: true, predicate })
             }
-        })
+        } finally {
+            this.stepping = false
+        }
     }
 
     private enterHistory() {

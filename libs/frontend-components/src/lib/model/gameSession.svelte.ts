@@ -422,6 +422,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             watch(
                 () => this.busy,
                 (newBusy, oldBusy) => {
+                    if (newBusy) {
+                        this.history.disable()
+                    } else {
+                        this.history.enable()
+                    }
                     console.log('Busy changed from', oldBusy, 'to', newBusy)
                     if (oldBusy === true && newBusy === false) {
                         this.applyQueuedActions().catch((error) => {
