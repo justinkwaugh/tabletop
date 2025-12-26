@@ -36,19 +36,24 @@ export abstract class Hydratable<T extends TSchema> {
         // Shallow clone removes the _validator property
         const { _validator, ...rest } = this
 
-        // Dehydrate any nested Hydratable properties
-        for (const [key, value] of Object.entries(rest)) {
-            if (Array.isArray(value)) {
-                ;(rest as any)[key] = value.map((item) =>
-                    item instanceof Hydratable ? item.dehydrate() : item
-                )
-            } else if (value instanceof Hydratable) {
-                ;(rest as any)[key] = value.dehydrate()
-            }
-        }
+        this.dehydrateChildren(rest)
 
         // Return the shallow clone
         return rest as Static<T>
+    }
+
+    private dehydrateChildren(obj: object) {
+        for (const [key, value] of Object.entries(obj)) {
+            if (Array.isArray(value)) {
+                ;(obj as any)[key] = value.map((item) =>
+                    item instanceof Hydratable ? item.dehydrate() : item
+                )
+            } else if (value instanceof Hydratable) {
+                ;(obj as any)[key] = value.dehydrate()
+            } else if (value && typeof value === 'object') {
+                this.dehydrateChildren(value)
+            }
+        }
     }
 
     dehydrate(): Static<T> {

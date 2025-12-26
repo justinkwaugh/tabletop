@@ -20,8 +20,8 @@ RUN curl -sfS https://dotenvx.sh/install.sh | sh
 COPY libs/common backend/node_modules/@tabletop/common
 COPY libs/backend-services backend/node_modules/@tabletop/backend-services
 COPY libs/email backend/node_modules/@tabletop/email
-COPY libs/backend-games backend/node_modules/@tabletop/backend-games
-COPY libs/config-games backend/node_modules/@tabletop/games-config
+COPY config/backend-games backend/node_modules/@tabletop/backend-games
+COPY config/config-games backend/node_modules/@tabletop/games-config
 
 COPY games/fresh-fish backend/node_modules/@tabletop/fresh-fish
 COPY games/bridges-of-shangri-la backend/node_modules/@tabletop/bridges-of-shangri-la

@@ -2,20 +2,22 @@ import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { Game, GameDefinition } from '@tabletop/common'
 
-type CreateGameRequest = Static<typeof CreateGameRequest>
-const CreateGameRequest = Type.Object(
-    {
-        game: Type.Evaluate(
-            Type.Intersect([
-                Type.Pick(Game, ['id', 'name', 'players', 'isPublic']),
-                Type.Partial(Type.Pick(Game, ['config'], { additionalProperties: false }))
-            ])
-        )
-    },
-    { additionalProperties: false }
-)
-
 export default async function (definition: GameDefinition, fastify: FastifyInstance) {
+    type CreateGameRequest = Static<typeof CreateGameRequest>
+    const CreateGameRequest = Type.Object(
+        {
+            game: Type.Evaluate(
+                Type.Intersect([
+                    Type.Pick(Game, ['id', 'name', 'players', 'isPublic']),
+                    Type.Object({
+                        config: Type.Optional(definition.configSchema ?? Type.Object({}))
+                    })
+                ])
+            )
+        },
+        { additionalProperties: false }
+    )
+
     fastify.post<{ Body: CreateGameRequest }>(
         `/create`,
         {

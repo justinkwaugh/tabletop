@@ -197,6 +197,13 @@
         const defaultConfig = generateDefaultOptions()
         const mergedConfig = Object.assign(defaultConfig, chosenConfig)
 
+        // Remove null values from config
+        for (const key of Object.keys(mergedConfig)) {
+            if (mergedConfig[key] === null) {
+                delete mergedConfig[key]
+            }
+        }
+
         const gameData = <Partial<Game>>{
             id: editedGame.id,
             name: (formData.get('name') as string).trim(),

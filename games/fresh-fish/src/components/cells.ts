@@ -94,7 +94,10 @@ export function isTraversable(cell: Cell): boolean {
     )
 }
 
-export function mustBeReachable(cell: Cell): boolean {
+export function mustBeReachable(cell?: Cell): boolean {
+    if (!cell) {
+        return false
+    }
     return (
         cell.type === CellType.Empty ||
         cell.type === CellType.Road ||

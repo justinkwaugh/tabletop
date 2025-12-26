@@ -601,8 +601,8 @@
                 <svg
                     width="87px"
                     height="100px"
-                    x={KaivaiHexGeometry.boundingBox.x}
-                    y={KaivaiHexGeometry.boundingBox.y}
+                    x={-43.5}
+                    y={-50}
                     viewBox="-9.5 -5 31 31"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
