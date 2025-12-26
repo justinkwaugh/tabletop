@@ -77,10 +77,10 @@
                 {action.numHurled} sundiver{action.numHurled === 1 ? '' : 's'} hurled
             </li>{/if}
         {#if action.stationFlown}<li>
-                <span class="capitalize">{StationNames[action.stationFlown.type]}</span> flown
+                Juggernaut {StationNames[action.stationFlown.type]} flown
             </li>{/if}
         {#if action.stationHurled}<li>
-                <span class="capitalize">{StationNames[action.stationHurled.type]}</span> hurled
+                Juggernaut {StationNames[action.stationHurled.type]} hurled
             </li>{/if}
         {#if action.energyGained > 0}<li>{action.energyGained} energy gained</li>{/if}
         {#if action.momentumGained > 0}<li>{action.momentumGained} momentum gained</li>{/if}
@@ -108,9 +108,7 @@
         </div>
     </div>
 {:else if isConvert(action)}
-    converted a {#if action.isGate}solar gate{:else if action.stationType === StationType.EnergyNode}energy
-        node{:else if action.stationType === StationType.SundiverFoundry}sundiver foundry{:else}transmit
-        tower{/if}
+    converted a {#if action.isGate}solar gate{:else}{StationNames[action.stationType!]}{/if}
 {:else if isSolarFlare(action)}
     A solar flare occured
     <ul class="ms-4 list-inside">

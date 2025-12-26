@@ -102,7 +102,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.mode === GameSessionMode.Play || this.mode === GameSessionMode.Explore
     )
     isExploring = $derived(this.mode === GameSessionMode.Explore)
-    isViewingHistory = $derived.by(() => this.history.inHistory)
+    isExitingHistory = $state(false)
+    isViewingHistory = $derived.by(() => this.history.inHistory || this.isExitingHistory)
 
     primaryGame: Game = $derived.by(() => {
         return this.gameContext.game
@@ -363,6 +364,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             shouldAutoStepAction: (action, next) => this.shouldAutoStepAction(action, next),
             onHistoryExit: () => {
                 this.suppressStateChangeActions = true
+                this.isExitingHistory = true
                 this.onHistoryExit()
             }
         })
@@ -415,6 +417,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                         .finally(() => {
                             console.log('Notify setting updatingState to false')
                             this.updatingVisibleState = false
+                            this.isExitingHistory = false
                         })
                 }
             )
@@ -438,7 +441,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         })
 
         // Need an initial value
-        console.log('Initializing gameState in GameSession constructor')
         this.gameState = $state.raw(this.definition.hydrator.hydrateState(state) as U)
     }
 
