@@ -20,9 +20,21 @@
         const playersAndStatesById = new Map(
             playersAndStates.map((item) => [item.playerState.playerId, item])
         )
-        return gameSession.gameState.turnManager.turnOrder.map(
+        const turnOrderSorted = gameSession.gameState.turnManager.turnOrder.map(
             (playerId) => playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
+
+        // if not hotseat, rotate until user player is at top
+        if (gameSession.myPlayer && !gameSession.primaryGame.hotseat) {
+            const myPlayerId = gameSession.myPlayer.id
+            if (myPlayerId) {
+                while (turnOrderSorted[0].player.id !== myPlayerId) {
+                    turnOrderSorted.push(turnOrderSorted.shift()!)
+                }
+            }
+        }
+
+        return turnOrderSorted
     })
     function getPlayerForState(playerState: SolPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)
