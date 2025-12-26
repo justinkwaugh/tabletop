@@ -138,7 +138,7 @@ export function getFlightPath({
         if (i === 0) {
             const cell = fromState.board.cellAt(coords)
             // console.log('First coord', coords, cell)
-            const location = action.stationId
+            location = action.stationId
                 ? gameSession.locationForStationInCell(cell)
                 : gameSession.locationForDiverInCell(playerId, cell)
             // console.log('Location', location)
@@ -147,7 +147,7 @@ export function getFlightPath({
             }
         } else if (i === pathCoords.length - 1) {
             const cell = toState.board.cellAt(coords)
-            const location = action.stationId
+            location = action.stationId
                 ? gameSession.locationForStationInCell(cell)
                 : gameSession.locationForDiverInCell(playerId, cell)
             if (location) {

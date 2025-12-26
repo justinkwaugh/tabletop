@@ -172,7 +172,9 @@
         <Heading
             class="text-nowrap text-center mt-2 sm:mt-0 max-w-[320px] dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
             style=""
-            tag="h4">{gameService.currentGameSession.primaryGame.name}</Heading
+            tag="h4"
+            >{gameService.currentGameSession.definition.metadata.beta ? 'BETA: ' : ''}{gameService
+                .currentGameSession.primaryGame.name}</Heading
         >
     {/if}
 {/snippet}
@@ -188,7 +190,12 @@
     {/if}
 {/snippet}
 
-<Navbar fluid={true} class="dark:bg-gray-800">
+<Navbar
+    fluid={true}
+    class="{gameService.currentGameSession?.definition.metadata.beta
+        ? 'dark:bg-red-900'
+        : 'dark:bg-gray-800'} "
+>
     <div class="flex flex-col w-full">
         <div class="flex flex-row justify-between items-center w-full">
             <div class="flex justify-center items-center">

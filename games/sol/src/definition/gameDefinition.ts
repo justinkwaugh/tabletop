@@ -13,10 +13,10 @@ export const Definition = <GameDefinition>{
         name: 'Sol',
         designer: '',
         description:
-            'BETA: Games may have bugs and may not be finishable.  Not all of the history entries and waiting messsages are complete yet.  If you notice anything you think is weird or incorrect, please mention in it in our discord.',
+            'BETA: Games may have bugs and may not be finishable.  Not all of the history entries and waiting messsages are complete yet. Animations may b emissing. If you notice anything you think is weird or incorrect, please mention in it in our discord.',
         year: '2005',
         minPlayers: 2,
-        maxPlayers: 5,
+        maxPlayers: 4,
         defaultPlayerCount: 4,
         beta: true
     },
