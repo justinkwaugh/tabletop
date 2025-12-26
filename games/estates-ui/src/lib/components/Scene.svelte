@@ -19,7 +19,8 @@
     import CameraControls from 'camera-controls'
     import { fade, fadeIn, fadeOut, hideInstant, scale } from '$lib/utils/animations'
     import { useDebounce } from 'runed'
-    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
+    import type { GameAction } from '@tabletop/common'
     // import { Checkbox, Folder, FpsGraph, List, Pane, Slider } from 'svelte-tweakpane-ui'
     // import RenderIndicator from './RenderIndicator.svelte'
 
@@ -50,11 +51,13 @@
     async function onGameStateChange({
         to,
         from,
-        timeline
+        action,
+        animationContext
     }: {
         to: HydratedEstatesGameState
         from?: HydratedEstatesGameState
-        timeline: gsap.core.Timeline
+        action?: GameAction
+        animationContext: AnimationContext
     }) {
         const heightForBackRow = to.board.maxRowHeight(0) - 0.8
         const heightForMiddleRow = to.board.maxRowHeight(1) - 1.5
@@ -77,18 +80,18 @@
                 object: currentMayor,
                 duration: 0.1,
                 scale: 0.01,
-                timeline
+                timeline: animationContext.actionTimeline
             })
             fadeOut({
                 object: currentMayor,
                 duration: 0.1,
-                timeline
+                timeline: animationContext.actionTimeline
             })
         }
     }
 
     gameSession.addGameStateChangeListener(onGameStateChange)
-    onGameStateChange({ to: gameSession.gameState, timeline: gsap.timeline() })
+    // onGameStateChange({ to: gameSession.gameState, timeline: gsap.timeline() })
 
     let billboards: any[] = []
 

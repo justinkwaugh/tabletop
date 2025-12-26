@@ -12,7 +12,8 @@
     import GameEndPanel from './GameEndPanel.svelte'
     import Offer from './Offer.svelte'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
-    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
+    import type { GameAction } from '@tabletop/common'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
 
@@ -42,10 +43,14 @@
 
     async function onGameStateChange({
         to,
-        from
+        from,
+        action,
+        animationContext
     }: {
         to: HydratedEstatesGameState
         from?: HydratedEstatesGameState
+        action?: GameAction
+        animationContext: AnimationContext
     }) {
         if (
             to.machineState === MachineState.Auctioning &&

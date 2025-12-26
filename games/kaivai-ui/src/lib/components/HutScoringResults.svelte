@@ -3,7 +3,7 @@
     import { ScoreHuts } from '@tabletop/kaivai'
     import { getContext } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
-    let { action, justify = 'center' }: { action: ScoreHuts; justify: 'center' | 'left' } = $props()
+    let { action, justify = 'center', history = false }: { action: ScoreHuts; justify: 'center' | 'left'; history?: boolean } = $props()
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let justifyClass = justify === 'center' ? 'items-center' : 'items-start'
@@ -32,7 +32,7 @@
 
             {#each gameSession.gameState.players as player}
                 <div class="flex flex-row justify-start items-center">
-                    <PlayerName playerId={player.playerId} />
+                    <PlayerName playerId={player.playerId} capitalization={history ? 'capitalize' : 'uppercase'} />
                 </div>
                 <div>{action.metadata?.scores[player.playerId].numHuts}</div>
                 <div>{'\u2192'}</div>

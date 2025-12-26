@@ -270,7 +270,10 @@
                         {#each gameSession.gameState.players as player}
                             <div class="flex flex-row justify-between items-center w-full">
                                 <div class="mr-8">
-                                    <PlayerName playerId={player.playerId} />
+                                    <PlayerName
+                                        playerId={player.playerId}
+                                        capitalization="uppercase"
+                                    />
                                 </div>
                                 <div>
                                     {getIslandInfluence(player.playerId)}

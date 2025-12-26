@@ -47,14 +47,14 @@
                 {#each gameSession.gameState.activePlayerIds as playerId}
                     <div class="flex flex-col justify-center items-center mx-2">
                         <h1 class="text-lg">
-                            <PlayerName {playerId} />
+                            <PlayerName capitalization="uppercase" {playerId} />
                         </h1>
                     </div>
                 {/each}
             </div>
         {:else}
             <h1 class="text-lg md:text-xl kaivai-font uppercase">
-                Waiting for <PlayerName playerId={currentPlayerId} />
+                Waiting for <PlayerName capitalization="uppercase" playerId={currentPlayerId} />
                 {waitingText}
             </h1>
         {/if}

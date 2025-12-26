@@ -1,4 +1,4 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { AnimationContext, GameSession } from '@tabletop/frontend-components'
 import yellowHut from '$lib/images/yellowhut.png'
 import yellowHut2 from '$lib/images/yellowhut2.png'
 import blueHut from '$lib/images/bluehut.png'
@@ -237,11 +237,13 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     override async onGameStateChange({
         to,
         from,
-        timeline
+        action,
+        animationContext
     }: {
-        to: KaivaiGameState
-        from?: KaivaiGameState
-        timeline: gsap.core.Timeline
+        to: HydratedKaivaiGameState
+        from?: HydratedKaivaiGameState
+        action?: GameAction
+        animationContext: AnimationContext
     }) {
         this.resetAction()
     }

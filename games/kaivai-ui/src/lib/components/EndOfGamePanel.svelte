@@ -13,7 +13,7 @@
     class="mb-2 rounded-lg px-2 pt-2 pb-4 text-center flex flex-row flex-wrap justify-center items-center"
 >
     <h1 class="text-lg sm:text-xl uppercase kaivai-font">
-        <PlayerName playerId={winner} />
+        <PlayerName playerId={winner} capitalization="uppercase" />
         won with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')?.score}
     </h1>
 </div>

@@ -65,7 +65,10 @@
 
             {#each gameSession.gameState.players as player}
                 <div class="flex flex-row justify-start items-center">
-                    <PlayerName playerId={player.playerId} />
+                    <PlayerName
+                        playerId={player.playerId}
+                        capitalization={history ? 'capitalize' : 'uppercase'}
+                    />
                 </div>
                 <div>{action.metadata?.playerMajorities[player.playerId].huts}</div>
                 <div>{action.metadata?.playerMajorities[player.playerId].boats}</div>
@@ -78,8 +81,11 @@
         </div>
         <div class="mt-2 text-md">
             {#if action.metadata?.winners.length === 1}
-                <PlayerName playerId={action.metadata?.winners[0]} /> won {action.metadata?.award ??
-                    0} glory
+                <PlayerName
+                    playerId={action.metadata?.winners[0]}
+                    capitalization={history ? 'capitalize' : 'uppercase'}
+                /> won
+                {action.metadata?.award ?? 0} glory
             {:else}
                 No glory awarded
             {/if}

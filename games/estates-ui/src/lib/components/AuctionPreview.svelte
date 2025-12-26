@@ -20,6 +20,8 @@
     import Roof from './Roof3d.svelte'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
     import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
+    import type { GameAction } from '@tabletop/common'
+    import type { AnimationContext } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     let { invalidate } = useThrelte()
@@ -91,15 +93,22 @@
     async function onGameStateChange({
         to,
         from,
-        timeline
+        action,
+        animationContext
     }: {
         to: HydratedEstatesGameState
         from?: HydratedEstatesGameState
-        timeline: gsap.core.Timeline
+        action?: GameAction
+        animationContext: AnimationContext
     }) {
         const object = group
         if (object && from?.chosenPiece && !to.chosenPiece) {
-            fadeOut({ object, duration: 0.2, timeline, startAt: 0 })
+            fadeOut({
+                object,
+                duration: 0.2,
+                timeline: animationContext.actionTimeline,
+                startAt: 0
+            })
         }
     }
 

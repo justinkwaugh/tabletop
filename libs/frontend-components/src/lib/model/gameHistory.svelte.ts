@@ -337,12 +337,15 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     }
 
     public async goToPlayersNextTurn(playerId: string) {
+        if (!this.playerHasFutureTurn(playerId)) {
+            return
+        }
+
         if (this.disabled || this.stepping || !this.historyContext) {
             return
         }
 
         // Now find my next turn
-        this.stepping = true
         await this.stepUntil('forward', () => {
             return (
                 !this.historyContext ||

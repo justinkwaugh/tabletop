@@ -1,4 +1,4 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { AnimationContext, GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
     HydratedFreshFishGameState,
@@ -29,11 +29,13 @@ export class FreshFishGameSession extends GameSession<
     override async onGameStateChange({
         to,
         from,
-        timeline
+        action,
+        animationContext
     }: {
-        to: FreshFishGameState
-        from?: FreshFishGameState
-        timeline: unknown
+        to: HydratedFreshFishGameState
+        from?: HydratedFreshFishGameState
+        action?: GameAction
+        animationContext: AnimationContext
     }) {
         this.chosenAction = undefined
         this.clearExpropriationPreview()

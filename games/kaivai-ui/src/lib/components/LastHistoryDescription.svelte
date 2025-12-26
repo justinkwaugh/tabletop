@@ -47,14 +47,17 @@
         <div class="flex flex-col justify-center items-center mx-8 uppercase kaivai-font">
             <h1 class="text-lg md:text-xl uppercase text-[#372b0a] kaivai-font leading-none">
                 {#if lastAction && lastAction.playerId}
-                    <PlayerName playerId={lastAction.playerId} />
+                    <PlayerName playerId={lastAction.playerId} capitalization="uppercase" />
                 {/if}
                 {getHistoryDescriptionForAction(
                     lastAction,
                     lastAction?.playerId === gameSession.myPlayer?.id
                 )}{#if isMove(lastAction) && lastAction.metadata?.playerSunk}
-                    sunk <PlayerName playerId={lastAction.metadata.playerSunk} possessive={true} /> boat
-                    for a loss of {lastAction.metadata.gloryLost} glory
+                    sunk <PlayerName
+                        capitalization="uppercase"
+                        playerId={lastAction.metadata.playerSunk}
+                        possessive={true}
+                    /> boat for a loss of {lastAction.metadata.gloryLost} glory
                 {/if}{#if isDeliver(lastAction) && (lastAction.metadata?.numSold ?? 0) > 0}
                     , selling {lastAction.metadata?.numSold} fish for {lastAction.metadata
                         ?.earnings}

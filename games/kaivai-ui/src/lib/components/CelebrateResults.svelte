@@ -3,7 +3,11 @@
     import { Celebrate } from '@tabletop/kaivai'
     import { getContext } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
-    let { action, justify = 'center' }: { action: Celebrate; justify: 'center' | 'left' } = $props()
+    let {
+        action,
+        justify = 'center',
+        history = false
+    }: { action: Celebrate; justify: 'center' | 'left'; history?: boolean } = $props()
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let justifyClass = justify === 'center' ? 'justify-center' : 'justify-start'
@@ -18,7 +22,10 @@
                 {#each gameSession.gameState.players as player}
                     {#if action.metadata?.scores[player.playerId]}
                         <div class="flex flex-row justify-end items-center">
-                            <PlayerName playerId={player.playerId} />
+                            <PlayerName
+                                playerId={player.playerId}
+                                capitalization={history ? 'capitalize' : 'uppercase'}
+                            />
                         </div>
                         <div class="text-nowrap">
                             +{action.metadata?.scores[player.playerId]} glory

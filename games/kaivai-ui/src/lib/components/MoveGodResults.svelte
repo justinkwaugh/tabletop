@@ -3,7 +3,11 @@
     import { MoveGod } from '@tabletop/kaivai'
     import { getContext } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
-    let { action, justify = 'center' }: { action: MoveGod; justify: 'center' | 'left' } = $props()
+    let {
+        action,
+        justify = 'center',
+        history = false
+    }: { action: MoveGod; justify: 'center' | 'left'; history?: boolean } = $props()
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
     let justifyClass = justify === 'center' ? 'justify-center' : 'justify-start'
@@ -18,7 +22,10 @@
                 {#each gameSession.gameState.players as player}
                     {#if action.metadata?.influenceGained[player.playerId]}
                         <div class="flex flex-row justify-end items-center">
-                            <PlayerName playerId={player.playerId} />
+                            <PlayerName
+                                capitalization={history ? 'capitalize' : 'uppercase'}
+                                playerId={player.playerId}
+                            />
                         </div>
                         <div class="text-nowrap">
                             +{action.metadata?.influenceGained[player.playerId]} influence

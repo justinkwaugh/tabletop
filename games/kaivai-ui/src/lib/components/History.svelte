@@ -115,13 +115,13 @@
             <IslandScoringResults {action} history={true} />
         {/if}
         {#if isScoreHuts(action)}
-            <HutScoringResults {action} justify={'left'} />
+            <HutScoringResults {action} justify={'left'} history={true} />
         {/if}
         {#if isCelebrate(action)}
-            <CelebrateResults {action} justify={'left'} />
+            <CelebrateResults {action} justify={'left'} history={true} />
         {/if}
         {#if isMoveGod(action)}
-            <MoveGodResults {action} justify={'left'} />
+            <MoveGodResults {action} justify={'left'} history={true} />
         {/if}
     </p>
 {/snippet}

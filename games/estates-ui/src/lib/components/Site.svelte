@@ -18,7 +18,7 @@
     import { spring } from 'svelte/motion'
     import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { remove, type OffsetCoordinates } from '@tabletop/common'
+    import { GameAction, remove, type OffsetCoordinates } from '@tabletop/common'
     import Barrier3d from '$lib/3d/BarrierOne.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
     import { Bloomer } from '$lib/utils/bloomer'
@@ -26,6 +26,7 @@
     import { fadeOut, scaleIn, scaleOut } from '$lib/utils/animations'
     import type { Object3D } from 'three'
     import { ColumnOffsets } from '$lib/utils/boardOffsets'
+    import type { AnimationContext } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as EstatesGameSession
     const effects = getContext('effects') as Effects
@@ -71,11 +72,14 @@
 
     async function onGameStateChange({
         to,
-        timeline
+        from,
+        action,
+        animationContext
     }: {
         to: HydratedEstatesGameState
         from?: HydratedEstatesGameState
-        timeline: gsap.core.Timeline
+        action?: GameAction
+        animationContext: AnimationContext
     }) {
         const upcomingSite = to.board.getSiteAtCoords(coords)
         if (!upcomingSite) {
@@ -90,7 +94,12 @@
             if (!barrierCoords) {
                 const barrierObject = barrierObjects.get(barrier.value)
                 if (barrierObject) {
-                    fadeOut({ object: barrierObject, duration: 0.2, timeline, startAt: 0 })
+                    fadeOut({
+                        object: barrierObject,
+                        duration: 0.2,
+                        timeline: animationContext.actionTimeline,
+                        startAt: 0
+                    })
                 }
             } else {
                 const barrierSite = to.board.getSiteAtCoords(barrierCoords)
@@ -101,7 +110,7 @@
                         calculateBarrierStart(barrierSite.barriers) +
                         index * calculateBarrierOffset(barrierSite.barriers)
 
-                    timeline.to(
+                    animationContext.actionTimeline.to(
                         barrierObject.position,
                         {
                             x: ColumnOffsets[barrierCoords.col] - x + offsetInSite,
@@ -118,7 +127,7 @@
             const offsetInSite =
                 calculateBarrierStart(upcomingSite.barriers) +
                 index * calculateBarrierOffset(upcomingSite.barriers)
-            timeline.to(
+            animationContext.actionTimeline.to(
                 hoverBarrierObject.position,
                 {
                     x: offsetInSite,
@@ -135,14 +144,34 @@
             }
             const cubeObject = cubeObjects[i]
             if (cubeObject) {
-                scaleOut({ object: cubeObject, duration: 0.1, timeline, startAt: 0 })
-                fadeOut({ object: cubeObject, duration: 0.1, timeline, startAt: 0 })
+                scaleOut({
+                    object: cubeObject,
+                    duration: 0.1,
+                    timeline: animationContext.actionTimeline,
+                    startAt: 0
+                })
+                fadeOut({
+                    object: cubeObject,
+                    duration: 0.1,
+                    timeline: animationContext.actionTimeline,
+                    startAt: 0
+                })
             }
         }
 
         if (site.roof && !upcomingSite.roof && roofObject) {
-            scaleOut({ object: roofObject, duration: 0.1, timeline, startAt: 0 })
-            fadeOut({ object: roofObject, duration: 0.1, timeline, startAt: 0 })
+            scaleOut({
+                object: roofObject,
+                duration: 0.1,
+                timeline: animationContext.actionTimeline,
+                startAt: 0
+            })
+            fadeOut({
+                object: roofObject,
+                duration: 0.1,
+                timeline: animationContext.actionTimeline,
+                startAt: 0
+            })
         }
     }
 

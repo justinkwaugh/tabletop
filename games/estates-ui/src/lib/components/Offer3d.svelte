@@ -15,7 +15,12 @@
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Cube3d from './Cube3d.svelte'
-    import { coordinatesToNumber, OffsetCoordinates, sameCoordinates } from '@tabletop/common'
+    import {
+        coordinatesToNumber,
+        GameAction,
+        OffsetCoordinates,
+        sameCoordinates
+    } from '@tabletop/common'
     import { spring } from 'svelte/motion'
     import CancelCube from './CancelCube.svelte'
     import { gsap } from 'gsap'
@@ -27,7 +32,7 @@
     import { Outliner } from '$lib/utils/outliner'
     import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
     import { Bloomer } from '$lib/utils/bloomer'
-    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
 
     const wood = useTexture(woodImg)
 
@@ -68,11 +73,14 @@
 
     async function onGameStateChange({
         to,
-        timeline
+        from,
+        action,
+        animationContext
     }: {
         to: HydratedEstatesGameState
         from?: HydratedEstatesGameState
-        timeline: gsap.core.Timeline
+        action?: GameAction
+        animationContext: AnimationContext
     }) {
         if (!gameSession.isViewingHistory) {
             return
@@ -84,7 +92,11 @@
                     const id = coordinatesToNumber({ row: rowIndex, col: colIndex })
                     const cubeObject = cubeObjects.get(id)
                     if (cubeObject) {
-                        fadeUp({ object: cubeObject, height: 2, timeline })
+                        fadeUp({
+                            object: cubeObject,
+                            height: 2,
+                            timeline: animationContext.actionTimeline
+                        })
                     }
                 }
             }
@@ -94,29 +106,49 @@
             if (roof && !to.visibleRoofs[index]) {
                 const roofObject = roofObjects[index]
                 if (roofObject) {
-                    fadeUp({ object: roofObject, height: 2, timeline })
+                    fadeUp({
+                        object: roofObject,
+                        height: 2,
+                        timeline: animationContext.actionTimeline
+                    })
                 }
             }
         }
 
         if (gameSession.gameState.mayor && !to.mayor && mayorObject) {
-            fadeUp({ object: mayorObject, height: 2, timeline })
+            fadeUp({ object: mayorObject, height: 2, timeline: animationContext.actionTimeline })
         }
 
         if (gameSession.gameState.barrierOne && !to.barrierOne && barrierOneObject) {
-            fadeUp({ object: barrierOneObject, height: 2, timeline })
+            fadeUp({
+                object: barrierOneObject,
+                height: 2,
+                timeline: animationContext.actionTimeline
+            })
         }
 
         if (gameSession.gameState.barrierTwo && !to.barrierTwo && barrierTwoObject) {
-            fadeUp({ object: barrierTwoObject, height: 2, timeline })
+            fadeUp({
+                object: barrierTwoObject,
+                height: 2,
+                timeline: animationContext.actionTimeline
+            })
         }
 
         if (gameSession.gameState.barrierThree && !to.barrierThree && barrierThreeObject) {
-            fadeUp({ object: barrierThreeObject, height: 2, timeline })
+            fadeUp({
+                object: barrierThreeObject,
+                height: 2,
+                timeline: animationContext.actionTimeline
+            })
         }
 
         if (gameSession.gameState.cancelCube && !to.cancelCube && cancelCubeObject) {
-            fadeUp({ object: cancelCubeObject, height: 2, timeline })
+            fadeUp({
+                object: cancelCubeObject,
+                height: 2,
+                timeline: animationContext.actionTimeline
+            })
         }
     }
 
@@ -250,11 +282,13 @@
         const listener = async ({
             to,
             from,
-            timeline
+            action,
+            animationContext
         }: {
             to: EstatesGameState
             from?: EstatesGameState
-            timeline: gsap.core.Timeline
+            action?: GameAction
+            animationContext: AnimationContext
         }) => {
             gameSession.removeGameStateChangeListener(listener)
 
