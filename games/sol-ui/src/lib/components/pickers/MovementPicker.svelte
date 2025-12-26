@@ -122,7 +122,7 @@
     })
 
     function selectAmount(amount: number, catapult: boolean = false, passage: boolean = false) {
-        console.log('MovementPicker selectAmount', amount, catapult, passage)
+        // console.log('MovementPicker selectAmount', amount, catapult, passage)
         gameSession.catapultChoice = catapult
         gameSession.chosenNumDivers = amount
         gameSession.passageChoice = passage
@@ -148,7 +148,7 @@
         if (choiceMade) {
             return
         }
-        console.log('MovementPicker onClose')
+        // console.log('MovementPicker onClose')
         gameSession.back()
     }
 </script>

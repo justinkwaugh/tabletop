@@ -14,7 +14,7 @@ describe('Chat Message Data Object Tests', () => {
         }
 
         const converted = Value.Convert(ChatMessage, chatData) as ChatMessage
-        console.log(...Value.Errors(ChatMessage, converted))
+
         expect(Value.Check(ChatMessage, converted)).toBe(true)
         expect(converted.timestamp instanceof Date).toBe(true)
         expect(converted.timestamp.toISOString()).toBe(timestamp.toISOString())

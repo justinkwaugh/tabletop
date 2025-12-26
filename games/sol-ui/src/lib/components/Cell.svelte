@@ -132,7 +132,7 @@
                     } else if (gameSession.teleportChoice === true) {
                         return true
                     } else {
-                        console.log('catapultchoice', gameSession.catapultChoice)
+                        // console.log('catapultchoice', gameSession.catapultChoice)
                         return HydratedFly.isValidFlightDestination({
                             state: gameSession.gameState,
                             playerId: myPlayerState.playerId,

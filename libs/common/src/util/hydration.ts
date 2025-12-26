@@ -8,7 +8,6 @@ export abstract class Hydratable<T extends TSchema> {
         this._validator = validator
 
         if (!validator.Check(data)) {
-            console.log('Hydration validation failed:', data)
             throw Error(JSON.stringify(validator.Errors(data)))
         }
 

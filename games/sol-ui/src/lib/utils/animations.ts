@@ -245,7 +245,7 @@ export function call({
     myTimeline.call(callback, [], position)
     if (duration !== undefined) {
         const currentDuration = myTimeline.duration()
-        console.log('Current duration:', currentDuration, 'Adding duration:', duration)
+        // console.log('Current duration:', currentDuration, 'Adding duration:', duration)
         ensureDuration(myTimeline, currentDuration + duration)
     }
 

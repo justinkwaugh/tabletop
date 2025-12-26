@@ -19,7 +19,7 @@ export function aggregateMoveActions(actions: (Fly | Launch | Hurl)[]): Aggregat
         throw Error('No actions to aggregate')
     }
 
-    console.log('Aggregating move actions', actions)
+    // console.log('Aggregating move actions', actions)
     const aggregated: AggregatedMove = {
         id: nanoid(),
         gameId: actions[0].gameId,

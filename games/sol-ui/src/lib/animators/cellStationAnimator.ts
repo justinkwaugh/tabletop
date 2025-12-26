@@ -49,7 +49,7 @@ export class CellStationAnimator extends StateAnimator<
         element: HTMLElement | SVGElement,
         clipRect?: SVGRectElement
     ): void {
-        console.log('adding cell station')
+        // console.log('adding cell station')
         this.station = station
         this.setElement(element)
         this.setClipRect(clipRect)
@@ -191,7 +191,7 @@ export class CellStationAnimator extends StateAnimator<
         }
 
         if (isDestination) {
-            console.log('Animating destination for station:', this.station?.id)
+            // console.log('Animating destination for station:', this.station?.id)
             const board = toState.board
             const destCell = board.cellAt(action.destination)
             const destLocation = this.gameSession.locationForStationInCell(destCell)
@@ -231,7 +231,7 @@ export class CellStationAnimator extends StateAnimator<
                 y: offsetFromCenter(destLocation).y
             })
 
-            console.log('Animating arrival for station:', this.station?.id)
+            // console.log('Animating arrival for station:', this.station?.id)
             // Appear right when they arrive
             timeline.set(this.element!, { opacity: 1 }, flightDuration)
         }
@@ -303,7 +303,7 @@ export class CellStationAnimator extends StateAnimator<
                         }
                     })
                     .catch(() => {
-                        console.log('error')
+                        // console.log('error')
                     })
             },
             timeline: animationContext.actionTimeline,

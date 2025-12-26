@@ -155,7 +155,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     // Used to trigger an effect to call the state change listening callbacks and then update the exposed gameState
     private currentVisibleGameState: U = $derived.by(() => {
-        console.log('Deriving current visible game state')
+        // console.log('Deriving current visible game state')
         this.updatingVisibleState = true
         return this.definition.hydrator.hydrateState(this.currentVisibleContext.state) as U
     })
@@ -408,14 +408,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             watch(
                 () => this.currentVisibleGameState,
                 (newState, oldState) => {
-                    console.log('Game state changed', { newState, oldState })
+                    // console.log('Game state changed', { newState, oldState })
 
                     void this.notifyStateChangeListeners(newState, oldState)
                         .catch((error) => {
                             console.error('Error notifying state change listeners:', error)
                         })
                         .finally(() => {
-                            console.log('Notify setting updatingState to false')
+                            // console.log('Notify setting updatingState to false')
                             this.updatingVisibleState = false
                             this.isExitingHistory = false
                         })
@@ -430,7 +430,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                     } else {
                         this.history.enable()
                     }
-                    console.log('Busy changed from', oldBusy, 'to', newBusy)
+                    // console.log('Busy changed from', oldBusy, 'to', newBusy)
                     if (oldBusy === true && newBusy === false) {
                         this.applyQueuedActions().catch((error) => {
                             console.error('Error applying queued actions:', error)
@@ -449,7 +449,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     }
 
     async notifyStateChangeListeners(newState: U, oldState?: U) {
-        console.log('Notifying state change listeners')
+        // console.log('Notifying state change listeners')
         const actions: GameAction[] = []
 
         if (!this.suppressStateChangeActions && oldState && newState.gameId === oldState.gameId) {
@@ -465,7 +465,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             let priorState = oldState.dehydrate()
 
             for (const action of actions) {
-                console.log('Processing action for state change listeners: ', action)
+                // console.log('Processing action for state change listeners: ', action)
                 const { updatedState } = this.engine.run(
                     $state.snapshot(action),
                     priorState,
@@ -585,7 +585,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         try {
             // Block server actions while we are processing
             if (this.mode === GameSessionMode.Play) {
-                console.log('ApplyAction setting processing actions to true')
+                // console.log('ApplyAction setting processing actions to true')
                 this.processingActions = true
             }
 
@@ -705,7 +705,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             await this.checkSync()
         } finally {
             if (this.mode === GameSessionMode.Play) {
-                console.log('ApplyAction setting processingActions to false')
+                // console.log('ApplyAction setting processingActions to false')
                 this.processingActions = false
             }
         }
@@ -726,7 +726,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         try {
             // Block server actions while we are processing primary actions
             if (this.mode === GameSessionMode.Play) {
-                console.log('Undo setting processingActions to true')
+                // console.log('Undo setting processingActions to true')
                 this.processingActions = true
             }
 
@@ -762,7 +762,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                     stateSnapshot = this.engine.undoAction(stateSnapshot, actionToUndo) as T
                 } while (actionToUndo.id !== targetActionId)
 
-                console.log('Undo updating game state')
+                // console.log('Undo updating game state')
                 relevantContext.updateGameState(stateSnapshot)
                 const preRedoContext = relevantContext.clone()
 
@@ -770,7 +770,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                     const results = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
                     localRedoneActions.push(...results.processedActions)
                     stateSnapshot = results.updatedState
-                    console.log('Undo updating game state from redo actions')
+                    // console.log('Undo updating game state from redo actions')
                     relevantContext.applyActionResults(results)
                 }
 
@@ -803,7 +803,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                             )
                             localRedoneActions.push(...results.processedActions)
                             stateSnapshot = results.updatedState
-                            console.log('Undo updating game state from remote')
+                            // console.log('Undo updating game state from remote')
                             relevantContext.applyActionResults(results)
                         }
                     }
@@ -823,7 +823,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
         } finally {
             if (this.mode === GameSessionMode.Play) {
-                console.log('Undo setting processingActions to false')
+                // console.log('Undo setting processingActions to false')
                 this.processingActions = false
             }
         }
@@ -855,7 +855,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
         const queuedActions = this.actionsToProcess
         this.actionsToProcess = []
-        console.log('Applying queued actions')
+        // console.log('Applying queued actions')
         await this.applyServerActions(queuedActions)
     }
 
@@ -926,7 +926,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         // Check the checksum
         if (this.gameContext.state?.actionChecksum !== checksum) {
-            console.log('Checksums do not match after resync')
+            // console.log('Checksums do not match after resync')
             return false
         }
         return true
@@ -974,7 +974,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     // For primary game context only
     private async handleUndoNotification(notification: GameUndoActionNotification) {
         if (this.gameContext === this.currentVisibleContext && this.busy) {
-            console.log('cannot apply server undo because we are busy')
+            // console.log('cannot apply server undo because we are busy')
             return
         }
 
@@ -1024,7 +1024,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             if (actions.length > 0) {
                 await this.applyServerActions(actions)
                 if (this.gameContext.state?.actionChecksum !== checksum) {
-                    console.log('Checksums do not match after applying actions from sync')
+                    // console.log('Checksums do not match after applying actions from sync')
                     resyncNeeded = true
                 }
             }
@@ -1041,7 +1041,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     // For primary game context only... we can just drop out of the other modes if they get messed up
     private async doFullResync() {
-        console.log('DOING FULL RESYNC')
+        // console.log('DOING FULL RESYNC')
         try {
             const { game, actions } = await this.api.getGame(this.gameContext.game.id)
             if (!game.state) {
@@ -1055,7 +1055,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             })
             this.gameContext.restoreFrom(newContext)
         } catch (e) {
-            console.log('Error during full resync', e)
+            // console.log('Error during full resync', e)
             toast.error('Unable to load game, try refreshing')
         }
     }
@@ -1068,7 +1068,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         // If we are already processing actions locally, just queue them up
         if (this.busy) {
-            console.log('Busy.. enqueuing actions')
+            // console.log('Busy.. enqueuing actions')
             this.actionsToProcess.push(...actions)
             return
         }
@@ -1082,7 +1082,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         for (const action of actions) {
             // Make sure we have not already processed this action
             if (this.gameContext.hasAction(action.id)) {
-                console.log(`Skipping already processed action ${action.id}`)
+                // console.log(`Skipping already processed action ${action.id}`)
                 continue
             }
 
@@ -1092,7 +1092,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             }
 
             if (this.debug) {
-                console.log(`Applying ${action.type} ${action.id} from server`, action)
+                // console.log(`Applying ${action.type} ${action.id} from server`, action)
             }
             const actionResults = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
             allActionResults.add(actionResults)
@@ -1103,7 +1103,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         if (stateUpdateNeeded) {
             // Once all the actions are processed, update the game state
-            console.log('Updating the game state with server actions')
+            // console.log('Updating the game state with server actions')
             this.gameContext.applyActionResults(allActionResults)
         }
     }

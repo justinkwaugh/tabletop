@@ -30,7 +30,7 @@ export function getFlightPaths({
         ? [pathCoords]
         : getFlightLegs(pathCoords, board)
 
-    console.log(flightLegs)
+    // console.log(flightLegs)
 
     // First leg cannot start at a mothership
     const flightPaths: Point[][] = []
@@ -43,7 +43,7 @@ export function getFlightPaths({
             toState: i < flightLegs.length - 1 ? fromState : toState, // Only last leg is going to toState
             fromState
         })
-        console.log('path before', [...path])
+        // console.log('path before', [...path])
         if (i < flightLegs.length - 1) {
             // Ends at mothership
             const mothership = fromState.findAdjacentMothership(leg.at(-1)!) ?? playerId
@@ -63,11 +63,11 @@ export function getFlightPaths({
             )
             path.unshift(mothershipLocation)
         }
-        console.log('Path after', [...path])
+        // console.log('Path after', [...path])
         flightPaths.push(path)
         i++
     })
-    console.log('flightPaths', flightPaths)
+    // console.log('flightPaths', flightPaths)
     return flightPaths
 }
 
@@ -137,11 +137,11 @@ export function getFlightPath({
         let location: Point | undefined
         if (i === 0) {
             const cell = fromState.board.cellAt(coords)
-            console.log('First coord', coords, cell)
+            // console.log('First coord', coords, cell)
             const location = action.stationId
                 ? gameSession.locationForStationInCell(cell)
                 : gameSession.locationForDiverInCell(playerId, cell)
-            console.log('Location', location)
+            // console.log('Location', location)
             if (location) {
                 flightPath.push(location)
             }

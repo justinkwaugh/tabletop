@@ -15,7 +15,6 @@ describe('Game Chat Message Data Object Tests', () => {
         }
 
         const converted = Value.Convert(GameChatMessage, chatData) as GameChatMessage
-        console.log(...Value.Errors(GameChatMessage, converted))
         expect(Value.Check(GameChatMessage, converted)).toBe(true)
         expect(converted.timestamp instanceof Date).toBe(true)
         expect(converted.timestamp.toISOString()).toBe(timestamp.toISOString())

@@ -105,7 +105,7 @@ export class MothershipAnimator extends StateAnimator<
         to: number
         direction: Direction.Clockwise | Direction.CounterClockwise
     }) {
-        console.log('animating ship from ', from, 'to', to)
+        // console.log('animating ship from ', from, 'to', to)
         const currentRotation = this.element
             ? Number(gsap.getProperty(this.element, 'rotation'))
             : NaN

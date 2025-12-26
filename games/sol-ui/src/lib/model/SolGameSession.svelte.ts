@@ -116,7 +116,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 const station = this.gameState.getActivatingStation()
                 return getSpaceCentroid(this.numPlayers, station.coords!)
             } catch {
-                console.log("can't find activating station")
+                // console.log("can't find activating station")
             }
         } else if (this.isHatching && this.hatchLocation && !this.hatchTarget) {
             return getSpaceCentroid(this.numPlayers, this.hatchLocation)
@@ -471,7 +471,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             !this.teleportChoice &&
             this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)
         ) {
-            console.log('checking gates')
+            // console.log('checking gates')
             do {
                 const choiceData = this.getGateChoices(
                     this.chosenSource,
@@ -479,12 +479,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                     chosenGates,
                     catapult
                 )
-                console.log('choice data', choiceData)
+                // console.log('choice data', choiceData)
                 if (choiceData.gates.length > 1) {
                     this.gateChoices = choiceData.gates.map((gate) =>
                         this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
                     )
-                    console.log('gate choices', this.gateChoices)
+                    // console.log('gate choices', this.gateChoices)
                     return
                 } else if (choiceData.gates.length === 1) {
                     if (choiceData.direct) {
@@ -550,7 +550,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             catapult: this.catapultChoice ?? false,
             passage
         }
-        console.log((hurl ? 'Hurling' : 'Flying') + ' with action', action)
+        // console.log((hurl ? 'Hurling' : 'Flying') + ' with action', action)
         await this.doAction(action)
     }
 

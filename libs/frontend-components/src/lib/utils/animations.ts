@@ -22,9 +22,9 @@ export class AnimationContext {
     }
 
     async play() {
-        console.log('num master timeline children:', this.masterTimeline.getChildren().length)
-        console.log('num action timeline children:', this.actionTimeline.getChildren().length)
-        console.log('num final timeline children:', this.finalTimeline.getChildren().length)
+        // console.log('num master timeline children:', this.masterTimeline.getChildren().length)
+        // console.log('num action timeline children:', this.actionTimeline.getChildren().length)
+        // console.log('num final timeline children:', this.finalTimeline.getChildren().length)
 
         if (
             this.masterTimeline.getChildren().length === 0 &&
@@ -38,9 +38,9 @@ export class AnimationContext {
         this.masterTimeline.add(this.finalTimeline, this.actionTimeline.duration())
 
         const animations = this.masterTimeline.getChildren()
-        console.log(`Playing ${animations.length} animations for action state change: `, animations)
+        // console.log(`Playing ${animations.length} animations for action state change: `, animations)
         await this.masterTimeline.play()
-        console.log('Finished playing animations')
+        // console.log('Finished playing animations')
     }
 
     runAfterAnimations() {

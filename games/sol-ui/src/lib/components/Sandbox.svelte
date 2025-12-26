@@ -32,7 +32,7 @@
     }
     let numPlayers = 4
 
-    console.log(getCirclePoint(148, toRadians(45)))
+    // console.log(getCirclePoint(148, toRadians(45)))
 
     let hideStuff: boolean = $state(false)
     let currentType: PieceType = $state(PieceType.Sundiver)
