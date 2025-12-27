@@ -1194,7 +1194,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     async setEffects() {
         const desiredEffects = [
             EffectType.Portal,
-            EffectType.Accelerate,
+            EffectType.Transcend,
             EffectType.Metamorphosis,
             EffectType.Procreate,
             EffectType.Sacrifice,

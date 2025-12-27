@@ -158,7 +158,13 @@
                     <div class="flex flex-col justify-between items-center h-full">
                         <div class="text-[.5rem] tracking-normal sol-font text-[#cccccc]">HOLD</div>
                         <div class="shrink-0">
-                            <Ship width={35} height={60} />
+                            <Ship
+                                width={35}
+                                height={60}
+                                transform={color === Color.Blue || color === Color.Green
+                                    ? 'rotate(180)'
+                                    : undefined}
+                            />
                         </div>
                         <div class="text-[.5rem] tracking-normal sol-font text-[#cccccc]">
                             RESERVE

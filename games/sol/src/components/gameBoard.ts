@@ -92,12 +92,20 @@ export class HydratedSolGameBoard
         this.cells[coordinatesToNumber(cell.coords)] = cell
     }
 
-    public areAdjacent(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
+    public areAdjacent(
+        coordsA: OffsetCoordinates,
+        coordsB: OffsetCoordinates,
+        transcend: boolean = false
+    ): boolean {
         const neighbors = this.areNeighbors(coordsA, coordsB)
         if (!neighbors) {
             return false
         }
-        return !this.requiresGateBetween(coordsA, coordsB) || this.hasGateBetween(coordsA, coordsB)
+        return (
+            transcend ||
+            !this.requiresGateBetween(coordsA, coordsB) ||
+            this.hasGateBetween(coordsA, coordsB)
+        )
     }
 
     public neighborsAt(coords: OffsetCoordinates, direction?: Direction): Cell[] {

@@ -1,6 +1,12 @@
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import type { OffsetCoordinates, Point } from '@tabletop/common'
-import type { Fly, Hurl, HydratedSolGameState } from '@tabletop/sol'
+import {
+    EffectType,
+    type Fly,
+    type Hurl,
+    type HydratedSolGameBoard,
+    type HydratedSolGameState
+} from '@tabletop/sol'
 import {
     dimensionsForSpace,
     getCirclePoint,
@@ -26,9 +32,10 @@ export function getFlightPaths({
     fromState: HydratedSolGameState
 }): Point[][] {
     const board = fromState.board
+    const transcend = fromState.activeEffect === EffectType.Transcend
     let flightLegs: OffsetCoordinates[][] = action.teleport
         ? [pathCoords]
-        : getFlightLegs(pathCoords, board)
+        : getFlightLegs(pathCoords, board, transcend)
 
     // console.log(flightLegs)
 
@@ -71,7 +78,11 @@ export function getFlightPaths({
     return flightPaths
 }
 
-function getFlightLegs(pathCoords: OffsetCoordinates[], board: any): OffsetCoordinates[][] {
+function getFlightLegs(
+    pathCoords: OffsetCoordinates[],
+    board: HydratedSolGameBoard,
+    transcend: boolean = false
+): OffsetCoordinates[][] {
     let flightLegs: OffsetCoordinates[][] = []
 
     let currentFlightLeg: OffsetCoordinates[] = []
@@ -82,7 +93,7 @@ function getFlightLegs(pathCoords: OffsetCoordinates[], board: any): OffsetCoord
             continue
         }
 
-        if (board.areAdjacent(lastCoord, coord)) {
+        if (board.areAdjacent(lastCoord, coord, transcend)) {
             currentFlightLeg.push(coord)
             continue
         }
