@@ -63,10 +63,7 @@ export class ActiveEffectsAnimator {
             return
         }
 
-        if (!this.collapsedState) {
-            this.collapsedState = Flip.getState(elements)
-        }
-        const state = this.collapsedState
+        this.collapsedState = Flip.getState(elements)
         this.expanded = true
 
         const boardLeft = (1280 - (CARD_WIDTH * SCALE * 2 + GAP)) / 2
@@ -91,7 +88,7 @@ export class ActiveEffectsAnimator {
             })
         }
 
-        this.currentTimeline = Flip.from(state, {
+        this.currentTimeline = Flip.from(this.collapsedState, {
             duration: 0.3,
             ease: 'power1.inOut',
             stagger: 0.15,

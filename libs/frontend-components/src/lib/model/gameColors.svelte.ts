@@ -12,7 +12,9 @@ export class GameColors<T extends GameState, U extends HydratedGameState & T> {
     ) {}
 
     private colorizer: GameColorizer = $derived.by(() => {
-        return this.colorBlind && !this.authorizationService.actAsAdmin
+        return this.colorBlind &&
+            this.gameContext.definition.colorizer.supportsColorblindPalette() &&
+            !this.authorizationService.actAsAdmin
             ? new ColorblindColorizer()
             : this.gameContext.definition.colorizer
     })
@@ -55,6 +57,7 @@ export class GameColors<T extends GameState, U extends HydratedGameState & T> {
 
     private getPreferredColor(user?: User): Color | undefined {
         if (
+            !this.gameContext.definition.colorizer.allowPreferredPlayerColors() ||
             this.gameContext.game.hotseat ||
             !user ||
             !user.preferences ||

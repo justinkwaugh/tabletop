@@ -64,4 +64,12 @@ export class SolGameColorizer extends DefaultColorizer {
                 return 'border-[#555555]'
         }
     }
+
+    override supportsColorblindPalette(): boolean {
+        return false
+    }
+
+    override allowPreferredPlayerColors(): boolean {
+        return false
+    }
 }

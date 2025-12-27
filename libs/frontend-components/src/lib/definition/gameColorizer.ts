@@ -6,6 +6,8 @@ export interface GameColorizer {
     getTextColor(color?: Color, asPlayerColor?: boolean): string
     getBorderColor(color?: Color): string
     getBorderContrastColor(color?: Color): string
+    allowPreferredPlayerColors(): boolean
+    supportsColorblindPalette(): boolean
 }
 
 const uiColorForColor = {
@@ -83,5 +85,13 @@ export class DefaultColorizer implements GameColorizer {
     }
     getBorderContrastColor(color?: Color): string {
         return color === Color.Yellow ? 'border-black' : 'border-white'
+    }
+
+    allowPreferredPlayerColors(): boolean {
+        return true
+    }
+
+    supportsColorblindPalette(): boolean {
+        return true
     }
 }

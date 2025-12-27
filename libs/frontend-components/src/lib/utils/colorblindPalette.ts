@@ -74,4 +74,10 @@ export class ColorblindColorizer implements GameColorizer {
     getBorderContrastColor(color: Color): string {
         return color === Color.Yellow ? 'border-black' : 'border-white'
     }
+    allowPreferredPlayerColors(): boolean {
+        return true
+    }
+    supportsColorblindPalette(): boolean {
+        return true
+    }
 }

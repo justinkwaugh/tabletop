@@ -15,9 +15,9 @@
     <Header />
 
     <div
-        class="sol-font panel-grid grid {!gameSession.isViewingHistory &&
+        class="sol-font sol-panel-grid grid {!gameSession.isViewingHistory &&
         (gameSession.isMyTurn || gameSession.turnPlayer?.playerId === gameSession.myPlayer?.id)
-            ? 'h-[60px]'
+            ? 'min-h-[60px]'
             : ''}"
     >
         {#if gameSession.isViewingHistory}
@@ -35,8 +35,8 @@
     {/if}
 </div>
 
-<style>
-    .panel-grid > * {
+<style global>
+    :global(.sol-panel-grid > *) {
         grid-area: 1 / 1;
     }
 </style>
