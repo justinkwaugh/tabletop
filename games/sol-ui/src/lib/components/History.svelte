@@ -54,6 +54,7 @@
                     class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
                 ></div>
                 <TimelineItem
+                    timeClass="dark:text-[#ad9c80]"
                     title=""
                     class="text-left mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
@@ -79,6 +80,7 @@
                         class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
                     ></div>
                     <TimelineItem
+                        timeClass="dark:text-[#ad9c80]"
                         title=""
                         class="text-left mb-5"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
@@ -96,6 +98,7 @@
                 class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
             ></div>
             <TimelineItem
+                timeClass="dark:text-[#ad9c80]"
                 title=""
                 class="text-left mb-5"
                 date={timeAgo.format(gameSession.game.createdAt)}
