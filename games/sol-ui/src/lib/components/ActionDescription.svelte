@@ -51,6 +51,8 @@
         fontFamily="ui-sans-serif, system-ui, sans-serif"
         playerId={action.metadata?.activatedStation?.playerId}
         possessive={true}
+        plainSelfPossessive={true}
+        possessivePlayerId={action.playerId}
     />
     {#if action.metadata?.activatedStation?.type === StationType.EnergyNode}energy node{:else if action.metadata?.activatedStation?.type === StationType.SundiverFoundry}sundiver
         foundry{:else}transmit tower{/if}<br />

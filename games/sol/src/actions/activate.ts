@@ -253,6 +253,10 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
     }
 
     static canPulse(state: HydratedSolGameState, playerId: string): boolean {
+        if (state.activation) {
+            return false
+        }
+
         const stations = [
             ...state.board.stationsInRing(Ring.Outer),
             ...state.board.stationsInRing(Ring.Inner)
