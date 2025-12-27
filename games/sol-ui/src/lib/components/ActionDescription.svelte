@@ -5,6 +5,9 @@
     import {
         Activate,
         ActivateBonus,
+        ActivateEffect,
+        DrawCards,
+        EffectType,
         isActivate,
         isActivateBonus,
         isActivateEffect,
@@ -27,9 +30,17 @@
         action,
         justify = 'start'
     }: { action: GameAction; justify?: 'start' | 'center' | 'end' } = $props()
+
+    const hasActivateMetadata = (action: Activate | ActivateBonus | ActivateEffect | DrawCards) => {
+        return (
+            (action.metadata?.createdSundiverIds?.length ?? 0) > 0 ||
+            (action.metadata?.energyAdded ?? 0) > 0 ||
+            (action.metadata?.momentumAdded ?? 0) > 0
+        )
+    }
 </script>
 
-{#snippet commonActivateMetadata(action: Activate | ActivateBonus)}
+{#snippet commonActivateMetadata(action: Activate | ActivateBonus | ActivateEffect | DrawCards)}
     {#if action.metadata?.createdSundiverIds?.length ?? 0 > 0}<li>
             {action.metadata?.createdSundiverIds.length} sundiver{action.metadata
                 ?.createdSundiverIds.length === 1
@@ -95,6 +106,15 @@
     drew {action.metadata?.drawnCards.length} card{(action.metadata?.drawnCards.length ?? 1) === 1
         ? ''
         : 's'}
+    {#if hasActivateMetadata(action)}
+        <br />Squeeze succeeded!
+        <ul class="ms-4 list-inside">
+            {@render commonActivateMetadata(action)}
+        </ul>
+    {/if}
+    {#if action.metadata?.removedStation}
+        <br />Squeeze failed! The {StationNames[action.metadata.removedStation.type]} was destroyed.
+    {/if}
     <div class="flex flex-row justify-{justify} items-center space-x-1 mt-2">
         {#each action.metadata?.drawnCards as card (card.id)}
             <div class="h-[50px] w-[35px]">
@@ -149,7 +169,13 @@
         passed
     {/if}
 {:else if isActivateEffect(action)}
-    activated the <span class="capitalize">{action.effect}</span> effect
+    activated the <span class="capitalize">{action.effect}</span> effect.
+    {#if action.effect === EffectType.Squeeze && hasActivateMetadata(action)}
+        <br />No cards need to be drawn.
+        <ul class="ms-4 list-inside">
+            {@render commonActivateMetadata(action)}
+        </ul>
+    {/if}
 {:else if isChooseMove(action)}
     chose to move
 {:else if isChooseConvert(action)}
