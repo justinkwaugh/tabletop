@@ -42,7 +42,7 @@
 </script>
 
 <div class="rounded-lg space-y-2 text-center grow-0 shrink-0">
-    {#each playersAndStates as playerAndState}
+    {#each playersAndStates as playerAndState (playerAndState.player.id)}
         <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
     {/each}
 </div>

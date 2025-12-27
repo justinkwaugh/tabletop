@@ -25,10 +25,10 @@
     let { player, playerState }: { player: Player; playerState: HydratedSolPlayerState } = $props()
 
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(playerState.playerId))
-    let color = gameSession.colors.getPlayerColor(playerState.playerId)
+    let color = $derived(gameSession.colors.getPlayerColor(playerState.playerId))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(playerState.playerId))
 
-    let Ship = componentForColor(color)
+    let Ship = $derived(componentForColor(color))
 
     function componentForColor(color: Color) {
         switch (color) {

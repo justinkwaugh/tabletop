@@ -114,7 +114,7 @@
 {:else if isSolarFlare(action)}
     A solar flare occured
     <ul class="ms-4 list-inside">
-        <li>Instability decreased to {action.metadata?.newInstability}</li>
+        <li>Stability decreased to {action.metadata?.newInstability}</li>
         {#each action.metadata?.unstableEnergy ?? [] as unstableEnergy}
             <li>
                 <PlayerName

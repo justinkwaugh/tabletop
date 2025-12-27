@@ -12,7 +12,11 @@
         placement = 'top',
         offset = DEFAULT_OFFSET,
         strategy = 'absolute',
-        middlewares = [dom.flip(), dom.shift()],
+        middlewares = [
+            dom.flip({ altBoundary: true }),
+            dom.shift({ altBoundary: true }),
+            dom.hide({ elementContext: 'reference' })
+        ],
         isOpen = $bindable(false),
         trigger = 'auto',
         onClose,
@@ -54,7 +58,7 @@
 
         return dom
             .computePosition(referenceElement, popover, { placement, middleware, strategy })
-            .then(({ x, y, middlewareData: { arrow }, placement: pl, strategy }) => {
+            .then(({ x, y, middlewareData: { hide }, placement: pl, strategy }) => {
                 // console.log('to ', { x, y, pl, strategy })
                 if (popover) {
                     Object.assign(popover.style, {
@@ -63,6 +67,12 @@
                         right: 'auto',
                         top: px(y)
                     })
+
+                    if (hide?.referenceHidden) {
+                        popover.hidden = true
+                    } else {
+                        popover.hidden = false
+                    }
                 }
             })
     }
