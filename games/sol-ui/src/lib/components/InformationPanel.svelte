@@ -15,7 +15,7 @@
     <Header />
 
     <div
-        class="sol-font sol-panel-grid grid {!gameSession.isViewingHistory &&
+        class="sol-font sol-panel-grid grid max-sm:leading-[18px] {!gameSession.isViewingHistory &&
         (gameSession.isMyTurn || gameSession.turnPlayer?.playerId === gameSession.myPlayer?.id)
             ? 'min-h-[60px]'
             : ''}"

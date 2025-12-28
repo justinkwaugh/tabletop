@@ -35,7 +35,7 @@
 </script>
 
 <div
-    class="flex flex-row justify-between items-center pb-1 px-4 text-xl tracking-[.15em] h-[44px] border-b border-[#ad9c80]"
+    class="flex flex-row justify-between items-center pb-1 px-4 max-sm:text-[16px] text-xl tracking-[.15em] max-sm:h-[40px] h-[44px] border-b border-[#ad9c80] max-sm:leading-none"
 >
     <div class="header-grid grid">
         {#if gameSession.isViewingHistory}
@@ -69,7 +69,7 @@
                 class="inline-flex items-center gap-x-2"
             >
                 <MoveArrows />
-                <div>MOVING - {gameSession.myPlayerState?.movementPoints ?? 0} LEFT</div>
+                <div>MOVING ({gameSession.myPlayerState?.movementPoints ?? 0})</div>
             </div>
         {:else if gameSession.isConverting}
             <div
