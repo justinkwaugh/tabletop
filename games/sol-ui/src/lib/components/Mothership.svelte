@@ -22,7 +22,10 @@
     import { Color } from '@tabletop/common'
     import { HydratedLaunch } from '@tabletop/sol'
     import DropShadow from './DropShadow.svelte'
-    import { animateMothership, MothershipAnimator } from '$lib/animators/mothershipAnimator.js'
+    import {
+        animateMothership,
+        MothershipAnimator
+    } from '$lib/animators/mothershipAnimator.svelte.js'
 
     let { playerId }: { playerId: string } = $props()
     let gameSession = getContext('gameSession') as SolGameSession
@@ -180,7 +183,7 @@
                 opacity=".8"
                 overflow="visible"
             />
-        {:else}
+        {:else if !animator.animating}
             <Mask fill={'black'} opacity=".5" overflow="visible" style="filter: url(#{shadowId})" />
         {/if}
         {#if outlined}

@@ -74,6 +74,7 @@ export function rotate({
     ease,
     position,
     timeline,
+    onStart,
     onComplete
 }: {
     object?: SVGElement | HTMLElement
@@ -83,6 +84,7 @@ export function rotate({
     ease?: gsap.EaseString | gsap.EaseFunction
     position?: gsap.Position
     timeline?: gsap.core.Timeline
+    onStart?: () => void
     onComplete?: () => void
 }): gsap.core.Timeline | undefined {
     return performAnimation({
@@ -92,6 +94,7 @@ export function rotate({
             svgOrigin,
             ease,
             duration,
+            onStart,
             onComplete
         },
         position,

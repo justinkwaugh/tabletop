@@ -87,6 +87,9 @@ export class HydratedDeconstruct
 
         playerState.movement = state.calculatePlayerMovement(playerState.playerId)
         this.metadata.newMovement = playerState.movement
+
+        // It happems before the turn sort of, so the movement points get altered too
+        playerState.movementPoints = playerState.movement
     }
 
     static canDeconstruct(state: HydratedSolGameState, playerId: string): boolean {

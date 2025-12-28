@@ -1,7 +1,7 @@
 import { Direction, HydratedSolGameState, type SolGameState } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import { Color, GameAction } from '@tabletop/common'
-import { CENTER_POINT, getMothershipAngle, numMothershipSpots } from '$lib/utils/boardGeometry.js'
+import { CENTER_POINT, getMothershipAngle } from '$lib/utils/boardGeometry.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { rotate } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
@@ -13,6 +13,7 @@ export class MothershipAnimator extends StateAnimator<
     HydratedSolGameState,
     SolGameSession
 > {
+    animating = $state(false)
     private color: Color
     private index?: number
     private timeline?: gsap.core.Timeline
@@ -134,8 +135,12 @@ export class MothershipAnimator extends StateAnimator<
             svgOrigin: SVG_ORIGIN,
             duration: 0.5 + 0.1 * (Math.abs(endDegrees - startDegrees) / 72),
             position: 0,
+            onStart: () => {
+                this.animating = true
+            },
             onComplete: () => {
                 this.timeline = undefined
+                this.animating = false
             }
         })
     }
