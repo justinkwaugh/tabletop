@@ -29,6 +29,7 @@ import { HydratedFuel, isFuel } from '../actions/fuel.js'
 import { HydratedTribute, isTribute } from '../actions/tribute.js'
 import { HydratedMetamorphosize, isMetamorphosize } from '../actions/metamorphosize.js'
 import { HydratedChain, isChain } from '../actions/chain.js'
+import { HydratedDeconstruct, isDeconstruct } from '../actions/deconstruct.js'
 
 export class SolHydrator implements GameHydrator {
     hydrateAction(data: GameAction): HydratedAction {
@@ -101,6 +102,9 @@ export class SolHydrator implements GameHydrator {
             }
             case isChain(data): {
                 return new HydratedChain(data)
+            }
+            case isDeconstruct(data): {
+                return new HydratedDeconstruct(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

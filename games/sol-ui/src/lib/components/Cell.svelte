@@ -18,6 +18,7 @@
         HydratedActivate,
         HydratedBlight,
         HydratedChain,
+        HydratedDeconstruct,
         HydratedFly,
         HydratedHatch,
         HydratedHurl,
@@ -61,12 +62,24 @@
         const myPlayerState = gameSession.myPlayerState
         if (
             !myPlayerState ||
-            (!myMove && !myConvert && !myActivate && !myHatch && !myTribute && !myChain)
+            (!myMove &&
+                !myConvert &&
+                !myActivate &&
+                !myHatch &&
+                !myTribute &&
+                !myChain &&
+                !gameSession.canDeconstruct)
         ) {
             return false
         }
 
-        if (myHatch) {
+        if (gameSession.canDeconstruct) {
+            return HydratedDeconstruct.canDeconstructAt(
+                gameSession.gameState,
+                myPlayerState.playerId,
+                cell.coords
+            )
+        } else if (myHatch) {
             return HydratedHatch.canHatchAt(
                 gameSession.gameState,
                 myPlayerState.playerId,
@@ -254,6 +267,9 @@
     })
 
     let disabled = $derived.by(() => {
+        if (!gameSession.isMyTurn) {
+            return false
+        }
         if (gameSession.updatingVisibleState) {
             return false
         }
@@ -274,6 +290,7 @@
         }
 
         return (
+            gameSession.canDeconstruct ||
             myMove ||
             (myChain &&
                 !gameSession.chain?.find((entry) => sameCoordinates(entry.coords, cell.coords))) ||
@@ -315,7 +332,10 @@
             return
         }
 
-        if (myHatch) {
+        if (gameSession.canDeconstruct) {
+            gameSession.chosenSource = cell.coords
+            await gameSession.deconstruct()
+        } else if (myHatch) {
             gameSession.hatchLocation = cell.coords
             const otherPlayersAt = gameSession.gameState.board
                 .playersWithSundiversAt(cell.coords)

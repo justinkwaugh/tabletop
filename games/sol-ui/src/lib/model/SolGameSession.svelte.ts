@@ -187,8 +187,11 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isMetamorphosizing = $derived(this.gameState.machineState === MachineState.Metamorphosizing)
     isChaining = $derived(this.gameState.machineState === MachineState.Chaining)
     isEndOfGame = $derived(this.gameState.machineState === MachineState.EndOfGame)
+    canDeconstruct = $derived(this.validActionTypes.includes(ActionType.Deconstruct))
 
-    acting = $derived(this.gameState.machineState !== MachineState.StartOfTurn)
+    acting = $derived(
+        this.gameState.machineState !== MachineState.StartOfTurn || this.canDeconstruct
+    )
 
     forcedCallToAction = $state<string | undefined>(undefined)
     movingCubeIds: string[] = $state([])
@@ -1174,6 +1177,20 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             ...this.createBaseAction(ActionType.Chain),
             playerId: this.myPlayer.id,
             chain: chainToSend
+        }
+
+        await this.doAction(action)
+    }
+
+    async deconstruct() {
+        if (!this.myPlayer || !this.chosenSource) {
+            throw new Error('Invalid deconstruct')
+        }
+
+        const action = {
+            ...this.createBaseAction(ActionType.Deconstruct),
+            playerId: this.myPlayer.id,
+            coords: this.chosenSource
         }
 
         await this.doAction(action)

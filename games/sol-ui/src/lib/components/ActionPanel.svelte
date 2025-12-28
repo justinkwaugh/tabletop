@@ -12,19 +12,10 @@
         HydratedChain,
         PassContext
     } from '@tabletop/sol'
-    import ConvertPicker from '$lib/components/pickers/ConvertPicker.svelte'
-    import CardPicker from '$lib/components/pickers/CardPicker.svelte'
+
     import { fade } from 'svelte/transition'
-    import { CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
-    import SuitPicker from '$lib/components/pickers/SuitPicker.svelte'
-    import HatchPicker from '$lib/components/pickers/HatchPicker.svelte'
-    import AccelerationPicker from '$lib/components/pickers/AccelerationPicker.svelte'
-    import MovementPicker from '$lib/components/pickers/MovementPicker.svelte'
-    import MetamorphosisPicker from '$lib/components/pickers/MetamorphosisPicker.svelte'
-    import ChainSundiverPicker from '$lib/components/pickers/ChainSundiverPicker.svelte'
+
     import { NotifierAnimator } from '$lib/animators/notifierAnimator.js'
-    import ClusterPicker from '$lib/components/pickers/ClusterPicker.svelte'
-    import TeleportPicker from '$lib/components/pickers/TeleportPicker.svelte'
 
     enum YesActions {
         ActivateBonus = 'ActivateBonus'
@@ -60,7 +51,10 @@
             return result
         }
 
-        if (gameSession.isHatching) {
+        if (gameSession.canDeconstruct) {
+            result.message = 'CHOOSE A STATION TO DECONSTRUCT'
+            return result
+        } else if (gameSession.isHatching) {
             if (!gameSession.hatchLocation) {
                 result.message = 'CHOOSE A LOCATION TO HATCH'
             } else if (!gameSession.hatchTarget) {

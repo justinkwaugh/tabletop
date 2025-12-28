@@ -1,3 +1,5 @@
+import { Deconstruct } from 'src/actions/deconstruct.js'
+
 export enum ActionType {
     ChooseMove = 'ChooseMove',
     ChooseConvert = 'ChooseConvert',
@@ -21,5 +23,6 @@ export enum ActionType {
     Fuel = 'Fuel',
     Tribute = 'Tribute',
     Metamorphosize = 'Metamorphosize',
-    Chain = 'Chain'
+    Chain = 'Chain',
+    Deconstruct = 'Deconstruct'
 }

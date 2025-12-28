@@ -16,6 +16,7 @@
         isChooseConvert,
         isChooseMove,
         isConvert,
+        isDeconstruct,
         isDrawCards,
         isPass,
         isSolarFlare,
@@ -25,6 +26,7 @@
     import Card from './Card.svelte'
     import { nanoid } from 'nanoid'
     import { StationNames } from '$lib/utils/stationNames.js'
+    import Station from './Station.svelte'
 
     let {
         action,
@@ -182,6 +184,12 @@
     chose to convert
 {:else if isChooseActivate(action)}
     chose to activate
+{:else if isDeconstruct(action)}
+    deconstructed a {StationNames[action.metadata!.removedStation.type]}
+    {#if action.metadata?.oldMovement !== action.metadata?.newMovement}
+        <br />
+        Movement decreased to {action.metadata?.newMovement}
+    {/if}
 {:else}
     {action.type}
 {/if}

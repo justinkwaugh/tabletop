@@ -17,6 +17,7 @@ import { EffectType } from '../components/effects.js'
 import { HydratedSacrifice } from '../actions/sacrifice.js'
 import { HydratedBlight } from '../actions/blight.js'
 import { onActivateEffect } from './postActionHelper.js'
+import { HydratedDeconstruct, isDeconstruct } from '../actions/deconstruct.js'
 
 // Transition from StartOfTurn(Pass) -> StartOfTurn
 // Transition from StartOfTurn(ChooseMove) -> Moving
@@ -30,6 +31,7 @@ type StartOfTurnAction =
     | HydratedChooseActivate
     | HydratedActivateEffect
     | HydratedPass
+    | HydratedDeconstruct
 
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
     isValidAction(action: HydratedAction, _context: MachineContext): action is StartOfTurnAction {
@@ -39,7 +41,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             action.type === ActionType.ChooseMove ||
             action.type === ActionType.ChooseConvert ||
             action.type === ActionType.ChooseActivate ||
-            action.type === ActionType.ActivateEffect
+            action.type === ActionType.ActivateEffect ||
+            action.type === ActionType.Deconstruct
         )
     }
 
@@ -79,7 +82,16 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             validActions.push(ActionType.ChooseActivate)
         }
 
-        console.log('Valid actions', validActions)
+        const mainActions = new Set([
+            ActionType.ChooseMove,
+            ActionType.ChooseConvert,
+            ActionType.ChooseActivate
+        ])
+
+        const validSet = new Set(validActions)
+        if (mainActions.isDisjointFrom(validSet)) {
+            validActions.push(ActionType.Deconstruct)
+        }
         return validActions
     }
 
@@ -114,6 +126,13 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
     onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
         switch (true) {
+            case isDeconstruct(action): {
+                const state = context.gameState as HydratedSolGameState
+                // This is sort of cheating to remain in StartOfTurn, but deconstructing
+                // doesn't change the state machine
+                state.getEffectTracking().preEffectState = MachineState.StartOfTurn
+                return MachineState.StartOfTurn
+            }
             case isPass(action): {
                 return MachineState.StartOfTurn
             }
