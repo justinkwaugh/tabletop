@@ -16,6 +16,11 @@ import {
     toRadians
 } from '$lib/utils/boardGeometry.js'
 
+export type FlightPathWithGateCrossings = {
+    points: Point[]
+    gateCrossings: Map<number, number>
+}
+
 export function getFlightPaths({
     action,
     gameSession,
@@ -31,18 +36,41 @@ export function getFlightPaths({
     toState: HydratedSolGameState
     fromState: HydratedSolGameState
 }): Point[][] {
+    return getFlightPathsWithGateCrossings({
+        action,
+        gameSession,
+        playerId,
+        pathCoords,
+        toState,
+        fromState
+    }).map((path) => path.points)
+}
+
+export function getFlightPathsWithGateCrossings({
+    action,
+    gameSession,
+    playerId,
+    pathCoords,
+    toState,
+    fromState
+}: {
+    action: Fly | Hurl
+    gameSession: SolGameSession
+    playerId: string
+    pathCoords: OffsetCoordinates[]
+    toState: HydratedSolGameState
+    fromState: HydratedSolGameState
+}): FlightPathWithGateCrossings[] {
     const board = fromState.board
     const transcend = fromState.activeEffect === EffectType.Transcend
-    let flightLegs: OffsetCoordinates[][] = action.teleport
+    const flightLegs: OffsetCoordinates[][] = action.teleport
         ? [pathCoords]
         : getFlightLegs(pathCoords, board, transcend)
 
-    // console.log(flightLegs)
-
     // First leg cannot start at a mothership
-    const flightPaths: Point[][] = []
+    const flightPaths: FlightPathWithGateCrossings[] = []
     flightLegs.forEach((leg, i) => {
-        const path = getFlightPath({
+        const { points, gateCrossings } = getFlightPathWithGateCrossings({
             action,
             gameSession,
             playerId,
@@ -50,7 +78,7 @@ export function getFlightPaths({
             toState: i < flightLegs.length - 1 ? fromState : toState, // Only last leg is going to toState
             fromState
         })
-        // console.log('path before', [...path])
+
         if (i < flightLegs.length - 1) {
             // Ends at mothership
             const mothership = fromState.findAdjacentMothership(leg.at(-1)!) ?? playerId
@@ -59,7 +87,7 @@ export function getFlightPaths({
                 gameSession.numPlayers,
                 mothershipIndex
             )
-            path.push(mothershipLocation)
+            points.push(mothershipLocation)
         } else if (i > 0) {
             // Starts at mothership
             const mothership = toState.findAdjacentMothership(leg.at(0)!) ?? playerId
@@ -68,13 +96,15 @@ export function getFlightPaths({
                 gameSession.numPlayers,
                 mothershipIndex
             )
-            path.unshift(mothershipLocation)
+            points.unshift(mothershipLocation)
+            if (gateCrossings.size > 0) {
+                for (const [gateKey, index] of gateCrossings) {
+                    gateCrossings.set(gateKey, index + 1)
+                }
+            }
         }
-        // console.log('Path after', [...path])
-        flightPaths.push(path)
-        i++
+        flightPaths.push({ points, gateCrossings })
     })
-    // console.log('flightPaths', flightPaths)
     return flightPaths
 }
 
@@ -123,7 +153,33 @@ export function getFlightPath({
     toState: HydratedSolGameState
     fromState: HydratedSolGameState
 }): Point[] {
+    return getFlightPathWithGateCrossings({
+        action,
+        gameSession,
+        playerId,
+        pathCoords,
+        toState,
+        fromState
+    }).points
+}
+
+export function getFlightPathWithGateCrossings({
+    action,
+    gameSession,
+    playerId,
+    pathCoords,
+    toState,
+    fromState
+}: {
+    action: Fly | Hurl
+    gameSession: SolGameSession
+    playerId: string
+    pathCoords: OffsetCoordinates[]
+    toState: HydratedSolGameState
+    fromState: HydratedSolGameState
+}): FlightPathWithGateCrossings {
     const flightPath: Point[] = []
+    const gateCrossings = new Map<number, number>()
 
     // Special case that arises during portal second leg
     if (pathCoords.length === 1) {
@@ -137,7 +193,7 @@ export function getFlightPath({
         } else {
             flightPath.push(getSpaceCentroid(gameSession.numPlayers, coords))
         }
-        return flightPath
+        return { points: flightPath, gateCrossings }
     }
 
     let hadGate = false
@@ -170,6 +226,10 @@ export function getFlightPath({
             const nextCoords = pathCoords[i + 1]
             if (fromState.board.hasGateBetween(coords, nextCoords)) {
                 hasGate = true
+                const gateKey = fromState.board.gateKey(coords, nextCoords)
+                if (!gateCrossings.has(gateKey)) {
+                    gateCrossings.set(gateKey, flightPath.length)
+                }
                 const gatePosition = getGatePosition(gameSession.numPlayers, coords, nextCoords)
 
                 const firstDimensions = dimensionsForSpace(gameSession.numPlayers, coords)
@@ -216,7 +276,7 @@ export function getFlightPath({
         }
     }
 
-    return flightPath
+    return { points: flightPath, gateCrossings }
 }
 
 export function getFlightDuration(action: Fly | Hurl, pathLength: number): number {

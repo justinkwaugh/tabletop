@@ -1,13 +1,10 @@
 import {
     Activate,
     ActivateBonus,
-    ActivateEffect,
-    EffectType,
     Fly,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
-    isActivateEffect,
     isFly,
     isHurl,
     isTribute,
@@ -20,7 +17,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
 import { Point, range, type GameAction } from '@tabletop/common'
-import { ensureDuration, fadeIn, fadeOut, move, scale } from '$lib/utils/animations.js'
+import { move } from '$lib/utils/animations.js'
 import { nanoid } from 'nanoid'
 import {
     getCirclePoint,
@@ -30,6 +27,7 @@ import {
     toRadians
 } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
+import { getFlightDuration, getFlightPathsWithGateCrossings } from '$lib/utils/flight.js'
 
 export class EnergyCubeAnimator extends StateAnimator<
     SolGameState,
@@ -62,7 +60,7 @@ export class EnergyCubeAnimator extends StateAnimator<
         } else if (isTribute(action)) {
             await this.animateTribute(action, animationContext.actionTimeline, from)
         } else if (isFly(action) || isHurl(action)) {
-            await this.animateGatePayments(action, animationContext.actionTimeline, from)
+            await this.animateGatePayments(action, animationContext.actionTimeline, to, from)
         }
     }
 
@@ -202,6 +200,7 @@ export class EnergyCubeAnimator extends StateAnimator<
     async animateGatePayments(
         action: Fly | Hurl,
         timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
         if (!fromState) {
@@ -214,19 +213,41 @@ export class EnergyCubeAnimator extends StateAnimator<
         }
 
         const gateByPlayerId = new Map<string, (typeof action.gates)[number]>()
+        const gateLocations = new Map<number, Point>()
         for (const gate of action.gates) {
             if (!gateByPlayerId.has(gate.playerId)) {
                 gateByPlayerId.set(gate.playerId, gate)
             }
+            if (gate.innerCoords && gate.outerCoords) {
+                const gateKey = fromState.board.gateKey(gate.innerCoords, gate.outerCoords)
+                if (!gateLocations.has(gateKey)) {
+                    const gatePosition = getGatePosition(
+                        this.gameSession.numPlayers,
+                        gate.innerCoords,
+                        gate.outerCoords
+                    )
+                    gateLocations.set(
+                        gateKey,
+                        getCirclePoint(gatePosition.radius, toRadians(gatePosition.angle))
+                    )
+                }
+            }
         }
 
-        const cubeMoves: { from: Point; to: Point }[] = []
+        const gateCrossingTimes = this.getGateCrossingTimes(
+            action,
+            toState,
+            fromState,
+            gateLocations
+        )
+        const cubeMoves: { from: Point; to: Point; startTime: number }[] = []
         for (const playerId of paidPlayerIds) {
             const gate = gateByPlayerId.get(playerId)
             if (!gate?.innerCoords || !gate?.outerCoords) {
                 continue
             }
 
+            const gateKey = fromState.board.gateKey(gate.innerCoords, gate.outerCoords)
             const gatePosition = getGatePosition(
                 this.gameSession.numPlayers,
                 gate.innerCoords,
@@ -234,8 +255,9 @@ export class EnergyCubeAnimator extends StateAnimator<
             )
             const gateLocation = getCirclePoint(gatePosition.radius, toRadians(gatePosition.angle))
             const mothershipLocation = this.getMothershipLocationForPlayer(fromState, playerId)
+            const startTime = gateCrossingTimes.get(gateKey) ?? 0
 
-            cubeMoves.push({ from: gateLocation, to: mothershipLocation })
+            cubeMoves.push({ from: gateLocation, to: mothershipLocation, startTime })
         }
 
         if (cubeMoves.length === 0) {
@@ -245,12 +267,10 @@ export class EnergyCubeAnimator extends StateAnimator<
         this.gameSession.movingCubeIds = range(0, cubeMoves.length).map(() => nanoid())
         await tick()
 
-        const delayBetween = 0.2
         const moveDuration = 1
-        const startTime = 0
 
         const cubeElements = Array.from(this.cubes.values())
-
+        let maxEndTime = 0
         for (let i = 0; i < cubeMoves.length; i++) {
             const cube = cubeElements[i]
             if (!cube) {
@@ -258,18 +278,29 @@ export class EnergyCubeAnimator extends StateAnimator<
             }
             const moveTarget = cubeMoves[i]
 
-            gsap.set(cube, {
-                x: offsetFromCenter(moveTarget.from).x,
-                y: offsetFromCenter(moveTarget.from).y
-            })
+            gsap.set(cube, { opacity: 0 })
+            timeline.set(
+                cube,
+                {
+                    opacity: 1,
+                    x: offsetFromCenter(moveTarget.from).x,
+                    y: offsetFromCenter(moveTarget.from).y
+                },
+                moveTarget.startTime
+            )
 
             move({
                 object: cube,
                 location: offsetFromCenter(moveTarget.to),
                 timeline,
                 duration: moveDuration,
-                position: startTime + delayBetween * i
+                position: moveTarget.startTime
             })
+
+            const endTime = moveTarget.startTime + moveDuration
+            if (endTime > maxEndTime) {
+                maxEndTime = endTime
+            }
         }
 
         timeline.call(
@@ -277,8 +308,117 @@ export class EnergyCubeAnimator extends StateAnimator<
                 this.gameSession.movingCubeIds = []
             },
             [],
-            startTime + moveDuration + delayBetween * (cubeMoves.length - 1)
+            maxEndTime
         )
+    }
+
+    private getGateCrossingTimes(
+        action: Fly | Hurl,
+        toState: HydratedSolGameState,
+        fromState: HydratedSolGameState,
+        gateLocations: Map<number, Point>
+    ): Map<number, number> {
+        const flightPathCoords = action.metadata?.flightPath
+        if (!flightPathCoords || flightPathCoords.length < 2) {
+            return new Map()
+        }
+
+        const flightPaths = getFlightPathsWithGateCrossings({
+            action,
+            gameSession: this.gameSession,
+            playerId: action.playerId,
+            pathCoords: flightPathCoords,
+            toState,
+            fromState
+        })
+        if (flightPaths.length === 0) {
+            return new Map()
+        }
+
+        const gateTimes = new Map<number, number>()
+        let legStart = 0
+
+        const easeName = action.teleport ? 'power2.inOut' : 'power1.inOut'
+        const ease = gsap.parseEase(easeName) as (t: number) => number
+
+        for (const { points, gateCrossings } of flightPaths) {
+            const legDuration = getFlightDuration(action, points.length)
+            if (points.length < 2) {
+                legStart += legDuration
+                continue
+            }
+
+            const segmentLengths: number[] = []
+            const cumulativeLengths: number[] = [0]
+            for (let i = 0; i < points.length - 1; i++) {
+                const length = this.getDistance(points[i], points[i + 1])
+                segmentLengths.push(length)
+                cumulativeLengths.push(cumulativeLengths[i] + length)
+            }
+
+            const totalLength = cumulativeLengths.at(-1) ?? 0
+            if (totalLength <= 0) {
+                legStart += legDuration
+                continue
+            }
+
+            for (const [gateKey, index] of gateCrossings) {
+                if (gateTimes.has(gateKey)) {
+                    continue
+                }
+                const gateLocation = gateLocations.get(gateKey)
+                if (!gateLocation) {
+                    continue
+                }
+                if (index < 0 || index >= points.length - 1) {
+                    continue
+                }
+
+                const startPoint = points[index]
+                const segmentLength = segmentLengths[index]
+                const distanceToGate =
+                    segmentLength > 0
+                        ? Math.min(
+                              segmentLength,
+                              Math.max(0, this.getDistance(startPoint, gateLocation))
+                          )
+                        : 0
+                const distanceAlongPath = cumulativeLengths[index] + distanceToGate
+                const progress = distanceAlongPath / totalLength
+                const timeFraction = this.invertEase(ease, progress)
+                gateTimes.set(gateKey, legStart + legDuration * timeFraction)
+            }
+
+            legStart += legDuration
+        }
+
+        return gateTimes
+    }
+
+    private invertEase(ease: (t: number) => number, progress: number): number {
+        if (progress <= 0) {
+            return 0
+        }
+        if (progress >= 1) {
+            return 1
+        }
+        let low = 0
+        let high = 1
+        for (let i = 0; i < 20; i++) {
+            const mid = (low + high) / 2
+            if (ease(mid) < progress) {
+                low = mid
+            } else {
+                high = mid
+            }
+        }
+        return (low + high) / 2
+    }
+
+    private getDistance(a: Point, b: Point): number {
+        const dx = a.x - b.x
+        const dy = a.y - b.y
+        return Math.sqrt(dx * dx + dy * dy)
     }
 
     getMothershipLocationForPlayer(gameState: HydratedSolGameState, playerId: string): Point {
