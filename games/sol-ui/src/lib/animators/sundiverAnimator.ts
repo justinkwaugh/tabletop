@@ -20,7 +20,8 @@ import {
     isHurl,
     isLaunch,
     Launch,
-    type SolGameState
+    type SolGameState,
+    HydratedSolPlayerState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import {
@@ -166,6 +167,107 @@ export class SundiverAnimator extends StateAnimator<
         // }
     }
 
+    private scheduleHoldOffset(
+        holderId: string,
+        playerId: string,
+        delta: number,
+        fromState: HydratedSolGameState,
+        timeline: gsap.core.Timeline,
+        time: number
+    ) {
+        if (delta === 0) {
+            return
+        }
+        const holdMap = this.buildHoldMap(fromState.getPlayerState(holderId))
+        const currentCount = holdMap.get(playerId) ?? 0
+        const nextCount = Math.max(0, currentCount + delta)
+        if (nextCount > 0) {
+            holdMap.set(playerId, nextCount)
+        } else {
+            holdMap.delete(playerId)
+        }
+
+        timeline.call(
+            () => {
+                const existing = this.gameSession.playerStateOverrides.get(holderId) ?? {}
+                this.gameSession.playerStateOverrides.set(holderId, {
+                    ...existing,
+                    holdSundiversByPlayer: holdMap
+                })
+            },
+            [],
+            time
+        )
+    }
+
+    private scheduleReserveOffset(
+        playerId: string,
+        delta: number,
+        fromState: HydratedSolGameState,
+        timeline: gsap.core.Timeline,
+        time: number
+    ) {
+        if (delta === 0) {
+            return
+        }
+        const reserveCount = fromState.getPlayerState(playerId).reserveSundivers.length
+        const nextCount = Math.max(0, reserveCount + delta)
+        timeline.call(
+            () => {
+                const existing = this.gameSession.playerStateOverrides.get(playerId) ?? {}
+                this.gameSession.playerStateOverrides.set(playerId, {
+                    ...existing,
+                    reserveSundivers: nextCount
+                })
+            },
+            [],
+            time
+        )
+    }
+
+    private scheduleEnergyOffset(
+        playerId: string,
+        delta: number,
+        fromState: HydratedSolGameState,
+        timeline: gsap.core.Timeline,
+        time: number
+    ) {
+        if (delta === 0) {
+            return
+        }
+        const energyCubes = fromState.getPlayerState(playerId).energyCubes + delta
+        timeline.call(
+            () => {
+                const existing = this.gameSession.playerStateOverrides.get(playerId) ?? {}
+                this.gameSession.playerStateOverrides.set(playerId, {
+                    ...existing,
+                    energyCubes
+                })
+            },
+            [],
+            time
+        )
+    }
+
+    private buildHoldMap(playerState: HydratedSolPlayerState): Map<string, number> {
+        const holdMap = new Map<string, number>()
+        for (const [playerId, sundivers] of playerState.holdSundiversPerPlayer()) {
+            if (sundivers.length > 0) {
+                holdMap.set(playerId, sundivers.length)
+            }
+        }
+        return holdMap
+    }
+
+    private getCreatedSundiverArrivalTime(count: number): number {
+        if (count <= 0) {
+            return 0
+        }
+        const moveDuration = 0.5
+        const delayBetween = 0.2
+        return moveDuration + delayBetween * (count - 1)
+    }
+
     animateAction(
         action: GameAction,
         timeline: gsap.core.Timeline,
@@ -200,6 +302,23 @@ export class SundiverAnimator extends StateAnimator<
         const launchIndex = launch.metadata?.sundiverIds.indexOf(this.id)
         if (launchIndex === undefined || launchIndex < 0) {
             return
+        }
+        if (launchIndex === 0 && fromState) {
+            this.scheduleHoldOffset(
+                launch.mothership,
+                launch.playerId,
+                -launch.numSundivers,
+                fromState,
+                timeline,
+                0
+            )
+            this.scheduleEnergyOffset(
+                launch.playerId,
+                launch.metadata?.energyGained ?? 0,
+                fromState,
+                timeline,
+                0
+            )
         }
         const board = toState.board
 
@@ -365,6 +484,18 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
+        const addedCount = action.metadata.addedSundivers.length
+
+        this.scheduleHoldOffset(
+            action.targetPlayerId,
+            action.targetPlayerId,
+            1,
+            fromState,
+            timeline,
+            1
+        )
+        this.scheduleReserveOffset(action.playerId, -addedCount, fromState, timeline, 0)
+
         const startCell = fromState.board.cellAt(action.coords)
         const startLocation = startCell
             ? this.gameSession.locationForDiverInCell(action.targetPlayerId, startCell)
@@ -411,6 +542,23 @@ export class SundiverAnimator extends StateAnimator<
     ) {
         if (!convert.sundiverIds.includes(this.id)) {
             return
+        }
+        if (fromState && convert.sundiverIds[0] === this.id) {
+            if (fromState.activeEffect === EffectType.Cascade) {
+                const sundiverCount = convert.sundiverIds.length
+                const holdTime = 1 + 0.2 * Math.max(0, sundiverCount - 1)
+                this.scheduleHoldOffset(
+                    convert.playerId,
+                    convert.playerId,
+                    sundiverCount,
+                    fromState,
+                    timeline,
+                    holdTime
+                )
+            } else {
+                const sundiverCount = convert.sundiverIds.length
+                this.scheduleReserveOffset(convert.playerId, sundiverCount, fromState, timeline, 0.5)
+            }
         }
 
         const toBoard = toState.board
@@ -494,16 +642,26 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
+        const createdIds = activate.metadata.createdSundiverIds ?? []
+        const createdCount = createdIds.length
+        const returnCount = activate.metadata.sundiverId ? 1 : 0
         const isActivatingSundiver = activate.metadata.sundiverId === this.id
-        if (!isActivatingSundiver) {
+        const isCreatedSundiver = createdIds.includes(this.id)
+
+        if (isCreatedSundiver || isActivatingSundiver) {
             this.animateCreatedSundivers(
-                activate.metadata.createdSundiverIds,
+                createdIds,
                 activate.coords,
                 activate.playerId,
                 timeline,
                 toState,
-                fromState
+                fromState,
+                returnCount + createdCount,
+                -createdCount
             )
+        }
+
+        if (!isActivatingSundiver) {
             return
         }
 
@@ -558,14 +716,22 @@ export class SundiverAnimator extends StateAnimator<
         if (!activateBonus.metadata) {
             return
         }
+        const createdIds = activateBonus.metadata.createdSundiverIds ?? []
+        const createdCount = createdIds.length
+
+        if (!createdIds.includes(this.id)) {
+            return
+        }
 
         this.animateCreatedSundivers(
-            activateBonus.metadata.createdSundiverIds,
+            createdIds,
             activateBonus.metadata.coords,
             activateBonus.playerId,
             timeline,
             toState,
-            fromState
+            fromState,
+            createdCount,
+            -createdCount
         )
     }
 
@@ -583,13 +749,22 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
+        const createdIds = action.metadata.createdSundiverIds ?? []
+        const createdCount = createdIds.length
+
+        if (!createdIds.includes(this.id)) {
+            return
+        }
+
         this.animateCreatedSundivers(
-            action.metadata.createdSundiverIds,
+            createdIds,
             action.metadata.coords,
             action.playerId,
             timeline,
             toState,
-            fromState
+            fromState,
+            createdCount,
+            -createdCount
         )
     }
 
@@ -607,13 +782,22 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
+        const createdIds = action.metadata.createdSundiverIds ?? []
+        const createdCount = createdIds.length
+
+        if (!createdIds.includes(this.id)) {
+            return
+        }
+
         this.animateCreatedSundivers(
-            action.metadata.createdSundiverIds,
+            createdIds,
             action.metadata.coords,
             action.playerId,
             timeline,
             toState,
-            fromState
+            fromState,
+            createdCount,
+            -createdCount
         )
     }
 
@@ -623,9 +807,37 @@ export class SundiverAnimator extends StateAnimator<
         playerId: string,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState?: HydratedSolGameState,
+        holdDelta: number = 0,
+        reserveDelta: number = 0
     ) {
+        const createdCount = createdSundiverIds.length
         const index = createdSundiverIds.indexOf(this.id)
+        const returnTime = holdDelta > createdCount ? 0.5 : 0
+        const scheduleTime = Math.max(
+            this.getCreatedSundiverArrivalTime(createdCount),
+            returnTime
+        )
+        const shouldSchedule = createdCount === 0 || index === createdCount - 1
+
+        if (fromState && shouldSchedule) {
+            this.scheduleHoldOffset(
+                playerId,
+                playerId,
+                holdDelta,
+                fromState,
+                timeline,
+                scheduleTime
+            )
+            this.scheduleReserveOffset(
+                playerId,
+                reserveDelta,
+                fromState,
+                timeline,
+                scheduleTime
+            )
+        }
+
         if (index === undefined || index < 0) {
             return
         }
