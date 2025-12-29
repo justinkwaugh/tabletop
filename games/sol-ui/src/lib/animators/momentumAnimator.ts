@@ -1,9 +1,13 @@
 import {
     Activate,
     ActivateBonus,
+    ActivateEffect,
+    DrawCards,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
+    isActivateEffect,
+    isDrawCards,
     StationType,
     type SolGameState
 } from '@tabletop/sol'
@@ -45,6 +49,10 @@ export class MomentumAnimator extends StateAnimator<
     }) {
         if (isActivate(action) || isActivateBonus(action)) {
             await this.animateActivate(action, animationContext.actionTimeline, from)
+        } else if (isActivateEffect(action)) {
+            await this.animateActivateEffect(action, animationContext.actionTimeline, from)
+        } else if (isDrawCards(action)) {
+            await this.animateDrawCards(action, animationContext.actionTimeline, from)
         }
     }
 
@@ -78,6 +86,90 @@ export class MomentumAnimator extends StateAnimator<
             return
         }
 
+        await this.animateMomentumFromLocation(
+            action.playerId,
+            numMomentum,
+            stationLocation,
+            timeline,
+            fromState
+        )
+    }
+
+    async animateActivateEffect(
+        action: ActivateEffect,
+        timeline: gsap.core.Timeline,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !action.metadata?.coords) {
+            return
+        }
+
+        const numMomentum = action.metadata.momentumAdded ?? 0
+        if (numMomentum <= 0) {
+            return
+        }
+
+        const stationCell = fromState.board.cellAt(action.metadata.coords)
+        const station = stationCell.station
+        if (!station || station.type !== StationType.TransmitTower) {
+            return
+        }
+
+        const stationLocation = this.gameSession.locationForStationInCell(stationCell)
+        if (!stationLocation) {
+            return
+        }
+
+        await this.animateMomentumFromLocation(
+            action.playerId,
+            numMomentum,
+            stationLocation,
+            timeline,
+            fromState
+        )
+    }
+
+    async animateDrawCards(
+        action: DrawCards,
+        timeline: gsap.core.Timeline,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !action.metadata?.coords) {
+            return
+        }
+
+        const numMomentum = action.metadata.momentumAdded ?? 0
+        if (numMomentum <= 0) {
+            return
+        }
+
+        const stationCell = fromState.board.cellAt(action.metadata.coords)
+        const station = stationCell.station
+        if (!station || station.type !== StationType.TransmitTower) {
+            return
+        }
+
+        const stationLocation = this.gameSession.locationForStationInCell(stationCell)
+        if (!stationLocation) {
+            return
+        }
+
+        await this.animateMomentumFromLocation(
+            action.playerId,
+            numMomentum,
+            stationLocation,
+            timeline,
+            fromState
+        )
+    }
+
+    private async animateMomentumFromLocation(
+        playerId: string,
+        numMomentum: number,
+        startLocation: Point,
+        timeline: gsap.core.Timeline,
+        fromState: HydratedSolGameState
+    ) {
         this.gameSession.movingMomentumIds = range(0, numMomentum).map(() => nanoid())
         await tick()
 
@@ -96,7 +188,7 @@ export class MomentumAnimator extends StateAnimator<
             })
         }
 
-        const mothershipLocation = this.getMothershipLocationForPlayer(fromState, action.playerId)
+        const mothershipLocation = this.getMothershipLocationForPlayer(fromState, playerId)
         let i = 0
         for (const pentagon of pentagonElements) {
             const position = startTime + delayBetween * i
@@ -104,8 +196,8 @@ export class MomentumAnimator extends StateAnimator<
                 pentagon,
                 {
                     opacity: 1,
-                    x: offsetFromCenter(stationLocation).x,
-                    y: offsetFromCenter(stationLocation).y
+                    x: offsetFromCenter(startLocation).x,
+                    y: offsetFromCenter(startLocation).y
                 },
                 position
             )
