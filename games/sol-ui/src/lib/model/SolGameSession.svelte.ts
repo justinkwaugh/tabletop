@@ -415,13 +415,15 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
 
         if (
-            (action.playerId === next?.playerId &&
-                (isFly(action) || isLaunch(action) || isHurl(action))) ||
-            (isActivateEffect(action) &&
-                (isFly(next) ||
-                    isLaunch(next) ||
-                    isHurl(next) ||
-                    (isActivateEffect(next) && next.effect !== EffectType.Procreate)))
+            action.playerId === next?.playerId &&
+            (isFly(action) ||
+                isLaunch(action) ||
+                isHurl(action) ||
+                (isActivateEffect(action) && action.effect !== EffectType.Procreate)) &&
+            (isFly(next) ||
+                isLaunch(next) ||
+                isHurl(next) ||
+                (isActivateEffect(next) && next.effect !== EffectType.Procreate))
         ) {
             return true
         }

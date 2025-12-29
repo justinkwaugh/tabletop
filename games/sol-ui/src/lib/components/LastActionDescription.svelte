@@ -31,7 +31,7 @@
                         fontFamily="ui-sans-serif, system-ui, sans-serif"
                     />
                 {/if}
-                <ActionDescription action={lastAction} justify="center" />
+                <ActionDescription action={lastAction} justify="center" history={false} />
             </h1>
         </div>
     </div>

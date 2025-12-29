@@ -26,12 +26,12 @@
     import Card from './Card.svelte'
     import { nanoid } from 'nanoid'
     import { StationNames } from '$lib/utils/stationNames.js'
-    import Station from './Station.svelte'
 
     let {
         action,
-        justify = 'start'
-    }: { action: GameAction; justify?: 'start' | 'center' | 'end' } = $props()
+        justify = 'start',
+        history = true
+    }: { action: GameAction; justify?: 'start' | 'center' | 'end'; history?: boolean } = $props()
 
     const hasActivateMetadata = (action: Activate | ActivateBonus | ActivateEffect | DrawCards) => {
         return (
@@ -171,7 +171,7 @@
         passed
     {/if}
 {:else if isActivateEffect(action)}
-    activated the <span class="capitalize">{action.effect}</span> effect.
+    activated the <span class={history ? 'capitalize' : 'uppercase'}>{action.effect}</span> effect.
     {#if action.effect === EffectType.Squeeze && hasActivateMetadata(action)}
         <br />No cards need to be drawn.
         <ul class="ms-4 list-inside">
