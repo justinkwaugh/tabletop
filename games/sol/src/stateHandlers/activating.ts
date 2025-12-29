@@ -222,7 +222,10 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         activation.currentStationCoords = undefined
         state.activePlayerIds = [activation.playerId]
 
-        if (HydratedActivate.canActivate(state, activation.playerId)) {
+        if (
+            state.activeEffect !== EffectType.Motivate &&
+            HydratedActivate.canActivate(state, activation.playerId)
+        ) {
             // Allow activating player to continue if possible
             return MachineState.Activating
         } else {

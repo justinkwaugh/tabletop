@@ -93,7 +93,10 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         Object.assign(this.metadata, awardMetadata)
 
         if (state.machineState !== MachineState.SolarFlares) {
-            if (state.activeEffect !== EffectType.Pulse) {
+            if (
+                state.activeEffect !== EffectType.Pulse &&
+                state.activeEffect !== EffectType.Motivate
+            ) {
                 const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
                 const removed = playerDivers.at(-1)
                 if (!removed) {
@@ -232,7 +235,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             if (station.playerId !== playerId || coords.row !== Ring.Outer) {
                 return false
             }
-        } else {
+        } else if (state.activeEffect !== EffectType.Motivate) {
             if (state.board.sundiversForPlayerAt(playerId, coords).length === 0) {
                 return false
             }
