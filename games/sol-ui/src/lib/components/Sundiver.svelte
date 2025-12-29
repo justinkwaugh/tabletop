@@ -63,9 +63,8 @@
                 width={width + 4}
                 height={height + 4}
                 fill={'black'}
-                opacity=".5"
+                opacity=".6"
                 overflow="visible"
-                style="filter: url(#pieceshadow)"
             />
         </g>
         <SundiverIcon {width} {height} {color} />

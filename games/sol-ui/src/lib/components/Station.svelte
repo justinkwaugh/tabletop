@@ -30,9 +30,8 @@
                 width={actualWidth + 4}
                 height={actualHeight + 4}
                 fill={'black'}
-                opacity=".5"
+                opacity=".6"
                 overflow="visible"
-                style="filter: url(#pieceshadow)"
             />
         </g>
         <EnergyNode id={station.id} width={actualWidth} height={actualHeight} {color} />
@@ -42,9 +41,8 @@
                 width={actualWidth + 4}
                 height={actualHeight + 4}
                 fill={'black'}
-                opacity=".5"
+                opacity=".6"
                 overflow="visible"
-                style="filter: url(#pieceshadow)"
             />
         </g>
         <Foundry width={actualWidth} height={actualHeight} {color} />
@@ -54,9 +52,8 @@
                 width={actualWidth + 4}
                 height={actualHeight + 4}
                 fill={'black'}
-                opacity=".5"
+                opacity=".6"
                 overflow="visible"
-                style="filter: url(#pieceshadow)"
             />
         </g>
         <Tower width={actualWidth} height={actualHeight} {color} />
