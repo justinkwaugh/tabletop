@@ -10,6 +10,7 @@ import {
     isMetamorphosize,
     Metamorphosize,
     Station,
+    StationType,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
@@ -148,16 +149,25 @@ export class CellStationAnimator extends StateAnimator<
         gsap.set(this.element!, {
             opacity: 0
         })
+        const revealStart = 0.4
+        const revealDuration = 0.5
         animate({
             object: this.element!,
             params: {
                 opacity: 1
             },
             timeline,
-            duration: 0.5,
+            duration: revealDuration,
             ease: 'power1.in',
-            position: 0.4
+            position: revealStart
         })
+
+        this.scheduleStationReserveOverrideAt(
+            action.playerId,
+            this.getReserveCounts(toState.getPlayerState(action.playerId)),
+            timeline,
+            revealStart + revealDuration
+        )
     }
 
     async animateFlyOrHurlAction(
@@ -246,9 +256,8 @@ export class CellStationAnimator extends StateAnimator<
         if (!fromState || this.station?.id !== action.stationId) {
             return
         }
-        const station = fromState?.board.findStation(action.stationId)
         const newStation = action.metadata?.newStation
-        if (!station || !newStation) {
+        if (!newStation) {
             return
         }
 
@@ -310,6 +319,99 @@ export class CellStationAnimator extends StateAnimator<
             position: hideDuration,
             duration: hasClip ? revealDuration : undefined
         })
+
+        this.scheduleMetamorphosizeReserveOverrides(
+            action,
+            toState,
+            fromState,
+            animationContext.actionTimeline,
+            hideDuration,
+            revealDuration
+        )
+    }
+
+    private scheduleMetamorphosizeReserveOverrides(
+        action: Metamorphosize,
+        toState: HydratedSolGameState,
+        fromState: HydratedSolGameState,
+        timeline: gsap.core.Timeline,
+        hideDuration: number,
+        revealDuration: number
+    ) {
+        const priorStation = action.metadata?.priorStation
+        const newStation = action.metadata?.newStation
+        if (!priorStation || !newStation) {
+            return
+        }
+
+        const playerId = action.playerId
+        const intermediateCounts = this.getReserveCounts(fromState.getPlayerState(playerId))
+        this.applyStationDelta(intermediateCounts, priorStation, 1)
+
+        this.scheduleStationReserveOverrideAt(
+            playerId,
+            intermediateCounts,
+            timeline,
+            hideDuration
+        )
+
+        const finalCounts = this.getReserveCounts(toState.getPlayerState(playerId))
+        this.scheduleStationReserveOverrideAt(
+            playerId,
+            finalCounts,
+            timeline,
+            hideDuration + revealDuration
+        )
+    }
+
+    private getReserveCounts(playerState: HydratedSolGameState['players'][number]) {
+        return {
+            energyNodes: playerState.energyNodes.length,
+            sundiverFoundries: playerState.sundiverFoundries.length,
+            transmitTowers: playerState.transmitTowers.length
+        }
+    }
+
+    private applyStationDelta(
+        counts: {
+            energyNodes: number
+            sundiverFoundries: number
+            transmitTowers: number
+        },
+        station: Station,
+        delta: number
+    ) {
+        switch (station.type) {
+            case StationType.EnergyNode:
+                counts.energyNodes += delta
+                break
+            case StationType.SundiverFoundry:
+                counts.sundiverFoundries += delta
+                break
+            case StationType.TransmitTower:
+                counts.transmitTowers += delta
+                break
+        }
+    }
+
+    private scheduleStationReserveOverrideAt(
+        playerId: string,
+        counts: {
+            energyNodes: number
+            sundiverFoundries: number
+            transmitTowers: number
+        },
+        timeline: gsap.core.Timeline,
+        time: number
+    ) {
+        timeline.call(
+            () => {
+                const existing = this.gameSession.playerStateOverrides.get(playerId) ?? {}
+                this.gameSession.playerStateOverrides.set(playerId, { ...existing, ...counts })
+            },
+            [],
+            time
+        )
     }
 }
 

@@ -117,16 +117,46 @@ export class GateAnimator extends StateAnimator<
         gsap.set(gateAndElement.element, {
             opacity: 0
         })
+        const revealStart = 0.4
+        const revealDuration = 0.5
         animate({
             object: gateAndElement.element,
             params: {
                 opacity: 1
             },
             timeline,
-            duration: 0.5,
+            duration: revealDuration,
             ease: 'power1.in',
-            position: 0.4
+            position: revealStart
         })
+
+        const fromCount = fromState.getPlayerState(action.playerId).solarGates.length
+        const nextCount = Math.max(0, fromCount - 1)
+        this.scheduleSolarGateOverrideAt(
+            action.playerId,
+            nextCount,
+            timeline,
+            revealStart + revealDuration
+        )
+    }
+
+    private scheduleSolarGateOverrideAt(
+        playerId: string,
+        solarGates: number,
+        timeline: gsap.core.Timeline,
+        time: number
+    ) {
+        timeline.call(
+            () => {
+                const existing = this.gameSession.playerStateOverrides.get(playerId) ?? {}
+                this.gameSession.playerStateOverrides.set(playerId, {
+                    ...existing,
+                    solarGates
+                })
+            },
+            [],
+            time
+        )
     }
 }
 

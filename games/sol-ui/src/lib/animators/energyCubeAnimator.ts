@@ -58,7 +58,7 @@ export class EnergyCubeAnimator extends StateAnimator<
         if (isActivate(action) || isActivateBonus(action)) {
             await this.animateActivate(action, animationContext.actionTimeline, to, from)
         } else if (isTribute(action)) {
-            await this.animateTribute(action, animationContext.actionTimeline, from)
+            await this.animateTribute(action, animationContext.actionTimeline, to, from)
         } else if (isFly(action) || isHurl(action)) {
             await this.animateGatePayments(action, animationContext.actionTimeline, to, from)
         }
@@ -75,7 +75,6 @@ export class EnergyCubeAnimator extends StateAnimator<
         }
 
         const numCubes = action.metadata?.energyAdded ?? 0
-
         if (numCubes <= 0) {
             return
         }
@@ -127,18 +126,22 @@ export class EnergyCubeAnimator extends StateAnimator<
             i++
         }
 
+        const endTime = startTime + moveDuration + delayBetween * (numCubes - 1)
+        this.scheduleEnergyOverride(action.playerId, toState, timeline, endTime)
+
         timeline.call(
             () => {
                 this.gameSession.movingCubeIds = []
             },
             [],
-            startTime + moveDuration + delayBetween * (numCubes - 1)
+            endTime
         )
     }
 
     async animateTribute(
         tribute: Tribute,
         timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
         fromState?: HydratedSolGameState
     ) {
         if (!fromState || !tribute.metadata) {
@@ -187,6 +190,11 @@ export class EnergyCubeAnimator extends StateAnimator<
                 maxDuration = duration
             }
         }
+
+        for (const payerId of Object.keys(tribute.metadata.payments)) {
+            this.scheduleEnergyOverride(payerId, toState, timeline, 0)
+        }
+        this.scheduleEnergyOverride(tribute.playerId, toState, timeline, maxDuration)
 
         timeline.call(
             () => {
@@ -240,7 +248,7 @@ export class EnergyCubeAnimator extends StateAnimator<
             fromState,
             gateLocations
         )
-        const cubeMoves: { from: Point; to: Point; startTime: number }[] = []
+        const cubeMoves: { from: Point; to: Point; startTime: number; playerId: string }[] = []
         for (const playerId of paidPlayerIds) {
             const gate = gateByPlayerId.get(playerId)
             if (!gate?.innerCoords || !gate?.outerCoords) {
@@ -257,7 +265,7 @@ export class EnergyCubeAnimator extends StateAnimator<
             const mothershipLocation = this.getMothershipLocationForPlayer(fromState, playerId)
             const startTime = gateCrossingTimes.get(gateKey) ?? 0
 
-            cubeMoves.push({ from: gateLocation, to: mothershipLocation, startTime })
+            cubeMoves.push({ from: gateLocation, to: mothershipLocation, startTime, playerId })
         }
 
         if (cubeMoves.length === 0) {
@@ -298,6 +306,7 @@ export class EnergyCubeAnimator extends StateAnimator<
             })
 
             const endTime = moveTarget.startTime + moveDuration
+            this.scheduleEnergyOverride(moveTarget.playerId, toState, timeline, endTime)
             if (endTime > maxEndTime) {
                 maxEndTime = endTime
             }
@@ -429,6 +438,23 @@ export class EnergyCubeAnimator extends StateAnimator<
             x: spotPoint.x,
             y: spotPoint.y
         }
+    }
+
+    private scheduleEnergyOverride(
+        playerId: string,
+        gameState: HydratedSolGameState,
+        timeline: gsap.core.Timeline,
+        time: number
+    ) {
+        timeline.call(
+            () => {
+                const energyCubes = gameState.getPlayerState(playerId).energyCubes
+                const existing = this.gameSession.playerStateOverrides.get(playerId) ?? {}
+                this.gameSession.playerStateOverrides.set(playerId, { ...existing, energyCubes })
+            },
+            [],
+            time
+        )
     }
 }
 
