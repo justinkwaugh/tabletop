@@ -22,6 +22,8 @@
     import Deck from './Deck.svelte'
     import Cube from '$lib/images/cube.svelte'
     import { animateCube, EnergyCubeAnimator } from '$lib/animators/energyCubeAnimator.js'
+    import Pentagon from '$lib/images/pentagon.svelte'
+    import { animateMomentum, MomentumAnimator } from '$lib/animators/momentumAnimator.js'
     import { animateGate, GateAnimator } from '$lib/animators/gateAnimator.js'
     import { SvelteMap } from 'svelte/reactivity'
     import CellOutline from './CellOutline.svelte'
@@ -79,6 +81,9 @@
 
     const cubeAnimator = new EnergyCubeAnimator(gameSession)
     cubeAnimator.register()
+
+    const momentumAnimator = new MomentumAnimator(gameSession)
+    momentumAnimator.register()
 
     const stationAnimator = new StationAnimator(gameSession)
     stationAnimator.register()
@@ -138,6 +143,13 @@
             <g use:animateCube={{ animator: cubeAnimator, cubeId }}>
                 <g transform="translate(-17.5, -17.5)">
                     <Cube width={35} height={35} />
+                </g>
+            </g>
+        {/each}
+        {#each gameSession.movingMomentumIds as momentumId (momentumId)}
+            <g use:animateMomentum={{ animator: momentumAnimator, momentumId }}>
+                <g transform="translate(-26.25, -26.25)">
+                    <Pentagon width={52.5} height={52.5} />
                 </g>
             </g>
         {/each}

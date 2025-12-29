@@ -195,6 +195,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     forcedCallToAction = $state<string | undefined>(undefined)
     movingCubeIds: string[] = $state([])
+    movingMomentumIds: string[] = $state([])
     movingStation?: Station = $state(undefined)
 
     skipReset = false
