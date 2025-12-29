@@ -3,11 +3,15 @@ import {
     ActivateBonus,
     ActivateEffect,
     EffectType,
+    Fly,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
     isActivateEffect,
+    isFly,
+    isHurl,
     isTribute,
+    Hurl,
     Tribute,
     type SolGameState
 } from '@tabletop/sol'
@@ -18,7 +22,13 @@ import { tick } from 'svelte'
 import { Point, range, type GameAction } from '@tabletop/common'
 import { ensureDuration, fadeIn, fadeOut, move, scale } from '$lib/utils/animations.js'
 import { nanoid } from 'nanoid'
-import { getMothershipSpotPoint, offsetFromCenter } from '$lib/utils/boardGeometry.js'
+import {
+    getCirclePoint,
+    getGatePosition,
+    getMothershipSpotPoint,
+    offsetFromCenter,
+    toRadians
+} from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
 
 export class EnergyCubeAnimator extends StateAnimator<
@@ -51,6 +61,8 @@ export class EnergyCubeAnimator extends StateAnimator<
             await this.animateActivate(action, animationContext.actionTimeline, to, from)
         } else if (isTribute(action)) {
             await this.animateTribute(action, animationContext.actionTimeline, from)
+        } else if (isFly(action) || isHurl(action)) {
+            await this.animateGatePayments(action, animationContext.actionTimeline, from)
         }
     }
 
@@ -184,6 +196,88 @@ export class EnergyCubeAnimator extends StateAnimator<
             },
             [],
             maxDuration
+        )
+    }
+
+    async animateGatePayments(
+        action: Fly | Hurl,
+        timeline: gsap.core.Timeline,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState) {
+            return
+        }
+
+        const paidPlayerIds = action.metadata?.paidPlayerIds ?? []
+        if (paidPlayerIds.length === 0 || action.gates.length === 0) {
+            return
+        }
+
+        const gateByPlayerId = new Map<string, (typeof action.gates)[number]>()
+        for (const gate of action.gates) {
+            if (!gateByPlayerId.has(gate.playerId)) {
+                gateByPlayerId.set(gate.playerId, gate)
+            }
+        }
+
+        const cubeMoves: { from: Point; to: Point }[] = []
+        for (const playerId of paidPlayerIds) {
+            const gate = gateByPlayerId.get(playerId)
+            if (!gate?.innerCoords || !gate?.outerCoords) {
+                continue
+            }
+
+            const gatePosition = getGatePosition(
+                this.gameSession.numPlayers,
+                gate.innerCoords,
+                gate.outerCoords
+            )
+            const gateLocation = getCirclePoint(gatePosition.radius, toRadians(gatePosition.angle))
+            const mothershipLocation = this.getMothershipLocationForPlayer(fromState, playerId)
+
+            cubeMoves.push({ from: gateLocation, to: mothershipLocation })
+        }
+
+        if (cubeMoves.length === 0) {
+            return
+        }
+
+        this.gameSession.movingCubeIds = range(0, cubeMoves.length).map(() => nanoid())
+        await tick()
+
+        const delayBetween = 0.2
+        const moveDuration = 1
+        const startTime = 0
+
+        const cubeElements = Array.from(this.cubes.values())
+
+        for (let i = 0; i < cubeMoves.length; i++) {
+            const cube = cubeElements[i]
+            if (!cube) {
+                continue
+            }
+            const moveTarget = cubeMoves[i]
+
+            gsap.set(cube, {
+                x: offsetFromCenter(moveTarget.from).x,
+                y: offsetFromCenter(moveTarget.from).y
+            })
+
+            move({
+                object: cube,
+                location: offsetFromCenter(moveTarget.to),
+                timeline,
+                duration: moveDuration,
+                position: startTime + delayBetween * i
+            })
+        }
+
+        timeline.call(
+            () => {
+                this.gameSession.movingCubeIds = []
+            },
+            [],
+            startTime + moveDuration + delayBetween * (cubeMoves.length - 1)
         )
     }
 
