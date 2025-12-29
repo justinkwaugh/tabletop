@@ -1,14 +1,20 @@
 import {
     Activate,
     ActivateBonus,
+    ActivateEffect,
+    DrawCards,
     Fly,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
+    isActivateEffect,
+    isDrawCards,
     isFly,
     isHurl,
+    isLaunch,
     isTribute,
     Hurl,
+    Launch,
     Tribute,
     type SolGameState
 } from '@tabletop/sol'
@@ -57,6 +63,12 @@ export class EnergyCubeAnimator extends StateAnimator<
     }) {
         if (isActivate(action) || isActivateBonus(action)) {
             await this.animateActivate(action, animationContext.actionTimeline, to, from)
+        } else if (isActivateEffect(action)) {
+            await this.animateActivateEffect(action, animationContext.actionTimeline, to, from)
+        } else if (isDrawCards(action)) {
+            await this.animateDrawCards(action, animationContext.actionTimeline, to, from)
+        } else if (isLaunch(action)) {
+            await this.animateLaunch(action, animationContext.actionTimeline, to)
         } else if (isTribute(action)) {
             await this.animateTribute(action, animationContext.actionTimeline, to, from)
         } else if (isFly(action) || isHurl(action)) {
@@ -79,13 +91,6 @@ export class EnergyCubeAnimator extends StateAnimator<
             return
         }
 
-        this.gameSession.movingCubeIds = range(0, numCubes).map(() => nanoid())
-        await tick()
-
-        const delayBetween = 0.2
-        const moveDuration = 1
-        const startTime = 0
-
         // Set the initial location of the cubes at the energy node
         const stationId = isActivate(action) ? action.stationId : action.metadata?.stationId
         if (!stationId) {
@@ -101,18 +106,122 @@ export class EnergyCubeAnimator extends StateAnimator<
         if (!stationLocation) {
             return
         }
+        await this.animateEnergyFromLocation(
+            action.playerId,
+            numCubes,
+            stationLocation,
+            timeline,
+            toState,
+            fromState
+        )
+    }
+
+    async animateActivateEffect(
+        action: ActivateEffect,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !action.metadata?.coords) {
+            return
+        }
+
+        const numCubes = action.metadata.energyAdded ?? 0
+        if (numCubes <= 0) {
+            return
+        }
+
+        const stationCell = fromState.board.cellAt(action.metadata.coords)
+        const stationLocation = this.gameSession.locationForStationInCell(stationCell)
+        if (!stationLocation) {
+            return
+        }
+
+        await this.animateEnergyFromLocation(
+            action.playerId,
+            numCubes,
+            stationLocation,
+            timeline,
+            toState,
+            fromState
+        )
+    }
+
+    async animateDrawCards(
+        action: DrawCards,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !action.metadata?.coords) {
+            return
+        }
+
+        const numCubes = action.metadata.energyAdded ?? 0
+        if (numCubes <= 0) {
+            return
+        }
+
+        const stationCell = fromState.board.cellAt(action.metadata.coords)
+        const stationLocation = this.gameSession.locationForStationInCell(stationCell)
+        if (!stationLocation) {
+            return
+        }
+
+        await this.animateEnergyFromLocation(
+            action.playerId,
+            numCubes,
+            stationLocation,
+            timeline,
+            toState,
+            fromState
+        )
+    }
+
+    async animateLaunch(
+        action: Launch,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState
+    ) {
+        const numCubes = action.metadata?.energyGained ?? 0
+        if (numCubes <= 0) {
+            return
+        }
+        this.scheduleEnergyOverride(action.playerId, toState, timeline, 0)
+    }
+
+    private async animateEnergyFromLocation(
+        playerId: string,
+        numCubes: number,
+        startLocation: Point,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (numCubes <= 0) {
+            return
+        }
+
+        this.gameSession.movingCubeIds = range(0, numCubes).map(() => nanoid())
+        await tick()
+
+        const delayBetween = 0.2
+        const moveDuration = 1
+        const startTime = 0
 
         const cubeElements = Array.from(this.cubes.values())
 
         for (const cube of cubeElements) {
             gsap.set(cube, {
-                x: offsetFromCenter(stationLocation).x,
-                y: offsetFromCenter(stationLocation).y
+                x: offsetFromCenter(startLocation).x,
+                y: offsetFromCenter(startLocation).y
             })
         }
 
-        // Get the final location of the cubes at the mothership
-        const mothershipLocation = this.getMothershipLocationForPlayer(fromState, action.playerId)
+        const mothershipLocation = this.getMothershipLocationForPlayer(
+            fromState ?? toState,
+            playerId
+        )
 
         let i = 0
         for (const cube of cubeElements) {
@@ -127,7 +236,7 @@ export class EnergyCubeAnimator extends StateAnimator<
         }
 
         const endTime = startTime + moveDuration + delayBetween * (numCubes - 1)
-        this.scheduleEnergyOverride(action.playerId, toState, timeline, endTime)
+        this.scheduleEnergyOverride(playerId, toState, timeline, endTime)
 
         timeline.call(
             () => {

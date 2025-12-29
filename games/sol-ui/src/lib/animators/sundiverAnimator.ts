@@ -225,30 +225,6 @@ export class SundiverAnimator extends StateAnimator<
         )
     }
 
-    private scheduleEnergyOffset(
-        playerId: string,
-        delta: number,
-        fromState: HydratedSolGameState,
-        timeline: gsap.core.Timeline,
-        time: number
-    ) {
-        if (delta === 0) {
-            return
-        }
-        const energyCubes = fromState.getPlayerState(playerId).energyCubes + delta
-        timeline.call(
-            () => {
-                const existing = this.gameSession.playerStateOverrides.get(playerId) ?? {}
-                this.gameSession.playerStateOverrides.set(playerId, {
-                    ...existing,
-                    energyCubes
-                })
-            },
-            [],
-            time
-        )
-    }
-
     private buildHoldMap(playerState: HydratedSolPlayerState): Map<string, number> {
         const holdMap = new Map<string, number>()
         for (const [playerId, sundivers] of playerState.holdSundiversPerPlayer()) {
@@ -308,13 +284,6 @@ export class SundiverAnimator extends StateAnimator<
                 launch.mothership,
                 launch.playerId,
                 -launch.numSundivers,
-                fromState,
-                timeline,
-                0
-            )
-            this.scheduleEnergyOffset(
-                launch.playerId,
-                launch.metadata?.energyGained ?? 0,
                 fromState,
                 timeline,
                 0
