@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
+    import { getContext, onMount } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { ActionType, HydratedSolPlayerState } from '@tabletop/sol'
     import { Color, range, type Player } from '@tabletop/common'
@@ -23,6 +23,11 @@
 
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: HydratedSolPlayerState } = $props()
+    let animateReady = false
+
+    onMount(() => {
+        animateReady = true
+    })
 
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(playerState.playerId))
     let color = $derived(gameSession.colors.getPlayerColor(playerState.playerId))
@@ -98,6 +103,33 @@
             return aVal.localeCompare(bVal)
         })
     })
+
+    function popOnChange(node: HTMLElement, value: number | string) {
+        let lastValue = value
+
+        const trigger = () => {
+            node.classList.remove('pop-bounce')
+            void node.offsetWidth
+            node.classList.add('pop-bounce')
+        }
+
+        if (animateReady) {
+            trigger()
+        }
+
+        return {
+            update(nextValue: number | string) {
+                if (nextValue === lastValue) {
+                    return
+                }
+                lastValue = nextValue
+                if (!animateReady) {
+                    return
+                }
+                trigger()
+            }
+        }
+    }
 </script>
 
 <div class="relative">
@@ -177,7 +209,10 @@
                             class="flex flex-row justify-start items-start gap-x-2 w-full mb-[-5px]"
                         >
                             {#if holdDiversByPlayer.length === 0}
-                                <div class="flex flex-col justify-center items-center gap-y-1">
+                                <div
+                                    class="flex flex-col justify-center items-center gap-y-1"
+                                    use:popOnChange={0}
+                                >
                                     <div class="tracking-normal">0</div>
                                     <Sundiver
                                         width={25 * 0.75}
@@ -189,7 +224,10 @@
                                 </div>
                             {:else}
                                 {#each holdDiversByPlayer as [playerId, sundivers] (playerId)}
-                                    <div class="flex flex-col justify-center items-center gap-y-1">
+                                    <div
+                                        class="flex flex-col justify-center items-center gap-y-1"
+                                        use:popOnChange={sundivers.length}
+                                    >
                                         <div class="tracking-normal">{sundivers.length}</div>
                                         <Sundiver
                                             width={25 * 0.75}
@@ -199,7 +237,10 @@
                                     </div>
                                 {/each}
                             {/if}
-                            <div class="flex flex-col justify-center items-center gap-y-1">
+                            <div
+                                class="flex flex-col justify-center items-center gap-y-1"
+                                use:popOnChange={playerState.energyCubes}
+                            >
                                 <div class="tracking-normal">{playerState.energyCubes}</div>
                                 <Cube
                                     id="{playerState.playerId}-energy-supply"
@@ -211,7 +252,10 @@
                         <div
                             class="flex flex-row justify-start items-end gap-x-2 w-full text-[.75rem] sol-font-bold text-[#cccccc] leading-none"
                         >
-                            <div class="flex flex-col justify-center items-center gap-y-1">
+                            <div
+                                class="flex flex-col justify-center items-center gap-y-1"
+                                use:popOnChange={playerState.reserveSundivers.length}
+                            >
                                 <Sundiver
                                     width={25 * 0.75}
                                     height={25}
@@ -222,7 +266,10 @@
                                     {playerState.reserveSundivers.length}
                                 </div>
                             </div>
-                            <div class="flex flex-col justify-center items-center gap-y-1">
+                            <div
+                                class="flex flex-col justify-center items-center gap-y-1"
+                                use:popOnChange={playerState.solarGates.length}
+                            >
                                 <Gate
                                     width={25}
                                     height={21}
@@ -231,7 +278,10 @@
                                 />
                                 <div class="tracking-normal">{playerState.solarGates.length}</div>
                             </div>
-                            <div class="flex flex-col justify-center items-center gap-y-1">
+                            <div
+                                class="flex flex-col justify-center items-center gap-y-1"
+                                use:popOnChange={playerState.energyNodes.length}
+                            >
                                 <EnergyNode
                                     width={23}
                                     height={25}
@@ -240,7 +290,10 @@
                                 />
                                 <div class="tracking-normal">{playerState.energyNodes.length}</div>
                             </div>
-                            <div class="flex flex-col justify-center items-center gap-y-1">
+                            <div
+                                class="flex flex-col justify-center items-center gap-y-1"
+                                use:popOnChange={playerState.sundiverFoundries.length}
+                            >
                                 <Foundry
                                     width={23}
                                     height={25}
@@ -252,7 +305,10 @@
                                 </div>
                             </div>
 
-                            <div class="flex flex-col justify-center items-center gap-y-1">
+                            <div
+                                class="flex flex-col justify-center items-center gap-y-1"
+                                use:popOnChange={playerState.transmitTowers.length}
+                            >
                                 <Tower
                                     width={19}
                                     height={40}
@@ -321,5 +377,34 @@
 
     .card-grid > * {
         grid-area: 1 / 1;
+    }
+
+    .pop-bounce {
+        animation: pop-bounce 320ms ease-out;
+        transform-origin: center;
+    }
+
+    @keyframes pop-bounce {
+        0% {
+            transform: scale(1);
+        }
+        35% {
+            transform: scale(1.35);
+        }
+        60% {
+            transform: scale(0.93);
+        }
+        80% {
+            transform: scale(1.06);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .pop-bounce {
+            animation: none;
+        }
     }
 </style>
