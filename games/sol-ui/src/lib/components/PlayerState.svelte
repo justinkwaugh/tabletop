@@ -24,6 +24,9 @@
     let gameSession = getContext('gameSession') as SolGameSession
     let { player, playerState }: { player: Player; playerState: HydratedSolPlayerState } = $props()
     let animateReady = false
+    let playerStateOverride = $derived.by(() =>
+        gameSession.playerStateOverrides.get(playerState.playerId)
+    )
 
     onMount(() => {
         animateReady = true
@@ -94,14 +97,35 @@
         )
     })
 
+    let energyCubes = $derived(playerStateOverride?.energyCubes ?? playerState.energyCubes)
+    let reserveSundiversCount = $derived(
+        playerStateOverride?.reserveSundivers ?? playerState.reserveSundivers.length
+    )
+    let solarGatesCount = $derived(playerStateOverride?.solarGates ?? playerState.solarGates.length)
+    let energyNodesCount = $derived(
+        playerStateOverride?.energyNodes ?? playerState.energyNodes.length
+    )
+    let sundiverFoundriesCount = $derived(
+        playerStateOverride?.sundiverFoundries ?? playerState.sundiverFoundries.length
+    )
+    let transmitTowersCount = $derived(
+        playerStateOverride?.transmitTowers ?? playerState.transmitTowers.length
+    )
+
     let holdDiversByPlayer = $derived.by(() => {
-        const holdSundivers = playerState.holdSundiversPerPlayer()
+        const holdSundivers = playerStateOverride?.holdSundiversByPlayer
+            ? Array.from(playerStateOverride.holdSundiversByPlayer.entries())
+            : Array.from(playerState.holdSundiversPerPlayer().entries()).map(
+                  ([playerId, sundivers]) => [playerId, sundivers.length] as const
+              )
         // Player's own sundivers first
-        return Array.from(holdSundivers.entries()).sort(([a], [b]) => {
-            const aVal = `${a === playerState.playerId ? 'a' : 'b'}:${a}`
-            const bVal = `${b === playerState.playerId ? 'a' : 'b'}:${b}`
-            return aVal.localeCompare(bVal)
-        })
+        return holdSundivers
+            .filter(([, count]) => count > 0)
+            .sort(([a], [b]) => {
+                const aVal = `${a === playerState.playerId ? 'a' : 'b'}:${a}`
+                const bVal = `${b === playerState.playerId ? 'a' : 'b'}:${b}`
+                return aVal.localeCompare(bVal)
+            })
     })
 
     function popOnChange(node: HTMLElement, value: number | string) {
@@ -148,7 +172,7 @@
         >
             <div class="flex flex-col justify-between items-center w-full h-[136px]">
                 <div class="flex flex-row space-x-1 justify-center items-center pb-2 pt-1">
-                    {#each range(3, 6) as i}
+                    {#each range(3, 6) as i (i)}
                         <div
                             style={playerState.movement === i
                                 ? `background-image: url(${Sun})`
@@ -223,12 +247,12 @@
                                     />
                                 </div>
                             {:else}
-                                {#each holdDiversByPlayer as [playerId, sundivers] (playerId)}
+                                {#each holdDiversByPlayer as [playerId, count] (playerId)}
                                     <div
                                         class="flex flex-col justify-center items-center gap-y-1"
-                                        use:popOnChange={sundivers.length}
+                                        use:popOnChange={count}
                                     >
-                                        <div class="tracking-normal">{sundivers.length}</div>
+                                        <div class="tracking-normal">{count}</div>
                                         <Sundiver
                                             width={25 * 0.75}
                                             height={25}
@@ -239,9 +263,9 @@
                             {/if}
                             <div
                                 class="flex flex-col justify-center items-center gap-y-1"
-                                use:popOnChange={playerState.energyCubes}
+                                use:popOnChange={energyCubes}
                             >
-                                <div class="tracking-normal">{playerState.energyCubes}</div>
+                                <div class="tracking-normal">{energyCubes}</div>
                                 <Cube
                                     id="{playerState.playerId}-energy-supply"
                                     width={24}
@@ -254,69 +278,69 @@
                         >
                             <div
                                 class="flex flex-col justify-center items-center gap-y-1"
-                                use:popOnChange={playerState.reserveSundivers.length}
+                                use:popOnChange={reserveSundiversCount}
                             >
                                 <Sundiver
                                     width={25 * 0.75}
                                     height={25}
                                     color={playerState.color}
-                                    opacity={playerState.reserveSundivers.length > 0 ? 1 : 0.3}
+                                    opacity={reserveSundiversCount > 0 ? 1 : 0.3}
                                 />
                                 <div class="tracking-normal">
-                                    {playerState.reserveSundivers.length}
+                                    {reserveSundiversCount}
                                 </div>
                             </div>
                             <div
                                 class="flex flex-col justify-center items-center gap-y-1"
-                                use:popOnChange={playerState.solarGates.length}
+                                use:popOnChange={solarGatesCount}
                             >
                                 <Gate
                                     width={25}
                                     height={21}
                                     color={playerState.color}
-                                    opacity={playerState.solarGates.length > 0 ? 1 : 0.3}
+                                    opacity={solarGatesCount > 0 ? 1 : 0.3}
                                 />
-                                <div class="tracking-normal">{playerState.solarGates.length}</div>
+                                <div class="tracking-normal">{solarGatesCount}</div>
                             </div>
                             <div
                                 class="flex flex-col justify-center items-center gap-y-1"
-                                use:popOnChange={playerState.energyNodes.length}
+                                use:popOnChange={energyNodesCount}
                             >
                                 <EnergyNode
                                     width={23}
                                     height={25}
                                     color={playerState.color}
-                                    opacity={playerState.energyNodes.length > 0 ? 1 : 0.3}
+                                    opacity={energyNodesCount > 0 ? 1 : 0.3}
                                 />
-                                <div class="tracking-normal">{playerState.energyNodes.length}</div>
+                                <div class="tracking-normal">{energyNodesCount}</div>
                             </div>
                             <div
                                 class="flex flex-col justify-center items-center gap-y-1"
-                                use:popOnChange={playerState.sundiverFoundries.length}
+                                use:popOnChange={sundiverFoundriesCount}
                             >
                                 <Foundry
                                     width={23}
                                     height={25}
                                     color={playerState.color}
-                                    opacity={playerState.sundiverFoundries.length > 0 ? 1 : 0.3}
+                                    opacity={sundiverFoundriesCount > 0 ? 1 : 0.3}
                                 />
                                 <div class="tracking-normal">
-                                    {playerState.sundiverFoundries.length}
+                                    {sundiverFoundriesCount}
                                 </div>
                             </div>
 
                             <div
                                 class="flex flex-col justify-center items-center gap-y-1"
-                                use:popOnChange={playerState.transmitTowers.length}
+                                use:popOnChange={transmitTowersCount}
                             >
                                 <Tower
                                     width={19}
                                     height={40}
                                     color={playerState.color}
-                                    opacity={playerState.transmitTowers.length > 0 ? 1 : 0.3}
+                                    opacity={transmitTowersCount > 0 ? 1 : 0.3}
                                 />
                                 <div class="tracking-normal">
-                                    {playerState.transmitTowers.length}
+                                    {transmitTowersCount}
                                 </div>
                             </div>
                         </div>

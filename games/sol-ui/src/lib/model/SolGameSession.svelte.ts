@@ -38,6 +38,16 @@ import { ConvertType } from '$lib/definition/convertType.js'
 import { getMothershipSpotPoint, getSpaceCentroid } from '$lib/utils/boardGeometry.js'
 import { SvelteMap } from 'svelte/reactivity'
 
+export type PlayerStateOverride = {
+    holdSundiversByPlayer?: Map<string, number>
+    energyCubes?: number
+    reserveSundivers?: number
+    solarGates?: number
+    energyNodes?: number
+    sundiverFoundries?: number
+    transmitTowers?: number
+}
+
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
     myPlayerState = $derived.by(() =>
         this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
@@ -197,6 +207,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     movingCubeIds: string[] = $state([])
     movingMomentumIds: string[] = $state([])
     movingStation?: Station = $state(undefined)
+
+    playerStateOverrides: SvelteMap<string, PlayerStateOverride> = $state(
+        new SvelteMap<string, PlayerStateOverride>()
+    )
 
     skipReset = false
 
@@ -404,6 +418,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         this.outlinedCells = []
 
         this.forcedCallToAction = undefined
+        this.playerStateOverrides.clear()
     }
 
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
