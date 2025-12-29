@@ -410,7 +410,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             return true
         }
 
-        if (isActivateEffect(action)) {
+        if (isActivateEffect(action) && action.effect !== EffectType.Procreate) {
             return true
         }
 
@@ -418,7 +418,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             (action.playerId === next?.playerId &&
                 (isFly(action) || isLaunch(action) || isHurl(action))) ||
             (isActivateEffect(action) &&
-                (isFly(next) || isLaunch(next) || isHurl(next) || isActivateEffect(next)))
+                (isFly(next) ||
+                    isLaunch(next) ||
+                    isHurl(next) ||
+                    (isActivateEffect(next) && next.effect !== EffectType.Procreate)))
         ) {
             return true
         }

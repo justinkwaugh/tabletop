@@ -177,6 +177,15 @@
         <ul class="ms-4 list-inside">
             {@render commonActivateMetadata(action)}
         </ul>
+    {:else if action.effect === EffectType.Procreate}
+        <ul class="ms-4 list-inside">
+            <li>
+                {action.metadata?.createdSundiverIds.length} sundiver{(action.metadata
+                    ?.createdSundiverIds.length ?? 1) === 1
+                    ? ''
+                    : 's'} added.
+            </li>
+        </ul>
     {/if}
 {:else if isChooseMove(action)}
     chose to move
