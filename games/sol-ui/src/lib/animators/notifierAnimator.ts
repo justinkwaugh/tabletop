@@ -2,35 +2,24 @@ import {
     Activate,
     ActivateBonus,
     ActivateEffect,
-    Convert,
     DrawCards,
     EffectType,
-    EnergyNode,
-    Fuel,
     HydratedSolGameState,
     isActivate,
     isActivateBonus,
     isActivateEffect,
-    isConvert,
     isDrawCards,
     isFuel,
     isMetamorphosize,
-    isSolarFlare,
     isTribute,
-    MachineState,
     Metamorphosize,
-    SolarFlare,
-    Station,
     StationType,
     Tribute,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { gsap } from 'gsap'
-import { Point, sameCoordinates, type GameAction, type OffsetCoordinates } from '@tabletop/common'
-import { animate, ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
-import { tick } from 'svelte'
+import { type GameAction } from '@tabletop/common'
 import type { AnimationContext } from '@tabletop/frontend-components'
 
 // Only used to put notifications in the action panel... no visual animation here
@@ -50,6 +39,10 @@ export class NotifierAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }) {
+        if (!action) {
+            return
+        }
+
         if (isActivate(action) || isActivateBonus(action)) {
             this.animateActivate(action, animationContext, isActivateBonus(action))
         } else if (isFuel(action)) {
