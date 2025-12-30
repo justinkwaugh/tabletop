@@ -865,7 +865,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     willUndo(_action: GameAction) {}
 
-    onHistoryAction(_action?: GameAction) {}
+    onHistoryAction(_action?: GameAction) {
+        if (!this.history.playing) {
+            this.suppressStateChangeActions = true
+        }
+    }
 
     onHistoryExit() {}
 

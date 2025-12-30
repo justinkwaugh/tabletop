@@ -195,10 +195,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
                     ))) ||
             (predicate && predicate() === false)
         )
-        this.historyContext.updateGameState(stateSnapshot)
         this.onHistoryAction(
             this.actionIndex >= 0 ? this.historyContext.actions[this.actionIndex] : undefined
         )
+        this.historyContext.updateGameState(stateSnapshot)
 
         if (stopPlayback) {
             this.stopHistoryPlayback()
@@ -229,8 +229,8 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
 
         let nextAction: GameAction | undefined
         do {
-            this.actionIndex += 1
-            nextAction = this.historyContext.actions[this.actionIndex] as GameAction
+            const nextActionIndex = this.actionIndex + 1
+            nextAction = this.historyContext.actions[nextActionIndex] as GameAction
             const { updatedState } = this.historyContext.engine.run(
                 nextAction,
                 stateSnapshot,
@@ -238,6 +238,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
                 RunMode.Single
             )
             stateSnapshot = updatedState as T
+            this.actionIndex = nextActionIndex
         } while (
             (this.actionIndex < this.historyContext.actions.length - 1 &&
                 ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
@@ -247,8 +248,8 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
                     ))) ||
             (predicate && predicate() === false)
         )
-        this.historyContext.updateGameState(stateSnapshot)
         this.onHistoryAction(this.historyContext.actions[this.actionIndex])
+        this.historyContext.updateGameState(stateSnapshot)
 
         const skippableLastAction = this.shouldAutoStepAction(nextAction)
         if (stopPlayback || skippableLastAction) {
