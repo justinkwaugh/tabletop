@@ -29,7 +29,8 @@ export class MothershipAnimator extends StateAnimator<
     setIndex(
         index: number,
         direction?: Direction.Clockwise | Direction.CounterClockwise | undefined,
-        timeline?: gsap.core.Timeline | undefined
+        timeline?: gsap.core.Timeline | undefined,
+        duration?: number
     ) {
         const priorIndex = this.index
         if (index === priorIndex) {
@@ -60,7 +61,8 @@ export class MothershipAnimator extends StateAnimator<
             from: priorIndex ?? 0,
             to: this.index,
             direction,
-            timeline
+            timeline,
+            duration
         })
     }
 
@@ -92,19 +94,22 @@ export class MothershipAnimator extends StateAnimator<
                 : Direction.Clockwise
 
         const endIndex = to.board.motherships[this.playerId]
-        this.setIndex(endIndex, direction, animationContext.finalTimeline)
+        const duration = action ? undefined : 0.3
+        this.setIndex(endIndex, direction, animationContext.finalTimeline, duration)
     }
 
     moveShip({
         timeline,
         from,
         to,
-        direction = Direction.CounterClockwise
+        direction = Direction.CounterClockwise,
+        duration
     }: {
         timeline?: gsap.core.Timeline
         from: number
         to: number
         direction: Direction.Clockwise | Direction.CounterClockwise
+        duration?: number
     }) {
         // console.log('animating ship from ', from, 'to', to)
         const currentRotation = this.element
@@ -133,7 +138,7 @@ export class MothershipAnimator extends StateAnimator<
             object: this.element,
             degrees: `${endDegrees}`,
             svgOrigin: SVG_ORIGIN,
-            duration: 0.5 + 0.1 * (Math.abs(endDegrees - startDegrees) / 72),
+            duration: duration ?? 0.5 + 0.1 * (Math.abs(endDegrees - startDegrees) / 72),
             position: 0,
             onStart: () => {
                 this.animating = true

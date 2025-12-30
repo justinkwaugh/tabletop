@@ -5,13 +5,14 @@ import {
     HydratedSolGameState,
     isFly,
     isHurl,
+    type Station,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import { GameAction, sameCoordinates } from '@tabletop/common'
+import { GameAction, sameCoordinates, samePoint, type Point } from '@tabletop/common'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { fadeOut, path } from '$lib/utils/animations.js'
+import { fadeOut, move, path } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { getFlightDuration, getFlightPath } from '$lib/utils/flight.js'
@@ -46,7 +47,78 @@ export class StationAnimator extends StateAnimator<
     }) {
         if (action) {
             await this.animateAction(action, animationContext.actionTimeline, to, from)
+            return
         }
+
+        if (!from) {
+            return
+        }
+
+        const fromLocations = new Map<string, { station: Station; location: Point }>()
+        for (const cell of from.board) {
+            if (!cell.station) {
+                continue
+            }
+            const location = this.gameSession.locationForStationInCell(cell)
+            if (!location) {
+                continue
+            }
+            fromLocations.set(cell.station.id, { station: cell.station, location })
+        }
+
+        let movedStation: Station | undefined
+        let fromLocation: Point | undefined
+        let toLocation: Point | undefined
+        for (const cell of to.board) {
+            if (!cell.station) {
+                continue
+            }
+            const fromEntry = fromLocations.get(cell.station.id)
+            if (!fromEntry) {
+                continue
+            }
+            const location = this.gameSession.locationForStationInCell(cell)
+            if (!location || samePoint(location, fromEntry.location)) {
+                continue
+            }
+            movedStation = cell.station
+            fromLocation = fromEntry.location
+            toLocation = location
+            break
+        }
+
+        if (!movedStation || !fromLocation || !toLocation) {
+            return
+        }
+
+        this.gameSession.movingStation = movedStation
+        await tick()
+
+        if (!this.element) {
+            return
+        }
+
+        gsap.set(this.element, {
+            opacity: 1,
+            x: offsetFromCenter(fromLocation).x,
+            y: offsetFromCenter(fromLocation).y
+        })
+
+        move({
+            object: this.element,
+            location: offsetFromCenter(toLocation),
+            duration: 0.3,
+            ease: 'power1.inOut',
+            timeline: animationContext.actionTimeline,
+            position: 0
+        })
+
+        fadeOut({
+            object: this.element,
+            duration: 0.1,
+            timeline: animationContext.actionTimeline,
+            position: '>'
+        })
     }
 
     async animateAction(

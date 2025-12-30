@@ -87,6 +87,14 @@ export class CellSundiverAnimator extends StateAnimator<
             return
         }
 
+        const isFallback = !action
+        const timeline = animationContext.actionTimeline
+        const fallbackArrivalTime = 0.2
+        const appearTime = isFallback ? fallbackArrivalTime : 0
+        const appearDuration = isFallback ? 0 : 0.3
+        const moveDuration = isFallback ? 0.3 : 1
+        const moveEase = isFallback ? 'power1.inOut' : 'power2.inOut'
+
         const toCell = to.board.cellAt(this.coords)
         const fromCell = from?.board.cellAt(this.coords)
         if (!toCell && !fromCell) {
@@ -110,12 +118,16 @@ export class CellSundiverAnimator extends StateAnimator<
                         translateX: offsetFromCenter(targetLocation).x,
                         translateY: offsetFromCenter(targetLocation).y
                     })
-                    fadeIn({
-                        object: this.element,
-                        duration: 0.3,
-                        timeline: animationContext.actionTimeline,
-                        position: 0
-                    })
+                    if (isFallback) {
+                        timeline.set(this.element!, { opacity: 1 }, appearTime)
+                    } else {
+                        fadeIn({
+                            object: this.element,
+                            duration: appearDuration,
+                            timeline,
+                            position: 0
+                        })
+                    }
                     return
                 }
 
@@ -131,19 +143,28 @@ export class CellSundiverAnimator extends StateAnimator<
                     })
                     move({
                         object: this.element,
-                        timeline: animationContext.actionTimeline,
+                        timeline,
                         location: offsetFromCenter(targetLocation),
-                        ease: 'power2.inOut',
-                        duration: 1,
+                        ease: moveEase,
+                        duration: moveDuration,
                         position: 0
                     })
                 }
             } else {
-                gsap.set(this.element!, {
-                    opacity: 1,
-                    translateX: offsetFromCenter(targetLocation).x,
-                    translateY: offsetFromCenter(targetLocation).y
-                })
+                if (isFallback) {
+                    gsap.set(this.element!, {
+                        opacity: 0,
+                        translateX: offsetFromCenter(targetLocation).x,
+                        translateY: offsetFromCenter(targetLocation).y
+                    })
+                    timeline.set(this.element!, { opacity: 1 }, appearTime)
+                } else {
+                    gsap.set(this.element!, {
+                        opacity: 1,
+                        translateX: offsetFromCenter(targetLocation).x,
+                        translateY: offsetFromCenter(targetLocation).y
+                    })
+                }
             }
         } else {
             gsap.set(this.element!, { opacity: 0 })

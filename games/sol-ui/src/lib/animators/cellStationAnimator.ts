@@ -84,6 +84,12 @@ export class CellStationAnimator extends StateAnimator<
         } else if (isMetamorphosize(action)) {
             await this.animateMetamorphosize(action, animationContext, to, from)
         } else {
+            const isFallback = !action
+            const timeline = animationContext.actionTimeline
+            const appearTime = isFallback ? 0.3 : 0
+            const appearDuration = isFallback ? 0 : 0.3
+            const moveDuration = isFallback ? 0.3 : 1
+            const moveEase = isFallback ? 'power1.inOut' : 'power2.inOut'
             const toBoard = to.board
             const fromBoard = from?.board
             const toCell = toBoard.cellAt(this.coords)
@@ -95,25 +101,37 @@ export class CellStationAnimator extends StateAnimator<
             if (fromStation && !toStation) {
                 fadeOut({
                     object: this.element!,
-                    timeline: animationContext.actionTimeline,
-                    duration: 0.3
+                    timeline,
+                    duration: appearDuration
                 })
             } else if (toStation && !fromStation) {
-                fadeIn({
-                    object: this.element!,
-                    timeline: animationContext.actionTimeline,
-                    duration: 0.3
-                })
+                if (isFallback) {
+                    if (this.callback) {
+                        this.callback(toStation, this.gameSession.locationForStationInCell(toCell))
+                    }
+                    await tick()
+                    if (toStation.id !== this.station?.id) {
+                        return
+                    }
+                    gsap.set(this.element!, { opacity: 0 })
+                    timeline.set(this.element!, { opacity: 1 }, appearTime)
+                } else {
+                    fadeIn({
+                        object: this.element!,
+                        timeline,
+                        duration: appearDuration
+                    })
+                }
             } else if (fromCell && toCell) {
                 const fromLocation = this.gameSession.locationForStationInCell(fromCell)
                 const toLocation = this.gameSession.locationForStationInCell(toCell)
                 if (!samePoint(fromLocation, toLocation)) {
                     move({
                         object: this.element,
-                        timeline: animationContext.actionTimeline,
+                        timeline,
                         location: offsetFromCenter(toLocation),
-                        ease: 'power2.inOut',
-                        duration: 1,
+                        ease: moveEase,
+                        duration: moveDuration,
                         position: 0
                     })
                 }
@@ -348,12 +366,7 @@ export class CellStationAnimator extends StateAnimator<
         const intermediateCounts = this.getReserveCounts(fromState.getPlayerState(playerId))
         this.applyStationDelta(intermediateCounts, priorStation, 1)
 
-        this.scheduleStationReserveOverrideAt(
-            playerId,
-            intermediateCounts,
-            timeline,
-            hideDuration
-        )
+        this.scheduleStationReserveOverrideAt(playerId, intermediateCounts, timeline, hideDuration)
 
         const finalCounts = this.getReserveCounts(toState.getPlayerState(playerId))
         this.scheduleStationReserveOverrideAt(

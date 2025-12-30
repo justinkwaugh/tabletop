@@ -20,6 +20,7 @@ import {
     isHurl,
     isLaunch,
     Launch,
+    Sundiver,
     type SolGameState,
     HydratedSolPlayerState
 } from '@tabletop/sol'
@@ -88,83 +89,71 @@ export class SundiverAnimator extends StateAnimator<
             this.animateAction(action, animationContext.actionTimeline, to, from)
             return
         }
+        if (!from) {
+            return
+        }
 
-        // const toSundiver: Sundiver | undefined = Iterator.from(to.getAllSundivers()).find(
-        //     (d) => d.id === this.id
-        // )
-        // const fromSundiver: Sundiver | undefined = Iterator.from(
-        //     from?.getAllSundivers() ?? []
-        // ).find((d) => d.id === this.id)
-        // let fromLocation: Point | undefined
-        // let toLocation: Point | undefined
-        // let hide = false
+        const toSundiver = Array.from(to.getAllSundivers()).find((diver) => diver.id === this.id)
+        const fromSundiver = Array.from(from.getAllSundivers()).find(
+            (diver) => diver.id === this.id
+        )
 
-        // // Figure out where we are going
-        // if (toSundiver) {
-        //     // In a cell
-        //     if (toSundiver.coords) {
-        //         if (sameCoordinates(fromSundiver?.coords, toSundiver.coords)) {
-        //             return
-        //         }
-        //         const cell = to.board.cellAt(toSundiver.coords)
-        //         if (cell) {
-        //             toLocation = this.gameSession.locationForDiverInCell(toSundiver.playerId, cell)
-        //         }
-        //         // In a hold
-        //     } else if (toSundiver.hold) {
-        //         if (fromSundiver?.hold === toSundiver.hold) {
-        //             return
-        //         }
-        //         toLocation = this.getMothershipLocationForPlayer(to, toSundiver.hold)
-        //         hide = true
-        //     } else if (toSundiver.reserve) {
-        //         // We need some idea of what happened.  We may need to do something like
-        //         // move to the converted station and disappear
-        //         if (!fromSundiver?.coords) {
-        //             return
-        //         }
-        //         hide = true
-        //     }
-        // }
+        if (!toSundiver || !fromSundiver) {
+            return
+        }
+        if (toSundiver.hold && fromSundiver.hold && toSundiver.hold === fromSundiver.hold) {
+            return
+        }
+        if (toSundiver.reserve && fromSundiver.reserve) {
+            return
+        }
 
-        // if (fromSundiver) {
-        //     if (fromSundiver.coords) {
-        //         const fromCell = from?.board.cellAt(fromSundiver.coords)
-        //         if (fromCell) {
-        //             fromLocation = this.gameSession.locationForDiverInCell(
-        //                 fromSundiver.playerId,
-        //                 fromCell
-        //             )
-        //         }
-        //     } else if (fromSundiver.hold) {
-        //         gsap.set(this.element, { opacity: 1 })
-        //         fromLocation = this.getMothershipLocationForPlayer(from!, fromSundiver.hold)
-        //     }
-        // }
+        const toLocation = this.getFallbackLocation(to, toSundiver)
+        const fromLocation = this.getFallbackLocation(from, fromSundiver)
 
-        // if (fromLocation) {
-        //     const changes = Object.assign({}, offsetFromCenter(fromLocation), {
-        //         opacity: 1
-        //     })
-        //     gsap.set(this.element, changes)
-        // }
+        if (!toLocation || !fromLocation || samePoint(toLocation, fromLocation)) {
+            return
+        }
 
-        // if (toLocation) {
-        //     move({
-        //         object: this.element,
-        //         location: offsetFromCenter(toLocation),
-        //         duration: 0.5,
-        //         timeline,
-        //         position: 'movingPieces'
-        //     })
-        // }
-        // if (hide) {
-        //     timeline.to(this.element, {
-        //         opacity: 0,
-        //         duration: 0,
-        //         position: '>'
-        //     })
-        // }
+        gsap.set(this.element, {
+            opacity: 1,
+            x: offsetFromCenter(fromLocation).x,
+            y: offsetFromCenter(fromLocation).y
+        })
+
+        move({
+            object: this.element,
+            location: offsetFromCenter(toLocation),
+            duration: 0.2,
+            ease: 'power1.inOut',
+            timeline: animationContext.actionTimeline,
+            position: 0
+        })
+
+        fadeOut({
+            object: this.element,
+            duration: 0.1,
+            timeline: animationContext.actionTimeline,
+            position: '>'
+        })
+    }
+
+    private getFallbackLocation(
+        gameState: HydratedSolGameState,
+        sundiver: Sundiver
+    ): Point | undefined {
+        if (sundiver.hold) {
+            return this.getMothershipLocationForPlayer(gameState, sundiver.hold)
+        }
+
+        for (const cell of gameState.board) {
+            const found = cell.sundivers.find((diver) => diver.id === sundiver.id)
+            if (found) {
+                return this.gameSession.locationForDiverInCell(found.playerId, cell)
+            }
+        }
+
+        return
     }
 
     private scheduleHoldOffset(
