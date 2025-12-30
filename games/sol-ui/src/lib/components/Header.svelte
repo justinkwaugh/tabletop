@@ -9,6 +9,8 @@
     import Card from './Card.svelte'
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
+    import PlayerAid from '$lib/images/sol-player-aid.jpg'
+    import { Popover } from 'flowbite-svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -27,7 +29,8 @@
 </script>
 
 <div
-    class="flex flex-row justify-between items-center pb-1 px-4 max-sm:text-[16px] text-xl tracking-[.15em] max-sm:h-[40px] h-[44px] border-b border-[#ad9c80] max-sm:leading-none"
+    id="sol-header"
+    class="flex flex-row justify-between items-center pb-1 sm:px-4 max-sm:text-[16px] text-xl tracking-[.15em] max-sm:h-[40px] h-[44px] border-b border-[#ad9c80] max-sm:leading-none"
 >
     <div class="header-grid grid">
         {#if gameSession.isViewingHistory}
@@ -128,7 +131,7 @@
         {/if}
     </div>
 
-    <div>
+    <div class="flex flex-row items-center gap-x-2">
         <div class="header-grid grid">
             {#if gameSession.midAction}
                 <button
@@ -146,6 +149,23 @@
                 </button>
             {/if}
         </div>
+        <div
+            id="player-aid"
+            class="leading-none tracking-tight rounded-full bg-[#ad9c80] h-[24px] w-[24px] flex items-center justify-center text-lg font-bold text-[#333]"
+        >
+            ?
+        </div>
+        <Popover
+            reference={'#sol-header'}
+            classes={{
+                content: 'p-0 rounded-md overflow-hidden dark:border-0'
+            }}
+            placement="bottom"
+            triggeredBy={`#player-aid`}
+            trigger="click"
+            offset={25}
+            arrow={false}><img src={PlayerAid} alt="player aid" class="w-[640px]" /></Popover
+        >
     </div>
 </div>
 
