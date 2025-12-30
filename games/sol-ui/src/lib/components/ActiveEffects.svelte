@@ -23,12 +23,38 @@
     let gameSession = getContext('gameSession') as SolGameSession
 
     let effects = $derived(Object.entries(gameSession.gameState.effects) as [Suit, Effect][])
+    let isOpen = $state(false)
 
     const animator = new ActiveEffectsAnimator()
 
     function handleCardClick(event: MouseEvent) {
         event.stopPropagation()
         animator.toggle()
+        if (!isOpen) {
+            isOpen = true
+            document.addEventListener('click', closeOnClickAnywhere)
+            document.addEventListener('keydown', closeOnEscape)
+        } else {
+            close()
+        }
+    }
+
+    function close() {
+        isOpen = false
+        document.removeEventListener('keydown', closeOnEscape)
+        document.removeEventListener('click', closeOnClickAnywhere)
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+        if (isOpen && event.key === 'Escape') {
+            animator.toggle()
+            close()
+        }
+    }
+
+    function closeOnClickAnywhere(event: MouseEvent) {
+        animator.toggle()
+        close()
     }
 </script>
 

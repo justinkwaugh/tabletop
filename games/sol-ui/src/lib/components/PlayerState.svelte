@@ -156,7 +156,7 @@
     }
 </script>
 
-<div class="relative">
+<div id="player-state-{playerState.playerId}" class="relative">
     <div
         class="sol-font-bold uppercase bg-cover rounded-lg {bgColor} pt-[3px] px-1 pb-1 text-center {gameSession.colors.getPlayerTextColor(
             playerState.playerId
@@ -357,12 +357,15 @@
                         <Card showActivate={canActivate} showActive={isActiveCard} {card} />
 
                         <Popover
-                            classes={{ content: 'p-0 rounded-md overflow-hidden dark:border-0' }}
+                            reference={`#player-state-${playerState.playerId}`}
+                            class="fit-content"
+                            classes={{
+                                content: 'p-0 rounded-md overflow-hidden dark:border-0'
+                            }}
                             placement="right"
                             triggeredBy={`[id='${card.id}']`}
                             trigger="hover"
                             arrow={false}
-                            offset={15}
                             ><EffectCard
                                 effectType={gameSession.gameState.effects[card.suit].type}
                                 effectSuit={card.suit}
