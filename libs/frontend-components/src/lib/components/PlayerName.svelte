@@ -9,7 +9,8 @@
         possessive = false,
         plainSelfPossessive = false,
         capitalization = 'capitalize',
-        fontFamily = 'inherit'
+        fontFamily = 'inherit',
+        additionalClasses = ''
     }: {
         playerId?: string
         possessivePlayerId?: string
@@ -17,6 +18,7 @@
         plainSelfPossessive?: boolean
         capitalization?: 'none' | 'capitalize' | 'uppercase' | 'lowercase'
         fontFamily?: string
+        additionalClasses?: string
     } = $props()
 
     let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
@@ -46,6 +48,6 @@
               ? 'uppercase'
               : capitalization === 'lowercase'
                 ? 'lowercase'
-                : ''}">{text}</span
+                : ''} {additionalClasses}">{text}</span
     >
 {/if}

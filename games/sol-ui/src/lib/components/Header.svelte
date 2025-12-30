@@ -8,6 +8,7 @@
     import { Suit } from '@tabletop/sol'
     import Card from './Card.svelte'
     import { fade } from 'svelte/transition'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -23,15 +24,6 @@
     let currentSolarFlare = $derived(
         gameSession.gameState.solarFlares - gameSession.gameState.solarFlaresRemaining + 1
     )
-
-    let turnPlayerName = $derived.by(() => {
-        const playerId = gameSession.gameState.turnManager.currentTurn()?.playerId
-        if (!playerId) {
-            return ''
-        }
-        const player = gameSession.game.players.find((p) => p.id === playerId)
-        return player ? player.name : ''
-    })
 </script>
 
 <div
@@ -52,7 +44,14 @@
                 out:fade={{ duration: 100 }}
                 class="inline-flex items-center gap-x-2"
             >
-                <div>{turnPlayerName}'s TURN</div>
+                <div>
+                    <PlayerName
+                        playerId={gameSession.gameState.turnManager.currentTurn()?.playerId}
+                        capitalization="uppercase"
+                        possessive={true}
+                        additionalClasses="tracking-widest pt-[2px]"
+                    /> TURN
+                </div>
             </div>
         {:else if gameSession.isEndOfGame}
             <div

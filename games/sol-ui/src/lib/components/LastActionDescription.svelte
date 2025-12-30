@@ -28,7 +28,8 @@
                 {#if lastAction.playerId}
                     <PlayerName
                         playerId={lastAction.playerId}
-                        fontFamily="ui-sans-serif, system-ui, sans-serif"
+                        additionalClasses="pt-[2px]"
+                        capitalization="uppercase"
                     />
                 {/if}
                 <ActionDescription action={lastAction} justify="center" history={false} />

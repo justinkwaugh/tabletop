@@ -61,11 +61,13 @@
 
 {#if isActivate(action)}
     activated <PlayerName
-        fontFamily="ui-sans-serif, system-ui, sans-serif"
+        fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
         playerId={action.metadata?.activatedStation?.playerId}
         possessive={true}
         plainSelfPossessive={true}
         possessivePlayerId={action.playerId}
+        additionalClasses={history ? '' : 'pt-[2px]'}
+        capitalization={history ? 'capitalize' : 'uppercase'}
     />
     {#if action.metadata?.activatedStation?.type === StationType.EnergyNode}energy node{:else if action.metadata?.activatedStation?.type === StationType.SundiverFoundry}sundiver
         foundry{:else}transmit tower{/if}<br />
@@ -100,8 +102,12 @@
         {#if action.energyGained > 0}<li>{action.energyGained} energy gained</li>{/if}
         {#if action.momentumGained > 0}<li>{action.momentumGained} momentum gained</li>{/if}
         {#each action.paidPlayerIds as playerId (playerId)}<li>
-                <PlayerName {playerId} fontFamily="ui-sans-serif, system-ui, sans-serif" /> earned 1
-                energy cube
+                <PlayerName
+                    {playerId}
+                    fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                    additionalClasses={history ? '' : 'pt-[2px]'}
+                    capitalization={history ? 'capitalize' : 'uppercase'}
+                /> earned 1 energy cube
             </li>{/each}
     </ul>
 {:else if isDrawCards(action)}
@@ -142,7 +148,9 @@
                 <PlayerName
                     possessive={true}
                     playerId={unstableEnergy.playerId}
-                    fontFamily="ui-sans-serif, system-ui, sans-serif"
+                    fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                    additionalClasses={history ? '' : 'pt-[2px]'}
+                    capitalization={history ? 'capitalize' : 'uppercase'}
                 /> energy cubes reduced from
                 {unstableEnergy.initial} to {unstableEnergy.remaining}
             </li>
@@ -151,7 +159,9 @@
             <li>
                 <PlayerName
                     playerId={action.metadata.hurlBonus}
-                    fontFamily="ui-sans-serif, system-ui, sans-serif"
+                    fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                    additionalClasses={history ? '' : 'pt-[2px]'}
+                    capitalization={history ? 'capitalize' : 'uppercase'}
                 /> gained 1 hurl bonus momentum
             </li>
         {/if}
