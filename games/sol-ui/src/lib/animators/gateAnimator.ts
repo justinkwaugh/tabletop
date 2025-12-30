@@ -9,8 +9,8 @@ import {
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
-import { Point, sameCoordinates, type GameAction, type OffsetCoordinates } from '@tabletop/common'
-import { animate, ensureDuration, fadeIn, fadeOut, scale } from '$lib/utils/animations.js'
+import { type GameAction } from '@tabletop/common'
+import { animate, fadeOut } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import { getGatePosition } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
@@ -64,21 +64,63 @@ export class GateAnimator extends StateAnimator<
     }) {
         if (isConvert(action)) {
             await this.animateConvert(action, animationContext.actionTimeline, to, from)
+            return
         }
 
-        // const toBoard = to.board
-        // const fromBoard = from?.board
-        // const toCell = toBoard.cellAt(this.coords)
-        // const fromCell = fromBoard?.cellAt(this.coords)
-        // const toStation = toCell.station
-        // const fromStation = fromCell?.station
-        // if (fromStation && !toStation) {
-        //     fadeOut({
-        //         object: this.element!,
-        //         timeline,
-        //         duration: 0.3
-        //     })
-        // }
+        if (!from) {
+            return
+        }
+
+        const toGates = to.board.gates
+        const fromGates = from.board.gates
+        const appearTime = 0.3
+        const addedGates: SolarGate[] = []
+        const removedGates: SolarGate[] = []
+
+        for (const [key, gate] of Object.entries(toGates)) {
+            if (!fromGates[Number(key)]) {
+                addedGates.push(gate)
+            }
+        }
+
+        for (const [key, gate] of Object.entries(fromGates)) {
+            if (!toGates[Number(key)]) {
+                removedGates.push(gate)
+            }
+        }
+
+        if (addedGates.length > 0 && this.callback) {
+            for (const gate of addedGates) {
+                this.callback(gate)
+            }
+            await tick()
+        }
+
+        const timeline = animationContext.actionTimeline
+        for (const gate of addedGates) {
+            const gateAndElement =
+                this.gatesById.get(gate.id) ??
+                this.gatesByKey.get(gateKey(gate.innerCoords!, gate.outerCoords!))
+            if (!gateAndElement) {
+                continue
+            }
+            gsap.set(gateAndElement.element, { opacity: 0 })
+            timeline.set(gateAndElement.element, { opacity: 1 }, appearTime)
+        }
+
+        for (const gate of removedGates) {
+            const gateAndElement =
+                this.gatesById.get(gate.id) ??
+                this.gatesByKey.get(gateKey(gate.innerCoords!, gate.outerCoords!))
+            if (!gateAndElement) {
+                continue
+            }
+            fadeOut({
+                object: gateAndElement.element,
+                timeline,
+                duration: 0
+            })
+        }
     }
 
     async animateConvert(
