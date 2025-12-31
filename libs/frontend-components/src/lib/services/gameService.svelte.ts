@@ -23,4 +23,5 @@ export type GameService = {
     declineGame(gameId: string): Promise<Game>
     clear(): void
     getExplorations(gameId: string): Game[]
+    setGameState(game: Game, state: GameState): Promise<void>
 }

@@ -1058,6 +1058,30 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    async setGameState({ gameId, state }: { gameId: string; state: GameState }): Promise<void> {
+        const stateCollection = this.getStateCollection(gameId)
+        try {
+            const checksumCacheKey = `csum-${gameId}`
+            const gameRevisionCacheKey = `etag-${gameId}`
+            return await this.cacheService.lockWhileWriting(
+                [checksumCacheKey, gameRevisionCacheKey],
+                async () =>
+                    await this.games.firestore.runTransaction(async (transaction) => {
+                        const existingState = (
+                            await transaction.get(stateCollection.doc(gameId))
+                        ).data() as GameState
+                        if (!existingState) {
+                            throw new NotFoundError({ type: 'GameState', id: gameId })
+                        }
+                        transaction.set(stateCollection.doc(gameId), state)
+                    })
+            )
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
     private async getGameState(gameId: string): Promise<GameState | undefined> {
         const doc = this.getStateCollection(gameId).doc(gameId)
         const state = (await doc.get()).data() as GameState

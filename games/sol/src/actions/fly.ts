@@ -17,7 +17,8 @@ export const FlyMetadata = Type.Object({
     portal: Type.Boolean(),
     momentumGained: Type.Number(),
     paidPlayerIds: Type.Array(Type.String()),
-    juggernaut: Type.Optional(Station)
+    juggernaut: Type.Optional(Station),
+    energyGained: Type.Optional(Type.Number())
 })
 
 export type Fly = Static<typeof Fly>

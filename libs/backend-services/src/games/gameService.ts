@@ -324,6 +324,14 @@ export class GameService {
         return await this.gameStore.findGamesForUser(user, GameStatusCategory.Completed)
     }
 
+    async setGameState(state: GameState): Promise<void> {
+        const game = await this.getGame({ gameId: state.gameId })
+        if (!game) {
+            throw new GameNotFoundError({ id: state.gameId })
+        }
+        await this.gameStore.setGameState({ gameId: state.gameId, state })
+    }
+
     async checkSync({
         gameId,
         checksum,

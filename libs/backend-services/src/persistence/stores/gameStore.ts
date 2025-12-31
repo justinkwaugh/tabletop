@@ -95,6 +95,7 @@ export interface GameStore {
     deleteGame(game: Game): Promise<void>
 
     getActionChecksum(gameId: string): Promise<number | undefined>
+    setGameState({ gameId, state }: { gameId: string; state: GameState }): Promise<void>
 
     // This is just for seamless migration to the new checksum system
     setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number>

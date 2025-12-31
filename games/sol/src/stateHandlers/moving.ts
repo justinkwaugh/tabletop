@@ -110,14 +110,14 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
                 ) {
                     return MachineState.CheckEffect
                 } else {
-                    return drawCardsOrEndTurn(gameState, context)
+                    return drawCardsOrEndTurn(gameState, context, action)
                 }
             }
             case isFuel(action): {
                 return MachineState.Moving
             }
             case isPass(action): {
-                return drawCardsOrEndTurn(gameState, context)
+                return drawCardsOrEndTurn(gameState, context, action)
             }
             case isActivateEffect(action): {
                 return onActivateEffect(action, context)

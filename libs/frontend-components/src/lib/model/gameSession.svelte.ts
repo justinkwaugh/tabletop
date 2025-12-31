@@ -873,6 +873,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     onHistoryExit() {}
 
+    async setGameState(state: T) {
+        await this.gameService.setGameState(this.primaryGame, state)
+        this.gameContext.updateGameState(state)
+    }
+
     private applyActionToGame(action: GameAction, game: Game, state: T): GameActionResults<T> {
         const { processedActions, updatedState } = this.engine.run(action, state, game)
         return new GameActionResults(processedActions, updatedState as T)

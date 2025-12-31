@@ -6,6 +6,7 @@ import {
     GameAction,
     GameChat,
     GameChatMessage,
+    GameState,
     GameSyncStatus,
     GameValidator,
     User,
@@ -525,6 +526,14 @@ export class TabletopApi {
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .res()
+    }
+
+    async setGameState(state: GameState): Promise<void> {
+        await this.wretch
+            .post({ state }, '/admin/setGameState')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
     }
 
     getEventSource(path: string): EventSource {

@@ -1251,4 +1251,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             state: this.gameState.dehydrate()
         })
     }
+
+    async updateEffectForSuit(suit: Suit, effectType: EffectType) {
+        this.gameState.effects[suit].type = effectType
+        await this.setGameState(this.gameState.dehydrate())
+    }
 }

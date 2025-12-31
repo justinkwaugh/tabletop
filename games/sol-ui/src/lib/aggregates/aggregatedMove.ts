@@ -47,6 +47,7 @@ export function aggregateMoveActions(actions: (Fly | Launch | Hurl)[]): Aggregat
                 flownSet.add(sundiverId)
             }
             aggregated.momentumGained += action.metadata?.momentumGained ?? 0
+            aggregated.energyGained += action.metadata?.energyGained ?? 0
             for (const playerId of action.metadata?.paidPlayerIds ?? []) {
                 paidSet.add(playerId)
             }
@@ -56,6 +57,7 @@ export function aggregateMoveActions(actions: (Fly | Launch | Hurl)[]): Aggregat
         } else if (isHurl(action)) {
             aggregated.numHurled += action.sundiverIds.length
             aggregated.momentumGained += action.metadata?.momentumGained ?? 0
+            aggregated.energyGained += action.metadata?.energyGained ?? 0
             for (const playerId of action.metadata?.paidPlayerIds ?? []) {
                 paidSet.add(playerId)
             }

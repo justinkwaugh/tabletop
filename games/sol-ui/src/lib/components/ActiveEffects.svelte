@@ -34,9 +34,8 @@
             isOpen = true
             document.addEventListener('click', closeOnClickAnywhere)
             document.addEventListener('keydown', closeOnEscape)
-        } else {
-            close()
         }
+        console.log('clicked effect card')
     }
 
     function close() {
@@ -63,7 +62,7 @@
     class="stroke-[#5a5141] hover:stroke-[#ffffff]"
     transform={`translate(${location.x}, ${location.y})`}
 >
-    {#each effects as [suit, effect], index (effect)}
+    {#each effects as [suit, effect], index (suit)}
         <g
             use:animateEffectCard={{ animator, effect: effect.type }}
             onclick={handleCardClick}

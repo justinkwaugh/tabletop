@@ -350,6 +350,22 @@ export class GameService implements GameServiceInterface {
         return game
     }
 
+    async setGameState(game: Game, state: GameState): Promise<void> {
+        if (game.storage === GameStorage.Local) {
+            const gameData = await this.loadGame(game.id)
+            if (!gameData.game) {
+                throw new Error(`Local game not found for id ${game.id}`)
+            }
+            await this.saveGameLocally({
+                game: gameData.game,
+                state: structuredClone(state),
+                actions: gameData.actions
+            })
+        } else {
+            await this.api.setGameState(state)
+        }
+    }
+
     clear() {
         this.gamesById.clear()
     }

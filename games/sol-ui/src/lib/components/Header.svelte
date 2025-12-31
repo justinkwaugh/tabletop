@@ -11,9 +11,10 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import PlayerAid from '$lib/images/sol-player-aid.jpg'
     import { Popover } from 'flowbite-svelte'
+    import EffectsPicker from './pickers/EffectsPicker.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
-
+    let showEffectPicker = $state(false)
     let cardBackImage = `url(${CardBack})`
     function back() {
         gameSession.back()
@@ -130,6 +131,20 @@
             </div>
         {/if}
     </div>
+
+    {#if gameSession.isActingAdmin}
+        <button
+            onclick={() => {
+                showEffectPicker = true
+            }}
+            class="w-fit box-border flex items-center justify-center text-sm bg-transparent"
+        >
+            EFFECT PICKER
+        </button>
+        {#if showEffectPicker}
+            <EffectsPicker />
+        {/if}
+    {/if}
 
     <div class="flex flex-row items-center gap-x-2">
         <div class="header-grid grid">

@@ -85,7 +85,6 @@
     export function effectTypeToBackgroundImage(effectType: EffectType): string {
         return `url("${effectTypeToImage(effectType)}")`
     }
-
     let markerWidth = 27
 </script>
 
@@ -104,4 +103,3 @@
     <rect rx="10" ry="10" {width} {height} fill="transparent" stroke="#5a5141" stroke-width="2"
     ></rect>
 </g>
-<!-- <g transform="translate(95.5, 57.5)"><image xlink:href="/@fs/Users/justin.w/dev/tabletop/games/sol-ui/dist/images/suitMarkers/refraction.png" width="27" height="27"></image></g> -->
