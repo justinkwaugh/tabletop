@@ -29,11 +29,12 @@ import {
     getCirclePoint,
     getGatePosition,
     getMothershipSpotPoint,
+    getSpaceCentroid,
     offsetFromCenter,
     toRadians
 } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import { getFlightDuration, getFlightPathsWithGateCrossings } from '$lib/utils/flight.js'
+import { getFlightDuration, getFlightPaths, getFlightPathsWithGateCrossings } from '$lib/utils/flight.js'
 
 export class EnergyCubeAnimator extends StateAnimator<
     SolGameState,
@@ -72,7 +73,7 @@ export class EnergyCubeAnimator extends StateAnimator<
         } else if (isTribute(action)) {
             await this.animateTribute(action, animationContext.actionTimeline, to, from)
         } else if (isFly(action) || isHurl(action)) {
-            await this.animateGatePayments(action, animationContext.actionTimeline, to, from)
+            await this.animateFlyOrHurl(action, animationContext.actionTimeline, to, from)
         }
     }
 
@@ -314,7 +315,7 @@ export class EnergyCubeAnimator extends StateAnimator<
         )
     }
 
-    async animateGatePayments(
+    async animateFlyOrHurl(
         action: Fly | Hurl,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
@@ -324,57 +325,97 @@ export class EnergyCubeAnimator extends StateAnimator<
             return
         }
 
-        const paidPlayerIds = action.metadata?.paidPlayerIds ?? []
-        if (paidPlayerIds.length === 0 || action.gates.length === 0) {
-            return
+        type CubeMove = {
+            from: Point
+            to: Point
+            startTime: number
+            playerId: string
+            scheduleOverride: boolean
         }
 
-        const gateByPlayerId = new Map<string, (typeof action.gates)[number]>()
-        const gateLocations = new Map<number, Point>()
-        for (const gate of action.gates) {
-            if (!gateByPlayerId.has(gate.playerId)) {
-                gateByPlayerId.set(gate.playerId, gate)
-            }
-            if (gate.innerCoords && gate.outerCoords) {
-                const gateKey = fromState.board.gateKey(gate.innerCoords, gate.outerCoords)
-                if (!gateLocations.has(gateKey)) {
-                    const gatePosition = getGatePosition(
-                        this.gameSession.numPlayers,
-                        gate.innerCoords,
-                        gate.outerCoords
-                    )
-                    gateLocations.set(
-                        gateKey,
-                        getCirclePoint(gatePosition.radius, toRadians(gatePosition.angle))
-                    )
+        const cubeMoves: CubeMove[] = []
+        const moveDuration = 1
+        let maxEndTime = 0
+
+        const paidPlayerIds = action.metadata?.paidPlayerIds ?? []
+        if (paidPlayerIds.length > 0 && action.gates.length > 0) {
+            const gateByPlayerId = new Map<string, (typeof action.gates)[number]>()
+            const gateLocations = new Map<number, Point>()
+            for (const gate of action.gates) {
+                if (!gateByPlayerId.has(gate.playerId)) {
+                    gateByPlayerId.set(gate.playerId, gate)
+                }
+                if (gate.innerCoords && gate.outerCoords) {
+                    const gateKey = fromState.board.gateKey(gate.innerCoords, gate.outerCoords)
+                    if (!gateLocations.has(gateKey)) {
+                        const gatePosition = getGatePosition(
+                            this.gameSession.numPlayers,
+                            gate.innerCoords,
+                            gate.outerCoords
+                        )
+                        gateLocations.set(
+                            gateKey,
+                            getCirclePoint(gatePosition.radius, toRadians(gatePosition.angle))
+                        )
+                    }
                 }
             }
+
+            const gateCrossingTimes = this.getGateCrossingTimes(
+                action,
+                toState,
+                fromState,
+                gateLocations
+            )
+            for (const playerId of paidPlayerIds) {
+                const gate = gateByPlayerId.get(playerId)
+                if (!gate?.innerCoords || !gate?.outerCoords) {
+                    continue
+                }
+
+                const gateKey = fromState.board.gateKey(gate.innerCoords, gate.outerCoords)
+                const gatePosition = getGatePosition(
+                    this.gameSession.numPlayers,
+                    gate.innerCoords,
+                    gate.outerCoords
+                )
+                const gateLocation = getCirclePoint(
+                    gatePosition.radius,
+                    toRadians(gatePosition.angle)
+                )
+                const mothershipLocation = this.getMothershipLocationForPlayer(fromState, playerId)
+                const startTime = gateCrossingTimes.get(gateKey) ?? 0
+
+                cubeMoves.push({
+                    from: gateLocation,
+                    to: mothershipLocation,
+                    startTime,
+                    playerId,
+                    scheduleOverride: true
+                })
+            }
         }
 
-        const gateCrossingTimes = this.getGateCrossingTimes(
-            action,
-            toState,
-            fromState,
-            gateLocations
-        )
-        const cubeMoves: { from: Point; to: Point; startTime: number; playerId: string }[] = []
-        for (const playerId of paidPlayerIds) {
-            const gate = gateByPlayerId.get(playerId)
-            if (!gate?.innerCoords || !gate?.outerCoords) {
-                continue
-            }
-
-            const gateKey = fromState.board.gateKey(gate.innerCoords, gate.outerCoords)
-            const gatePosition = getGatePosition(
-                this.gameSession.numPlayers,
-                gate.innerCoords,
-                gate.outerCoords
+        const energyGained = action.metadata?.energyGained ?? 0
+        let energyEndTime: number | undefined
+        if (energyGained > 0) {
+            const startLocation = this.getFlyOrHurlEndLocation(action, toState)
+            const mothershipLocation = this.getMothershipLocationForPlayer(
+                fromState,
+                action.playerId
             )
-            const gateLocation = getCirclePoint(gatePosition.radius, toRadians(gatePosition.angle))
-            const mothershipLocation = this.getMothershipLocationForPlayer(fromState, playerId)
-            const startTime = gateCrossingTimes.get(gateKey) ?? 0
-
-            cubeMoves.push({ from: gateLocation, to: mothershipLocation, startTime, playerId })
+            const startTime = this.getFlyOrHurlArrivalTime(action, toState, fromState)
+            const delayBetween = 0.2
+            for (let i = 0; i < energyGained; i++) {
+                cubeMoves.push({
+                    from: startLocation,
+                    to: mothershipLocation,
+                    startTime: startTime + delayBetween * i,
+                    playerId: action.playerId,
+                    scheduleOverride: false
+                })
+            }
+            energyEndTime = startTime + moveDuration + delayBetween * (energyGained - 1)
         }
 
         if (cubeMoves.length === 0) {
@@ -384,10 +425,7 @@ export class EnergyCubeAnimator extends StateAnimator<
         this.gameSession.movingCubeIds = range(0, cubeMoves.length).map(() => nanoid())
         await tick()
 
-        const moveDuration = 1
-
         const cubeElements = Array.from(this.cubes.values())
-        let maxEndTime = 0
         for (let i = 0; i < cubeMoves.length; i++) {
             const cube = cubeElements[i]
             if (!cube) {
@@ -415,9 +453,18 @@ export class EnergyCubeAnimator extends StateAnimator<
             })
 
             const endTime = moveTarget.startTime + moveDuration
-            this.scheduleEnergyOverride(moveTarget.playerId, toState, timeline, endTime)
+            if (moveTarget.scheduleOverride) {
+                this.scheduleEnergyOverride(moveTarget.playerId, toState, timeline, endTime)
+            }
             if (endTime > maxEndTime) {
                 maxEndTime = endTime
+            }
+        }
+
+        if (energyEndTime !== undefined) {
+            this.scheduleEnergyOverride(action.playerId, toState, timeline, energyEndTime)
+            if (energyEndTime > maxEndTime) {
+                maxEndTime = energyEndTime
             }
         }
 
@@ -428,6 +475,47 @@ export class EnergyCubeAnimator extends StateAnimator<
             [],
             maxEndTime
         )
+    }
+
+    private getFlyOrHurlArrivalTime(
+        action: Fly | Hurl,
+        toState: HydratedSolGameState,
+        fromState: HydratedSolGameState
+    ): number {
+        const flightPathCoords = action.metadata?.flightPath
+        if (!flightPathCoords || flightPathCoords.length < 2) {
+            return 0
+        }
+
+        const flightPaths = getFlightPaths({
+            action,
+            gameSession: this.gameSession,
+            playerId: action.playerId,
+            pathCoords: flightPathCoords,
+            toState,
+            fromState
+        })
+        if (flightPaths.length === 0) {
+            return 0
+        }
+
+        let totalDuration = 0
+        for (const flightLeg of flightPaths) {
+            totalDuration += getFlightDuration(action, flightLeg.length)
+        }
+
+        const delayBetween = 0.3
+        const maxIndex = Math.max(0, action.sundiverIds.length - 1)
+        return totalDuration + maxIndex * delayBetween * flightPaths.length
+    }
+
+    private getFlyOrHurlEndLocation(action: Fly | Hurl, toState: HydratedSolGameState): Point {
+        const destinationCell = toState.board.cellAt(action.destination)
+        const location = action.stationId
+            ? this.gameSession.locationForStationInCell(destinationCell)
+            : this.gameSession.locationForDiverInCell(action.playerId, destinationCell)
+
+        return location ?? getSpaceCentroid(this.gameSession.numPlayers, action.destination)
     }
 
     private getGateCrossingTimes(
