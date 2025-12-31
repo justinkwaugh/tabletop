@@ -95,7 +95,7 @@ export class CardPickerAnimator extends StateAnimator<
             this.tweensPerCard.clear()
         }
 
-        if (to.machineState === MachineState.ChoosingCard) {
+        if (action && to.machineState === MachineState.ChoosingCard) {
             // console.log('CardPickerAnimator: Going to ChoosingCard state')
             const currentPlayerId = to.turnManager.currentTurn()?.playerId
             if (!currentPlayerId) {
