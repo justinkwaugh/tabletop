@@ -170,7 +170,7 @@
                 onclick={async () => await gameSession.history.playHistory()}
                 class={gameSession.history.playing ? 'hidden' : ''}
                 ><svg
-                    class="w-[25px] h-[25px] {gameSession.actions.length === 0 ||
+                    class="w-[25px] h-[25px] {!gameSession.history.hasNextAction ||
                     gameSession.history.isDisabled()
                         ? disabledColor
                         : enabledColor}"

@@ -94,7 +94,9 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         if (this.playOnEnable) {
             this.playOnEnable = false
             this.stepForward({ stopPlayback: false })
-            this.schedulePlayTimer()
+            if (this.playing) {
+                this.schedulePlayTimer()
+            }
         }
     }
 
