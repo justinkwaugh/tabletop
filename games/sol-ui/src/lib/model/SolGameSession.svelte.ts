@@ -503,7 +503,11 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                     chosenGates,
                     catapult
                 )
-                // console.log('choice data', choiceData)
+                // always prefer direct paths
+                if (choiceData.direct) {
+                    break
+                }
+
                 if (choiceData.gates.length > 1) {
                     this.gateChoices = choiceData.gates.map((gate) =>
                         this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
@@ -511,19 +515,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                     // console.log('gate choices', this.gateChoices)
                     return
                 } else if (choiceData.gates.length === 1) {
-                    if (choiceData.direct) {
-                        break
+                    if (!this.chosenGates) {
+                        this.chosenGates = []
                     }
-                    if (!choiceData.direct) {
-                        if (!this.chosenGates) {
-                            this.chosenGates = []
-                        }
-                        const gate = choiceData.gates[0]
-                        this.chosenGates.push(
-                            this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
-                        )
-                        chosenGates.push(gate)
-                    }
+                    const gate = choiceData.gates[0]
+                    this.chosenGates.push(
+                        this.gameState.board.gateKey(gate.outerCoords!, gate.innerCoords!)
+                    )
+                    chosenGates.push(gate)
                 } else {
                     break
                 }
