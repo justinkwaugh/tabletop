@@ -5,6 +5,7 @@ import {
     DrawCards,
     Fly,
     HydratedSolGameState,
+    isSolarFlare,
     isActivate,
     isActivateBonus,
     isActivateEffect,
@@ -12,7 +13,9 @@ import {
     isFly,
     isHurl,
     StationType,
+    SolarFlare,
     Hurl,
+    CENTER_COORDS,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
@@ -67,6 +70,8 @@ export class MomentumAnimator extends StateAnimator<
             await this.animateDrawCards(action, animationContext.actionTimeline, from)
         } else if (isFly(action) || isHurl(action)) {
             await this.animateFlyOrHurl(action, animationContext.actionTimeline, to, from)
+        } else if (isSolarFlare(action)) {
+            await this.animateSolarFlare(action, animationContext.actionTimeline, from)
         }
     }
 
@@ -172,6 +177,30 @@ export class MomentumAnimator extends StateAnimator<
             action.playerId,
             numMomentum,
             stationLocation,
+            timeline,
+            fromState
+        )
+    }
+
+    async animateSolarFlare(
+        action: SolarFlare,
+        timeline: gsap.core.Timeline,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState) {
+            return
+        }
+
+        const hurlBonusPlayerId = action.metadata?.hurlBonus
+        if (!hurlBonusPlayerId) {
+            return
+        }
+
+        const startLocation = getSpaceCentroid(this.gameSession.numPlayers, CENTER_COORDS)
+        await this.animateMomentumFromLocation(
+            hurlBonusPlayerId,
+            1,
+            startLocation,
             timeline,
             fromState
         )
