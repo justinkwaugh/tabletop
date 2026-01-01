@@ -34,7 +34,11 @@ import {
     toRadians
 } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import { getFlightDuration, getFlightPaths, getFlightPathsWithGateCrossings } from '$lib/utils/flight.js'
+import {
+    getFlyOrHurlArrivalTime,
+    getFlyOrHurlEndLocation,
+    getGateCrossingTimes
+} from '$lib/utils/animationsUtils.js'
 
 export class MomentumAnimator extends StateAnimator<
     SolGameState,
@@ -249,12 +253,13 @@ export class MomentumAnimator extends StateAnimator<
                 }
             }
 
-            const gateCrossingTimes = this.getGateCrossingTimes(
+            const gateCrossingTimes = getGateCrossingTimes({
                 action,
                 toState,
                 fromState,
-                gateLocations
-            )
+                gateLocations,
+                gameSession: this.gameSession
+            })
 
             let remainingPassage = passageCount
             for (const gate of action.gates) {
@@ -276,8 +281,17 @@ export class MomentumAnimator extends StateAnimator<
         }
 
         if (remainingMomentum > 0) {
-            const startLocation = this.getFlyOrHurlEndLocation(action, toState)
-            const startTime = this.getFlyOrHurlArrivalTime(action, toState, fromState)
+            const startLocation = getFlyOrHurlEndLocation({
+                action,
+                toState,
+                gameSession: this.gameSession
+            })
+            const startTime = getFlyOrHurlArrivalTime({
+                action,
+                toState,
+                fromState,
+                gameSession: this.gameSession
+            })
             const delayBetween = 0.2
             for (let i = 0; i < remainingMomentum; i++) {
                 momentumMoves.push({
@@ -437,155 +451,6 @@ export class MomentumAnimator extends StateAnimator<
         }
     }
 
-    private getFlyOrHurlArrivalTime(
-        action: Fly | Hurl,
-        toState: HydratedSolGameState,
-        fromState: HydratedSolGameState
-    ): number {
-        const flightPathCoords = action.metadata?.flightPath
-        if (!flightPathCoords || flightPathCoords.length < 2) {
-            return 0
-        }
-
-        const flightPaths = getFlightPaths({
-            action,
-            gameSession: this.gameSession,
-            playerId: action.playerId,
-            pathCoords: flightPathCoords,
-            toState,
-            fromState
-        })
-        if (flightPaths.length === 0) {
-            return 0
-        }
-
-        let totalDuration = 0
-        for (const flightLeg of flightPaths) {
-            totalDuration += getFlightDuration(action, flightLeg.length)
-        }
-
-        const delayBetween = 0.3
-        const maxIndex = Math.max(0, action.sundiverIds.length - 1)
-        return totalDuration + maxIndex * delayBetween * flightPaths.length
-    }
-
-    private getFlyOrHurlEndLocation(action: Fly | Hurl, toState: HydratedSolGameState): Point {
-        const destinationCell = toState.board.cellAt(action.destination)
-        const location = action.stationId
-            ? this.gameSession.locationForStationInCell(destinationCell)
-            : this.gameSession.locationForDiverInCell(action.playerId, destinationCell)
-
-        return location ?? getSpaceCentroid(this.gameSession.numPlayers, action.destination)
-    }
-
-    private getGateCrossingTimes(
-        action: Fly | Hurl,
-        toState: HydratedSolGameState,
-        fromState: HydratedSolGameState,
-        gateLocations: Map<number, Point>
-    ): Map<number, number> {
-        const flightPathCoords = action.metadata?.flightPath
-        if (!flightPathCoords || flightPathCoords.length < 2) {
-            return new Map()
-        }
-
-        const flightPaths = getFlightPathsWithGateCrossings({
-            action,
-            gameSession: this.gameSession,
-            playerId: action.playerId,
-            pathCoords: flightPathCoords,
-            toState,
-            fromState
-        })
-        if (flightPaths.length === 0) {
-            return new Map()
-        }
-
-        const gateTimes = new Map<number, number>()
-        let legStart = 0
-
-        const easeName = action.teleport ? 'power2.inOut' : 'power1.inOut'
-        const ease = gsap.parseEase(easeName) as (t: number) => number
-
-        for (const { points, gateCrossings } of flightPaths) {
-            const legDuration = getFlightDuration(action, points.length)
-            if (points.length < 2) {
-                legStart += legDuration
-                continue
-            }
-
-            const segmentLengths: number[] = []
-            const cumulativeLengths: number[] = [0]
-            for (let i = 0; i < points.length - 1; i++) {
-                const length = this.getDistance(points[i], points[i + 1])
-                segmentLengths.push(length)
-                cumulativeLengths.push(cumulativeLengths[i] + length)
-            }
-
-            const totalLength = cumulativeLengths.at(-1) ?? 0
-            if (totalLength <= 0) {
-                legStart += legDuration
-                continue
-            }
-
-            for (const [gateKey, index] of gateCrossings) {
-                if (gateTimes.has(gateKey)) {
-                    continue
-                }
-                const gateLocation = gateLocations.get(gateKey)
-                if (!gateLocation) {
-                    continue
-                }
-                if (index < 0 || index >= points.length - 1) {
-                    continue
-                }
-
-                const startPoint = points[index]
-                const segmentLength = segmentLengths[index]
-                const distanceToGate =
-                    segmentLength > 0
-                        ? Math.min(
-                              segmentLength,
-                              Math.max(0, this.getDistance(startPoint, gateLocation))
-                          )
-                        : 0
-                const distanceAlongPath = cumulativeLengths[index] + distanceToGate
-                const progress = distanceAlongPath / totalLength
-                const timeFraction = this.invertEase(ease, progress)
-                gateTimes.set(gateKey, legStart + legDuration * timeFraction)
-            }
-
-            legStart += legDuration
-        }
-
-        return gateTimes
-    }
-
-    private invertEase(ease: (t: number) => number, progress: number): number {
-        if (progress <= 0) {
-            return 0
-        }
-        if (progress >= 1) {
-            return 1
-        }
-        let low = 0
-        let high = 1
-        for (let i = 0; i < 20; i++) {
-            const mid = (low + high) / 2
-            if (ease(mid) < progress) {
-                low = mid
-            } else {
-                high = mid
-            }
-        }
-        return (low + high) / 2
-    }
-
-    private getDistance(a: Point, b: Point): number {
-        const dx = a.x - b.x
-        const dy = a.y - b.y
-        return Math.sqrt(dx * dx + dy * dy)
-    }
 }
 
 export function animateMomentum(
