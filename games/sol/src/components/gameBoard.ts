@@ -426,6 +426,10 @@ export class HydratedSolGameBoard
         if (innerOuter.includes(start.row) && innerOuter.includes(end.row)) {
             return false
         }
+        const coreCenter = [Ring.Core, Ring.Center]
+        if (coreCenter.includes(start.row) && coreCenter.includes(end.row)) {
+            return false
+        }
         return true
     }
 

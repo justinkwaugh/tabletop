@@ -521,12 +521,14 @@
 {/snippet}
 
 {#each gameSession.game.players as player (player.id)}
-    <Sundiver
-        location={gameSession.locationForDiverInCell(player.id, cell) ?? { x: 0, y: 0 }}
-        color={gameSession.colors.getPlayerColor(player.id)}
-        quantity={numSundiversByPlayer.get(player.id)}
-        animator={animatorPerPlayer.get(player.id)}
-    />
+    <g class="pointer-events-none">
+        <Sundiver
+            location={gameSession.locationForDiverInCell(player.id, cell) ?? { x: 0, y: 0 }}
+            color={gameSession.colors.getPlayerColor(player.id)}
+            quantity={numSundiversByPlayer.get(player.id)}
+            animator={animatorPerPlayer.get(player.id)}
+        />
+    </g>
 {/each}
 
 {#if station}
