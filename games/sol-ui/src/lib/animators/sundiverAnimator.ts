@@ -795,11 +795,31 @@ export class SundiverAnimator extends StateAnimator<
             fromState,
             action.targetPlayerId
         )
+        if (!actionMothership || !targetMothership) {
+            return
+        }
+
+        const reserveCount = reserveIds.length
+        const radius = 100
+        const count = Math.max(1, reserveCount)
+        const angleStep = 360 / count
+        const dropAngles = reserveIds.map((_, index) => -90 + angleStep * index)
+        const dropPoints = dropAngles.map((angle) => ({
+            x: targetMothership.x + radius * Math.cos(toRadians(angle)),
+            y: targetMothership.y + radius * Math.sin(toRadians(angle))
+        }))
+        const approachDuration = 0.4
+        const orbitDuration = 0.3
+        const returnDuration = 0.5
+        const dropTimes = dropAngles.map((_, index) => approachDuration + orbitDuration * index)
+        const returnStart =
+            dropPoints.length > 0 ? approachDuration + orbitDuration * (dropPoints.length - 1) : 0
+        const activatingArrivalTime = returnStart + returnDuration
 
         if (isActivating) {
             const startCell = fromState.board.cellAt(action.coords)
             const diverLocation = this.gameSession.locationForDiverInCell(action.playerId, startCell)
-            if (!diverLocation || !actionMothership) {
+            if (!diverLocation) {
                 return
             }
 
@@ -809,14 +829,48 @@ export class SundiverAnimator extends StateAnimator<
                 y: offsetFromCenter(diverLocation).y
             })
 
-            const moveDuration = 0.5
+            if (dropPoints.length > 0) {
+                move({
+                    object: this.element,
+                    location: offsetFromCenter(dropPoints[0]),
+                    duration: approachDuration,
+                    ease: 'power2.inOut',
+                    timeline,
+                    position: 0
+                })
+
+                const arcSteps = 4
+                for (let i = 1; i < dropPoints.length; i++) {
+                    const startAngle = dropAngles[i - 1]
+                    const endAngle = dropAngles[i]
+                    const arcPoints: Point[] = []
+                    for (let step = 0; step <= arcSteps; step++) {
+                        const t = step / arcSteps
+                        const angle = startAngle + (endAngle - startAngle) * t
+                        arcPoints.push({
+                            x: targetMothership.x + radius * Math.cos(toRadians(angle)),
+                            y: targetMothership.y + radius * Math.sin(toRadians(angle))
+                        })
+                    }
+                    path({
+                        object: this.element,
+                        path: arcPoints.map((point) => offsetFromCenter(point)),
+                        curviness: 1,
+                        duration: orbitDuration,
+                        ease: 'power1.inOut',
+                        timeline,
+                        position: approachDuration + orbitDuration * (i - 1)
+                    })
+                }
+            }
+
             move({
                 object: this.element,
                 location: offsetFromCenter(actionMothership),
-                duration: moveDuration,
+                duration: returnDuration,
                 ease: 'power2.in',
                 timeline,
-                position: 0
+                position: returnStart
             })
 
             fadeOut({
@@ -826,26 +880,29 @@ export class SundiverAnimator extends StateAnimator<
                 position: '>'
             })
 
-            this.scheduleHoldOffset(action.playerId, action.playerId, 1, fromState, timeline, 0.5)
+            this.scheduleHoldOffset(
+                action.playerId,
+                action.playerId,
+                1,
+                fromState,
+                timeline,
+                activatingArrivalTime
+            )
         }
 
         if (isReserveDiver) {
-            if (!targetMothership) {
-                return
-            }
-            const radius = 100
-            const count = Math.max(1, reserveIds.length)
-            const angle = -90 + (360 / count) * reserveIndex
-            const startLocation = {
-                x: targetMothership.x + radius * Math.cos(toRadians(angle)),
-                y: targetMothership.y + radius * Math.sin(toRadians(angle))
-            }
+            const startLocation =
+                dropPoints[reserveIndex] ??
+                ({
+                    x: targetMothership.x + radius * Math.cos(toRadians(dropAngles[reserveIndex])),
+                    y: targetMothership.y + radius * Math.sin(toRadians(dropAngles[reserveIndex]))
+                } as Point)
 
             const fadeDuration = 0.1
             const popDuration = 0.2
             const spiralDelay = 0.5
             const spiralDuration = 0.5
-            const startTime = 0
+            const startTime = dropTimes[reserveIndex] ?? 0
 
             gsap.set(this.element!, {
                 opacity: 0,
@@ -891,7 +948,7 @@ export class SundiverAnimator extends StateAnimator<
             )
 
             const spiralPoints: Point[] = []
-            const startAngle = -90 + (360 / count) * reserveIndex
+            const startAngle = dropAngles[reserveIndex]
             const endAngle = startAngle + 120
             const segments = 6
             for (let step = 0; step <= segments; step++) {
