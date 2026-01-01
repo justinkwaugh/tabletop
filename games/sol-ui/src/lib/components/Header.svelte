@@ -118,7 +118,8 @@
                     <Card card={{ id: 'header-flare', suit: Suit.Flare }} />
                 </div>
                 <div>
-                    SOLAR FLARE {currentSolarFlare} OF {gameSession.gameState.solarFlares}
+                    SOLAR FLARE {#if gameSession.gameState.solarFlares > 1}{currentSolarFlare}&nbsp;OF&nbsp;{gameSession
+                            .gameState.solarFlares}{/if}
                 </div>
             </div>
         {:else}

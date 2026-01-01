@@ -34,6 +34,8 @@
             isOpen = true
             document.addEventListener('click', closeOnClickAnywhere)
             document.addEventListener('keydown', closeOnEscape)
+        } else {
+            close()
         }
         console.log('clicked effect card')
     }
