@@ -515,7 +515,13 @@ export class SundiverAnimator extends StateAnimator<
                 )
             } else {
                 const sundiverCount = convert.sundiverIds.length
-                this.scheduleReserveOffset(convert.playerId, sundiverCount, fromState, timeline, 0.5)
+                this.scheduleReserveOffset(
+                    convert.playerId,
+                    sundiverCount,
+                    fromState,
+                    timeline,
+                    0.5
+                )
             }
         }
 
@@ -578,7 +584,6 @@ export class SundiverAnimator extends StateAnimator<
                     timeline,
                     position: '>' + (index > 0 ? '+' + index * 0.2 : '')
                 })
-                return
             }
         }
 
@@ -772,10 +777,7 @@ export class SundiverAnimator extends StateAnimator<
         const createdCount = createdSundiverIds.length
         const index = createdSundiverIds.indexOf(this.id)
         const returnTime = holdDelta > createdCount ? 0.5 : 0
-        const scheduleTime = Math.max(
-            this.getCreatedSundiverArrivalTime(createdCount),
-            returnTime
-        )
+        const scheduleTime = Math.max(this.getCreatedSundiverArrivalTime(createdCount), returnTime)
         const shouldSchedule = createdCount === 0 || index === createdCount - 1
 
         if (fromState && shouldSchedule) {
@@ -787,13 +789,7 @@ export class SundiverAnimator extends StateAnimator<
                 timeline,
                 scheduleTime
             )
-            this.scheduleReserveOffset(
-                playerId,
-                reserveDelta,
-                fromState,
-                timeline,
-                scheduleTime
-            )
+            this.scheduleReserveOffset(playerId, reserveDelta, fromState, timeline, scheduleTime)
         }
 
         if (index === undefined || index < 0) {

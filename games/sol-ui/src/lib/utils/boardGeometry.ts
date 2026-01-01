@@ -3,6 +3,8 @@ import { CENTER_COORDS, Ring } from '@tabletop/sol'
 
 export const CENTER_POINT = { x: 640, y: 640 }
 export const CENTER_TRANSLATION = `translate(${CENTER_POINT.x}, ${CENTER_POINT.y})`
+export const DECK_LOCATION = { x: 80, y: 10 }
+export const DECK_SIZE = { width: 100, height: 142 }
 
 export const ONE_TO_FOUR_PLAYER_ANGLES: Record<number, number[]> = {
     [Ring.Center]: [0],
@@ -135,6 +137,13 @@ export function offsetFromCenter(point?: Point) {
     return {
         x: CENTER_POINT.x + point.x,
         y: CENTER_POINT.y + point.y
+    }
+}
+
+export function getDeckCenterPoint(): Point {
+    return {
+        x: DECK_LOCATION.x + DECK_SIZE.width / 2 - CENTER_POINT.x,
+        y: DECK_LOCATION.y + DECK_SIZE.height / 2 - CENTER_POINT.y
     }
 }
 

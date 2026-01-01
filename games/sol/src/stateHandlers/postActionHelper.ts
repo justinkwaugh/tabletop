@@ -30,6 +30,9 @@ export function drawCardsOrEndTurn(
         }
         return DrawingCardsStateHandler.handleDrawnCards(state, context, currentPlayerId)
     } else if (state.cardsToDraw && state.cardsToDraw > 0) {
+        if (state.playerHasCardForEffect(playerState.playerId, EffectType.Pillar)) {
+            return MachineState.CheckEffect
+        }
         return MachineState.DrawingCards
     } else {
         state.turnManager.endTurn(state.actionCount)

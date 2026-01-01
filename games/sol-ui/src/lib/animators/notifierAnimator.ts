@@ -57,9 +57,7 @@ export class NotifierAnimator extends StateAnimator<
         } else if (isTribute(action)) {
             this.animateTribute(action, animationContext)
         } else if (isDrawCards(action)) {
-            if (from?.activeEffect === EffectType.Squeeze) {
-                this.animateDrawCards(action, animationContext)
-            }
+            this.animateDrawCards(action, animationContext, from)
         } else if (isMetamorphosize(action)) {
             this.animateMetamorphisis(action, animationContext)
         }
@@ -103,26 +101,42 @@ export class NotifierAnimator extends StateAnimator<
         animationContext.ensureDuration(1.5)
     }
 
-    animateDrawCards(action: DrawCards, animationContext: AnimationContext) {
-        const message = action.metadata?.removedStation
-            ? `SYSTEM MALFUNCTION! YOUR STATION WAS DESTROYED`
-            : `SAFE! YOUR STATION SURVIVED THE SQUEEZE`
-        animationContext.actionTimeline.call(
-            () => {
-                this.gameSession.forcedCallToAction = message
-            },
-            [],
-            0.5
-        )
-        if (!action.metadata?.removedStation) {
+    animateDrawCards(action: DrawCards, animationContext: AnimationContext, from?: SolGameState) {
+        if (from?.activeEffect === EffectType.Squeeze) {
+            const message = action.metadata?.removedStation
+                ? `SYSTEM MALFUNCTION! YOUR STATION WAS DESTROYED`
+                : `SAFE! YOUR STATION SURVIVED THE SQUEEZE`
             animationContext.actionTimeline.call(
                 () => {
-                    this.animateActivate(action, animationContext)
+                    this.gameSession.forcedCallToAction = message
                 },
                 [],
-                2.5
+                0.5
             )
-            animationContext.ensureDuration(4)
+            if (!action.metadata?.removedStation) {
+                animationContext.actionTimeline.call(
+                    () => {
+                        this.animateActivate(action, animationContext)
+                    },
+                    [],
+                    2.5
+                )
+                animationContext.ensureDuration(4)
+            }
+        } else if (from?.activeEffect === EffectType.Pillar) {
+            const momentumGained = action.metadata?.momentumAdded ?? 0
+            const message =
+                momentumGained > 0
+                    ? `GREAT GUESS! ${momentumGained} MOMENTUM GAINED`
+                    : `SORRY! NO MOMENTUM GAINED`
+            animationContext.actionTimeline.call(
+                () => {
+                    this.gameSession.forcedCallToAction = message
+                },
+                [],
+                0.5
+            )
+            animationContext.ensureDuration(3)
         }
     }
 

@@ -66,6 +66,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                         )
                     } else if (effect === EffectType.Squeeze) {
                         return ActivatingStateHandler.handleActivation(gameState, context)
+                    } else if (effect === EffectType.Pillar) {
+                        return MachineState.DrawingCards
                     }
                 }
                 return drawCardsOrEndTurn(gameState, context)
@@ -102,6 +104,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     }
                 } else if (gameState.activeEffect === EffectType.Chain) {
                     return MachineState.Chaining
+                } else if (gameState.activeEffect === EffectType.Pillar) {
+                    return MachineState.DrawingCards
                 }
             }
             default: {

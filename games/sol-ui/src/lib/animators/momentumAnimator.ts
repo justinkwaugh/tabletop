@@ -27,6 +27,7 @@ import { move, scale } from '$lib/utils/animations.js'
 import { nanoid } from 'nanoid'
 import {
     getCirclePoint,
+    getDeckCenterPoint,
     getGatePosition,
     getMothershipSpotPoint,
     getSpaceCentroid,
@@ -157,7 +158,7 @@ export class MomentumAnimator extends StateAnimator<
         timeline: gsap.core.Timeline,
         fromState?: HydratedSolGameState
     ) {
-        if (!fromState || !action.metadata?.coords) {
+        if (!fromState) {
             return
         }
 
@@ -166,21 +167,11 @@ export class MomentumAnimator extends StateAnimator<
             return
         }
 
-        const stationCell = fromState.board.cellAt(action.metadata.coords)
-        const station = stationCell.station
-        if (!station || station.type !== StationType.TransmitTower) {
-            return
-        }
-
-        const stationLocation = this.gameSession.locationForStationInCell(stationCell)
-        if (!stationLocation) {
-            return
-        }
-
+        const deckLocation = getDeckCenterPoint()
         await this.animateMomentumFromLocation(
             action.playerId,
             numMomentum,
-            stationLocation,
+            deckLocation,
             timeline,
             fromState
         )

@@ -385,7 +385,11 @@ export class HydratedActivateEffect
     }
 
     static canActivatePillar(state: HydratedSolGameState, playerId: string): boolean {
-        return state.machineState === MachineState.DrawingCards && state.cardsToDraw > 0
+        return (
+            (state.machineState === MachineState.DrawingCards ||
+                state.machineState === MachineState.CheckEffect) &&
+            state.cardsToDraw > 0
+        )
     }
 
     static canActivateInvade(state: HydratedSolGameState, playerId: string): boolean {
