@@ -1,6 +1,7 @@
 import {
     Activate,
     ActivateEffect,
+    Blight,
     CENTER_COORDS,
     Convert,
     EffectType,
@@ -10,6 +11,7 @@ import {
     HydratedSolGameState,
     isActivate,
     isActivateEffect,
+    isBlight,
     isConvert,
     isFly,
     isHatch,
@@ -191,6 +193,8 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateActivateEffectAction(action, timeline, toState, fromState)
         } else if (isSacrifice(action)) {
             this.animateSacrificeAction(action, timeline)
+        } else if (isBlight(action)) {
+            this.animateBlightAction(action, timeline, toState)
         }
     }
 
@@ -212,6 +216,8 @@ export class CellSundiverAnimator extends StateAnimator<
             }
         } else if (isActivate(action)) {
             return action.playerId !== this.playerId && sameCoordinates(action.coords, this.coords)
+        } else if (isBlight(action)) {
+            return action.playerId === this.playerId && sameCoordinates(action.coords, this.coords)
         }
 
         return false
@@ -688,5 +694,28 @@ export class CellSundiverAnimator extends StateAnimator<
                 position: 0
             })
         }
+    }
+
+    animateBlightAction(
+        action: Blight,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState
+    ) {
+        if (this.playerId !== action.playerId || !sameCoordinates(action.coords, this.coords)) {
+            return
+        }
+
+        const numAfter = toState.board.sundiversForPlayerAt(action.playerId, this.coords).length
+        if (numAfter > 0) {
+            this.quantityCallback?.(numAfter)
+            return
+        }
+
+        fadeOut({
+            object: this.element!,
+            duration: 0,
+            timeline,
+            position: 0
+        })
     }
 }

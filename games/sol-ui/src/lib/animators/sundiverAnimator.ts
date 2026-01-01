@@ -2,6 +2,7 @@ import {
     Activate,
     ActivateBonus,
     ActivateEffect,
+    Blight,
     CENTER_COORDS,
     Convert,
     DrawCards,
@@ -13,6 +14,7 @@ import {
     isActivate,
     isActivateBonus,
     isActivateEffect,
+    isBlight,
     isConvert,
     isDrawCards,
     isHatch,
@@ -255,6 +257,8 @@ export class SundiverAnimator extends StateAnimator<
             this.animateDrawCardsAction(action, timeline, toState, fromState)
         } else if (isHatch(action)) {
             this.animateHatchAction(action, timeline, toState, fromState)
+        } else if (isBlight(action)) {
+            this.animateBlightAction(action, timeline, toState, fromState)
         }
     }
 
@@ -762,6 +766,180 @@ export class SundiverAnimator extends StateAnimator<
             createdCount,
             -createdCount
         )
+    }
+
+    animateBlightAction(
+        action: Blight,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !action.metadata?.sundiverId) {
+            return
+        }
+
+        const activatingId = action.metadata.sundiverId
+        const reserveDivers = fromState.getPlayerState(action.playerId).reserveSundivers
+        const reserveIds = reserveDivers.slice(0, 3).map((diver) => diver.id)
+
+        const isActivating = this.id === activatingId
+        const reserveIndex = reserveIds.indexOf(this.id)
+        const isReserveDiver = reserveIndex >= 0
+
+        if (!isActivating && !isReserveDiver) {
+            return
+        }
+
+        const actionMothership = this.getMothershipLocationForPlayer(fromState, action.playerId)
+        const targetMothership = this.getMothershipLocationForPlayer(
+            fromState,
+            action.targetPlayerId
+        )
+
+        if (isActivating) {
+            const startCell = fromState.board.cellAt(action.coords)
+            const diverLocation = this.gameSession.locationForDiverInCell(action.playerId, startCell)
+            if (!diverLocation || !actionMothership) {
+                return
+            }
+
+            gsap.set(this.element!, {
+                opacity: 1,
+                x: offsetFromCenter(diverLocation).x,
+                y: offsetFromCenter(diverLocation).y
+            })
+
+            const moveDuration = 0.5
+            move({
+                object: this.element,
+                location: offsetFromCenter(actionMothership),
+                duration: moveDuration,
+                ease: 'power2.in',
+                timeline,
+                position: 0
+            })
+
+            fadeOut({
+                object: this.element!,
+                duration: 0.1,
+                timeline,
+                position: '>'
+            })
+
+            this.scheduleHoldOffset(action.playerId, action.playerId, 1, fromState, timeline, 0.5)
+        }
+
+        if (isReserveDiver) {
+            if (!targetMothership) {
+                return
+            }
+            const radius = 100
+            const count = Math.max(1, reserveIds.length)
+            const angle = -90 + (360 / count) * reserveIndex
+            const startLocation = {
+                x: targetMothership.x + radius * Math.cos(toRadians(angle)),
+                y: targetMothership.y + radius * Math.sin(toRadians(angle))
+            }
+
+            const fadeDuration = 0.1
+            const popDuration = 0.2
+            const spiralDelay = 0.5
+            const spiralDuration = 0.5
+            const startTime = 0
+
+            gsap.set(this.element!, {
+                opacity: 0,
+                scale: 0,
+                transformOrigin: '50% 50%',
+                x: offsetFromCenter(startLocation).x,
+                y: offsetFromCenter(startLocation).y
+            })
+
+            fadeIn({
+                object: this.element,
+                duration: fadeDuration,
+                timeline,
+                position: startTime
+            })
+
+            scale({
+                object: this.element,
+                to: 1.5,
+                duration: popDuration,
+                ease: 'back.out(2)',
+                timeline,
+                position: startTime
+            })
+
+            scale({
+                object: this.element,
+                to: 1,
+                duration: 0.2,
+                ease: 'power2.out',
+                timeline,
+                position: startTime + popDuration
+            })
+
+            timeline.add(
+                gsap.to(this.element, {
+                    xPercent: 3,
+                    yPercent: 3,
+                    duration: spiralDelay + spiralDuration / 2 + 0.1,
+                    ease: 'wiggle({type:random, wiggles:20})'
+                }),
+                startTime + popDuration - 0.1
+            )
+
+            const spiralPoints: Point[] = []
+            const startAngle = -90 + (360 / count) * reserveIndex
+            const endAngle = startAngle + 120
+            const segments = 6
+            for (let step = 0; step <= segments; step++) {
+                const t = step / segments
+                const angle = startAngle + (endAngle - startAngle) * t
+                const radiusAt = radius * (1 - t)
+                spiralPoints.push({
+                    x: targetMothership.x + radiusAt * Math.cos(toRadians(angle)),
+                    y: targetMothership.y + radiusAt * Math.sin(toRadians(angle))
+                })
+            }
+
+            path({
+                object: this.element,
+                path: spiralPoints.map((point) => offsetFromCenter(point)),
+                curviness: 1,
+                duration: spiralDuration,
+                ease: 'power1.in',
+                timeline,
+                position: startTime + popDuration + spiralDelay
+            })
+
+            fadeOut({
+                object: this.element!,
+                duration: 0.1,
+                timeline,
+                position: '>'
+            })
+
+            if (reserveIndex === reserveIds.length - 1) {
+                const arrivalTime = startTime + popDuration + spiralDelay + spiralDuration
+                this.scheduleReserveOffset(
+                    action.playerId,
+                    -reserveIds.length,
+                    fromState,
+                    timeline,
+                    arrivalTime
+                )
+                this.scheduleHoldOffset(
+                    action.targetPlayerId,
+                    action.playerId,
+                    reserveIds.length,
+                    fromState,
+                    timeline,
+                    arrivalTime
+                )
+            }
+        }
     }
 
     animateCreatedSundivers(
