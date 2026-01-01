@@ -22,7 +22,8 @@ export const HurlMetadata = Type.Object({
     momentumGained: Type.Number(),
     paidPlayerIds: Type.Array(Type.String()),
     juggernaut: Type.Optional(Station),
-    energyGained: Type.Optional(Type.Number())
+    energyGained: Type.Optional(Type.Number()),
+    passage: Type.Optional(Type.Boolean())
 })
 
 export type Hurl = Static<typeof Hurl>

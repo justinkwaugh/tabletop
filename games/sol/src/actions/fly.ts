@@ -18,7 +18,8 @@ export const FlyMetadata = Type.Object({
     momentumGained: Type.Number(),
     paidPlayerIds: Type.Array(Type.String()),
     juggernaut: Type.Optional(Station),
-    energyGained: Type.Optional(Type.Number())
+    energyGained: Type.Optional(Type.Number()),
+    passage: Type.Optional(Type.Boolean())
 })
 
 export type Fly = Static<typeof Fly>
@@ -189,6 +190,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 state.getEffectTracking().passageGates.push(key)
                 playerState.momentum += 1
                 flyOrHurl.metadata!.momentumGained += 1
+                flyOrHurl.metadata!.passage = true
             }
         }
     }
