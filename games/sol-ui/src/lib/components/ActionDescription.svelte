@@ -8,6 +8,7 @@
         ActivateEffect,
         DrawCards,
         EffectType,
+        isAccelerate,
         isActivate,
         isActivateBonus,
         isActivateEffect,
@@ -114,7 +115,17 @@
     drew {action.metadata?.drawnCards.length} card{(action.metadata?.drawnCards.length ?? 1) === 1
         ? ''
         : 's'}
-    {#if hasActivateMetadata(action)}
+
+    {#if action.suitGuess}
+        {#if action.metadata?.momentumAdded ?? 0 > 0}
+            <br />Guessed {action.suitGuess} correctly
+            <ul class="ms-4 list-inside">
+                {@render commonActivateMetadata(action)}
+            </ul>
+        {:else}
+            <br />Guessed {action.suitGuess} incorrectly
+        {/if}
+    {:else if hasActivateMetadata(action)}
         <br />Squeeze succeeded!
         <ul class="ms-4 list-inside">
             {@render commonActivateMetadata(action)}
@@ -209,6 +220,8 @@
         <br />
         Movement decreased to {action.metadata?.newMovement}
     {/if}
+{:else if isAccelerate(action)}
+    Moved the motherships {action.amount} spaces
 {:else}
     {action.type}
 {/if}

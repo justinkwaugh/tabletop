@@ -136,7 +136,7 @@ export class NotifierAnimator extends StateAnimator<
                 [],
                 0.5
             )
-            animationContext.ensureDuration(3)
+            animationContext.ensureDuration(2.5)
         }
     }
 
