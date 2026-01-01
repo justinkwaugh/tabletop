@@ -29,6 +29,7 @@ import {
     getCirclePoint,
     getGatePosition,
     getMothershipSpotPoint,
+    getSpaceCentroid,
     offsetFromCenter,
     toRadians
 } from '$lib/utils/boardGeometry.js'
@@ -72,7 +73,7 @@ export class EnergyCubeAnimator extends StateAnimator<
         } else if (isDrawCards(action)) {
             await this.animateDrawCards(action, animationContext.actionTimeline, to, from)
         } else if (isLaunch(action)) {
-            await this.animateLaunch(action, animationContext.actionTimeline, to)
+            await this.animateLaunch(action, animationContext.actionTimeline, to, from)
         } else if (isTribute(action)) {
             await this.animateTribute(action, animationContext.actionTimeline, to, from)
         } else if (isFly(action) || isHurl(action)) {
@@ -185,13 +186,74 @@ export class EnergyCubeAnimator extends StateAnimator<
     async animateLaunch(
         action: Launch,
         timeline: gsap.core.Timeline,
-        toState: HydratedSolGameState
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
     ) {
         const numCubes = action.metadata?.energyGained ?? 0
         if (numCubes <= 0) {
             return
         }
-        this.scheduleEnergyOverride(action.playerId, toState, timeline, 0)
+
+        const targetCell = toState.board.cellAt(action.destination)
+        const startLocation =
+            this.gameSession.locationForDiverInCell(action.playerId, targetCell) ??
+            getSpaceCentroid(this.gameSession.numPlayers, action.destination)
+        const mothershipLocation = this.getMothershipLocationForPlayer(
+            fromState ?? toState,
+            action.playerId
+        )
+
+        this.gameSession.movingCubeIds = range(0, numCubes).map(() => nanoid())
+        await tick()
+
+        const launchMoveDuration = 0.5
+        const launchDelayBetween = 0.3
+        const moveDuration = 1
+
+        const cubeElements = Array.from(this.cubes.values())
+        let maxEndTime = 0
+
+        for (let i = 0; i < cubeElements.length; i++) {
+            const cube = cubeElements[i]
+            if (!cube) {
+                continue
+            }
+            const startTime = launchMoveDuration + launchDelayBetween * i
+
+            gsap.set(cube, { opacity: 0 })
+            timeline.set(
+                cube,
+                {
+                    opacity: 1,
+                    x: offsetFromCenter(startLocation).x,
+                    y: offsetFromCenter(startLocation).y
+                },
+                startTime
+            )
+
+            move({
+                object: cube,
+                location: offsetFromCenter(mothershipLocation),
+                timeline,
+                duration: moveDuration,
+                position: startTime
+            })
+
+            const endTime = startTime + moveDuration
+            if (endTime > maxEndTime) {
+                maxEndTime = endTime
+            }
+        }
+
+        this.scheduleEnergyOverride(action.playerId, toState, timeline, maxEndTime)
+
+        timeline.call(
+            () => {
+                this.gameSession.movingCubeIds = []
+            },
+            [],
+            maxEndTime
+        )
     }
 
     private async animateEnergyFromLocation(
