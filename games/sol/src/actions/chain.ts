@@ -12,8 +12,17 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { SundiverChain } from '../model/chain.js'
 
+export type PlayerChainResult = Static<typeof PlayerChainResult>
+export const PlayerChainResult = Type.Object({
+    playerId: Type.String(),
+    momentumGained: Type.Number(),
+    sundiverIdsReturned: Type.Array(Type.String())
+})
+
 export type ChainMetadata = Static<typeof ChainMetadata>
-export const ChainMetadata = Type.Object({})
+export const ChainMetadata = Type.Object({
+    chainResults: Type.Record(Type.String(), PlayerChainResult)
+})
 
 export type Chain = Static<typeof Chain>
 export const Chain = Type.Evaluate(
@@ -48,6 +57,8 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
             throw Error('Invalid chain')
         }
 
+        this.metadata = { chainResults: {} }
+
         for (let i = 0; i < this.chain.length; i++) {
             const entry = this.chain[i]
             const cell = state.board.cellAt(entry.coords)
@@ -59,12 +70,23 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
             const owner = state.getPlayerState(sundiver.playerId)
             owner.momentum += 1
 
+            if (!this.metadata.chainResults[sundiver.playerId]) {
+                this.metadata.chainResults[sundiver.playerId] = {
+                    playerId: sundiver.playerId,
+                    momentumGained: 0,
+                    sundiverIdsReturned: []
+                }
+            }
+            const result = this.metadata.chainResults[sundiver.playerId]
+            result.momentumGained += 1
+
             if (i % 2 === 0) {
                 const removed = state.board.removeSundiversAt([sundiver.id], entry.coords)
                 if (removed.length === 0) {
                     throw Error('No sundiver removed for chain')
                 }
                 owner.addSundiversToHold(removed)
+                result.sundiverIdsReturned.push(sundiver.id)
             }
         }
 

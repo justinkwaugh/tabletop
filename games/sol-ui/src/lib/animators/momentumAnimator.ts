@@ -2,6 +2,7 @@ import {
     Activate,
     ActivateBonus,
     ActivateEffect,
+    Chain,
     DrawCards,
     Fly,
     HydratedSolGameState,
@@ -9,6 +10,7 @@ import {
     isActivate,
     isActivateBonus,
     isActivateEffect,
+    isChain,
     isDrawCards,
     isFly,
     isHurl,
@@ -38,7 +40,9 @@ import type { AnimationContext } from '@tabletop/frontend-components'
 import {
     getFlyOrHurlArrivalTime,
     getFlyOrHurlEndLocation,
-    getGateCrossingTimes
+    getGateCrossingTimes,
+    CHAIN_MOMENTUM_MOVE_DURATION,
+    CHAIN_MOMENTUM_STAGGER
 } from '$lib/utils/animationsUtils.js'
 
 export class MomentumAnimator extends StateAnimator<
@@ -73,6 +77,8 @@ export class MomentumAnimator extends StateAnimator<
             await this.animateActivateEffect(action, animationContext.actionTimeline, from)
         } else if (isDrawCards(action)) {
             await this.animateDrawCards(action, animationContext.actionTimeline, from)
+        } else if (isChain(action)) {
+            await this.animateChain(action, animationContext.actionTimeline, from)
         } else if (isFly(action) || isHurl(action)) {
             await this.animateFlyOrHurl(action, animationContext.actionTimeline, to, from)
         } else if (isSolarFlare(action)) {
@@ -162,7 +168,7 @@ export class MomentumAnimator extends StateAnimator<
             return
         }
 
-        const numMomentum = action.metadata.momentumAdded ?? 0
+        const numMomentum = action.metadata?.momentumAdded ?? 0
         if (numMomentum <= 0) {
             return
         }
@@ -174,6 +180,112 @@ export class MomentumAnimator extends StateAnimator<
             deckLocation,
             timeline,
             fromState
+        )
+    }
+
+    async animateChain(
+        action: Chain,
+        timeline: gsap.core.Timeline,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || action.chain.length === 0) {
+            return
+        }
+
+        type MomentumMove = { from: Point; to: Point; startTime: number }
+        const momentumMoves: MomentumMove[] = []
+
+        const delayBetween = CHAIN_MOMENTUM_STAGGER
+        for (const entry of action.chain) {
+            const cell = fromState.board.cellAt(entry.coords)
+            const sundiver = cell.sundivers.find((diver) => diver.id === entry.sundiverId)
+            if (!sundiver) {
+                continue
+            }
+            const startLocation =
+                this.gameSession.locationForDiverInCell(sundiver.playerId, cell) ??
+                getSpaceCentroid(this.gameSession.numPlayers, entry.coords)
+            const mothershipLocation = this.getMothershipLocationForPlayer(
+                fromState,
+                sundiver.playerId
+            )
+
+            momentumMoves.push({
+                from: startLocation,
+                to: mothershipLocation,
+                startTime: delayBetween * momentumMoves.length
+            })
+        }
+
+        if (momentumMoves.length === 0) {
+            return
+        }
+
+        this.gameSession.movingMomentumIds = range(0, momentumMoves.length).map(() => nanoid())
+        await tick()
+
+        const moveDuration = CHAIN_MOMENTUM_MOVE_DURATION
+        const scaleDuration = 0.1
+        const moveOffset = scaleDuration / 2
+
+        const pentagonElements = Array.from(this.pentagons.values())
+        for (const pentagon of pentagonElements) {
+            gsap.set(pentagon, {
+                opacity: 0,
+                scale: 0,
+                transformOrigin: '50% 50%'
+            })
+        }
+
+        let maxEndTime = 0
+        for (let i = 0; i < momentumMoves.length; i++) {
+            const pentagon = pentagonElements[i]
+            if (!pentagon) {
+                continue
+            }
+
+            const moveTarget = momentumMoves[i]
+            const position = moveTarget.startTime
+
+            timeline.set(
+                pentagon,
+                {
+                    opacity: 1,
+                    x: offsetFromCenter(moveTarget.from).x,
+                    y: offsetFromCenter(moveTarget.from).y
+                },
+                position
+            )
+
+            scale({
+                object: pentagon,
+                to: 1,
+                duration: scaleDuration,
+                ease: 'power2.in',
+                timeline,
+                position
+            })
+
+            move({
+                object: pentagon,
+                location: offsetFromCenter(moveTarget.to),
+                timeline,
+                duration: moveDuration,
+                position: position + moveOffset
+            })
+
+            const endTime = position + moveOffset + moveDuration
+            if (endTime > maxEndTime) {
+                maxEndTime = endTime
+            }
+        }
+
+        timeline.call(
+            () => {
+                this.gameSession.movingMomentumIds = []
+            },
+            [],
+            maxEndTime
         )
     }
 
@@ -441,7 +553,6 @@ export class MomentumAnimator extends StateAnimator<
             y: spotPoint.y
         }
     }
-
 }
 
 export function animateMomentum(

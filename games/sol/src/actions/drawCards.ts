@@ -16,7 +16,8 @@ export const DrawCardsMetadata = Type.Object({
     energyAdded: Type.Number(),
     createdSundiverIds: Type.Array(Type.String()),
     momentumAdded: Type.Number(),
-    coords: Type.Optional(OffsetCoordinates)
+    coords: Type.Optional(OffsetCoordinates),
+    effect: Type.Optional(Type.Enum(EffectType))
 })
 
 export type DrawCards = Static<typeof DrawCards>
@@ -75,9 +76,11 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
             const momentumGained = guessedCards.length * 3
             playerState.momentum += momentumGained
             this.metadata.momentumAdded = momentumGained
+            this.metadata.effect = EffectType.Pillar
         }
 
         if (state.activeEffect === EffectType.Squeeze) {
+            this.metadata.effect = EffectType.Squeeze
             const station = state.getActivatingStation()
             if (!station || !station.coords) {
                 throw Error('Invalid station for squeeze effect')
@@ -97,6 +100,8 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
             const energySpent = cards.length
             playerState.energyCubes -= energySpent
             playerState.momentum += energySpent
+            this.metadata.momentumAdded = energySpent
+            this.metadata.effect = EffectType.Channel
         }
     }
 }

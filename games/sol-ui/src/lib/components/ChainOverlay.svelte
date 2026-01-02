@@ -91,6 +91,7 @@
         <circle
             r={CIRCLE_RADIUS}
             fill="none"
+            class="whatever-{index}"
             stroke={highlightEnds && (index === 0 || index === locations.length - 1)
                 ? 'yellow'
                 : 'white'}

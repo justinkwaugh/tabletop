@@ -4,6 +4,7 @@ import {
     ActivateEffect,
     Blight,
     CENTER_COORDS,
+    Chain,
     Convert,
     DrawCards,
     EffectType,
@@ -15,6 +16,7 @@ import {
     isActivateBonus,
     isActivateEffect,
     isBlight,
+    isChain,
     isConvert,
     isDrawCards,
     isHatch,
@@ -46,6 +48,11 @@ import { fadeOut, move, scale, path, fadeIn } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { getFlightDuration, getFlightPath, getFlightPaths } from '$lib/utils/flight.js'
+import {
+    CHAIN_MOMENTUM_MOVE_DURATION,
+    CHAIN_MOMENTUM_STAGGER,
+    CHAIN_SUNDIVER_RETURN_DELAY
+} from '$lib/utils/animationsUtils.js'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -259,6 +266,8 @@ export class SundiverAnimator extends StateAnimator<
             this.animateHatchAction(action, timeline, toState, fromState)
         } else if (isBlight(action)) {
             this.animateBlightAction(action, timeline, toState, fromState)
+        } else if (isChain(action)) {
+            this.animateChainAction(action, timeline, toState, fromState)
         }
     }
 
@@ -818,7 +827,10 @@ export class SundiverAnimator extends StateAnimator<
 
         if (isActivating) {
             const startCell = fromState.board.cellAt(action.coords)
-            const diverLocation = this.gameSession.locationForDiverInCell(action.playerId, startCell)
+            const diverLocation = this.gameSession.locationForDiverInCell(
+                action.playerId,
+                startCell
+            )
             if (!diverLocation) {
                 return
             }
@@ -938,7 +950,7 @@ export class SundiverAnimator extends StateAnimator<
             })
 
             timeline.add(
-                gsap.to(this.element, {
+                gsap.to(this.element!, {
                     xPercent: 3,
                     yPercent: 3,
                     duration: spiralDelay + spiralDuration / 2 + 0.1,
@@ -996,6 +1008,106 @@ export class SundiverAnimator extends StateAnimator<
                     arrivalTime
                 )
             }
+        }
+    }
+
+    animateChainAction(
+        action: Chain,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState) {
+            return
+        }
+
+        const chainIndex = action.chain.findIndex((entry) => entry.sundiverId === this.id)
+        if (chainIndex < 0) {
+            return
+        }
+
+        const entry = action.chain[chainIndex]
+        if (!entry) {
+            return
+        }
+
+        const startCell = fromState.board.cellAt(entry.coords)
+        const sundiver = startCell.sundivers.find((diver) => diver.id === this.id)
+        if (!sundiver) {
+            return
+        }
+
+        if (chainIndex % 2 !== 0) {
+            return
+        }
+
+        const startLocation = this.gameSession.locationForDiverInCell(sundiver.playerId, startCell)
+        const targetLocation = this.getMothershipLocationForPlayer(fromState, sundiver.playerId)
+        if (!startLocation || !targetLocation) {
+            return
+        }
+
+        const returnIndex = Math.floor(chainIndex / 2)
+        const moveDuration = CHAIN_MOMENTUM_MOVE_DURATION
+        const returnStartTime =
+            CHAIN_MOMENTUM_STAGGER * Math.max(0, action.chain.length - 1) +
+            CHAIN_SUNDIVER_RETURN_DELAY
+
+        const returnStats = new Map<string, { count: number; lastReturnIndex: number }>()
+        for (let i = 0; i < action.chain.length; i += 2) {
+            const chainEntry = action.chain[i]
+            if (!chainEntry?.sundiverId) {
+                continue
+            }
+            const cell = fromState.board.cellAt(chainEntry.coords)
+            const diver = cell.sundivers.find((candidate) => candidate.id === chainEntry.sundiverId)
+            if (!diver) {
+                continue
+            }
+            const entryIndex = i / 2
+            const existing = returnStats.get(diver.playerId) ?? {
+                count: 0,
+                lastReturnIndex: -1
+            }
+            existing.count += 1
+            existing.lastReturnIndex = Math.max(existing.lastReturnIndex, entryIndex)
+            returnStats.set(diver.playerId, existing)
+        }
+
+        const stats = returnStats.get(sundiver.playerId)
+
+        gsap.set(this.element!, {
+            opacity: 1,
+            scale: 1,
+            x: offsetFromCenter(startLocation).x,
+            y: offsetFromCenter(startLocation).y
+        })
+
+        move({
+            object: this.element,
+            location: offsetFromCenter(targetLocation),
+            duration: CHAIN_MOMENTUM_MOVE_DURATION,
+            ease: 'power2.in',
+            timeline,
+            position: returnStartTime
+        })
+
+        fadeOut({
+            object: this.element!,
+            duration: 0.1,
+            timeline,
+            position: '>'
+        })
+
+        if (stats && stats.lastReturnIndex === returnIndex) {
+            this.scheduleHoldOffset(
+                sundiver.playerId,
+                sundiver.playerId,
+                stats.count,
+                fromState,
+                timeline,
+                returnStartTime + moveDuration
+            )
         }
     }
 

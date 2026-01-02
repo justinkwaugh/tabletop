@@ -12,6 +12,8 @@
         isActivate,
         isActivateBonus,
         isActivateEffect,
+        isBlight,
+        isChain,
         isChooseActivate,
         isChooseCard,
         isChooseConvert,
@@ -116,7 +118,7 @@
         ? ''
         : 's'}
 
-    {#if action.suitGuess}
+    {#if action.metadata?.effect === EffectType.Pillar && action.suitGuess}
         {#if action.metadata?.momentumAdded ?? 0 > 0}
             <br />Guessed {action.suitGuess} correctly
             <ul class="ms-4 list-inside">
@@ -125,14 +127,20 @@
         {:else}
             <br />Guessed {action.suitGuess} incorrectly
         {/if}
-    {:else if hasActivateMetadata(action)}
-        <br />Squeeze succeeded!
+    {:else if action.metadata?.effect === EffectType.Squeeze}
+        {#if hasActivateMetadata(action)}
+            <br />Squeeze succeeded!
+            <ul class="ms-4 list-inside">
+                {@render commonActivateMetadata(action)}
+            </ul>
+        {:else if action.metadata?.removedStation}
+            <br />Squeeze failed! The {StationNames[action.metadata.removedStation.type]} was destroyed.
+        {/if}
+    {:else if action.metadata?.effect === EffectType.Channel}
+        <br />Channel effect applied
         <ul class="ms-4 list-inside">
             {@render commonActivateMetadata(action)}
         </ul>
-    {/if}
-    {#if action.metadata?.removedStation}
-        <br />Squeeze failed! The {StationNames[action.metadata.removedStation.type]} was destroyed.
     {/if}
     <div class="flex flex-row justify-{justify} items-center space-x-1 mt-2">
         {#each action.metadata?.drawnCards as card (card.id)}
@@ -221,7 +229,40 @@
         Movement decreased to {action.metadata?.newMovement}
     {/if}
 {:else if isAccelerate(action)}
-    Moved the motherships {action.amount} spaces
+    moved the motherships {action.amount} spaces
+{:else if isBlight(action)}
+    blighted <PlayerName
+        fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+        playerId={action.targetPlayerId}
+        additionalClasses={history ? '' : 'pt-[2px]'}
+        capitalization={history ? 'capitalize' : 'uppercase'}
+        possessive={true}
+    /> mothership
+{:else if isChain(action)}
+    executed a chain action
+    <ul class="ms-4 list-inside">
+        {#each Object.entries(action.metadata?.chainResults ?? {}) as [playerId, result]}
+            <li>
+                <PlayerName
+                    fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                    {playerId}
+                    additionalClasses={history ? '' : 'pt-[2px]'}
+                    capitalization={history ? 'capitalize' : 'uppercase'}
+                /> gained {result.momentumGained} momentum
+            </li>
+            <li>
+                <PlayerName
+                    fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                    {playerId}
+                    additionalClasses={history ? '' : 'pt-[2px]'}
+                    capitalization={history ? 'capitalize' : 'uppercase'}
+                /> recalled {result.sundiverIdsReturned.length} sundiver{result.sundiverIdsReturned
+                    .length === 1
+                    ? ''
+                    : 's'}
+            </li>
+        {/each}
+    </ul>
 {:else}
     {action.type}
 {/if}

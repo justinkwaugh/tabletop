@@ -9,6 +9,10 @@ import {
     getFlightPathsWithGateCrossings
 } from '$lib/utils/flight.js'
 
+export const CHAIN_MOMENTUM_STAGGER = 0.4
+export const CHAIN_MOMENTUM_MOVE_DURATION = 1
+export const CHAIN_SUNDIVER_RETURN_DELAY = 1
+
 export function getGateCrossingTimes({
     action,
     toState,

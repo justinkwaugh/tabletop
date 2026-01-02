@@ -3,6 +3,7 @@ import {
     ActivateEffect,
     Blight,
     CENTER_COORDS,
+    Chain,
     Convert,
     EffectType,
     Fly,
@@ -12,6 +13,7 @@ import {
     isActivate,
     isActivateEffect,
     isBlight,
+    isChain,
     isConvert,
     isFly,
     isHatch,
@@ -31,6 +33,10 @@ import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { SundiverAnimator } from './sundiverAnimator.js'
 import { getFlightDuration, getFlightPaths } from '$lib/utils/flight.js'
+import {
+    CHAIN_MOMENTUM_STAGGER,
+    CHAIN_SUNDIVER_RETURN_DELAY
+} from '$lib/utils/animationsUtils.js'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -195,6 +201,8 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateSacrificeAction(action, timeline)
         } else if (isBlight(action)) {
             this.animateBlightAction(action, timeline, toState)
+        } else if (isChain(action)) {
+            this.animateChainAction(action, timeline, toState, fromState)
         }
     }
 
@@ -204,6 +212,8 @@ export class CellSundiverAnimator extends StateAnimator<
                 action.playerId !== this.playerId &&
                 sameCoordinates(action.destination, this.coords)
             )
+        } else if (isChain(action)) {
+            return false
         } else if (isFly(action) || isHurl(action)) {
             return (
                 (action.playerId !== this.playerId || action.stationId !== undefined) &&
@@ -717,5 +727,90 @@ export class CellSundiverAnimator extends StateAnimator<
             timeline,
             position: 0
         })
+    }
+
+    animateChainAction(
+        action: Chain,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState) {
+            return
+        }
+
+        const entryIndex = action.chain.findIndex(
+            (entry) => entry.sundiverId && sameCoordinates(entry.coords, this.coords)
+        )
+        if (entryIndex < 0) {
+            return
+        }
+
+        const entry = action.chain[entryIndex]
+        if (!entry?.sundiverId) {
+            return
+        }
+
+        const cell = fromState.board.cellAt(entry.coords)
+        const sundiver = cell.sundivers.find((diver) => diver.id === entry.sundiverId)
+        if (!sundiver || sundiver.playerId !== this.playerId) {
+            return
+        }
+
+        const popTime = CHAIN_MOMENTUM_STAGGER * entryIndex
+        const popDuration = 0.2
+        const settleDuration = 0.2
+
+        gsap.set(this.element!, { transformOrigin: 'center center' })
+
+        scale({
+            object: this.element,
+            to: 1.4,
+            duration: popDuration,
+            ease: 'back.out(2)',
+            timeline,
+            position: popTime
+        })
+
+        scale({
+            object: this.element,
+            to: 1,
+            duration: settleDuration,
+            ease: 'power2.out',
+            timeline,
+            position: popTime + popDuration
+        })
+
+        if (entryIndex % 2 !== 0) {
+            return
+        }
+
+        const numBefore = fromState.board.sundiversForPlayerAt(this.playerId, this.coords).length
+        const numAfter = toState.board.sundiversForPlayerAt(this.playerId, this.coords).length
+        const leaving = numBefore - numAfter
+        if (leaving <= 0) {
+            return
+        }
+
+        const returnStartTime =
+            CHAIN_MOMENTUM_STAGGER * Math.max(0, action.chain.length - 1) +
+            CHAIN_SUNDIVER_RETURN_DELAY
+
+        timeline.call(
+            () => {
+                this.quantityCallback?.(numAfter)
+            },
+            [],
+            returnStartTime
+        )
+
+        if (numAfter === 0) {
+            fadeOut({
+                object: this.element!,
+                duration: 0,
+                timeline,
+                position: returnStartTime
+            })
+        }
     }
 }

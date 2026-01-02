@@ -74,8 +74,14 @@
             gameSession.gameState.board.isNextToGateAt(coords)
 
         if (gameSession.chosenMothership) {
+            const mothershipPlayerState = gameSession.gameState.players.find(
+                (p) => p.playerId === gameSession.chosenMothership
+            )
+            if (!mothershipPlayerState) {
+                return []
+            }
             const holdDivers =
-                playerState.holdSundiversPerPlayer().get(gameSession.myPlayer!.id) ?? []
+                mothershipPlayerState.holdSundiversPerPlayer().get(gameSession.myPlayer!.id) ?? []
             return holdDivers.slice(0, Math.min(movementPoints, holdDivers.length, 5))
         } else if (gameSession.chosenSource) {
             const sundivers = gameSession.gameState.board.sundiversForPlayerAt(

@@ -73,7 +73,7 @@ export class NotifierAnimator extends StateAnimator<
             animationContext.ensureDuration(1.5)
         } else if (action.metadata?.createdSundiverIds.length ?? 0 > 0) {
             const plural = (action.metadata?.createdSundiverIds?.length ?? 0) === 1 ? '' : 'S'
-            this.gameSession.forcedCallToAction = `${action.metadata?.createdSundiverIds?.length ?? 0} ${isBonus ? 'BONUS ' : ''} SUN DIVER${plural} BUILT`
+            this.gameSession.forcedCallToAction = `${action.metadata?.createdSundiverIds?.length ?? 0} ${isBonus ? 'BONUS ' : ''} SUNDIVER${plural} BUILT`
             animationContext.ensureDuration(1.5)
         } else if (action.metadata?.momentumAdded ?? 0 > 0) {
             this.gameSession.forcedCallToAction = `${action.metadata?.momentumAdded ?? 0} ${isBonus ? 'BONUS ' : ''} MOMENTUM GAINED`
@@ -90,7 +90,7 @@ export class NotifierAnimator extends StateAnimator<
         const createdCount = action.metadata?.createdSundiverIds?.length ?? 0
 
         const plural = createdCount === 1 ? '' : 'S'
-        this.gameSession.forcedCallToAction = `${createdCount} SUN DIVER${plural} PROCREATED`
+        this.gameSession.forcedCallToAction = `${createdCount} SUNDIVER${plural} PROCREATED`
         animationContext.ensureDuration(1.5)
     }
 
