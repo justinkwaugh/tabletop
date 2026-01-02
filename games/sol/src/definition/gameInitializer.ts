@@ -32,8 +32,11 @@ const MOTHERSHIP_SPACING = [0, 6, 4, 3, 3]
 
 export class SolGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeExplorationState(state: GameState): GameState {
-        return state
+        const hydratedState = new HydratedSolGameState(state as SolGameState)
+        hydratedState.deck.shuffle()
+        return hydratedState.dehydrate()
     }
+
     override initializeGame(game: Partial<Game>): Game {
         const config = game.config
         if (!SolGameConfigValidator.Check(config)) {
