@@ -209,6 +209,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             state.activeEffect = undefined
         }
         if (
+            state.machineState !== MachineState.CheckEffect &&
             HydratedActivateEffect.canActivateEffect(
                 state,
                 activation.playerId,
