@@ -22,11 +22,14 @@ import {
     isHatch,
     isFly,
     isHurl,
+    isInvade,
     isLaunch,
     Launch,
+    Invade,
     Sundiver,
     type SolGameState,
-    HydratedSolPlayerState
+    HydratedSolPlayerState,
+    StationType
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import {
@@ -268,6 +271,8 @@ export class SundiverAnimator extends StateAnimator<
             this.animateBlightAction(action, timeline, toState, fromState)
         } else if (isChain(action)) {
             this.animateChainAction(action, timeline, toState, fromState)
+        } else if (isInvade(action)) {
+            this.animateInvadeAction(action, timeline, toState, fromState)
         }
     }
 
@@ -1109,6 +1114,118 @@ export class SundiverAnimator extends StateAnimator<
                 returnStartTime + moveDuration
             )
         }
+    }
+
+    animateInvadeAction(
+        action: Invade,
+        timeline: gsap.core.Timeline,
+        _toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !action.metadata) {
+            return
+        }
+
+        const removedIds = action.metadata.removedSundiverIds
+        const index = removedIds.indexOf(this.id)
+        if (index < 0) {
+            return
+        }
+
+        const invadedStation = action.metadata.invadedStation
+        const stationType = invadedStation?.type ?? fromState.board.cellAt(action.coords).station?.type
+        if (!stationType) {
+            return
+        }
+
+        const stationCell = fromState.board.cellAt(action.coords)
+        const stationLocation = this.gameSession.locationForStationInCell(stationCell)
+        if (!stationLocation) {
+            return
+        }
+
+        const stationWidth = stationType === StationType.TransmitTower ? 48 : 46
+        const stationHeight = stationType === StationType.TransmitTower ? 100 : 48
+        const diverWidth = 30
+        const diverHeight = 40
+        const gap = 8
+        const stationTop = stationLocation.y - stationHeight / 2
+        const sidePointOffset = diverHeight / 3
+        const topOffset = 10
+        const sideTopY = stationTop + diverHeight / 2 - sidePointOffset
+        const topCenterY = stationTop - gap - topOffset - diverHeight / 2
+        const offsetX = stationWidth / 2 + diverWidth / 2 + gap
+
+        const positions =
+            removedIds.length >= 3
+                ? [
+                      { x: stationLocation.x - offsetX, y: sideTopY },
+                      { x: stationLocation.x + offsetX, y: sideTopY },
+                      { x: stationLocation.x, y: topCenterY }
+                  ]
+                : [
+                      { x: stationLocation.x - offsetX, y: sideTopY },
+                      { x: stationLocation.x + offsetX, y: sideTopY }
+                  ]
+
+        const target = positions[index] ?? positions[0]
+        const bottom = { x: target.x, y: target.y + stationHeight }
+
+        const startLocation = this.gameSession.locationForDiverInCell(action.playerId, stationCell)
+        if (!startLocation) {
+            return
+        }
+
+        const approachDuration = 0.2
+        const holdDelay = 0.5
+        const hideDuration = 1
+        const revealDuration = 1
+        const hideStart = approachDuration + holdDelay
+        const revealStart = hideStart + hideDuration
+
+        timeline.set(
+            this.element!,
+            {
+                opacity: 1,
+                x: offsetFromCenter(startLocation).x,
+                y: offsetFromCenter(startLocation).y
+            },
+            0
+        )
+
+        move({
+            object: this.element,
+            location: offsetFromCenter(target),
+            duration: approachDuration,
+            ease: 'power2.out',
+            timeline,
+            position: 0
+        })
+
+        move({
+            object: this.element,
+            location: offsetFromCenter(bottom),
+            duration: hideDuration,
+            ease: 'none',
+            timeline,
+            position: hideStart
+        })
+
+        move({
+            object: this.element,
+            location: offsetFromCenter(target),
+            duration: revealDuration,
+            ease: 'power2.in',
+            timeline,
+            position: revealStart
+        })
+
+        fadeOut({
+            object: this.element!,
+            duration: 0.3,
+            timeline,
+            position: revealStart + revealDuration
+        })
     }
 
     animateCreatedSundivers(

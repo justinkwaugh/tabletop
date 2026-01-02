@@ -18,8 +18,10 @@ import {
     isFly,
     isHatch,
     isHurl,
+    isInvade,
     isLaunch,
     isSacrifice,
+    Invade,
     Launch,
     Sacrifice,
     type SolGameState
@@ -203,6 +205,8 @@ export class CellSundiverAnimator extends StateAnimator<
             this.animateBlightAction(action, timeline, toState)
         } else if (isChain(action)) {
             this.animateChainAction(action, timeline, toState, fromState)
+        } else if (isInvade(action)) {
+            this.animateInvadeAction(action, timeline, toState, fromState)
         }
     }
 
@@ -228,6 +232,8 @@ export class CellSundiverAnimator extends StateAnimator<
             return action.playerId !== this.playerId && sameCoordinates(action.coords, this.coords)
         } else if (isBlight(action)) {
             return action.playerId === this.playerId && sameCoordinates(action.coords, this.coords)
+        } else if (isInvade(action)) {
+            return action.playerId !== this.playerId && sameCoordinates(action.coords, this.coords)
         }
 
         return false
@@ -842,6 +848,53 @@ export class CellSundiverAnimator extends StateAnimator<
                 duration: 0,
                 timeline,
                 position: returnStartTime
+            })
+        }
+    }
+
+    animateInvadeAction(
+        action: Invade,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (
+            !fromState ||
+            !action.metadata ||
+            this.playerId !== action.playerId ||
+            !sameCoordinates(action.coords, this.coords)
+        ) {
+            return
+        }
+
+        const removedCount = action.metadata.removedSundiverIds.length
+        if (removedCount <= 0) {
+            return
+        }
+
+        const numBefore = fromState.board.sundiversForPlayerAt(
+            action.playerId,
+            this.coords
+        ).length
+        const numAfter = toState.board.sundiversForPlayerAt(action.playerId, this.coords).length
+        if (numBefore === numAfter) {
+            return
+        }
+
+        timeline.call(
+            () => {
+                this.quantityCallback?.(numAfter)
+            },
+            [],
+            0
+        )
+
+        if (numAfter === 0) {
+            fadeOut({
+                object: this.element!,
+                duration: 0,
+                timeline,
+                position: 0
             })
         }
     }

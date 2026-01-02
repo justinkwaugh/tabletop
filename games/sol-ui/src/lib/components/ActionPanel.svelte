@@ -10,6 +10,7 @@
         HydratedActivate,
         HydratedActivateEffect,
         HydratedChain,
+        HydratedConvert,
         PassContext
     } from '@tabletop/sol'
 
@@ -108,7 +109,20 @@
                 result.message = 'CHOOSE A DESTINATION FOR JUGGERNAUT'
             }
         } else if (gameSession.isConverting) {
-            if (gameSession.gameState.activeEffect === EffectType.Invade) {
+            if (
+                !HydratedConvert.canConvert(gameSession.gameState, gameSession.myPlayer.id) &&
+                gameSession.gameState.playerHasCardForEffect(
+                    gameSession.myPlayer.id,
+                    EffectType.Invade
+                ) &&
+                HydratedActivateEffect.canActivateInvade(
+                    gameSession.gameState,
+                    gameSession.myPlayer.id
+                )
+            ) {
+                result.message = 'ACTIVATE INVADE TO CONTINUE'
+                return result
+            } else if (gameSession.gameState.activeEffect === EffectType.Invade) {
                 if (!gameSession.chosenDestination) {
                     result.message = 'WHO WILL YOU INVADE?'
                 }

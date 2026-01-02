@@ -7,7 +7,9 @@ import {
     isConvert,
     isFly,
     isHurl,
+    isInvade,
     isMetamorphosize,
+    Invade,
     Metamorphosize,
     Station,
     StationType,
@@ -83,6 +85,8 @@ export class CellStationAnimator extends StateAnimator<
             await this.animateFlyOrHurlAction(action, animationContext.actionTimeline, to, from)
         } else if (isMetamorphosize(action)) {
             await this.animateMetamorphosize(action, animationContext, to, from)
+        } else if (isInvade(action)) {
+            await this.animateInvade(action, animationContext, to, from)
         } else {
             const isFallback = !action
             const timeline = animationContext.actionTimeline
@@ -346,6 +350,86 @@ export class CellStationAnimator extends StateAnimator<
             hideDuration,
             revealDuration
         )
+    }
+
+    async animateInvade(
+        action: Invade,
+        animationContext: AnimationContext,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState || !sameCoordinates(action.coords, this.coords)) {
+            return
+        }
+
+        const fromCell = fromState.board.cellAt(action.coords)
+        const fromStation = fromCell.station
+        if (!fromStation || (this.station && this.station.id !== fromStation.id)) {
+            return
+        }
+
+        const toCell = toState.board.cellAt(action.coords)
+        const newStation = action.metadata?.invaderStation ?? toCell.station
+        if (!newStation) {
+            return
+        }
+
+        const hasClip = Boolean(this.clipRect)
+        const approachDuration = 0.2
+        const holdDelay = 0.5
+        const hideDuration = hasClip ? 1 : 0
+        const revealDuration = hasClip ? 1 : 0
+        const hideStart = approachDuration + holdDelay
+
+        if (this.clipRect) {
+            gsap.set(this.clipRect, { attr: { y: 0, height: 1 } })
+            animate({
+                object: this.clipRect,
+                params: {
+                    attr: {
+                        y: 1,
+                        height: 0
+                    }
+                },
+                timeline: animationContext.actionTimeline,
+                duration: hideDuration,
+                ease: 'none',
+                position: hideStart
+            })
+        }
+
+        call({
+            callback: () => {
+                if (this.callback) {
+                    this.callback(newStation, this.gameSession.locationForStationInCell(toCell))
+                }
+
+                tick()
+                    .then(() => {
+                        const nextClipRect = this.clipRect
+                        if (nextClipRect) {
+                            gsap.set(nextClipRect, { attr: { y: 1, height: 0 } })
+                            animate({
+                                object: nextClipRect,
+                                params: {
+                                    attr: {
+                                        y: 0,
+                                        height: 1
+                                    }
+                                },
+                                duration: revealDuration,
+                                ease: 'power2.in'
+                            })
+                        }
+                    })
+                    .catch(() => {
+                        // console.log('error')
+                    })
+            },
+            timeline: animationContext.actionTimeline,
+            position: hideStart + hideDuration,
+            duration: hasClip ? revealDuration : undefined
+        })
     }
 
     private scheduleMetamorphosizeReserveOverrides(

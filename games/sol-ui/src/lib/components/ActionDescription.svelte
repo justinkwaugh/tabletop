@@ -22,6 +22,7 @@
         isDeconstruct,
         isDrawCards,
         isHatch,
+        isInvade,
         isMetamorphosize,
         isPass,
         isSolarFlare,
@@ -277,6 +278,24 @@
     metamorphosized a {StationNames[action.metadata!.priorStation.type]} into a {StationNames[
         action.metadata!.newStation.type
     ]}
+{:else if isInvade(action)}
+    invaded <PlayerName
+        fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+        playerId={action.metadata?.invadedStation.playerId}
+        additionalClasses={history ? '' : 'pt-[2px]'}
+        capitalization={history ? 'capitalize' : 'uppercase'}
+        possessive={true}
+    />
+    {StationNames[action.metadata!.invadedStation.type]}
+    <br /><PlayerName
+        fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+        playerId={action.metadata?.invadedStation.playerId}
+        additionalClasses={history ? '' : 'pt-[2px]'}
+        capitalization={history ? 'capitalize' : 'uppercase'}
+    /> received {action.metadata?.addedSundiverIds.length} sundiver{(action.metadata
+        ?.addedSundiverIds.length ?? 1) === 1
+        ? ''
+        : 's'}<br />
 {:else}
     {action.type}
 {/if}
