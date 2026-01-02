@@ -1,12 +1,27 @@
 import { aggregateMoveActions } from '$lib/aggregates/aggregatedMove.js'
 import type { GameAction } from '@tabletop/common'
-import { Fly, Hurl, isFly, isHurl, isLaunch, isPass, Launch } from '@tabletop/sol'
+import {
+    Fly,
+    Hurl,
+    isFly,
+    isHurl,
+    isLaunch,
+    isPass,
+    Launch,
+    Pass,
+    PassContext
+} from '@tabletop/sol'
 
 export function* aggregateActions(actions: GameAction[]) {
     let currentPlayerId: string | undefined
-    let aggregatedMoveActions: (Fly | Launch | Hurl)[] = []
+    let aggregatedMoveActions: (Fly | Launch | Hurl | Pass)[] = []
     for (const action of actions) {
-        if (isFly(action) || isLaunch(action) || isHurl(action)) {
+        if (
+            isFly(action) ||
+            isLaunch(action) ||
+            isHurl(action) ||
+            (isPass(action) && action.context === PassContext.DoneMoving)
+        ) {
             if (aggregatedMoveActions.length === 0) {
                 aggregatedMoveActions.push(action)
                 currentPlayerId = action.playerId

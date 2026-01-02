@@ -11,10 +11,12 @@ import {
     isDrawCards,
     isFly,
     isHurl,
+    isPass,
     isLaunch,
     isTribute,
     Hurl,
     Launch,
+    Pass,
     Tribute,
     type SolGameState
 } from '@tabletop/sol'
@@ -76,6 +78,8 @@ export class EnergyCubeAnimator extends StateAnimator<
             await this.animateLaunch(action, animationContext.actionTimeline, to, from)
         } else if (isTribute(action)) {
             await this.animateTribute(action, animationContext.actionTimeline, to, from)
+        } else if (isPass(action)) {
+            await this.animatePass(action, animationContext.actionTimeline, to, from)
         } else if (isFly(action) || isHurl(action)) {
             await this.animateFlyOrHurl(action, animationContext.actionTimeline, to, from)
         }
@@ -177,6 +181,50 @@ export class EnergyCubeAnimator extends StateAnimator<
             action.playerId,
             numCubes,
             stationLocation,
+            timeline,
+            toState,
+            fromState
+        )
+    }
+
+    async animatePass(
+        action: Pass,
+        timeline: gsap.core.Timeline,
+        toState: HydratedSolGameState,
+        fromState?: HydratedSolGameState
+    ) {
+        if (!fromState) {
+            return
+        }
+
+        const numCubes = action.metadata?.energyGained ?? 0
+        if (numCubes <= 0) {
+            return
+        }
+
+        const sundiverId = action.metadata?.hyperdriveSundiverId
+        if (!sundiverId) {
+            this.scheduleEnergyOverride(action.playerId, toState, timeline, 0)
+            return
+        }
+
+        const sundiverCoords = fromState.board.findSundiverCoords(sundiverId)
+        if (!sundiverCoords) {
+            this.scheduleEnergyOverride(action.playerId, toState, timeline, 0)
+            return
+        }
+
+        const sundiverCell = fromState.board.cellAt(sundiverCoords)
+        const sundiver = sundiverCell.sundivers.find((diver) => diver.id === sundiverId)
+        const startLocation =
+            (sundiver
+                ? this.gameSession.locationForDiverInCell(sundiver.playerId, sundiverCell)
+                : undefined) ?? getSpaceCentroid(this.gameSession.numPlayers, sundiverCoords)
+
+        await this.animateEnergyFromLocation(
+            action.playerId,
+            numCubes,
+            startLocation,
             timeline,
             toState,
             fromState

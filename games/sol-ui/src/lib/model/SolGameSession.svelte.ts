@@ -24,7 +24,8 @@ import {
     HydratedSolPlayerState,
     isFly,
     isHurl,
-    PassContext
+    PassContext,
+    isPass
 } from '@tabletop/sol'
 import {
     coordinatesToNumber,
@@ -435,10 +436,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             (isFly(action) ||
                 isLaunch(action) ||
                 isHurl(action) ||
+                (isPass(action) && action.context === PassContext.DoneMoving) ||
                 (isActivateEffect(action) && action.effect !== EffectType.Procreate)) &&
             (isFly(next) ||
                 isLaunch(next) ||
                 isHurl(next) ||
+                (isPass(next) && next.context === PassContext.DoneMoving) ||
                 (isActivateEffect(next) && next.effect !== EffectType.Procreate))
         ) {
             return true

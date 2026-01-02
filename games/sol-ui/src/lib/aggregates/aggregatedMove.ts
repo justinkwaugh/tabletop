@@ -1,5 +1,16 @@
 import { ActionSource, GameAction } from '@tabletop/common'
-import { isFly, isHurl, isLaunch, Station, type Fly, type Hurl, type Launch } from '@tabletop/sol'
+import {
+    isFly,
+    isHurl,
+    isLaunch,
+    isPass,
+    Pass,
+    PassContext,
+    Station,
+    type Fly,
+    type Hurl,
+    type Launch
+} from '@tabletop/sol'
 import { nanoid } from 'nanoid'
 
 export type AggregatedMove = GameAction & {
@@ -14,7 +25,7 @@ export type AggregatedMove = GameAction & {
     paidPlayerIds: string[]
 }
 
-export function aggregateMoveActions(actions: (Fly | Launch | Hurl)[]): AggregatedMove {
+export function aggregateMoveActions(actions: (Fly | Launch | Hurl | Pass)[]): AggregatedMove {
     if (actions.length === 0) {
         throw Error('No actions to aggregate')
     }
@@ -64,6 +75,8 @@ export function aggregateMoveActions(actions: (Fly | Launch | Hurl)[]): Aggregat
             if (action.metadata?.juggernaut) {
                 aggregated.stationHurled = action.metadata.juggernaut
             }
+        } else if (isPass(action) && action.context === PassContext.DoneMoving) {
+            aggregated.energyGained += action.metadata?.energyGained ?? 0
         }
     }
 

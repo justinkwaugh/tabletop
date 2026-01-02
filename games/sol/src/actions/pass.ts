@@ -13,7 +13,10 @@ export enum PassContext {
 }
 
 export type PassMetadata = Static<typeof PassMetadata>
-export const PassMetadata = Type.Object({})
+export const PassMetadata = Type.Object({
+    energyGained: Type.Optional(Type.Number()),
+    hyperdriveSundiverId: Type.Optional(Type.String())
+})
 
 export type Pass = Static<typeof Pass>
 export const Pass = Type.Evaluate(
@@ -45,5 +48,6 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
 
     apply(_state: HydratedSolGameState, _context?: MachineContext) {
         // Pass does not affect game state directly
+        this.metadata = {}
     }
 }

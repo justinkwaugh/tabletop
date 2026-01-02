@@ -6,6 +6,7 @@ import { EffectType } from '../components/effects.js'
 import { ActivateEffect } from '../actions/activateEffect.js'
 import { isHurl } from '../actions/hurl.js'
 import { isFly } from '../actions/fly.js'
+import { isPass } from '../actions/pass.js'
 
 export function drawCardsOrEndTurn(
     state: HydratedSolGameState,
@@ -19,8 +20,11 @@ export function drawCardsOrEndTurn(
         const energyGained = Math.floor(state.getEffectTracking().movementUsed / 3)
         playerState.energyCubes += energyGained
 
-        if ((isFly(action) || isHurl(action)) && action.metadata) {
+        if ((isFly(action) || isHurl(action) || isPass(action)) && action.metadata) {
             action.metadata.energyGained = energyGained
+            if (isPass(action)) {
+                action.metadata.hyperdriveSundiverId = state.getEffectTracking().flownSundiverId
+            }
         }
     }
 
