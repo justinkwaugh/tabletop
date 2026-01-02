@@ -106,6 +106,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     return MachineState.Chaining
                 } else if (gameState.activeEffect === EffectType.Pillar) {
                     return MachineState.DrawingCards
+                } else if (gameState.activeEffect === EffectType.Hatch) {
+                    return MachineState.Hatching
                 }
             }
             default: {

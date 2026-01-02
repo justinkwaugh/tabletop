@@ -3,6 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedHatch, isHatch } from '../actions/hatch.js'
+import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from Hatching(Hatch) -> PREVIOUS STATE
 
@@ -29,6 +30,10 @@ export class HatchingStateHandler implements MachineStateHandler<HydratedHatch> 
                     throw Error('No pre-hatch state recorded')
                 }
                 gameState.activeEffect = undefined
+                if (preHatchState === MachineState.CheckEffect) {
+                    return drawCardsOrEndTurn(gameState, context)
+                }
+
                 return preHatchState
             }
             default: {

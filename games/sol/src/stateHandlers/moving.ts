@@ -106,6 +106,11 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
                         gameState,
                         action.playerId,
                         EffectType.Chain
+                    ) ||
+                    HydratedActivateEffect.canActivateEffect(
+                        gameState,
+                        action.playerId,
+                        EffectType.Hatch
                     )
                 ) {
                     return MachineState.CheckEffect
