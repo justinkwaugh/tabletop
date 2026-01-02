@@ -343,6 +343,38 @@ export class CellSundiverAnimator extends StateAnimator<
                 timeline,
                 position: scaleDownStart
             })
+
+            const targetRemaining = toState.board.sundiversForPlayerAt(
+                action.targetPlayerId,
+                this.coords
+            ).length
+            if (targetRemaining === 0) {
+                const fromCell = fromState.board.cellAt(this.coords)
+                const toCell = toState.board.cellAt(this.coords)
+                const fromLocation = this.gameSession.locationForDiverInCell(
+                    action.playerId,
+                    fromCell
+                )
+                const toLocation = this.gameSession.locationForDiverInCell(
+                    action.playerId,
+                    toCell
+                )
+
+                if (fromLocation && toLocation && !samePoint(fromLocation, toLocation)) {
+                    const leaveStart = 0.5
+                    const leaveDuration = 0.5
+                    const moveStart = leaveStart + leaveDuration
+
+                    move({
+                        object: this.element,
+                        timeline,
+                        location: offsetFromCenter(toLocation),
+                        ease: 'power1.inOut',
+                        duration: 0.3,
+                        position: moveStart
+                    })
+                }
+            }
             return
         }
 

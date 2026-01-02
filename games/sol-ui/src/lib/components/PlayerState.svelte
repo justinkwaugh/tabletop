@@ -119,13 +119,21 @@
                   ([playerId, sundivers]) => [playerId, sundivers.length] as const
               )
         // Player's own sundivers first
-        return holdSundivers
+        let sortedHoldSundivers = holdSundivers
             .filter(([, count]) => count > 0)
             .sort(([a], [b]) => {
                 const aVal = `${a === playerState.playerId ? 'a' : 'b'}:${a}`
                 const bVal = `${b === playerState.playerId ? 'a' : 'b'}:${b}`
                 return aVal.localeCompare(bVal)
             })
+
+        if (
+            sortedHoldSundivers.length === 0 ||
+            sortedHoldSundivers[0][0] !== playerState.playerId
+        ) {
+            sortedHoldSundivers = [[playerState.playerId, 0], ...sortedHoldSundivers]
+        }
+        return sortedHoldSundivers
     })
 
     function popOnChange(node: HTMLElement, value: number | string) {
@@ -232,35 +240,20 @@
                         <div
                             class="flex flex-row justify-start items-start gap-x-2 w-full mb-[-5px]"
                         >
-                            {#if holdDiversByPlayer.length === 0}
+                            {#each holdDiversByPlayer as [playerId, count] (playerId)}
                                 <div
                                     class="flex flex-col justify-center items-center gap-y-1"
-                                    use:popOnChange={0}
+                                    use:popOnChange={count}
                                 >
-                                    <div class="tracking-normal">0</div>
+                                    <div class="tracking-normal">{count}</div>
                                     <Sundiver
                                         width={25 * 0.75}
                                         height={25}
-                                        color={gameSession.colors.getPlayerColor(
-                                            playerState.playerId
-                                        )}
+                                        color={gameSession.colors.getPlayerColor(playerId)}
                                     />
                                 </div>
-                            {:else}
-                                {#each holdDiversByPlayer as [playerId, count] (playerId)}
-                                    <div
-                                        class="flex flex-col justify-center items-center gap-y-1"
-                                        use:popOnChange={count}
-                                    >
-                                        <div class="tracking-normal">{count}</div>
-                                        <Sundiver
-                                            width={25 * 0.75}
-                                            height={25}
-                                            color={gameSession.colors.getPlayerColor(playerId)}
-                                        />
-                                    </div>
-                                {/each}
-                            {/if}
+                            {/each}
+
                             <div
                                 class="flex flex-col justify-center items-center gap-y-1"
                                 use:popOnChange={energyCubes}

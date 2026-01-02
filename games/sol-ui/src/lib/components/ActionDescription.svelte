@@ -1,6 +1,6 @@
 <script lang="ts">
     import { isAggregatedMove, type AggregatedMove } from '$lib/aggregates/aggregatedMove.js'
-    import type { GameAction } from '@tabletop/common'
+    import { Player, type GameAction } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         Activate,
@@ -21,6 +21,8 @@
         isConvert,
         isDeconstruct,
         isDrawCards,
+        isHatch,
+        isMetamorphosize,
         isPass,
         isSolarFlare,
         PassContext,
@@ -263,6 +265,18 @@
             </li>
         {/each}
     </ul>
+{:else if isHatch(action)}
+    hatched 2 sundivers<br />
+    <PlayerName
+        fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+        playerId={action.metadata?.replacedSundiver.playerId}
+        additionalClasses={history ? '' : 'pt-[2px]'}
+        capitalization={history ? 'capitalize' : 'uppercase'}
+    /> recalled 1 sundiver
+{:else if isMetamorphosize(action)}
+    metamorphosized a {StationNames[action.metadata!.priorStation.type]} into a {StationNames[
+        action.metadata!.newStation.type
+    ]}
 {:else}
     {action.type}
 {/if}
