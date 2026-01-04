@@ -129,20 +129,21 @@
 
         <!-- <Sandbox /> -->
 
-        {#each gameSession.movingCubeIds as cubeId (cubeId)}
-            <g use:animateCube={{ animator: cubeAnimator, cubeId }}>
-                <g transform="translate(-17.5, -17.5)">
-                    <Cube width={35} height={35} />
+        {#each [...gates] as [key, gate] (key)}
+            {#if gate.innerCoords && gate.outerCoords}
+                <g class="pointer-events-none" use:animateGate={{ animator: gateAnimator, gate }}>
+                    <Gate
+                        color={gameSession.colors.getPlayerColor(gate.playerId)}
+                        position={getGatePosition(
+                            gameSession.numPlayers,
+                            gate.innerCoords,
+                            gate.outerCoords
+                        )}
+                    />
                 </g>
-            </g>
+            {/if}
         {/each}
-        {#each gameSession.movingMomentumIds as momentumId (momentumId)}
-            <g use:animateMomentum={{ animator: momentumAnimator, momentumId }}>
-                <g transform="translate(-26.25, -26.25)">
-                    <Pentagon width={52.5} height={52.5} />
-                </g>
-            </g>
-        {/each}
+
         {#if gameSession.movingStation}
             <g
                 use:animateStation={{
@@ -160,33 +161,35 @@
             </g>
         {/if}
 
-        {#each [...gates] as [key, gate] (key)}
-            {#if gate.innerCoords && gate.outerCoords}
-                <g class="pointer-events-none" use:animateGate={{ animator: gateAnimator, gate }}>
-                    <Gate
-                        color={gameSession.colors.getPlayerColor(gate.playerId)}
-                        position={getGatePosition(
-                            gameSession.numPlayers,
-                            gate.innerCoords,
-                            gate.outerCoords
-                        )}
-                    />
+        {#each gameSession.movingCubeIds as cubeId (cubeId)}
+            <g use:animateCube={{ animator: cubeAnimator, cubeId }}>
+                <g transform="translate(-17.5, -17.5)">
+                    <Cube width={35} height={35} />
                 </g>
-            {/if}
+            </g>
+        {/each}
+        {#each gameSession.movingMomentumIds as momentumId (momentumId)}
+            <g use:animateMomentum={{ animator: momentumAnimator, momentumId }}>
+                <g transform="translate(-26.25, -26.25)">
+                    <Pentagon width={52.5} height={52.5} />
+                </g>
+            </g>
         {/each}
 
         {#each gameSession.gameState.board as cell}
             <Cell {cell} />
         {/each}
+
         {#each gameSession.movingSundivers as sundiver (sundiver.id)}
             <g class="pointer-events-none">
                 <UISundiver
                     color={gameSession.colors.getPlayerColor(sundiver.playerId)}
-                    sundiverAnimator={sundiverAnimator}
+                    {sundiverAnimator}
                     sundiverId={sundiver.id}
                 />
             </g>
         {/each}
+
         {#each gatePositions as gate (gate.key)}
             <GateDestination {...gate} />
         {/each}
