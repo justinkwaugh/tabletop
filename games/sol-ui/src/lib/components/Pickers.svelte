@@ -23,7 +23,9 @@
     const chainEntryWithoutDiver = $derived(gameSession.chain?.find((entry) => !entry.sundiverId))
 </script>
 
-{#if gameSession.isHatching && gameSession.hatchLocation && !gameSession.hatchTarget}
+{#if gameSession.shouldPickCluster}
+    <ClusterPicker />
+{:else if gameSession.isHatching && gameSession.hatchLocation && !gameSession.hatchTarget}
     <HatchPicker />
 {:else if gameSession.isAccelerating && !gameSession.accelerationAmount}
     <AccelerationPicker />
@@ -44,9 +46,7 @@
 {:else if gameSession.isChaining && chainEntryWithoutDiver}
     <ChainSundiverPicker coords={chainEntryWithoutDiver.coords} />
 {/if}
-{#if gameSession.shouldPickCluster}
-    <ClusterPicker />
-{/if}
+
 {#if gameSession.shouldPickTeleport}
     <TeleportPicker />
 {/if}

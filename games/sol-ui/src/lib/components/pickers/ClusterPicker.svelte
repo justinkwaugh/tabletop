@@ -7,7 +7,17 @@
     let choiceMade = false
 
     function choose(cluster: boolean) {
+        const playerId = gameSession.myPlayer?.id
+        if (!playerId || gameSession.chosenSource === undefined) {
+            return
+        }
         gameSession.clusterChoice = cluster
+        if (cluster) {
+            gameSession.chosenNumDivers = gameSession.gameState.board.sundiversForPlayerAt(
+                playerId,
+                gameSession.chosenSource
+            ).length
+        }
         choiceMade = true
     }
 

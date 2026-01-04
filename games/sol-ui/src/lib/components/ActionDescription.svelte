@@ -204,8 +204,10 @@
     {/if}
 {:else if isActivateEffect(action)}
     applied the <span class={history ? 'capitalize' : 'uppercase'}>{action.effect}</span> effect
-    {#if action.effect === EffectType.Squeeze && hasActivateMetadata(action)}
-        <br />No cards need to be drawn.
+    {#if hasActivateMetadata(action)}
+        {#if action.effect === EffectType.Squeeze}
+            <br />No cards need to be drawn.
+        {/if}
         <ul class="ms-4 list-inside">
             {@render commonActivateMetadata(action)}
         </ul>

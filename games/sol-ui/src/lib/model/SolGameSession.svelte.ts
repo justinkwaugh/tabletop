@@ -100,10 +100,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     shouldPickCluster: boolean = $derived(
         this.myPlayer !== undefined &&
-            (this.chosenNumDivers ?? 0) > 1 &&
             this.chosenSource !== undefined &&
             this.gameState.activeEffect === EffectType.Cluster &&
             this.gameState.getEffectTracking().clustersRemaining > 0 &&
+            this.chosenNumDivers === undefined &&
             this.clusterChoice === undefined
     )
 
