@@ -116,6 +116,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
         if (state.activeEffect === EffectType.Synchronize) {
             playerState.momentum += 1
+            this.metadata.momentumAdded += 1
         }
     }
 

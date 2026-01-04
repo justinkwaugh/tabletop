@@ -236,12 +236,14 @@ export class SundiverAnimator extends StateAnimator<
         return holdMap
     }
 
-    private getCreatedSundiverArrivalTime(count: number): number {
+    private getCreatedSundiverArrivalTime(
+        count: number,
+        moveDuration: number = 0.5,
+        delayBetween: number = 0.2
+    ): number {
         if (count <= 0) {
             return 0
         }
-        const moveDuration = 0.5
-        const delayBetween = 0.2
         return moveDuration + delayBetween * (count - 1)
     }
 
@@ -630,16 +632,18 @@ export class SundiverAnimator extends StateAnimator<
         const isCreatedSundiver = createdIds.includes(this.id)
 
         if (isCreatedSundiver || isActivatingSundiver) {
-            this.animateCreatedSundivers(
-                createdIds,
-                activate.coords,
-                activate.playerId,
-                timeline,
-                toState,
-                fromState,
-                returnCount + createdCount,
-                -createdCount
-            )
+        this.animateCreatedSundivers(
+            createdIds,
+            activate.coords,
+            activate.playerId,
+            timeline,
+            toState,
+            fromState,
+            returnCount + createdCount,
+            -createdCount,
+            1,
+            0.2
+        )
         }
 
         if (!isActivatingSundiver) {
@@ -712,7 +716,9 @@ export class SundiverAnimator extends StateAnimator<
             toState,
             fromState,
             createdCount,
-            -createdCount
+            -createdCount,
+            1,
+            0.2
         )
     }
 
@@ -745,7 +751,9 @@ export class SundiverAnimator extends StateAnimator<
             toState,
             fromState,
             createdCount,
-            -createdCount
+            -createdCount,
+            1,
+            0.2
         )
     }
 
@@ -1236,12 +1244,17 @@ export class SundiverAnimator extends StateAnimator<
         toState: HydratedSolGameState,
         fromState?: HydratedSolGameState,
         holdDelta: number = 0,
-        reserveDelta: number = 0
+        reserveDelta: number = 0,
+        moveDuration: number = 0.5,
+        delayBetween: number = 0.2
     ) {
         const createdCount = createdSundiverIds.length
         const index = createdSundiverIds.indexOf(this.id)
         const returnTime = holdDelta > createdCount ? 0.5 : 0
-        const scheduleTime = Math.max(this.getCreatedSundiverArrivalTime(createdCount), returnTime)
+        const scheduleTime = Math.max(
+            this.getCreatedSundiverArrivalTime(createdCount, moveDuration, delayBetween),
+            returnTime
+        )
         const shouldSchedule = createdCount === 0 || index === createdCount - 1
 
         if (fromState && shouldSchedule) {
@@ -1262,7 +1275,7 @@ export class SundiverAnimator extends StateAnimator<
 
         const board = this.gameSession.gameState.board
 
-        let startOffset = index * 0.2
+        const startOffset = index * delayBetween
         const stationCell = board.cellAt(startCoords)
         const diverLocation = this.gameSession.locationForStationInCell(stationCell)
 
@@ -1292,7 +1305,7 @@ export class SundiverAnimator extends StateAnimator<
         move({
             object: this.element,
             location: offsetFromCenter(targetLocation),
-            duration: 0.5,
+            duration: moveDuration,
             ease: 'power2.in',
             timeline,
             position: startOffset

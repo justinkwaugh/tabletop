@@ -100,28 +100,41 @@ export class MomentumAnimator extends StateAnimator<
             return
         }
 
-        const stationId = isActivate(action) ? action.stationId : action.metadata?.stationId
-        if (!stationId) {
+        let stationCoords = isActivate(action) ? action.coords : action.metadata?.coords
+        if (!stationCoords) {
+            const stationId = isActivate(action) ? action.stationId : action.metadata?.stationId
+            if (!stationId) {
+                return
+            }
+            stationCoords = fromState.board.findStation(stationId)?.coords
+        }
+        if (!stationCoords) {
             return
         }
 
-        const station = fromState.board.findStation(stationId)
-        if (!station || station.type !== StationType.TransmitTower || !station.coords) {
-            return
-        }
-
-        const stationCell = fromState.board.cellAt(station.coords)
+        const stationCell = fromState.board.cellAt(stationCoords)
         const stationLocation = this.gameSession.locationForStationInCell(stationCell)
         if (!stationLocation) {
             return
         }
+
+        const awardMoveDuration = 1
+        const awardDelayBetween = 0.2
+        const energyCount = Math.max(0, action.metadata?.energyAdded ?? 0)
+        const createdCount = action.metadata?.createdSundiverIds?.length ?? 0
+        const energyDuration =
+            energyCount > 0 ? awardMoveDuration + awardDelayBetween * (energyCount - 1) : 0
+        const createdDuration =
+            createdCount > 0 ? awardMoveDuration + awardDelayBetween * (createdCount - 1) : 0
+        const startDelay = Math.max(energyDuration, createdDuration)
 
         await this.animateMomentumFromLocation(
             action.playerId,
             numMomentum,
             stationLocation,
             timeline,
-            fromState
+            fromState,
+            startDelay
         )
     }
 
@@ -481,7 +494,8 @@ export class MomentumAnimator extends StateAnimator<
         numMomentum: number,
         startLocation: Point,
         timeline: gsap.core.Timeline,
-        fromState: HydratedSolGameState
+        fromState: HydratedSolGameState,
+        startDelay: number = 0
     ) {
         this.gameSession.movingMomentumIds = range(0, numMomentum).map(() => nanoid())
         await tick()
@@ -490,7 +504,7 @@ export class MomentumAnimator extends StateAnimator<
         const moveDuration = 1
         const scaleDuration = 0.1
         const moveOffset = scaleDuration / 2
-        const startTime = 0
+        const startTime = startDelay
 
         const pentagonElements = Array.from(this.pentagons.values())
         for (const pentagon of pentagonElements) {
