@@ -13,6 +13,7 @@ import {
     Metamorphosize,
     Station,
     StationType,
+    type Cell,
     type SolGameState
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
@@ -30,6 +31,7 @@ import { tick } from 'svelte'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { getFlightDuration, getFlightPath } from '$lib/utils/flight.js'
+import { getCellLayout } from '$lib/utils/cellLayouts.js'
 
 export class CellStationAnimator extends StateAnimator<
     SolGameState,
@@ -66,6 +68,13 @@ export class CellStationAnimator extends StateAnimator<
 
     setClipRect(clipRect?: SVGRectElement): void {
         this.clipRect = clipRect
+    }
+
+    private getStationLocation(
+        cell: Cell,
+        board: HydratedSolGameState['board']
+    ): Point | undefined {
+        return getCellLayout(cell, this.gameSession.numPlayers, board).station?.point
     }
 
     override async onGameStateChange({
@@ -111,7 +120,7 @@ export class CellStationAnimator extends StateAnimator<
             } else if (toStation && !fromStation) {
                 if (isFallback) {
                     if (this.callback) {
-                        this.callback(toStation, this.gameSession.locationForStationInCell(toCell))
+                        this.callback(toStation, this.getStationLocation(toCell, toBoard))
                     }
                     await tick()
                     if (toStation.id !== this.station?.id) {
@@ -126,9 +135,9 @@ export class CellStationAnimator extends StateAnimator<
                         duration: appearDuration
                     })
                 }
-            } else if (fromCell && toCell) {
-                const fromLocation = this.gameSession.locationForStationInCell(fromCell)
-                const toLocation = this.gameSession.locationForStationInCell(toCell)
+            } else if (fromBoard && fromCell && toCell) {
+                const fromLocation = this.getStationLocation(fromCell, fromBoard)
+                const toLocation = this.getStationLocation(toCell, toBoard)
                 if (!samePoint(fromLocation, toLocation)) {
                     move({
                         object: this.element,
@@ -153,9 +162,13 @@ export class CellStationAnimator extends StateAnimator<
             return
         }
 
-        const location = this.gameSession.locationForStationInCell(
-            toState.board.cellAt(this.coords)
+        const location = this.getStationLocation(
+            toState.board.cellAt(this.coords),
+            toState.board
         )
+        if (!location) {
+            return
+        }
 
         // Trigger rendering/attachment of the converted station
         if (this.callback) {
@@ -168,21 +181,42 @@ export class CellStationAnimator extends StateAnimator<
             return
         }
 
-        gsap.set(this.element!, {
-            opacity: 0
-        })
-        const revealStart = 0.4
-        const revealDuration = 0.5
-        animate({
-            object: this.element!,
-            params: {
-                opacity: 1
-            },
-            timeline,
-            duration: revealDuration,
-            ease: 'power1.in',
-            position: revealStart
-        })
+        const offsetLocation = offsetFromCenter(location)
+        gsap.set(this.element!, { x: offsetLocation.x, y: offsetLocation.y })
+
+        const hasClip = Boolean(this.clipRect)
+        const approachDuration = 0.5
+        const revealStart = approachDuration
+        const revealDuration = hasClip ? 1 : 0.3
+        if (hasClip && this.clipRect) {
+            gsap.set(this.element!, { opacity: 1 })
+            gsap.set(this.clipRect, { attr: { y: 1, height: 0 } })
+            animate({
+                object: this.clipRect,
+                params: {
+                    attr: {
+                        y: 0,
+                        height: 1
+                    }
+                },
+                timeline,
+                duration: revealDuration,
+                ease: 'power2.in',
+                position: revealStart
+            })
+        } else {
+            gsap.set(this.element!, { opacity: 0 })
+            animate({
+                object: this.element!,
+                params: {
+                    opacity: 1
+                },
+                timeline,
+                duration: revealDuration,
+                ease: 'power1.in',
+                position: revealStart
+            })
+        }
 
         this.scheduleStationReserveOverrideAt(
             action.playerId,
@@ -213,7 +247,7 @@ export class CellStationAnimator extends StateAnimator<
         if (isStart) {
             const board = fromState.board
             const startCell = board.cellAt(action.start)
-            const startLocation = this.gameSession.locationForStationInCell(startCell)
+            const startLocation = this.getStationLocation(startCell, board)
 
             if (!startLocation) {
                 return
@@ -226,7 +260,7 @@ export class CellStationAnimator extends StateAnimator<
             // console.log('Animating destination for station:', this.station?.id)
             const board = toState.board
             const destCell = board.cellAt(action.destination)
-            const destLocation = this.gameSession.locationForStationInCell(destCell)
+            const destLocation = this.getStationLocation(destCell, board)
 
             if (!destLocation) {
                 return
@@ -312,7 +346,7 @@ export class CellStationAnimator extends StateAnimator<
         call({
             callback: () => {
                 if (this.callback) {
-                    this.callback(newStation, this.gameSession.locationForStationInCell(newCell))
+                    this.callback(newStation, this.getStationLocation(newCell, toState.board))
                 }
 
                 tick()
@@ -401,7 +435,7 @@ export class CellStationAnimator extends StateAnimator<
         call({
             callback: () => {
                 if (this.callback) {
-                    this.callback(newStation, this.gameSession.locationForStationInCell(toCell))
+                    this.callback(newStation, this.getStationLocation(toCell, toState.board))
                 }
 
                 tick()
