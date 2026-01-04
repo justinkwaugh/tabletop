@@ -49,12 +49,15 @@ export class HydratedTribute extends HydratableAction<typeof Tribute> implements
 
         const playerState = state.getPlayerState(this.playerId)
         for (const otherPlayerId of otherPlayers) {
+            const numSundivers = state.board.sundiversForPlayerAt(otherPlayerId, this.coords).length
             const otherPlayerState = state.getPlayerState(otherPlayerId)
-            if (otherPlayerState.energyCubes > 0) {
-                otherPlayerState.energyCubes -= 1
-                playerState.energyCubes += 1
+            const payment = Math.min(numSundivers, otherPlayerState.energyCubes)
+
+            if (payment > 0) {
+                otherPlayerState.energyCubes -= payment
+                playerState.energyCubes += payment
                 this.metadata.payments[otherPlayerId] =
-                    this.metadata.payments[otherPlayerId] ?? 0 + 1
+                    (this.metadata.payments[otherPlayerId] ?? 0) + payment
             }
         }
     }

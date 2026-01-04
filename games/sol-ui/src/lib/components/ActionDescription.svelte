@@ -26,6 +26,7 @@
         isMetamorphosize,
         isPass,
         isSolarFlare,
+        isTribute,
         PassContext,
         StationType
     } from '@tabletop/sol'
@@ -303,6 +304,18 @@
                 : 's'}
         </li>
     </ul>
+{:else if isTribute(action)}
+    collected tributes
+    {#each Object.entries(action.metadata?.payments ?? {}) as [playerId, amount] (playerId)}
+        <div class="ms-4">
+            <PlayerName
+                fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                {playerId}
+                additionalClasses={history ? '' : 'pt-[2px]'}
+                capitalization={history ? 'capitalize' : 'uppercase'}
+            /> paid {amount} energy
+        </div>
+    {/each}
 {:else}
     {action.type}
 {/if}
