@@ -7,7 +7,7 @@
     import boardImg5p from '$lib/images/board5p.jpg'
     import Sandbox from './Sandbox.svelte'
     import Mothership from './Mothership.svelte'
-    import { Direction, gateKey, Ring, SolarGate, type Sundiver } from '@tabletop/sol'
+    import { Direction, gateKey, Ring, SolarGate } from '@tabletop/sol'
     import UISundiver from './Sundiver.svelte'
     import { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
     import {
@@ -35,12 +35,6 @@
 
     let gameSession = getContext('gameSession') as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
-
-    // Non-reactive map of sundivers by ID for rendering sundiver movement
-    const sundiversById: Map<string, Sundiver> = new Map()
-    for (const diver of gameSession.gameState.getAllSundivers()) {
-        sundiversById.set(diver.id, diver)
-    }
 
     const gates = $derived.by(() => {
         let entries: [number, SolarGate][] = Object.entries(gameSession.gameState.board.gates).map(
@@ -94,6 +88,9 @@
         }
     })
     gateAnimator.register()
+
+    const sundiverAnimator = new SundiverAnimator(gameSession)
+    sundiverAnimator.register()
 
     const cellsToOutline = $derived.by(() => {
         return gameSession.outlinedCells
@@ -181,11 +178,12 @@
         {#each gameSession.gameState.board as cell}
             <Cell {cell} />
         {/each}
-        {#each [...sundiversById] as [, sundiver] (sundiver.id)}
+        {#each gameSession.movingSundivers as sundiver (sundiver.id)}
             <g class="pointer-events-none">
                 <UISundiver
                     color={gameSession.colors.getPlayerColor(sundiver.playerId)}
-                    animator={new SundiverAnimator(gameSession, sundiver.id)}
+                    sundiverAnimator={sundiverAnimator}
+                    sundiverId={sundiver.id}
                 />
             </g>
         {/each}

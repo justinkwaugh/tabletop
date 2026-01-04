@@ -53,6 +53,7 @@ import { fadeOut, move, scale, path, fadeIn } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { getFlightDuration, getFlightPath, getFlightPaths } from '$lib/utils/flight.js'
+import { tick } from 'svelte'
 import {
     CHAIN_MOMENTUM_MOVE_DURATION,
     CHAIN_MOMENTUM_STAGGER,
@@ -67,10 +68,9 @@ export class SundiverAnimator extends StateAnimator<
     SolGameSession
 > {
     private quantityCallback?: SetQuantityCallback
-    constructor(
-        gameSession: SolGameSession,
-        private id: string
-    ) {
+    private elements = new Map<string, HTMLElement | SVGElement>()
+
+    constructor(gameSession: SolGameSession) {
         super(gameSession)
     }
 
@@ -78,10 +78,13 @@ export class SundiverAnimator extends StateAnimator<
         this.quantityCallback = callback
     }
 
-    override onAttach(): void {
-        if (this.element) {
-            gsap.set(this.element, { opacity: 0 })
-        }
+    addSundiver(id: string, element: HTMLElement | SVGElement): void {
+        this.elements.set(id, element)
+        gsap.set(element, { opacity: 0 })
+    }
+
+    removeSundiver(id: string): void {
+        this.elements.delete(id)
     }
 
     override async onGameStateChange({
@@ -95,26 +98,175 @@ export class SundiverAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        if (!this.element) {
+        if (!action && !from) {
             return
         }
 
-        if (action) {
-            this.animateAction(action, animationContext.actionTimeline, to, from)
-            return
-        }
-        if (!from) {
+        const fromMap = this.buildSundiverMap(from)
+        const toMap = this.buildSundiverMap(to)
+
+        const sundiverIds = action
+            ? this.collectActionSundiverIds(action, from)
+            : this.collectFallbackSundiverIds(to, from!, toMap, fromMap)
+        if (sundiverIds.length === 0) {
             return
         }
 
-        const toSundiver = Array.from(to.getAllSundivers()).find((diver) => diver.id === this.id)
-        const fromSundiver = Array.from(from.getAllSundivers()).find(
-            (diver) => diver.id === this.id
-        )
-
-        if (!toSundiver || !fromSundiver) {
+        const movingSundivers = sundiverIds
+            .map((id) => fromMap.get(id) ?? toMap.get(id))
+            .filter((sundiver): sundiver is Sundiver => Boolean(sundiver))
+        if (movingSundivers.length === 0) {
             return
         }
+
+        this.gameSession.movingSundivers = movingSundivers
+        await tick()
+
+        for (const sundiver of movingSundivers) {
+            const element = this.elements.get(sundiver.id)
+            if (!element) {
+                continue
+            }
+            if (action) {
+                this.animateAction(
+                    action,
+                    animationContext.actionTimeline,
+                    to,
+                    from,
+                    sundiver.id,
+                    element
+                )
+            } else if (from) {
+                const fromSundiver = fromMap.get(sundiver.id)
+                const toSundiver = toMap.get(sundiver.id)
+                if (!fromSundiver || !toSundiver) {
+                    continue
+                }
+                this.animateFallbackMove(
+                    to,
+                    from,
+                    toSundiver,
+                    fromSundiver,
+                    animationContext.actionTimeline,
+                    element
+                )
+            }
+        }
+
+        animationContext.afterAnimations(() => {
+            this.gameSession.movingSundivers = []
+        })
+    }
+
+    private buildSundiverMap(state?: HydratedSolGameState): Map<string, Sundiver> {
+        const map = new Map<string, Sundiver>()
+        if (!state) {
+            return map
+        }
+        for (const diver of state.getAllSundivers()) {
+            map.set(diver.id, diver)
+        }
+        return map
+    }
+
+    private collectActionSundiverIds(action: GameAction, fromState?: HydratedSolGameState): string[] {
+        const ids: string[] = []
+
+        if (isLaunch(action)) {
+            ids.push(...(action.metadata?.sundiverIds ?? []))
+        } else if (isFly(action) || isHurl(action)) {
+            ids.push(...action.sundiverIds)
+        } else if (isActivate(action)) {
+            if (action.metadata?.sundiverId) {
+                ids.push(action.metadata.sundiverId)
+            }
+            ids.push(...(action.metadata?.createdSundiverIds ?? []))
+        } else if (isActivateBonus(action)) {
+            ids.push(...(action.metadata?.createdSundiverIds ?? []))
+        } else if (isActivateEffect(action)) {
+            if (
+                (action.effect === EffectType.Squeeze || action.effect === EffectType.Augment) &&
+                action.metadata?.coords
+            ) {
+                ids.push(...(action.metadata?.createdSundiverIds ?? []))
+            }
+        } else if (isDrawCards(action)) {
+            if (fromState?.activeEffect === EffectType.Squeeze && action.metadata?.coords) {
+                ids.push(...(action.metadata?.createdSundiverIds ?? []))
+            }
+        } else if (isHatch(action)) {
+            if (action.metadata?.replacedSundiver) {
+                ids.push(action.metadata.replacedSundiver.id)
+            }
+        } else if (isConvert(action)) {
+            ids.push(...action.sundiverIds)
+        } else if (isBlight(action)) {
+            if (action.metadata?.sundiverId && fromState) {
+                ids.push(action.metadata.sundiverId)
+                const reserveIds = fromState
+                    .getPlayerState(action.playerId)
+                    .reserveSundivers.slice(0, 3)
+                    .map((diver) => diver.id)
+                ids.push(...reserveIds)
+            }
+        } else if (isChain(action)) {
+            action.chain.forEach((entry, index) => {
+                if (entry.sundiverId && index % 2 === 0) {
+                    ids.push(entry.sundiverId)
+                }
+            })
+        } else if (isInvade(action)) {
+            ids.push(...(action.metadata?.removedSundiverIds ?? []))
+        }
+
+        const seen = new Set<string>()
+        const unique: string[] = []
+        for (const id of ids) {
+            if (seen.has(id)) {
+                continue
+            }
+            seen.add(id)
+            unique.push(id)
+        }
+        return unique
+    }
+
+    private collectFallbackSundiverIds(
+        toState: HydratedSolGameState,
+        fromState: HydratedSolGameState,
+        toMap: Map<string, Sundiver>,
+        fromMap: Map<string, Sundiver>
+    ): string[] {
+        const ids: string[] = []
+        for (const [id, fromSundiver] of fromMap) {
+            const toSundiver = toMap.get(id)
+            if (!toSundiver) {
+                continue
+            }
+            if (toSundiver.hold && fromSundiver.hold && toSundiver.hold === fromSundiver.hold) {
+                continue
+            }
+            if (toSundiver.reserve && fromSundiver.reserve) {
+                continue
+            }
+            const toLocation = this.getFallbackLocation(toState, toSundiver)
+            const fromLocation = this.getFallbackLocation(fromState, fromSundiver)
+            if (!toLocation || !fromLocation || samePoint(toLocation, fromLocation)) {
+                continue
+            }
+            ids.push(id)
+        }
+        return ids
+    }
+
+    private animateFallbackMove(
+        toState: HydratedSolGameState,
+        fromState: HydratedSolGameState,
+        toSundiver: Sundiver,
+        fromSundiver: Sundiver,
+        timeline: gsap.core.Timeline,
+        element: HTMLElement | SVGElement
+    ) {
         if (toSundiver.hold && fromSundiver.hold && toSundiver.hold === fromSundiver.hold) {
             return
         }
@@ -122,32 +274,32 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
-        const toLocation = this.getFallbackLocation(to, toSundiver)
-        const fromLocation = this.getFallbackLocation(from, fromSundiver)
+        const toLocation = this.getFallbackLocation(toState, toSundiver)
+        const fromLocation = this.getFallbackLocation(fromState, fromSundiver)
 
         if (!toLocation || !fromLocation || samePoint(toLocation, fromLocation)) {
             return
         }
 
-        gsap.set(this.element, {
+        gsap.set(element, {
             opacity: 1,
             x: offsetFromCenter(fromLocation).x,
             y: offsetFromCenter(fromLocation).y
         })
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(toLocation),
             duration: 0.2,
             ease: 'power1.inOut',
-            timeline: animationContext.actionTimeline,
+            timeline,
             position: 0
         })
 
         fadeOut({
-            object: this.element,
+            object: element,
             duration: 0.1,
-            timeline: animationContext.actionTimeline,
+            timeline,
             position: '>'
         })
     }
@@ -253,30 +405,53 @@ export class SundiverAnimator extends StateAnimator<
         action: GameAction,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (isConvert(action)) {
-            this.animateConvertAction(action, timeline, toState, fromState)
+            this.animateConvertAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isActivate(action)) {
-            this.animateActivateAction(action, timeline, toState, fromState)
+            this.animateActivateAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isActivateBonus(action)) {
-            this.animateActivateBonusAction(action, timeline, toState, fromState)
+            this.animateActivateBonusAction(
+                action,
+                timeline,
+                toState,
+                fromState,
+                sundiverId,
+                element
+            )
         } else if (isLaunch(action)) {
-            this.animateLaunchAction(action, timeline, toState, fromState)
+            this.animateLaunchAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isFly(action) || isHurl(action)) {
-            this.animateFlyOrHurlAction(action, timeline, toState, fromState)
+            this.animateFlyOrHurlAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isActivateEffect(action)) {
-            this.animateActivateEffectAction(action, timeline, toState, fromState)
+            this.animateActivateEffectAction(
+                action,
+                timeline,
+                toState,
+                fromState,
+                sundiverId,
+                element
+            )
         } else if (isDrawCards(action)) {
-            this.animateDrawCardsAction(action, timeline, toState, fromState)
+            this.animateDrawCardsAction(
+                action,
+                timeline,
+                toState,
+                fromState,
+                sundiverId,
+                element
+            )
         } else if (isHatch(action)) {
-            this.animateHatchAction(action, timeline, toState, fromState)
+            this.animateHatchAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isBlight(action)) {
-            this.animateBlightAction(action, timeline, toState, fromState)
+            this.animateBlightAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isChain(action)) {
-            this.animateChainAction(action, timeline, toState, fromState)
+            this.animateChainAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isInvade(action)) {
-            this.animateInvadeAction(action, timeline, toState, fromState)
+            this.animateInvadeAction(action, timeline, toState, fromState, sundiverId, element)
         }
     }
 
@@ -284,9 +459,11 @@ export class SundiverAnimator extends StateAnimator<
         launch: Launch,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
-        const launchIndex = launch.metadata?.sundiverIds.indexOf(this.id)
+        const launchIndex = launch.metadata?.sundiverIds.indexOf(sundiverId)
         if (launchIndex === undefined || launchIndex < 0) {
             return
         }
@@ -317,7 +494,7 @@ export class SundiverAnimator extends StateAnimator<
         const delayBetween = 0.3
 
         // Appear... move... disappear
-        gsap.set(this.element!, {
+        gsap.set(element, {
             opacity: 1,
             scale: 0,
             x: offsetFromCenter(diverLocation).x,
@@ -325,7 +502,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         scale({
-            object: this.element,
+            object: element,
             to: 1,
             duration: 0.1,
             ease: 'power2.in',
@@ -334,7 +511,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(targetLocation),
             duration: moveDuration,
             ease: 'power2.out',
@@ -342,7 +519,7 @@ export class SundiverAnimator extends StateAnimator<
             position: launchIndex * delayBetween
         })
         fadeOut({
-            object: this.element,
+            object: element,
             duration: 0,
             timeline,
             position: '>'
@@ -353,12 +530,14 @@ export class SundiverAnimator extends StateAnimator<
         fly: Fly | Hurl,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (!fromState) {
             return
         }
-        const index = fly.sundiverIds.indexOf(this.id)
+        const index = fly.sundiverIds.indexOf(sundiverId)
         if (index === -1) {
             return
         }
@@ -404,7 +583,7 @@ export class SundiverAnimator extends StateAnimator<
             const approachOffset = offsetFromCenter(approachPoint)
 
             timeline.set(
-                this.element!,
+                element,
                 {
                     opacity: 1,
                     transformOrigin: '50% 50%',
@@ -416,7 +595,7 @@ export class SundiverAnimator extends StateAnimator<
             )
 
             move({
-                object: this.element,
+                object: element,
                 location: approachOffset,
                 duration: approachDuration,
                 ease: 'power1.inOut',
@@ -425,13 +604,13 @@ export class SundiverAnimator extends StateAnimator<
             })
 
             const scaleTarget =
-                (this.element?.firstElementChild as SVGElement | HTMLElement | null) ??
-                this.element!
+                (element.firstElementChild as SVGElement | HTMLElement | null) ?? element
             gsap.set(scaleTarget, {
                 transformOrigin: '50% 50%',
                 transformBox: 'fill-box'
             })
 
+            const jitterElement = element
             const jitterState = { progress: 0 }
             timeline.add(
                 gsap.to(jitterState, {
@@ -442,13 +621,13 @@ export class SundiverAnimator extends StateAnimator<
                         const elapsed = jitterState.progress * jitterDuration
                         const rampProgress = Math.min(1, elapsed / jitterRampDuration)
                         const amp = jitterMaxOffset * (0.2 + 0.8 * rampProgress)
-                        gsap.set(this.element!, {
+                        gsap.set(jitterElement, {
                             x: approachOffset.x + gsap.utils.random(-amp, amp),
                             y: approachOffset.y + gsap.utils.random(-amp, amp)
                         })
                     },
                     onComplete: () => {
-                        gsap.set(this.element!, {
+                        gsap.set(jitterElement, {
                             x: approachOffset.x,
                             y: approachOffset.y
                         })
@@ -458,7 +637,7 @@ export class SundiverAnimator extends StateAnimator<
             )
 
             move({
-                object: this.element,
+                object: element,
                 location: offsetFromCenter(finalGateLocation),
                 duration: burstDuration,
                 ease: 'power2.in',
@@ -476,7 +655,7 @@ export class SundiverAnimator extends StateAnimator<
             })
 
             fadeOut({
-                object: this.element!,
+                object: element,
                 duration: 0.1,
                 timeline,
                 position: burstStart + burstDuration
@@ -524,7 +703,7 @@ export class SundiverAnimator extends StateAnimator<
 
             // Appear... move... disappear
             timeline.set(
-                this.element!,
+                element,
                 {
                     opacity: 1,
                     x: offsetFromCenter(startLocation).x,
@@ -535,13 +714,13 @@ export class SundiverAnimator extends StateAnimator<
 
             if (fly.teleport) {
                 fadeOut({
-                    object: this.element,
+                    object: element,
                     duration: 0.3,
                     timeline,
                     position: flightStart + 0.2
                 })
                 fadeIn({
-                    object: this.element,
+                    object: element,
                     duration: 0.3,
                     timeline,
                     position: flightStart + flightDuration - 0.5
@@ -549,7 +728,7 @@ export class SundiverAnimator extends StateAnimator<
             }
 
             path({
-                object: this.element,
+                object: element,
                 path: pathPoints.map((loc) => offsetFromCenter(loc)),
                 curviness: 1,
                 duration: flightDuration,
@@ -561,14 +740,14 @@ export class SundiverAnimator extends StateAnimator<
             if (samePoint(pathPoints.at(-1), { x: 0, y: 0 })) {
                 // Special case for center space - just fade out
                 fadeOut({
-                    object: this.element!,
+                    object: element,
                     duration: 0.3,
                     timeline,
                     position: '>'
                 })
             } else {
                 timeline.set(
-                    this.element!,
+                    element,
                     {
                         opacity: 0
                     },
@@ -583,13 +762,15 @@ export class SundiverAnimator extends StateAnimator<
         action: Hatch,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (!fromState || !action.metadata?.replacedSundiver) {
             return
         }
 
-        if (action.metadata.replacedSundiver.id !== this.id) {
+        if (action.metadata.replacedSundiver.id !== sundiverId) {
             return
         }
 
@@ -620,14 +801,14 @@ export class SundiverAnimator extends StateAnimator<
 
         const leaveStart = 0.5
 
-        gsap.set(this.element!, {
+        gsap.set(element, {
             opacity: 1,
             x: offsetFromCenter(startLocation).x,
             y: offsetFromCenter(startLocation).y
         })
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(targetLocation),
             duration: 0.5,
             ease: 'power2.in',
@@ -636,7 +817,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         fadeOut({
-            object: this.element!,
+            object: element,
             duration: 0.1,
             timeline,
             position: '>'
@@ -647,12 +828,14 @@ export class SundiverAnimator extends StateAnimator<
         convert: Convert,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
-        if (!convert.sundiverIds.includes(this.id)) {
+        if (!convert.sundiverIds.includes(sundiverId)) {
             return
         }
-        if (fromState && convert.sundiverIds[0] === this.id) {
+        if (fromState && convert.sundiverIds[0] === sundiverId) {
             const revealDuration = convert.isGate ? 0.5 : 1
             const revealStart = convert.isGate ? 0 : 0.5
             if (fromState.activeEffect === EffectType.Cascade) {
@@ -701,7 +884,7 @@ export class SundiverAnimator extends StateAnimator<
                 return
             }
 
-            const diverCoords = fromBoard.findSundiverCoords(this.id)
+            const diverCoords = fromBoard.findSundiverCoords(sundiverId)
             if (!diverCoords) {
                 return
             }
@@ -738,7 +921,7 @@ export class SundiverAnimator extends StateAnimator<
                           { x: stationLocation.x + offsetX, y: sideTopY }
                       ]
 
-            const targetIndex = convert.sundiverIds.indexOf(this.id)
+            const targetIndex = convert.sundiverIds.indexOf(sundiverId)
             const target = positions[targetIndex] ?? positions[0]
             initialLocation = diverLocation
             approachTarget = { x: target.x, y: target.y + stationHeight }
@@ -746,7 +929,7 @@ export class SundiverAnimator extends StateAnimator<
             approachDuration = revealStart
             moveDuration = revealDuration
         } else if (convert.innerCoords && convert.coords) {
-            const diverCoords = fromBoard.findSundiverCoords(this.id)
+            const diverCoords = fromBoard.findSundiverCoords(sundiverId)
             const diverCell = fromBoard.cellAt(diverCoords!)
             const diverLocation = this.gameSession.locationForDiverInCell(
                 convert.playerId,
@@ -770,7 +953,7 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         // Appear... move... disappear
-        gsap.set(this.element!, {
+        gsap.set(element, {
             opacity: 1,
             x: offsetFromCenter(initialLocation).x,
             y: offsetFromCenter(initialLocation).y
@@ -778,7 +961,7 @@ export class SundiverAnimator extends StateAnimator<
 
         if (approachTarget && approachDuration > 0) {
             move({
-                object: this.element,
+                object: element,
                 location: offsetFromCenter(approachTarget),
                 duration: approachDuration,
                 ease: 'none',
@@ -788,7 +971,7 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(targetLocation),
             duration: moveDuration,
             ease: 'power2.in',
@@ -802,10 +985,10 @@ export class SundiverAnimator extends StateAnimator<
                 convert.playerId
             )
 
-            const index = convert.sundiverIds.indexOf(this.id)
+            const index = convert.sundiverIds.indexOf(sundiverId)
             if (targetLocation) {
                 move({
-                    object: this.element,
+                    object: element,
                     location: offsetFromCenter(targetLocation),
                     duration: 0.5,
                     ease: 'power2.in',
@@ -816,7 +999,7 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         fadeOut({
-            object: this.element!,
+            object: element,
             duration: 0.1,
             timeline,
             position: '>'
@@ -827,7 +1010,9 @@ export class SundiverAnimator extends StateAnimator<
         activate: Activate,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (!fromState || !activate.metadata) {
             return
@@ -836,8 +1021,8 @@ export class SundiverAnimator extends StateAnimator<
         const createdIds = activate.metadata.createdSundiverIds ?? []
         const createdCount = createdIds.length
         const returnCount = activate.metadata.sundiverId ? 1 : 0
-        const isActivatingSundiver = activate.metadata.sundiverId === this.id
-        const isCreatedSundiver = createdIds.includes(this.id)
+        const isActivatingSundiver = activate.metadata.sundiverId === sundiverId
+        const isCreatedSundiver = createdIds.includes(sundiverId)
 
         if (isCreatedSundiver || isActivatingSundiver) {
         this.animateCreatedSundivers(
@@ -847,6 +1032,8 @@ export class SundiverAnimator extends StateAnimator<
             timeline,
             toState,
             fromState,
+            sundiverId,
+            element,
             returnCount + createdCount,
             -createdCount,
             1,
@@ -865,7 +1052,7 @@ export class SundiverAnimator extends StateAnimator<
         let startOffset = 0
 
         // Activating sundiver starts in cell
-        const diverCoords = fromBoard.findSundiverCoords(this.id)
+        const diverCoords = fromBoard.findSundiverCoords(sundiverId)
         const diverCell = fromBoard.cellAt(diverCoords!)
         diverLocation = this.gameSession.locationForDiverInCell(activate.playerId, diverCell)
 
@@ -876,7 +1063,7 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         // Appear... move... disappear
-        gsap.set(this.element!, {
+        gsap.set(element, {
             opacity: 1,
             scale: isActivatingSundiver ? 1 : 0,
             x: offsetFromCenter(diverLocation).x,
@@ -884,7 +1071,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(targetLocation),
             duration: 0.5,
             ease: 'power2.in',
@@ -893,7 +1080,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         fadeOut({
-            object: this.element!,
+            object: element,
             duration: 0.1,
             timeline,
             position: '>'
@@ -904,7 +1091,9 @@ export class SundiverAnimator extends StateAnimator<
         activateBonus: ActivateBonus,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (!activateBonus.metadata) {
             return
@@ -912,7 +1101,7 @@ export class SundiverAnimator extends StateAnimator<
         const createdIds = activateBonus.metadata.createdSundiverIds ?? []
         const createdCount = createdIds.length
 
-        if (!createdIds.includes(this.id)) {
+        if (!createdIds.includes(sundiverId)) {
             return
         }
 
@@ -923,6 +1112,8 @@ export class SundiverAnimator extends StateAnimator<
             timeline,
             toState,
             fromState,
+            sundiverId,
+            element,
             createdCount,
             -createdCount,
             1,
@@ -934,7 +1125,9 @@ export class SundiverAnimator extends StateAnimator<
         action: ActivateEffect,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (action.effect !== EffectType.Squeeze && action.effect !== EffectType.Augment) {
             return
@@ -947,7 +1140,7 @@ export class SundiverAnimator extends StateAnimator<
         const createdIds = action.metadata.createdSundiverIds ?? []
         const createdCount = createdIds.length
 
-        if (!createdIds.includes(this.id)) {
+        if (!createdIds.includes(sundiverId)) {
             return
         }
 
@@ -958,6 +1151,8 @@ export class SundiverAnimator extends StateAnimator<
             timeline,
             toState,
             fromState,
+            sundiverId,
+            element,
             createdCount,
             -createdCount,
             1,
@@ -969,7 +1164,9 @@ export class SundiverAnimator extends StateAnimator<
         action: DrawCards,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (fromState?.activeEffect !== EffectType.Squeeze) {
             return
@@ -982,7 +1179,7 @@ export class SundiverAnimator extends StateAnimator<
         const createdIds = action.metadata.createdSundiverIds ?? []
         const createdCount = createdIds.length
 
-        if (!createdIds.includes(this.id)) {
+        if (!createdIds.includes(sundiverId)) {
             return
         }
 
@@ -993,6 +1190,8 @@ export class SundiverAnimator extends StateAnimator<
             timeline,
             toState,
             fromState,
+            sundiverId,
+            element,
             createdCount,
             -createdCount
         )
@@ -1002,7 +1201,9 @@ export class SundiverAnimator extends StateAnimator<
         action: Blight,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (!fromState || !action.metadata?.sundiverId) {
             return
@@ -1012,8 +1213,8 @@ export class SundiverAnimator extends StateAnimator<
         const reserveDivers = fromState.getPlayerState(action.playerId).reserveSundivers
         const reserveIds = reserveDivers.slice(0, 3).map((diver) => diver.id)
 
-        const isActivating = this.id === activatingId
-        const reserveIndex = reserveIds.indexOf(this.id)
+        const isActivating = sundiverId === activatingId
+        const reserveIndex = reserveIds.indexOf(sundiverId)
         const isReserveDiver = reserveIndex >= 0
 
         if (!isActivating && !isReserveDiver) {
@@ -1056,7 +1257,7 @@ export class SundiverAnimator extends StateAnimator<
                 return
             }
 
-            gsap.set(this.element!, {
+            gsap.set(element, {
                 opacity: 1,
                 x: offsetFromCenter(diverLocation).x,
                 y: offsetFromCenter(diverLocation).y
@@ -1064,7 +1265,7 @@ export class SundiverAnimator extends StateAnimator<
 
             if (dropPoints.length > 0) {
                 move({
-                    object: this.element,
+                    object: element,
                     location: offsetFromCenter(dropPoints[0]),
                     duration: approachDuration,
                     ease: 'power2.inOut',
@@ -1086,7 +1287,7 @@ export class SundiverAnimator extends StateAnimator<
                         })
                     }
                     path({
-                        object: this.element,
+                        object: element,
                         path: arcPoints.map((point) => offsetFromCenter(point)),
                         curviness: 1,
                         duration: orbitDuration,
@@ -1098,7 +1299,7 @@ export class SundiverAnimator extends StateAnimator<
             }
 
             move({
-                object: this.element,
+                object: element,
                 location: offsetFromCenter(actionMothership),
                 duration: returnDuration,
                 ease: 'power2.in',
@@ -1107,7 +1308,7 @@ export class SundiverAnimator extends StateAnimator<
             })
 
             fadeOut({
-                object: this.element!,
+                object: element,
                 duration: 0.1,
                 timeline,
                 position: '>'
@@ -1137,7 +1338,7 @@ export class SundiverAnimator extends StateAnimator<
             const spiralDuration = 0.5
             const startTime = dropTimes[reserveIndex] ?? 0
 
-            gsap.set(this.element!, {
+            gsap.set(element, {
                 opacity: 0,
                 scale: 0,
                 transformOrigin: '50% 50%',
@@ -1146,14 +1347,14 @@ export class SundiverAnimator extends StateAnimator<
             })
 
             fadeIn({
-                object: this.element,
+                object: element,
                 duration: fadeDuration,
                 timeline,
                 position: startTime
             })
 
             scale({
-                object: this.element,
+                object: element,
                 to: 1.5,
                 duration: popDuration,
                 ease: 'back.out(2)',
@@ -1162,7 +1363,7 @@ export class SundiverAnimator extends StateAnimator<
             })
 
             scale({
-                object: this.element,
+                object: element,
                 to: 1,
                 duration: 0.2,
                 ease: 'power2.out',
@@ -1171,7 +1372,7 @@ export class SundiverAnimator extends StateAnimator<
             })
 
             timeline.add(
-                gsap.to(this.element!, {
+                gsap.to(element, {
                     xPercent: 3,
                     yPercent: 3,
                     duration: spiralDelay + spiralDuration / 2 + 0.1,
@@ -1195,7 +1396,7 @@ export class SundiverAnimator extends StateAnimator<
             }
 
             path({
-                object: this.element,
+                object: element,
                 path: spiralPoints.map((point) => offsetFromCenter(point)),
                 curviness: 1,
                 duration: spiralDuration,
@@ -1205,7 +1406,7 @@ export class SundiverAnimator extends StateAnimator<
             })
 
             fadeOut({
-                object: this.element!,
+                object: element,
                 duration: 0.1,
                 timeline,
                 position: '>'
@@ -1236,13 +1437,15 @@ export class SundiverAnimator extends StateAnimator<
         action: Chain,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (!fromState) {
             return
         }
 
-        const chainIndex = action.chain.findIndex((entry) => entry.sundiverId === this.id)
+        const chainIndex = action.chain.findIndex((entry) => entry.sundiverId === sundiverId)
         if (chainIndex < 0) {
             return
         }
@@ -1253,7 +1456,7 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         const startCell = fromState.board.cellAt(entry.coords)
-        const sundiver = startCell.sundivers.find((diver) => diver.id === this.id)
+        const sundiver = startCell.sundivers.find((diver) => diver.id === sundiverId)
         if (!sundiver) {
             return
         }
@@ -1297,7 +1500,7 @@ export class SundiverAnimator extends StateAnimator<
 
         const stats = returnStats.get(sundiver.playerId)
 
-        gsap.set(this.element!, {
+        gsap.set(element, {
             opacity: 1,
             scale: 1,
             x: offsetFromCenter(startLocation).x,
@@ -1305,7 +1508,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(targetLocation),
             duration: CHAIN_MOMENTUM_MOVE_DURATION,
             ease: 'power2.in',
@@ -1314,7 +1517,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         fadeOut({
-            object: this.element!,
+            object: element,
             duration: 0.1,
             timeline,
             position: '>'
@@ -1336,14 +1539,16 @@ export class SundiverAnimator extends StateAnimator<
         action: Invade,
         timeline: gsap.core.Timeline,
         _toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement
     ) {
         if (!fromState || !action.metadata) {
             return
         }
 
         const removedIds = action.metadata.removedSundiverIds
-        const index = removedIds.indexOf(this.id)
+        const index = removedIds.indexOf(sundiverId)
         if (index < 0) {
             return
         }
@@ -1400,7 +1605,7 @@ export class SundiverAnimator extends StateAnimator<
         const revealStart = hideStart + hideDuration
 
         timeline.set(
-            this.element!,
+            element,
             {
                 opacity: 1,
                 x: offsetFromCenter(startLocation).x,
@@ -1410,7 +1615,7 @@ export class SundiverAnimator extends StateAnimator<
         )
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(target),
             duration: approachDuration,
             ease: 'power2.out',
@@ -1419,7 +1624,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(bottom),
             duration: hideDuration,
             ease: 'none',
@@ -1428,7 +1633,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(target),
             duration: revealDuration,
             ease: 'power2.in',
@@ -1437,7 +1642,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         fadeOut({
-            object: this.element!,
+            object: element,
             duration: 0.3,
             timeline,
             position: revealStart + revealDuration
@@ -1450,14 +1655,19 @@ export class SundiverAnimator extends StateAnimator<
         playerId: string,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState,
+        fromState: HydratedSolGameState | undefined,
+        sundiverId: string,
+        element: HTMLElement | SVGElement,
         holdDelta: number = 0,
         reserveDelta: number = 0,
         moveDuration: number = 0.5,
         delayBetween: number = 0.2
     ) {
         const createdCount = createdSundiverIds.length
-        const index = createdSundiverIds.indexOf(this.id)
+        if (!sundiverId || !element) {
+            return
+        }
+        const index = createdSundiverIds.indexOf(sundiverId)
         const returnTime = holdDelta > createdCount ? 0.5 : 0
         const scheduleTime = Math.max(
             this.getCreatedSundiverArrivalTime(createdCount, moveDuration, delayBetween),
@@ -1494,7 +1704,7 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         // Appear... move... disappear
-        gsap.set(this.element!, {
+        gsap.set(element, {
             opacity: 1,
             scale: 0,
             x: offsetFromCenter(diverLocation).x,
@@ -1502,7 +1712,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         scale({
-            object: this.element,
+            object: element,
             to: 1,
             duration: 0.1,
             ease: 'power2.in',
@@ -1511,7 +1721,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         move({
-            object: this.element,
+            object: element,
             location: offsetFromCenter(targetLocation),
             duration: moveDuration,
             ease: 'power2.in',
@@ -1520,7 +1730,7 @@ export class SundiverAnimator extends StateAnimator<
         })
 
         fadeOut({
-            object: this.element!,
+            object: element,
             duration: 0.1,
             timeline,
             position: '>'
@@ -1530,5 +1740,23 @@ export class SundiverAnimator extends StateAnimator<
     getMothershipLocationForPlayer(gameState: HydratedSolGameState, playerId: string): Point {
         const mothershipIndex = gameState.board.motherships[playerId]
         return getMothershipSpotPoint(gameState.players.length, mothershipIndex)
+    }
+}
+
+export function animateSundiver(
+    node: HTMLElement | SVGElement,
+    params?: { animator: SundiverAnimator; sundiverId: string }
+): { destroy: () => void } {
+    if (!params?.animator || !params.sundiverId) {
+        return {
+            destroy() {}
+        }
+    }
+
+    params.animator.addSundiver(params.sundiverId, node)
+    return {
+        destroy() {
+            params.animator.removeSundiver(params.sundiverId)
+        }
     }
 }

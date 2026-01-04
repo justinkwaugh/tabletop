@@ -7,6 +7,7 @@
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import type { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
     import type { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'
+    import { animateSundiver } from '$lib/animators/sundiverAnimator.js'
 
     let {
         color,
@@ -16,6 +17,8 @@
         fontSize = 23,
         location,
         animator,
+        sundiverAnimator,
+        sundiverId,
         offBoard = false,
         alwaysShowQuantity = false,
         onclick
@@ -26,7 +29,9 @@
         fontSize?: number
         quantity?: number
         location?: Point
-        animator?: CellSundiverAnimator | SundiverAnimator
+        animator?: CellSundiverAnimator
+        sundiverAnimator?: SundiverAnimator
+        sundiverId?: string
         offBoard?: boolean
         alwaysShowQuantity?: boolean
         onclick?: () => void
@@ -51,6 +56,9 @@
 
 <g
     {@attach animator && attachAnimator(animator)}
+    use:animateSundiver={sundiverAnimator && sundiverId
+        ? { animator: sundiverAnimator, sundiverId }
+        : undefined}
     on:click={onClick}
     style="will-change: transform"
     transform={offBoard

@@ -208,6 +208,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     movingCubeIds: string[] = $state([])
     movingMomentumIds: string[] = $state([])
     movingStation?: Station = $state(undefined)
+    movingSundivers: Sundiver[] = $state([])
 
     playerStateOverrides: SvelteMap<string, PlayerStateOverride> = $state(
         new SvelteMap<string, PlayerStateOverride>()
