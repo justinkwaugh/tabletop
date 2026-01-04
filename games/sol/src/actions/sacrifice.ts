@@ -9,7 +9,8 @@ import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 
 export type SacrificeMetadata = Static<typeof SacrificeMetadata>
 export const SacrificeMetadata = Type.Object({
-    sacrificedSundivers: Type.Array(Sundiver)
+    sacrificedSundivers: Type.Array(Sundiver),
+    numSacrificedPerPlayer: Type.Record(Type.String(), Type.Number())
 })
 
 export type Sacrifice = Static<typeof Sacrifice>
@@ -53,7 +54,14 @@ export class HydratedSacrifice extends HydratableAction<typeof Sacrifice> implem
             owner.momentum += 2
         }
         this.metadata = {
-            sacrificedSundivers: removedSundivers
+            sacrificedSundivers: removedSundivers,
+            numSacrificedPerPlayer: removedSundivers.reduce(
+                (acc, sundiver) => {
+                    acc[sundiver.playerId] = (acc[sundiver.playerId] || 0) + 1
+                    return acc
+                },
+                {} as Record<string, number>
+            )
         }
 
         state.cardsToDraw += CARDS_DRAWN_PER_RING[this.coords.row]

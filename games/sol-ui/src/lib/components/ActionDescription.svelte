@@ -1,6 +1,6 @@
 <script lang="ts">
     import { isAggregatedMove, type AggregatedMove } from '$lib/aggregates/aggregatedMove.js'
-    import { Player, type GameAction } from '@tabletop/common'
+    import { type GameAction } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         Activate,
@@ -25,6 +25,7 @@
         isInvade,
         isMetamorphosize,
         isPass,
+        isSacrifice,
         isSolarFlare,
         isTribute,
         PassContext,
@@ -57,9 +58,7 @@
                 : 's'} built
         </li>{/if}
     {#if action.metadata?.energyAdded ?? 0 > 0}<li>
-            {action.metadata?.energyAdded} energy cube{action.metadata?.energyAdded === 1
-                ? ''
-                : 's'} added
+            {action.metadata?.energyAdded} energy added
         </li>{/if}
     {#if action.metadata?.momentumAdded ?? 0 > 0}<li>
             {action.metadata?.momentumAdded} momentum added
@@ -114,7 +113,7 @@
                     fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
                     additionalClasses={history ? '' : 'pt-[2px]'}
                     capitalization={history ? 'capitalize' : 'uppercase'}
-                /> earned 1 energy cube
+                /> earned 1 energy
             </li>{/each}
     </ul>
 {:else if isDrawCards(action)}
@@ -174,7 +173,7 @@
                     fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
                     additionalClasses={history ? '' : 'pt-[2px]'}
                     capitalization={history ? 'capitalize' : 'uppercase'}
-                /> energy cubes reduced from
+                /> energy reduced from
                 {unstableEnergy.initial} to {unstableEnergy.remaining}
             </li>
         {/each}
@@ -314,6 +313,26 @@
                 additionalClasses={history ? '' : 'pt-[2px]'}
                 capitalization={history ? 'capitalize' : 'uppercase'}
             /> paid {amount} energy
+        </div>
+    {/each}
+{:else if isSacrifice(action)}
+    sacrificed
+    {#each Object.entries(action.metadata?.numSacrificedPerPlayer ?? {}) as [playerId, amount] (playerId)}
+        <div class="ms-4">
+            <PlayerName
+                fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                {playerId}
+                additionalClasses={history ? '' : 'pt-[2px]'}
+                capitalization={history ? 'capitalize' : 'uppercase'}
+            /> vaporized {amount} sundiver{amount === 1 ? '' : 's'}
+        </div>
+        <div class="ms-4">
+            <PlayerName
+                fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                {playerId}
+                additionalClasses={history ? '' : 'pt-[2px]'}
+                capitalization={history ? 'capitalize' : 'uppercase'}
+            /> received {amount} momentum
         </div>
     {/each}
 {:else}

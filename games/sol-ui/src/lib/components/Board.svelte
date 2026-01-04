@@ -131,14 +131,7 @@
         <InstabilityTrack width={760} height={35} location={{ x: (1280 - 760) / 2, y: 12 }} />
 
         <!-- <Sandbox /> -->
-        {#each [...sundiversById] as [, sundiver] (sundiver.id)}
-            <g class="pointer-events-none">
-                <UISundiver
-                    color={gameSession.colors.getPlayerColor(sundiver.playerId)}
-                    animator={new SundiverAnimator(gameSession, sundiver.id)}
-                />
-            </g>
-        {/each}
+
         {#each gameSession.movingCubeIds as cubeId (cubeId)}
             <g use:animateCube={{ animator: cubeAnimator, cubeId }}>
                 <g transform="translate(-17.5, -17.5)">
@@ -188,7 +181,14 @@
         {#each gameSession.gameState.board as cell}
             <Cell {cell} />
         {/each}
-
+        {#each [...sundiversById] as [, sundiver] (sundiver.id)}
+            <g class="pointer-events-none">
+                <UISundiver
+                    color={gameSession.colors.getPlayerColor(sundiver.playerId)}
+                    animator={new SundiverAnimator(gameSession, sundiver.id)}
+                />
+            </g>
+        {/each}
         {#each gatePositions as gate (gate.key)}
             <GateDestination {...gate} />
         {/each}

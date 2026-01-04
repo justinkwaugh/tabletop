@@ -77,7 +77,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
             (gameState.playerHasCardForEffect(playerId, EffectType.Pulse) &&
                 HydratedActivate.canPulse(gameState, playerId)) ||
             (gameState.playerHasCardForEffect(playerId, EffectType.Blight) &&
-                HydratedBlight.canBlight(gameState, playerId))
+                HydratedBlight.canBlight(gameState, playerId)) ||
+            (gameState.playerHasCardForEffect(playerId, EffectType.Sacrifice) &&
+                HydratedSacrifice.canSacrifice(gameState))
         ) {
             validActions.push(ActionType.ChooseActivate)
         }

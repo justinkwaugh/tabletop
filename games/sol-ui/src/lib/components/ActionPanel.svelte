@@ -161,6 +161,19 @@
                 result.message = 'APPLY BLIGHT TO CONTINUE'
                 return result
             } else if (
+                !HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id) &&
+                gameSession.gameState.playerHasCardForEffect(
+                    gameSession.myPlayer.id,
+                    EffectType.Sacrifice
+                ) &&
+                HydratedActivateEffect.canActivateSacrifice(
+                    gameSession.gameState,
+                    gameSession.myPlayer.id
+                )
+            ) {
+                result.message = 'APPLY SACRIFICE TO CONTINUE'
+                return result
+            } else if (
                 gameSession.gameState.activeEffect === EffectType.Blight &&
                 !gameSession.chosenSource
             ) {

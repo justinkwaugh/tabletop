@@ -653,9 +653,12 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
         if (fromState && convert.sundiverIds[0] === this.id) {
+            const revealDuration = convert.isGate ? 0.5 : 1
+            const revealStart = convert.isGate ? 0 : 0.5
             if (fromState.activeEffect === EffectType.Cascade) {
                 const sundiverCount = convert.sundiverIds.length
-                const holdTime = 1 + 0.2 * Math.max(0, sundiverCount - 1)
+                const holdTime =
+                    revealStart + revealDuration + 0.5 + 0.2 * Math.max(0, sundiverCount - 1)
                 this.scheduleHoldOffset(
                     convert.playerId,
                     convert.playerId,
@@ -671,7 +674,7 @@ export class SundiverAnimator extends StateAnimator<
                     sundiverCount,
                     fromState,
                     timeline,
-                    0.5
+                    revealStart + revealDuration
                 )
             }
         }
@@ -683,40 +686,114 @@ export class SundiverAnimator extends StateAnimator<
             return
         }
 
-        const diverCoords = fromBoard.findSundiverCoords(this.id)
-        const diverCell = fromBoard.cellAt(diverCoords!)
-        const diverLocation = this.gameSession.locationForDiverInCell(convert.playerId, diverCell)
-
+        const revealStart = convert.isGate ? 0 : 0.5
+        const revealDuration = convert.isGate ? 0.5 : 1
+        let approachDuration = 0
+        let moveDuration = revealDuration
+        let initialLocation: Point | undefined
+        let approachTarget: Point | undefined
         let targetLocation: Point | undefined
         if (!convert.isGate) {
             const stationCell = toBoard.cellAt(convert.coords)
-            targetLocation = this.gameSession.locationForStationInCell(stationCell)
+            const stationLocation = this.gameSession.locationForStationInCell(stationCell)
+            const stationType = convert.stationType ?? stationCell.station?.type
+            if (!stationLocation || !stationType) {
+                return
+            }
+
+            const diverCoords = fromBoard.findSundiverCoords(this.id)
+            if (!diverCoords) {
+                return
+            }
+            const diverCell = fromBoard.cellAt(diverCoords)
+            const diverLocation = this.gameSession.locationForDiverInCell(
+                convert.playerId,
+                diverCell
+            )
+            if (!diverLocation) {
+                return
+            }
+
+            const stationWidth = stationType === StationType.TransmitTower ? 48 : 46
+            const stationHeight = stationType === StationType.TransmitTower ? 100 : 48
+            const diverWidth = 30
+            const diverHeight = 40
+            const gap = 8
+            const stationTop = stationLocation.y - stationHeight / 2
+            const sidePointOffset = diverHeight / 3
+            const topOffset = 10
+            const sideTopY = stationTop + diverHeight / 2 - sidePointOffset
+            const topCenterY = stationTop - gap - topOffset - diverHeight / 2
+            const offsetX = stationWidth / 2 + diverWidth / 2 + gap
+
+            const positions =
+                convert.sundiverIds.length >= 3
+                    ? [
+                          { x: stationLocation.x - offsetX, y: sideTopY },
+                          { x: stationLocation.x + offsetX, y: sideTopY },
+                          { x: stationLocation.x, y: topCenterY }
+                      ]
+                    : [
+                          { x: stationLocation.x - offsetX, y: sideTopY },
+                          { x: stationLocation.x + offsetX, y: sideTopY }
+                      ]
+
+            const targetIndex = convert.sundiverIds.indexOf(this.id)
+            const target = positions[targetIndex] ?? positions[0]
+            initialLocation = diverLocation
+            approachTarget = { x: target.x, y: target.y + stationHeight }
+            targetLocation = target
+            approachDuration = revealStart
+            moveDuration = revealDuration
         } else if (convert.innerCoords && convert.coords) {
+            const diverCoords = fromBoard.findSundiverCoords(this.id)
+            const diverCell = fromBoard.cellAt(diverCoords!)
+            const diverLocation = this.gameSession.locationForDiverInCell(
+                convert.playerId,
+                diverCell
+            )
+            if (!diverLocation) {
+                return
+            }
+
             const gatePosition = getGatePosition(
                 this.gameSession.numPlayers,
                 convert.innerCoords,
                 convert.coords
             )
+            initialLocation = diverLocation
             targetLocation = getCirclePoint(gatePosition.radius, toRadians(gatePosition.angle))
+            moveDuration = revealDuration
         }
-        if (!diverLocation || !targetLocation) {
+        if (!initialLocation || !targetLocation) {
             return
         }
 
         // Appear... move... disappear
         gsap.set(this.element!, {
             opacity: 1,
-            x: offsetFromCenter(diverLocation).x,
-            y: offsetFromCenter(diverLocation).y
+            x: offsetFromCenter(initialLocation).x,
+            y: offsetFromCenter(initialLocation).y
         })
+
+        if (approachTarget && approachDuration > 0) {
+            move({
+                object: this.element,
+                location: offsetFromCenter(approachTarget),
+                duration: approachDuration,
+                ease: 'none',
+                timeline,
+                position: 0
+            })
+        }
 
         move({
             object: this.element,
             location: offsetFromCenter(targetLocation),
-            duration: 0.5,
+            duration: moveDuration,
             ease: 'power2.in',
             timeline,
-            position: 0
+            position: revealStart
         })
 
         if (fromState.activeEffect === EffectType.Cascade) {
