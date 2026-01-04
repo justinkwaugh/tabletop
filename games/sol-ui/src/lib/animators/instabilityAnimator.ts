@@ -48,7 +48,8 @@ export class InstabilityAnimator extends StateAnimator<
             duration: 0.5,
             onComplete: () => {
                 gsap.set(this.element!, { clearProps: 'all' })
-            }
+            },
+            position: 0
         })
     }
 

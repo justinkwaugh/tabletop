@@ -103,6 +103,7 @@ export class HydratedInvade extends HydratableAction<typeof Invade> implements I
         }
 
         state.cardsToDraw += CARDS_DRAWN_PER_RING[this.coords.row]
+        state.activeEffect = undefined
     }
 
     static canInvade(state: HydratedSolGameState, playerId: string): boolean {

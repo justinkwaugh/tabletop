@@ -287,15 +287,22 @@
         possessive={true}
     />
     {StationNames[action.metadata!.invadedStation.type]}
-    <br /><PlayerName
-        fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
-        playerId={action.metadata?.invadedStation.playerId}
-        additionalClasses={history ? '' : 'pt-[2px]'}
-        capitalization={history ? 'capitalize' : 'uppercase'}
-    /> received {action.metadata?.addedSundiverIds.length} sundiver{(action.metadata
-        ?.addedSundiverIds.length ?? 1) === 1
-        ? ''
-        : 's'}<br />
+    <ul class="ms-4 list-inside">
+        <li>
+            {action.metadata?.removedSundiverIds.length} sundivers sacrificed
+        </li>
+        <li>
+            <PlayerName
+                fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
+                playerId={action.metadata?.invadedStation.playerId}
+                additionalClasses={history ? '' : 'pt-[2px]'}
+                capitalization={history ? 'capitalize' : 'uppercase'}
+            /> received {action.metadata?.addedSundiverIds.length} sundiver{(action.metadata
+                ?.addedSundiverIds.length ?? 1) === 1
+                ? ''
+                : 's'}
+        </li>
+    </ul>
 {:else}
     {action.type}
 {/if}

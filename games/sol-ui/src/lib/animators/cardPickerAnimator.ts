@@ -66,7 +66,7 @@ export class CardPickerAnimator extends StateAnimator<
     }) {
         const undo = to.actionCount < (from?.actionCount ?? 0)
         if (undo) {
-            // console.log('CardPickerAnimator: Undo detected, skipping animations')
+            this.pulseCorrectFlare(to)
             return
         }
 
@@ -75,168 +75,17 @@ export class CardPickerAnimator extends StateAnimator<
         const subTimeline = gsap.timeline({
             autoRemoveChildren: true
         })
+
         if (action) {
-            // console.log('CardPickerAnimator: animating action:', action.type)
             await this.animateAction(action, subTimeline, to, from)
         }
 
-        // console.log('to machineState:', to.machineState, 'from machineState:', from?.machineState)
-        if (to.machineState === MachineState.SolarFlares) {
-            if (!action) {
-                this.pulseCorrectFlare(to)
-            }
-        } else {
-            // console.log('stop pulsing all cards - not in SolarFlares state')
-            const pulseIds = Array.from(this.tweensPerCard.keys())
-            for (const id of pulseIds) {
-                // console.log('stopping pulsing for card id:', id)
-                this.stopPulsingCard(id, subTimeline)
-            }
-            this.tweensPerCard.clear()
-        }
-
+        const currentDuration = subTimeline.duration()
         if (action && to.machineState === MachineState.ChoosingCard) {
-            // console.log('CardPickerAnimator: Going to ChoosingCard state')
-            const currentPlayerId = to.turnManager.currentTurn()?.playerId
-            if (!currentPlayerId) {
-                return
-            }
-            const playerState = from?.getPlayerState(currentPlayerId)
-            if (!playerState) {
-                return
-            }
-
-            const addedCards = from?.machineState === MachineState.SolarFlares
-            if (addedCards) {
-                // If we are coming from solar flares, we may need to add some cards back in, or at least better detect
-                // the remaining card count.
-                const currentCardElements = Array.from(
-                    this.cards.values().map((card) => card.element)
-                )
-                const state = Flip.getState(currentCardElements)
-
-                // Add back in all the drawn cards
-                this.transitioning = true
-
-                this.gameSession.drawnCards = playerState.drawnCards
-                await tick()
-                this.transitioning = false
-
-                // Find all non-flare and set them to opacity 0 to fade them in after
-                const nonSolarCardElements = this.cards
-                    .values()
-                    .filter((card) => card.card.suit !== Suit.Flare)
-                    .map((ce) => ce.element)
-
-                for (const element of nonSolarCardElements) {
-                    // console.log('CardPickerAnimator: setting non-flare card element to opacity 0')
-                    gsap.set(element, { opacity: 0 })
-                    fadeIn({
-                        object: element,
-                        timeline: subTimeline,
-                        duration: 0.3,
-                        position: 0.7
-                    })
-                }
-
-                // console.log('CardPickerAnimator: flipping in remaining cards after solar flare')
-
-                subTimeline.add(
-                    Flip.from(state, {
-                        duration: 0.5,
-                        ease: 'power2.in',
-                        onComplete: () => {
-                            for (const element of currentCardElements) {
-                                gsap.set(element, { scale: 1 })
-                            }
-                        }
-                    }),
-                    0.2
-                )
-                ensureDuration(subTimeline, 1)
-            }
-
-            const seenSuits = new Set<Suit>()
-            if (playerState.card) {
-                seenSuits.add(playerState.card.suit)
-            }
-            // console.log('CardPickerAnimator: finding removed cards to fade out')
-            const removedCards = this.gameSession.drawnCards.filter((card) => {
-                if (seenSuits.has(card.suit)) {
-                    return true
-                }
-                seenSuits.add(card.suit)
-                return false
-            })
-
-            // console.log(`CardPickerAnimator: fading out ${removedCards.length} removed cards`)
-            const removedElements = removedCards
-                .map((card) => this.cards.get(card.id)?.element)
-                .filter((ce) => ce !== undefined)
-
-            const remainingCards = this.gameSession.drawnCards.filter(
-                (card) => !removedCards.find((rc) => rc.id === card.id)
+            subTimeline.add(
+                this.transitionToChoosingCards(to, from, animationContext),
+                currentDuration
             )
-
-            // console.log(`CardPickerAnimator: remaining cards: ${remainingCards.length}`)
-            if (remainingCards.length === 0) {
-                subTimeline.call(
-                    () => {
-                        this.gameSession.forcedCallToAction = 'NO NEW CARDS TO CHOOSE FROM...'
-                    },
-                    [],
-                    '>'
-                )
-                ensureDuration(subTimeline, 2)
-            }
-
-            let first = true
-            for (const element of removedElements) {
-                fadeOut({
-                    object: element,
-                    duration: 0.3,
-                    timeline: animationContext.finalTimeline,
-                    position: remainingCards.length === 0 && first ? 0 : '>'
-                })
-                first = false
-            }
-
-            if (remainingCards.length === 0) {
-                const durationUntilNow = animationContext.finalTimeline.duration()
-                animationContext.finalTimeline.call(
-                    () => {
-                        this.gameSession.drawnCards = []
-                    },
-                    [],
-                    durationUntilNow
-                )
-            } else {
-                const remainingCardElements = remainingCards
-                    .map((card) => this.cards.get(card.id)?.element)
-                    .filter((ce) => ce !== undefined)
-
-                const durationUntilNow = animationContext.finalTimeline.duration()
-                animationContext.finalTimeline.call(
-                    () => {
-                        const state = Flip.getState(remainingCardElements)
-                        this.gameSession.drawnCards = remainingCards
-
-                        tick()
-                            .then(() => {
-                                Flip.from(state, {
-                                    duration: 0.5,
-                                    ease: 'power2.in'
-                                })
-                            })
-                            .catch((err) => {
-                                console.error('Error during tick after choosing card:', err)
-                            })
-                    },
-                    [],
-                    durationUntilNow
-                )
-                ensureDuration(animationContext.finalTimeline, durationUntilNow + 0.3)
-            }
         }
         if (subTimeline.getChildren().length > 0) {
             animationContext.actionTimeline.add(subTimeline, 0)
@@ -253,9 +102,6 @@ export class CardPickerAnimator extends StateAnimator<
             await this.animateDrawCards(action, timeline, toState, fromState)
         } else if (isSolarFlare(action)) {
             await this.animateSolarFlare(action, timeline, toState, fromState)
-        } else if (isActivate(action)) {
-            // Delay for informational display
-            // ensureDuration(timeline, 1.5)
         }
     }
 
@@ -275,7 +121,6 @@ export class CardPickerAnimator extends StateAnimator<
 
         // Get the initial state of the squeezed cards
         const squeezedInitialState = Flip.getState(cardsToAnimateMoving.map((ce) => ce.element))
-
         this.gameSession.drawnCards = [...drawnCards, ...squeezedCards]
 
         // Wait for cards to appear in dom and be attached to us
@@ -295,15 +140,12 @@ export class CardPickerAnimator extends StateAnimator<
         // Handle the squeezed cards moving into position
         for (const cardAndElement of cardsToAnimateMoving) {
             Flip.fit(cardAndElement.element, squeezedInitialState, { absolute: true })
-            timeline.call(
-                () => {
-                    Flip.to(state, {
-                        duration: flipDuration,
-                        ease: 'power1.out',
-                        targets: cardAndElement.element
-                    })
-                },
-                [],
+            timeline.add(
+                Flip.to(state, {
+                    duration: flipDuration,
+                    ease: 'power1.out',
+                    targets: cardAndElement.element
+                }),
                 startTime
             )
         }
@@ -383,7 +225,6 @@ export class CardPickerAnimator extends StateAnimator<
         fromState?: HydratedSolGameState
     ) {
         // Get the initial state of the cards laid out in a row
-
         const allCards = Array.from(this.cards.values()).map((ce) => ce.element)
         const removedCards = this.cards
             .values()
@@ -392,38 +233,39 @@ export class CardPickerAnimator extends StateAnimator<
 
         const state = Flip.getState(allCards)
 
-        // console.log('SolarFlare: fading')
+        const fadeDuration = 0.3
+        const flipStart = 0.4
+        const flipDuration = 0.5
+
         for (const cardElement of removedCards) {
             fadeOut({
                 object: cardElement,
-                duration: 0.3,
+                duration: fadeDuration,
                 position: 0
             })
         }
 
         timeline.call(
             () => {
-                // console.log('SolarFlare: removing non-flare cards from drawnCards')
                 this.gameSession.drawnCards = this.gameSession.drawnCards.filter(
                     (card) => card.suit === Suit.Flare
                 )
                 tick().then(() => {
-                    // console.log('SolarFlare: flip em')
                     Flip.from(state, {
-                        duration: 0.5,
+                        duration: flipDuration,
                         ease: 'power2.in',
                         onComplete: () => {
-                            this.pulseCorrectFlare(toState)
-                        }
+                            this.pulseCorrectFlare(fromState ?? toState)
+                        },
+                        scale: true
                     })
                 })
             },
             [],
-            0.3
+            flipStart
         )
 
-        const durationUntilNow = timeline.duration()
-        ensureDuration(timeline, durationUntilNow + 0.3)
+        ensureDuration(timeline, 2.5)
     }
 
     private pulseCard(card: Card, element: HTMLElement | SVGElement) {
@@ -461,6 +303,154 @@ export class CardPickerAnimator extends StateAnimator<
         }
     }
 
+    transitionToChoosingCards(
+        to: HydratedSolGameState,
+        from: HydratedSolGameState | undefined,
+        animationContext: AnimationContext
+    ): gsap.core.Timeline {
+        const timeline = gsap.timeline()
+        const currentPlayerId = to.turnManager.currentTurn()?.playerId
+        if (!currentPlayerId) {
+            return timeline
+        }
+        const playerState = from?.getPlayerState(currentPlayerId)
+        if (!playerState) {
+            return timeline
+        }
+        const addedCards = from?.machineState === MachineState.SolarFlares
+        if (addedCards) {
+            // If we are coming from solar flares, we may need to add some cards back in, or at least better detect
+            // the remaining card count.
+
+            timeline.call(() => {
+                const currentCardElements = Array.from(
+                    this.cards.values().map((card) => card.element)
+                )
+                const state = Flip.getState(currentCardElements)
+                this.transitioning = true
+                this.gameSession.drawnCards = playerState.drawnCards
+                tick()
+                    .then(() => {
+                        // Stop the pulsing
+                        this.pulseCorrectFlare(to)
+
+                        const newTimeline = gsap.timeline()
+                        newTimeline.add(
+                            Flip.from(state, {
+                                duration: 0.5,
+                                ease: 'power2.in',
+                                scale: true,
+                                onComplete: () => {
+                                    for (const element of currentCardElements) {
+                                        gsap.set(element, { scale: 1 })
+                                    }
+                                }
+                            }),
+                            0
+                        )
+                        const nonSolarCardElements = this.cards
+                            .values()
+                            .filter((card) => card.card.suit !== Suit.Flare)
+                            .map((ce) => ce.element)
+                        for (const element of nonSolarCardElements) {
+                            gsap.set(element, { opacity: 0 })
+                            fadeIn({
+                                object: element,
+                                timeline: newTimeline,
+                                duration: 0.3,
+                                position: 0.5
+                            })
+                        }
+                        newTimeline.play()
+                    })
+                    .catch(() => {})
+                    .finally(() => {
+                        this.transitioning = false
+                    })
+            })
+            ensureDuration(timeline, 0.8)
+        }
+
+        const seenSuits = new Set<Suit>()
+        if (playerState.card) {
+            seenSuits.add(playerState.card.suit)
+        }
+
+        const removedCards = playerState.drawnCards.filter((card) => {
+            if (seenSuits.has(card.suit)) {
+                return true
+            }
+            seenSuits.add(card.suit)
+            return false
+        })
+
+        animationContext.finalTimeline.call(
+            () => {
+                const lastTimeline = gsap.timeline()
+                const removedElements = removedCards
+                    .map((card) => this.cards.get(card.id)?.element)
+                    .filter((ce) => ce !== undefined)
+
+                const remainingCards = this.gameSession.drawnCards.filter(
+                    (card) => !removedCards.find((rc) => rc.id === card.id)
+                )
+                if (remainingCards.length === 0) {
+                    this.gameSession.forcedCallToAction = 'NO NEW CARDS TO CHOOSE FROM...'
+                    ensureDuration(animationContext.finalTimeline, 2)
+                }
+
+                for (const element of removedElements) {
+                    fadeOut({
+                        object: element,
+                        timeline: lastTimeline,
+                        duration: 0.3,
+                        position: 0
+                    })
+                }
+
+                if (remainingCards.length === 0) {
+                    lastTimeline.call(
+                        () => {
+                            this.gameSession.drawnCards = []
+                        },
+                        [],
+                        '>'
+                    )
+                } else {
+                    const durationUntilNow = lastTimeline.duration()
+                    lastTimeline.call(
+                        () => {
+                            const remainingCardElements = remainingCards
+                                .map((card) => this.cards.get(card.id)?.element)
+                                .filter((ce) => ce !== undefined)
+                            const state = Flip.getState(remainingCardElements)
+                            this.gameSession.drawnCards = remainingCards
+                            tick()
+                                .then(() => {
+                                    Flip.from(state, {
+                                        duration: 0.5,
+                                        ease: 'power2.in',
+                                        scale: true
+                                    })
+                                })
+                                .catch((err) => {
+                                    console.error('Error during tick after choosing card:', err)
+                                })
+                        },
+                        [],
+                        '>'
+                    )
+                    ensureDuration(animationContext.finalTimeline, durationUntilNow + 0.5)
+                }
+                lastTimeline.play()
+            },
+            [],
+            0
+        )
+
+        return timeline
+    }
+
     flareIndexToPulse(state: HydratedSolGameState) {
         if (!state.solarFlares || !state.solarFlaresRemaining) {
             return -1
@@ -470,7 +460,6 @@ export class CardPickerAnimator extends StateAnimator<
     }
 
     pulseCorrectFlare(state: HydratedSolGameState) {
-        // console.log('starting pulsing correct flare card')
         const flares = Array.from(this.cards.values()).filter((ce) => ce.card.suit === Suit.Flare)
 
         const flareIndex = this.flareIndexToPulse(state)
@@ -479,6 +468,7 @@ export class CardPickerAnimator extends StateAnimator<
             if (i !== flareIndex) {
                 this.stopPulsingCard(card.card.id)
             } else {
+                console.log('pulsing flare card at index:', i, 'card id:', card.card.id)
                 this.pulseCard(card.card, card.element)
             }
         }
