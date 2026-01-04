@@ -6,6 +6,7 @@ import {
     DrawCards,
     Fly,
     HydratedSolGameState,
+    isSacrifice,
     isSolarFlare,
     isActivate,
     isActivateBonus,
@@ -14,6 +15,7 @@ import {
     isDrawCards,
     isFly,
     isHurl,
+    Sacrifice,
     StationType,
     SolarFlare,
     Hurl,
@@ -79,6 +81,8 @@ export class MomentumAnimator extends StateAnimator<
             await this.animateDrawCards(action, animationContext.actionTimeline, from)
         } else if (isChain(action)) {
             await this.animateChain(action, animationContext.actionTimeline, from)
+        } else if (isSacrifice(action)) {
+            await this.animateSacrifice(action, animationContext.actionTimeline, from)
         } else if (isFly(action) || isHurl(action)) {
             await this.animateFlyOrHurl(action, animationContext.actionTimeline, to, from)
         } else if (isSolarFlare(action)) {
@@ -257,6 +261,101 @@ export class MomentumAnimator extends StateAnimator<
                 continue
             }
 
+            const moveTarget = momentumMoves[i]
+            const position = moveTarget.startTime
+
+            timeline.set(
+                pentagon,
+                {
+                    opacity: 1,
+                    x: offsetFromCenter(moveTarget.from).x,
+                    y: offsetFromCenter(moveTarget.from).y
+                },
+                position
+            )
+
+            scale({
+                object: pentagon,
+                to: 1,
+                duration: scaleDuration,
+                ease: 'power2.in',
+                timeline,
+                position
+            })
+
+            move({
+                object: pentagon,
+                location: offsetFromCenter(moveTarget.to),
+                timeline,
+                duration: moveDuration,
+                position: position + moveOffset
+            })
+
+            const endTime = position + moveOffset + moveDuration
+            if (endTime > maxEndTime) {
+                maxEndTime = endTime
+            }
+        }
+
+        timeline.call(
+            () => {
+                this.gameSession.movingMomentumIds = []
+            },
+            [],
+            maxEndTime
+        )
+    }
+
+    async animateSacrifice(
+        action: Sacrifice,
+        timeline: gsap.core.Timeline,
+        fromState?: HydratedSolGameState
+    ) {
+        const sacrificedSundivers = action.metadata?.sacrificedSundivers ?? []
+        if (!fromState || sacrificedSundivers.length === 0) {
+            return
+        }
+
+        const cell = fromState.board.cellAt(action.coords)
+        type MomentumMove = { from: Point; to: Point; startTime: number }
+        const delayBetween = 0.2
+        const momentumMoves: MomentumMove[] = sacrificedSundivers.map((sundiver, index) => {
+            const startLocation =
+                this.gameSession.locationForDiverInCell(sundiver.playerId, cell) ??
+                getSpaceCentroid(this.gameSession.numPlayers, action.coords)
+            const mothershipLocation = this.getMothershipLocationForPlayer(
+                fromState,
+                sundiver.playerId
+            )
+            return {
+                from: startLocation,
+                to: mothershipLocation,
+                startTime: delayBetween * index
+            }
+        })
+
+        this.gameSession.movingMomentumIds = range(0, momentumMoves.length).map(() => nanoid())
+        await tick()
+
+        const moveDuration = 1
+        const scaleDuration = 0.1
+        const moveOffset = scaleDuration / 2
+
+        const pentagonElements = Array.from(this.pentagons.values())
+        for (const pentagon of pentagonElements) {
+            gsap.set(pentagon, {
+                opacity: 0,
+                scale: 0,
+                transformOrigin: '50% 50%'
+            })
+        }
+
+        let maxEndTime = 0
+        for (let i = 0; i < momentumMoves.length; i++) {
+            const pentagon = pentagonElements[i]
+            if (!pentagon) {
+                continue
+            }
             const moveTarget = momentumMoves[i]
             const position = moveTarget.startTime
 
