@@ -2,7 +2,9 @@ import {
     Convert,
     gateKey,
     HydratedSolGameState,
+    isFly,
     isConvert,
+    Fly,
     SolarGate,
     type SolGameState
 } from '@tabletop/sol'
@@ -10,10 +12,11 @@ import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import { type GameAction } from '@tabletop/common'
-import { animate, fadeOut } from '$lib/utils/animations.js'
+import { animate, fadeIn, fadeOut } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import { getGatePosition } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
+import { getFlightDuration } from '$lib/utils/flight.js'
 
 type GateAndElement = {
     gate: SolarGate
@@ -76,6 +79,8 @@ export class GateAnimator extends StateAnimator<
         const appearTime = 0.3
         const addedGates: SolarGate[] = []
         const removedGates: SolarGate[] = []
+        const puncturedGateId = isFly(action) ? action.metadata?.puncturedGate?.id : undefined
+        let punctureFadeStart: number | undefined
 
         for (const [key, gate] of Object.entries(toGates)) {
             if (!fromGates[Number(key)]) {
@@ -87,6 +92,21 @@ export class GateAnimator extends StateAnimator<
             if (!toGates[Number(key)]) {
                 removedGates.push(gate)
             }
+        }
+
+        if (puncturedGateId) {
+            const delayBetween = 0.3
+            const jitterDuration = 1
+            const burstDuration = 0.25
+            const fadeOutDuration = 0.1
+            const approachDuration = getFlightDuration(action as Fly, 2)
+            const lastIndex = Math.max(0, (action as Fly).sundiverIds.length - 1)
+            punctureFadeStart =
+                lastIndex * delayBetween +
+                approachDuration +
+                jitterDuration +
+                burstDuration +
+                fadeOutDuration
         }
 
         if (addedGates.length > 0 && this.callback) {
@@ -105,7 +125,16 @@ export class GateAnimator extends StateAnimator<
                 continue
             }
             gsap.set(gateAndElement.element, { opacity: 0 })
-            timeline.set(gateAndElement.element, { opacity: 1 }, appearTime)
+            if (punctureFadeStart !== undefined && gate.id === puncturedGateId) {
+                fadeIn({
+                    object: gateAndElement.element,
+                    timeline,
+                    duration: 0.3,
+                    position: punctureFadeStart
+                })
+            } else {
+                timeline.set(gateAndElement.element, { opacity: 1 }, appearTime)
+            }
         }
 
         for (const gate of removedGates) {

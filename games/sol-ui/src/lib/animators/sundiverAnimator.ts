@@ -41,8 +41,10 @@ import {
 } from '@tabletop/common'
 import {
     getCirclePoint,
+    dimensionsForSpace,
     getGatePosition,
     getMothershipSpotPoint,
+    getSpaceCentroid,
     offsetFromCenter,
     toRadians
 } from '$lib/utils/boardGeometry.js'
@@ -358,6 +360,135 @@ export class SundiverAnimator extends StateAnimator<
         }
         const index = fly.sundiverIds.indexOf(this.id)
         if (index === -1) {
+            return
+        }
+
+        if (isFly(fly) && fly.metadata?.puncturedGate) {
+            const gate = fly.metadata.puncturedGate
+            const gateInner = gate.innerCoords ?? fly.start
+            const gateOuter = gate.outerCoords ?? fly.destination
+            if (!gateInner || !gateOuter) {
+                return
+            }
+
+            const gatePosition = getGatePosition(this.gameSession.numPlayers, gateInner, gateOuter)
+            const gateLocation = getCirclePoint(
+                gatePosition.radius,
+                toRadians(gatePosition.angle)
+            )
+            const movingInward = fly.start.row > fly.destination.row
+            const startDimensions = dimensionsForSpace(this.gameSession.numPlayers, fly.start)
+            const thickness = startDimensions.outerRadius - startDimensions.innerRadius
+            const approachFactor = movingInward ? 0.9 : 0.1
+            const approachRadius = startDimensions.innerRadius + thickness * approachFactor
+            const approachPoint = getCirclePoint(
+                approachRadius,
+                toRadians(gatePosition.angle)
+            )
+            const finalGateLocation = gateLocation
+            const startCell = fromState.board.cellAt(fly.start)
+            const diverLocation =
+                this.gameSession.locationForDiverInCell(fly.playerId, startCell) ??
+                getSpaceCentroid(this.gameSession.numPlayers, fly.start)
+
+            const delayBetween = 0.3
+            const flightStart = index * delayBetween
+            const approachDuration = getFlightDuration(fly, 2)
+            const jitterLead = 0
+            const jitterDuration = 1 + jitterLead
+            const jitterRampDuration = 1
+            const burstDuration = 0.25
+            const jitterStart = flightStart + Math.max(0, approachDuration - jitterLead)
+            const burstStart = jitterStart + jitterDuration
+            const jitterMaxOffset = 7
+            const approachOffset = offsetFromCenter(approachPoint)
+
+            timeline.set(
+                this.element!,
+                {
+                    opacity: 1,
+                    transformOrigin: '50% 50%',
+                    transformBox: 'fill-box',
+                    x: offsetFromCenter(diverLocation).x,
+                    y: offsetFromCenter(diverLocation).y
+                },
+                flightStart
+            )
+
+            move({
+                object: this.element,
+                location: approachOffset,
+                duration: approachDuration,
+                ease: 'power1.inOut',
+                timeline,
+                position: flightStart
+            })
+
+            const scaleTarget =
+                (this.element?.firstElementChild as SVGElement | HTMLElement | null) ??
+                this.element!
+            gsap.set(scaleTarget, {
+                transformOrigin: '50% 50%',
+                transformBox: 'fill-box'
+            })
+
+            const jitterState = { progress: 0 }
+            timeline.add(
+                gsap.to(jitterState, {
+                    progress: 1,
+                    duration: jitterDuration,
+                    ease: 'power2.in',
+                    onUpdate: () => {
+                        const elapsed = jitterState.progress * jitterDuration
+                        const rampProgress = Math.min(1, elapsed / jitterRampDuration)
+                        const amp = jitterMaxOffset * (0.2 + 0.8 * rampProgress)
+                        gsap.set(this.element!, {
+                            x: approachOffset.x + gsap.utils.random(-amp, amp),
+                            y: approachOffset.y + gsap.utils.random(-amp, amp)
+                        })
+                    },
+                    onComplete: () => {
+                        gsap.set(this.element!, {
+                            x: approachOffset.x,
+                            y: approachOffset.y
+                        })
+                    }
+                }),
+                jitterStart
+            )
+
+            move({
+                object: this.element,
+                location: offsetFromCenter(finalGateLocation),
+                duration: burstDuration,
+                ease: 'power2.in',
+                timeline,
+                position: burstStart
+            })
+
+            scale({
+                object: scaleTarget,
+                to: 0.25,
+                duration: 0.1,
+                ease: 'power2.in',
+                timeline,
+                position: burstStart + burstDuration - 0.1
+            })
+
+            fadeOut({
+                object: this.element!,
+                duration: 0.1,
+                timeline,
+                position: burstStart + burstDuration
+            })
+
+            scale({
+                object: scaleTarget,
+                to: 1,
+                duration: 0,
+                timeline,
+                position: burstStart + burstDuration + 0.1
+            })
             return
         }
 
