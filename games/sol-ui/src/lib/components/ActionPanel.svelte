@@ -120,7 +120,7 @@
                     gameSession.myPlayer.id
                 )
             ) {
-                result.message = 'ACTIVATE INVADE TO CONTINUE'
+                result.message = 'APPLY INVADE TO CONTINUE'
                 return result
             } else if (gameSession.gameState.activeEffect === EffectType.Invade) {
                 if (!gameSession.chosenDestination) {
@@ -145,7 +145,7 @@
                     gameSession.myPlayer.id
                 )
             ) {
-                result.message = 'ACTIVATE PULSE TO CONTINUE'
+                result.message = 'APPLY PULSE TO CONTINUE'
                 return result
             } else if (
                 !HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id) &&
@@ -158,7 +158,7 @@
                     gameSession.myPlayer.id
                 )
             ) {
-                result.message = 'ACTIVATE BLIGHT TO CONTINUE'
+                result.message = 'APPLY BLIGHT TO CONTINUE'
                 return result
             } else if (
                 gameSession.gameState.activeEffect === EffectType.Blight &&

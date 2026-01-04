@@ -128,7 +128,12 @@
                 out:fade={{ duration: 100 }}
                 class="inline-flex items-center gap-x-2"
             >
-                <div>TURN START</div>
+                <PlayerName
+                    playerId={gameSession.gameState.turnManager.currentTurn()?.playerId}
+                    capitalization="uppercase"
+                    possessive={true}
+                    additionalClasses="tracking-widest pt-[2px]"
+                /> TURN
             </div>
         {/if}
     </div>

@@ -78,8 +78,8 @@
     {#if showActivate}
         <button
             onclick={onActivate}
-            class="rounded-lg bg-black/80 text-[#cccccc] text-xs tracking-widest p-1 hover:border-white border-transparent border-2"
-            >ACTIVATE</button
+            class="rounded-lg bg-black/80 text-[#cccccc] text-xs tracking-widest p-1 px-2 hover:border-white border-transparent border-2"
+            >APPLY</button
         >
     {:else if showActive}
         <div
