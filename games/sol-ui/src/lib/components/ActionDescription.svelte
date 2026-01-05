@@ -21,6 +21,7 @@
         isConvert,
         isDeconstruct,
         isDrawCards,
+        isFuel,
         isHatch,
         isInvade,
         isMetamorphosize,
@@ -337,6 +338,8 @@
             /> received {amount} momentum
         </div>
     {/each}
+{:else if isFuel(action)}
+    used fuel to gain 3 movement points
 {:else}
     {action.type}
 {/if}
