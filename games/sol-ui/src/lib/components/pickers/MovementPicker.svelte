@@ -8,6 +8,7 @@
     import Tower from '$lib/images/tower.svelte'
     import { range, type OffsetCoordinates } from '@tabletop/common'
     import Floater from '$lib/utils/Floater.svelte'
+    import SolPicker from './SolPicker.svelte'
 
     let {
         coords
@@ -159,39 +160,61 @@
     }
 </script>
 
-<Floater placement="top" reference={`#board-picker-ref`} offset={20} {onClose}>
-    <div
-        class="flex flex-col justify-center items-center space-y-2 rounded-lg dark:bg-black/90 p-2"
-    >
-        <div class="sol-font text-xs select-none text-[#ad9c80] tracking-widest">HOW MANY?</div>
-        <div class="flex flex-row justify-center items-center gap-x-2">
-            {#if station}
-                <button onclick={selectStation}>
-                    {#if station.type === StationType.EnergyNode}
-                        <EnergyNode
-                            width={46}
-                            height={48}
-                            color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                        />
-                    {:else if station.type === StationType.SundiverFoundry}
-                        <Foundry
-                            width={46}
-                            height={48}
-                            color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                        />
-                    {:else if station.type === StationType.TransmitTower}
-                        <Tower
-                            width={40}
-                            height={80}
-                            color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                        />
-                    {/if}
-                </button>
-            {/if}
+<SolPicker {onClose}>
+    <div class="sol-font text-xs select-none text-[#ad9c80] tracking-widest">HOW MANY?</div>
+    <div class="flex flex-row justify-center items-center gap-x-2">
+        {#if station}
+            <button onclick={selectStation}>
+                {#if station.type === StationType.EnergyNode}
+                    <EnergyNode
+                        width={46}
+                        height={48}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                {:else if station.type === StationType.SundiverFoundry}
+                    <Foundry
+                        width={46}
+                        height={48}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                {:else if station.type === StationType.TransmitTower}
+                    <Tower
+                        width={40}
+                        height={80}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                {/if}
+            </button>
+        {/if}
 
-            {#if passageSundiver}
-                <div class="flex flex-col justify-center items-center gap-y-2">
-                    <div class="flex flex-row justify-center items-center gap-x-2">
+        {#if passageSundiver}
+            <div class="flex flex-col justify-center items-center gap-y-2">
+                <div class="flex flex-row justify-center items-center gap-x-2">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24px"
+                        height="32px"
+                        viewBox="0 0 24 32"
+                    >
+                        <UISundiver
+                            color={playerColor}
+                            width={24}
+                            height={32}
+                            fontSize={19}
+                            quantity={1}
+                            offBoard={true}
+                            alwaysShowQuantity={true}
+                            onclick={() => selectAmount(1, false, true)}
+                        />
+                    </svg>
+                </div>
+                <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">PASSAGE</div>
+            </div>
+        {/if}
+        {#if catapultedDivers.length > 0}
+            <div class="flex flex-col justify-center items-center gap-y-2">
+                <div class="flex flex-row justify-center items-center gap-x-2">
+                    {#each range(1, catapultedDivers.length) as amount}
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="24px"
@@ -203,89 +226,60 @@
                                 width={24}
                                 height={32}
                                 fontSize={19}
-                                quantity={1}
+                                quantity={amount}
                                 offBoard={true}
                                 alwaysShowQuantity={true}
-                                onclick={() => selectAmount(1, false, true)}
+                                onclick={() => selectAmount(amount, false)}
                             />
                         </svg>
-                    </div>
-                    <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">
-                        PASSAGE
-                    </div>
+                    {/each}
                 </div>
-            {/if}
-            {#if catapultedDivers.length > 0}
-                <div class="flex flex-col justify-center items-center gap-y-2">
-                    <div class="flex flex-row justify-center items-center gap-x-2">
-                        {#each range(1, catapultedDivers.length) as amount}
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24px"
-                                height="32px"
-                                viewBox="0 0 24 32"
-                            >
-                                <UISundiver
-                                    color={playerColor}
-                                    width={24}
-                                    height={32}
-                                    fontSize={19}
-                                    quantity={amount}
-                                    offBoard={true}
-                                    alwaysShowQuantity={true}
-                                    onclick={() => selectAmount(amount, false)}
-                                />
-                            </svg>
-                        {/each}
-                    </div>
-                    <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">
-                        CATAPULTED
-                    </div>
+                <div class="text-[.5rem] select-none text-[#ad9c80] tracking-widest">
+                    CATAPULTED
                 </div>
-            {/if}
-            {#if (catapultedDivers.length > 0 || passageSundiver) && regularSundivers.length > 0}
-                <div class="flex flex-col justify-center items-center gap-y-2">
-                    <div class="p-2 h-full text-[#ad9c80] tracking-widest">OR</div>
-                    <div class="text-[.5rem]">&nbsp;</div>
-                </div>
-            {/if}
-            {#if regularSundivers.length > 0}
-                <div class="flex flex-col justify-center items-center gap-y-2">
-                    <div class="flex flex-row justify-center items-center gap-x-2">
-                        {#each range(1, regularSundivers.length) as amount}
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24px"
-                                height="32px"
-                                viewBox="0 0 24 32"
-                            >
-                                <UISundiver
-                                    color={playerColor}
-                                    width={24}
-                                    height={32}
-                                    fontSize={19}
-                                    quantity={amount}
-                                    offBoard={true}
-                                    alwaysShowQuantity={true}
-                                    onclick={() =>
-                                        selectAmount(
-                                            amount,
-                                            gameSession.gameState.activeEffect ===
-                                                EffectType.Catapult
-                                        )}
-                                />
-                            </svg>
-                        {/each}
-                    </div>
-                    {#if gameSession.gameState.activeEffect === EffectType.Catapult || passageSundiver}
-                        <div
-                            class="text-[.5rem] select-none text-[#ad9c80] tracking-widest text-center"
+            </div>
+        {/if}
+        {#if (catapultedDivers.length > 0 || passageSundiver) && regularSundivers.length > 0}
+            <div class="flex flex-col justify-center items-center gap-y-2">
+                <div class="p-2 h-full text-[#ad9c80] tracking-widest">OR</div>
+                <div class="text-[.5rem]">&nbsp;</div>
+            </div>
+        {/if}
+        {#if regularSundivers.length > 0}
+            <div class="flex flex-col justify-center items-center gap-y-2">
+                <div class="flex flex-row justify-center items-center gap-x-2">
+                    {#each range(1, regularSundivers.length) as amount}
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24px"
+                            height="32px"
+                            viewBox="0 0 24 32"
                         >
-                            {#if passageSundiver}REGULAR{:else}NOT<br />CATAPULTED{/if}
-                        </div>
-                    {/if}
+                            <UISundiver
+                                color={playerColor}
+                                width={24}
+                                height={32}
+                                fontSize={19}
+                                quantity={amount}
+                                offBoard={true}
+                                alwaysShowQuantity={true}
+                                onclick={() =>
+                                    selectAmount(
+                                        amount,
+                                        gameSession.gameState.activeEffect === EffectType.Catapult
+                                    )}
+                            />
+                        </svg>
+                    {/each}
                 </div>
-            {/if}
-        </div>
+                {#if gameSession.gameState.activeEffect === EffectType.Catapult || passageSundiver}
+                    <div
+                        class="text-[.5rem] select-none text-[#ad9c80] tracking-widest text-center"
+                    >
+                        {#if passageSundiver}REGULAR{:else}NOT<br />CATAPULTED{/if}
+                    </div>
+                {/if}
+            </div>
+        {/if}
     </div>
-</Floater>
+</SolPicker>

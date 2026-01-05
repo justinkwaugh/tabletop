@@ -54,7 +54,8 @@ export class HydratedHatch extends HydratableAction<typeof Hatch> implements Hat
         targetPlayerState.addSundiversToHold(replacedDivers)
 
         const playerState = state.getPlayerState(this.playerId)
-        const diversToAdd = playerState.removeSundiversFromReserve(2)
+        const numToAdd = Math.min(2, playerState.reserveSundivers.length)
+        const diversToAdd = playerState.removeSundiversFromReserve(numToAdd)
         state.board.addSundiversToCell(diversToAdd, this.coords)
         this.metadata = {
             replacedSundiver: replacedDivers[0],
@@ -63,6 +64,10 @@ export class HydratedHatch extends HydratableAction<typeof Hatch> implements Hat
     }
 
     static canHatch(state: HydratedSolGameState, playerId: string): boolean {
+        const playerState = state.getPlayerState(playerId)
+        if (playerState.reserveSundivers.length === 0) {
+            return false
+        }
         return Iterator.from(state.board).some((cell) =>
             this.canHatchAt(state, playerId, cell.coords)
         )

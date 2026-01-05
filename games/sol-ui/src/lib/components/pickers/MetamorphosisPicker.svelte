@@ -5,7 +5,7 @@
     import Tower from '$lib/images/tower.svelte'
     import Foundry from '$lib/images/foundry.svelte'
     import EnergyNode from '$lib/images/energynode.svelte'
-    import Floater from '$lib/utils/Floater.svelte'
+    import SolPicker from './SolPicker.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -50,53 +50,50 @@
     }
 </script>
 
-<Floater placement="top" reference={`#board-picker-ref`} offset={20} trigger="manual" {onClose}>
-    <div
-        class="flex flex-col justify-center items-center space-y-2 rounded-lg dark:bg-black/90 p-2 text-[#ad9c80] border-1 border-[#ad9c80]"
-    >
-        <div class="flex flex-row flex-wrap justify-center items-end gap-x-2">
-            {#if stationTypes.includes(StationType.EnergyNode)}
-                <div class="flex flex-col items-center">
-                    <button onclick={() => chooseMetamorphosisType(StationType.EnergyNode)}>
-                        <EnergyNode
-                            width={46}
-                            height={48}
-                            color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                        />
-                    </button>
-                    <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
-                        ENERGY<br />NODE
-                    </div>
+<SolPicker {onClose} trigger="manual">
+    <div class="text-center mb-2">WHICH TYPE?</div>
+    <div class="flex flex-row flex-wrap justify-center items-end gap-x-2">
+        {#if stationTypes.includes(StationType.EnergyNode)}
+            <div class="flex flex-col items-center">
+                <button onclick={() => chooseMetamorphosisType(StationType.EnergyNode)}>
+                    <EnergyNode
+                        width={46}
+                        height={48}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                </button>
+                <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                    ENERGY<br />NODE
                 </div>
-            {/if}
-            {#if stationTypes.includes(StationType.SundiverFoundry)}
-                <div class="flex flex-col items-center">
-                    <button onclick={() => chooseMetamorphosisType(StationType.SundiverFoundry)}>
-                        <Foundry
-                            width={46}
-                            height={48}
-                            color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                        />
-                    </button>
-                    <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
-                        SUNDIVER<br />FOUNDRY
-                    </div>
+            </div>
+        {/if}
+        {#if stationTypes.includes(StationType.SundiverFoundry)}
+            <div class="flex flex-col items-center">
+                <button onclick={() => chooseMetamorphosisType(StationType.SundiverFoundry)}>
+                    <Foundry
+                        width={46}
+                        height={48}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                </button>
+                <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                    SUNDIVER<br />FOUNDRY
                 </div>
-            {/if}
-            {#if stationTypes.includes(StationType.TransmitTower)}
-                <div class="flex flex-col items-center">
-                    <button onclick={() => chooseMetamorphosisType(StationType.TransmitTower)}>
-                        <Tower
-                            width={40}
-                            height={80}
-                            color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
-                        />
-                    </button>
-                    <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
-                        TRANSMIT<br />TOWER
-                    </div>
+            </div>
+        {/if}
+        {#if stationTypes.includes(StationType.TransmitTower)}
+            <div class="flex flex-col items-center">
+                <button onclick={() => chooseMetamorphosisType(StationType.TransmitTower)}>
+                    <Tower
+                        width={40}
+                        height={80}
+                        color={gameSession.colors.getPlayerColor(gameSession.myPlayer?.id)}
+                    />
+                </button>
+                <div class="mt-1 text-[.5rem] tracking-widest text-center leading-none">
+                    TRANSMIT<br />TOWER
                 </div>
-            {/if}
-        </div>
+            </div>
+        {/if}
     </div>
-</Floater>
+</SolPicker>

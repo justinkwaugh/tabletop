@@ -2,7 +2,7 @@
     import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import Sundiver from '$lib/components/Sundiver.svelte'
-    import Floater from '$lib/utils/Floater.svelte'
+    import SolPicker from './SolPicker.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
 
@@ -30,26 +30,17 @@
     }
 </script>
 
-<Floater placement="top" reference={`#board-picker-ref`} offset={20} trigger="manual">
-    <div
-        class="flex flex-col justify-center items-center space-y-2 rounded-lg dark:bg-black/90 p-2 text-[#ad9c80] border-1 border-[#ad9c80]"
-    >
-        <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
-            {#each players as playerId (playerId)}
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="32px"
-                    height="42px"
-                    viewBox="0 0 32 42"
-                >
-                    <Sundiver
-                        color={gameSession.colors.getPlayerColor(playerId)}
-                        quantity={1}
-                        location={{ x: -640 + 16, y: -640 + 21 }}
-                        onclick={() => selectPlayer(playerId)}
-                    />
-                </svg>
-            {/each}
-        </div>
+<SolPicker trigger="manual">
+    <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
+        {#each players as playerId (playerId)}
+            <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">
+                <Sundiver
+                    color={gameSession.colors.getPlayerColor(playerId)}
+                    quantity={1}
+                    location={{ x: -640 + 16, y: -640 + 21 }}
+                    onclick={() => selectPlayer(playerId)}
+                />
+            </svg>
+        {/each}
     </div>
-</Floater>
+</SolPicker>
