@@ -143,7 +143,7 @@
                     if (isCenterCell) {
                         return HydratedHurl.canHurl(gameSession.gameState, myPlayerState.playerId)
                     } else if (gameSession.teleportChoice === true) {
-                        return true
+                        return !sameCoordinates(cell.coords, gameSession.chosenSource)
                     } else {
                         // console.log('catapultchoice', gameSession.catapultChoice)
                         return HydratedFly.isValidFlightDestination({
