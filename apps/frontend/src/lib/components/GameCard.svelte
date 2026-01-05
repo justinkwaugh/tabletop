@@ -203,9 +203,9 @@
 >
     <div class="flex flex-col">
         <div class="flex flex-row">
-            <div>
+            <div class="shrink-0">
                 <img
-                    class="w-[80px] h-[80px]"
+                    class="h-[80px]"
                     alt="cover thumbnail"
                     src={libraryService.getThumbnailForTitle(game.typeId)}
                 />
