@@ -52,7 +52,12 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeOut, move, scale, path, fadeIn } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import { getFlightDuration, getFlightPath, getFlightPaths } from '$lib/utils/flight.js'
+import {
+    getFlightDuration,
+    getFlightPath,
+    getFlightPaths,
+    TELEPORT_TIMINGS
+} from '$lib/utils/flight.js'
 import { tick } from 'svelte'
 import {
     CHAIN_MOMENTUM_MOVE_DURATION,
@@ -80,7 +85,11 @@ export class SundiverAnimator extends StateAnimator<
 
     addSundiver(id: string, element: HTMLElement | SVGElement): void {
         this.elements.set(id, element)
-        gsap.set(element, { opacity: 0 })
+        gsap.set(element, {
+            opacity: 0,
+            transformOrigin: '50% 50%',
+            transformBox: 'fill-box'
+        })
     }
 
     removeSundiver(id: string): void {
@@ -712,30 +721,122 @@ export class SundiverAnimator extends StateAnimator<
                 flightStart
             )
 
+            const pathLocations = pathPoints.map((loc) => offsetFromCenter(loc))
             if (fly.teleport) {
-                fadeOut({
-                    object: element,
-                    duration: 0.3,
-                    timeline,
-                    position: flightStart + 0.2
+                const scaleTarget =
+                    (element.firstElementChild as SVGElement | HTMLElement | null) ?? element
+                gsap.set(scaleTarget, {
+                    transformOrigin: '50% 50%',
+                    transformBox: 'fill-box'
                 })
-                fadeIn({
+
+                const preMoveDuration = TELEPORT_TIMINGS.preMove
+                const pauseDuration = TELEPORT_TIMINGS.pause
+                const popOutDuration = TELEPORT_TIMINGS.popOut
+                const shrinkDuration = TELEPORT_TIMINGS.shrink
+                const teleportGap = TELEPORT_TIMINGS.gap
+                const popInDuration = TELEPORT_TIMINGS.popIn
+                const settleDuration = TELEPORT_TIMINGS.settle
+                const postMoveDuration = TELEPORT_TIMINGS.postMove
+                const popScale = 1.4
+
+                const startOffset = offsetFromCenter(startLocation)
+                const endOffset = pathLocations.at(-1) ?? startOffset
+                const deltaX = endOffset.x - startOffset.x
+                const deltaY = endOffset.y - startOffset.y
+                const totalDistance = Math.hypot(deltaX, deltaY)
+                const teleportDistance = Math.min(50, totalDistance / 2)
+                const unitX = totalDistance === 0 ? 0 : deltaX / totalDistance
+                const unitY = totalDistance === 0 ? 0 : deltaY / totalDistance
+                const prePoint = {
+                    x: startOffset.x + unitX * teleportDistance,
+                    y: startOffset.y + unitY * teleportDistance
+                }
+                const reappearPoint = {
+                    x: endOffset.x - unitX * teleportDistance,
+                    y: endOffset.y - unitY * teleportDistance
+                }
+
+                const outStart = flightStart + preMoveDuration + pauseDuration
+                const reappearStart = outStart + popOutDuration + shrinkDuration + teleportGap
+
+                move({
                     object: element,
-                    duration: 0.3,
+                    location: prePoint,
+                    duration: preMoveDuration,
+                    ease: 'power1.inOut',
                     timeline,
-                    position: flightStart + flightDuration - 0.5
+                    position: flightStart
+                })
+
+                scale({
+                    object: scaleTarget,
+                    to: popScale,
+                    duration: popOutDuration,
+                    ease: 'back.out(2)',
+                    timeline,
+                    position: outStart
+                })
+                scale({
+                    object: scaleTarget,
+                    to: 0,
+                    duration: shrinkDuration,
+                    ease: 'power2.in',
+                    timeline,
+                    position: outStart + popOutDuration
+                })
+
+                timeline.set(
+                    element,
+                    {
+                        opacity: 1,
+                        x: reappearPoint.x,
+                        y: reappearPoint.y
+                    },
+                    reappearStart
+                )
+                timeline.set(
+                    scaleTarget,
+                    {
+                        scale: 0
+                    },
+                    reappearStart
+                )
+                scale({
+                    object: scaleTarget,
+                    to: popScale,
+                    duration: popInDuration,
+                    ease: 'back.out(2)',
+                    timeline,
+                    position: reappearStart
+                })
+                scale({
+                    object: scaleTarget,
+                    to: 1,
+                    duration: settleDuration,
+                    ease: 'back.out(2)',
+                    timeline,
+                    position: reappearStart + popInDuration
+                })
+                move({
+                    object: element,
+                    location: endOffset,
+                    duration: postMoveDuration,
+                    ease: 'power1.inOut',
+                    timeline,
+                    position: reappearStart + popInDuration
+                })
+            } else {
+                path({
+                    object: element,
+                    path: pathLocations,
+                    curviness: 1,
+                    duration: flightDuration,
+                    ease: 'power1.inOut',
+                    timeline,
+                    position: flightStart
                 })
             }
-
-            path({
-                object: element,
-                path: pathPoints.map((loc) => offsetFromCenter(loc)),
-                curviness: 1,
-                duration: flightDuration,
-                ease: fly.teleport ? 'power2.inOut' : 'power1.inOut',
-                timeline,
-                position: flightStart
-            })
 
             if (samePoint(pathPoints.at(-1), { x: 0, y: 0 })) {
                 // Special case for center space - just fade out

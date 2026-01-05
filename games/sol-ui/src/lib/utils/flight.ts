@@ -21,6 +21,29 @@ export type FlightPathWithGateCrossings = {
     gateCrossings: Map<number, number>
 }
 
+export const TELEPORT_TIMINGS = {
+    preMove: 0.5,
+    pause: 0.05,
+    popOut: 0.12,
+    shrink: 0.12,
+    gap: 0.05,
+    popIn: 0.12,
+    settle: 0.12,
+    postMove: 0.5
+} as const
+
+export function getTeleportDuration(): number {
+    return (
+        TELEPORT_TIMINGS.preMove +
+        TELEPORT_TIMINGS.pause +
+        TELEPORT_TIMINGS.popOut +
+        TELEPORT_TIMINGS.shrink +
+        TELEPORT_TIMINGS.gap +
+        TELEPORT_TIMINGS.popIn +
+        Math.max(TELEPORT_TIMINGS.settle, TELEPORT_TIMINGS.postMove)
+    )
+}
+
 export function getFlightPaths({
     action,
     gameSession,
@@ -281,7 +304,7 @@ export function getFlightPathWithGateCrossings({
 
 export function getFlightDuration(action: Fly | Hurl, pathLength: number): number {
     if (action.teleport) {
-        return 1.5
+        return getTeleportDuration()
     }
     const duration = Math.min(2, Math.max(1, pathLength * 0.3))
 
