@@ -34,7 +34,7 @@
     } from '@tabletop/sol'
     import Card from './Card.svelte'
     import { nanoid } from 'nanoid'
-    import { StationNames } from '$lib/utils/stationNames.js'
+    import { StationNameArticles, StationNames } from '$lib/utils/stationNames.js'
 
     let {
         action,
@@ -161,7 +161,8 @@
         </div>
     </div>
 {:else if isConvert(action)}
-    converted a {#if action.isGate}solar gate{:else}{StationNames[action.stationType!]}{/if}
+    converted {#if action.isGate}a solar gate{:else}{StationNameArticles[action.stationType!]}
+        {StationNames[action.stationType!]}{/if}
 {:else if isSolarFlare(action)}
     A solar flare occured
     <ul class="ms-4 list-inside">
@@ -229,7 +230,8 @@
 {:else if isChooseActivate(action)}
     chose to activate
 {:else if isDeconstruct(action)}
-    deconstructed a {StationNames[action.metadata!.removedStation.type]}
+    deconstructed {StationNameArticles[action.metadata!.removedStation.type]}
+    {StationNames[action.metadata!.removedStation.type]}
     {#if action.metadata?.oldMovement !== action.metadata?.newMovement}
         <br />
         Movement decreased to {action.metadata?.newMovement}
@@ -278,9 +280,11 @@
         capitalization={history ? 'capitalize' : 'uppercase'}
     /> recalled 1 sundiver
 {:else if isMetamorphosize(action)}
-    metamorphosized a {StationNames[action.metadata!.priorStation.type]} into a {StationNames[
+    metamorphosized {StationNameArticles[action.metadata!.priorStation.type]}
+    {StationNames[action.metadata!.priorStation.type]} into {StationNameArticles[
         action.metadata!.newStation.type
     ]}
+    {StationNames[action.metadata!.newStation.type]}
 {:else if isInvade(action)}
     invaded <PlayerName
         fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}
