@@ -11,12 +11,12 @@ export const Definition = <GameDefinition>{
 
     metadata: {
         name: 'Sol',
-        designer: '',
+        designer: 'Ryan Spangler, Sean Spangler and Jodi Sweetman',
         description:
-            'BETA: Games may have bugs and may not be finishable.  Not all of the history entries and waiting messsages are complete yet. Animations may b emissing. If you notice anything you think is weird or incorrect, please mention in it in our discord.',
+            'BETA: Games may have bugs and may not be finishable.  Not all of the history entries and waiting messsages are complete yet. Animations may be missing. If you notice anything you think is weird or incorrect, please mention in it in our discord.',
         year: '2005',
         minPlayers: 2,
-        maxPlayers: 4,
+        maxPlayers: 5,
         defaultPlayerCount: 4,
         beta: true
     },

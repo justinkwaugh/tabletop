@@ -1,4 +1,10 @@
-import { Color, Point, sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
+import {
+    Color,
+    Point,
+    PolarCoordinates,
+    sameCoordinates,
+    type OffsetCoordinates
+} from '@tabletop/common'
 import { CENTER_COORDS, Ring } from '@tabletop/sol'
 
 export const CENTER_POINT = { x: 640, y: 640 }
@@ -239,11 +245,14 @@ export function getSpaceCentroid(numPlayers: number, coords: OffsetCoordinates):
     if (sameCoordinates(coords, CENTER_COORDS)) {
         return { x: 0, y: 0 }
     }
-    const { angle, radius } = getSpaceCentroidAngleAndRadius(numPlayers, coords)
+    const { angle, radius } = getSpaceCentroidPolarCoordinates(numPlayers, coords)
     return getCirclePoint(radius, toRadians(angle))
 }
 
-export function getSpaceCentroidAngleAndRadius(numPlayers: number, coords: OffsetCoordinates) {
+export function getSpaceCentroidPolarCoordinates(
+    numPlayers: number,
+    coords: OffsetCoordinates
+): PolarCoordinates {
     const { innerRadius, outerRadius, startDegrees, endDegrees } = dimensionsForSpace(
         numPlayers,
         coords

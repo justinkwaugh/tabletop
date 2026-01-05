@@ -209,7 +209,7 @@
                 .x}px, {offsetFromCenter(gameSession.boardPickerLocation).y}px);"
             ><rect width="1" height="1" fill="transparent"></rect></g
         >
-
-        <!-- <Sandbox /> -->
     </svg>
+
+    <!-- <Sandbox /> -->
 </div>

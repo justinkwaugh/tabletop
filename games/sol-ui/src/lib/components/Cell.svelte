@@ -537,7 +537,7 @@
     {:else if station.type === StationType.SundiverFoundry}
         {@render renderStation(station, 46, 48)}
     {:else if station.type === StationType.TransmitTower}
-        {@render renderStation(station, 48, 100)}
+        {@render renderStation(station, 43, 95)}
     {/if}
 {/if}
 

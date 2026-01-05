@@ -5,8 +5,7 @@ import { Direction, HydratedSolGameBoard, Ring, StationType, type Cell } from '@
 import {
     addToAngle,
     getCirclePoint,
-    getSpaceCentroid,
-    getSpaceCentroidAngleAndRadius,
+    getSpaceCentroidPolarCoordinates,
     subtractFromAngle,
     toRadians
 } from './boardGeometry.js'
@@ -37,7 +36,7 @@ export function getCellLayout(
     }
 
     const numPlayersWithDivers = board.playersWithSundivers(cell).length
-    const center = getSpaceCentroidAngleAndRadius(playerCount, cell.coords)
+    const center = getSpaceCentroidPolarCoordinates(playerCount, cell.coords)
 
     let layout = undefined
     if (cell.station && cell.station.type !== StationType.TransmitTower) {
@@ -91,90 +90,27 @@ export function getCellLayout(
             }
         } else if (numPlayersWithDivers === 4) {
             if (cell.coords.row === Ring.Core) {
-                const diver1 = centerOffset(center, -20, -15)
-                const diver2 = centerOffset(center, 20, 6)
-                const diver3 = centerOffset(center, 24, -18)
-                const diver4 = centerOffset(center, -20, 18)
-                return {
-                    station: undefined,
-                    divers: [diver1, diver2, diver3, diver4]
-                }
+                layout = noStationFourDiversCore(cell, center)
             } else if (cell.coords.row === Ring.Radiative) {
-                const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
-                if (numInwardNeighbors == 1) {
-                    const diver1 = centerOffset(center, -10, -14)
-                    const diver2 = centerOffset(center, 25, 6)
-                    const diver3 = centerOffset(center, 20, -6)
-                    const diver4 = centerOffset(center, -10, 14)
-                    return {
-                        station: undefined,
-                        divers: [diver1, diver2, diver3, diver4]
-                    }
-                } else {
-                    const diver1 = centerOffset(center, 22, -14)
-                    const diver2 = centerOffset(center, 22, 5)
-                    const diver3 = centerOffset(center, 0, -5)
-                    const diver4 = centerOffset(center, 0, 15)
-
-                    return {
-                        station: undefined,
-                        divers: [diver1, diver2, diver3, diver4]
-                    }
-                }
+                layout = noStationFourDiversRadiative(cell, center, board)
             } else if (cell.coords.row === Ring.Convective) {
-                const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
-                if (numInwardNeighbors == 1) {
-                    const diver1 = centerOffset(center, -10, -9)
-                    const diver2 = centerOffset(center, 20, 3.5)
-                    const diver3 = centerOffset(center, 20, -3.5)
-                    const diver4 = centerOffset(center, -10, 9)
-                    return {
-                        station: undefined,
-                        divers: [diver1, diver2, diver3, diver4]
-                    }
-                } else {
-                    const diver1 = centerOffset(center, 23, -10)
-                    const diver2 = centerOffset(center, 26, 3)
-                    const diver3 = centerOffset(center, 2, -3)
-                    const diver4 = centerOffset(center, 2, 9)
-
-                    return {
-                        station: undefined,
-                        divers: [diver1, diver2, diver3, diver4]
-                    }
-                }
+                layout = noStationFourDiversConvective(cell, center, board)
             } else if (cell.coords.row === Ring.Inner) {
-                const gates = board.gatesForCell(cell.coords, Direction.In)
-                if (gates.length > 0) {
-                    const diver1 = centerOffset(center, 17, -1)
-                    const diver2 = centerOffset(center, 15, 6)
-                    const diver3 = centerOffset(center, -25, 1)
-                    const diver4 = centerOffset(center, -7, -10.3)
-
-                    return {
-                        station: undefined,
-                        divers: [diver1, diver2, diver3, diver4]
-                    }
-                } else {
-                    const diver1 = centerOffset(center, -5, -3.3)
-                    const diver2 = centerOffset(center, -20, 10)
-                    const diver3 = centerOffset(center, -5, 3.3)
-                    const diver4 = centerOffset(center, -20, -10)
-
-                    return {
-                        station: undefined,
-                        divers: [diver1, diver2, diver3, diver4]
-                    }
-                }
+                layout = noStationFourDiversInner(cell, center, board)
             } else if (cell.coords.row === Ring.Outer) {
-                const diver1 = centerOffset(center, 15, -10)
-                const diver2 = centerOffset(center, 0, -3)
-                const diver3 = centerOffset(center, 0, 3)
-                const diver4 = centerOffset(center, 15, 10)
-                return {
-                    station: undefined,
-                    divers: [diver1, diver2, diver3, diver4]
-                }
+                layout = noStationFourDiversOuter(cell, center)
+            }
+        } else if (numPlayersWithDivers === 5) {
+            if (cell.coords.row === Ring.Core) {
+                layout = noStationFiveDiversCore(cell, center)
+            } else if (cell.coords.row === Ring.Radiative) {
+                layout = noStationFiveDiversRadiative(cell, center, board)
+            } else if (cell.coords.row === Ring.Convective) {
+                layout = noStationFiveDiversConvective(cell, center, board)
+            } else if (cell.coords.row === Ring.Inner) {
+                layout = noStationFiveDiversInner(cell, center, board)
+            } else if (cell.coords.row === Ring.Outer) {
+                layout = noStationFiveDiversOuter(cell, center)
             }
         }
     }
@@ -341,7 +277,7 @@ function noStationThreeDiversInner(cell: Cell, center: PolarCoordinates): CellLa
     }
 }
 
-export function noStationThreeDiversOuter(cell: Cell, center: PolarCoordinates): CellLayout {
+function noStationThreeDiversOuter(cell: Cell, center: PolarCoordinates): CellLayout {
     const diver1 = centerOffset(center, 15, -7)
     const diver2 = centerOffset(center, 0, 0)
     const diver3 = centerOffset(center, 15, 7)
@@ -351,7 +287,230 @@ export function noStationThreeDiversOuter(cell: Cell, center: PolarCoordinates):
     }
 }
 
-export function nonTowerTwoOrLessDiverCore(cell: Cell, center: PolarCoordinates): CellLayout {
+function noStationFourDiversCore(cell: Cell, center: PolarCoordinates): CellLayout {
+    const diver1 = centerOffset(center, -20, -15)
+    const diver2 = centerOffset(center, 20, 6)
+    const diver3 = centerOffset(center, 24, -18)
+    const diver4 = centerOffset(center, -20, 18)
+    return {
+        station: undefined,
+        divers: [diver1, diver2, diver3, diver4]
+    }
+}
+
+function noStationFourDiversRadiative(
+    cell: Cell,
+    center: PolarCoordinates,
+    board: HydratedSolGameBoard
+): CellLayout | undefined {
+    const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
+    if (numInwardNeighbors == 1) {
+        const diver1 = centerOffset(center, -10, -14)
+        const diver2 = centerOffset(center, 25, 6)
+        const diver3 = centerOffset(center, 20, -6)
+        const diver4 = centerOffset(center, -10, 14)
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4]
+        }
+    } else {
+        const diver1 = centerOffset(center, 22, -14)
+        const diver2 = centerOffset(center, 22, 5)
+        const diver3 = centerOffset(center, 0, -5)
+        const diver4 = centerOffset(center, 0, 15)
+
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4]
+        }
+    }
+}
+
+function noStationFourDiversConvective(
+    cell: Cell,
+    center: PolarCoordinates,
+    board: HydratedSolGameBoard
+): CellLayout | undefined {
+    const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
+    if (numInwardNeighbors == 1) {
+        const diver1 = centerOffset(center, -10, -9)
+        const diver2 = centerOffset(center, 20, 3.5)
+        const diver3 = centerOffset(center, 20, -3.5)
+        const diver4 = centerOffset(center, -10, 9)
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4]
+        }
+    } else {
+        const diver1 = centerOffset(center, 26, -10)
+        const diver2 = centerOffset(center, 26, 3)
+        const diver3 = centerOffset(center, 4, -3)
+        const diver4 = centerOffset(center, 4, 9)
+
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4]
+        }
+    }
+}
+
+function noStationFourDiversInner(
+    cell: Cell,
+    center: PolarCoordinates,
+    board: HydratedSolGameBoard
+): CellLayout | undefined {
+    const gates = board.gatesForCell(cell.coords, Direction.In)
+    if (gates.length > 0) {
+        if (board.numPlayers < 5) {
+            const diver1 = centerOffset(center, 17, -1)
+            const diver2 = centerOffset(center, 15, 6)
+            const diver3 = centerOffset(center, -25, 1)
+            const diver4 = centerOffset(center, -7, -10.3)
+
+            return {
+                station: undefined,
+                divers: [diver1, diver2, diver3, diver4]
+            }
+        }
+    } else {
+        const diver1 = centerOffset(center, -5, -2.7)
+        const diver2 = centerOffset(center, -20, 8)
+        const diver3 = centerOffset(center, -5, 2.7)
+        const diver4 = centerOffset(center, -20, -8)
+
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4]
+        }
+    }
+}
+
+function noStationFourDiversOuter(cell: Cell, center: PolarCoordinates): CellLayout {
+    const diver1 = centerOffset(center, 15, -8)
+    const diver2 = centerOffset(center, 20, -2.7)
+    const diver3 = centerOffset(center, 15, 2.7)
+    const diver4 = centerOffset(center, 20, 8)
+    return {
+        station: undefined,
+        divers: [diver1, diver2, diver3, diver4]
+    }
+}
+
+function noStationFiveDiversCore(cell: Cell, center: PolarCoordinates): CellLayout {
+    const diver1 = centerOffset(center, -20, -17)
+    const diver2 = centerOffset(center, 20, 0)
+    const diver3 = centerOffset(center, 24, -20)
+    const diver4 = centerOffset(center, -24, 15)
+    const diver5 = centerOffset(center, 24, 22)
+    return {
+        station: undefined,
+        divers: [diver1, diver2, diver3, diver4, diver5]
+    }
+}
+
+function noStationFiveDiversRadiative(
+    cell: Cell,
+    center: PolarCoordinates,
+    board: HydratedSolGameBoard
+): CellLayout {
+    const gates = board.gatesForCell(cell.coords, Direction.In)
+    if (gates.length > 0) {
+        const diver1 = centerOffset(center, 0, -8)
+        const diver2 = centerOffset(center, 30, 0)
+        const diver3 = centerOffset(center, 30, -16.5)
+        const diver4 = centerOffset(center, 0, 8)
+        const diver5 = centerOffset(center, 30, 16.5)
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4, diver5]
+        }
+    } else {
+        const diver1 = centerOffset(center, -20, -10)
+        const diver2 = centerOffset(center, 20, 0)
+        const diver3 = centerOffset(center, 24, -15)
+        const diver4 = centerOffset(center, -24, 10)
+        const diver5 = centerOffset(center, 24, 15)
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4, diver5]
+        }
+    }
+}
+
+function noStationFiveDiversConvective(
+    cell: Cell,
+    center: PolarCoordinates,
+    board: HydratedSolGameBoard
+): CellLayout | undefined {
+    const gates = board.gatesForCell(cell.coords, Direction.In)
+    if (gates.length > 0) {
+        const numInwardNeighbors = board.neighborsAt(cell.coords, Direction.In).length
+        if (numInwardNeighbors == 1) {
+            const diver1 = centerOffset(center, -20, -9)
+            const diver2 = centerOffset(center, 20, 0)
+            const diver3 = centerOffset(center, 24, -9)
+            const diver4 = centerOffset(center, -24, 9)
+            const diver5 = centerOffset(center, 24, 9)
+            return {
+                station: undefined,
+                divers: [diver1, diver2, diver3, diver4, diver5]
+            }
+        } else {
+            const diver1 = centerOffset(center, 0, -5)
+            const diver2 = centerOffset(center, 30, 0)
+            const diver3 = centerOffset(center, 30, -10)
+            const diver4 = centerOffset(center, 0, 5)
+            const diver5 = centerOffset(center, 30, 10)
+            return {
+                station: undefined,
+                divers: [diver1, diver2, diver3, diver4, diver5]
+            }
+        }
+    } else {
+        const diver1 = centerOffset(center, -20, -5)
+        const diver2 = centerOffset(center, 20, 0)
+        const diver3 = centerOffset(center, 24, -9)
+        const diver4 = centerOffset(center, -24, 5)
+        const diver5 = centerOffset(center, 24, 9)
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4, diver5]
+        }
+    }
+}
+
+function noStationFiveDiversInner(
+    cell: Cell,
+    center: PolarCoordinates,
+    board: HydratedSolGameBoard
+): CellLayout | undefined {
+    const gates = board.gatesForCell(cell.coords, Direction.In)
+    if (gates.length === 0) {
+        const diver1 = centerOffset(center, 8, -0)
+        const diver2 = centerOffset(center, -30, 0)
+        const diver3 = centerOffset(center, -30, -7.2)
+        const diver4 = centerOffset(center, 8, 6)
+        const diver5 = centerOffset(center, -30, 7.2)
+        return {
+            station: undefined,
+            divers: [diver1, diver2, diver3, diver4, diver5]
+        }
+    }
+}
+
+function noStationFiveDiversOuter(cell: Cell, center: PolarCoordinates): CellLayout {
+    const diver1 = centerOffset(center, 10, -4)
+    const diver2 = centerOffset(center, 27, 0)
+    const diver3 = centerOffset(center, 27, -8)
+    const diver4 = centerOffset(center, 10, 4)
+    const diver5 = centerOffset(center, 27, 8)
+    return {
+        station: undefined,
+        divers: [diver1, diver2, diver3, diver4, diver5]
+    }
+}
+
+function nonTowerTwoOrLessDiverCore(cell: Cell, center: PolarCoordinates): CellLayout {
     const station = centerOffset(center, -13, 0)
     const diver1 = centerOffset(center, 23, -22)
     const diver2 = centerOffset(center, 23, 22)
@@ -362,13 +521,22 @@ export function nonTowerTwoOrLessDiverCore(cell: Cell, center: PolarCoordinates)
     }
 }
 
-export function nonTowerTwoOrLessDiverNonCore(
+function nonTowerTwoOrLessDiverNonCore(
     cell: Cell,
     center: PolarCoordinates,
     board: HydratedSolGameBoard
 ): CellLayout {
     const gates = board.gatesForCell(cell.coords, Direction.In)
-    const radiusOffset = gates.length > 0 && cell.coords.row < Ring.Inner ? 15 : 0
+    if (board.numPlayers === 5 && cell.coords.row === Ring.Inner && gates.length > 0) {
+        const station = centerOffset(center, 10, 2)
+        const diver1 = centerOffset(center, -2, -7.7)
+        const diver2 = centerOffset(center, -5, 7.7)
+        return {
+            station: { point: station, z: 1 },
+            divers: [diver1, diver2]
+        }
+    }
+    const radiusOffset = gates.length > 0 && cell.coords.row < Ring.Inner ? 15 : 8
     const stationPoint = centerOffset(center, radiusOffset, 0)
 
     let diver2RadiusOffset = TWO_DIVER_PLUS_STATION_RADIUS_OFFSETS_PER_RING[cell.coords.row]
@@ -376,7 +544,9 @@ export function nonTowerTwoOrLessDiverNonCore(
     let diver1RadiusOffset = TWO_DIVER_PLUS_STATION_RADIUS_OFFSETS_PER_RING[cell.coords.row]
     if (cell.coords.row === Ring.Inner && gates.length > 0) {
         diver2RadiusOffset += 15
-        diver1AngleOffset -= 3
+        if (board.numPlayers < 5) {
+            diver1AngleOffset -= 3
+        }
         diver1RadiusOffset += 3
     }
     const diver1 = centerOffset(center, diver1RadiusOffset, diver1AngleOffset)
@@ -391,7 +561,7 @@ export function nonTowerTwoOrLessDiverNonCore(
     }
 }
 
-export function nonTowerThreeDiverCore(cell: Cell, center: PolarCoordinates): CellLayout {
+function nonTowerThreeDiverCore(cell: Cell, center: PolarCoordinates): CellLayout {
     const station = centerOffset(center, -22, 0)
     const diver1 = centerOffset(center, 23, -22)
     const diver2 = centerOffset(center, 27, 0)
@@ -402,7 +572,7 @@ export function nonTowerThreeDiverCore(cell: Cell, center: PolarCoordinates): Ce
     }
 }
 
-export function nonTowerThreeDiverRadiative(
+function nonTowerThreeDiverRadiative(
     cell: Cell,
     center: PolarCoordinates,
     board: HydratedSolGameBoard
@@ -429,7 +599,7 @@ export function nonTowerThreeDiverRadiative(
     }
 }
 
-export function nonTowerThreeDiverConvective(
+function nonTowerThreeDiverConvective(
     cell: Cell,
     center: PolarCoordinates,
     board: HydratedSolGameBoard
@@ -444,10 +614,19 @@ export function nonTowerThreeDiverConvective(
             station: { point: station, z: 1 },
             divers: [diver1, diver2, diver3]
         }
+    } else {
+        const station = centerOffset(center, 18, 2)
+        const diver1 = centerOffset(center, 28, -10.5)
+        const diver2 = centerOffset(center, 2, -6)
+        const diver3 = centerOffset(center, 28, 10)
+        return {
+            station: { point: station, z: 1 },
+            divers: [diver1, diver2, diver3]
+        }
     }
 }
 
-export function nonTowerThreeDiverInner(
+function nonTowerThreeDiverInner(
     cell: Cell,
     center: PolarCoordinates,
     board: HydratedSolGameBoard
@@ -462,13 +641,19 @@ export function nonTowerThreeDiverInner(
             station: { point: station, z: 1 },
             divers: [diver1, diver2, diver3]
         }
+    } else if (board.numPlayers < 5) {
+        const station = centerOffset(center, 8, 3.7)
+        const diver1 = centerOffset(center, -10, -11)
+        const diver2 = centerOffset(center, 2, -3)
+        const diver3 = centerOffset(center, 5, 10)
+        return {
+            station: { point: station, z: 1 },
+            divers: [diver1, diver2, diver3]
+        }
     }
 }
 
-export function nonTowerThreeDiverOuter(
-    cell: Cell,
-    center: PolarCoordinates
-): CellLayout | undefined {
+function nonTowerThreeDiverOuter(cell: Cell, center: PolarCoordinates): CellLayout | undefined {
     const station = centerOffset(center, 0, 0)
     const diver1 = centerOffset(center, 10, -11)
     const diver2 = centerOffset(center, 18, -6)
@@ -479,10 +664,7 @@ export function nonTowerThreeDiverOuter(
     }
 }
 
-export function nonTowerFourDiverCore(
-    cell: Cell,
-    center: PolarCoordinates
-): CellLayout | undefined {
+function nonTowerFourDiverCore(cell: Cell, center: PolarCoordinates): CellLayout | undefined {
     const station = centerOffset(center, 22, 0)
     const diver1 = centerOffset(center, -22, -19)
     const diver2 = centerOffset(center, 22, 24)
@@ -494,7 +676,7 @@ export function nonTowerFourDiverCore(
     }
 }
 
-export function nonTowerFourDiverRadiative(
+function nonTowerFourDiverRadiative(
     cell: Cell,
     center: PolarCoordinates,
     board: HydratedSolGameBoard
@@ -513,7 +695,7 @@ export function nonTowerFourDiverRadiative(
     }
 }
 
-export function nonTowerFourDiverConvective(
+function nonTowerFourDiverConvective(
     cell: Cell,
     center: PolarCoordinates,
     board: HydratedSolGameBoard
@@ -532,7 +714,7 @@ export function nonTowerFourDiverConvective(
     }
 }
 
-export function nonTowerFourDiverInner(
+function nonTowerFourDiverInner(
     cell: Cell,
     center: PolarCoordinates,
     board: HydratedSolGameBoard
@@ -551,10 +733,7 @@ export function nonTowerFourDiverInner(
     }
 }
 
-export function nonTowerFourDiverOuter(
-    cell: Cell,
-    center: PolarCoordinates
-): CellLayout | undefined {
+function nonTowerFourDiverOuter(cell: Cell, center: PolarCoordinates): CellLayout | undefined {
     const station = centerOffset(center, 0, 0)
     const diver1 = centerOffset(center, 10, -11)
     const diver2 = centerOffset(center, 18, -6)

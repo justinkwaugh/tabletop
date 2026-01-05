@@ -1,16 +1,15 @@
 <script lang="ts">
     import {
         CENTER_POINT,
-        getCirclePoint,
         getGatePosition,
         getMothershipAngle,
         getSpaceCentroid,
         MOTHERSHIP_OFFSETS,
         MOTHERSHIP_RADIUS,
-        toRadians,
-        translateFromCenter,
-        type GatePosition
+        translateFromCenter
     } from '$lib/utils/boardGeometry.js'
+    import boardImg4p from '$lib/images/board.jpg'
+    import boardImg5p from '$lib/images/board5p.jpg'
     import UISundiver from './Sundiver.svelte'
     import Gate from './BoardGate.svelte'
     // import Tower from './Tower.svelte'
@@ -20,7 +19,6 @@
         Direction,
         HydratedSolGameBoard,
         Ring,
-        SolGraph,
         StationType,
         Sundiver,
         Station
@@ -30,11 +28,9 @@
     import GreenShip from '$lib/images/greenShip.svelte'
     import PurpleShip from '$lib/images/purpleShip.svelte'
     import BlackShip from '$lib/images/blackShip.svelte'
-    import { CELL_LAYOUT_5P } from '$lib/utils/cellLayout5p.js'
-    import { CELL_LAYOUT_4P } from '$lib/utils/cellLayout4p.js'
     import { getCellLayout } from '$lib/utils/cellLayouts.js'
-    import Energynode from '$lib/images/energynode.svelte'
     import UIStation from './Station.svelte'
+    import DropShadow from './DropShadow.svelte'
 
     enum PieceType {
         Sundiver,
@@ -49,7 +45,7 @@
         p4: Color.Black
     }
 
-    let numPlayers = 4
+    let numPlayers = $state(4)
 
     let numDiversPerCell = $state(0)
     let gates = $state(false)
@@ -112,27 +108,16 @@
     let hideStuff: boolean = $state(true)
     let currentType: PieceType = $state(PieceType.Sundiver)
 
-    // const gatePositions: GatePosition[] = []
-    const graph = new SolGraph(numPlayers)
-    // for (const node of graph) {
-    //     if (
-    //         node.coords.row === Ring.Inner ||
-    //         node.coords.row === Ring.Convective ||
-    //         node.coords.row === Ring.Radiative
-    //     ) {
-    //         for (const neighbor of graph.neighborsOf(node, Direction.In)) {
-    //             gatePositions.push(getGatePosition(numPlayers, neighbor.coords, node.coords))
-    //         }
-    //     }
-    // }
-
-    const spaceLabels: { point: Point; label: string }[] = []
-    for (const node of graph) {
-        spaceLabels.push({
-            point: getSpaceCentroid(numPlayers, node.coords),
-            label: `[${node.coords.row}, ${node.coords.col}]`
-        })
-    }
+    const spaceLabels: { point: Point; label: string }[] = $derived.by(() => {
+        const results = []
+        for (const cell of sandboxBoard) {
+            results.push({
+                point: getSpaceCentroid(numPlayers, cell.coords),
+                label: `[${cell.coords.row}, ${cell.coords.col}]`
+            })
+        }
+        return results
+    })
 
     type DiverInfo = {
         playerId: string
@@ -178,30 +163,6 @@
         return stationPoints
     })
 
-    const diverLocs: { point: Point; quantity: number }[] = []
-    for (const node of graph) {
-        const layoutKey = `${node.coords.row}-${node.coords.col}`
-        const cellLayouts = CELL_LAYOUT_4P[layoutKey] ?? {}
-        const layout = cellLayouts['t-g1-g2'] ?? cellLayouts['t-g1'] ?? cellLayouts['t']
-        if (layout) {
-            diverLocs.push(
-                ...layout.divers.map((diver: Point, index: number) => {
-                    return { point: diver, quantity: index + 1 }
-                })
-            )
-        }
-    }
-
-    const towerLocs: Point[] = []
-    for (const node of graph) {
-        const layoutKey = `${node.coords.row}-${node.coords.col}`
-        const cellLayouts = CELL_LAYOUT_4P[layoutKey] ?? {}
-        const layout = cellLayouts['t-g1-g2'] ?? cellLayouts['t-g1'] ?? cellLayouts['t']
-        if (layout && layout.station) {
-            towerLocs.push(layout.station.point)
-        }
-    }
-
     const blueOffsets = MOTHERSHIP_OFFSETS[Color.Blue]
     const grayOffsets = MOTHERSHIP_OFFSETS[Color.Gray]
     const greenOffsets = MOTHERSHIP_OFFSETS[Color.Green]
@@ -213,40 +174,54 @@
     let purpleShapeTransformation = `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${purpleOffsets.rotation}) translate(${purpleOffsets.x},${purpleOffsets.y})`
     let blackShapeTransformation = `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${blackOffsets.rotation}) translate(${blackOffsets.x},${blackOffsets.y})`
 
-    const blueLocations: string[] = []
-    for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
-        blueLocations.push(
-            `rotate(${getMothershipAngle(numPlayers, Color.Blue, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
-        )
-    }
+    const blueLocations: string[] = $derived.by(() => {
+        const locations = []
+        for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
+            locations.push(
+                `rotate(${getMothershipAngle(numPlayers, Color.Blue, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
+            )
+        }
+        return locations
+    })
 
-    const grayLocations: string[] = []
-    for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
-        grayLocations.push(
-            `rotate(${getMothershipAngle(numPlayers, Color.Gray, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
-        )
-    }
+    const grayLocations: string[] = $derived.by(() => {
+        const locations = []
+        for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
+            locations.push(
+                `rotate(${getMothershipAngle(numPlayers, Color.Gray, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
+            )
+        }
+        return locations
+    })
+    const greenLocations: string[] = $derived.by(() => {
+        const locations = []
+        for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
+            locations.push(
+                `rotate(${getMothershipAngle(numPlayers, Color.Green, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
+            )
+        }
+        return locations
+    })
 
-    const greenLocations: string[] = []
-    for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
-        greenLocations.push(
-            `rotate(${getMothershipAngle(numPlayers, Color.Green, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
-        )
-    }
+    const purpleLocations: string[] = $derived.by(() => {
+        const locations = []
+        for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
+            locations.push(
+                `rotate(${getMothershipAngle(numPlayers, Color.Purple, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
+            )
+        }
+        return locations
+    })
 
-    const purpleLocations: string[] = []
-    for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
-        purpleLocations.push(
-            `rotate(${getMothershipAngle(numPlayers, Color.Purple, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
-        )
-    }
-
-    const blackLocations: string[] = []
-    for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
-        blackLocations.push(
-            `rotate(${getMothershipAngle(numPlayers, Color.Black, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
-        )
-    }
+    const blackLocations: string[] = $derived.by(() => {
+        const locations = []
+        for (let i = 0; i < (numPlayers === 5 ? 16 : 13); i++) {
+            locations.push(
+                `rotate(${getMothershipAngle(numPlayers, Color.Black, i)}, ${CENTER_POINT.x}, ${CENTER_POINT.y})`
+            )
+        }
+        return locations
+    })
 
     const tempDiversLocations: { id: string; point: Point }[] = $state([])
     const tempTowersLocations: { id: string; point: Point }[] = $state([])
@@ -296,167 +271,176 @@
     <Tower color="blue" location={point} />
 {/each} -->
 
-{#if !hideStuff}
-    {#each spaceLabels as { point, label }}
-        <text
-            transform={translateFromCenter(point.x + 1, point.y + 1)}
-            text-anchor="middle"
-            font-size="21"
-            font-weight="bold"
-            opacity=".5"
-            fill="black">{label}</text
-        >
-        <text
-            transform={translateFromCenter(point.x, point.y)}
-            text-anchor="middle"
-            font-size="20"
-            font-weight="bold"
-            fill="white"
-        >
-            {label}
-        </text>
-    {/each}
-{/if}
+<div class="absolute top left w-[1280px] h-[1280px]">
+    <img src={numPlayers === 5 ? boardImg5p : boardImg4p} alt="game board" />
+</div>
+<svg id="board" class="absolute z-0" width="1280" height="1280" viewBox="0 0 1280 1280">
+    <defs>
+        <DropShadow id="textshadow" />
+        <DropShadow id="pieceshadow" offset={{ x: 0, y: 0 }} amount={20} />
+    </defs>
 
-{#if ships}
-    {#each blueLocations as locationTransformation}
-        <g transform={locationTransformation}>
-            <g transform={blueShapeTransformation}>
-                <BlueShip />
+    {#if !hideStuff}
+        {#each spaceLabels as { point, label }}
+            <text
+                transform={translateFromCenter(point.x + 1, point.y + 1)}
+                text-anchor="middle"
+                font-size="21"
+                font-weight="bold"
+                opacity=".5"
+                fill="black">{label}</text
+            >
+            <text
+                transform={translateFromCenter(point.x, point.y)}
+                text-anchor="middle"
+                font-size="20"
+                font-weight="bold"
+                fill="white"
+            >
+                {label}
+            </text>
+        {/each}
+    {/if}
+
+    {#if ships}
+        {#each blueLocations as locationTransformation}
+            <g transform={locationTransformation}>
+                <g transform={blueShapeTransformation}>
+                    <BlueShip />
+                </g>
             </g>
-        </g>
-    {/each}
+        {/each}
 
-    {#each grayLocations as locationTransformation}
-        <g transform={locationTransformation}>
-            <g transform={grayShapeTransformation}>
-                <SilverShip />
+        {#each grayLocations as locationTransformation}
+            <g transform={locationTransformation}>
+                <g transform={grayShapeTransformation}>
+                    <SilverShip />
+                </g>
             </g>
-        </g>
-    {/each}
+        {/each}
 
-    {#each greenLocations as locationTransformation}
-        <g transform={locationTransformation}>
-            <g transform={greenShapeTransformation}>
-                <GreenShip />
+        {#each greenLocations as locationTransformation}
+            <g transform={locationTransformation}>
+                <g transform={greenShapeTransformation}>
+                    <GreenShip />
+                </g>
             </g>
-        </g>
-    {/each}
+        {/each}
 
-    {#each purpleLocations as locationTransformation}
-        <g transform={locationTransformation}>
-            <g transform={purpleShapeTransformation}>
-                <PurpleShip />
+        {#each purpleLocations as locationTransformation}
+            <g transform={locationTransformation}>
+                <g transform={purpleShapeTransformation}>
+                    <PurpleShip />
+                </g>
             </g>
-        </g>
-    {/each}
+        {/each}
 
-    {#each blackLocations as locationTransformation}
-        <g transform={locationTransformation}>
-            <g transform={blackShapeTransformation}>
-                <BlackShip />
+        {#each blackLocations as locationTransformation}
+            <g transform={locationTransformation}>
+                <g transform={blackShapeTransformation}>
+                    <BlackShip />
+                </g>
             </g>
-        </g>
-    {/each}
-{/if}
+        {/each}
+    {/if}
 
-<g>
-    {#each divers as { playerId, point }}
-        <UISundiver color={colorPerPlayerId[playerId]} quantity={1} location={point} />
-    {/each}
-    {#each gatePositions as gatePosition}
-        <Gate color="blue" position={gatePosition} />
-    {/each}
-    {#each stations as stationInfo}
-        <g transform={translateFromCenter(stationInfo.point.x, stationInfo.point.y)}>
-            <UIStation
-                station={stationInfo.station}
-                width={stationInfo.station.type !== StationType.TransmitTower ? 46 : 48}
-                height={stationInfo.station.type !== StationType.TransmitTower ? 48 : 100}
+    <g>
+        {#each divers as { playerId, point }}
+            <UISundiver color={colorPerPlayerId[playerId]} quantity={1} location={point} />
+        {/each}
+        {#each gatePositions as gatePosition}
+            <Gate color="blue" position={gatePosition} />
+        {/each}
+        {#each stations as stationInfo}
+            <g transform={translateFromCenter(stationInfo.point.x, stationInfo.point.y)}>
+                <UIStation
+                    station={stationInfo.station}
+                    width={stationInfo.station.type !== StationType.TransmitTower ? 46 : 43}
+                    height={stationInfo.station.type !== StationType.TransmitTower ? 48 : 95}
+                    color="blue"
+                />
+            </g>
+        {/each}
+        <rect onclick={onClick} x="0" y="0" width="1280" height="1280" fill="transparent"></rect>
+
+        {#each tempDiversLocations as { id, point }}
+            <UISundiver
+                onclick={() => {
+                    diverClick(id)
+                }}
                 color="blue"
+                quantity={1}
+                location={point}
             />
-        </g>
-    {/each}
-    <rect onclick={onClick} x="0" y="0" width="1280" height="1280" fill="transparent"></rect>
+            <g transform={translateFromCenter(point.x, point.y)}>
+                <text
+                    y="-6"
+                    style="pointer-events: none"
+                    class="select-none"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size="12"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#FFFFFF"
+                    fill="white"
+                    >{point.x}
+                </text>
+                <text
+                    y="6"
+                    style="pointer-events: none"
+                    class="select-none"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size="12"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#FFFFFF"
+                    fill="white"
+                    >{point.y}
+                </text>
+            </g>
+        {/each}
 
-    {#each tempDiversLocations as { id, point }}
-        <UISundiver
-            onclick={() => {
-                diverClick(id)
-            }}
-            color="blue"
-            quantity={1}
-            location={point}
-        />
-        <g transform={translateFromCenter(point.x, point.y)}>
-            <text
-                y="-6"
-                style="pointer-events: none"
-                class="select-none"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                font-size="12"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#FFFFFF"
-                fill="white"
-                >{point.x}
-            </text>
-            <text
-                y="6"
-                style="pointer-events: none"
-                class="select-none"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                font-size="12"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#FFFFFF"
-                fill="white"
-                >{point.y}
-            </text>
-        </g>
-    {/each}
-
-    {#each tempTowersLocations as { id, point }}
-        <!-- <Tower
+        {#each tempTowersLocations as { id, point }}
+            <!-- <Tower
             onclick={() => {
                 towerClick(id)
             }}
             color="blue"
             location={point}
         /> -->
-        <g transform={translateFromCenter(point.x, point.y)}>
-            <text
-                y="-6"
-                style="pointer-events: none"
-                class="select-none"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                font-size="12"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#FFFFFF"
-                fill="white"
-                >{point.x}
-            </text>
-            <text
-                y="6"
-                style="pointer-events: none"
-                class="select-none"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                font-size="12"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#FFFFFF"
-                fill="white"
-                >{point.y}
-            </text>
-        </g>
-    {/each}
-</g>
-<text
+            <g transform={translateFromCenter(point.x, point.y)}>
+                <text
+                    y="-6"
+                    style="pointer-events: none"
+                    class="select-none"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size="12"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#FFFFFF"
+                    fill="white"
+                    >{point.x}
+                </text>
+                <text
+                    y="6"
+                    style="pointer-events: none"
+                    class="select-none"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size="12"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#FFFFFF"
+                    fill="white"
+                    >{point.y}
+                </text>
+            </g>
+        {/each}
+    </g>
+    <!-- <text
     x="150"
     y="50"
     onclick={() => {
@@ -468,9 +452,9 @@
     opacity=".5"
     fill="white"
     >TOGGLE STUFF
-</text>
+</text> -->
 
-<!-- <text
+    <!-- <text
     x="150"
     y="100"
     onclick={chooseSundiver}
@@ -482,7 +466,7 @@
     >SUNDIVERS
 </text> -->
 
-<!-- <text
+    <!-- <text
     x="150"
     y="150"
     onclick={chooseTower}
@@ -494,140 +478,207 @@
     >TOWERS
 </text> -->
 
-<text x="0" y="100" text-anchor="start" font-size="30" font-weight="bold" opacity="1" fill="white"
-    >SHIPS
-</text>
+    <text
+        x="0"
+        y="50"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >PLAYERS
+    </text>
 
-<text
-    onclick={() => {
-        ships = true
-    }}
-    x={120}
-    y="100"
-    text-anchor="start"
-    font-size="30"
-    font-weight="bold"
-    opacity="1"
-    fill="white"
-    >ON
-</text>
-<text
-    onclick={() => {
-        ships = false
-    }}
-    x={180}
-    y="100"
-    text-anchor="start"
-    font-size="30"
-    font-weight="bold"
-    opacity="1"
-    fill="white"
-    >OFF
-</text>
-
-<text x="0" y="150" text-anchor="start" font-size="30" font-weight="bold" opacity="1" fill="white"
-    >STATION
-</text>
-
-<text
-    onclick={() => {
-        station = undefined
-    }}
-    x="140"
-    y="150"
-    text-anchor="start"
-    font-size="30"
-    font-weight="bold"
-    opacity="1"
-    fill="white"
-    >N
-</text>
-<text
-    onclick={() => {
-        station = StationType.EnergyNode
-    }}
-    x="170"
-    y="150"
-    text-anchor="start"
-    font-size="30"
-    font-weight="bold"
-    opacity="1"
-    fill="white"
-    >E
-</text>
-<text
-    onclick={() => {
-        station = StationType.SundiverFoundry
-    }}
-    x="200"
-    y="150"
-    text-anchor="start"
-    font-size="30"
-    font-weight="bold"
-    opacity="1"
-    fill="white"
-    >F
-</text>
-<text
-    onclick={() => {
-        station = StationType.TransmitTower
-    }}
-    x="230"
-    y="150"
-    text-anchor="start"
-    font-size="30"
-    font-weight="bold"
-    opacity="1"
-    fill="white"
-    >T
-</text>
-
-<text x="0" y="200" text-anchor="start" font-size="30" font-weight="bold" opacity="1" fill="white"
-    >NUM D
-</text>
-{#each { length: numPlayers + 1 }, index}
     <text
         onclick={() => {
-            numDiversPerCell = index
+            numPlayers = 4
         }}
-        x={110 + index * 30}
+        x={150}
+        y="50"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >4
+    </text>
+    <text
+        onclick={() => {
+            numPlayers = 5
+        }}
+        x={180}
+        y="50"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >5
+    </text>
+
+    <text
+        x="0"
+        y="100"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >SHIPS
+    </text>
+
+    <text
+        onclick={() => {
+            ships = true
+        }}
+        x={120}
+        y="100"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >ON
+    </text>
+    <text
+        onclick={() => {
+            ships = false
+        }}
+        x={180}
+        y="100"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >OFF
+    </text>
+
+    <text
+        x="0"
+        y="150"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >STATION
+    </text>
+
+    <text
+        onclick={() => {
+            station = undefined
+        }}
+        x="140"
+        y="150"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >N
+    </text>
+    <text
+        onclick={() => {
+            station = StationType.EnergyNode
+        }}
+        x="170"
+        y="150"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >E
+    </text>
+    <text
+        onclick={() => {
+            station = StationType.SundiverFoundry
+        }}
+        x="200"
+        y="150"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >F
+    </text>
+    <text
+        onclick={() => {
+            station = StationType.TransmitTower
+        }}
+        x="230"
+        y="150"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >T
+    </text>
+
+    <text
+        x="0"
         y="200"
         text-anchor="start"
         font-size="30"
         font-weight="bold"
         opacity="1"
         fill="white"
-        >{index}
+        >NUM D
     </text>
-{/each}
+    {#each { length: numPlayers + 1 }, index}
+        <text
+            onclick={() => {
+                numDiversPerCell = index
+            }}
+            x={110 + index * 30}
+            y="200"
+            text-anchor="start"
+            font-size="30"
+            font-weight="bold"
+            opacity="1"
+            fill="white"
+            >{index}
+        </text>
+    {/each}
 
-<text x="0" y="250" text-anchor="start" font-size="30" font-weight="bold" opacity="1" fill="white"
-    >GATES
-</text>
+    <text
+        x="0"
+        y="250"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >GATES
+    </text>
 
-<text
-    onclick={() => {
-        gates = true
-    }}
-    x={120}
-    y="250"
-    text-anchor="start"
-    font-size="30"
-    font-weight="bold"
-    opacity="1"
-    fill="white"
-    >ON
-</text>
-<text
-    onclick={() => {
-        gates = false
-    }}
-    x={180}
-    y="250"
-    text-anchor="start"
-    font-size="30"
-    font-weight="bold"
-    opacity="1"
-    fill="white"
-    >OFF
-</text>
+    <text
+        onclick={() => {
+            gates = true
+        }}
+        x={120}
+        y="250"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >ON
+    </text>
+    <text
+        onclick={() => {
+            gates = false
+        }}
+        x={180}
+        y="250"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >OFF
+    </text>
+</svg>
