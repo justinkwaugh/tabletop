@@ -7,6 +7,12 @@ export const Point = Type.Object({
     y: Type.Number()
 })
 
+export type PolarCoordinates = Static<typeof PolarCoordinates>
+export const PolarCoordinates = Type.Object({
+    radius: Type.Number(),
+    angle: Type.Number()
+})
+
 export type OffsetCoordinates = Static<typeof OffsetCoordinates>
 export const OffsetCoordinates = Type.Object({
     col: Type.Number(),

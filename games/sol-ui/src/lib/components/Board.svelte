@@ -127,8 +127,6 @@
 
         <InstabilityTrack width={760} height={35} location={{ x: (1280 - 760) / 2, y: 12 }} />
 
-        <!-- <Sandbox /> -->
-
         {#each [...gates] as [key, gate] (key)}
             {#if gate.innerCoords && gate.outerCoords}
                 <g class="pointer-events-none" use:animateGate={{ animator: gateAnimator, gate }}>
@@ -211,5 +209,7 @@
                 .x}px, {offsetFromCenter(gameSession.boardPickerLocation).y}px);"
             ><rect width="1" height="1" fill="transparent"></rect></g
         >
+
+        <!-- <Sandbox /> -->
     </svg>
 </div>

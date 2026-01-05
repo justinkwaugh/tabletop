@@ -11,12 +11,20 @@
         translateFromCenter,
         type GatePosition
     } from '$lib/utils/boardGeometry.js'
-    import Sundiver from './Sundiver.svelte'
+    import UISundiver from './Sundiver.svelte'
     import Gate from './BoardGate.svelte'
     // import Tower from './Tower.svelte'
     import BlueShip from '$lib/images/blueShip.svelte'
     import SilverShip from '$lib/images/silverShip.svelte'
-    import { Direction, Ring, SolGraph } from '@tabletop/sol'
+    import {
+        Direction,
+        HydratedSolGameBoard,
+        Ring,
+        SolGraph,
+        StationType,
+        Sundiver,
+        Station
+    } from '@tabletop/sol'
     import { Color, type Point } from '@tabletop/common'
     import { nanoid } from 'nanoid'
     import GreenShip from '$lib/images/greenShip.svelte'
@@ -24,32 +32,99 @@
     import BlackShip from '$lib/images/blackShip.svelte'
     import { CELL_LAYOUT_5P } from '$lib/utils/cellLayout5p.js'
     import { CELL_LAYOUT_4P } from '$lib/utils/cellLayout4p.js'
-    import BoardSvg from './BoardSvg.svelte'
+    import { getCellLayout } from '$lib/utils/cellLayouts.js'
+    import Energynode from '$lib/images/energynode.svelte'
+    import UIStation from './Station.svelte'
 
     enum PieceType {
         Sundiver,
         Tower
     }
+
+    const colorPerPlayerId: { [playerId: string]: Color } = {
+        p0: Color.Blue,
+        p1: Color.Gray,
+        p2: Color.Green,
+        p3: Color.Purple,
+        p4: Color.Black
+    }
+
     let numPlayers = 4
+
+    let numDiversPerCell = $state(0)
+    let gates = $state(false)
+    let station: StationType | undefined = $state(undefined)
+    let ships = $state(false)
+
+    let sandboxBoard = $derived.by(() => {
+        const board = new HydratedSolGameBoard({
+            numPlayers,
+            motherships: {},
+            cells: {},
+            gates: {}
+        })
+
+        for (const cell of board) {
+            const sundivers: Sundiver[] = []
+            for (let i = 0; i < numDiversPerCell; i++) {
+                sundivers.push({
+                    id: nanoid(),
+                    playerId: 'p' + i,
+                    reserve: false
+                })
+            }
+            board.addSundiversToCell(sundivers, cell.coords)
+        }
+
+        if (gates) {
+            for (const node of board) {
+                if (
+                    node.coords.row === Ring.Inner ||
+                    node.coords.row === Ring.Convective ||
+                    node.coords.row === Ring.Radiative
+                ) {
+                    for (const neighbor of board.neighborsAt(node.coords, Direction.In)) {
+                        board.addGateAt(
+                            { id: nanoid(), playerId: 'p1' },
+                            neighbor.coords,
+                            node.coords
+                        )
+                    }
+                }
+            }
+        }
+
+        if (station) {
+            const newStation = {
+                id: nanoid(),
+                playerId: 'p1',
+                type: station
+            }
+            for (const cell of board) {
+                board.addStationAt(newStation, cell.coords)
+            }
+        }
+        return board
+    })
 
     // console.log(getCirclePoint(148, toRadians(45)))
 
-    let hideStuff: boolean = $state(false)
+    let hideStuff: boolean = $state(true)
     let currentType: PieceType = $state(PieceType.Sundiver)
 
-    const gatePositions: GatePosition[] = []
+    // const gatePositions: GatePosition[] = []
     const graph = new SolGraph(numPlayers)
-    for (const node of graph) {
-        if (
-            node.coords.row === Ring.Inner ||
-            node.coords.row === Ring.Convective ||
-            node.coords.row === Ring.Radiative
-        ) {
-            for (const neighbor of graph.neighborsOf(node, Direction.In)) {
-                gatePositions.push(getGatePosition(numPlayers, neighbor.coords, node.coords))
-            }
-        }
-    }
+    // for (const node of graph) {
+    //     if (
+    //         node.coords.row === Ring.Inner ||
+    //         node.coords.row === Ring.Convective ||
+    //         node.coords.row === Ring.Radiative
+    //     ) {
+    //         for (const neighbor of graph.neighborsOf(node, Direction.In)) {
+    //             gatePositions.push(getGatePosition(numPlayers, neighbor.coords, node.coords))
+    //         }
+    //     }
+    // }
 
     const spaceLabels: { point: Point; label: string }[] = []
     for (const node of graph) {
@@ -58,6 +133,50 @@
             label: `[${node.coords.row}, ${node.coords.col}]`
         })
     }
+
+    type DiverInfo = {
+        playerId: string
+        point: Point
+    }
+
+    const divers = $derived.by(() => {
+        const diverInfos: DiverInfo[] = []
+        for (const cell of sandboxBoard) {
+            const cellLayout = getCellLayout(cell, numPlayers, sandboxBoard)
+            for (let i = 0; i < cell.sundivers.length; i++) {
+                const diver = cell.sundivers[i]
+                const diverPoint = cellLayout.divers[i]
+                diverInfos.push({
+                    playerId: diver.playerId,
+                    point: diverPoint
+                })
+            }
+        }
+        return diverInfos
+    })
+
+    const gatePositions = $derived.by(() => {
+        return Object.values(sandboxBoard.gates).map((gate) => {
+            return getGatePosition(numPlayers, gate.innerCoords!, gate.outerCoords!)
+        })
+    })
+
+    type StationInfo = {
+        point: Point
+        station: Station
+    }
+    const stations = $derived.by(() => {
+        const stationPoints: StationInfo[] = []
+        for (const cell of sandboxBoard) {
+            if (cell.station) {
+                const cellLayout = getCellLayout(cell, numPlayers, sandboxBoard)
+                if (cellLayout.station) {
+                    stationPoints.push({ point: cellLayout.station.point, station: cell.station })
+                }
+            }
+        }
+        return stationPoints
+    })
 
     const diverLocs: { point: Point; quantity: number }[] = []
     for (const node of graph) {
@@ -197,22 +316,9 @@
             {label}
         </text>
     {/each}
+{/if}
 
-    <!-- <Sundiver color="green" quantity={1} location={{ x: -70, y: 0 }} />
-<Sundiver color="gray" quantity={1} location={{ x: 70, y: 0 }} />
-<Sundiver color="gray" quantity={2} location={{ x: 100, y: 0 }} />
-<Sundiver color="green" quantity={3} location={{ x: 130, y: 0 }} />
-<Sundiver color="blue" quantity={4} location={{ x: 80, y: -40 }} />
-<Sundiver color="purple" quantity={5} location={{ x: 110, y: -40 }} /> -->
-
-    <!-- <g transform="{translateFromCenter(70, 70)} scale(.9) translate(-24, -50)">
-        <Tower />
-    </g> -->
-
-    {#each gatePositions as gatePosition}
-        <Gate color="green" position={gatePosition} />
-    {/each}
-
+{#if ships}
     {#each blueLocations as locationTransformation}
         <g transform={locationTransformation}>
             <g transform={blueShapeTransformation}>
@@ -255,9 +361,26 @@
 {/if}
 
 <g>
+    {#each divers as { playerId, point }}
+        <UISundiver color={colorPerPlayerId[playerId]} quantity={1} location={point} />
+    {/each}
+    {#each gatePositions as gatePosition}
+        <Gate color="blue" position={gatePosition} />
+    {/each}
+    {#each stations as stationInfo}
+        <g transform={translateFromCenter(stationInfo.point.x, stationInfo.point.y)}>
+            <UIStation
+                station={stationInfo.station}
+                width={stationInfo.station.type !== StationType.TransmitTower ? 46 : 48}
+                height={stationInfo.station.type !== StationType.TransmitTower ? 48 : 100}
+                color="blue"
+            />
+        </g>
+    {/each}
     <rect onclick={onClick} x="0" y="0" width="1280" height="1280" fill="transparent"></rect>
+
     {#each tempDiversLocations as { id, point }}
-        <Sundiver
+        <UISundiver
             onclick={() => {
                 diverClick(id)
             }}
@@ -347,7 +470,7 @@
     >TOGGLE STUFF
 </text>
 
-<text
+<!-- <text
     x="150"
     y="100"
     onclick={chooseSundiver}
@@ -357,9 +480,9 @@
     opacity=".5"
     fill="white"
     >SUNDIVERS
-</text>
+</text> -->
 
-<text
+<!-- <text
     x="150"
     y="150"
     onclick={chooseTower}
@@ -369,4 +492,142 @@
     opacity=".5"
     fill="white"
     >TOWERS
+</text> -->
+
+<text x="0" y="100" text-anchor="start" font-size="30" font-weight="bold" opacity="1" fill="white"
+    >SHIPS
+</text>
+
+<text
+    onclick={() => {
+        ships = true
+    }}
+    x={120}
+    y="100"
+    text-anchor="start"
+    font-size="30"
+    font-weight="bold"
+    opacity="1"
+    fill="white"
+    >ON
+</text>
+<text
+    onclick={() => {
+        ships = false
+    }}
+    x={180}
+    y="100"
+    text-anchor="start"
+    font-size="30"
+    font-weight="bold"
+    opacity="1"
+    fill="white"
+    >OFF
+</text>
+
+<text x="0" y="150" text-anchor="start" font-size="30" font-weight="bold" opacity="1" fill="white"
+    >STATION
+</text>
+
+<text
+    onclick={() => {
+        station = undefined
+    }}
+    x="140"
+    y="150"
+    text-anchor="start"
+    font-size="30"
+    font-weight="bold"
+    opacity="1"
+    fill="white"
+    >N
+</text>
+<text
+    onclick={() => {
+        station = StationType.EnergyNode
+    }}
+    x="170"
+    y="150"
+    text-anchor="start"
+    font-size="30"
+    font-weight="bold"
+    opacity="1"
+    fill="white"
+    >E
+</text>
+<text
+    onclick={() => {
+        station = StationType.SundiverFoundry
+    }}
+    x="200"
+    y="150"
+    text-anchor="start"
+    font-size="30"
+    font-weight="bold"
+    opacity="1"
+    fill="white"
+    >F
+</text>
+<text
+    onclick={() => {
+        station = StationType.TransmitTower
+    }}
+    x="230"
+    y="150"
+    text-anchor="start"
+    font-size="30"
+    font-weight="bold"
+    opacity="1"
+    fill="white"
+    >T
+</text>
+
+<text x="0" y="200" text-anchor="start" font-size="30" font-weight="bold" opacity="1" fill="white"
+    >NUM D
+</text>
+{#each { length: numPlayers + 1 }, index}
+    <text
+        onclick={() => {
+            numDiversPerCell = index
+        }}
+        x={110 + index * 30}
+        y="200"
+        text-anchor="start"
+        font-size="30"
+        font-weight="bold"
+        opacity="1"
+        fill="white"
+        >{index}
+    </text>
+{/each}
+
+<text x="0" y="250" text-anchor="start" font-size="30" font-weight="bold" opacity="1" fill="white"
+    >GATES
+</text>
+
+<text
+    onclick={() => {
+        gates = true
+    }}
+    x={120}
+    y="250"
+    text-anchor="start"
+    font-size="30"
+    font-weight="bold"
+    opacity="1"
+    fill="white"
+    >ON
+</text>
+<text
+    onclick={() => {
+        gates = false
+    }}
+    x={180}
+    y="250"
+    text-anchor="start"
+    font-size="30"
+    font-weight="bold"
+    opacity="1"
+    fill="white"
+    >OFF
 </text>

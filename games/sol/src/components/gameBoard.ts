@@ -437,10 +437,13 @@ export class HydratedSolGameBoard
         coords: OffsetCoordinates,
         direction: Direction.In | Direction.Out
     ): (SolarGate | undefined)[] {
-        return this.graph.neighborsAt(coords, direction).map((neighbor) => {
-            const gateKey = this.gateKey(coords, neighbor.coords)
-            return this.gates[gateKey]
-        })
+        return this.graph
+            .neighborsAt(coords, direction)
+            .map((neighbor) => {
+                const gateKey = this.gateKey(coords, neighbor.coords)
+                return this.gates[gateKey]
+            })
+            .filter((gate) => gate !== undefined)
     }
 
     public addGateAt(
