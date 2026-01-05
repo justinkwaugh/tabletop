@@ -32,8 +32,8 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             isPass(action) ||
             isActivateEffect(action) ||
             (isBlight(action) && gameState.activeEffect === EffectType.Blight) ||
-            (isActivate(action) && gameState.activation?.currentStationId === undefined) ||
-            (isActivateBonus(action) && gameState.activation?.currentStationId !== undefined) ||
+            isActivate(action) ||
+            isActivateBonus(action) ||
             isSacrifice(action)
         )
     }
@@ -44,12 +44,11 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         // Maybe need to check activate effect more?
         const validActions = [ActionType.Pass]
 
-        if (!gameState.activation?.currentStationId) {
+        const turnPlayer = gameState.turnManager.currentTurn()?.playerId
+        const myActivation = gameState.getActivationForPlayer(playerId)
+        if (turnPlayer === playerId && !myActivation?.currentStationId) {
             validActions.push(ActionType.Activate)
-        } else if (
-            gameState.activation?.currentStationId &&
-            HydratedActivateBonus.canActivateBonus(gameState, playerId)
-        ) {
+        } else if (HydratedActivateBonus.canActivateBonus(gameState, playerId)) {
             validActions.push(ActionType.ActivateBonus)
         }
 
@@ -100,11 +99,11 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                     return MachineState.CheckEffect
                 }
 
-                return ActivatingStateHandler.handleActivation(gameState, context)
+                return ActivatingStateHandler.handleActivation(gameState, context, action.playerId)
                 break
             }
             case isActivateBonus(action): {
-                const activation = gameState.activation
+                const activation = gameState.getActivationForTurnPlayer()
                 if (!activation) {
                     throw Error('Cannot find activation')
                 }
@@ -128,18 +127,18 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                 )
             }
             case isPass(action): {
-                const activation = gameState.activation
+                const activation = gameState.getActivationForTurnPlayer()
                 if (!activation) {
                     throw Error('Cannot find activation')
                 }
 
                 if (!activation.currentStationId) {
                     gameState.activePlayerIds = [activation.playerId]
-                    gameState.activation = undefined
+                    gameState.removeActivationForPlayer(activation.playerId)
                     return drawCardsOrEndTurn(gameState, context)
                 }
 
-                const station = gameState.getActivatingStation()
+                const station = gameState.getActivatingStation(activation.playerId)
                 console.log('Handling pass')
                 if (
                     action.playerId === station.playerId &&
@@ -175,13 +174,17 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         }
     }
 
-    static handleActivation(state: HydratedSolGameState, context: MachineContext): MachineState {
-        const activation = state.activation
+    static handleActivation(
+        state: HydratedSolGameState,
+        context: MachineContext,
+        playerId: string
+    ): MachineState {
+        const activation = state.getActivationForPlayer(playerId)
         if (!activation) {
             throw Error('Cannot find activation')
         }
 
-        const station = state.getActivatingStation()
+        const station = state.getActivatingStation(playerId)
         if (HydratedActivateBonus.canActivateBonus(state, station.playerId)) {
             // Give station owner chance to do bonus activation
             state.activePlayerIds = [station.playerId]
@@ -231,7 +234,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             return MachineState.Activating
         } else {
             // No more activations possible, end turn
-            state.activation = undefined
+            state.removeActivationForPlayer(activation.playerId)
             return drawCardsOrEndTurn(state, context)
         }
     }

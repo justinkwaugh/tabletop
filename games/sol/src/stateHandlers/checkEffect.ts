@@ -53,9 +53,13 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                 if (playerState.card) {
                     const effect = gameState.effects[playerState.card.suit].type
                     if (effect === EffectType.Augment) {
-                        return ActivatingStateHandler.handleActivation(gameState, context)
+                        return ActivatingStateHandler.handleActivation(
+                            gameState,
+                            context,
+                            action.playerId
+                        )
                     } else if (effect === EffectType.Metamorphosis) {
-                        const activation = gameState.activation
+                        const activation = gameState.getActivationForPlayer(action.playerId)
                         if (!activation) {
                             throw Error('No activation found for Metamorphosis effect')
                         }
@@ -65,7 +69,11 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                             activation
                         )
                     } else if (effect === EffectType.Squeeze) {
-                        return ActivatingStateHandler.handleActivation(gameState, context)
+                        return ActivatingStateHandler.handleActivation(
+                            gameState,
+                            context,
+                            action.playerId
+                        )
                     } else if (effect === EffectType.Pillar) {
                         return MachineState.DrawingCards
                     }
@@ -90,17 +98,25 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     context.addPendingAction(activateAction)
                     return MachineState.Activating
                 } else if (gameState.activeEffect === EffectType.Augment) {
-                    return ActivatingStateHandler.handleActivation(gameState, context)
+                    return ActivatingStateHandler.handleActivation(
+                        gameState,
+                        context,
+                        action.playerId
+                    )
                 } else if (gameState.activeEffect === EffectType.Cascade) {
                     return MachineState.Converting
                 } else if (gameState.activeEffect === EffectType.Metamorphosis) {
                     return MachineState.Metamorphosizing
                 } else if (gameState.activeEffect === EffectType.Squeeze) {
-                    const station = gameState.getActivatingStation()
+                    const station = gameState.getActivatingStation(action.playerId)
                     if (station.coords!.row < Ring.Inner) {
                         return MachineState.DrawingCards
                     } else {
-                        return ActivatingStateHandler.handleActivation(gameState, context)
+                        return ActivatingStateHandler.handleActivation(
+                            gameState,
+                            context,
+                            action.playerId
+                        )
                     }
                 } else if (gameState.activeEffect === EffectType.Chain) {
                     return MachineState.Chaining

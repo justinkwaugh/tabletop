@@ -55,14 +55,18 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
 
         const numSolarFlares = drawnCards.filter((card) => card.suit === Suit.Flare).length
         if (gameState.activeEffect === EffectType.Squeeze) {
+            const activation = gameState.getActivationForPlayer(action.playerId)
+            if (!activation) {
+                throw Error('No activation found for squeeze effect')
+            }
             if (numSolarFlares > 0) {
                 return ActivatingStateHandler.continueActivatingOrEnd(
                     gameState,
                     context,
-                    gameState.activation!
+                    activation
                 )
             } else {
-                return ActivatingStateHandler.handleActivation(gameState, context)
+                return ActivatingStateHandler.handleActivation(gameState, context, action.playerId)
             }
         } else {
             return DrawingCardsStateHandler.handleDrawnCards(gameState, context, action.playerId)

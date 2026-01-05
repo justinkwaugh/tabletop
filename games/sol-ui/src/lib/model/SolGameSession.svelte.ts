@@ -118,13 +118,17 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     )
 
     boardPickerLocation = $derived.by(() => {
+        if (!this.myPlayer) {
+            return { x: 0, y: 0 }
+        }
+
         if (this.isAccelerating && !this.accelerationAmount) {
             return { x: 0, y: -515 }
         } else if (this.shouldPickCluster || this.shouldPickTeleport) {
             return getSpaceCentroid(this.numPlayers, this.chosenSource!)
         } else if (this.isMetamorphosizing && !this.metamorphosisType) {
             try {
-                const station = this.gameState.getActivatingStation()
+                const station = this.gameState.getActivatingStation(this.myPlayer.id)
                 return getSpaceCentroid(this.numPlayers, station.coords!)
             } catch {
                 // console.log("can't find activating station")
@@ -978,6 +982,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             start: this.chosenSource
         }
 
+        if (this.isSolarFlares) {
+            action.simultaneousGroupId = this.gameState.solarFlareActivationsGroupId
+        }
+
         await this.doAction(action)
     }
 
@@ -1175,7 +1183,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('Invalid tribute')
         }
 
-        const station = this.gameState.getActivatingStation()
+        const station = this.gameState.getActivatingStation(this.myPlayer.id)
         if (!station) {
             throw new Error('No station to metamorphosize')
         }

@@ -37,12 +37,12 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
 
     validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
         const gameState = context.gameState as HydratedSolGameState
-        const validActionns = [ActionType.Pass, ActionType.Activate]
+        const validActions = [ActionType.Pass, ActionType.Activate]
         if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
-            validActionns.push(ActionType.ActivateEffect)
+            validActions.push(ActionType.ActivateEffect)
         }
-        console.log('Valid solar flares actions', validActionns)
-        return validActionns
+        console.log('Valid solar flares actions', validActions)
+        return validActions
     }
 
     enter(_context: MachineContext) {}
@@ -69,17 +69,6 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                     .map((ps) => ps.playerId)
                 console.log('Activating player IDs for solar flare:', activatingPlayerIds)
 
-                // Let current player go first for efficiency
-                const currentPlayerId = gameState.turnManager.currentTurn()?.playerId
-                if (!currentPlayerId) {
-                    throw Error('No current turn player found')
-                }
-
-                if (activatingPlayerIds.includes(currentPlayerId)) {
-                    activatingPlayerIds.splice(activatingPlayerIds.indexOf(currentPlayerId), 1)
-                    activatingPlayerIds.unshift(currentPlayerId)
-                }
-
                 const activations = activatingPlayerIds.map((playerId) => {
                     return {
                         playerId: playerId,
@@ -88,9 +77,9 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                 })
 
                 if (activations.length > 0) {
-                    gameState.activation = activations.shift()
-                    gameState.solarFlareActivations = activations
-                    gameState.activePlayerIds = [gameState.activation!.playerId]
+                    gameState.activations = activations
+                    gameState.solarFlareActivationsGroupId = nanoid()
+                    gameState.activePlayerIds = activatingPlayerIds
                     return MachineState.SolarFlares
                 } else {
                     return SolarFlaresStateHandler.continueSolarFlaresOrEnd(gameState, context)
@@ -98,35 +87,40 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                 break
             }
             case isActivate(action): {
-                const activation = gameState.activation
+                const activation = gameState.getActivationForPlayer(action.playerId)
                 if (!activation) {
-                    throw Error('Cannot find activation')
+                    throw Error('Cannot find activation for activating player')
                 }
 
                 if (HydratedActivate.canActivate(gameState, activation.playerId)) {
                     // Allow activating player to continue if possible
                     activation.currentStationId = undefined
                     activation.currentStationCoords = undefined
-                    gameState.activePlayerIds = [activation.playerId]
                     return MachineState.SolarFlares
-                } else if (
-                    gameState.solarFlareActivations &&
-                    gameState.solarFlareActivations.length > 0
-                ) {
-                    console.log('Moving to next solar flare player activation')
-                    gameState.activation = gameState.solarFlareActivations.shift()
-                    gameState.activePlayerIds = [gameState.activation!.playerId]
+                } else {
+                    gameState.removeActivationForPlayer(activation.playerId)
+                    gameState.activePlayerIds = gameState.activePlayerIds.filter(
+                        (id) => id !== activation.playerId
+                    )
+                }
+
+                if (gameState.activations && gameState.activations.length > 0) {
+                    console.log('More players can activate during solar flares')
                     return MachineState.SolarFlares
                 } else {
                     console.log('Continuing solar flares or ending turn')
+                    const turnPlayer = gameState.turnManager.currentTurn()?.playerId
+                    if (turnPlayer) {
+                        gameState.activePlayerIds = [turnPlayer]
+                    }
                     return SolarFlaresStateHandler.continueSolarFlaresOrEnd(gameState, context)
                 }
                 break
             }
             case isPass(action): {
-                if (gameState.solarFlareActivations && gameState.solarFlareActivations.length > 0) {
-                    gameState.activation = gameState.solarFlareActivations.shift()
-                    gameState.activePlayerIds = [gameState.activation!.playerId]
+                gameState.removeActivationForPlayer(action.playerId)
+
+                if (gameState.activations && gameState.activations.length > 0) {
                     return MachineState.SolarFlares
                 } else {
                     return SolarFlaresStateHandler.continueSolarFlaresOrEnd(gameState, context)
@@ -144,8 +138,11 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         context: MachineContext
     ): MachineState {
         state.solarFlaresRemaining = state.solarFlaresRemaining! - 1
-        state.activation = undefined
-        state.solarFlareActivations = []
+
+        const turnPlayer = state.turnManager.currentTurn()?.playerId
+        if (turnPlayer) {
+            state.activePlayerIds = [turnPlayer]
+        }
 
         if (state.solarFlaresRemaining! > 0) {
             const solarFlareAction: SolarFlare = {

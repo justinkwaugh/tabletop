@@ -182,11 +182,18 @@
                 if (!gameSession.chosenDestination) {
                     result.message = 'WHERE WILL YOU SACRIFICE?'
                 }
-            } else if (!gameSession.gameState.activation) {
-                result.message = 'CHOOSE A STATION'
-            } else if (!gameSession.gameState.activation.currentStationId) {
-                result.message = 'ACTIVATE ANOTHER?'
-                result.showSkip = true
+            } else if (
+                HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id)
+            ) {
+                if (!gameSession.gameState.getActivationForPlayer(gameSession.myPlayer.id)) {
+                    result.message = 'CHOOSE A STATION'
+                } else if (
+                    !gameSession.gameState.getActivationForPlayer(gameSession.myPlayer.id)
+                        ?.currentStationId
+                ) {
+                    result.message = 'ACTIVATE ANOTHER?'
+                    result.showSkip = true
+                }
             } else {
                 result.message = 'CLAIM THE BONUS?'
                 result.yesNo = true
@@ -257,7 +264,8 @@
         } else if (gameSession.isMoving) {
             context = PassContext.DoneMoving
         } else if (gameSession.isActivating) {
-            if (gameSession.gameState.activation?.currentStationId) {
+            const activation = gameSession.gameState.getActivationForTurnPlayer()
+            if (!gameSession.isSolarFlares && activation?.currentStationId) {
                 context = PassContext.DeclinedBonus
             } else {
                 context = PassContext.DoneActivating

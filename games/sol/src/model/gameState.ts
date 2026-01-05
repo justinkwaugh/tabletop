@@ -32,10 +32,12 @@ export const SolGameState = Type.Evaluate(
             instability: Type.Number(),
             energyCubes: Type.Number(),
             activation: Type.Optional(Activation),
+            activations: Type.Optional(Type.Array(Activation)),
             cardsToDraw: Type.Number({ default: 0 }),
             solarFlares: Type.Number({ default: 0 }),
             solarFlaresRemaining: Type.Number({ default: 0 }),
             solarFlareActivations: Type.Array(Activation),
+            solarFlareActivationsGroupId: Type.Optional(Type.String()),
             hurled: Type.Boolean({ default: false }),
             moved: Type.Optional(Type.Boolean({ default: false })),
             paidPlayerIds: Type.Array(Type.String()),
@@ -84,10 +86,12 @@ export class HydratedSolGameState
     declare instability: number
     declare energyCubes: number
     declare activation?: Activation
+    declare activations?: Activation[]
     declare cardsToDraw: number
     declare solarFlares: number
     declare solarFlaresRemaining: number
     declare solarFlareActivations: Activation[]
+    declare solarFlareActivationsGroupId?: string
     declare hurled: boolean
     declare moved?: boolean
     declare paidPlayerIds: string[]
@@ -161,23 +165,6 @@ export class HydratedSolGameState
         }
     }
 
-    getActivatingStation(): Station {
-        if (!this.activation || !this.activation.currentStationId) {
-            throw Error('No activating station')
-        }
-
-        const station = this.board.findStation(this.activation.currentStationId)
-        if (!station) {
-            throw Error('Cannot find activating station')
-        }
-
-        return station
-    }
-
-    hasActivatedStation(stationId: string): boolean {
-        return this.activation?.activatedIds.includes(stationId) ?? false
-    }
-
     playerHasCardForEffect(playerId: string, effect: EffectType): boolean {
         const player = this.getPlayerState(playerId)
         return player.card !== undefined && this.effects[player.card.suit].type === effect
@@ -194,5 +181,55 @@ export class HydratedSolGameState
         return this.players
             .map((player) => player.playerId)
             .find((playerId) => this.board.isAdjacentToMothership(coords, playerId))
+    }
+
+    getActivatingStation(playerId: string): Station {
+        let activation = this.getActivationForPlayer(playerId)
+
+        if (!activation || !activation.currentStationId) {
+            throw Error('No activating station')
+        }
+
+        const station = this.board.findStation(activation.currentStationId)
+        if (!station) {
+            throw Error('Cannot find activating station')
+        }
+
+        return station
+    }
+
+    hasActivatedStation(playerId: string, stationId: string): boolean {
+        let activation = this.getActivationForPlayer(playerId)
+        return activation?.activatedIds.includes(stationId) ?? false
+    }
+
+    getActivationForPlayer(playerId: string): Activation | undefined {
+        const activation = this.activations?.find((act) => act.playerId === playerId)
+        // if (!activation && this.activation?.playerId === playerId) {
+        //     return this.activation
+        // }
+        return activation
+    }
+
+    getActivationForTurnPlayer(): Activation | undefined {
+        const turnPlayerId = this.turnManager.currentTurn()?.playerId
+        if (!turnPlayerId) {
+            return undefined
+        }
+        return this.getActivationForPlayer(turnPlayerId)
+    }
+
+    addActivation(activation: Activation) {
+        if (!this.activations) {
+            this.activations = []
+        }
+        this.activations.push(activation)
+    }
+
+    removeActivationForPlayer(playerId: string) {
+        if (!this.activations) {
+            return
+        }
+        this.activations = this.activations.filter((act) => act.playerId !== playerId)
     }
 }

@@ -65,7 +65,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
         const ring = this.coords.row
 
-        const activation: Activation = state.activation ?? {
+        const activation: Activation = state.getActivationForPlayer(this.playerId) ?? {
             playerId: this.playerId,
             activatedIds: [],
             stationType:
@@ -78,7 +78,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         activation.activatedIds.push(this.stationId)
         activation.currentStationId = this.stationId
         activation.currentStationCoords = this.coords
-        state.activation = activation
+        state.addActivation(activation)
 
         this.metadata = {
             sundiverId: undefined,
@@ -165,15 +165,6 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         return false
     }
 
-    static isAllowedStationType(state: HydratedSolGameState, stationType: StationType): boolean {
-        const activation = state.activation
-        if (!activation) {
-            return true
-        }
-
-        return activation.stationType === undefined || activation.stationType === stationType
-    }
-
     static canActivateEnergyNode(
         state: HydratedSolGameState,
         playerId: string,
@@ -213,18 +204,33 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         coords: OffsetCoordinates,
         pulse: boolean = false
     ): boolean {
-        if (state.activation && state.activation.currentStationId) {
+        const turnPlayerActivation = state.getActivationForTurnPlayer()
+        if (
+            turnPlayerActivation &&
+            turnPlayerActivation.playerId !== playerId &&
+            !state.solarFlares
+        ) {
+            return false
+        }
+
+        const activation = state.getActivationForPlayer(playerId)
+
+        if (activation && activation.currentStationId) {
             return false
         }
 
         const cell = state.board.cellAt(coords)
         const station = cell.station
 
-        if (!station || state.hasActivatedStation(station.id)) {
+        if (!station || state.hasActivatedStation(playerId, station.id)) {
             return false
         }
 
-        if (!this.isAllowedStationType(state, station.type)) {
+        if (
+            activation &&
+            activation.stationType !== undefined &&
+            activation.stationType !== station.type
+        ) {
             return false
         }
 
@@ -257,7 +263,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
     }
 
     static canPulse(state: HydratedSolGameState, playerId: string): boolean {
-        if (state.activation) {
+        if (state.activations && state.activations.length > 0) {
             return false
         }
 

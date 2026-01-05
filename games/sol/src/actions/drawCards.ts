@@ -81,7 +81,7 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
 
         if (state.activeEffect === EffectType.Squeeze) {
             this.metadata.effect = EffectType.Squeeze
-            const station = state.getActivatingStation()
+            const station = state.getActivatingStation(playerState.playerId)
             if (!station || !station.coords) {
                 throw Error('Invalid station for squeeze effect')
             }

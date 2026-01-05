@@ -9,11 +9,17 @@
 
     let gameSession = getContext('gameSession') as SolGameSession
 
-    let station = $derived(gameSession.gameState.getActivatingStation())
+    let station = $derived.by(() => {
+        const playerState = gameSession.myPlayerState
+        if (!playerState) {
+            return null
+        }
+        return gameSession.gameState.getActivatingStation(playerState.playerId)
+    })
 
     let stationTypes = $derived.by(() => {
         const playerState = gameSession.myPlayerState
-        if (!playerState) {
+        if (!station || !playerState) {
             return []
         }
 

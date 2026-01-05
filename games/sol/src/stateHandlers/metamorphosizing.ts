@@ -27,7 +27,7 @@ export class MetamorphosizingStateHandler implements MachineStateHandler<Hydrate
 
         switch (true) {
             case isMetamorphosize(action): {
-                const activation = gameState.activation
+                const activation = gameState.getActivationForPlayer(action.playerId)
                 if (!activation) {
                     throw Error('No activation in metamorphosizing state')
                 }

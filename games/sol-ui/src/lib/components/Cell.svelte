@@ -278,14 +278,10 @@
         }
 
         if (myActivate) {
+            const myActivation = gameSession.gameState.getActivationForTurnPlayer()
             return (
-                (!gameSession.chosenSource &&
-                    !gameSession.gameState.activation?.currentStationId) ||
-                (gameSession.gameState.activation &&
-                    !sameCoordinates(
-                        gameSession.gameState.activation.currentStationCoords,
-                        cell.coords
-                    ))
+                (!gameSession.chosenSource && !myActivation?.currentStationId) ||
+                (myActivation && !sameCoordinates(myActivation.currentStationCoords, cell.coords))
             )
         }
 

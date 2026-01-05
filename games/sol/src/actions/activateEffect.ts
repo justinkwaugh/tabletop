@@ -84,8 +84,11 @@ export class HydratedActivateEffect
         ) {
             playerState.energyCubes += state.getEffectTracking().outerRingLaunches
         } else if (this.effect === EffectType.Augment) {
-            const activation = state.activation!
-            const currentStationCoords = activation.currentStationCoords!
+            const activation = state.getActivationForPlayer(this.playerId)
+            if (!activation || !activation.currentStationCoords) {
+                throw Error('No activation to augment')
+            }
+            const currentStationCoords = activation.currentStationCoords
             const cellDivers = state.board.cellAt(currentStationCoords).sundivers
 
             const additionalReward =
@@ -124,7 +127,7 @@ export class HydratedActivateEffect
             state.getEffectTracking().clustersRemaining = 2
         } else if (this.effect === EffectType.Squeeze) {
             state.getEffectTracking().squeezed = true
-            const station = state.getActivatingStation()
+            const station = state.getActivatingStation(this.playerId)
 
             if (station.coords!.row >= Ring.Inner) {
                 this.metadata.coords = station.coords
@@ -281,18 +284,14 @@ export class HydratedActivateEffect
     }
 
     static canActivateAugment(state: HydratedSolGameState, playerId: string): boolean {
-        const activation = state.activation
+        const activation = state.getActivationForPlayer(playerId)
         if (!activation) {
-            return false
-        }
-
-        if (activation.playerId !== playerId) {
             return false
         }
 
         let station
         try {
-            station = state.getActivatingStation()
+            station = state.getActivatingStation(playerId)
         } catch {
             return false
         }
@@ -330,13 +329,13 @@ export class HydratedActivateEffect
 
     static canActivateSqueeze(state: HydratedSolGameState, playerId: string): boolean {
         console.log('Checking can activate squeeze for player:', playerId)
-        const activation = state.activation
+        const activation = state.getActivationForPlayer(playerId)
         if (!activation) {
             return false
         }
         let station
         try {
-            station = state.getActivatingStation()
+            station = state.getActivatingStation(playerId)
         } catch {
             return false
         }
@@ -401,7 +400,7 @@ export class HydratedActivateEffect
     }
 
     static canActivateFestival(state: HydratedSolGameState, playerId: string): boolean {
-        return state.machineState === MachineState.Activating && !state.activation
+        return state.machineState === MachineState.Activating && !state.activations?.length
     }
 
     static canActivatePortal(state: HydratedSolGameState, playerId: string): boolean {
@@ -492,7 +491,10 @@ export class HydratedActivateEffect
     }
 
     static canActivateDuplicate(state: HydratedSolGameState, playerId: string): boolean {
-        if (state.machineState !== MachineState.Activating || state.activation) {
+        if (
+            state.machineState !== MachineState.Activating ||
+            (state.activations?.length ?? 0) > 0
+        ) {
             return false
         }
 
@@ -524,11 +526,12 @@ export class HydratedActivateEffect
     }
 
     static canActivateMetamorphosis(state: HydratedSolGameState, playerId: string): boolean {
-        if (!state.activation || !state.activation.currentStationId) {
+        const activation = state.getActivationForPlayer(playerId)
+        if (!activation || !activation.currentStationId) {
             return false
         }
 
-        const station = state.getActivatingStation()
+        const station = state.getActivatingStation(playerId)
         if (!station || station.playerId !== playerId) {
             return false
         }

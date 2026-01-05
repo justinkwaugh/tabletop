@@ -3,10 +3,11 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { StationType } from '../components/stations.js'
+import { Station, StationType } from '../components/stations.js'
 import { Ring } from '../utils/solGraph.js'
 import { BONUS_AWARD_PER_RING } from '../utils/solConstants.js'
 import { EffectType } from '../components/effects.js'
+import { Activation } from '../model/activation.js'
 
 export type ActivateBonusMetadata = Static<typeof ActivateBonusMetadata>
 export const ActivateBonusMetadata = Type.Object({
@@ -54,17 +55,22 @@ export class HydratedActivateBonus
 
         const playerState = state.getPlayerState(this.playerId)
 
-        const station = state.getActivatingStation()
+        const activation = state.getActivationForTurnPlayer()
+        if (!activation) {
+            throw Error('No activation for turn player')
+        }
+
+        const station = state.getActivatingStation(activation.playerId)
 
         if (!station) {
             throw Error('No station to activate bonus at')
         }
 
-        const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
+        const ring = activation?.currentStationCoords?.row ?? Ring.Center
 
         this.metadata = {
             stationId: station.id,
-            coords: state.activation?.currentStationCoords!,
+            coords: activation?.currentStationCoords!,
             energyAdded: 0,
             createdSundiverIds: [],
             momentumAdded: 0
@@ -82,7 +88,7 @@ export class HydratedActivateBonus
                 const awardCost = award
                 playerState.energyCubes -= awardCost
                 const numToBuild =
-                    state.activation?.playerId === this.playerId &&
+                    activation?.playerId === this.playerId &&
                     state.activeEffect === EffectType.Duplicate
                         ? 2 * awardCost
                         : awardCost
@@ -102,11 +108,24 @@ export class HydratedActivateBonus
     }
 
     static canActivateBonus(state: HydratedSolGameState, playerId: string): boolean {
-        if (state.activation?.currentStationCoords?.row === Ring.Outer) {
+        if (state.solarFlares) {
             return false
         }
 
-        const station = state.getActivatingStation()
+        const turnPlayerId = state.turnManager.currentTurn()?.playerId
+        if (!turnPlayerId) {
+            return false
+        }
+        const activation = state.getActivationForPlayer(turnPlayerId)
+        if (!activation) {
+            return false
+        }
+
+        if (activation?.currentStationCoords?.row === Ring.Outer) {
+            return false
+        }
+
+        const station = state.getActivatingStation(turnPlayerId)
         if (!station) {
             return false
         }
@@ -116,10 +135,10 @@ export class HydratedActivateBonus
                 return this.canActivateEnergyNodeBonus(state, playerId)
                 break
             case StationType.SundiverFoundry:
-                return this.canActivateSundiverFoundryBonus(state, playerId)
+                return this.canActivateSundiverFoundryBonus(state, playerId, activation, station)
                 break
             case StationType.TransmitTower:
-                return this.canActivateTransmitTowerBonus(state, playerId)
+                return this.canActivateTransmitTowerBonus(state, playerId, station)
                 break
         }
     }
@@ -128,14 +147,19 @@ export class HydratedActivateBonus
         return true
     }
 
-    static canActivateSundiverFoundryBonus(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateSundiverFoundryBonus(
+        state: HydratedSolGameState,
+        playerId: string,
+        activation: Activation,
+        station: Station
+    ): boolean {
         const playerState = state.getPlayerState(playerId)
-        const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
+        const ring = station.coords?.row ?? Ring.Center
         const awardCost =
             BONUS_AWARD_PER_RING[ring] * (state.activeEffect === EffectType.Squeeze ? 2 : 1)
 
         const numToBuild =
-            state.activation?.playerId === playerId && state.activeEffect === EffectType.Duplicate
+            activation?.playerId === playerId && state.activeEffect === EffectType.Duplicate
                 ? 2 * awardCost
                 : awardCost
         return (
@@ -144,9 +168,13 @@ export class HydratedActivateBonus
         )
     }
 
-    static canActivateTransmitTowerBonus(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateTransmitTowerBonus(
+        state: HydratedSolGameState,
+        playerId: string,
+        station: Station
+    ): boolean {
         const playerState = state.getPlayerState(playerId)
-        const ring = state.activation?.currentStationCoords?.row ?? Ring.Center
+        const ring = station.coords?.row ?? Ring.Center
         const awardCost =
             BONUS_AWARD_PER_RING[ring] * (state.activeEffect === EffectType.Squeeze ? 2 : 1)
         return playerState.energyCubes >= awardCost
@@ -156,19 +184,29 @@ export class HydratedActivateBonus
         state: HydratedSolGameState,
         activateBonus: ActivateBonus
     ): boolean {
-        if (state.activation?.currentStationCoords?.row === Ring.Outer) {
+        const activation = state.getActivationForTurnPlayer()
+        if (!activation) {
             return false
         }
 
-        const station = state.getActivatingStation()
+        if (activation?.currentStationCoords?.row === Ring.Outer) {
+            return false
+        }
+
+        const station = state.getActivatingStation(activation.playerId)
 
         switch (station.type) {
             case StationType.EnergyNode:
                 return this.canActivateEnergyNodeBonus(state, activateBonus.playerId)
             case StationType.SundiverFoundry:
-                return this.canActivateSundiverFoundryBonus(state, activateBonus.playerId)
+                return this.canActivateSundiverFoundryBonus(
+                    state,
+                    activateBonus.playerId,
+                    activation,
+                    station
+                )
             case StationType.TransmitTower:
-                return this.canActivateTransmitTowerBonus(state, activateBonus.playerId)
+                return this.canActivateTransmitTowerBonus(state, activateBonus.playerId, station)
         }
     }
 }
