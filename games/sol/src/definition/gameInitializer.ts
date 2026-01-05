@@ -19,14 +19,14 @@ import { HydratedSolPlayerState, SolPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
 import { SolColors } from './colors.js'
-import { SolGameConfigValidator } from './gameConfig.js'
+import { SolGameConfig, SolGameConfigValidator } from './gameConfig.js'
 import { Sundiver } from '../components/sundiver.js'
 import { SolarGate } from '../components/solarGate.js'
 import { EnergyNode, StationType, SundiverFoundry, TransmitTower } from '../components/stations.js'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { Suit } from '../components/cards.js'
 import { HydratedDeck } from '../components/deck.js'
-import { Effect, Effects } from '../components/effects.js'
+import { Effect, EffectColor, Effects, EffectType } from '../components/effects.js'
 
 const MOTHERSHIP_SPACING = [0, 6, 4, 3, 3]
 
@@ -71,7 +71,14 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         const suits = [Suit.Flare, ...nonFlareSuits.slice(0, players.length + 1)]
         const deck = HydratedDeck.create(suits, prng)
 
-        const allEffects = structuredClone(Effects)
+        const config = game.config as SolGameConfig
+
+        let allEffects = structuredClone(Effects)
+        if (config.lowConflict) {
+            allEffects = allEffects.filter(
+                (effect) => effect.color !== EffectColor.Red && effect.type !== EffectType.Sacrifice
+            )
+        }
         shuffle(allEffects, prng.random)
         const effects: Record<string, Effect> = {}
 
@@ -79,7 +86,6 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
             effects[suit] = allEffects[index]
         })
 
-        // const config = game.config as SolGameConfig
         const board = this.initializeBoard(orderedPlayers, prng.random)
 
         const solState: SolGameState = Object.assign(state, {

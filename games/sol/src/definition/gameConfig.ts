@@ -14,7 +14,7 @@ export const SolGameConfigOptions: GameConfigOptions = [
         id: 'lowConflict',
         type: ConfigOptionType.Boolean,
         name: 'Low Conflict',
-        description: 'Removes the direct conflict cards',
+        description: 'Removes the red effects and the Sacrifice effect',
         default: false
     }
 ]
