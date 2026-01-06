@@ -135,11 +135,7 @@ export function getCellLayout(
     )
 }
 
-function centerOffset(
-    center: { radius: number; angle: number },
-    radius: number,
-    angleDegrees: number
-): Point {
+function centerOffset(center: PolarCoordinates, radius: number, angleDegrees: number): Point {
     const offsetRadius = center.radius + radius
     const offsetAngle =
         angleDegrees >= 0
