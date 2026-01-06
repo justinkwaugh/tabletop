@@ -339,7 +339,7 @@
                 {playerId}
                 additionalClasses={history ? '' : 'pt-[2px]'}
                 capitalization={history ? 'capitalize' : 'uppercase'}
-            /> received {amount} momentum
+            /> received {amount * 2} momentum
         </div>
     {/each}
 {:else if isFuel(action)}
