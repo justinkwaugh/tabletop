@@ -2,7 +2,8 @@ import {
     type HydratedAction,
     type MachineStateHandler,
     ActionSource,
-    MachineContext
+    MachineContext,
+    Prng
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
@@ -78,7 +79,11 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
 
                 if (activations.length > 0) {
                     gameState.activations = activations
-                    gameState.solarFlareActivationsGroupId = nanoid()
+
+                    gameState.solarFlareActivationsGroupId = action.id
+                    console.log(
+                        'setting solar flare group id: ' + gameState.solarFlareActivationsGroupId
+                    )
                     gameState.activePlayerIds = activatingPlayerIds
                     return MachineState.SolarFlares
                 } else {
@@ -92,10 +97,11 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                     throw Error('Cannot find activation for activating player')
                 }
 
+                activation.currentStationId = undefined
+                activation.currentStationCoords = undefined
+
                 if (HydratedActivate.canActivate(gameState, activation.playerId)) {
                     // Allow activating player to continue if possible
-                    activation.currentStationId = undefined
-                    activation.currentStationCoords = undefined
                     return MachineState.SolarFlares
                 } else {
                     gameState.removeActivationForPlayer(activation.playerId)
@@ -119,6 +125,9 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
             }
             case isPass(action): {
                 gameState.removeActivationForPlayer(action.playerId)
+                gameState.activePlayerIds = gameState.activePlayerIds.filter(
+                    (id) => id !== action.playerId
+                )
 
                 if (gameState.activations && gameState.activations.length > 0) {
                     return MachineState.SolarFlares
@@ -138,6 +147,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         context: MachineContext
     ): MachineState {
         state.solarFlaresRemaining = state.solarFlaresRemaining! - 1
+        state.solarFlareActivationsGroupId = undefined
 
         const turnPlayer = state.turnManager.currentTurn()?.playerId
         if (turnPlayer) {
@@ -145,9 +155,10 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         }
 
         if (state.solarFlaresRemaining! > 0) {
+            const prng = new Prng(state.prng)
             const solarFlareAction: SolarFlare = {
                 type: ActionType.SolarFlare,
-                id: nanoid(),
+                id: prng.randId(),
                 gameId: context.gameState.gameId,
                 source: ActionSource.System
             }

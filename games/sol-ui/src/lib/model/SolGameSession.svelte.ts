@@ -1011,6 +1011,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             context
         }
 
+        if (this.isSolarFlares) {
+            action.simultaneousGroupId = this.gameState.solarFlareActivationsGroupId
+        }
+
         await this.doAction(action)
     }
 

@@ -24,7 +24,7 @@
             <LastActionDescription textColor="text-[#ad9c80]" />
         {:else if gameSession.isMyTurn}
             <ActionPanel />
-        {:else if gameSession.turnPlayer?.playerId === gameSession.myPlayer?.id || gameSession.justAfterMyTurn}
+        {:else if gameSession.isSolarFlares || gameSession.turnPlayer?.playerId === gameSession.myPlayer?.id}
             <WaitingPanel />
         {:else}
             <LastActionDescription textColor="text-[#ad9c80]" />

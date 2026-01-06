@@ -14,15 +14,11 @@
 
     import { getContext, onMount } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    // import WaitingPanel from '$lib/components/WaitingPanel.svelte'
-    // import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import starsBg from '$lib/images/stars.jpg'
     import Momentum from './Momentum.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
-    import WaitingPanel from './WaitingPanel.svelte'
     import InformationPanel from './InformationPanel.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
-    // import LastActionDescription from './LastActionDescription.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let table: HTMLDivElement

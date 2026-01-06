@@ -16,18 +16,33 @@
 <div
     in:fade={{ duration: 300, delay: 100 }}
     out:fade={{ duration: 100 }}
-    class="ms-3 py-2 flex flex-row justify-center items-center h-[50px] sol-font"
+    class="py-2 flex flex-row justify-center items-center h-[50px] sol-font"
 >
-    <div class="me-2">
-        WAITING FOR <PlayerName
-            playerId={activePlayerId}
-            additionalClasses={'pt-[2px]'}
-            capitalization={'uppercase'}
-        />
-        {#if gameSession.isDrawingCards}
-            TO DRAW CARDS
-        {:else if gameSession.isActivating && gameSession.myPlayerState && gameSession.myPlayerState.playerId !== gameSession.activePlayers[0]?.id}
-            TO DECIDE ABOUT THE BONUS
+    <div class="flex flex-col justify-center items-center text-center">
+        {#if gameSession.isSolarFlares}
+            <div>WAITING FOR PLAYERS TO FINISH ACTIVATIONS</div>
+            <div class="flex flex-row justify-center items-center gap-x-2">
+                {#each gameSession.gameState.activePlayerIds as playerId (playerId)}
+                    <div>
+                        <PlayerName
+                            {playerId}
+                            additionalClasses={'pt-[2px]'}
+                            capitalization={'uppercase'}
+                        />
+                    </div>
+                {/each}
+            </div>
+        {:else}
+            WAITING FOR <PlayerName
+                playerId={activePlayerId}
+                additionalClasses={'pt-[2px]'}
+                capitalization={'uppercase'}
+            />
+            {#if gameSession.isDrawingCards}
+                TO DRAW CARDS
+            {:else if gameSession.isActivating && gameSession.myPlayerState && gameSession.myPlayerState.playerId !== gameSession.activePlayers[0]?.id}
+                TO DECIDE ABOUT THE BONUS
+            {/if}
         {/if}
     </div>
 </div>

@@ -24,13 +24,22 @@
         return Array.from(players)
     })
 
-    function selectPlayer(playerId: string) {
+    async function selectPlayer(playerId: string) {
         gameSession.hatchTarget = playerId
-        gameSession.hatch()
+        await gameSession.hatch()
+    }
+
+    function onClose() {
+        if (gameSession.hatchTarget) {
+            return
+        }
+
+        gameSession.hatchLocation = undefined
     }
 </script>
 
-<SolPicker trigger="manual">
+<SolPicker {onClose}>
+    <div class="text-center mb-2">WHICH?</div>
     <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
         {#each players as playerId (playerId)}
             <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="42px" viewBox="0 0 32 42">

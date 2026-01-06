@@ -155,7 +155,7 @@
         if (choiceMade) {
             return
         }
-        // console.log('MovementPicker onClose')
+
         gameSession.back()
     }
 </script>

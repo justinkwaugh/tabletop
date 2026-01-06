@@ -30,7 +30,7 @@
 </script>
 
 <SolPicker {onClose}>
-    <div class="text-center mb-2">Cluster?</div>
+    <div class="text-center mb-2">CLUSTER?</div>
     <div class="flex flex-row justify-center items-center gap-x-2">
         <button class="px-2 py-1" onclick={() => choose(true)}>YES</button>
         <button class="px-2 py-1" onclick={() => choose(false)}>NO</button>

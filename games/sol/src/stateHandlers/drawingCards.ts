@@ -2,7 +2,8 @@ import {
     type HydratedAction,
     type MachineStateHandler,
     ActionSource,
-    MachineContext
+    MachineContext,
+    Prng
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
@@ -86,9 +87,10 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
             state.solarFlares = numSolarFlares
             state.solarFlaresRemaining = numSolarFlares
 
+            const prng = new Prng(state.prng)
             const solarFlareAction: SolarFlare = {
                 type: ActionType.SolarFlare,
-                id: nanoid(),
+                id: prng.randId(),
                 gameId: context.gameState.gameId,
                 source: ActionSource.System
             }
