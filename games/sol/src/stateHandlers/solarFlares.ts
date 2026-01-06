@@ -68,7 +68,6 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                         )
                     })
                     .map((ps) => ps.playerId)
-                console.log('Activating player IDs for solar flare:', activatingPlayerIds)
 
                 const activations = activatingPlayerIds.map((playerId) => {
                     return {
@@ -81,9 +80,6 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                     gameState.activations = activations
 
                     gameState.solarFlareActivationsGroupId = action.id
-                    console.log(
-                        'setting solar flare group id: ' + gameState.solarFlareActivationsGroupId
-                    )
                     gameState.activePlayerIds = activatingPlayerIds
                     return MachineState.SolarFlares
                 } else {
@@ -111,10 +107,8 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
                 }
 
                 if (gameState.activations && gameState.activations.length > 0) {
-                    console.log('More players can activate during solar flares')
                     return MachineState.SolarFlares
                 } else {
-                    console.log('Continuing solar flares or ending turn')
                     const turnPlayer = gameState.turnManager.currentTurn()?.playerId
                     if (turnPlayer) {
                         gameState.activePlayerIds = [turnPlayer]
