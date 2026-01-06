@@ -1,5 +1,5 @@
 import type { Game, GameAction, GameState, User } from '@tabletop/common'
-import { type GameStore } from './gameStore.js'
+import { type GameStore } from '$lib/persistence/gameStore.js'
 import { openDB, type IDBPDatabase } from 'idb'
 
 type GameActions = {

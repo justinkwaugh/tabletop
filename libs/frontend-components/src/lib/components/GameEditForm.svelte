@@ -10,7 +10,6 @@
         ButtonGroup,
         RadioButton
     } from 'flowbite-svelte'
-    import { trim } from '$lib/utils/trimInput'
     import {
         BooleanConfigOption,
         ConfigOption,
@@ -34,9 +33,11 @@
     import { getContext } from 'svelte'
     import { playerSortValue } from '$lib/utils/player'
     import { TrashBinSolid } from 'flowbite-svelte-icons'
-    import { APIError, type GameUiDefinition } from '@tabletop/frontend-components'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
-    import Typeahead from './Typeahead.svelte'
+    import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+    import type { AppContext } from '$lib/model/appContext.js'
+    import { APIError } from '$lib/network/errors.js'
+    import { trim } from '$lib/utils/trimInput.js'
+    import Typeahead from '$lib/components/Typeahead.svelte'
 
     type EditableGame = Pick<
         Game,
@@ -50,11 +51,13 @@
     let {
         game,
         title,
+        hotseatOnly = false,
         oncancel,
         onsave
     }: {
         game?: Game
         title?: GameUiDefinition<GameState, HydratedGameState>
+        hotseatOnly?: boolean
         oncancel: () => void
         onsave: (game: Game) => void
     } = $props()
@@ -105,7 +108,7 @@
     )
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
-    let isHotseat: boolean = $state(editedGame.hotseat)
+    let isHotseat: boolean = $state(hotseatOnly || editedGame.hotseat)
 
     let selectedTitle = $state(title)
 
@@ -344,9 +347,11 @@
         </h1>
     </div>
     <div>
-        <Toggle bind:checked={isHotseat} classes={{ span: 'me-0' }}
-            >{#snippet offLabel()}Hotseat{/snippet}</Toggle
-        >
+        {#if !hotseatOnly}
+            <Toggle bind:checked={isHotseat} classes={{ span: 'me-0' }}
+                >{#snippet offLabel()}Hotseat{/snippet}</Toggle
+            >
+        {/if}
     </div>
 </div>
 {#if unexpectedError}

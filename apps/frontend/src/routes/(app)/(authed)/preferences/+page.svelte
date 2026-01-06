@@ -3,8 +3,11 @@
     import { Color, UserPreferences } from '@tabletop/common'
     import { flip } from 'svelte/animate'
     import { getContext } from 'svelte'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
-    import { ColorblindColorizer, DefaultColorizer } from '@tabletop/frontend-components'
+    import {
+        ColorblindColorizer,
+        DefaultColorizer,
+        type AppContext
+    } from '@tabletop/frontend-components'
 
     let { authorizationService, api } = getContext('appContext') as AppContext
 

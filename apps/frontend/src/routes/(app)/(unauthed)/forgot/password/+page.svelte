@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
+    import { Card, Input, Button, Alert } from 'flowbite-svelte'
     import { goto } from '$app/navigation'
     import { getContext } from 'svelte'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
+    import type { AppContext } from '@tabletop/frontend-components'
 
     let { api } = getContext('appContext') as AppContext
     let email: string | undefined = $state(undefined)

@@ -3,10 +3,12 @@ import {
     type GameService as GameServiceInterface,
     TabletopApi,
     type AuthorizationService,
+    type GameStore,
     type NotificationEvent,
     isDataEvent,
     isDiscontinuityEvent,
-    NotificationChannel
+    NotificationChannel,
+    IndexedDbGameStore
 } from '@tabletop/frontend-components'
 import {
     Game,
@@ -26,7 +28,7 @@ import {
 import { Value } from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
-import { IndexedDbGameStore } from '$lib/persistence/indexedDbGameStore.js'
+
 import type { LibraryService } from './libraryService.js'
 import { nanoid } from 'nanoid'
 
@@ -34,7 +36,7 @@ export class GameService implements GameServiceInterface {
     private gamesById: Map<string, Game> = new SvelteMap()
     private localGamesById: Map<string, Game> = new SvelteMap()
 
-    localGameStore: IndexedDbGameStore
+    localGameStore: GameStore
 
     loading = $state(false)
     private loadingPromise: Promise<void> | null = null

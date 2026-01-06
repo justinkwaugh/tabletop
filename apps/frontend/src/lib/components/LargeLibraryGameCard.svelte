@@ -1,7 +1,6 @@
 <script lang="ts">
-    import type { GameUiDefinition } from '@tabletop/frontend-components'
+    import { type GameUiDefinition, GameEditForm } from '@tabletop/frontend-components'
     import { Card, Button, Modal } from 'flowbite-svelte'
-    import GameEditForm from './GameEditForm.svelte'
     import { goto } from '$app/navigation'
     import {
         GameStorage,

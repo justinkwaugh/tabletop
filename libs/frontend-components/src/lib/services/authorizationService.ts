@@ -7,8 +7,11 @@ export enum AuthorizationCategory {
 }
 
 export type AuthorizationService = {
+    isAdmin: boolean
     showDebug: boolean
     actAsAdmin: boolean
+    debugViewEnabled: boolean
+    adminCapabilitiesEnabled: boolean
 
     initialize(): Promise<void>
 

@@ -5,9 +5,8 @@
     import { zfd } from 'zod-form-data'
 
     import { goto } from '$app/navigation'
-    import { trim } from '$lib/utils/trimInput'
     import { getContext } from 'svelte'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
+    import { trim, type AppContext } from '@tabletop/frontend-components'
 
     const { authorizationService, api } = getContext('appContext') as AppContext
 

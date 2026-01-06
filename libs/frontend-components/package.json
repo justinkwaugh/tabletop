@@ -26,7 +26,10 @@
     "files": [
         "dist",
         "!dist/**/*.test.*",
-        "!dist/**/*.spec.*"
+        "!dist/**/*.spec.*",
+        "src/lib",
+        "!src/lib/**/*.test.*",
+        "!src/lib/**/*.spec.*"
     ],
     "peerDependencies": {
         "@sveltejs/kit": "^2.48.4",

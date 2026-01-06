@@ -11,7 +11,7 @@ export default defineProject(
             }
         },
         server: {
-            port: 5174
+            port: 5173
         }
     })
 )

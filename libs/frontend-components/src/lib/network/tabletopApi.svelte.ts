@@ -574,3 +574,5 @@ export class TabletopApi {
         return validGame
     }
 }
+
+export type TabletopApiPublic = Pick<TabletopApi, keyof TabletopApi>

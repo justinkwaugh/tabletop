@@ -1,11 +1,14 @@
 <script lang="ts">
     import { setContext, getContext, type Component } from 'svelte'
-    import { GameSession, GameSessionMode, HotseatPanel } from '@tabletop/frontend-components'
+    import {
+        ExplorationPanel,
+        GameSession,
+        HotseatPanel,
+        type AppContext
+    } from '@tabletop/frontend-components'
     import { onMount } from 'svelte'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
     import AdminPanel from '$lib/components/AdminPanel.svelte'
     import type { GameState, HydratedGameState } from '@tabletop/common'
-    import ExplorationPanel from '$lib/components/ExplorationPanel.svelte'
 
     let { data }: { data: { gameSession: GameSession<GameState, HydratedGameState> } } = $props()
     setContext('gameSession', data.gameSession)

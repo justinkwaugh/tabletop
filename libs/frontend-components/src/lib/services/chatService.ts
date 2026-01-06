@@ -26,4 +26,5 @@ export type ChatService = {
     markLatestRead(): Promise<void>
     addListener(listener: ChatListener): void
     removeListener(listener: ChatListener): void
+    clear(): void
 }

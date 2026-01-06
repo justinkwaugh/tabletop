@@ -1,11 +1,9 @@
 <script lang="ts">
-    import { Card, Label, A, Button, Hr, P, Input, Helper, Alert } from 'flowbite-svelte'
+    import { Card, Label, Button, Input, Helper, Alert } from 'flowbite-svelte'
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
-    import { type Credentials, TabletopApi } from '@tabletop/frontend-components'
+    import { trim, type AppContext, type Credentials } from '@tabletop/frontend-components'
     import { goto } from '$app/navigation'
-    import { trim } from '$lib/utils/trimInput'
     import { getContext } from 'svelte'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
 
     let { authorizationService, api } = getContext('appContext') as AppContext
 

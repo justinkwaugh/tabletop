@@ -6,6 +6,7 @@
     "svelte": "./dist/index.js",
     "types": "./dist/index.ts",
     "scripts": {
+        "dev": "vite dev",
         "clean": "rimraf build && rimraf dist",
         "build": "vite build && npm run package",
         "package": "svelte-kit sync && svelte-package",

@@ -1,11 +1,9 @@
 <script lang="ts">
     import { getContext, onMount } from 'svelte'
-
-    import type { AppContext } from '$lib/stores/appContext.svelte'
     import LibraryGameCard from '$lib/components/LibraryGameCard.svelte'
     import LargeLibraryGameCard from '$lib/components/LargeLibraryGameCard.svelte'
     import { Button, Heading } from 'flowbite-svelte'
-    import { type GameUiDefinition } from '@tabletop/frontend-components'
+    import { type GameUiDefinition, type AppContext} from '@tabletop/frontend-components'
     import { fade } from 'svelte/transition'
     import type { GameState, HydratedGameState } from '@tabletop/common'
 

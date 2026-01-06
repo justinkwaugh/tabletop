@@ -1,12 +1,11 @@
 <script lang="ts">
     import { Card, Label, Button, Input, Alert, Helper } from 'flowbite-svelte'
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
     import { goto } from '$app/navigation'
-    import { trim } from '$lib/utils/trimInput'
     import { z } from 'zod'
     import { zfd } from 'zod-form-data'
     import { getContext } from 'svelte'
+    import { trim, type AppContext } from '@tabletop/frontend-components'
 
     let { api } = getContext('appContext') as AppContext
     let { data } = $props()

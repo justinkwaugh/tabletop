@@ -6,7 +6,7 @@
 <script lang="ts">
     import { getContext, onMount } from 'svelte'
     import { isLibraryLoaded, markLibraryLoaded } from '$lib/stores/libraryLoaded.svelte'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
+    import type { AppContext } from '@tabletop/frontend-components'
 
     let { mode = 'login' }: { mode: 'link' | 'login' } = $props()
 

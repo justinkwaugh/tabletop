@@ -2,9 +2,8 @@
     import { Modal } from 'flowbite-svelte'
     import GameCard from '$lib/components/GameCard.svelte'
     import { getContext } from 'svelte'
-    import GameEditForm from '$lib/components/GameEditForm.svelte'
     import type { Game } from '@tabletop/common'
-    import type { AppContext } from '$lib/stores/appContext.svelte'
+    import { type AppContext, GameEditForm } from '@tabletop/frontend-components'
 
     let appContext = getContext('appContext') as AppContext
     let { gameService } = appContext

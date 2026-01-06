@@ -2,6 +2,7 @@
 import { Notification, NotificationValidator, UserStatus } from '@tabletop/common'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import {
+    VisibilityService,
     type NotificationListener,
     NotificationEventType,
     type DataEvent,
@@ -10,7 +11,6 @@ import {
     NotificationChannel
 } from '@tabletop/frontend-components'
 import { PUBLIC_VAPID_KEY } from '$env/static/public'
-import type { VisibilityService } from './visibilityService.svelte'
 import {
     ChannelIdentifier,
     RealtimeEventType,

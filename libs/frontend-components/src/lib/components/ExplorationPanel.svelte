@@ -9,10 +9,10 @@
         ReplyOutline
     } from 'flowbite-svelte-icons'
     import SaveExplorationModal from './SaveExplorationModal.svelte'
-    import type { AppContext } from '$lib/stores/appContext.svelte.js'
     import DeleteModal from './DeleteModal.svelte'
-    import type { GameSession } from '@tabletop/frontend-components'
     import UnsavedExplorationModal from './UnsavedExplorationModal.svelte'
+    import type { AppContext } from '$lib/model/appContext.js'
+    import type { GameSession } from '$lib/model/gameSession.svelte.js'
 
     let { gameService } = getContext('appContext') as AppContext
     let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>

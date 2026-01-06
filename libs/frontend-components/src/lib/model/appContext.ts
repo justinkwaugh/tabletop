@@ -1,0 +1,17 @@
+import type { AuthorizationService } from '$lib/services/authorizationService.js'
+import type { NotificationService } from '$lib/services/notificationService.js'
+import type { GameService } from '$lib/services/gameService.js'
+import type { LibraryService } from '$lib/services/libraryService.js'
+import type { VisibilityService } from '$lib/services/visibilityService.svelte'
+import type { ChatService } from '$lib/services/chatService.js'
+import type { RemoteApiService } from '$lib/services/remoteApiService.js'
+
+export type AppContext = {
+    libraryService: LibraryService
+    authorizationService: AuthorizationService
+    notificationService: NotificationService
+    gameService: GameService
+    visibilityService: VisibilityService
+    chatService: ChatService
+    api: RemoteApiService
+}

@@ -3,8 +3,9 @@ import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
 import { AuthorizationCategory } from '@tabletop/frontend-components'
 import { getAppContext } from '$lib/stores/appContext.svelte.js'
 import { toast } from 'svelte-sonner'
+import type { PageLoad } from './$types.js'
 
-export async function load({ params, url }) {
+export const load: PageLoad = async ({ params, url }) => {
     const appContext = getAppContext()
     await appContext.authorizationService.authorizeRoute({
         category: AuthorizationCategory.ActiveUser,

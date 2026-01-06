@@ -20,7 +20,7 @@ import {
 } from '@tabletop/common'
 import { watch } from 'runed'
 import { Value } from 'typebox/value'
-import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
+import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import { TabletopApi } from '$lib/network/tabletopApi.svelte'
 import { toast } from 'svelte-sonner'
 import { nanoid } from 'nanoid'
@@ -30,17 +30,18 @@ import {
     NotificationChannel,
     type NotificationEvent,
     type NotificationService
-} from '$lib/services/notificationService.svelte'
+} from '$lib/services/notificationService.js'
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
 import type { ChatService } from '$lib/services/chatService'
 import { goto } from '$app/navigation'
-import type { GameService } from '$lib/services/gameService.svelte'
+import type { GameService } from '$lib/services/gameService.js'
 import { GameContext } from './gameContext.svelte.js'
 import { GameHistory } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
 import { GameExplorations } from './gameExplorations.svelte.js'
 import { AnimationContext } from '$lib/utils/animations.js'
+import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -78,7 +79,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     public definition: GameUiDefinition<T, U>
     private engine: GameEngine
-    private api: TabletopApi
+    private api: RemoteApiService
 
     private actionsToProcess: GameAction[] = []
 
@@ -332,7 +333,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         authorizationService: AuthorizationService
         notificationService: NotificationService
         chatService: ChatService
-        api: TabletopApi
+        api: RemoteApiService
         definition: GameUiDefinition<T, U>
         game: Game
         state: T

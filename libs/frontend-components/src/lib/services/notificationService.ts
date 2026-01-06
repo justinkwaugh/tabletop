@@ -38,4 +38,13 @@ export type NotificationService = {
     stopListeningToGame(gameId: string): void
     addListener(listener: NotificationListener): void
     removeListener(listener: NotificationListener): void
+
+    // These should probably not be here
+    onMounted(): void
+    showPrompt(): void
+    hidePrompt(): void
+    shouldShowPrompt(): boolean
+    hasWebNotificationPermission(): boolean
+    canAskforWebNotificationPermission(): boolean
+    requestWebNotificationPermission(): Promise<boolean>
 }

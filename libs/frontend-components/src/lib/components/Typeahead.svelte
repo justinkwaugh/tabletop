@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AppContext } from '$lib/stores/appContext.svelte'
+    import type { AppContext } from '$lib/model/appContext.js'
     import { trim } from '$lib/utils/trimInput'
     import { Dropdown, DropdownGroup, DropdownItem, Input, type InputProps } from 'flowbite-svelte'
     import { nanoid } from 'nanoid'
