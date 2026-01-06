@@ -211,7 +211,8 @@
             </button>
             <button
                 aria-label="step forwards"
-                onclick={async () => await gameSession.history.goToNextAction()}
+                onclick={async (event: MouseEvent) =>
+                    await gameSession.history.goToNextAction(event.shiftKey)}
                 ><svg
                     class="w-[24px] h-[24px] {gameSession.history.hasNextAction &&
                     !gameSession.history.isDisabled()

@@ -360,7 +360,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         })
 
         this.history = new GameHistory(this.gameContext, {
-            onHistoryAction: (action) => this.onHistoryAction(action),
+            onHistoryAction: (action, animationRequested) =>
+                this.onHistoryAction(action, animationRequested),
             shouldAutoStepAction: (action, next) => this.shouldAutoStepAction(action, next),
             onHistoryExit: () => {
                 this.suppressStateChangeActions = true
@@ -865,9 +866,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     willUndo(_action: GameAction) {}
 
-    onHistoryAction(_action?: GameAction) {
-        if (!this.history.playing) {
+    onHistoryAction(_action?: GameAction, animationRequested: boolean = false) {
+        if (!animationRequested) {
             this.suppressStateChangeActions = true
+        } else {
+            console.log('onHistoryAction requesting animations')
         }
     }
 

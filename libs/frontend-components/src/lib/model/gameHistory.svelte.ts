@@ -4,7 +4,10 @@ import type { GameContext } from './gameContext.svelte.js'
 export type StepDirection = 'forward' | 'backward'
 
 export type HistoryEnterCallback = () => void
-export type HistoryActionCallback = (action: GameAction | undefined) => void
+export type HistoryActionCallback = (
+    action: GameAction | undefined,
+    animationRequested?: boolean
+) => void
 export type HistoryShouldAutoStepCallback = (action: GameAction, next?: GameAction) => boolean
 export type HistoryExitCallback = () => void
 
@@ -93,10 +96,15 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         // Resume playing if needed
         if (this.playOnEnable) {
             this.playOnEnable = false
-            this.stepForward({ stopPlayback: false })
-            if (this.playing) {
-                this.schedulePlayTimer()
-            }
+            this.stepForward({ stopPlayback: false, animated: true })
+                .then(() => {
+                    if (this.playing) {
+                        this.schedulePlayTimer()
+                    }
+                })
+                .catch(() => {
+                    console.log('Error resuming history playback')
+                })
         }
     }
 
@@ -144,13 +152,13 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
-    public async goToNextAction() {
+    public async goToNextAction(animated: boolean = false) {
         if (this.stepping || this.disabled) {
             return
         }
         this.stepping = true
         try {
-            await this.stepForward()
+            await this.stepForward({ animated })
         } finally {
             // This allows stupid flip animations to finish
             setTimeout(() => {
@@ -210,8 +218,14 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
     private async stepForward({
         toActionIndex,
         stopPlayback = true,
+        animated = false,
         predicate
-    }: { toActionIndex?: number; stopPlayback?: boolean; predicate?: () => boolean } = {}) {
+    }: {
+        toActionIndex?: number
+        stopPlayback?: boolean
+        animated?: boolean
+        predicate?: () => boolean
+    } = {}) {
         if (!this.historyContext) {
             return
         }
@@ -250,7 +264,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
                     ))) ||
             (predicate && predicate() === false)
         )
-        this.onHistoryAction(this.historyContext.actions[this.actionIndex])
+        this.onHistoryAction(this.historyContext.actions[this.actionIndex], animated)
         this.historyContext.updateGameState(stateSnapshot)
 
         const skippableLastAction = this.shouldAutoStepAction(nextAction)
@@ -296,7 +310,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         if (!this.historyContext || this.actionIndex === this.historyContext.actions.length - 1) {
             await this.stepBackward({ toActionIndex: -1, stopPlayback: false })
         } else {
-            await this.stepForward({ stopPlayback: false })
+            await this.stepForward({ stopPlayback: false, animated: true })
         }
         if (this.playing) {
             this.schedulePlayTimer()
@@ -316,7 +330,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
                 this.playOnEnable = true
                 this.clearPlayTimer()
             } else {
-                await this.stepForward({ stopPlayback: false })
+                await this.stepForward({ stopPlayback: false, animated: true })
             }
         }, 1000)
     }

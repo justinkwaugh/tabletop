@@ -73,7 +73,7 @@
             if (data.gameSession.isBusy()) {
                 return
             }
-            data.gameSession.history.goToNextAction()
+            data.gameSession.history.goToNextAction(event.shiftKey)
         }
     }
 </script>
