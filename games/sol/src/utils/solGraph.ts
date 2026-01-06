@@ -132,7 +132,7 @@ export class SolGraph
 
         // Add In/Out edges
 
-        this.addInnerOuterEdges(false)
+        this.addInnerOuterEdges(true)
 
         // Inner ring In
         let innerOffset = 0
@@ -201,6 +201,7 @@ export class SolGraph
         const count = fivePlayer
             ? FIVE_PLAYER_RING_COUNTS[Ring.Outer]
             : ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Outer]
+
         for (let col = 0; col < count; col++) {
             const node = this.nodeAt({ col, row: Ring.Outer })
             if (!node) {

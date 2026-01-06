@@ -10,10 +10,10 @@ export const Definition = <GameDefinition>{
     id: 'sol',
 
     metadata: {
-        name: 'Sol',
+        name: 'Sol: Last Days of a Star',
         designer: 'Ryan Spangler, Sean Spangler and Jodi Sweetman',
         description:
-            'BETA: Games may have bugs and may not be finishable.  Not all of the history entries and waiting messsages are complete yet. Animations may be missing. If you notice anything you think is weird or incorrect, please mention in it in our discord.',
+            'Sol: Last Days of a Star is a board game for one to five players where each player represents a different planetary effort to transmit as much energy from the Sun back to their Ark so they can to escape the solar system before the Sun explodes!',
         year: '2005',
         minPlayers: 2,
         maxPlayers: 5,
