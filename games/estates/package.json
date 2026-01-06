@@ -9,7 +9,7 @@
     "private": true,
     "scripts": {
         "clean": "rimraf esm",
-        "build": "tsc"
+        "build": "tsgo"
     },
     "dependencies": {
         "typebox": "^1.0.53",
@@ -20,6 +20,7 @@
         "@babel/preset-env": "^7.25.3",
         "@tabletop/vitest-config": "*",
         "@tabletop/eslint-config": "*",
+        "@typescript/native-preview": "*",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3"
     }

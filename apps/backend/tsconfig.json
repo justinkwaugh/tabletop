@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "baseUrl": ".",
+        "paths": { "*": ["./*"] },
         "target": "esnext",
         "lib": ["esnext"],
         "allowJs": true,
