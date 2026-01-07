@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Station, StationType } from '../components/stations.js'
@@ -58,11 +64,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
         const cell = state.board.cellAt(this.coords)
         const station = cell.station
-
-        if (!station) {
-            throw new Error('No station at activation coordinates')
-        }
-
+        assertExists(station)
         const ring = this.coords.row
 
         const activation: Activation = state.getActivationForPlayer(this.playerId) ?? {
@@ -99,9 +101,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             ) {
                 const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
                 const removed = playerDivers.at(-1)
-                if (!removed) {
-                    throw new Error('No sundiver to remove')
-                }
+                assertExists(removed, 'No sundivers to remove for activation')
+
                 this.metadata.sundiverId = removed.id
 
                 const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)

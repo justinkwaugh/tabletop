@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    assertExists,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -70,7 +75,6 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             validActions.push(ActionType.Sacrifice)
         }
 
-        console.log('Valid activating actions', validActions)
         return validActions
     }
 
@@ -104,9 +108,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             }
             case isActivateBonus(action): {
                 const activation = gameState.getActivationForTurnPlayer()
-                if (!activation) {
-                    throw Error('Cannot find activation')
-                }
+                assertExists(activation, 'Cannot find activation')
 
                 if (
                     HydratedActivateEffect.canActivateEffect(
@@ -128,9 +130,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             }
             case isPass(action): {
                 const activation = gameState.getActivationForTurnPlayer()
-                if (!activation) {
-                    throw Error('Cannot find activation')
-                }
+                assertExists(activation, 'Cannot find activation')
 
                 if (!activation.currentStationId) {
                     gameState.activePlayerIds = [activation.playerId]
@@ -139,13 +139,12 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                 }
 
                 const station = gameState.getActivatingStation(activation.playerId)
-                console.log('Handling pass')
+
                 if (
                     action.playerId === station.playerId &&
                     activation.playerId !== station.playerId &&
                     HydratedActivateBonus.canActivateBonus(gameState, activation.playerId)
                 ) {
-                    console.log('Giving activating player a chance to do bonus activation')
                     gameState.activePlayerIds = [activation.playerId]
                     return MachineState.Activating
                 } else if (
@@ -159,7 +158,6 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
                 } else if (gameState.activeEffect === EffectType.Metamorphosis) {
                     return MachineState.Metamorphosizing
                 } else {
-                    console.log('Continuing activating or ending turn')
                     return ActivatingStateHandler.continueActivatingOrEnd(
                         gameState,
                         context,
@@ -180,9 +178,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         playerId: string
     ): MachineState {
         const activation = state.getActivationForPlayer(playerId)
-        if (!activation) {
-            throw Error('Cannot find activation')
-        }
+        assertExists(activation, 'Cannot find activation')
 
         const station = state.getActivatingStation(playerId)
         if (HydratedActivateBonus.canActivateBonus(state, station.playerId)) {
@@ -197,7 +193,6 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
             state.activePlayerIds = [activation.playerId]
             return MachineState.Activating
         } else {
-            console.log('Continuing activating or ending turn')
             return this.continueActivatingOrEnd(state, context, activation)
         }
     }

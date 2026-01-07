@@ -2,6 +2,8 @@ import {
     type HydratedAction,
     type MachineStateHandler,
     ActionSource,
+    assert,
+    assertExists,
     MachineContext,
     Prng
 } from '@tabletop/common'
@@ -57,9 +59,8 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
         const numSolarFlares = drawnCards.filter((card) => card.suit === Suit.Flare).length
         if (gameState.activeEffect === EffectType.Squeeze) {
             const activation = gameState.getActivationForPlayer(action.playerId)
-            if (!activation) {
-                throw Error('No activation found for squeeze effect')
-            }
+            assertExists(activation, 'No activation found for squeeze effect')
+
             if (numSolarFlares > 0) {
                 return ActivatingStateHandler.continueActivatingOrEnd(
                     gameState,

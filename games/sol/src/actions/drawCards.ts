@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Card, Suit } from '../components/cards.js'
@@ -82,9 +88,9 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
         if (state.activeEffect === EffectType.Squeeze) {
             this.metadata.effect = EffectType.Squeeze
             const station = state.getActivatingStation(playerState.playerId)
-            if (!station || !station.coords) {
-                throw Error('Invalid station for squeeze effect')
-            }
+            assertExists(station, 'No station to activate squeeze effect at')
+            assertExists(station.coords, 'Station has no coordinates for squeeze effect')
+
             this.metadata.coords = station.coords
             if (cards.some((card) => card.suit === Suit.Flare)) {
                 this.metadata.removedStation = state.board.removeStationAt(station.coords)

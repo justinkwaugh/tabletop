@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, assertExists, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -28,9 +28,7 @@ export class MetamorphosizingStateHandler implements MachineStateHandler<Hydrate
         switch (true) {
             case isMetamorphosize(action): {
                 const activation = gameState.getActivationForPlayer(action.playerId)
-                if (!activation) {
-                    throw Error('No activation in metamorphosizing state')
-                }
+                assertExists(activation, 'No activation in metamorphosizing state')
                 return ActivatingStateHandler.continueActivatingOrEnd(
                     gameState,
                     context,

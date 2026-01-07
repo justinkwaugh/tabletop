@@ -45,12 +45,10 @@ export class HydratedAccelerate extends HydratableAction<typeof Accelerate> impl
 
         for (const id of Object.keys(state.board.motherships)) {
             const currentLocation = state.board.motherships[id]
-            console.log(`Accelerating mothership ${id} from ${currentLocation} by ${this.amount}`)
             let newLocation = currentLocation - this.amount
             if (newLocation < 0) {
                 newLocation += state.board.numMothershipLocations
             }
-            console.log(`New location for mothership ${id} is ${newLocation}`)
             state.board.motherships[id] = newLocation
         }
     }

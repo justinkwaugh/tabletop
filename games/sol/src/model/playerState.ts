@@ -1,4 +1,4 @@
-import { Hydratable, PlayerState } from '@tabletop/common'
+import { assertExists, Hydratable, PlayerState } from '@tabletop/common'
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
@@ -119,33 +119,25 @@ export class HydratedSolPlayerState
 
     public removeSolarGate(): SolarGate {
         const solarGate = this.solarGates.pop()
-        if (!solarGate) {
-            throw Error('No solar gate to remove')
-        }
+        assertExists(solarGate, 'No solar gate to remove')
         return solarGate
     }
 
     public removeEnergyNode(): EnergyNode {
         const energyNode = this.energyNodes.pop()
-        if (!energyNode) {
-            throw Error('No energy node to remove')
-        }
+        assertExists(energyNode, 'No energy node to remove')
         return energyNode
     }
 
     public removeSundiverFoundry(): SundiverFoundry {
         const foundry = this.sundiverFoundries.pop()
-        if (!foundry) {
-            throw Error('No sundiver foundry to remove')
-        }
+        assertExists(foundry, 'No sundiver foundry to remove')
         return foundry
     }
 
     public removeTransmitTower(): TransmitTower {
         const tower = this.transmitTowers.pop()
-        if (!tower) {
-            throw Error('No transmit tower to remove')
-        }
+        assertExists(tower, 'No transmit tower to remove')
         return tower
     }
 

@@ -71,14 +71,19 @@ export class HarnessGameService implements GameService {
     }
 
     async loadLocalGames() {
+        const definition = this.libraryService.getTitles()[0]
+
         const user = this.authorizationService.getSessionUser()
         if (!user) {
             return
         }
         const games = await this.localGameStore.findGamesForUser(user)
-        games.forEach((game) => {
-            this.gamesById.set(game.id, game)
-        })
+
+        games
+            .filter((game) => game.typeId === definition.id)
+            .forEach((game) => {
+                this.gamesById.set(game.id, game)
+            })
     }
 
     async loadGame(id: string): Promise<{ game?: Game; actions: GameAction[] }> {

@@ -1,6 +1,6 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import { assertExists, GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Ring } from '../utils/solGraph.js'
@@ -59,9 +59,8 @@ export class HydratedBlight extends HydratableAction<typeof Blight> implements B
 
         const playerDivers = state.board.sundiversForPlayer(this.playerId, cell)
         const removed = playerDivers.at(-1)
-        if (!removed) {
-            throw new Error('No sundiver to remove')
-        }
+        assertExists(removed, 'No sundiver to remove')
+
         this.metadata.sundiverId = removed.id
 
         const removedDivers = state.board.removeSundiversFromCell([removed.id], cell)

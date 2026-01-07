@@ -1,6 +1,6 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Suit } from '../components/cards.js'
@@ -40,9 +40,7 @@ export class HydratedChooseCard extends HydratableAction<typeof ChooseCard> impl
     apply(state: HydratedSolGameState, _context?: MachineContext) {
         const playerState = state.getPlayerState(this.playerId)
         const chosenCard = playerState.drawnCards.find((card) => card.suit === this.suit)
-        if (!chosenCard) {
-            throw Error('Chosen card suit not in drawn cards')
-        }
+        assertExists(chosenCard, 'Chosen card suit not in drawn cards')
 
         playerState.card = chosenCard
         playerState.drawnCards = []

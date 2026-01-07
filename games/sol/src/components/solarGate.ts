@@ -1,5 +1,5 @@
 import { type Static, Type } from 'typebox'
-import { coordinatesToNumber, OffsetCoordinates, szudzikPairSigned } from '@tabletop/common'
+import { assert, coordinatesToNumber, OffsetCoordinates, szudzikPairSigned } from '@tabletop/common'
 
 export type SolarGate = Static<typeof SolarGate>
 export const SolarGate = Type.Object({
@@ -10,9 +10,7 @@ export const SolarGate = Type.Object({
 })
 
 export function gateKey(coordsA?: OffsetCoordinates, coordsB?: OffsetCoordinates) {
-    if (!coordsA || !coordsB) {
-        throw new Error('Both coordinates must be defined to compute gateKey')
-    }
+    assert(coordsA && coordsB, 'Both coordinate must be defined to compute gateKey')
 
     const [innerCoords, outerCoords] =
         coordsA.row < coordsB.row ? [coordsA, coordsB] : [coordsB, coordsA]

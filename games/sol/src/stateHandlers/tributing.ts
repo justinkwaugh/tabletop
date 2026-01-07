@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, assertExists, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -26,9 +26,7 @@ export class TributingStateHandler implements MachineStateHandler<HydratedTribut
             case isTribute(action): {
                 const effectTracking = gameState.getEffectTracking()
                 const preEffectState = effectTracking.preEffectState
-                if (!preEffectState) {
-                    throw Error('No pre-tribute state recorded')
-                }
+                assertExists(preEffectState, 'No pre-tribute state recorded')   
                 gameState.activeEffect = undefined
 
                 if (preEffectState === MachineState.CheckEffect) {

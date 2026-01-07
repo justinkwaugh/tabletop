@@ -1,6 +1,7 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
+    assert,
     GameAction,
     HydratableAction,
     MachineContext,
@@ -52,9 +53,7 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
-        if (!this.isValidLaunch(state)) {
-            throw Error('Invalid launch')
-        }
+        assert(this.isValidLaunch(state), 'Invalid launch')
 
         state.moved = true
 

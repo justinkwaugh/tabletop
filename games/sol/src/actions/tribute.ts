@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assert,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
@@ -38,9 +44,7 @@ export class HydratedTribute extends HydratableAction<typeof Tribute> implements
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
-        if (!HydratedTribute.canTributeAt(state, this.playerId, this.coords)) {
-            throw Error('Invalid tribute')
-        }
+        assert(HydratedTribute.canTributeAt(state, this.playerId, this.coords), 'Invalid tribute')
         const otherPlayers = state.board
             .playersWithSundiversAt(this.coords)
             .filter((id) => id !== this.playerId)

@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { gateKey, SolarGate } from '../components/solarGate.js'
@@ -77,9 +83,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         const playerState = state.getPlayerState(this.playerId)
 
         const path = HydratedFly.isValidFlight(state, this)
-        if (!path) {
-            throw Error('Invalid flight')
-        }
+        assertExists(path, 'Invalid flight')
 
         this.metadata = {
             flightPath: path,
@@ -108,7 +112,9 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         } else if (this.stationId) {
             // Juggernaut
             const station = state.board.removeStationAt(this.start)
-            if (!station || station.id !== this.stationId) {
+            assertExists(station, 'Cannot find juggernaut station')
+
+            if (station.id !== this.stationId) {
                 throw Error('Invalid juggernaut station')
             }
             state.board.addStationAt(station, this.destination)

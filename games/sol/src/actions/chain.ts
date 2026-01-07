@@ -1,6 +1,8 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
+    assert,
+    assertExists,
     coordinatesToNumber,
     GameAction,
     HydratableAction,
@@ -63,9 +65,7 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
             const entry = this.chain[i]
             const cell = state.board.cellAt(entry.coords)
             const sundiver = cell.sundivers.find((diver) => diver.id === entry.sundiverId)
-            if (!sundiver) {
-                throw Error('Cannot find chain sundiver')
-            }
+            assertExists(sundiver, 'Cannot find chain sundiver')
 
             const owner = state.getPlayerState(sundiver.playerId)
             owner.momentum += 1
@@ -82,9 +82,7 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
 
             if (i % 2 === 0) {
                 const removed = state.board.removeSundiversAt([sundiver.id], entry.coords)
-                if (removed.length === 0) {
-                    throw Error('No sundiver removed for chain')
-                }
+                assert(removed.length > 0, 'No sundiver removed for chain')
                 owner.addSundiversToHold(removed)
                 result.sundiverIdsReturned.push(sundiver.id)
             }

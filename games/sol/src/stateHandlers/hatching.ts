@@ -1,4 +1,10 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    assert,
+    assertExists,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -26,9 +32,8 @@ export class HatchingStateHandler implements MachineStateHandler<HydratedHatch> 
             case isHatch(action): {
                 const effectTracking = gameState.getEffectTracking()
                 const preHatchState = effectTracking.preEffectState
-                if (!preHatchState) {
-                    throw Error('No pre-hatch state recorded')
-                }
+                assertExists(preHatchState, 'No pre-hatch state recorded')
+
                 gameState.activeEffect = undefined
                 if (preHatchState === MachineState.CheckEffect) {
                     return drawCardsOrEndTurn(gameState, context)

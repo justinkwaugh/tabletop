@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import {
@@ -55,14 +61,10 @@ export class HydratedDeconstruct
         const playerState = state.getPlayerState(this.playerId)
         const cell = state.board.cellAt(this.coords)
         const station = cell.station
-        if (!station) {
-            throw Error('No station to deconstruct')
-        }
+        assertExists(station, 'No station to deconstruct')
 
         const removedStation = state.board.removeStationAt(this.coords)
-        if (!removedStation) {
-            throw Error('Failed to remove station')
-        }
+        assertExists(removedStation, 'Failed to remove station')
 
         this.metadata = {
             removedStation: removedStation,

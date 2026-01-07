@@ -1,6 +1,13 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assert,
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import {
@@ -51,21 +58,16 @@ export class HydratedMetamorphosize
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
-        if (!this.isValidMetamorphosis(state, this.playerId)) {
-            throw Error('Invalid metamorphosize')
-        }
+        assert(this.isValidMetamorphosis(state, this.playerId), 'Invalid metamorphosize')
 
         const station = state.board.findStation(this.stationId)
-        if (!station || !station.coords) {
-            throw Error('Station not found')
-        }
+        assertExists(station, 'Station not found')
+        assertExists(station.coords, 'Station coordinates not found')
 
         const coords = station.coords
         const playerState = state.getPlayerState(this.playerId)
         const removedStation = state.board.removeStationAt(coords)
-        if (!removedStation) {
-            throw Error('Failed to remove station')
-        }
+        assertExists(removedStation, 'Failed to remove station')
 
         switch (true) {
             case isEnergyNode(removedStation):
@@ -104,9 +106,8 @@ export class HydratedMetamorphosize
 
     isValidMetamorphosis(state: HydratedSolGameState, playerId: string): boolean {
         const station = state.board.findStation(this.stationId)
-        if (!station || !station.coords) {
-            throw Error('Station not found')
-        }
+        assertExists(station, 'Station not found')
+        assertExists(station.coords, 'Station coordinates not found')
 
         const types = [...Object.values(StationType)]
         return types.some((type) => {

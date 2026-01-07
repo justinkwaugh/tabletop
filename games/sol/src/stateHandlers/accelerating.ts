@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, assert, assertExists, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -26,9 +26,8 @@ export class AcceleratingStateHandler implements MachineStateHandler<HydratedAcc
             case isAccelerate(action): {
                 const effectTracking = gameState.getEffectTracking()
                 const preEffectState = effectTracking.preEffectState
-                if (!preEffectState) {
-                    throw Error('No pre-accelerate state recorded')
-                }
+                assertExists(preEffectState, 'No pre-accelerate state recorded')
+
                 gameState.activeEffect = undefined
 
                 if (preEffectState === MachineState.CheckEffect) {

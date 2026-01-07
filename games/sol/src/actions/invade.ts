@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assert,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Station, StationType } from '../components/stations.js'
@@ -43,9 +49,7 @@ export class HydratedInvade extends HydratableAction<typeof Invade> implements I
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
-        if (!HydratedInvade.canInvadeAt(state, this.playerId, this.coords)) {
-            throw Error('Invalid invade')
-        }
+        assert(HydratedInvade.canInvadeAt(state, this.playerId, this.coords), 'Invalid invade')
 
         const playerState = state.getPlayerState(this.playerId)
         const station = state.board.removeStationAt(this.coords)

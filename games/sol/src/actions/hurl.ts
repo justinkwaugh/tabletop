@@ -1,6 +1,8 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
+    assert,
+    assertExists,
     GameAction,
     HydratableAction,
     MachineContext,
@@ -76,9 +78,9 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
         const playerState = state.getPlayerState(this.playerId)
 
         const path = HydratedHurl.isValidHurl(state, this)
-        if (!path || path.length < 2) {
-            throw Error('Invalid hurl')
-        }
+        assertExists(path, 'Invalid hurl')
+        assert(path.length >= 2, 'Invalid hurl path length')
+
         this.metadata = {
             flightPath: path,
             portal: state.activeEffect === EffectType.Portal,

@@ -219,7 +219,7 @@ export class HydratedSolGameBoard
         const localGates = this.findGatesLocalToRing(current.row)
         const remainingRange =
             effectiveRange !== undefined ? effectiveRange - (path.length - 1) : undefined
-        console.log('found local gates:', localGates, 'remaining range:', remainingRange)
+
         // Check each gate to see if the path from the opposite side of the gate to the destination is valid
         return {
             direct: directPath,

@@ -64,6 +64,7 @@ export * from './site/chat/gameChatMessage.js'
 export * from './site/chat/bookmark.js'
 export * from './site/user.js'
 
+export * from './util/assertions.js'
 export * from './util/freeze.js'
 export * from './util/shuffle.js'
 export * from './util/uuid.js'

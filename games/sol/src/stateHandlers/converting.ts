@@ -43,7 +43,6 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
             validActions.push(ActionType.Invade)
         }
 
-        console.log('Valid converting actions', validActions)
         return validActions
     }
 

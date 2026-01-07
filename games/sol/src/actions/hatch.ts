@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assert,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
@@ -43,12 +49,17 @@ export class HydratedHatch extends HydratableAction<typeof Hatch> implements Hat
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
-        if (!HydratedHatch.canHatchAt(state, this.playerId, this.coords)) {
-            throw Error('Invalid hatch')
-        }
+        assert(HydratedHatch.canHatchAt(state, this.playerId, this.coords), 'Invalid hatch')
 
         const cell = state.board.cellAt(this.coords)
+        const targetPlayerDivers = state.board.sundiversForPlayerAt(
+            this.targetPlayerId,
+            this.coords
+        )
+        assert(targetPlayerDivers.length > 0, 'No player sundivers at target cell')
+
         const targetDiver = state.board.sundiversForPlayer(this.targetPlayerId, cell)[0]
+
         const replacedDivers = state.board.removeSundiversFromCell([targetDiver.id], cell)
         const targetPlayerState = state.getPlayerState(this.targetPlayerId)
         targetPlayerState.addSundiversToHold(replacedDivers)

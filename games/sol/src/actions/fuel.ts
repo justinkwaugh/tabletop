@@ -1,6 +1,6 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import { assert, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
@@ -34,9 +34,7 @@ export class HydratedFuel extends HydratableAction<typeof Fuel> implements Fuel 
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
-        if (!HydratedFuel.canFuel(state, this.playerId)) {
-            throw Error('Invalid fuel')
-        }
+        assert(HydratedFuel.canFuel(state, this.playerId), 'Invalid fuel')
 
         const playerState = state.getPlayerState(this.playerId)
         playerState.energyCubes -= 1

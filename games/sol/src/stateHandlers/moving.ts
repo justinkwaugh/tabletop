@@ -82,7 +82,6 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
             validActions.push(ActionType.Fuel)
         }
 
-        console.log('Valid moving actions', validActions)
         return validActions
     }
 

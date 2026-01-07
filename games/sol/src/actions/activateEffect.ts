@@ -93,7 +93,7 @@ export class HydratedActivateEffect
 
             const additionalReward =
                 AUGMENT_AWARD_INCREASE_PER_RING[currentStationCoords.row] * cellDivers.length
-            console.log('Augment additional reward:', additionalReward)
+
             if (
                 activation.stationType === StationType.SundiverFoundry ||
                 activation.stationType === StationType.TransmitTower
@@ -104,12 +104,10 @@ export class HydratedActivateEffect
             this.metadata.coords = currentStationCoords
             switch (activation.stationType) {
                 case StationType.EnergyNode:
-                    console.log('Applying augment energy reward:', additionalReward)
                     playerState.energyCubes += additionalReward
                     this.metadata.energyAdded = additionalReward
                     break
                 case StationType.SundiverFoundry:
-                    console.log('Applying augment sundiver reward:', additionalReward)
                     const awardedSundivers = playerState.reserveSundivers.splice(
                         -additionalReward,
                         additionalReward
@@ -118,7 +116,6 @@ export class HydratedActivateEffect
                     this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                     break
                 case StationType.TransmitTower:
-                    console.log('Applying augment momentum reward:', additionalReward)
                     playerState.momentum += additionalReward
                     this.metadata.momentumAdded = additionalReward
                     break

@@ -2,6 +2,8 @@ import {
     type HydratedAction,
     type MachineStateHandler,
     ActionSource,
+    assert,
+    assertExists,
     MachineContext,
     Prng
 } from '@tabletop/common'
@@ -42,7 +44,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
             validActions.push(ActionType.ActivateEffect)
         }
-        console.log('Valid solar flares actions', validActions)
+
         return validActions
     }
 
@@ -89,9 +91,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
             }
             case isActivate(action): {
                 const activation = gameState.getActivationForPlayer(action.playerId)
-                if (!activation) {
-                    throw Error('Cannot find activation for activating player')
-                }
+                assertExists(activation, 'Cannot find activation for activating player')
 
                 activation.currentStationId = undefined
                 activation.currentStationCoords = undefined
@@ -164,9 +164,8 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
             state.solarFlares = 0
 
             const currentPlayerId = state.turnManager.currentTurn()?.playerId
-            if (!currentPlayerId) {
-                throw Error('No current turn player found')
-            }
+            assertExists(currentPlayerId, 'No current turn player found')
+
             state.activePlayerIds = [currentPlayerId]
             const currentPlayerState = state.getPlayerState(currentPlayerId)
             if (!currentPlayerState.hasCardChoice()) {

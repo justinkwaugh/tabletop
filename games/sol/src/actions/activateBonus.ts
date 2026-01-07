@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Station, StationType } from '../components/stations.js'
@@ -56,15 +62,10 @@ export class HydratedActivateBonus
         const playerState = state.getPlayerState(this.playerId)
 
         const activation = state.getActivationForTurnPlayer()
-        if (!activation) {
-            throw Error('No activation for turn player')
-        }
+        assertExists(activation, 'No activation for turn player')
 
         const station = state.getActivatingStation(activation.playerId)
-
-        if (!station) {
-            throw Error('No station to activate bonus at')
-        }
+        assertExists(station, 'No station to activate bonus at')
 
         const ring = activation?.currentStationCoords?.row ?? Ring.Center
 

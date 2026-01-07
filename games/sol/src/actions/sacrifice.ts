@@ -1,6 +1,12 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import {
+    assert,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    OffsetCoordinates
+} from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { StationType } from '../components/stations.js'
@@ -42,9 +48,8 @@ export class HydratedSacrifice extends HydratableAction<typeof Sacrifice> implem
     }
 
     apply(state: HydratedSolGameState, _context?: MachineContext) {
-        if (!HydratedSacrifice.canSacrificeAt(state, this.coords)) {
-            throw Error('Invalid sacrifice')
-        }
+        assert(HydratedSacrifice.canSacrificeAt(state, this.coords), 'Invalid sacrifice')
+
         const cell = state.board.cellAt(this.coords)
         const allSundivers = cell.sundivers
         const sundiverIds = allSundivers.map((s) => s.id)

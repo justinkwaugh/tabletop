@@ -2,6 +2,8 @@ import {
     type HydratedAction,
     type MachineStateHandler,
     ActionSource,
+    assert,
+    assertExists,
     MachineContext
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
@@ -38,7 +40,6 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
             validActions.push(ActionType.ActivateEffect)
         }
 
-        console.log('Valid check effect actions', validActions)
         return validActions
     }
 
@@ -60,9 +61,8 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                         )
                     } else if (effect === EffectType.Metamorphosis) {
                         const activation = gameState.getActivationForPlayer(action.playerId)
-                        if (!activation) {
-                            throw Error('No activation found for Metamorphosis effect')
-                        }
+                        assertExists(activation, 'No activation found for Metamorphosis effect')
+
                         return ActivatingStateHandler.continueActivatingOrEnd(
                             gameState,
                             context,
@@ -83,9 +83,11 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
             case isActivateEffect(action): {
                 if (gameState.activeEffect === EffectType.Motivate) {
                     const station = gameState.effectTracking?.convertedStation
-                    if (!station || !station.coords) {
-                        throw Error('No converted station with coords found for Motivate effect')
-                    }
+                    assertExists(
+                        station,
+                        'No converted station found for Motivate effect'
+                    )
+                    assertExists(station.coords, 'No coords found for Motivate effect station')
                     const activateAction: Activate = {
                         type: ActionType.Activate,
                         id: nanoid(),

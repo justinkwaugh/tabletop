@@ -1,4 +1,6 @@
 import {
+    assert,
+    assertExists,
     GameResult,
     GameState,
     HydratableGameState,
@@ -185,16 +187,11 @@ export class HydratedSolGameState
 
     getActivatingStation(playerId: string): Station {
         let activation = this.getActivationForPlayer(playerId)
-
-        if (!activation || !activation.currentStationId) {
-            throw Error('No activating station')
-        }
+        assertExists(activation, 'No activation for player')
+        assertExists(activation.currentStationId, 'No activating station')
 
         const station = this.board.findStation(activation.currentStationId)
-        if (!station) {
-            throw Error('Cannot find activating station')
-        }
-
+        assertExists(station, 'Cannot find activating station')
         return station
     }
 
@@ -204,11 +201,7 @@ export class HydratedSolGameState
     }
 
     getActivationForPlayer(playerId: string): Activation | undefined {
-        const activation = this.activations?.find((act) => act.playerId === playerId)
-        // if (!activation && this.activation?.playerId === playerId) {
-        //     return this.activation
-        // }
-        return activation
+        return this.activations?.find((act) => act.playerId === playerId)
     }
 
     getActivationForTurnPlayer(): Activation | undefined {
