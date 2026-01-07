@@ -7,6 +7,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
     import { Group, Mesh, MeshStandardMaterial, Object3D } from 'three'
     import { T } from '@threlte/core'
     import { useGltf } from '@threlte/extras'
+    // @ts-ignore
     import BarrierMesh from '$lib/3d/BarrierOne.gltf'
 
     export let stripes: number = 1
