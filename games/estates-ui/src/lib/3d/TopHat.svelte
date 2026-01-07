@@ -11,6 +11,7 @@ Title: Top Hat
     import { Group, Mesh, MeshStandardMaterial, Object3D } from 'three'
     import { T } from '@threlte/core'
     import { useGltf } from '@threlte/extras'
+    import TopHatMesh from '$lib/3d/TopHat.gltf'
 
     export let onloaded: ((ref: Object3D) => void) | undefined = undefined
     export const group = new Group()
@@ -26,7 +27,7 @@ Title: Top Hat
         }
     }
 
-    const gltf = useGltf<GLTFResult>('/TopHat.gltf')
+    const gltf = useGltf<GLTFResult>(TopHatMesh)
 </script>
 
 <T is={group} dispose={false} {...$$restProps} name="topHat">

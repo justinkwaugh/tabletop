@@ -8,6 +8,7 @@ Command: npx @threlte/gltf@2.0.3 public/3blocksmoothtexturev2.gltf --types --deb
     import { Group, Object3D } from 'three'
     import { T, type Props } from '@threlte/core'
     import { useGltf } from '@threlte/extras'
+    import BarrierMesh from '$lib/3d/Barrier.gltf'
 
     export let stripes: number = 1
     export let onloaded: ((ref: Object3D) => void) | undefined = undefined
@@ -22,7 +23,7 @@ Command: npx @threlte/gltf@2.0.3 public/3blocksmoothtexturev2.gltf --types --deb
         }
     }
 
-    const gltf = useGltf<GLTFResult>('/Barrier.gltf')
+    const gltf = useGltf<GLTFResult>(BarrierMesh)
 </script>
 
 <T is={group} name="barrier" dispose={false} {...$$restProps}>

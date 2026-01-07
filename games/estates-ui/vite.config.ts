@@ -5,6 +5,7 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit()],
+        assetsInclude: ['**/*.gltf'],
         build: {
             commonjsOptions: {
                 include: [/node_modules/]

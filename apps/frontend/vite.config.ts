@@ -7,6 +7,7 @@ export default defineProject(
     mergeConfig(VitestConfig, {
         server: { host: '0.0.0.0', fs: { strict: false } },
         plugins: [sveltekit(), devtoolsJson()],
+        assetsInclude: ['**/*.gltf'],
         build: {
             commonjsOptions: { include: [/node_modules/] },
             rollupOptions: {
