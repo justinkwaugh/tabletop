@@ -3,6 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedTribute, isTribute } from '../actions/tribute.js'
+import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from Tributing(Tribute) -> PREVIOUS STATE
 
@@ -29,6 +30,10 @@ export class TributingStateHandler implements MachineStateHandler<HydratedTribut
                     throw Error('No pre-tribute state recorded')
                 }
                 gameState.activeEffect = undefined
+
+                if (preEffectState === MachineState.CheckEffect) {
+                    return drawCardsOrEndTurn(gameState, context)
+                }
                 return preEffectState
             }
             default: {

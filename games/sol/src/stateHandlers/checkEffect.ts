@@ -124,6 +124,12 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                     return MachineState.DrawingCards
                 } else if (gameState.activeEffect === EffectType.Hatch) {
                     return MachineState.Hatching
+                } else if (action.effect === EffectType.Procreate) {
+                    return drawCardsOrEndTurn(gameState, context)
+                } else if (gameState.activeEffect === EffectType.Accelerate) {
+                    return MachineState.Accelerating
+                } else if (gameState.activeEffect === EffectType.Tribute) {
+                    return MachineState.Tributing
                 }
             }
             default: {

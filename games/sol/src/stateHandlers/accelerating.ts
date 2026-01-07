@@ -3,6 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedAccelerate, isAccelerate } from '../actions/accelerate.js'
+import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from Accelerating(Accelerate) -> PREVIOUS STATE
 
@@ -29,6 +30,10 @@ export class AcceleratingStateHandler implements MachineStateHandler<HydratedAcc
                     throw Error('No pre-accelerate state recorded')
                 }
                 gameState.activeEffect = undefined
+
+                if (preEffectState === MachineState.CheckEffect) {
+                    return drawCardsOrEndTurn(gameState, context)
+                }
                 return preEffectState
             }
             default: {
