@@ -19,7 +19,8 @@ export const FlyMetadata = Type.Object({
     paidPlayerIds: Type.Array(Type.String()),
     juggernaut: Type.Optional(Station),
     energyGained: Type.Optional(Type.Number()),
-    passage: Type.Optional(Type.Boolean())
+    passage: Type.Optional(Type.Boolean()),
+    transcend: Type.Optional(Type.Boolean())
 })
 
 export type Fly = Static<typeof Fly>
@@ -84,7 +85,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             flightPath: path,
             portal: state.activeEffect === EffectType.Portal,
             momentumGained: 0,
-            paidPlayerIds: []
+            paidPlayerIds: [],
+            transcend: state.activeEffect === EffectType.Transcend
         }
 
         HydratedFly.handleFlightEffects(state, this, path)
@@ -169,28 +171,30 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         // Find all the gates traversed
-        const gates = state.board.gatesForPath(path)
+        if (state.activeEffect !== EffectType.Transcend) {
+            const gates = state.board.gatesForPath(path)
 
-        for (const gate of gates) {
-            if (
-                gate.playerId !== flyOrHurl.playerId &&
-                !state.paidPlayerIds.includes(gate.playerId)
-            ) {
-                const gateOwner = state.getPlayerState(gate.playerId)
-                gateOwner.energyCubes += 1
-                state.paidPlayerIds.push(gate.playerId)
-                flyOrHurl.metadata!.paidPlayerIds.push(gate.playerId)
-            }
+            for (const gate of gates) {
+                if (
+                    gate.playerId !== flyOrHurl.playerId &&
+                    !state.paidPlayerIds.includes(gate.playerId)
+                ) {
+                    const gateOwner = state.getPlayerState(gate.playerId)
+                    gateOwner.energyCubes += 1
+                    state.paidPlayerIds.push(gate.playerId)
+                    flyOrHurl.metadata!.paidPlayerIds.push(gate.playerId)
+                }
 
-            const key = gateKey(gate.innerCoords, gate.outerCoords)
-            if (
-                this.hasPassageSundiver(state, flyOrHurl.sundiverIds) &&
-                !state.getEffectTracking().passageGates.includes(key)
-            ) {
-                state.getEffectTracking().passageGates.push(key)
-                playerState.momentum += 1
-                flyOrHurl.metadata!.momentumGained += 1
-                flyOrHurl.metadata!.passage = true
+                const key = gateKey(gate.innerCoords, gate.outerCoords)
+                if (
+                    this.hasPassageSundiver(state, flyOrHurl.sundiverIds) &&
+                    !state.getEffectTracking().passageGates.includes(key)
+                ) {
+                    state.getEffectTracking().passageGates.push(key)
+                    playerState.momentum += 1
+                    flyOrHurl.metadata!.momentumGained += 1
+                    flyOrHurl.metadata!.passage = true
+                }
             }
         }
     }

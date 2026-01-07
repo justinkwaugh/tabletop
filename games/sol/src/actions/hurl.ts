@@ -23,7 +23,8 @@ export const HurlMetadata = Type.Object({
     paidPlayerIds: Type.Array(Type.String()),
     juggernaut: Type.Optional(Station),
     energyGained: Type.Optional(Type.Number()),
-    passage: Type.Optional(Type.Boolean())
+    passage: Type.Optional(Type.Boolean()),
+    transcend: Type.Optional(Type.Boolean())
 })
 
 export type Hurl = Static<typeof Hurl>
@@ -82,7 +83,8 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
             flightPath: path,
             portal: state.activeEffect === EffectType.Portal,
             momentumGained: 0,
-            paidPlayerIds: []
+            paidPlayerIds: [],
+            transcend: state.activeEffect === EffectType.Transcend
         }
 
         HydratedFly.handleFlightEffects(state, this, path)

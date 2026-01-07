@@ -500,6 +500,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         })
 
         if (
+            this.gameState.activeEffect !== EffectType.Transcend &&
             !this.teleportChoice &&
             this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)
         ) {

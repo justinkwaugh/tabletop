@@ -85,7 +85,7 @@ export function getFlightPathsWithGateCrossings({
     fromState: HydratedSolGameState
 }): FlightPathWithGateCrossings[] {
     const board = fromState.board
-    const transcend = fromState.activeEffect === EffectType.Transcend
+    const transcend = action.metadata?.transcend ?? false
     const flightLegs: OffsetCoordinates[][] = action.teleport
         ? [pathCoords]
         : getFlightLegs(pathCoords, board, transcend)
@@ -201,6 +201,7 @@ export function getFlightPathWithGateCrossings({
     toState: HydratedSolGameState
     fromState: HydratedSolGameState
 }): FlightPathWithGateCrossings {
+    const transcend = action.metadata?.transcend ?? false
     const flightPath: Point[] = []
     const gateCrossings = new Map<number, number>()
 
@@ -247,7 +248,7 @@ export function getFlightPathWithGateCrossings({
 
         if (i < pathCoords.length - 1) {
             const nextCoords = pathCoords[i + 1]
-            if (fromState.board.hasGateBetween(coords, nextCoords)) {
+            if (!transcend && fromState.board.hasGateBetween(coords, nextCoords)) {
                 hasGate = true
                 const gateKey = fromState.board.gateKey(coords, nextCoords)
                 if (!gateCrossings.has(gateKey)) {
