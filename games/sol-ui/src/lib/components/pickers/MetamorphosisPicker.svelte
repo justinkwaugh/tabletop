@@ -8,6 +8,7 @@
     import SolPicker from './SolPicker.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
+    let picker: SolPicker
 
     let station = $derived.by(() => {
         const playerState = gameSession.myPlayerState
@@ -47,6 +48,7 @@
     })
 
     async function chooseMetamorphosisType(type: StationType) {
+        picker.toggle()
         gameSession.metamorphosisType = type
         await gameSession.metamorphosize()
     }
@@ -56,7 +58,7 @@
     }
 </script>
 
-<SolPicker {onClose} trigger="manual">
+<SolPicker bind:this={picker} {onClose} trigger="manual">
     <div class="text-center mb-2">WHICH TYPE?</div>
     <div class="flex flex-row flex-wrap justify-center items-end gap-x-2">
         {#if stationTypes.includes(StationType.EnergyNode)}

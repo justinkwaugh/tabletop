@@ -5,6 +5,7 @@
     import SolPicker from './SolPicker.svelte'
 
     let gameSession = getContext('gameSession') as SolGameSession
+    let picker: SolPicker
 
     let players = $derived.by(() => {
         if (!gameSession.hatchLocation || !gameSession.myPlayer) {
@@ -25,6 +26,7 @@
     })
 
     async function selectPlayer(playerId: string) {
+        picker.toggle()
         gameSession.hatchTarget = playerId
         await gameSession.hatch()
     }
@@ -38,7 +40,7 @@
     }
 </script>
 
-<SolPicker {onClose}>
+<SolPicker bind:this={picker} {onClose}>
     <div class="text-center mb-2">WHICH?</div>
     <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
         {#each players as playerId (playerId)}

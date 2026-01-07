@@ -7,6 +7,7 @@
 
     let gameSession = getContext('gameSession') as SolGameSession
     let amount: number = $state(0)
+    let picker: SolPicker
 
     let maxAmount = $derived(gameSession.gameState.board.numMothershipLocations - 1)
 
@@ -35,6 +36,9 @@
         if (amount === 0) {
             return
         }
+
+        picker.toggle()
+
         gameSession.accelerationAmount = amount
         gameSession.accelerate()
     }
@@ -44,7 +48,7 @@
     }
 </script>
 
-<SolPicker {onClose} offset={8}>
+<SolPicker bind:this={picker} {onClose} offset={8}>
     <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
         <button
             onclick={increaseAmount}

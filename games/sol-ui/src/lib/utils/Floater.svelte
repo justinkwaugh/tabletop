@@ -99,6 +99,12 @@
             }
         }
     }
+
+    export function toggle() {
+        if (popover) {
+            popover.togglePopover()
+        }
+    }
 </script>
 
 <div
