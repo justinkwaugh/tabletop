@@ -4,11 +4,10 @@
         HistoryControls,
         GameChat,
         DefaultTableLayout,
-        DefaultSideContent,
-        DefaultTabs
+        DefaultTabs,
+        CustomFont
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    import ActionPanel from '$lib/components/ActionPanel.svelte'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
@@ -18,7 +17,7 @@
     import Momentum from './Momentum.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
     import InformationPanel from './InformationPanel.svelte'
-    import LastActionDescription from './LastActionDescription.svelte'
+    import SolFont from '$lib/fonts/Metropolis-Bold.woff'
 
     let gameSession = getContext('gameSession') as SolGameSession
     let table: HTMLDivElement
@@ -26,6 +25,10 @@
         table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
     })
 </script>
+
+<!-- This is a hack to allow for the game to provide its own font without
+ needing to put it in the frontend's static dir -->
+<CustomFont fontFamily="metropolis" url={SolFont} format="woff" />
 
 <!-- Full Height and Width with 8px padding-->
 <div
@@ -87,11 +90,6 @@
 </div>
 
 <style global>
-    @font-face {
-        font-family: 'metropolis';
-        src: url('/Metropolis-Bold.woff') format('woff');
-    }
-
     :global(.sol-font) {
         font-family: 'metropolis', ui-sans-serif, system-ui, sans-serif;
     }
