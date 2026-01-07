@@ -17,7 +17,7 @@ export type CellLayout = {
     divers: Point[]
 }
 
-const TWO_DIVER_PLUS_STATION_ANGLE_OFFSETS_PER_RING = [0, 16, 13, 9, 8, 8]
+const TWO_DIVER_PLUS_STATION_ANGLE_OFFSETS_PER_RING = [0, 16, 13, 9, 8, 7]
 const TWO_DIVER_PLUS_STATION_RADIUS_OFFSETS_PER_RING = [0, 9, 9, 9, -10, 20]
 
 const TWO_DIVER_ANGLE_OFFSETS_PER_RING = [0, 12, 6, 4.2, 2.6, 2.5]
@@ -56,7 +56,7 @@ export function getCellLayout(
             } else if (cell.coords.row === Ring.Inner) {
                 layout = nonTowerThreeDiverInner(cell, center, board)
             } else if (cell.coords.row === Ring.Outer) {
-                layout = nonTowerThreeDiverOuter(cell, center)
+                layout = nonTowerThreeDiverOuter(cell, center, board)
             }
         } else if (numPlayersWithDivers === 4) {
             if (cell.coords.row === Ring.Core) {
@@ -68,7 +68,7 @@ export function getCellLayout(
             } else if (cell.coords.row === Ring.Inner) {
                 layout = nonTowerFourDiverInner(cell, center, board)
             } else if (cell.coords.row === Ring.Outer) {
-                layout = nonTowerFourDiverOuter(cell, center)
+                layout = nonTowerFourDiverOuter(cell, center, board)
             }
         }
     } else if (!cell.station) {
@@ -523,13 +523,23 @@ function nonTowerTwoOrLessDiverNonCore(
     board: HydratedSolGameBoard
 ): CellLayout {
     const gates = board.gatesForCell(cell.coords, Direction.In)
-    if (board.numPlayers === 5 && cell.coords.row === Ring.Inner && gates.length > 0) {
-        const station = centerOffset(center, 10, 2)
-        const diver1 = centerOffset(center, -2, -7.7)
-        const diver2 = centerOffset(center, -5, 7.7)
-        return {
-            station: { point: station, z: 1 },
-            divers: [diver1, diver2]
+    if (board.numPlayers === 5 && cell.coords.row === Ring.Inner) {
+        if (gates.length > 0) {
+            const station = centerOffset(center, 10, 2)
+            const diver1 = centerOffset(center, -2, -7.7)
+            const diver2 = centerOffset(center, -5, 7.7)
+            return {
+                station: { point: station, z: 1 },
+                divers: [diver1, diver2]
+            }
+        } else {
+            const station = centerOffset(center, -10, 0)
+            const diver1 = centerOffset(center, -2, -7.7)
+            const diver2 = centerOffset(center, -5, 7.7)
+            return {
+                station: { point: station, z: 1 },
+                divers: [diver1, diver2]
+            }
         }
     }
     const radiusOffset = gates.length > 0 && cell.coords.row < Ring.Inner ? 15 : 8
@@ -629,13 +639,24 @@ function nonTowerThreeDiverInner(
 ): CellLayout | undefined {
     const gates = board.gatesForCell(cell.coords, Direction.In)
     if (gates.length === 0) {
-        const station = centerOffset(center, 5, 0)
-        const diver1 = centerOffset(center, -10, -11)
-        const diver2 = centerOffset(center, -28, -5.5)
-        const diver3 = centerOffset(center, -15, 6)
-        return {
-            station: { point: station, z: 1 },
-            divers: [diver1, diver2, diver3]
+        if (board.numPlayers < 5) {
+            const station = centerOffset(center, 5, 0)
+            const diver1 = centerOffset(center, -10, -11)
+            const diver2 = centerOffset(center, -28, -5.5)
+            const diver3 = centerOffset(center, -15, 6)
+            return {
+                station: { point: station, z: 1 },
+                divers: [diver1, diver2, diver3]
+            }
+        } else {
+            const station = centerOffset(center, 10, 2.5)
+            const diver1 = centerOffset(center, -10, -8)
+            const diver2 = centerOffset(center, -28, -3)
+            const diver3 = centerOffset(center, -15, 8)
+            return {
+                station: { point: station, z: 1 },
+                divers: [diver1, diver2, diver3]
+            }
         }
     } else if (board.numPlayers < 5) {
         const station = centerOffset(center, 8, 3.7)
@@ -649,14 +670,29 @@ function nonTowerThreeDiverInner(
     }
 }
 
-function nonTowerThreeDiverOuter(cell: Cell, center: PolarCoordinates): CellLayout | undefined {
-    const station = centerOffset(center, 0, 0)
-    const diver1 = centerOffset(center, 10, -11)
-    const diver2 = centerOffset(center, 18, -6)
-    const diver3 = centerOffset(center, 10, 6)
-    return {
-        station: { point: station, z: 1 },
-        divers: [diver1, diver2, diver3]
+function nonTowerThreeDiverOuter(
+    cell: Cell,
+    center: PolarCoordinates,
+    board: HydratedSolGameBoard
+): CellLayout | undefined {
+    if (board.numPlayers < 5) {
+        const station = centerOffset(center, 0, 0)
+        const diver1 = centerOffset(center, 10, -11)
+        const diver2 = centerOffset(center, 18, -6)
+        const diver3 = centerOffset(center, 10, 6)
+        return {
+            station: { point: station, z: 1 },
+            divers: [diver1, diver2, diver3]
+        }
+    } else {
+        const station = centerOffset(center, -4, 2)
+        const diver1 = centerOffset(center, 10, -8)
+        const diver2 = centerOffset(center, 18, -3)
+        const diver3 = centerOffset(center, 10, 7)
+        return {
+            station: { point: station, z: 1 },
+            divers: [diver1, diver2, diver3]
+        }
     }
 }
 
@@ -717,26 +753,54 @@ function nonTowerFourDiverInner(
 ): CellLayout | undefined {
     const gates = board.gatesForCell(cell.coords, Direction.In)
     if (gates.length === 0) {
-        const station = centerOffset(center, 5, 0)
-        const diver1 = centerOffset(center, -10, -11)
-        const diver2 = centerOffset(center, -28, -5.5)
-        const diver3 = centerOffset(center, -10, 6)
-        const diver4 = centerOffset(center, -28, 11)
-        return {
-            station: { point: station, z: 1 },
-            divers: [diver1, diver2, diver3, diver4]
+        if (board.numPlayers < 5) {
+            const station = centerOffset(center, 5, 0)
+            const diver1 = centerOffset(center, -10, -11)
+            const diver2 = centerOffset(center, -28, -5.5)
+            const diver3 = centerOffset(center, -10, 6)
+            const diver4 = centerOffset(center, -28, 11)
+            return {
+                station: { point: station, z: 1 },
+                divers: [diver1, diver2, diver3, diver4]
+            }
+        } else {
+            const station = centerOffset(center, 10, 4)
+            const diver1 = centerOffset(center, -25, -8.5)
+            const diver2 = centerOffset(center, -10, -4.2)
+            const diver3 = centerOffset(center, -25, 0)
+            const diver4 = centerOffset(center, -28, 8.5)
+            return {
+                station: { point: station, z: 1 },
+                divers: [diver1, diver2, diver3, diver4]
+            }
         }
     }
 }
 
-function nonTowerFourDiverOuter(cell: Cell, center: PolarCoordinates): CellLayout | undefined {
-    const station = centerOffset(center, 0, 0)
-    const diver1 = centerOffset(center, 10, -11)
-    const diver2 = centerOffset(center, 18, -6)
-    const diver3 = centerOffset(center, 10, 6)
-    const diver4 = centerOffset(center, 18, 11)
-    return {
-        station: { point: station, z: 1 },
-        divers: [diver1, diver2, diver3, diver4]
+function nonTowerFourDiverOuter(
+    cell: Cell,
+    center: PolarCoordinates,
+    board: HydratedSolGameBoard
+): CellLayout | undefined {
+    if (board.numPlayers < 5) {
+        const station = centerOffset(center, 0, 0)
+        const diver1 = centerOffset(center, 10, -11)
+        const diver2 = centerOffset(center, 18, -6)
+        const diver3 = centerOffset(center, 10, 6)
+        const diver4 = centerOffset(center, 18, 11)
+        return {
+            station: { point: station, z: 1 },
+            divers: [diver1, diver2, diver3, diver4]
+        }
+    } else {
+        const station = centerOffset(center, 10, 0)
+        const diver1 = centerOffset(center, 10, -9)
+        const diver2 = centerOffset(center, 26, -4.7)
+        const diver3 = centerOffset(center, 0, 4.7)
+        const diver4 = centerOffset(center, 22, 9)
+        return {
+            station: { point: station, z: 1 },
+            divers: [diver1, diver2, diver3, diver4]
+        }
     }
 }
