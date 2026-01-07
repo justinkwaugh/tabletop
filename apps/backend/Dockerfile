@@ -32,6 +32,7 @@ COPY games/sol backend/node_modules/@tabletop/sol
 COPY apps/backend/.env.prod backend/.env
 COPY apps/backend/dist backend
 COPY apps/frontend/build backend/app/static
+COPY games/estates-ui/static backend/app/static
 
 RUN chown -R backend:backend .
 

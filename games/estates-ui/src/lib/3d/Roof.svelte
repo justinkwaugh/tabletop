@@ -8,7 +8,7 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
     import { T } from '@threlte/core'
     import { useGltf } from '@threlte/extras'
     // @ts-ignore
-    import RoofMesh from '$lib/3d/roof.gltf'
+    import RoofMesh from '$lib/3d/Roof.gltf?no-inline'
 
     export let onloaded: ((ref: Object3D) => void) | undefined
     export const group = new Group()
