@@ -36,7 +36,7 @@ export class SolGameColorizer extends DefaultColorizer {
             case Color.Purple:
                 return 'bg-[#804796]'
             case Color.Gray:
-                return 'bg-[#888888]'
+                return 'bg-[#aaaaaa]'
             case Color.Black:
                 return 'bg-[#444444]'
             default:

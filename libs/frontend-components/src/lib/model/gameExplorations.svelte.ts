@@ -8,8 +8,8 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { GameContext } from './gameContext.svelte.js'
-import type { AuthorizationService } from '$lib/services/authorizationService.svelte.js'
-import type { GameService } from '$lib/services/gameService.svelte.js'
+import type { AuthorizationService } from '$lib/services/authorizationService.js'
+import type { GameService } from '$lib/services/gameService.js'
 import { nanoid } from 'nanoid'
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
 

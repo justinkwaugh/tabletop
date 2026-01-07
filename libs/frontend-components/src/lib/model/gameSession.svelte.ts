@@ -21,7 +21,6 @@ import {
 import { watch } from 'runed'
 import { Value } from 'typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.js'
-import { TabletopApi } from '$lib/network/tabletopApi.svelte'
 import { toast } from 'svelte-sonner'
 import { nanoid } from 'nanoid'
 import {

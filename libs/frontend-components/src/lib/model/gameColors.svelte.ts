@@ -1,5 +1,5 @@
 import type { GameColorizer } from '$lib/definition/gameColorizer.js'
-import type { AuthorizationService } from '$lib/services/authorizationService.svelte.js'
+import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import { Color, GameState, User, type HydratedGameState } from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
 import { ColorblindColorizer } from '$lib/utils/colorblindPalette.js'
