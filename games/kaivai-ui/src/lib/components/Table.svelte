@@ -1,11 +1,11 @@
 <script lang="ts">
     import {
-        GameSessionMode,
         ScalingWrapper,
         DefaultTableLayout,
         HistoryControls,
         DefaultTabs,
-        GameChat
+        GameChat,
+        CustomFont
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import { getContext, onMount } from 'svelte'
@@ -19,6 +19,7 @@
     import LastHistoryDescription from '$lib/components/LastHistoryDescription.svelte'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import EndOfGamePanel from './EndOfGamePanel.svelte'
+    import KaivaiFont from '$lib/fonts/stacatto222bt.woff'
 
     let gameSession = getContext('gameSession') as KaivaiGameSession
 
@@ -39,6 +40,8 @@
         table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
     })
 </script>
+
+<CustomFont fontFamily="stacatto" url={KaivaiFont} format="woff" />
 
 <div bind:this={table} class="bg-[#f5e397]">
     <DefaultTableLayout>
@@ -113,11 +116,6 @@
 </div>
 
 <style global>
-    @font-face {
-        font-family: 'stacatto';
-        src: url('/stacatto222bt.woff') format('woff');
-    }
-
     :global(.kaivai-font) {
         font-family: 'stacatto', ui-sans-serif, system-ui, sans-serif;
     }
