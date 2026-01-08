@@ -559,7 +559,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         }
     }
 
-    createAction<T extends TSchema>(schema: T, data: Partial<Static<T>>): Static<T> {
+    createAction<T extends TSchema>(
+        schema: T,
+        data: Partial<Omit<Static<T>, keyof PlayerAction>> // Don't allow overwriting PlayerAction fields
+    ): Static<T> {
         // Create a new action with dummy values/defaults
         const newAction = Value.Create(schema)
 
