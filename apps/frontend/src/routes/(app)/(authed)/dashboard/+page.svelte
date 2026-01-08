@@ -1,25 +1,11 @@
 <script lang="ts">
-    import { Modal } from 'flowbite-svelte'
     import GameCard from '$lib/components/GameCard.svelte'
     import { getContext } from 'svelte'
     import type { Game } from '@tabletop/common'
-    import { type AppContext, GameEditForm } from '@tabletop/frontend-components'
+    import { type AppContext } from '@tabletop/frontend-components'
 
     let appContext = getContext('appContext') as AppContext
     let { gameService } = appContext
-
-    let gameToEdit: Game | undefined = $state(undefined)
-    let showModal = $state(false)
-
-    function editGame(game: Game) {
-        gameToEdit = game
-        showModal = true
-    }
-
-    function closeEditModal() {
-        showModal = false
-        gameToEdit = undefined
-    }
 
     const wait = () => new Promise((res) => setTimeout(res, 1000))
 </script>
@@ -68,7 +54,7 @@
                         </div>
                     {/if}
                     {#each games as game (game.id)}
-                        <GameCard {game} onedit={(game) => editGame(game)} />
+                        <GameCard {game} />
                     {/each}
                 </div>
             </div>
@@ -83,20 +69,3 @@
         {@render gameColumn(gameService.finishedGames, 'Finished Games')}
     </div>
 </div>
-{#if gameToEdit}
-    <Modal
-        bind:open={showModal}
-        size="xs"
-        autoclose={false}
-        class="w-full"
-        outsideclose
-        dismissable={false}
-        onclick={(e) => e.stopPropagation()}
-    >
-        <GameEditForm
-            game={gameToEdit}
-            oncancel={() => closeEditModal()}
-            onsave={(game) => closeEditModal()}
-        />
-    </Modal>
-{/if}

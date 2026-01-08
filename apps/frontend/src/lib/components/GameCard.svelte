@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Card, Hr, Button } from 'flowbite-svelte'
+    import { Card, Hr, Button, Modal } from 'flowbite-svelte'
     import { Game, GameStatus, PlayerStatus, GameResult, ConfigOptionType } from '@tabletop/common'
     import { getContext } from 'svelte'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
@@ -7,14 +7,13 @@
     import TimeAgo from 'javascript-time-ago'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
-    import type { AppContext } from '@tabletop/frontend-components'
+    import { GameEditForm, type AppContext } from '@tabletop/frontend-components'
     import { string } from 'zod/v4'
 
     const timeAgo = new TimeAgo('en-US')
 
     let {
         game,
-        onedit,
         ondecline,
         onstart,
         onjoin,
@@ -25,7 +24,6 @@
         ondecline?: (game: Game) => void
         onjoin?: (game: Game) => void
         onstart?: (game: Game) => void
-        onedit?: (game: Game) => void
         ondelete?: (game: Game) => void
         expanded?: boolean | 'always'
     } = $props()
@@ -34,6 +32,7 @@
         'appContext'
     ) as AppContext
 
+    let editing = $state(false)
     let canToggle = expanded !== 'always'
     let isExpanded = $state(expanded ? true : false)
 
@@ -151,7 +150,7 @@
 
     function editGame(event: Event) {
         event.stopPropagation()
-        onedit?.(game)
+        editing = true
     }
 
     async function deleteGame(event: Event) {
@@ -597,4 +596,22 @@
 >
 {#if confirmDelete}
     <DeleteModal bind:open={confirmDelete} oncancel={onDeleteCancel} onconfirm={onDeleteConfirm} />
+{/if}
+
+{#if editing}
+    <Modal
+        bind:open={editing}
+        size="xs"
+        autoclose={false}
+        class="w-full"
+        outsideclose
+        dismissable={false}
+        onclick={(e) => e.stopPropagation()}
+    >
+        <GameEditForm
+            {game}
+            oncancel={() => (editing = false)}
+            onsave={(game) => (editing = false)}
+        />
+    </Modal>
 {/if}
