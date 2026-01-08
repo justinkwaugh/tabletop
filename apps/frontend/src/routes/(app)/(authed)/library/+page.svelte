@@ -57,7 +57,7 @@
                 <div class="flex flex-col justify-center items-center">
                     {#if games.length === 0}
                         <div
-                            class="text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8 min-w-[320px]"
+                            class="text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8 min-w-[326px]"
                         >
                             <p>No games</p>
                         </div>
