@@ -54,6 +54,7 @@ export class HarnessGameService implements GameService {
             )
             .slice(0, 20)
     )
+    openGamesByTitleId: Map<string, Game[]> = new Map()
 
     constructor(
         private readonly libraryService: LibraryService,
@@ -68,6 +69,10 @@ export class HarnessGameService implements GameService {
 
     async loadGames() {
         await this.loadLocalGames()
+    }
+
+    async loadOpenGames(titleId: string) {
+        return
     }
 
     async loadLocalGames() {

@@ -31,7 +31,8 @@ export const KaivaiGameConfigOptions: GameConfigOptions = [
         options: [
             { name: '1st Edition', value: Ruleset.FirstEdition },
             { name: '2nd Edition', value: Ruleset.SecondEdition }
-        ]
+        ],
+        alwaysShow: true
     },
     {
         id: 'lessluckFishing',

@@ -63,18 +63,22 @@ export class FirestoreGameStore implements GameStore {
         const gameCacheKey = this.makeGameCacheKey(game.id)
         const checksumCacheKey = `csum-${game.id}`
         const gameRevisionCacheKey = `etag-${game.id}`
+        const openGameCacheKey = `games-public-${game.typeId}`
         const userCacheKeys = storedGame.players.map(
             (player) => `games-${GameStatusCategory.Active}-${player.userId}`
         )
 
+        const cacheKeys = [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys]
+
+        if (game.isPublic) {
+            cacheKeys.push(openGameCacheKey)
+        }
+
         try {
-            await this.cacheService.lockWhileWriting(
-                [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
-                async () =>
-                    this.games.firestore.runTransaction(
-                        async () =>
-                            await this.games.doc(game.id).create(structuredClone(storedGame))
-                    )
+            await this.cacheService.lockWhileWriting(cacheKeys, async () =>
+                this.games.firestore.runTransaction(
+                    async () => await this.games.doc(game.id).create(structuredClone(storedGame))
+                )
             )
         } catch (error) {
             this.handleError(error, game.id)
@@ -89,6 +93,7 @@ export class FirestoreGameStore implements GameStore {
 
         const gameCacheKey = this.makeGameCacheKey(gameId)
         const checksumCacheKey = `csum-${gameId}`
+        const openGameCacheKey = `games-public-${game.typeId}`
         const gameRevisionCacheKey = `etag-${gameId}`
         const category =
             game.status === GameStatus.Finished
@@ -96,9 +101,15 @@ export class FirestoreGameStore implements GameStore {
                 : GameStatusCategory.Active
         const userCacheKeys = game.players.map((player) => `games-${category}-${player.userId}`)
 
+        const cacheKeys = [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys]
+
+        if (game.isPublic) {
+            cacheKeys.push(openGameCacheKey)
+        }
+
         try {
             await this.cacheService.lockWhileWriting(
-                [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
+                cacheKeys,
                 async () => await this.games.firestore.recursiveDelete(this.games.doc(gameId))
             )
         } catch (error) {
@@ -262,22 +273,37 @@ export class FirestoreGameStore implements GameStore {
         const gameCacheKey = this.makeGameCacheKey(gameId)
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
+        const openGameCacheKey = `games-public-${game.typeId}`
 
         // Only matters if players change, even if the status goes to finished we can just lazily ignore it and
         // filter after the fact when getting the active games until the cache is updated by a new game
         const userCacheKeys =
             fields.players !== undefined
-                ? game.players.map(
-                      (player) => `games-${GameStatusCategory.Active}-${player.userId}`
-                  )
+                ? game.players
+                      .map((player) => `games-${GameStatusCategory.Active}-${player.userId}`)
+                      .filter((key) => key !== undefined)
                 : []
 
+        const cacheKeys = [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys]
+
+        if (game.isPublic) {
+            console.log('Including open game cache key for update')
+            cacheKeys.push(openGameCacheKey)
+        }
+
+        console.log('Acquiring lock for game update on keys', cacheKeys)
         try {
             const { updatedGame, updatedFields, existingGame } =
-                await this.cacheService.lockWhileWriting(
-                    [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys],
-                    async () => this.games.firestore.runTransaction(transactionBody)
+                await this.cacheService.lockWhileWriting(cacheKeys, async () =>
+                    this.games.firestore.runTransaction(transactionBody)
                 )
+
+            // This is not properly transactional with the write.. it might fail to happen :/
+            if (updatedFields.includes('players') && existingGame.players !== updatedGame.players) {
+                console.log('Clearing user cache keys for player update')
+                await this.clearUserCacheKeys(existingGame)
+            }
+
             console.log('Updated fields', updatedFields)
             return [updatedGame, updatedFields, existingGame]
         } catch (error) {
@@ -360,7 +386,9 @@ export class FirestoreGameStore implements GameStore {
 
         const games = await this.cacheService.cachingGetMulti(cacheKeys, getGames)
 
-        return games.map((game) => Value.Default(Game, Value.Convert(Game, game)) as Game)
+        return games
+            .map((game) => Value.Default(Game, Value.Convert(Game, game)) as Game)
+            .filter((g) => g !== undefined)
     }
     async hasCachedActiveGames(user: User): Promise<boolean> {
         const category = GameStatusCategory.Active
@@ -405,6 +433,41 @@ export class FirestoreGameStore implements GameStore {
             return games
         } catch (error) {
             this.handleError(error, user.id)
+            throw Error('unreachable')
+        }
+    }
+
+    async findOpenGamesForTitle(titleId: string): Promise<Game[]> {
+        const cacheKey = `games-public-${titleId}`
+        const { value, cached } = await this.cacheService.cacheGet(cacheKey)
+        if (cached) {
+            console.log('Cache hit for open games for title', titleId, value)
+            return this.findGamesById(value as string[])
+        }
+
+        const lockValue = await this.cacheService.acquireReadLock({
+            key: cacheKey,
+            value: value
+        })
+
+        let query = this.games
+            .where('typeId', '==', titleId)
+            .where('isPublic', '==', true)
+            .where('status', '==', GameStatus.WaitingForPlayers)
+
+        try {
+            const querySnapshot = await query.get()
+            const games = querySnapshot.docs.map((doc) => doc.data()) as Game[]
+            this.recordRead('game', games.length)
+
+            const ids = games.map((game) => game.id)
+            this.cacheService.cacheSet(cacheKey, ids, lockValue).catch((error) => {
+                console.error('Failed to update cache', error)
+            })
+
+            return games
+        } catch (error) {
+            this.handleError(error, titleId)
             throw Error('unreachable')
         }
     }

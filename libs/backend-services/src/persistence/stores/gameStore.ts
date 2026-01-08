@@ -33,6 +33,7 @@ export interface GameStore {
     getGameEtag(gameId: string): Promise<string | undefined>
     hasCachedActiveGames(user: User): Promise<boolean>
     findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>
+    findOpenGamesForTitle(titleId: string): Promise<Game[]>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
     findActionById(game: Game, actionId: string): Promise<GameAction | undefined>
     findActionsForGame(game: Game): Promise<GameAction[]>

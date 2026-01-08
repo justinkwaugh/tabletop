@@ -23,7 +23,8 @@ import {
     GameEngine,
     GameStorage,
     GameCategory,
-    RunMode
+    RunMode,
+    PlayerStatus
 } from '@tabletop/common'
 import { Value } from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
@@ -97,6 +98,8 @@ export class GameService implements GameServiceInterface {
             .slice(0, 20)
     )
 
+    openGamesByTitleId: Map<string, Game[]> = new SvelteMap()
+
     constructor(
         private readonly libraryService: LibraryService,
         private readonly authorizationService: AuthorizationService,
@@ -146,6 +149,12 @@ export class GameService implements GameServiceInterface {
         games.forEach((game) => {
             this.localGamesById.set(game.id, game)
         })
+    }
+
+    // Should debounce this
+    async loadOpenGames(titleId: string) {
+        const response = await this.api.getOpenGames(titleId)
+        this.openGamesByTitleId.set(titleId, response)
     }
 
     async loadGame(id: string): Promise<{ game?: Game; actions: GameAction[] }> {
@@ -202,6 +211,12 @@ export class GameService implements GameServiceInterface {
         } else {
             newGame = await this.api.createGame(game)
             this.gamesById.set(newGame.id, newGame)
+
+            if (newGame.isPublic && newGame.status === GameStatus.WaitingForPlayers) {
+                const titleGames = this.openGamesByTitleId.get(newGame.typeId) || []
+                titleGames.push(newGame)
+                this.openGamesByTitleId.set(newGame.typeId, titleGames)
+            }
         }
 
         return newGame
@@ -293,7 +308,7 @@ export class GameService implements GameServiceInterface {
 
     async updateGame(game: Partial<Game>): Promise<Game> {
         const updatedGame = await this.api.updateGame(game)
-        this.gamesById.set(updatedGame.id, updatedGame)
+        this.upsertCachedGame(updatedGame)
         return updatedGame
     }
 
@@ -327,29 +342,81 @@ export class GameService implements GameServiceInterface {
     async deleteGame(gameId: string): Promise<void> {
         if (this.localGamesById.has(gameId)) {
             await this.localGameStore.deleteGame(gameId)
-            this.localGamesById.delete(gameId)
         } else {
             await this.api.deleteGame(gameId)
-            this.gamesById.delete(gameId)
         }
+        this.removeFromPrivateCache(gameId)
+        this.removeFromPublicCache(gameId)
     }
 
     async startGame(game: Game): Promise<Game> {
         const startedGame = await this.api.startGame(game)
-        this.gamesById.set(startedGame.id, startedGame)
+        this.upsertCachedGame(startedGame)
         return startedGame
     }
 
     async joinGame(gameId: string): Promise<Game> {
         const game = await this.api.joinGame(gameId)
-        this.gamesById.set(game.id, game)
+        this.upsertCachedGame(game)
         return game
     }
 
     async declineGame(gameId: string): Promise<Game> {
         const game = await this.api.declineGame(gameId)
-        this.gamesById.set(game.id, game)
+        this.upsertCachedGame(game)
         return game
+    }
+
+    private upsertCachedGame(game: Game) {
+        const myUserId = this.authorizationService.getSessionUser()?.id
+        const mine = game.players.find(
+            (player) =>
+                player.userId === myUserId &&
+                (player.status === PlayerStatus.Joined || player.status === PlayerStatus.Reserved)
+        )
+
+        if (!game.isPublic) {
+            if (!mine) {
+                this.removeFromPrivateCache(game.id)
+            } else if (game.storage === GameStorage.Local) {
+                this.localGamesById.set(game.id, game)
+            } else {
+                this.gamesById.set(game.id, game)
+            }
+        } else {
+            if (!game.players.some((p) => p.status === PlayerStatus.Open)) {
+                this.removeFromPublicCache(game.id)
+            } else {
+                const titleGames = (this.openGamesByTitleId.get(game.typeId) || []).filter(
+                    (g) => g.id !== game.id
+                )
+
+                titleGames.push(game)
+                this.openGamesByTitleId.set(game.typeId, titleGames)
+            }
+
+            if (!mine && game.ownerId !== myUserId) {
+                this.removeFromPrivateCache(game.id)
+            }
+        }
+    }
+
+    private removeFromPrivateCache(gameId: string) {
+        this.gamesById.delete(gameId)
+        this.localGamesById.delete(gameId)
+    }
+
+    private removeFromPublicCache(gameId: string) {
+        for (const [titleId, games] of this.openGamesByTitleId) {
+            const hasGame = games.find((game) => game.id === gameId)
+            if (!hasGame) {
+                continue
+            }
+            this.openGamesByTitleId.set(
+                titleId,
+                games.filter((game) => game.id !== gameId)
+            )
+        }
     }
 
     async setGameState(game: Game, state: GameState): Promise<void> {
@@ -378,15 +445,16 @@ export class GameService implements GameServiceInterface {
             if (!this.isGameNotification(notification)) {
                 return
             }
-
+            console.log('game notification received', notification)
             const game = Value.Convert(Game, notification.data.game) as Game
             if (
                 notification.action === GameNotificationAction.Create ||
                 notification.action === GameNotificationAction.Update
             ) {
-                this.gamesById.set(game.id, game)
+                this.upsertCachedGame(game)
             } else if (notification.action === GameNotificationAction.Delete) {
-                this.gamesById.delete(game.id)
+                this.removeFromPrivateCache(game.id)
+                this.removeFromPublicCache(game.id)
             }
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
             await this.loadGames()

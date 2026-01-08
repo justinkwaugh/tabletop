@@ -212,8 +212,8 @@
             name: (formData.get('name') as string).trim(),
             players: playersToUpload,
             isPublic,
-            hotseat: isHotseat,
-            storage: isHotseat ? GameStorage.Local : GameStorage.Remote,
+            hotseat: !isPublic && isHotseat,
+            storage: !isPublic && isHotseat ? GameStorage.Local : GameStorage.Remote,
             ownerId: editedGame.ownerId,
             config: mergedConfig
         }
@@ -347,7 +347,7 @@
         </h1>
     </div>
     <div>
-        {#if !hotseatOnly}
+        {#if !hotseatOnly && !isPublic}
             <Toggle bind:checked={isHotseat} classes={{ span: 'me-0' }}
                 >{#snippet offLabel()}Hotseat{/snippet}</Toggle
             >
@@ -483,7 +483,9 @@
                 {/if}
             {/each}
         </div>
-        <!-- <Toggle bind:checked={isPublic}>Public</Toggle> -->
+        {#if !title?.metadata.beta && mode === EditMode.Create}
+            <Toggle bind:checked={isPublic}>Public</Toggle>
+        {/if}
         {#if selectedTitle.configOptions.length > 0}
             <div
                 class="p-4 border-2 border-gray-700 rounded-lg flex flex-col space-y-4 justify-center items-start"

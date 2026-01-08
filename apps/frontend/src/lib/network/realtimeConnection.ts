@@ -27,6 +27,8 @@ export class ChannelIdentifier {
                 return 'game'
             case NotificationChannel.User:
                 return 'user'
+            case NotificationChannel.Global:
+                return 'global'
         }
     }
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Card, Hr, Button } from 'flowbite-svelte'
-    import { Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
+    import { Game, GameStatus, PlayerStatus, GameResult, ConfigOptionType } from '@tabletop/common'
     import { getContext } from 'svelte'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { goto } from '$app/navigation'
@@ -8,6 +8,7 @@
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
     import type { AppContext } from '@tabletop/frontend-components'
+    import { string } from 'zod/v4'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -47,14 +48,39 @@
     let myPlayer = $derived(sortedPlayers.find((player) => player.userId === sessionUser?.id))
     let isMine = $derived(myPlayer !== undefined)
 
-    let canJoin = $derived(isMine && myPlayer?.status === PlayerStatus.Reserved)
+    let canJoin = $derived.by(() => {
+        if (isOwnedByMe) {
+            return false
+        }
+
+        if (isMine && myPlayer?.status === PlayerStatus.Reserved) {
+            return true
+        }
+
+        return (
+            game.isPublic &&
+            !isMine &&
+            game.status === GameStatus.WaitingForPlayers &&
+            openSeats > 0
+        )
+    })
+
     let canDecline = $derived(
         (game.status === GameStatus.WaitingForPlayers ||
             game.status === GameStatus.WaitingToStart) &&
             !isOwnedByMe &&
             isMine &&
-            myPlayer?.status !== PlayerStatus.Declined
+            myPlayer?.status === PlayerStatus.Reserved
     )
+
+    let canLeave = $derived(
+        (game.status === GameStatus.WaitingForPlayers ||
+            game.status === GameStatus.WaitingToStart) &&
+            !isOwnedByMe &&
+            isMine &&
+            myPlayer?.status === PlayerStatus.Joined
+    )
+
     let canEdit = $derived(
         isOwnedByMe &&
             !game.parentId &&
@@ -66,7 +92,7 @@
     let canPlay = $derived(isMine && game.status === GameStatus.Started)
     let canWatch = $derived(!isMine && game.status === GameStatus.Started)
     let canRevisit = $derived(game.status === GameStatus.Finished)
-    let canDelete = $derived(isOwnedByMe)
+    let canDelete = $derived(isOwnedByMe || authorizationService.isAdmin)
 
     let confirmDelete = $state(false)
 
@@ -194,11 +220,44 @@
             return `See below`
         }
     }
+
+    let displayableConfigs: Record<string, string> = $derived.by(() => {
+        const title = libraryService.getTitle(game.typeId)
+        if (!title || !game.config) {
+            return {}
+        }
+        if (title.configOptions.length === 0 || Object.keys(game.config).length === 0) {
+            return {}
+        }
+        const configs: Record<string, string> = {}
+        if (game.config) {
+            for (const [key, value] of Object.entries(game.config)) {
+                const option = title.configOptions.find((opt) => opt.id === key)
+                if (!option) {
+                    continue
+                }
+                if (value === option.default && !option.alwaysShow) {
+                    continue
+                }
+
+                let displayValue = value
+                if (option.type === ConfigOptionType.Boolean) {
+                    displayValue = value ? 'Yes' : 'No'
+                } else if (option.type === ConfigOptionType.List) {
+                    const matchedOption = option.options.find((opt) => opt.value === value)
+                    displayValue = matchedOption ? matchedOption.name : value
+                }
+
+                configs[option.name] = String(displayValue)
+            }
+        }
+        return configs
+    })
 </script>
 
 <Card
     onclick={toggleExpand}
-    class="mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none"
+    class="min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none"
     size="sm"
 >
     <div class="flex flex-col">
@@ -364,6 +423,18 @@
                 </div>
             </div>
         </div>
+        {#if Object.keys(displayableConfigs).length > 0}
+            <div class="p-2 flex flex-col text-xs text-gray-400">
+                <Hr class="mt-1 mb-1" />
+                {#each Object.entries(displayableConfigs) as [key, value]}
+                    <div class="flex flex-row justify-between">
+                        <div>{key}</div>
+                        <div>{value}</div>
+                    </div>
+                {/each}
+                <Hr class="mt-1 mb-1" />
+            </div>
+        {/if}
         {#if isExpanded}
             <div
                 class="pt-4 ps-4 pe-4 text-gray-400"
@@ -412,12 +483,17 @@
                         </div>
                     {/if}
 
-                    {#if canJoin || canStart || canEdit || canDecline || canPlay || canWatch || canRevisit || canDelete}
+                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canRevisit || canDelete}
                         <Hr class="mt-1 mb-1" />
                         <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
                             {#if canDecline}
                                 <Button size="xs" color="red" class="mx-2" onclick={declineGame}
                                     >Decline</Button
+                                >
+                            {/if}
+                            {#if canLeave}
+                                <Button size="xs" color="red" class="mx-2" onclick={declineGame}
+                                    >Leave</Button
                                 >
                             {/if}
                             {#if canJoin}

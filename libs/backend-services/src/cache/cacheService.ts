@@ -70,6 +70,7 @@ export class RedisCacheService {
 
         // Cache hit
         if (cached) {
+            console.log('cache hit', key)
             return value as T
         }
 
@@ -80,6 +81,7 @@ export class RedisCacheService {
         const newValue = await produceValue()
 
         // Update cache
+        console.log('update cache for miss', key)
         this.cacheSet(key, newValue, lockValue).catch((error) => {
             console.log('unable to update cache', key, error)
         })
@@ -102,7 +104,10 @@ export class RedisCacheService {
         const cacheResults = new Map<string, CacheResult>()
         cachedData.forEach((result, index) => {
             if (result.cached) {
+                console.log('cache multi hit', keys[index])
                 found.set(keys[index], result.value as T)
+            } else {
+                console.log('cache multi miss', keys[index])
             }
             cacheResults.set(keys[index], result)
         })
@@ -129,6 +134,7 @@ export class RedisCacheService {
             })
 
             // Cache the results
+            console.log('update cache for multi miss', missingKeys)
             this.cacheSetMulti(cacheRequests).catch((error) => {
                 console.log('error setting cached results', error)
             })

@@ -143,13 +143,16 @@ export class GameService {
         }
 
         // Send notifications
-        await this.notifyGamePlayers(GameNotificationAction.Create, { game: createdGame })
+        if (createdGame.isPublic) {
+            await this.notifyGlobal(GameNotificationAction.Create, { game: createdGame })
+        } else {
+            await this.notifyGamePlayers(GameNotificationAction.Create, { game: createdGame })
+        }
 
         return createdGame
     }
 
     async deleteGame(user: User, gameId: string): Promise<void> {
-        console.log('gameid in deleteGame', gameId)
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
@@ -160,7 +163,11 @@ export class GameService {
         }
 
         await this.gameStore.deleteGame(game)
-        await this.notifyGamePlayers(GameNotificationAction.Delete, { game })
+        if (game.isPublic) {
+            await this.notifyGlobal(GameNotificationAction.Delete, { game })
+        } else {
+            await this.notifyGamePlayers(GameNotificationAction.Delete, { game })
+        }
     }
 
     async forkGame({
@@ -318,6 +325,10 @@ export class GameService {
                 game.status === GameStatus.WaitingForPlayers
         )
         return filteredGames
+    }
+
+    async getOpenGamesForTitle(titleId: string): Promise<Game[]> {
+        return await this.gameStore.findOpenGamesForTitle(titleId)
     }
 
     async getCompletedGamesForUser(user: User): Promise<Game[]> {
@@ -537,7 +548,11 @@ export class GameService {
             }
         }
 
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
+        if (updatedGame.isPublic) {
+            await this.notifyGlobal(GameNotificationAction.Update, { game: updatedGame })
+        } else {
+            await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
+        }
 
         return updatedGame
     }
@@ -548,8 +563,30 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
 
-        const player = this.findValidPlayerForUser({ user, game })
-        player.status = PlayerStatus.Joined
+        let player: Player
+        if (!game.isPublic) {
+            player = this.findValidPlayerForUser({ user, game })
+            player.status = PlayerStatus.Joined
+        } else {
+            // For public games, we have to add the player
+            const existingPlayer = game.players.find((p) => p.userId === user.id)
+            if (existingPlayer) {
+                if (existingPlayer.status === PlayerStatus.Joined) {
+                    return game
+                }
+                existingPlayer.status = PlayerStatus.Joined
+                player = existingPlayer
+            } else {
+                const openSlot = game.players.find((p) => p.status === PlayerStatus.Open)
+                if (!openSlot) {
+                    throw new GameNotWaitingForPlayersError({ id: game.id })
+                }
+                openSlot.userId = user.id
+                openSlot.name = user.username ?? 'Player'
+                openSlot.status = PlayerStatus.Joined
+                player = openSlot
+            }
+        }
 
         const [updatedGame] = await this.gameStore.updateGame({
             game,
@@ -559,16 +596,26 @@ export class GameService {
                     throw new GameNotWaitingForPlayersError({ id: existingGame.id })
                 }
 
-                const player = this.findValidPlayerForUser({ user, game: existingGame })
-                if (player.status === PlayerStatus.Joined) {
+                let existingPlayer: Player | undefined
+                if (!existingGame.isPublic) {
+                    existingPlayer = this.findValidPlayerForUser({ user, game: existingGame })
+                } else {
+                    existingPlayer = existingGame.players.find((p) => p.userId === user.id)
+                }
+
+                if (existingPlayer && existingPlayer.status === PlayerStatus.Joined) {
                     throw new UserAlreadyJoinedError({ user, gameId: game.id })
                 }
                 return UpdateValidationResult.Proceed
             }
         })
 
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
-        await this.notifyJoined(user, game, player)
+        if (game.isPublic) {
+            await this.notifyGlobal(GameNotificationAction.Update, { game: updatedGame })
+        } else {
+            await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
+        }
+        await this.notifyJoined(user, updatedGame, player)
         return updatedGame
     }
 
@@ -578,8 +625,16 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
 
+        console.log(JSON.stringify(game.players, null, 2))
         const player = this.findValidPlayerForUser({ user, game })
-        player.status = PlayerStatus.Declined
+        if (game.isPublic) {
+            // For public games, we can just mark the player slot as open again
+            player.userId = undefined
+            player.name = ''
+            player.status = PlayerStatus.Open
+        } else {
+            player.status = PlayerStatus.Declined
+        }
 
         const [updatedGame] = await this.gameStore.updateGame({
             game,
@@ -600,7 +655,11 @@ export class GameService {
             }
         })
 
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
+        if (game.isPublic) {
+            await this.notifyGlobal(GameNotificationAction.Update, { game: updatedGame })
+        } else {
+            await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
+        }
         await this.notifyDeclined(user, game, player)
         return updatedGame
     }
@@ -1163,6 +1222,23 @@ export class GameService {
         await this.notificationService.sendNotification({
             notification,
             topics: [...userTopics],
+            channels: [NotificationDistributionMethod.Topical]
+        })
+    }
+
+    private async notifyGlobal(
+        action: GameNotificationAction,
+        data: GameNotificationData
+    ): Promise<void> {
+        const notification = <GameNotification>{
+            id: nanoid(),
+            type: NotificationCategory.Game,
+            action: action,
+            data
+        }
+        await this.notificationService.sendNotification({
+            notification,
+            topics: ['global'],
             channels: [NotificationDistributionMethod.Topical]
         })
     }

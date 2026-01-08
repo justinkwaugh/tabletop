@@ -61,6 +61,11 @@ export class NotificationService {
                             .catch((e) => {
                                 console.error('Failed to add user channel', e)
                             })
+                        this.realtimeConnection
+                            .addChannel(new ChannelIdentifier(NotificationChannel.Global))
+                            .catch((e) => {
+                                console.error('Failed to add global channel', e)
+                            })
                         this.subscribePushNotifications().catch((e) => {
                             console.error('Failed to subscribe to push notifications', e)
                         })
@@ -74,7 +79,12 @@ export class NotificationService {
                             )
                         )
                         .catch((e) => {
-                            console.error('Failed to add user channel', e)
+                            console.error('Failed to remove user channel', e)
+                        })
+                    this.realtimeConnection
+                        .removeChannel(new ChannelIdentifier(NotificationChannel.Global))
+                        .catch((e) => {
+                            console.error('Failed to remove global channel', e)
                         })
                     this.currentSessionUserId = undefined
                     this.unsubscribePushNotifications().catch((e) => {

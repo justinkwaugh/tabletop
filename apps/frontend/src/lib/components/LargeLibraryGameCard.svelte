@@ -24,7 +24,7 @@
         await closeCreateModal()
         if (game.storage === GameStorage.Local) {
             goto(`/game/${game.id}`)
-        } else {
+        } else if (!game.isPublic) {
             goto('/dashboard')
         }
     }
@@ -53,10 +53,12 @@
 {/if}
 
 <Card
-    class="overflow-hidden flex-row p-0 pe-0 sm:p-0 sm:pe-2 mb-4 sm:min-w-[620px] max-w-[100vw] sm:max-w-[776px] w-[calc(100vw-30px)]"
+    class="overflow-hidden flex-row p-0 pe-0 sm:p-0 sm:pe-2 mb-4 w-full max-w-[776px] min-w-[90vw] sm:min-w-[620px]"
 >
-    <div class="flex gap-x-4 text-gray-200 max-sm:flex-wrap max-sm:min-w-[90vw] w-full">
-        <div class="max-sm:w-full shrink-0 max-sm:max-w-[100vw]">
+    <div
+        class="flex gap-x-4 text-gray-200 max-sm:flex-wrap max-sm:min-w-[90vw] w-full text-start sm:min-w-[620px]"
+    >
+        <div class="max-sm:w-full shrink-0 max-sm:max-w-[90vw]">
             <img
                 src={title.thumbnailUrl}
                 alt={title.metadata.name}
@@ -68,7 +70,7 @@
             <div class="flex flex-col items-start w-full">
                 <div class="flex flex-row justify-between items-start w-full">
                     <div class="flex flex-col items-start">
-                        <div class="text-3xl text-pretty leading-none mt-2 max-w-[300px]">
+                        <div class="text-3xl text-pretty leading-none mt-2 me-2 max-w-[300px]">
                             {title.metadata.name}
                         </div>
                         <div class="text-md text-gray-400">{title.metadata.year}</div>
@@ -78,7 +80,7 @@
 
                 <div class="flex flex-col items-start">
                     <div class="text-xs text-gray-500 mt-4">DESCRIPTION</div>
-                    {#each splitLines(title.metadata.description) as line}
+                    {#each splitLines(title.metadata.description) as line, index (index)}
                         <div class="text-sm leading-[1.15] text-pretty">
                             {line}
                         </div>
@@ -89,7 +91,7 @@
             <div class="flex flex-row justify-between items-end w-full">
                 <div class="flex flex-col items-start mb-2">
                     <div class="text-xs text-gray-500 mt-4">DESIGNED BY</div>
-                    <div class="text-md leading-[1.15] text-pretty">
+                    <div class="text-sm leading-[1.15] text-pretty">
                         {title.metadata.designer}
                     </div>
                 </div>

@@ -6,10 +6,12 @@ export type GameService = {
     activeGames: Game[]
     waitingGames: Game[]
     finishedGames: Game[]
+    openGamesByTitleId: Map<string, Game[]>
     currentGameSession?: GameSession<GameState, HydratedGameState>
 
     hasActiveGames(): Promise<boolean>
     loadGames(): Promise<void>
+    loadOpenGames(titleId: string): Promise<void>
     loadGame(gameId: string): Promise<{ game?: Game; actions: GameAction[] }>
 
     createGame(game: Partial<Game>): Promise<Game>

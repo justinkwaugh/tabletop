@@ -12,7 +12,8 @@ export const BaseConfigOption = Type.Object({
     id: Type.String(),
     type: Type.Enum(ConfigOptionType),
     name: Type.String(),
-    description: Type.String()
+    description: Type.String(),
+    alwaysShow: Type.Optional(Type.Boolean())
 })
 
 export type BooleanConfigOption = Static<typeof BooleanConfigOption>

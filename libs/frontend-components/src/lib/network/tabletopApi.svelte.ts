@@ -252,6 +252,16 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
+    async getOpenGames(titleId: string): Promise<Game[]> {
+        const response = await this.wretch
+            .get(`/games/open/${titleId}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GamesResponse>()
+
+        return response.payload.games.map((game) => this.validateGame(game))
+    }
+
     async getGame(gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
         const response = await this.wretch
             .get(`/game/get/${gameId}`)

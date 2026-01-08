@@ -2,7 +2,8 @@ import { Notification } from '@tabletop/common'
 
 export enum NotificationChannel {
     GameInstance = 'gameInstance',
-    User = 'user'
+    User = 'user',
+    Global = 'global'
 }
 
 export enum NotificationEventType {
