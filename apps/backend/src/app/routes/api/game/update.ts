@@ -7,7 +7,7 @@ const GameUpdateRequest = Type.Object({
     game: Type.Evaluate(
         Type.Intersect([
             Type.Pick(Game, ['id']),
-            Type.Partial(Type.Pick(Game, ['name', 'players', 'isPublic']), {
+            Type.Partial(Type.Pick(Game, ['name', 'players', 'isPublic', 'config']), {
                 additionalProperties: false
             })
         ])
@@ -27,12 +27,13 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const {
-                game: { id, name, isPublic, players }
+                game: { id, name, isPublic, players, config }
             } = request.body
             const updates = {
                 name,
                 isPublic,
-                players
+                players,
+                config
             }
 
             const updatedGame = await fastify.gameService.updateGame({

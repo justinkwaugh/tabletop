@@ -64,9 +64,9 @@ export class FirestoreGameStore implements GameStore {
         const checksumCacheKey = `csum-${game.id}`
         const gameRevisionCacheKey = `etag-${game.id}`
         const openGameCacheKey = `games-public-${game.typeId}`
-        const userCacheKeys = storedGame.players.map(
-            (player) => `games-${GameStatusCategory.Active}-${player.userId}`
-        )
+        const userCacheKeys = storedGame.players
+            .filter((player) => player.userId !== undefined)
+            .map((player) => `games-${GameStatusCategory.Active}-${player.userId}`)
 
         const cacheKeys = [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys]
 
@@ -99,7 +99,9 @@ export class FirestoreGameStore implements GameStore {
             game.status === GameStatus.Finished
                 ? GameStatusCategory.Completed
                 : GameStatusCategory.Active
-        const userCacheKeys = game.players.map((player) => `games-${category}-${player.userId}`)
+        const userCacheKeys = game.players
+            .filter((player) => player.userId !== undefined)
+            .map((player) => `games-${category}-${player.userId}`)
 
         const cacheKeys = [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys]
 
@@ -137,9 +139,9 @@ export class FirestoreGameStore implements GameStore {
         const gameCacheKey = this.makeGameCacheKey(gameId)
         const checksumCacheKey = `csum-${gameId}`
         const gameRevisionCacheKey = `etag-${gameId}`
-        const userCacheKeys = storedGame.players.map(
-            (player) => `games-${GameStatusCategory.Active}-${player.userId}`
-        )
+        const userCacheKeys = storedGame.players
+            .filter((player) => player.userId !== undefined)
+            .map((player) => `games-${GameStatusCategory.Active}-${player.userId}`)
 
         const stateCollection = this.getStateCollection(gameId)
         const stateToUpdate = state
@@ -280,18 +282,16 @@ export class FirestoreGameStore implements GameStore {
         const userCacheKeys =
             fields.players !== undefined
                 ? game.players
+                      .filter((player) => player.userId !== undefined)
                       .map((player) => `games-${GameStatusCategory.Active}-${player.userId}`)
-                      .filter((key) => key !== undefined)
                 : []
 
         const cacheKeys = [gameCacheKey, checksumCacheKey, gameRevisionCacheKey, ...userCacheKeys]
 
         if (game.isPublic) {
-            console.log('Including open game cache key for update')
             cacheKeys.push(openGameCacheKey)
         }
 
-        console.log('Acquiring lock for game update on keys', cacheKeys)
         try {
             const { updatedGame, updatedFields, existingGame } =
                 await this.cacheService.lockWhileWriting(cacheKeys, async () =>
@@ -300,11 +300,9 @@ export class FirestoreGameStore implements GameStore {
 
             // This is not properly transactional with the write.. it might fail to happen :/
             if (updatedFields.includes('players') && existingGame.players !== updatedGame.players) {
-                console.log('Clearing user cache keys for player update')
                 await this.clearUserCacheKeys(existingGame)
             }
 
-            console.log('Updated fields', updatedFields)
             return [updatedGame, updatedFields, existingGame]
         } catch (error) {
             console.log(error)
@@ -441,7 +439,6 @@ export class FirestoreGameStore implements GameStore {
         const cacheKey = `games-public-${titleId}`
         const { value, cached } = await this.cacheService.cacheGet(cacheKey)
         if (cached) {
-            console.log('Cache hit for open games for title', titleId, value)
             return this.findGamesById(value as string[])
         }
 
@@ -635,12 +632,14 @@ export class FirestoreGameStore implements GameStore {
         const userCacheKeys = []
 
         userCacheKeys.push(
-            ...game.players.map(
-                (player) => `games-${GameStatusCategory.Completed}-${player.userId}`
-            )
+            ...game.players
+                .filter((player) => player.userId !== undefined)
+                .map((player) => `games-${GameStatusCategory.Completed}-${player.userId}`)
         )
         userCacheKeys.push(
-            ...game.players.map((player) => `games-${GameStatusCategory.Active}-${player.userId}`)
+            ...game.players
+                .filter((player) => player.userId !== undefined)
+                .map((player) => `games-${GameStatusCategory.Active}-${player.userId}`)
         )
 
         if (userCacheKeys) {
