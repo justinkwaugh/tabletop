@@ -25,7 +25,7 @@
         "discord.js": "^14.15.3",
         "glob-to-regexp": "^0.4.1",
         "nanoid": "^5.1.6",
-        "redis": "^4.6.15",
+        "redis": "^5.10.0",
         "typescript-retry-decorator": "^2.4.2",
         "web-push": "^3.6.7"
     },

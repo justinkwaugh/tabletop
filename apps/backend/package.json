@@ -41,7 +41,6 @@
         "firebase-admin": "^12.1.1",
         "google-auth-library": "^9.11.0",
         "nanoid": "^5.1.6",
-        "node-redis": "^0.1.7",
         "resend": "^3.4.0",
         "typescript-retry-decorator": "^2.4.2"
     },

@@ -1,4 +1,4 @@
-import { RedisClientType } from 'redis'
+import { RedisClientPoolType, RedisClientType, WatchError } from 'redis'
 import { nanoid } from 'nanoid'
 import { RedisService } from '../redis/redisService.js'
 
@@ -32,9 +32,11 @@ export type ValueWriter<T> = () => Promise<T>
 // indefinite locking of keys the lock values written expire after a reasonable amount of time.
 export class RedisCacheService {
     private client: RedisClientType
+    private pool: RedisClientPoolType
 
     constructor(redisService: RedisService) {
         this.client = redisService.client
+        this.pool = this.client.createPool()
     }
 
     // simple getting from the cache without any locking
@@ -244,7 +246,7 @@ export class RedisCacheService {
             return []
         }
         try {
-            return await this.client.executeIsolated(async (isolatedClient) => {
+            return await this.pool.execute(async (isolatedClient) => {
                 const lockValues = []
                 // Watch the keys to ensure they don't change
                 await isolatedClient.watch(keys)
@@ -267,7 +269,12 @@ export class RedisCacheService {
                 return lockValues
             })
         } catch (error) {
-            console.log('unable to acquire read lock for keys', keys, error)
+            if (error instanceof WatchError) {
+                console.log('Watched keys changed before read lock could be acquired', keys)
+            } else {
+                console.log('Error acquiring read lock for keys', keys, error)
+                throw error
+            }
         }
         return new Array(keys.length).fill(undefined)
     }
@@ -284,7 +291,7 @@ export class RedisCacheService {
         const lockValues = new Array(keys.length).fill(WRITE_LOCK_PREFIX)
 
         try {
-            return await this.client.executeIsolated(async (isolatedClient) => {
+            return await this.pool.execute(async (isolatedClient) => {
                 // Watch the key to ensure it doesn't change
                 await isolatedClient.watch(keys)
                 const currentValues = await isolatedClient.mGet(keys)
@@ -314,7 +321,12 @@ export class RedisCacheService {
                 return lockId
             })
         } catch (error) {
-            console.log('unable to acquire write lock for keys', keys, error)
+            if (error instanceof WatchError) {
+                console.log('Watched keys changed before write lock could be acquired', keys)
+            } else {
+                console.log('Error acquiring write lock for keys', keys, error)
+                throw error
+            }
         }
         return undefined
     }
@@ -325,7 +337,7 @@ export class RedisCacheService {
         }
 
         try {
-            await this.client.executeIsolated(async (isolatedClient) => {
+            await this.pool.execute(async (isolatedClient) => {
                 await isolatedClient.watch(keys)
                 const currentValues = await isolatedClient.mGet(keys)
 
@@ -359,7 +371,12 @@ export class RedisCacheService {
                 await transaction.exec()
             })
         } catch (error) {
-            console.log('unable to unlock write lock for keys', keys, error)
+            if (error instanceof WatchError) {
+                console.log('Watched keys changed before write lock could be unlocked', keys)
+            } else {
+                console.log('Error unlocking lock for keys', keys, error)
+                throw error
+            }
         }
     }
 
@@ -371,7 +388,7 @@ export class RedisCacheService {
         }
 
         try {
-            await this.client.executeIsolated(async (isolatedClient) => {
+            await this.pool.execute(async (isolatedClient) => {
                 const keys = setRequests.map((request) => request.key)
                 await isolatedClient.watch(keys)
 
@@ -388,7 +405,12 @@ export class RedisCacheService {
                 await pipeline.exec()
             })
         } catch (error) {
-            console.log('unable to set value for', setRequests, error)
+            if (error instanceof WatchError) {
+                console.log('Watched keys changed before set could be completed')
+            } else {
+                console.log('Error setting locked values', error)
+                throw error
+            }
         }
     }
 

@@ -24,16 +24,12 @@ export class RedisService {
             socket: {
                 host: redisHost,
                 port: redisPort
-            },
-            isolationPoolOptions: {
-                min: 1,
-                max: 2
             }
         })
     }
 
     private async initialize(): Promise<void> {
-        console.log(`Initializing RedisPubSubService`)
+        console.log(`Initializing RedisService`)
         const tempFix = this.client as any
         tempFix.on('error', (err: unknown) => console.log('Redis client error:', err))
         tempFix.on('connect', () => console.log('Redis client connected'))
