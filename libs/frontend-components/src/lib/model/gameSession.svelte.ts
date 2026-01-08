@@ -42,7 +42,6 @@ import { GameColors } from './gameColors.svelte.js'
 import { GameExplorations } from './gameExplorations.svelte.js'
 import { AnimationContext } from '$lib/utils/animations.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
-import type { Validator } from 'typebox/compile'
 import type { Static, TSchema } from 'typebox'
 
 export enum GameSessionMode {
