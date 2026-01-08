@@ -25,7 +25,30 @@ import {
     isFly,
     isHurl,
     PassContext,
-    isPass
+    isPass,
+    Tribute,
+    DrawCards,
+    ChooseCard,
+    ActivateEffect,
+    Launch,
+    Hurl,
+    Fly,
+    ChooseMove,
+    ChooseConvert,
+    ChooseActivate,
+    Convert,
+    Activate,
+    ActivateBonus,
+    Pass,
+    Invade,
+    Sacrifice,
+    Hatch,
+    Blight,
+    Accelerate,
+    Fuel,
+    Metamorphosize,
+    Chain,
+    Deconstruct
 } from '@tabletop/sol'
 import {
     assert,
@@ -458,20 +481,11 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async launch() {
-        assert(
-            this.myPlayer &&
-                this.chosenMothership &&
-                this.chosenNumDivers &&
-                this.chosenDestination,
-            'Invalid launch'
-        )
-
-        const action = {
-            ...this.createBaseAction(ActionType.Launch),
+        const action = this.createAction(Launch, {
             mothership: this.chosenMothership,
             numSundivers: this.chosenNumDivers,
             destination: this.chosenDestination
-        }
+        })
 
         await this.doAction(action)
     }
@@ -568,9 +582,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             !this.gameState.getEffectTracking().passageSundiverId &&
             diverIds.length === 1
 
-        const action = {
-            ...this.createBaseAction(hurl ? ActionType.Hurl : ActionType.Fly),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(hurl ? Hurl : Fly, {
             sundiverIds: diverIds,
             start: this.chosenSource,
             destination: this.chosenDestination,
@@ -580,7 +592,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             stationId: this.juggernautStationId,
             catapult: this.catapultChoice ?? false,
             passage
-        }
+        })
+
         // console.log((hurl ? 'Hurling' : 'Flying') + ' with action', action)
         await this.doAction(action)
     }
@@ -613,35 +626,23 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async chooseMove() {
-        assertExists(this.myPlayer, 'Invalid choose move')
         assert(!this.isMoving, 'Invalid choose move')
 
-        const action = {
-            ...this.createBaseAction(ActionType.ChooseMove),
-            playerId: this.myPlayer.id
-        }
+        const action = this.createAction(ChooseMove, {})
         await this.doAction(action)
     }
 
     async chooseConvert() {
-        assertExists(this.myPlayer, 'Invalid choose convert')
         assert(!this.isConverting, 'Invalid choose convert')
 
-        const action = {
-            ...this.createBaseAction(ActionType.ChooseConvert),
-            playerId: this.myPlayer.id
-        }
+        const action = this.createAction(ChooseConvert, {})
         await this.doAction(action)
     }
 
     async chooseActivate() {
-        assertExists(this.myPlayer, 'Invalid choose activate')
         assert(!this.isActivating, 'Invalid choose activate')
 
-        const action = {
-            ...this.createBaseAction(ActionType.ChooseActivate),
-            playerId: this.myPlayer.id
-        }
+        const action = this.createAction(ChooseActivate, {})
         await this.doAction(action)
     }
 
@@ -700,14 +701,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         sundiverIds.push(secondSundiver.id)
 
-        const action = {
-            ...this.createBaseAction(ActionType.Convert),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Convert, {
             isGate: true,
             sundiverIds,
             coords: this.chosenSource,
             innerCoords: this.chosenDestination
-        }
+        })
 
         await this.doAction(action)
     }
@@ -740,14 +739,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         const sundiverIds = [firstSundiver.id, secondSundiver.id]
 
-        const action = {
-            ...this.createBaseAction(ActionType.Convert),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Convert, {
             isGate: false,
             stationType: StationType.EnergyNode,
             sundiverIds,
             coords: this.chosenSource
-        }
+        })
 
         await this.doAction(action)
     }
@@ -768,7 +765,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             .at(-1)
         assert(cwNeighbor, 'No CW neighbor')
 
-        const sundiverIds = []
+        const sundiverIds: string[] = []
         const firstSundiver = this.gameState.board
             .sundiversForPlayerAt(this.myPlayer.id, this.chosenSource)
             .at(-1)
@@ -800,22 +797,20 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 return
             }
 
-            assert(secondSundiver || alternateSecondSundiver, 'No sundivers to convert energy node')
+            const nextDiver = secondSundiver ?? alternateSecondSundiver
+            assertExists(nextDiver, 'No second sundiver found')
 
-            sundiverIds.push(secondSundiver?.id ?? alternateSecondSundiver?.id)
+            sundiverIds.push(nextDiver.id)
         }
 
         assert(sundiverIds.length === 2, 'not enough sundivers to convert')
 
-        const action = {
-            ...this.createBaseAction(ActionType.Convert),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Convert, {
             isGate: false,
             stationType: StationType.SundiverFoundry,
             sundiverIds,
             coords: this.chosenSource
-        }
-
+        })
         await this.doAction(action)
     }
 
@@ -911,15 +906,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         assertExists(thirdSundiver, 'No third sundiver to convert gate')
         sundiverIds.push(thirdSundiver.id)
 
-        const action = {
-            ...this.createBaseAction(ActionType.Convert),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Convert, {
             isGate: false,
             stationType: StationType.TransmitTower,
             sundiverIds,
             coords: this.chosenSource,
             innerCoords: this.chosenDestination
-        }
+        })
 
         await this.doAction(action)
     }
@@ -936,13 +929,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             assert(playerDivers.length >= 1, 'Not enough divers to activate station')
         }
 
-        const action = {
-            ...this.createBaseAction(ActionType.Activate),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Activate, {
             stationId: station.id,
-            coords: cell.coords,
-            start: this.chosenSource
-        }
+            coords: cell.coords
+        })
 
         if (this.isSolarFlares) {
             action.simultaneousGroupId = this.gameState.solarFlareActivationsGroupId
@@ -952,24 +942,15 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async activateBonus() {
-        assert(this.myPlayer && this.isActivating, 'Invalid activate bonus')
-
-        const action = {
-            ...this.createBaseAction(ActionType.ActivateBonus),
-            playerId: this.myPlayer.id
-        }
-
+        assert(this.isActivating, 'Invalid activate bonus')
+        const action = this.createAction(ActivateBonus, {})
         await this.doAction(action)
     }
 
     async pass(context?: PassContext) {
-        assertExists(this.myPlayer, 'Invalid pass')
-
-        const action = {
-            ...this.createBaseAction(ActionType.Pass),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Pass, {
             context
-        }
+        })
 
         if (this.isSolarFlares) {
             action.simultaneousGroupId = this.gameState.solarFlareActivationsGroupId
@@ -979,85 +960,63 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async drawCards() {
-        assert(this.myPlayer && this.isDrawingCards, 'Invalid draw card')
+        assert(this.isDrawingCards, 'Invalid draw card')
 
         if (this.gameState.activeEffect === EffectType.Pillar && !this.pillarGuess) {
             throw new Error('Missing pillar guess')
         }
 
-        const action = {
-            ...this.createBaseAction(ActionType.DrawCards),
-            suitGuess: this.pillarGuess,
-            playerId: this.myPlayer.id,
-            revealsInfo: true
-        }
+        const action = this.createAction(DrawCards, {
+            suitGuess: this.pillarGuess
+        })
 
         await this.doAction(action)
     }
 
     async chooseCard(suit: Suit) {
-        assert(this.myPlayer && this.isChoosingCard, 'Invalid choose card')
+        assert(this.isChoosingCard, 'Invalid choose card')
 
-        const action = {
-            ...this.createBaseAction(ActionType.ChooseCard),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(ChooseCard, {
             suit
-        }
+        })
 
         await this.doAction(action)
     }
 
     async activateEffect(effectType: EffectType) {
-        assertExists(this.myPlayer, 'Invalid activate effect')
-
-        const action = {
-            ...this.createBaseAction(ActionType.ActivateEffect),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(ActivateEffect, {
             effect: effectType
-        }
+        })
 
         await this.doAction(action)
     }
 
     async invade() {
-        assert(this.myPlayer && this.chosenDestination, 'Invalid invade')
-
-        const action = {
-            ...this.createBaseAction(ActionType.Invade),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Invade, {
             coords: this.chosenDestination
-        }
+        })
 
         await this.doAction(action)
     }
 
     async sacrifice() {
-        assert(this.myPlayer && this.chosenDestination, 'Invalid sacrifice')
-
-        const action = {
-            ...this.createBaseAction(ActionType.Sacrifice),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Sacrifice, {
             coords: this.chosenDestination
-        }
-
+        })
         await this.doAction(action)
     }
 
     async hatch() {
-        assert(this.myPlayer && this.hatchLocation && this.hatchTarget, 'Invalid hatch')
-
-        const action = {
-            ...this.createBaseAction(ActionType.Hatch),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Hatch, {
             coords: this.hatchLocation,
             targetPlayerId: this.hatchTarget
-        }
+        })
 
         await this.doAction(action)
     }
 
     async blight() {
-        assert(this.myPlayer && this.chosenSource, 'Invalid blight')
+        assert(this.chosenSource, 'Invalid blight')
 
         // Need to figure out mothership
         let targetPlayerId: string | undefined = undefined
@@ -1076,124 +1035,70 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         assertExists(targetPlayerId, 'Could not find target player for blight')
 
-        const action = {
-            ...this.createBaseAction(ActionType.Blight),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Blight, {
             targetPlayerId: targetPlayerId,
             coords: this.chosenSource
-        }
+        })
 
         await this.doAction(action)
     }
 
     async accelerate() {
-        assert(this.myPlayer && this.accelerationAmount, 'Invalid accelerate')
-
-        const action = {
-            ...this.createBaseAction(ActionType.Accelerate),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Accelerate, {
             amount: this.accelerationAmount
-        }
-
+        })
         await this.doAction(action)
     }
 
     async fuel() {
-        assertExists(this.myPlayer, 'Invalid fuel')
-
-        const action = {
-            ...this.createBaseAction(ActionType.Fuel),
-            playerId: this.myPlayer.id
-        }
-
+        const action = this.createAction(Fuel, {})
         await this.doAction(action)
     }
 
     async tribute() {
-        assert(this.myPlayer && this.chosenSource, 'Invalid tribute')
-
-        const action = {
-            ...this.createBaseAction(ActionType.Tribute),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Tribute, {
             coords: this.chosenSource
-        }
-
+        })
         await this.doAction(action)
     }
 
     async metamorphosize() {
-        assert(this.myPlayer && this.metamorphosisType, 'Invalid metamorphosize')
+        assertExists(this.myPlayer, 'Invalid metamorphosize')
 
         const station = this.gameState.getActivatingStation(this.myPlayer.id)
         assertExists(station, 'No station to metamorphosize')
 
-        const action = {
-            ...this.createBaseAction(ActionType.Metamorphosize),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Metamorphosize, {
             stationId: station.id,
             stationType: this.metamorphosisType
-        }
+        })
 
         await this.doAction(action)
     }
 
     async doChain() {
-        assert(this.myPlayer && this.chain && this.chainStart, 'Invalid chain')
+        assert(this.chain && this.chainStart, 'Invalid chain')
         const chainToSend = this.chainStart === 'beginning' ? this.chain : this.chain.toReversed()
 
-        const action = {
-            ...this.createBaseAction(ActionType.Chain),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Chain, {
             chain: chainToSend
-        }
-
+        })
         await this.doAction(action)
     }
 
     async deconstruct() {
-        assert(this.myPlayer && this.chosenSource, 'Invalid deconstruct')
-        const action = {
-            ...this.createBaseAction(ActionType.Deconstruct),
-            playerId: this.myPlayer.id,
+        const action = this.createAction(Deconstruct, {
             coords: this.chosenSource
-        }
-
+        })
         await this.doAction(action)
     }
 
     async doAction(action: GameAction) {
-        if (!this.isPlayable || this.busy) {
-            return
-        }
-
         try {
             await this.applyAction(action)
         } catch (e) {
             console.error('Error for action', e, action)
         }
-    }
-
-    async setEffects() {
-        const desiredEffects = [
-            EffectType.Portal,
-            EffectType.Transcend,
-            EffectType.Metamorphosis,
-            EffectType.Procreate,
-            EffectType.Sacrifice,
-            EffectType.Hatch
-        ]
-
-        let i = 0
-        for (const key of Object.keys(this.gameState.effects)) {
-            this.gameState.effects[key].type = desiredEffects[i]
-            i++
-        }
-
-        await this.gameService.saveGameLocally({
-            game: this.game,
-            actions: this.actions,
-            state: this.gameState.dehydrate()
-        })
     }
 
     async updateEffectForSuit(suit: Suit, effectType: EffectType) {

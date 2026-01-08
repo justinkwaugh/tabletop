@@ -16,7 +16,8 @@ import {
     type HydratedGameState,
     PlayerAction,
     GameStorage,
-    RunMode
+    RunMode,
+    assertExists
 } from '@tabletop/common'
 import { watch } from 'runed'
 import { Value } from 'typebox/value'
@@ -41,6 +42,8 @@ import { GameColors } from './gameColors.svelte.js'
 import { GameExplorations } from './gameExplorations.svelte.js'
 import { AnimationContext } from '$lib/utils/animations.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
+import type { Validator } from 'typebox/compile'
+import type { Static, TSchema } from 'typebox'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -542,15 +545,40 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.notificationService.stopListeningToGame(this.gameContext.game.id)
     }
 
+    // deprecated in favor of createAction
     createBaseAction(type: string): PlayerAction {
-        if (!this.myPlayer) {
-            throw new Error('Player not found')
-        }
+        assertExists(this.myPlayer, 'Player not found')
 
         return {
             id: nanoid(),
             gameId: this.gameContext.game.id,
             type,
+            playerId: this.myPlayer.id,
+            source: ActionSource.User,
+            createdAt: new Date()
+        }
+    }
+
+    createAction<T extends TSchema>(schema: T, data: Partial<Static<T>>): Static<T> {
+        // Create a new action with dummy values/defaults
+        const newAction = Value.Create(schema)
+
+        // Merge in the provided data and base action fields
+        const playerActionData = this.createPartialPlayerAction()
+        Object.assign(newAction, playerActionData, data)
+
+        // Validate the action
+        Value.Assert(schema, newAction)
+
+        return newAction
+    }
+
+    private createPartialPlayerAction(): Partial<PlayerAction> {
+        assertExists(this.myPlayer, 'Player not found')
+
+        return {
+            id: nanoid(),
+            gameId: this.gameContext.game.id,
             playerId: this.myPlayer.id,
             source: ActionSource.User,
             createdAt: new Date()
