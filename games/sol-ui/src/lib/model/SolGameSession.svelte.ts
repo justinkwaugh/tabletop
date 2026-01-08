@@ -28,6 +28,8 @@ import {
     isPass
 } from '@tabletop/sol'
 import {
+    assert,
+    assertExists,
     coordinatesToNumber,
     GameAction,
     OffsetCoordinates,
@@ -456,14 +458,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async launch() {
-        if (
-            !this.myPlayer ||
-            !this.chosenMothership ||
-            !this.chosenNumDivers ||
-            !this.chosenDestination
-        ) {
-            throw new Error('Invalid launch')
-        }
+        assert(
+            this.myPlayer &&
+                this.chosenMothership &&
+                this.chosenNumDivers &&
+                this.chosenDestination,
+            'Invalid launch'
+        )
 
         const action = {
             ...this.createBaseAction(ActionType.Launch),
@@ -493,9 +494,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         const chosenGates = (this.chosenGates ?? []).map((key) => {
             const gate = this.gameState.board.gates[key]
-            if (!gate) {
-                throw new Error('Invalid gate for flight')
-            }
+            assertExists(gate, 'Invalid gate for flight')
             return gate
         })
 
@@ -614,9 +613,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async chooseMove() {
-        if (!this.myPlayer || this.isMoving) {
-            throw new Error('Invalid choose move')
-        }
+        assertExists(this.myPlayer, 'Invalid choose move')
+        assert(!this.isMoving, 'Invalid choose move')
 
         const action = {
             ...this.createBaseAction(ActionType.ChooseMove),
@@ -626,9 +624,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async chooseConvert() {
-        if (!this.myPlayer || this.isConverting) {
-            throw new Error('Invalid choose convert')
-        }
+        assertExists(this.myPlayer, 'Invalid choose convert')
+        assert(!this.isConverting, 'Invalid choose convert')
+
         const action = {
             ...this.createBaseAction(ActionType.ChooseConvert),
             playerId: this.myPlayer.id
@@ -637,9 +635,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async chooseActivate() {
-        if (!this.myPlayer || this.isActivating) {
-            throw new Error('Invalid choose activate')
-        }
+        assertExists(this.myPlayer, 'Invalid choose activate')
+        assert(!this.isActivating, 'Invalid choose activate')
+
         const action = {
             ...this.createBaseAction(ActionType.ChooseActivate),
             playerId: this.myPlayer.id
@@ -648,24 +646,22 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async convertGate() {
-        if (
-            !this.myPlayer ||
-            !this.myPlayerState ||
-            !this.chosenConvertType ||
-            !this.chosenSource ||
-            !this.chosenDestination
-        ) {
-            throw new Error('Invalid gate conversion')
-        }
+        assert(
+            this.myPlayer &&
+                this.myPlayerState &&
+                this.chosenConvertType === ConvertType.SolarGate &&
+                this.chosenSource &&
+                this.chosenDestination,
+            'Invalid gate conversion'
+        )
 
         const sundiverIds = []
         const firstSundiver = this.gameState.board
             .sundiversForPlayerAt(this.myPlayer.id, this.chosenSource)
             .at(-1)
 
-        if (!firstSundiver) {
-            throw new Error('No first sundiver to convert gate')
-        }
+        assertExists(firstSundiver, 'No sundiver at source cell')
+
         sundiverIds.push(firstSundiver.id)
 
         let secondSundiver
@@ -700,9 +696,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 .at(-1)
         }
 
-        if (!secondSundiver) {
-            throw new Error('No second sundiver to convert gate')
-        }
+        assertExists(secondSundiver, 'No sundiver at destination cell')
+
         sundiverIds.push(secondSundiver.id)
 
         const action = {
@@ -718,36 +713,31 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async convertEnergyNode() {
-        if (
-            !this.myPlayer ||
-            !this.myPlayerState ||
-            !this.chosenConvertType ||
-            !this.chosenSource
-        ) {
-            throw new Error('Invalid conversion')
-        }
+        assert(
+            this.myPlayer && this.myPlayerState && this.chosenConvertType && this.chosenSource,
+            'Invalid energy node conversion'
+        )
 
         const ccwNeighbor = this.gameState.board
             .neighborsAt(this.chosenSource, Direction.CounterClockwise)
             .at(-1)
+        assert(ccwNeighbor, 'No CCW neighbor')
+
         const cwNeighbor = this.gameState.board
             .neighborsAt(this.chosenSource, Direction.Clockwise)
             .at(-1)
-
-        if (!ccwNeighbor || !cwNeighbor) {
-            throw new Error('No neighbors')
-        }
+        assert(cwNeighbor, 'No CW neighbor')
 
         const firstSundiver = this.gameState.board
             .sundiversForPlayer(this.myPlayer.id, ccwNeighbor)
             .at(-1)
+        assert(firstSundiver, 'No first sundiver to convert energy node')
+
         const secondSundiver = this.gameState.board
             .sundiversForPlayer(this.myPlayer.id, cwNeighbor)
             .at(-1)
+        assert(secondSundiver, 'No second sundiver to convert energy node')
 
-        if (!firstSundiver || !secondSundiver) {
-            throw new Error('No sundivers to convert energy node')
-        }
         const sundiverIds = [firstSundiver.id, secondSundiver.id]
 
         const action = {
@@ -763,34 +753,27 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async convertSundiverFoundry() {
-        if (
-            !this.myPlayer ||
-            !this.myPlayerState ||
-            !this.chosenConvertType ||
-            !this.chosenSource
-        ) {
-            throw new Error('Invalid conversion')
-        }
+        assert(
+            this.myPlayer && this.myPlayerState && this.chosenConvertType && this.chosenSource,
+            'Invalid foundry conversion'
+        )
 
         const ccwNeighbor = this.gameState.board
             .neighborsAt(this.chosenSource, Direction.CounterClockwise)
             .at(-1)
+        assert(ccwNeighbor, 'No CCW neighbor')
+
         const cwNeighbor = this.gameState.board
             .neighborsAt(this.chosenSource, Direction.Clockwise)
             .at(-1)
-
-        if (!ccwNeighbor || !cwNeighbor) {
-            throw new Error('No neighbors')
-        }
+        assert(cwNeighbor, 'No CW neighbor')
 
         const sundiverIds = []
         const firstSundiver = this.gameState.board
             .sundiversForPlayerAt(this.myPlayer.id, this.chosenSource)
             .at(-1)
 
-        if (!firstSundiver) {
-            throw new Error('No sundiver at local cell')
-        }
+        assertExists(firstSundiver, 'No sundiver at local cell')
 
         sundiverIds.push(firstSundiver.id)
 
@@ -798,9 +781,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             const secondSundiver = this.gameState.board
                 .sundiversForPlayerAt(this.myPlayer.id, this.chosenDiverCell)
                 .at(-1)
-            if (!secondSundiver) {
-                throw new Error('No second sundiver found')
-            }
+            assertExists(secondSundiver, 'No second sundiver found')
             sundiverIds.push(secondSundiver.id)
         } else {
             const secondSundiver = this.gameState.board
@@ -819,16 +800,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 return
             }
 
-            if (!secondSundiver && !alternateSecondSundiver) {
-                throw new Error('No sundivers to convert energy node')
-            }
+            assert(secondSundiver || alternateSecondSundiver, 'No sundivers to convert energy node')
 
             sundiverIds.push(secondSundiver?.id ?? alternateSecondSundiver?.id)
         }
 
-        if (sundiverIds.length !== 2) {
-            throw new Error('not enough sundivers to convert')
-        }
+        assert(sundiverIds.length === 2, 'not enough sundivers to convert')
 
         const action = {
             ...this.createBaseAction(ActionType.Convert),
@@ -843,23 +820,18 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async convertTransmitTower() {
-        if (
-            !this.myPlayer ||
-            !this.myPlayerState ||
-            !this.chosenConvertType ||
-            !this.chosenSource
-        ) {
-            throw new Error('Invalid tower conversion')
-        }
+        assert(
+            this.myPlayer && this.myPlayerState && this.chosenConvertType && this.chosenSource,
+            'Invalid tower conversion'
+        )
 
         const sundiverIds = []
         const firstSundiver = this.gameState.board
             .sundiversForPlayerAt(this.myPlayer.id, this.chosenSource)
             .at(-1)
 
-        if (!firstSundiver) {
-            throw new Error('No first sundiver to convert gate')
-        }
+        assertExists(firstSundiver, 'No first sundiver to convert gate')
+
         sundiverIds.push(firstSundiver.id)
 
         let secondSundiver
@@ -899,16 +871,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 .at(-1)
         }
 
-        if (!secondSundiver) {
-            throw new Error('No second sundiver to convert gate')
-        }
+        assertExists(secondSundiver, 'No second sundiver to convert gate')
         sundiverIds.push(secondSundiver.id)
 
         let thirdSundiver
         if (!this.chosenSecondDiverCell) {
-            if (!this.chosenDiverCell) {
-                throw new Error('No chosen diver cell for second sundiver')
-            }
+            assertExists(this.chosenDiverCell, 'No chosen diver cell for second sundiver')
+
             const sundiversByCoords: Map<
                 number,
                 { coords: OffsetCoordinates; divers: Sundiver[] }
@@ -939,9 +908,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 .at(-1)
         }
 
-        if (!thirdSundiver) {
-            throw new Error('No third sundiver to convert gate')
-        }
+        assertExists(thirdSundiver, 'No third sundiver to convert gate')
         sundiverIds.push(thirdSundiver.id)
 
         const action = {
@@ -958,21 +925,15 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async activateStation() {
-        if (!this.myPlayer || !this.chosenSource) {
-            throw new Error('Invalid activation')
-        }
+        assert(this.myPlayer && this.chosenSource, 'Invalid activate station')
+
         const cell = this.gameState.board.cellAt(this.chosenSource)
         const station = cell.station
-
-        if (!station) {
-            throw new Error('No station to activate')
-        }
+        assertExists(station, 'No station at chosen source')
 
         if (!this.isSolarFlares && this.gameState.activeEffect !== EffectType.Pulse) {
             const playerDivers = this.gameState.board.sundiversForPlayer(this.myPlayer.id, cell)
-            if (playerDivers.length < 1) {
-                throw new Error('Not enough divers')
-            }
+            assert(playerDivers.length >= 1, 'Not enough divers to activate station')
         }
 
         const action = {
@@ -991,9 +952,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async activateBonus() {
-        if (!this.myPlayer || !this.isActivating) {
-            throw new Error('Invalid activate bonus')
-        }
+        assert(this.myPlayer && this.isActivating, 'Invalid activate bonus')
+
         const action = {
             ...this.createBaseAction(ActionType.ActivateBonus),
             playerId: this.myPlayer.id
@@ -1003,9 +963,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async pass(context?: PassContext) {
-        if (!this.myPlayer) {
-            throw new Error('Invalid pass')
-        }
+        assertExists(this.myPlayer, 'Invalid pass')
+
         const action = {
             ...this.createBaseAction(ActionType.Pass),
             playerId: this.myPlayer.id,
@@ -1020,9 +979,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async drawCards() {
-        if (!this.myPlayer || !this.isDrawingCards) {
-            throw new Error('Invalid draw card')
-        }
+        assert(this.myPlayer && this.isDrawingCards, 'Invalid draw card')
 
         if (this.gameState.activeEffect === EffectType.Pillar && !this.pillarGuess) {
             throw new Error('Missing pillar guess')
@@ -1039,9 +996,8 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async chooseCard(suit: Suit) {
-        if (!this.myPlayer || !this.isChoosingCard) {
-            throw new Error('Invalid choose card')
-        }
+        assert(this.myPlayer && this.isChoosingCard, 'Invalid choose card')
+
         const action = {
             ...this.createBaseAction(ActionType.ChooseCard),
             playerId: this.myPlayer.id,
@@ -1052,9 +1008,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async activateEffect(effectType: EffectType) {
-        if (!this.myPlayer) {
-            throw new Error('Invalid activate effect')
-        }
+        assertExists(this.myPlayer, 'Invalid activate effect')
 
         const action = {
             ...this.createBaseAction(ActionType.ActivateEffect),
@@ -1066,9 +1020,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async invade() {
-        if (!this.myPlayer || !this.chosenDestination) {
-            throw new Error('Invalid invade')
-        }
+        assert(this.myPlayer && this.chosenDestination, 'Invalid invade')
 
         const action = {
             ...this.createBaseAction(ActionType.Invade),
@@ -1080,9 +1032,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async sacrifice() {
-        if (!this.myPlayer || !this.chosenDestination) {
-            throw new Error('Invalid invade')
-        }
+        assert(this.myPlayer && this.chosenDestination, 'Invalid sacrifice')
 
         const action = {
             ...this.createBaseAction(ActionType.Sacrifice),
@@ -1094,9 +1044,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async hatch() {
-        if (!this.myPlayer || !this.hatchLocation || !this.hatchTarget) {
-            throw new Error('Invalid hatch')
-        }
+        assert(this.myPlayer && this.hatchLocation && this.hatchTarget, 'Invalid hatch')
 
         const action = {
             ...this.createBaseAction(ActionType.Hatch),
@@ -1109,9 +1057,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async blight() {
-        if (!this.myPlayer || !this.chosenSource) {
-            throw new Error('Invalid blight')
-        }
+        assert(this.myPlayer && this.chosenSource, 'Invalid blight')
 
         // Need to figure out mothership
         let targetPlayerId: string | undefined = undefined
@@ -1128,9 +1074,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             }
         }
 
-        if (!targetPlayerId) {
-            throw new Error('Could not find target player for blight')
-        }
+        assertExists(targetPlayerId, 'Could not find target player for blight')
 
         const action = {
             ...this.createBaseAction(ActionType.Blight),
@@ -1143,9 +1087,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async accelerate() {
-        if (!this.myPlayer || !this.accelerationAmount) {
-            throw new Error('Invalid accelerate')
-        }
+        assert(this.myPlayer && this.accelerationAmount, 'Invalid accelerate')
 
         const action = {
             ...this.createBaseAction(ActionType.Accelerate),
@@ -1157,9 +1099,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async fuel() {
-        if (!this.myPlayer) {
-            throw new Error('Invalid fuel')
-        }
+        assertExists(this.myPlayer, 'Invalid fuel')
 
         const action = {
             ...this.createBaseAction(ActionType.Fuel),
@@ -1170,9 +1110,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async tribute() {
-        if (!this.myPlayer || !this.chosenSource) {
-            throw new Error('Invalid tribute')
-        }
+        assert(this.myPlayer && this.chosenSource, 'Invalid tribute')
 
         const action = {
             ...this.createBaseAction(ActionType.Tribute),
@@ -1184,14 +1122,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async metamorphosize() {
-        if (!this.myPlayer || !this.metamorphosisType) {
-            throw new Error('Invalid tribute')
-        }
+        assert(this.myPlayer && this.metamorphosisType, 'Invalid metamorphosize')
 
         const station = this.gameState.getActivatingStation(this.myPlayer.id)
-        if (!station) {
-            throw new Error('No station to metamorphosize')
-        }
+        assertExists(station, 'No station to metamorphosize')
 
         const action = {
             ...this.createBaseAction(ActionType.Metamorphosize),
@@ -1204,10 +1138,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async doChain() {
-        if (!this.myPlayer || !this.chain || !this.chainStart) {
-            throw new Error('Invalid chain')
-        }
-
+        assert(this.myPlayer && this.chain && this.chainStart, 'Invalid chain')
         const chainToSend = this.chainStart === 'beginning' ? this.chain : this.chain.toReversed()
 
         const action = {
@@ -1220,10 +1151,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async deconstruct() {
-        if (!this.myPlayer || !this.chosenSource) {
-            throw new Error('Invalid deconstruct')
-        }
-
+        assert(this.myPlayer && this.chosenSource, 'Invalid deconstruct')
         const action = {
             ...this.createBaseAction(ActionType.Deconstruct),
             playerId: this.myPlayer.id,

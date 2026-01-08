@@ -65,9 +65,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         if (
             HydratedConvert.canConvert(gameState, playerId) ||
             (gameState.playerHasCardForEffect(playerId, EffectType.Invade) &&
-                HydratedInvade.canInvade(gameState, playerId)) ||
-            (gameState.playerHasCardForEffect(playerId, EffectType.Sacrifice) &&
-                HydratedSacrifice.canSacrifice(gameState))
+                HydratedInvade.canInvade(gameState, playerId))
         ) {
             validActions.push(ActionType.ChooseConvert)
         }
