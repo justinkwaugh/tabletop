@@ -29,7 +29,6 @@ export abstract class BaseGameInitializer implements GameInitializer {
         }
 
         const newGame: Game = <Game>{
-            systemVersion: 2,
             id: game.id,
             isPublic: game.isPublic || false,
             status: GameStatus.WaitingForPlayers,

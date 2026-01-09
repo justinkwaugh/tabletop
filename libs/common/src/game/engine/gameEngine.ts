@@ -31,6 +31,7 @@ export class GameEngine {
     generateUninitializedState(game: Game): UninitializedGameState {
         const seed = game.seed ?? generateSeed()
         return {
+            systemVersion: 2,
             id: nanoid(),
             gameId: game.id,
             seed,
