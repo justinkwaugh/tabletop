@@ -5,7 +5,6 @@ import {
     Company,
     Piece,
     StartAuction,
-    ActionType,
     PlaceBid,
     AuctionRecipient,
     ChooseRecipient,
@@ -15,7 +14,13 @@ import {
     Roof,
     Barrier,
     isPlaceBid,
-    isDrawRoof
+    isDrawRoof,
+    DrawRoof,
+    PlaceRoof,
+    PlaceBarrier,
+    RemoveBarrier,
+    DiscardPiece,
+    Embezzle
 } from '@tabletop/estates'
 import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
 
@@ -72,82 +77,47 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
     }
 
     async drawRoof(index: number) {
-        const action = {
-            ...this.createBaseAction(ActionType.DrawRoof),
-            visibleIndex: index,
-            revealsInfo: true
-        }
-
+        const action = this.createAction(DrawRoof, { visibleIndex: index })
         await this.doAction(action)
     }
 
     async startAuction(piece: Piece) {
-        const action = {
-            ...(this.createBaseAction(ActionType.StartAuction) as StartAuction),
-            piece
-        }
+        const action = this.createAction(StartAuction, { piece })
         await this.doAction(action)
     }
 
     async placeBid(amount: number) {
-        const action = {
-            ...(this.createBaseAction(ActionType.PlaceBid) as PlaceBid),
-            amount
-        }
+        const action = this.createAction(PlaceBid, { amount })
         await this.doAction(action)
     }
 
     async chooseRecipient(recipient: AuctionRecipient) {
-        const action = {
-            ...(this.createBaseAction(ActionType.ChooseRecipient) as ChooseRecipient),
-            recipient
-        }
-
+        const action = this.createAction(ChooseRecipient, { recipient })
         await this.doAction(action)
     }
 
     async placeCube(cube: Cube, coords: OffsetCoordinates) {
-        const action: PlaceCube = {
-            ...(this.createBaseAction(ActionType.PlaceCube) as PlaceCube),
-            cube,
-            coords
-        }
+        const action = this.createAction(PlaceCube, { cube, coords })
         await this.doAction(action)
     }
 
     async placeRoof(roof: Roof, coords: OffsetCoordinates) {
-        const action = {
-            ...this.createBaseAction(ActionType.PlaceRoof),
-            roof,
-            coords
-        }
+        const action = this.createAction(PlaceRoof, { roof, coords })
         await this.doAction(action)
     }
 
     async placeBarrier(barrier: Barrier, coords: OffsetCoordinates) {
-        const action = {
-            ...this.createBaseAction(ActionType.PlaceBarrier),
-            barrier,
-            coords
-        }
+        const action = this.createAction(PlaceBarrier, { barrier, coords })
         await this.doAction(action)
     }
 
     async removeBarrier(barrier: Barrier, coords: OffsetCoordinates) {
-        const action = {
-            ...this.createBaseAction(ActionType.RemoveBarrier),
-            barrier,
-            coords
-        }
+        const action = this.createAction(RemoveBarrier, { barrier, coords })
         await this.doAction(action)
     }
 
     async placeMayor(row: number) {
-        const action: PlaceMayor = {
-            ...(this.createBaseAction(ActionType.PlaceMayor) as PlaceMayor),
-            row
-        }
-
+        const action = this.createAction(PlaceMayor, { row })
         await this.doAction(action)
     }
 
@@ -156,11 +126,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             return
         }
 
-        const action = {
-            ...this.createBaseAction(ActionType.DiscardPiece),
-            piece: this.gameState.chosenPiece
-        }
-
+        const action = this.createAction(DiscardPiece, { piece: this.gameState.chosenPiece })
         await this.doAction(action)
     }
 
@@ -169,18 +135,11 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             return
         }
 
-        const action = {
-            ...this.createBaseAction(ActionType.Embezzle)
-        }
-
+        const action = this.createAction(Embezzle, {})
         await this.doAction(action)
     }
 
     async doAction(action: GameAction) {
-        if (!this.isPlayable) {
-            return
-        }
-
         try {
             await this.applyAction(action)
         } catch (e) {

@@ -544,20 +544,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.notificationService.stopListeningToGame(this.gameContext.game.id)
     }
 
-    // deprecated in favor of createAction
-    createBaseAction(type: string): PlayerAction {
-        assertExists(this.myPlayer, 'Player not found')
-
-        return {
-            id: nanoid(),
-            gameId: this.gameContext.game.id,
-            type,
-            playerId: this.myPlayer.id,
-            source: ActionSource.User,
-            createdAt: new Date()
-        }
-    }
-
     createAction<T extends TSchema>(schema: T, data: Partial<Static<T>>): Static<T> {
         // Create a new action with dummy values/defaults
         const newAction = Value.Create(schema)
