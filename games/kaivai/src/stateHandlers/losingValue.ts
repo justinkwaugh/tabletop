@@ -38,14 +38,7 @@ export class LosingValueStateHandler implements MachineStateHandler<HydratedLose
                 gameState.rounds.endRound(gameState.actionCount)
 
                 if (gameState.cultTiles === 0) {
-                    const scoreHutsAction: ScoreHuts = {
-                        type: ActionType.ScoreHuts,
-                        id: nanoid(),
-                        gameId: action.gameId,
-                        source: ActionSource.System
-                    }
-
-                    context.addPendingAction(scoreHutsAction)
+                    context.addSystemAction(ScoreHuts)
                     return MachineState.FinalScoring
                 } else {
                     return MachineState.Bidding

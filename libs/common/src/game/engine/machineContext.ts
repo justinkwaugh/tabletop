@@ -9,16 +9,6 @@ export class MachineContext {
     readonly gameState: HydratedGameState
     private pendingActions: GameAction[]
 
-    /**
-     * @deprecated only for prior action id generation
-     */
-    private addedActionCount = 0
-
-    /**
-     * @deprecated only for prior action id generation
-     */
-    private initialActionId: string
-
     constructor({
         action,
         gameConfig,
@@ -42,21 +32,23 @@ export class MachineContext {
         return this.pendingActions
     }
 
-    addSystemAction<T extends TSchema>(schema: T, data: Partial<Static<T>>) {
+    addSystemAction<T extends TSchema>(schema: T, data?: Partial<Static<T>>) {
         const action = this.createSystemAction(schema, data)
         this.pendingActions.push(action)
     }
 
-    createSystemAction<T extends TSchema>(schema: T, data: Partial<Static<T>>): Static<T> {
-        const copy = { ...data }
+    createSystemAction<T extends TSchema>(schema: T, data?: Partial<Static<T>>): Static<T> {
+        const actionData = data ?? {}
         const partialAction = this.generatePartialSystemAction()
-        Object.assign(copy, partialAction)
-        return createAction(schema, copy)
+        Object.assign(actionData, partialAction)
+        return createAction(schema, actionData)
     }
 
     private generatePartialSystemAction(): Partial<GameAction> {
         return {
-            id: this.gameState.getPrng().randId(), // Deterministic id
+            id: this.gameState.isAtLeastVersion(2)
+                ? this.gameState.getPrng().randId()
+                : this.generateLegacyActionId(), // Deterministic id
             gameId: this.gameState.gameId,
             source: ActionSource.System,
             createdAt: new Date()
@@ -64,21 +56,19 @@ export class MachineContext {
     }
 
     /**
-     * @deprecated use addSystemAction instead for convenience, type safety and better id generation
+     * @deprecated only for prior action id generation
      */
-    addPendingAction(action: GameAction) {
-        // We use a generated id based on the initial action to ensure that the id is both unique and deterministic
-        // so that the client can generate the same set of ids as the server
-        action.id = this.generateNextActionId()
-        action.source = ActionSource.System
+    private addedActionCount = 0
 
-        this.pendingActions.push(action)
-    }
+    /**
+     * @deprecated only for prior action id generation
+     */
+    private initialActionId: string
 
     /**
      * @deprecated better to use prng directly for id generation
      */
-    private generateNextActionId(): string {
+    private generateLegacyActionId(): string {
         this.addedActionCount++
         return `${this.initialActionId}-${this.addedActionCount}`
     }

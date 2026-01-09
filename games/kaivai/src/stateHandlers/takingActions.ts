@@ -192,15 +192,7 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
 
             const validActions = this.validActionsForPlayer(nextPlayerId, context)
             if (validActions.length === 1 && validActions[0] === ActionType.Pass) {
-                const passAction: Pass = {
-                    type: ActionType.Pass,
-                    id: nanoid(),
-                    playerId: nextPlayerId,
-                    gameId: context.gameState.gameId,
-                    source: ActionSource.System
-                }
-
-                context.addPendingAction(passAction)
+                context.addSystemAction(Pass, { playerId: nextPlayerId })
             }
         }
     }
@@ -271,14 +263,7 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
                     gameState.phases.endPhase(gameState.actionCount)
                     gameState.passedPlayers = []
 
-                    const loseValueAction: LoseValue = {
-                        type: ActionType.LoseValue,
-                        id: nanoid(),
-                        gameId: action.gameId,
-                        source: ActionSource.System
-                    }
-
-                    context.addPendingAction(loseValueAction)
+                    context.addSystemAction(LoseValue)
                     return MachineState.LosingValue
                 } else {
                     return MachineState.TakingActions

@@ -83,21 +83,13 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
             case isActivateEffect(action): {
                 if (gameState.activeEffect === EffectType.Motivate) {
                     const station = gameState.effectTracking?.convertedStation
-                    assertExists(
-                        station,
-                        'No converted station found for Motivate effect'
-                    )
+                    assertExists(station, 'No converted station found for Motivate effect')
                     assertExists(station.coords, 'No coords found for Motivate effect station')
-                    const activateAction: Activate = {
-                        type: ActionType.Activate,
-                        id: nanoid(),
-                        gameId: context.gameState.gameId,
+                    context.addSystemAction(Activate, {
                         playerId: action.playerId,
-                        source: ActionSource.System,
                         coords: station.coords,
                         stationId: station.id
-                    }
-                    context.addPendingAction(activateAction)
+                    })
                     return MachineState.Activating
                 } else if (gameState.activeEffect === EffectType.Augment) {
                     return ActivatingStateHandler.handleActivation(

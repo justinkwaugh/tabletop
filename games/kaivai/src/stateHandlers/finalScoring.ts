@@ -64,14 +64,7 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
 
                 const autoChosenIsland = this.autoChooseIsland(gameState)
                 if (autoChosenIsland) {
-                    const chooseScoringIslandAction: ChooseScoringIsland = {
-                        type: ActionType.ChooseScoringIsland,
-                        id: nanoid(),
-                        gameId: action.gameId,
-                        islandId: autoChosenIsland,
-                        source: ActionSource.System
-                    }
-                    context.addPendingAction(chooseScoringIslandAction)
+                    context.addSystemAction(ChooseScoringIsland, { islandId: autoChosenIsland })
                 }
                 return MachineState.FinalScoring
             }
@@ -90,15 +83,7 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
 
                 if (isUncontested || playersWithInfluence.length === 0) {
                     // Score the island
-                    const scoreIslandAction: ScoreIsland = {
-                        type: ActionType.ScoreIsland,
-                        id: nanoid(),
-                        gameId: action.gameId,
-                        source: ActionSource.System,
-                        islandId: action.islandId
-                    }
-
-                    context.addPendingAction(scoreIslandAction)
+                    context.addSystemAction(ScoreIsland, { islandId: action.islandId })
                     return MachineState.FinalScoring
                 } else {
                     gameState.bidders = playersWithInfluence
@@ -115,14 +100,7 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
 
                 const autoChosenIsland = this.autoChooseIsland(gameState)
                 if (autoChosenIsland) {
-                    const chooseScoringIslandAction: ChooseScoringIsland = {
-                        type: ActionType.ChooseScoringIsland,
-                        id: nanoid(),
-                        gameId: action.gameId,
-                        islandId: autoChosenIsland,
-                        source: ActionSource.System
-                    }
-                    context.addPendingAction(chooseScoringIslandAction)
+                    context.addSystemAction(ChooseScoringIsland, { islandId: autoChosenIsland })
                 }
 
                 return MachineState.FinalScoring

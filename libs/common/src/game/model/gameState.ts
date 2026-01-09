@@ -44,6 +44,7 @@ export interface HydratedGameState extends GameState {
     getPlayerState(playerId?: string): PlayerState
     isActivePlayer(playerId: string): boolean
     recordAction(action: GameAction): void
+    isAtLeastVersion(version: number): boolean
     dehydrate(): GameState
 }
 
@@ -51,6 +52,7 @@ export abstract class HydratableGameState<T extends TSchema, U extends PlayerSta
     extends Hydratable<T>
     implements HydratedGameState
 {
+    declare systemVersion?: number
     declare id: string
     declare gameId: string
     declare players: U[]
@@ -82,5 +84,9 @@ export abstract class HydratableGameState<T extends TSchema, U extends PlayerSta
         action.index = this.actionCount
         this.actionCount += 1
         this.actionChecksum = calculateActionChecksum(this.actionChecksum, [action])
+    }
+
+    isAtLeastVersion(version: number): boolean {
+        return (this.systemVersion ?? 1) >= version
     }
 }

@@ -87,27 +87,11 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
         if (numSolarFlares > 0) {
             state.solarFlares = numSolarFlares
             state.solarFlaresRemaining = numSolarFlares
-
-            const prng = new Prng(state.prng)
-            const solarFlareAction: SolarFlare = {
-                type: ActionType.SolarFlare,
-                id: prng.randId(),
-                gameId: context.gameState.gameId,
-                source: ActionSource.System
-            }
-            context.addPendingAction(solarFlareAction)
+            context.addSystemAction(SolarFlare)
             return MachineState.SolarFlares
         } else {
             if (!playerState.hasCardChoice()) {
-                const passAction: Pass = {
-                    type: ActionType.Pass,
-                    id: nanoid(),
-                    gameId: context.gameState.gameId,
-                    playerId,
-                    source: ActionSource.System,
-                    context: PassContext.NoCardChoice
-                }
-                context.addPendingAction(passAction)
+                context.addSystemAction(Pass, { playerId, context: PassContext.NoCardChoice })
             }
             return MachineState.ChoosingCard
         }

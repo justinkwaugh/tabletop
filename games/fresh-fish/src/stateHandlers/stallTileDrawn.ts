@@ -42,15 +42,10 @@ export class StallTileDrawnStateHandler implements MachineStateHandler<HydratedS
                 gameState.currentAuction.participants.length === 1 ||
                 gameState.getPlayerState(participant.playerId).money === 0
             ) {
-                const placeBidAction = <PlaceBid>{
-                    type: ActionType.PlaceBid,
-                    id: nanoid(),
+                context.addSystemAction(PlaceBid, {
                     playerId: participant.playerId,
-                    gameId: action.gameId,
-                    source: ActionSource.System,
                     amount: 0
-                }
-                context.addPendingAction(placeBidAction)
+                })
             }
         }
         return MachineState.AuctioningTile

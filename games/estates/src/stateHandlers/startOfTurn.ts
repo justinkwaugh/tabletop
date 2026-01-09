@@ -60,15 +60,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const gameState = context.gameState as HydratedEstatesGameState
         switch (true) {
             case isDrawRoof(action): {
-                const startAuctionAction = <StartAuction>{
-                    type: ActionType.StartAuction,
-                    id: nanoid(),
+                context.addSystemAction(StartAuction, {
                     playerId: action.playerId,
-                    gameId: action.gameId,
-                    piece: gameState.chosenPiece,
-                    source: ActionSource.System
-                }
-                context.addPendingAction(startAuctionAction)
+                    piece: gameState.chosenPiece
+                })
                 return MachineState.StartOfTurn
             }
             case isStartAuction(action): {

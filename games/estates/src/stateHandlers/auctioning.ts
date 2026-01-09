@@ -40,15 +40,10 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
 
         // No bidders
         if (gameState.auction?.participants.length === 0) {
-            const endAuctionAction: EndAuction = {
-                type: ActionType.EndAuction,
-                id: nanoid(),
-                gameId: context.gameState.gameId,
-                source: ActionSource.System,
+            context.addSystemAction(EndAuction, {
                 winnerId: undefined,
                 highBid: 0
-            }
-            context.addPendingAction(endAuctionAction)
+            })
         } else {
             const nextBidder = gameState.auction?.nextBidder()
             if (nextBidder) {
@@ -60,15 +55,7 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
                 // Auto Pass if player doesn't have enough money to bid
                 const bidderState = gameState.getPlayerState(nextBidder)
                 if (bidderState.money < (auction.highBid ?? 0) + 1) {
-                    const passAction: PlaceBid = {
-                        type: ActionType.PlaceBid,
-                        id: nanoid(),
-                        playerId: nextBidder,
-                        gameId: gameState.gameId,
-                        source: ActionSource.System,
-                        amount: 0
-                    }
-                    context.addPendingAction(passAction)
+                    context.addSystemAction(PlaceBid, { playerId: nextBidder, amount: 0 })
                 }
             }
         }
@@ -87,16 +74,10 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
                     return MachineState.Auctioning
                 }
 
-                const endAuctionAction: EndAuction = {
-                    type: ActionType.EndAuction,
-                    id: nanoid(),
-                    gameId: action.gameId,
-                    source: ActionSource.System,
+                context.addSystemAction(EndAuction, {
                     winnerId: currentAuction.winnerId,
                     highBid: currentAuction.highBid ?? 0
-                }
-
-                context.addPendingAction(endAuctionAction)
+                })
                 return MachineState.Auctioning
             }
             case isEndAuction(action): {
@@ -109,15 +90,10 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
                     }
                     const auctioneer = gameState.getPlayerState(currentAuction.auctioneerId)
                     if (auctioneer.money < action.highBid) {
-                        const chooseRecipientAction: ChooseRecipient = {
-                            type: ActionType.ChooseRecipient,
-                            id: nanoid(),
+                        context.addSystemAction(ChooseRecipient, {
                             playerId: currentAuction.auctioneerId,
-                            gameId: action.gameId,
-                            source: ActionSource.System,
                             recipient: AuctionRecipient.HighestBidder
-                        }
-                        context.addPendingAction(chooseRecipientAction)
+                        })
                     }
                 }
                 return MachineState.AuctionEnded

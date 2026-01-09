@@ -149,14 +149,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         }
 
         if (state.solarFlaresRemaining! > 0) {
-            const prng = new Prng(state.prng)
-            const solarFlareAction: SolarFlare = {
-                type: ActionType.SolarFlare,
-                id: prng.randId(),
-                gameId: context.gameState.gameId,
-                source: ActionSource.System
-            }
-            context.addPendingAction(solarFlareAction)
+            context.addSystemAction(SolarFlare)
             return MachineState.SolarFlares
         } else if (state.instability === 0) {
             return MachineState.EndOfGame
@@ -169,14 +162,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
             state.activePlayerIds = [currentPlayerId]
             const currentPlayerState = state.getPlayerState(currentPlayerId)
             if (!currentPlayerState.hasCardChoice()) {
-                const passAction: Pass = {
-                    type: ActionType.Pass,
-                    id: nanoid(),
-                    gameId: context.gameState.gameId,
-                    playerId: currentPlayerId,
-                    source: ActionSource.System
-                }
-                context.addPendingAction(passAction)
+                context.addSystemAction(Pass, { playerId: currentPlayerId })
             }
             return MachineState.ChoosingCard
         }

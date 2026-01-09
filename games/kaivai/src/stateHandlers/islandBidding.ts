@@ -58,16 +58,10 @@ export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPl
             return MachineState.IslandBidding
         }
 
-        const scoreIslandAction: ScoreIsland = {
-            type: ActionType.ScoreIsland,
-            id: nanoid(),
-            gameId: action.gameId,
-            source: ActionSource.System,
+        context.addSystemAction(ScoreIsland, {
             islandId: gameState.chosenIsland,
             revealsInfo: true
-        }
-
-        context.addPendingAction(scoreIslandAction)
+        })
 
         return MachineState.FinalScoring
     }

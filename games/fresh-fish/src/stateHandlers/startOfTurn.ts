@@ -56,14 +56,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
             if (validActions.length === 1 && validActions[0] == ActionType.Pass) {
                 // Automatically pass if there are no valid actions
-                const passAction = <Pass>{
-                    type: ActionType.Pass,
-                    id: nanoid(),
-                    playerId: nextPlayerId,
-                    gameId: gameState.gameId,
-                    source: ActionSource.System
-                }
-                context.addPendingAction(passAction)
+                context.addSystemAction(Pass, { playerId: nextPlayerId })
             }
         }
     }
@@ -90,14 +83,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                         action.metadata = { chosenTile: gameState.chosenTile }
 
                         // Automatically start the auction
-                        const startAuctionAction = <StartAuction>{
-                            type: ActionType.StartAuction,
-                            id: nanoid(),
-                            playerId: action.playerId,
-                            gameId: action.gameId,
-                            source: ActionSource.System
-                        }
-                        context.addPendingAction(startAuctionAction)
+                        context.addSystemAction(StartAuction, {
+                            playerId: action.playerId
+                        })
                         return MachineState.StallTileDrawn
                     }
                 }

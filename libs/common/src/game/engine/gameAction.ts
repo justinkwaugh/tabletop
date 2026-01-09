@@ -81,13 +81,15 @@ export abstract class HydratableAction<T extends TSchema>
     abstract apply(state: GameState, context?: MachineContext): void
 }
 
-export function createAction<T extends TSchema>(schema: T, data: Partial<Static<T>>): Static<T> {
+export function createAction<T extends TSchema>(schema: T, data?: Partial<Static<T>>): Static<T> {
     // Create a new action with dummy values/defaults
     const newAction = Value.Create(schema)
-    Object.assign(newAction, data)
+
+    if (data) {
+        Object.assign(newAction, data)
+    }
 
     // Validate the action
     Value.Assert(schema, newAction)
     return newAction
 }
-

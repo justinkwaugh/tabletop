@@ -71,15 +71,10 @@ export class TileBagEmptiedStateHandler implements MachineStateHandler<HydratedP
 
         // Place into the void if player has no disks on the board
         if (!nextPlayer.hasDiskOnBoard()) {
-            const placeStallAction = <PlaceStall>{
-                type: ActionType.PlaceStall,
-                id: nanoid(),
-                gameId: gameState.gameId,
-                source: ActionSource.System,
+            context.addSystemAction(PlaceStall, {
                 playerId: nextPlayer.playerId,
                 goodsType: nextFinalStall.goodsType
-            }
-            context.addPendingAction(placeStallAction)
+            })
         }
     }
 }
