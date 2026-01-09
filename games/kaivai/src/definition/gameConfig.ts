@@ -1,11 +1,5 @@
 import { Type, type Static } from 'typebox'
-import { Compile } from 'typebox/compile'
-import {
-    ConfigOptionType,
-    GameConfigOptions,
-    type ConfigHandler,
-    GameConfig
-} from '@tabletop/common'
+import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
 
 export enum Ruleset {
     FirstEdition = 'FirstEdition',
@@ -18,8 +12,6 @@ export const KaivaiGameConfig = Type.Object({
     lucklessFishing: Type.Boolean(),
     lessluckFishing: Type.Optional(Type.Boolean({ default: false }))
 })
-
-export const KaivaiGameConfigValidator = Compile(KaivaiGameConfig)
 
 export const KaivaiGameConfigOptions: GameConfigOptions = [
     {
@@ -51,17 +43,3 @@ export const KaivaiGameConfigOptions: GameConfigOptions = [
         default: false
     }
 ]
-
-export class KaivaiConfigHandler implements ConfigHandler {
-    updateConfig(
-        config: KaivaiGameConfig,
-        update: { id: string; value: string | boolean | number | null }
-    ) {
-        ;(config as GameConfig)[update.id] = update.value
-        if (update.id === 'lucklessFishing' && update.value) {
-            config.lessluckFishing = false
-        } else if (update.id === 'lessluckFishing' && update.value) {
-            config.lucklessFishing = false
-        }
-    }
-}

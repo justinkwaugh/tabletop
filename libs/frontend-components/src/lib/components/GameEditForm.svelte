@@ -11,6 +11,8 @@
         RadioButton
     } from 'flowbite-svelte'
     import {
+        assert,
+        assertExists,
         BooleanConfigOption,
         ConfigOption,
         Game,
@@ -68,8 +70,13 @@
     let sessionUser = authorizationService.getSessionUser()
 
     let mode = game ? EditMode.Edit : EditMode.Create
-    let availableTitles = libraryService.getTitles().map((definition) => {
-        return { name: definition.metadata.name, value: definition }
+    let gameTitle = $derived.by(() => {
+        let gameTitle = title
+        if (!gameTitle && game) {
+            gameTitle = libraryService.getTitle(game.typeId)
+        }
+        assertExists(gameTitle, 'No title found for the game being edited')
+        return gameTitle
     })
 
     let editedGame: EditableGame = game
@@ -93,8 +100,6 @@
               config: {}
           }
 
-    title = game?.typeId ? libraryService.getTitle(game.typeId) : title
-
     // State
     let unexpectedError = $state(false)
     let errors: Record<string, string[]> = $state({})
@@ -104,24 +109,22 @@
     let numPlayers = $state(
         mode === EditMode.Edit
             ? editedGame.players.length
-            : (title?.metadata.defaultPlayerCount ?? 1)
+            : (gameTitle.metadata.defaultPlayerCount ?? 1)
     )
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
     let isHotseat: boolean = $state(hotseatOnly || editedGame.hotseat)
-
-    let selectedTitle = $state(title)
-
-    let minPlayers = $derived<number>(selectedTitle?.metadata.minPlayers ?? 1)
-    let maxPlayers = $derived<number>(selectedTitle?.metadata.maxPlayers ?? 1)
+    let minPlayers: number = $derived(gameTitle?.metadata.minPlayers ?? 1)
+    let maxPlayers: number = $derived(gameTitle?.metadata.maxPlayers ?? 1)
 
     function generateDefaultOptions() {
         const defaultConfig: GameConfig = {}
-        for (const option of selectedTitle?.configOptions ?? []) {
+        for (const option of gameTitle.configurator?.options ?? []) {
             defaultConfig[option.id] = option.default ?? null
         }
         return defaultConfig
     }
+
     function onOptionChange(option: ConfigOption, event: Event) {
         let value: string | boolean | number | null | undefined = undefined
         if (isBooleanConfigOption(option)) {
@@ -137,11 +140,9 @@
         if (value === undefined) {
             return
         }
-        if (title?.configHandler) {
-            title.configHandler.updateConfig(config, { id: option.id, value })
-        } else {
-            config[option.id] = value
-        }
+
+        assertExists(gameTitle?.configurator, 'No configurator found for selected title')
+        gameTitle.configurator.updateConfig(config, { id: option.id, value })
     }
 
     function updatePlayers(numPlayers: number) {
@@ -175,10 +176,6 @@
     $effect(() => {
         updatePlayers(numPlayers)
     })
-
-    function onTitleChosen() {
-        numPlayers = selectedTitle?.metadata.defaultPlayerCount ?? 1
-    }
 
     async function submit(event: SubmitEvent) {
         event.preventDefault()
@@ -219,7 +216,7 @@
         }
 
         if (mode === EditMode.Create) {
-            gameData.typeId = selectedTitle?.id
+            gameData.typeId = gameTitle.id
             if (seed.trim().length > 0) {
                 try {
                     gameData.seed = parseInt(seed.trim())
@@ -339,11 +336,7 @@
 <div class="flex flex-row w-full justify-between items-center mb-4">
     <div>
         <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200">
-            {#if mode === EditMode.Create && !selectedTitle}
-                Create a game...
-            {:else}
-                {selectedTitle?.metadata.name}
-            {/if}
+            {gameTitle.metadata.name}
         </h1>
     </div>
     <div>
@@ -361,152 +354,139 @@
     </Alert>
 {/if}
 <form class="flex flex-col space-y-4 text-left" action="/" onsubmit={submit}>
-    {#if mode === EditMode.Create && !title}
-        <Label class="space-y-2">Title</Label>
-        <Select
-            id="selectedTitle"
-            onchange={onTitleChosen}
-            bind:value={selectedTitle}
-            items={availableTitles}
-            placeholder="choose a game..."
-            required
-        />
+    <Label class="mb-2">Name</Label>
+    <Input
+        type="text"
+        name="name"
+        bind:value={name}
+        placeholder="choose a name for your game"
+        required
+    />
+    {#if errors?.name}
+        {#each errors.name as error}
+            <Helper class="mb-2" color="red"><span class="font-medium">{error}</span></Helper>
+        {/each}
     {/if}
-    {#if selectedTitle}
-        <Label class="mb-2">Name</Label>
-        <Input
-            type="text"
-            name="name"
-            bind:value={name}
-            placeholder="choose a name for your game"
-            required
-        />
-        {#if errors?.name}
-            {#each errors.name as error}
-                <Helper class="mb-2" color="red"><span class="font-medium">{error}</span></Helper>
-            {/each}
-        {/if}
-        <Label class="mb-2">
-            <span>Player Count</span>
-        </Label>
-        <ButtonGroup>
-            {#each range(minPlayers, maxPlayers - minPlayers + 1) as i}
-                <RadioButton
-                    value={i}
-                    checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
-                    bind:group={numPlayers}>{i}</RadioButton
-                >
-            {/each}
-        </ButtonGroup>
+    <Label class="mb-2">
+        <span>Player Count</span>
+    </Label>
+    <ButtonGroup>
+        {#each range(minPlayers, maxPlayers - minPlayers + 1) as i}
+            <RadioButton
+                value={i}
+                checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
+                bind:group={numPlayers}>{i}</RadioButton
+            >
+        {/each}
+    </ButtonGroup>
 
-        <Label class="mb-2">Players</Label>
-        <div class="flex flex-col space-y-2">
-            {#each players as player, i (player.id)}
-                <Typeahead
-                    id={player.id}
-                    active={!isHotseat}
-                    oninput={(event: Event) => handleNameInput(player, event)}
-                    bind:text={player.name}
-                    exclude={players.map((p) => p.name)}
-                    size="md"
-                    type="text"
-                    name={player.id}
-                    placeholder="player name"
-                    color={errors[player.id] || player.status === PlayerStatus.Declined
-                        ? 'red'
-                        : isJoinedNonOwner(player)
-                          ? 'green'
-                          : 'default'}
-                    readonly={isOwner(player)}
-                    disabled={isOwner(player)}
-                    required={isHotseat || !isPublic}
-                >
-                    <div class="flex flex-row justify-center align-center">
-                        {#if isOwner(player)}
-                            <div class="text-xs">HOST</div>
-                        {:else}
-                            {#if player.status === PlayerStatus.Declined}
-                                <button
-                                    aria-label="reinvite"
-                                    type="button"
-                                    onclick={(event: Event) => {
-                                        event.stopPropagation()
-                                        player.status = PlayerStatus.Reserved
-                                    }}
+    <Label class="mb-2">Players</Label>
+    <div class="flex flex-col space-y-2">
+        {#each players as player, i (player.id)}
+            <Typeahead
+                id={player.id}
+                active={!isHotseat}
+                oninput={(event: Event) => handleNameInput(player, event)}
+                bind:text={player.name}
+                exclude={players.map((p) => p.name)}
+                size="md"
+                type="text"
+                name={player.id}
+                placeholder="player name"
+                color={errors[player.id] || player.status === PlayerStatus.Declined
+                    ? 'red'
+                    : isJoinedNonOwner(player)
+                      ? 'green'
+                      : 'default'}
+                readonly={isOwner(player)}
+                disabled={isOwner(player)}
+                required={isHotseat || !isPublic}
+            >
+                <div class="flex flex-row justify-center align-center">
+                    {#if isOwner(player)}
+                        <div class="text-xs">HOST</div>
+                    {:else}
+                        {#if player.status === PlayerStatus.Declined}
+                            <button
+                                aria-label="reinvite"
+                                type="button"
+                                onclick={(event: Event) => {
+                                    event.stopPropagation()
+                                    player.status = PlayerStatus.Reserved
+                                }}
+                            >
+                                <svg
+                                    class="w-5 h-5 shrink-0"
+                                    aria-hidden="true"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
                                 >
-                                    <svg
-                                        class="w-5 h-5 shrink-0"
-                                        aria-hidden="true"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            stroke="currentColor"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M17.651 7.65a7.131 7.131 0 0 0-12.68 3.15M18.001 4v4h-4m-7.652 8.35a7.13 7.13 0 0 0 12.68-3.15M6 20v-4h4"
-                                        ></path>
-                                    </svg>
-                                </button>
-                            {/if}
-                            {#if player.status !== PlayerStatus.Open}
-                                <button
-                                    type="button"
-                                    onclick={(event: Event) => {
-                                        event.stopPropagation()
-                                        player.name = ''
-                                        player.status = PlayerStatus.Open
-                                    }}
-                                >
-                                    <TrashBinSolid class="w-5 h-5" />
-                                </button>
-                            {/if}
+                                    <path
+                                        stroke="currentColor"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M17.651 7.65a7.131 7.131 0 0 0-12.68 3.15M18.001 4v4h-4m-7.652 8.35a7.13 7.13 0 0 0 12.68-3.15M6 20v-4h4"
+                                    ></path>
+                                </svg>
+                            </button>
                         {/if}
-                    </div>
-                </Typeahead>
-                {#if isJoinedNonOwner(player)}
-                    <Helper color="green">This player has accepted the invitation</Helper>
-                {/if}
-                {#if player.status === PlayerStatus.Declined}
-                    <Helper color="red"
-                        >This player declined. Please replace or reinvite them (refresh icon)</Helper
-                    >
-                {/if}
-                {#if errors[player.id]}
-                    {#each errors[player.id] as error}
-                        <Helper color="red"><span class="font-medium">{error}</span></Helper>
-                    {/each}
+                        {#if player.status !== PlayerStatus.Open}
+                            <button
+                                type="button"
+                                onclick={(event: Event) => {
+                                    event.stopPropagation()
+                                    player.name = ''
+                                    player.status = PlayerStatus.Open
+                                }}
+                            >
+                                <TrashBinSolid class="w-5 h-5" />
+                            </button>
+                        {/if}
+                    {/if}
+                </div>
+            </Typeahead>
+            {#if isJoinedNonOwner(player)}
+                <Helper color="green">This player has accepted the invitation</Helper>
+            {/if}
+            {#if player.status === PlayerStatus.Declined}
+                <Helper color="red"
+                    >This player declined. Please replace or reinvite them (refresh icon)</Helper
+                >
+            {/if}
+            {#if errors[player.id]}
+                {#each errors[player.id] as error}
+                    <Helper color="red"><span class="font-medium">{error}</span></Helper>
+                {/each}
+            {/if}
+        {/each}
+    </div>
+    {#if !gameTitle.metadata.beta && mode === EditMode.Create}
+        <Toggle bind:checked={isPublic}>Public</Toggle>
+    {/if}
+    {#if gameTitle.configurator && gameTitle.configurator.options.length > 0}
+        <div
+            class="p-4 border-2 border-gray-700 rounded-lg flex flex-col space-y-4 justify-center items-start"
+        >
+            {#each gameTitle.configurator.options as option (option.id)}
+                {#if isBooleanConfigOption(option)}
+                    {@render booleanOption(option)}
+                {:else if isListConfigOption(option)}
+                    {@render listOption(option)}
+                {:else if isNumberInputConfigOption(option)}
+                    {@render numberInputOption(option)}
+                {:else if isStringInputConfigOption(option)}
+                    {@render stringInputOption(option)}
                 {/if}
             {/each}
         </div>
-        {#if !title?.metadata.beta && mode === EditMode.Create}
-            <Toggle bind:checked={isPublic}>Public</Toggle>
-        {/if}
-        {#if selectedTitle.configOptions.length > 0}
-            <div
-                class="p-4 border-2 border-gray-700 rounded-lg flex flex-col space-y-4 justify-center items-start"
-            >
-                {#each selectedTitle.configOptions as option (option.id)}
-                    {#if isBooleanConfigOption(option)}
-                        {@render booleanOption(option)}
-                    {:else if isListConfigOption(option)}
-                        {@render listOption(option)}
-                    {:else if isNumberInputConfigOption(option)}
-                        {@render numberInputOption(option)}
-                    {:else if isStringInputConfigOption(option)}
-                        {@render stringInputOption(option)}
-                    {/if}
-                {/each}
-            </div>
-        {/if}
-        {#if authorizationService.isAdmin && mode === EditMode.Create}
-            <Label class="mb-2">Seed</Label>
-            <Input type="text" name="seed" bind:value={seed} placeholder="optional game seed" />
-        {/if}
+    {/if}
+    {#if authorizationService.isAdmin && mode === EditMode.Create}
+        <Label class="mb-2">Seed</Label>
+        <Input type="text" name="seed" bind:value={seed} placeholder="optional game seed" />
     {/if}
 
     <div class="flex justify-between mt-6">

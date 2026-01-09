@@ -1,10 +1,10 @@
 import { DefaultStateLogger, type GameDefinition } from '@tabletop/common'
 import { SampleHydrator } from './hydrator.js'
-import { SampleGameInitializer } from './gameInitializer.js'
+import { SampleGameInitializer } from './initializer.js'
 import { SampleApiActions } from './apiActions.js'
 import { SampleStateHandlers } from './stateHandlers.js'
 import { SampleColors } from './colors.js'
-import { SampleGameConfigOptions } from './gameConfig.js'
+import { SampleConfigurator } from './configurator.js'
 
 // The export MUST be named Definition and be of type GameDefinition
 export const Definition: GameDefinition = <GameDefinition>{
@@ -23,12 +23,12 @@ export const Definition: GameDefinition = <GameDefinition>{
     },
 
     initializer: new SampleGameInitializer(),
+    configurator: new SampleConfigurator(),
     hydrator: new SampleHydrator(),
 
     stateHandlers: SampleStateHandlers,
     apiActions: SampleApiActions,
     playerColors: SampleColors,
 
-    configOptions: SampleGameConfigOptions,
     stateLogger: new DefaultStateLogger() // This never really got used, but it could do some custom logging if desired
 }

@@ -29,7 +29,7 @@ export function generateTestState(config: TestStateConfig = {}): HydratedFreshFi
 
     const definition = Definition
     const engine = new GameEngine(definition)
-    const game = definition.initializer.initializeGame(newGame)
+    const game = definition.initializer.initializeGame(newGame, definition)
     const state = definition.initializer.initializeGameState(
         game,
         engine.generateUninitializedState(game)

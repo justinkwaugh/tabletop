@@ -24,7 +24,8 @@ import {
     GameStorage,
     GameCategory,
     RunMode,
-    PlayerStatus
+    PlayerStatus,
+    assertExists
 } from '@tabletop/common'
 import { Value } from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
@@ -199,7 +200,7 @@ export class GameService implements GameServiceInterface {
                 player.userId = game.ownerId
             }
 
-            const initializedGame = definition.initializer.initializeGame(game)
+            const initializedGame = definition.initializer.initializeGame(game, definition)
 
             const engine = new GameEngine(definition)
             const { startedGame, initialState } = engine.startGame(initializedGame)

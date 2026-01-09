@@ -5,19 +5,21 @@ import { type GameInitializer } from './gameInitializer.js'
 import { type MachineStateHandler } from '../engine/machineStateHandler.js'
 import { type HydratedAction } from '../engine/gameAction.js'
 import { type GameStateLogger } from './gameStateLogger.js'
-import { type ConfigHandler, GameConfigOptions } from './gameConfig.js'
+import { type GameConfigurator } from './gameConfigurator.js'
 import { Color } from '../model/colors.js'
 
 export interface GameDefinition {
     id: string
     metadata: GameMetadata
+
     initializer: GameInitializer
-    stateHandlers: Record<string, MachineStateHandler<HydratedAction>>
+    configurator?: GameConfigurator
     hydrator: GameHydrator
+
+    stateHandlers: Record<string, MachineStateHandler<HydratedAction>>
+
     apiActions: Record<string, TSchema>
     playerColors: Color[]
-    configOptions: GameConfigOptions
-    configSchema?: TSchema
-    configHandler?: ConfigHandler
+
     stateLogger?: GameStateLogger
 }

@@ -1,5 +1,4 @@
 import { Type, type Static } from 'typebox'
-import { Compile } from 'typebox/compile'
 import {
     BooleanConfigOption,
     ConfigOptionType,
@@ -38,8 +37,6 @@ export const FreshFishGameConfig = Type.Object({
     auctioneerWinsTie: Type.Optional(Type.Boolean({ default: auctioneerWinsTieOption.default })),
     boardSeed: Type.Optional(Type.Number())
 })
-
-export const FreshFishGameConfigValidator = Compile(FreshFishGameConfig)
 
 export const FreshFishGameConfigOptions: GameConfigOptions = [
     auctioneerWinsTieOption,

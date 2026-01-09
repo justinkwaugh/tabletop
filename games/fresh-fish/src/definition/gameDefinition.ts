@@ -5,7 +5,7 @@ import { FreshFishStateLogger } from '../util/stateLogger.js'
 import { FreshFishApiActions } from './apiActions.js'
 import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
-import { FreshFishGameConfig, FreshFishGameConfigOptions } from './gameConfig.js'
+import { FreshFishConfigurator } from './configurator.js'
 
 export const Definition = <GameDefinition>{
     id: 'freshfish',
@@ -23,13 +23,12 @@ export const Definition = <GameDefinition>{
     },
 
     initializer: new FreshFishGameInitializer(),
+    configurator: new FreshFishConfigurator(),
     hydrator: new FreshFishHydrator(),
 
     stateHandlers: FreshFishStateHandlers,
     apiActions: FreshFishApiActions,
     playerColors: FreshFishColors,
 
-    configOptions: FreshFishGameConfigOptions,
-    configSchema: FreshFishGameConfig,
     stateLogger: new FreshFishStateLogger()
 }

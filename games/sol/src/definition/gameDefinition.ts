@@ -4,7 +4,7 @@ import { SolGameInitializer } from './gameInitializer.js'
 import { SolApiActions } from './apiActions.js'
 import { SolStateHandlers } from './stateHandlers.js'
 import { SolColors } from './colors.js'
-import { SolGameConfigOptions } from './gameConfig.js'
+import { SolConfigurator } from './configurator.js'
 
 export const Definition = <GameDefinition>{
     id: 'sol',
@@ -22,12 +22,12 @@ export const Definition = <GameDefinition>{
     },
 
     initializer: new SolGameInitializer(),
+    configurator: new SolConfigurator(),
     hydrator: new SolHydrator(),
 
     stateHandlers: SolStateHandlers,
     apiActions: SolApiActions,
     playerColors: SolColors,
 
-    configOptions: SolGameConfigOptions,
     stateLogger: new DefaultStateLogger()
 }

@@ -27,6 +27,5 @@ export const Definition = <GameDefinition>{
     apiActions: BridgesApiActions,
     playerColors: BridgesColors,
 
-    configOptions: [],
     stateLogger: new DefaultStateLogger()
 }

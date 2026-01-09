@@ -1,5 +1,4 @@
 import { Type, type Static } from 'typebox'
-import { Compile } from 'typebox/compile'
 import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
 
 export type EstatesGameConfig = Static<typeof EstatesGameConfig>
@@ -7,8 +6,6 @@ export const EstatesGameConfig = Type.Object({
     hiddenMoney: Type.Boolean(),
     sneakyBuildings: Type.Boolean()
 })
-
-export const EstatesGameConfigValidator = Compile(EstatesGameConfig)
 
 export const EstatesGameConfigOptions: GameConfigOptions = [
     {

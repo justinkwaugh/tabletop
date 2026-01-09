@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    assertExists,
     calculateActionChecksum,
     findLast,
     Game,
@@ -97,7 +98,7 @@ export class GameService {
         game.ownerId = owner.id // Don't trust client
         game.storage = GameStorage.Remote // Has to be remote here on the backend
 
-        const newGame = definition.initializer.initializeGame(game)
+        const newGame = definition.initializer.initializeGame(game, definition)
 
         // Check the specified players and populate them with user data
         const usersByPlayerId = await this.validateAndPopulatePlayers(newGame.players, owner)

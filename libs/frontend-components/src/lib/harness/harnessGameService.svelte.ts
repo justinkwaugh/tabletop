@@ -7,7 +7,8 @@ import {
     GameEngine,
     GameStorage,
     GameCategory,
-    RunMode
+    RunMode,
+    assertExists
 } from '@tabletop/common'
 import { SvelteMap } from 'svelte/reactivity'
 import { nanoid } from 'nanoid'
@@ -125,7 +126,7 @@ export class HarnessGameService implements GameService {
             player.userId = game.ownerId
         }
 
-        const initializedGame = definition.initializer.initializeGame(game)
+        const initializedGame = definition.initializer.initializeGame(game, definition)
 
         const engine = new GameEngine(definition)
         const { startedGame, initialState } = engine.startGame(initializedGame)

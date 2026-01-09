@@ -21,13 +21,14 @@ export const ExplorationState = Type.Object({
 
 export type GameState = Static<typeof GameState>
 export const GameState = Type.Object({
+    systemVersion: Type.Optional(Type.Number()), // Not game specific versioning
     id: Type.String(),
     gameId: Type.String(),
     players: Type.Array(PlayerState),
     activePlayerIds: Type.Array(Type.String()),
     actionCount: Type.Number(),
     actionChecksum: Type.Number(),
-    seed: Type.Optional(Type.Number()), // deprecated
+    seed: Type.Optional(Type.Number()), // deprecated.. moved to game
     prng: PrngState,
     machineState: Type.String(),
     turnManager: TurnManager,

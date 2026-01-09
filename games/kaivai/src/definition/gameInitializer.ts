@@ -29,18 +29,11 @@ import { KaivaiGameBoard } from '../components/gameBoard.js'
 import { KaivaiColors } from './colors.js'
 import { Cell, CellType, CultCell } from './cells.js'
 import { Island } from '../components/island.js'
-import { KaivaiGameConfig, KaivaiGameConfigValidator, Ruleset } from './gameConfig.js'
+import { KaivaiGameConfig, Ruleset } from './gameConfig.js'
 
 export class KaivaiGameInitializer extends BaseGameInitializer implements GameInitializer {
     initializeExplorationState(state: GameState): GameState {
         return state
-    }
-    override initializeGame(game: Partial<Game>): Game {
-        const config = game.config
-        if (!KaivaiGameConfigValidator.Check(config)) {
-            throw Error(JSON.stringify([...KaivaiGameConfigValidator.Errors(config)]))
-        }
-        return super.initializeGame(game)
     }
 
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {

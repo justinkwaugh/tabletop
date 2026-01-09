@@ -6,9 +6,11 @@ import {
     type UninitializedGameState
 } from '../model/gameState.js'
 import { Value } from 'typebox/value'
+import { GameDefinition } from './gameDefinition.js'
+import { assertExists } from '../../util/assertions.js'
 
 export interface GameInitializer {
-    initializeGame(game: Partial<Game>): Game
+    initializeGame(game: Partial<Game>, definition: GameDefinition): Game
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState
     initializeExplorationState(state: GameState): GameState
 }
@@ -16,8 +18,18 @@ export interface GameInitializer {
 export abstract class BaseGameInitializer implements GameInitializer {
     abstract initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState
     abstract initializeExplorationState(state: GameState): GameState
-    initializeGame(game: Partial<Game>): Game {
+
+    initializeGame(game: Partial<Game>, definition: GameDefinition): Game {
+        if (game.config) {
+            assertExists(
+                definition.configurator,
+                'Config handler is required to validate game config'
+            )
+            definition.configurator.validateConfig(game.config)
+        }
+
         const newGame: Game = <Game>{
+            systemVersion: 2,
             id: game.id,
             isPublic: game.isPublic || false,
             status: GameStatus.WaitingForPlayers,

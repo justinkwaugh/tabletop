@@ -3,7 +3,7 @@
 export * from './actions/addAmount.js'
 
 export * from './definition/actions.js'
-export * from './definition/gameConfig.js'
+export * from './definition/config.js'
 export * from './definition/gameDefinition.js'
 export * from './definition/states.js'
 

@@ -8,7 +8,6 @@
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
     import { GameEditForm, type AppContext } from '@tabletop/frontend-components'
-    import { string } from 'zod/v4'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -225,13 +224,13 @@
         if (!title || !game.config) {
             return {}
         }
-        if (title.configOptions.length === 0 || Object.keys(game.config).length === 0) {
+        if (title.configurator?.options.length === 0 || Object.keys(game.config).length === 0) {
             return {}
         }
         const configs: Record<string, string> = {}
         if (game.config) {
             for (const [key, value] of Object.entries(game.config)) {
-                const option = title.configOptions.find((opt) => opt.id === key)
+                const option = title.configurator?.options.find((opt) => opt.id === key)
                 if (!option) {
                     continue
                 }

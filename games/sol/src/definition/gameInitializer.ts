@@ -19,7 +19,7 @@ import { HydratedSolPlayerState, SolPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
 import { SolColors } from './colors.js'
-import { SolGameConfig, SolGameConfigValidator } from './gameConfig.js'
+import { SolGameConfig } from './gameConfig.js'
 import { Sundiver } from '../components/sundiver.js'
 import { SolarGate } from '../components/solarGate.js'
 import { EnergyNode, StationType, SundiverFoundry, TransmitTower } from '../components/stations.js'
@@ -35,14 +35,6 @@ export class SolGameInitializer extends BaseGameInitializer implements GameIniti
         const hydratedState = new HydratedSolGameState(state as SolGameState)
         hydratedState.deck.shuffle()
         return hydratedState.dehydrate()
-    }
-
-    override initializeGame(game: Partial<Game>): Game {
-        const config = game.config
-        if (!SolGameConfigValidator.Check(config)) {
-            throw Error(JSON.stringify([...SolGameConfigValidator.Errors(config)]))
-        }
-        return super.initializeGame(game)
     }
 
     initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {

@@ -16,7 +16,7 @@ import { HydratedSampleGameState, SampleGameState } from '../model/gameState.js'
 import { HydratedSamplePlayerState, SamplePlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
-import { SampleGameConfig, SampleGameConfigValidator } from './gameConfig.js'
+import { SampleGameConfig } from './config.js'
 import { SampleColors } from './colors.js'
 
 // This class is responsible for initializing a new Sample game, including setting up the initial game state and
@@ -27,17 +27,6 @@ export class SampleGameInitializer extends BaseGameInitializer implements GameIn
     // Shuffling the remaining cards in a deck would be a reasonable example.
     initializeExplorationState(state: GameState): GameState {
         return state
-    }
-
-    // Because we have a config, we might want to validate it explicitly here. It is the only custom
-    // information that can exist on a Game object.  Maybe the config validation should be an abstract method
-    // instead of this override.
-    override initializeGame(game: Partial<Game>): Game {
-        const config = game.config
-        if (!SampleGameConfigValidator.Check(config)) {
-            throw Error(JSON.stringify([...SampleGameConfigValidator.Errors(config)]))
-        }
-        return super.initializeGame(game)
     }
 
     // Initialize the game state based on things like the number of players and the game config
