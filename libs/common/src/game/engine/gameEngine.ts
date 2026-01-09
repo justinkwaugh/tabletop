@@ -12,6 +12,7 @@ import { type GameDefinition } from '../definition/gameDefinition.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
+import { assert, assertExists } from '../../util/assertions.js'
 
 export type ActionResult = {
     processedActions: GameAction[]
@@ -116,13 +117,12 @@ export class GameEngine {
             (mode === RunMode.Multiple || processedActions.length === 0)
         ) {
             const currentAction = machineContext.nextPendingAction()
-            if (!currentAction) {
-                throw Error('Action to process was unexpectedly null')
-            }
+            assertExists(currentAction, 'Action to process was unexpectedly null')
 
-            if (!this.isPlayerAllowed(currentAction, hydratedState)) {
-                throw Error(`Player ${currentAction.playerId} is not an active player`)
-            }
+            assert(
+                this.isPlayerAllowed(currentAction, hydratedState),
+                `Player ${currentAction.playerId} is not an active player`
+            )
 
             const hydratedAction = this.definition.hydrator.hydrateAction(
                 structuredClone(currentAction)
@@ -132,11 +132,10 @@ export class GameEngine {
             }
 
             const stateHandler = this.getStateHandler(hydratedState)
-            if (!stateHandler.isValidAction(hydratedAction, machineContext)) {
-                throw Error(
-                    `Action of type ${hydratedAction.type} is not valid for the current machine state: ${hydratedState.machineState}`
-                )
-            }
+            assert(
+                stateHandler.isValidAction(hydratedAction, machineContext),
+                `Action of type ${hydratedAction.type} is not valid in state ${hydratedState.machineState}`
+            )
 
             hydratedAction.apply(hydratedState, machineContext)
 
@@ -173,9 +172,8 @@ export class GameEngine {
         const stateCopy = structuredClone(state)
         const initialChecksum = state.actionChecksum
         const undoPatch = action.undoPatch
-        if (!undoPatch) {
-            throw Error('Action has no undo patch')
-        }
+        assertExists(undoPatch, 'Action has no undo patch')
+
         jsonpatch.applyPatch(stateCopy, undoPatch as Operation[])
         if (stateCopy.actionChecksum === initialChecksum) {
             console.log('Undoing an old action, calculating checksum manually')
@@ -191,9 +189,7 @@ export class GameEngine {
 
     private getStateHandler(state: GameState): MachineStateHandler<HydratedAction> {
         const stateHandler = this.definition.stateHandlers[state.machineState]
-        if (!stateHandler) {
-            throw Error(`Unknown machine state: ${state.machineState}`)
-        }
+        assertExists(stateHandler, `Unknown machine state: ${state.machineState}`)
         return stateHandler
     }
 }

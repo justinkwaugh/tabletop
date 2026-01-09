@@ -4,7 +4,8 @@ import { Hydratable } from '../../util/hydration.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { GameAction } from '../engine/gameAction.js'
 import { PlayerState } from './playerState.js'
-import { PrngState } from '../components/prng.js'
+import { Prng, PrngState } from '../components/prng.js'
+import { assertExists } from '../../util/assertions.js'
 
 export enum GameResult {
     Abandoned = 'Abandoned',
@@ -38,6 +39,8 @@ export const GameState = Type.Object({
 export type UninitializedGameState = Omit<GameState, 'players' | 'turnManager' | 'machineState'>
 
 export interface HydratedGameState extends GameState {
+    getPrng(): Prng
+    getPlayerState(playerId?: string): PlayerState
     isActivePlayer(playerId: string): boolean
     recordAction(action: GameAction): void
     dehydrate(): GameState
@@ -59,24 +62,24 @@ export abstract class HydratableGameState<T extends TSchema, U extends PlayerSta
     declare result?: GameResult
     declare winningPlayerIds: string[]
 
+    getPrng(): Prng {
+        return new Prng(this.prng)
+    }
+
     getPlayerState(playerId?: string): U {
-        if (!playerId) {
-            throw Error('playerId is required to get player state')
-        }
+        assertExists(playerId, 'playerId is required to get player state')
         const player = this.players.find((player) => player.playerId === playerId)
-        if (!player) {
-            throw Error(`State for player ${playerId} not found`)
-        }
+        assertExists(player, `Player state for player ${playerId} not found`)
         return player
+    }
+
+    isActivePlayer(playerId: string): boolean {
+        return this.activePlayerIds.includes(playerId)
     }
 
     recordAction(action: GameAction): void {
         action.index = this.actionCount
         this.actionCount += 1
         this.actionChecksum = calculateActionChecksum(this.actionChecksum, [action])
-    }
-
-    isActivePlayer(playerId: string): boolean {
-        return this.activePlayerIds.includes(playerId)
     }
 }

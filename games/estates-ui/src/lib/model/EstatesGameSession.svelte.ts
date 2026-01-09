@@ -77,47 +77,47 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
     }
 
     async drawRoof(index: number) {
-        const action = this.createAction(DrawRoof, { visibleIndex: index })
+        const action = this.createPlayerAction(DrawRoof, { visibleIndex: index })
         await this.doAction(action)
     }
 
     async startAuction(piece: Piece) {
-        const action = this.createAction(StartAuction, { piece })
+        const action = this.createPlayerAction(StartAuction, { piece })
         await this.doAction(action)
     }
 
     async placeBid(amount: number) {
-        const action = this.createAction(PlaceBid, { amount })
+        const action = this.createPlayerAction(PlaceBid, { amount })
         await this.doAction(action)
     }
 
     async chooseRecipient(recipient: AuctionRecipient) {
-        const action = this.createAction(ChooseRecipient, { recipient })
+        const action = this.createPlayerAction(ChooseRecipient, { recipient })
         await this.doAction(action)
     }
 
     async placeCube(cube: Cube, coords: OffsetCoordinates) {
-        const action = this.createAction(PlaceCube, { cube, coords })
+        const action = this.createPlayerAction(PlaceCube, { cube, coords })
         await this.doAction(action)
     }
 
     async placeRoof(roof: Roof, coords: OffsetCoordinates) {
-        const action = this.createAction(PlaceRoof, { roof, coords })
+        const action = this.createPlayerAction(PlaceRoof, { roof, coords })
         await this.doAction(action)
     }
 
     async placeBarrier(barrier: Barrier, coords: OffsetCoordinates) {
-        const action = this.createAction(PlaceBarrier, { barrier, coords })
+        const action = this.createPlayerAction(PlaceBarrier, { barrier, coords })
         await this.doAction(action)
     }
 
     async removeBarrier(barrier: Barrier, coords: OffsetCoordinates) {
-        const action = this.createAction(RemoveBarrier, { barrier, coords })
+        const action = this.createPlayerAction(RemoveBarrier, { barrier, coords })
         await this.doAction(action)
     }
 
     async placeMayor(row: number) {
-        const action = this.createAction(PlaceMayor, { row })
+        const action = this.createPlayerAction(PlaceMayor, { row })
         await this.doAction(action)
     }
 
@@ -126,7 +126,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             return
         }
 
-        const action = this.createAction(DiscardPiece, { piece: this.gameState.chosenPiece })
+        const action = this.createPlayerAction(DiscardPiece, { piece: this.gameState.chosenPiece })
         await this.doAction(action)
     }
 
@@ -135,7 +135,7 @@ export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEs
             return
         }
 
-        const action = this.createAction(Embezzle, {})
+        const action = this.createPlayerAction(Embezzle)
         await this.doAction(action)
     }
 

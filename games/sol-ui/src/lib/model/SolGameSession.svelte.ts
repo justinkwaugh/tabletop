@@ -481,7 +481,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async launch() {
-        const action = this.createAction(Launch, {
+        const action = this.createPlayerAction(Launch, {
             mothership: this.chosenMothership,
             numSundivers: this.chosenNumDivers,
             destination: this.chosenDestination
@@ -582,7 +582,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             !this.gameState.getEffectTracking().passageSundiverId &&
             diverIds.length === 1
 
-        const action = this.createAction(hurl ? Hurl : Fly, {
+        const action = this.createPlayerAction(hurl ? Hurl : Fly, {
             sundiverIds: diverIds,
             start: this.chosenSource,
             destination: this.chosenDestination,
@@ -628,21 +628,21 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     async chooseMove() {
         assert(!this.isMoving, 'Invalid choose move')
 
-        const action = this.createAction(ChooseMove, {})
+        const action = this.createPlayerAction(ChooseMove)
         await this.doAction(action)
     }
 
     async chooseConvert() {
         assert(!this.isConverting, 'Invalid choose convert')
 
-        const action = this.createAction(ChooseConvert, {})
+        const action = this.createPlayerAction(ChooseConvert)
         await this.doAction(action)
     }
 
     async chooseActivate() {
         assert(!this.isActivating, 'Invalid choose activate')
 
-        const action = this.createAction(ChooseActivate, {})
+        const action = this.createPlayerAction(ChooseActivate)
         await this.doAction(action)
     }
 
@@ -701,7 +701,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         sundiverIds.push(secondSundiver.id)
 
-        const action = this.createAction(Convert, {
+        const action = this.createPlayerAction(Convert, {
             isGate: true,
             sundiverIds,
             coords: this.chosenSource,
@@ -739,7 +739,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         const sundiverIds = [firstSundiver.id, secondSundiver.id]
 
-        const action = this.createAction(Convert, {
+        const action = this.createPlayerAction(Convert, {
             isGate: false,
             stationType: StationType.EnergyNode,
             sundiverIds,
@@ -805,7 +805,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         assert(sundiverIds.length === 2, 'not enough sundivers to convert')
 
-        const action = this.createAction(Convert, {
+        const action = this.createPlayerAction(Convert, {
             isGate: false,
             stationType: StationType.SundiverFoundry,
             sundiverIds,
@@ -906,7 +906,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         assertExists(thirdSundiver, 'No third sundiver to convert gate')
         sundiverIds.push(thirdSundiver.id)
 
-        const action = this.createAction(Convert, {
+        const action = this.createPlayerAction(Convert, {
             isGate: false,
             stationType: StationType.TransmitTower,
             sundiverIds,
@@ -929,7 +929,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             assert(playerDivers.length >= 1, 'Not enough divers to activate station')
         }
 
-        const action = this.createAction(Activate, {
+        const action = this.createPlayerAction(Activate, {
             stationId: station.id,
             coords: cell.coords
         })
@@ -943,12 +943,12 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
     async activateBonus() {
         assert(this.isActivating, 'Invalid activate bonus')
-        const action = this.createAction(ActivateBonus, {})
+        const action = this.createPlayerAction(ActivateBonus)
         await this.doAction(action)
     }
 
     async pass(context?: PassContext) {
-        const action = this.createAction(Pass, {
+        const action = this.createPlayerAction(Pass, {
             context
         })
 
@@ -966,7 +966,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             throw new Error('Missing pillar guess')
         }
 
-        const action = this.createAction(DrawCards, {
+        const action = this.createPlayerAction(DrawCards, {
             suitGuess: this.pillarGuess
         })
 
@@ -976,7 +976,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     async chooseCard(suit: Suit) {
         assert(this.isChoosingCard, 'Invalid choose card')
 
-        const action = this.createAction(ChooseCard, {
+        const action = this.createPlayerAction(ChooseCard, {
             suit
         })
 
@@ -984,7 +984,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async activateEffect(effectType: EffectType) {
-        const action = this.createAction(ActivateEffect, {
+        const action = this.createPlayerAction(ActivateEffect, {
             effect: effectType
         })
 
@@ -992,7 +992,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async invade() {
-        const action = this.createAction(Invade, {
+        const action = this.createPlayerAction(Invade, {
             coords: this.chosenDestination
         })
 
@@ -1000,14 +1000,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async sacrifice() {
-        const action = this.createAction(Sacrifice, {
+        const action = this.createPlayerAction(Sacrifice, {
             coords: this.chosenDestination
         })
         await this.doAction(action)
     }
 
     async hatch() {
-        const action = this.createAction(Hatch, {
+        const action = this.createPlayerAction(Hatch, {
             coords: this.hatchLocation,
             targetPlayerId: this.hatchTarget
         })
@@ -1035,7 +1035,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
 
         assertExists(targetPlayerId, 'Could not find target player for blight')
 
-        const action = this.createAction(Blight, {
+        const action = this.createPlayerAction(Blight, {
             targetPlayerId: targetPlayerId,
             coords: this.chosenSource
         })
@@ -1044,19 +1044,19 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     async accelerate() {
-        const action = this.createAction(Accelerate, {
+        const action = this.createPlayerAction(Accelerate, {
             amount: this.accelerationAmount
         })
         await this.doAction(action)
     }
 
     async fuel() {
-        const action = this.createAction(Fuel, {})
+        const action = this.createPlayerAction(Fuel)
         await this.doAction(action)
     }
 
     async tribute() {
-        const action = this.createAction(Tribute, {
+        const action = this.createPlayerAction(Tribute, {
             coords: this.chosenSource
         })
         await this.doAction(action)
@@ -1068,7 +1068,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         const station = this.gameState.getActivatingStation(this.myPlayer.id)
         assertExists(station, 'No station to metamorphosize')
 
-        const action = this.createAction(Metamorphosize, {
+        const action = this.createPlayerAction(Metamorphosize, {
             stationId: station.id,
             stationType: this.metamorphosisType
         })
@@ -1080,14 +1080,14 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         assert(this.chain && this.chainStart, 'Invalid chain')
         const chainToSend = this.chainStart === 'beginning' ? this.chain : this.chain.toReversed()
 
-        const action = this.createAction(Chain, {
+        const action = this.createPlayerAction(Chain, {
             chain: chainToSend
         })
         await this.doAction(action)
     }
 
     async deconstruct() {
-        const action = this.createAction(Deconstruct, {
+        const action = this.createPlayerAction(Deconstruct, {
             coords: this.chosenSource
         })
         await this.doAction(action)

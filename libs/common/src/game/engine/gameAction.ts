@@ -3,6 +3,7 @@ import { DateType } from '../../util/typebox.js'
 import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
 import { MachineContext } from './machineContext.js'
+import Value from 'typebox/value'
 
 export enum ActionSource {
     User = 'user',
@@ -79,3 +80,14 @@ export abstract class HydratableAction<T extends TSchema>
 
     abstract apply(state: GameState, context?: MachineContext): void
 }
+
+export function createAction<T extends TSchema>(schema: T, data: Partial<Static<T>>): Static<T> {
+    // Create a new action with dummy values/defaults
+    const newAction = Value.Create(schema)
+    Object.assign(newAction, data)
+
+    // Validate the action
+    Value.Assert(schema, newAction)
+    return newAction
+}
+

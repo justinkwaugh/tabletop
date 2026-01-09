@@ -118,25 +118,25 @@ export class FreshFishGameSession extends GameSession<
     }
 
     createPlaceDiskAction(coords: OffsetTupleCoordinates): PlaceDisk {
-        return this.createAction(PlaceDisk, { coords })
+        return this.createPlayerAction(PlaceDisk, { coords })
     }
 
     createDrawTileAction(): DrawTile {
-        return this.createAction(DrawTile, {})
+        return this.createPlayerAction(DrawTile)
     }
 
     createPlaceBidAction(amount: number): PlaceBid {
-        return this.createAction(PlaceBid, {
+        return this.createPlayerAction(PlaceBid, {
             amount,
             simultaneousGroupId: this.gameState.currentAuction?.id
         })
     }
 
     createPlaceStallAction(coords: OffsetTupleCoordinates, goodsType: GoodsType): PlaceStall {
-        return this.createAction(PlaceStall, { coords, goodsType })
+        return this.createPlayerAction(PlaceStall, { coords, goodsType })
     }
 
     createPlaceMarketAction(coords: OffsetTupleCoordinates): PlaceMarket {
-        return this.createAction(PlaceMarket, { coords })
+        return this.createPlayerAction(PlaceMarket, { coords })
     }
 }

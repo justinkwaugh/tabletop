@@ -121,19 +121,19 @@ export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBr
 
     createPlaceMasterAction(village: number, masterType: MasterType): PlaceMaster {
         const placement: Placement = { village, masterType }
-        return this.createAction(PlaceMaster, { placement })
+        return this.createPlayerAction(PlaceMaster, { placement })
     }
 
     createRecruitStudentsAction(village: number, masterType: MasterType): RecruitStudents {
         const placement: Placement = { village, masterType }
-        return this.createAction(RecruitStudents, { placement })
+        return this.createPlayerAction(RecruitStudents, { placement })
     }
 
     createPassAction(): Pass {
-        return this.createAction(Pass, {})
+        return this.createPlayerAction(Pass)
     }
 
     createBeginJourneyAction(from: number, to: number): BeginJourney {
-        return this.createAction(BeginJourney, { from, to })
+        return this.createPlayerAction(BeginJourney, { from, to })
     }
 }

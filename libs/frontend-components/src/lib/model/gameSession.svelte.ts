@@ -17,7 +17,8 @@ import {
     PlayerAction,
     GameStorage,
     RunMode,
-    assertExists
+    assertExists,
+    createAction
 } from '@tabletop/common'
 import { watch } from 'runed'
 import { Value } from 'typebox/value'
@@ -544,18 +545,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         this.notificationService.stopListeningToGame(this.gameContext.game.id)
     }
 
-    createAction<T extends TSchema>(schema: T, data: Partial<Static<T>>): Static<T> {
-        // Create a new action with dummy values/defaults
-        const newAction = Value.Create(schema)
-
-        // Merge in the provided data and base action fields
+    createPlayerAction<T extends TSchema>(schema: T, data?: Partial<Static<T>>): Static<T> {
+        const actionData = data ?? {}
         const playerActionData = this.createPartialPlayerAction()
-        Object.assign(newAction, playerActionData, data)
-
-        // Validate the action
-        Value.Assert(schema, newAction)
-
-        return newAction
+        Object.assign(actionData, playerActionData)
+        return createAction(schema, actionData)
     }
 
     private createPartialPlayerAction(): Partial<PlayerAction> {

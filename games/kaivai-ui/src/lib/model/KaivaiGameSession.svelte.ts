@@ -340,7 +340,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     }
 
     createPlaceBidAction(bid: number): PlaceBid {
-        return this.createAction(PlaceBid, { amount: bid })
+        return this.createPlayerAction(PlaceBid, { amount: bid })
     }
 
     createBuildAction({
@@ -354,7 +354,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         boatId?: string
         boatCoords?: AxialCoordinates
     }): Build {
-        return this.createAction(Build, {
+        return this.createPlayerAction(Build, {
             coords,
             hutType,
             boatId,
@@ -369,7 +369,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         boatId: string
         boatCoords: AxialCoordinates
     }): Fish {
-        return this.createAction(Fish, {
+        return this.createPlayerAction(Fish, {
             boatId,
             boatCoords: $state.snapshot(boatCoords),
             revealsInfo: !this.game.config.lucklessFishing
@@ -385,7 +385,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         boatCoords: AxialCoordinates
         deliveries: Delivery[]
     }): Deliver {
-        return this.createAction(Deliver, {
+        return this.createPlayerAction(Deliver, {
             boatId,
             boatCoords,
             deliveries
@@ -399,38 +399,38 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         boatId: string
         boatCoords: AxialCoordinates
     }): Move {
-        return this.createAction(Move, {
+        return this.createPlayerAction(Move, {
             boatId,
             boatCoords: $state.snapshot(boatCoords)
         })
     }
 
     createIncreaseAction(): Increase {
-        return this.createAction(Increase, {})
+        return this.createPlayerAction(Increase)
     }
 
     createCelebrateAction(islandId: string): Celebrate {
-        return this.createAction(Celebrate, { islandId })
+        return this.createPlayerAction(Celebrate, { islandId })
     }
 
     createMoveGodAction(coords: AxialCoordinates) {
-        return this.createAction(MoveGod, { coords })
+        return this.createPlayerAction(MoveGod, { coords })
     }
 
     createPassAction(): Pass {
-        return this.createAction(Pass, {})
+        return this.createPlayerAction(Pass)
     }
 
     createSacrificeAction(): Sacrifice {
-        return this.createAction(Sacrifice, {})
+        return this.createPlayerAction(Sacrifice)
     }
 
     createChooseScoringIslandAction(islandId: string): ChooseScoringIsland {
-        return this.createAction(ChooseScoringIsland, { islandId })
+        return this.createPlayerAction(ChooseScoringIsland, { islandId })
     }
 
     createPlaceScoringBidAction(bid: number): PlaceScoringBid {
-        return this.createAction(PlaceScoringBid, {
+        return this.createPlayerAction(PlaceScoringBid, {
             amount: bid,
             simultaneousGroupId: `bid-${this.gameState.chosenIsland}`
         })
