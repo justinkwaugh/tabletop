@@ -18,7 +18,7 @@ import firekeeper from '$lib/images/firekeeper.png'
 import priest from '$lib/images/priest.png'
 import yetiwhisperer from '$lib/images/yetiwhisperer.png'
 import astrologer from '$lib/images/astrologer.png'
-import { GameSession, GameSessionMode } from '@tabletop/frontend-components'
+import { GameSession } from '@tabletop/frontend-components'
 import type { GameAction } from '@tabletop/common'
 
 export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBridgesGameState> {
@@ -121,22 +121,19 @@ export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBr
 
     createPlaceMasterAction(village: number, masterType: MasterType): PlaceMaster {
         const placement: Placement = { village, masterType }
-        return { ...this.createBaseAction(ActionType.PlaceMaster), placement } as PlaceMaster
+        return this.createAction(PlaceMaster, { placement })
     }
 
     createRecruitStudentsAction(village: number, masterType: MasterType): RecruitStudents {
         const placement: Placement = { village, masterType }
-        return {
-            ...this.createBaseAction(ActionType.RecruitStudents),
-            placement
-        } as RecruitStudents
+        return this.createAction(RecruitStudents, { placement })
     }
 
     createPassAction(): Pass {
-        return { ...this.createBaseAction(ActionType.Pass) } as Pass
+        return this.createAction(Pass, {})
     }
 
     createBeginJourneyAction(from: number, to: number): BeginJourney {
-        return { ...this.createBaseAction(ActionType.BeginJourney), from, to } as BeginJourney
+        return this.createAction(BeginJourney, { from, to })
     }
 }
