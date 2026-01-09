@@ -36,7 +36,9 @@ import {
     PlaceScoringBid,
     isPass,
     PassReason,
-    HydratedKaivaiGameState
+    HydratedKaivaiGameState,
+    MoveGod,
+    Sacrifice
 } from '@tabletop/kaivai'
 import {
     coordinatesToNumber,
@@ -338,7 +340,7 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     }
 
     createPlaceBidAction(bid: number): PlaceBid {
-        return { ...this.createBaseAction(ActionType.PlaceBid), amount: bid } as PlaceBid
+        return this.createAction(PlaceBid, { amount: bid })
     }
 
     createBuildAction({
@@ -352,13 +354,12 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         boatId?: string
         boatCoords?: AxialCoordinates
     }): Build {
-        return {
-            ...this.createBaseAction(ActionType.Build),
+        return this.createAction(Build, {
             coords,
             hutType,
             boatId,
             boatCoords: $state.snapshot(boatCoords)
-        } as Build
+        })
     }
 
     createFishAction({
@@ -368,12 +369,11 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         boatId: string
         boatCoords: AxialCoordinates
     }): Fish {
-        return {
-            ...this.createBaseAction(ActionType.Fish),
+        return this.createAction(Fish, {
             boatId,
             boatCoords: $state.snapshot(boatCoords),
             revealsInfo: !this.game.config.lucklessFishing
-        } as Fish
+        })
     }
 
     createDeliverAction({
@@ -385,12 +385,11 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         boatCoords: AxialCoordinates
         deliveries: Delivery[]
     }): Deliver {
-        return {
-            ...this.createBaseAction(ActionType.Deliver),
+        return this.createAction(Deliver, {
             boatId,
             boatCoords,
             deliveries
-        } as Deliver
+        })
     }
 
     createMoveAction({
@@ -400,46 +399,41 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         boatId: string
         boatCoords: AxialCoordinates
     }): Move {
-        return {
-            ...this.createBaseAction(ActionType.Move),
+        return this.createAction(Move, {
             boatId,
             boatCoords: $state.snapshot(boatCoords)
-        } as Move
+        })
     }
 
     createIncreaseAction(): Increase {
-        return { ...(this.createBaseAction(ActionType.Increase) as Increase) }
+        return this.createAction(Increase, {})
     }
 
     createCelebrateAction(islandId: string): Celebrate {
-        return { ...(this.createBaseAction(ActionType.Celebrate) as Celebrate), islandId }
+        return this.createAction(Celebrate, { islandId })
     }
 
     createMoveGodAction(coords: AxialCoordinates) {
-        return { ...this.createBaseAction(ActionType.MoveGod), coords }
+        return this.createAction(MoveGod, { coords })
     }
 
     createPassAction(): Pass {
-        return { ...this.createBaseAction(ActionType.Pass) } as Pass
+        return this.createAction(Pass, {})
     }
 
-    createSacrificeAction(): Pass {
-        return { ...this.createBaseAction(ActionType.Sacrifice) } as Pass
+    createSacrificeAction(): Sacrifice {
+        return this.createAction(Sacrifice, {})
     }
 
     createChooseScoringIslandAction(islandId: string): ChooseScoringIsland {
-        return {
-            ...(this.createBaseAction(ActionType.ChooseScoringIsland) as ChooseScoringIsland),
-            islandId
-        }
+        return this.createAction(ChooseScoringIsland, { islandId })
     }
 
     createPlaceScoringBidAction(bid: number): PlaceScoringBid {
-        return {
-            ...this.createBaseAction(ActionType.PlaceScoringBid),
+        return this.createAction(PlaceScoringBid, {
             amount: bid,
             simultaneousGroupId: `bid-${this.gameState.chosenIsland}`
-        } as PlaceScoringBid
+        })
     }
 
     override shouldAutoStepAction(action: GameAction) {
