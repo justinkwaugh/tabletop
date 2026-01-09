@@ -474,7 +474,7 @@ export class HydratedGameBoard
     ): OffsetTupleCoordinates | undefined {
         let [x, y] = coords
         let cell = this.getCell([x, y])
-        while (this.isOffboardCell(cell)) {
+        while (this.isOffboardCell(cell) || !cell) {
             cell = this.getNeighbor([x, y], direction)
             switch (direction) {
                 case CardinalDirection.North:
