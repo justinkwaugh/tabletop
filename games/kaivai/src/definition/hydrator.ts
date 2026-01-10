@@ -1,9 +1,7 @@
 import {
     GameAction,
     type GameHydrator,
-    GameState,
-    type HydratedAction,
-    type HydratedGameState
+    type HydratedAction
 } from '@tabletop/common'
 import { KaivaiGameState, HydratedKaivaiGameState } from '../model/gameState.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
@@ -25,7 +23,7 @@ import {
 import { HydratedPlaceScoringBid, isPlaceScoringBid } from '../actions/placeScoringBid.js'
 import { HydratedScoreIsland, isScoreIsland } from '../actions/scoreIsland.js'
 
-export class KaivaiHydrator implements GameHydrator {
+export class KaivaiHydrator implements GameHydrator<KaivaiGameState, HydratedKaivaiGameState> {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isPass(data): {
@@ -79,7 +77,7 @@ export class KaivaiHydrator implements GameHydrator {
         }
     }
 
-    hydrateState(state: GameState): HydratedGameState {
-        return new HydratedKaivaiGameState(state as KaivaiGameState)
+    hydrateState(state: KaivaiGameState): HydratedKaivaiGameState {
+        return new HydratedKaivaiGameState(state)
     }
 }

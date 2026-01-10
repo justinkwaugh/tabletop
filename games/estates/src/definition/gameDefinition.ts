@@ -1,11 +1,12 @@
 import { DefaultStateLogger, type GameDefinition } from '@tabletop/common'
+import type { EstatesGameState, HydratedEstatesGameState } from '../model/gameState.js'
 import { EstatesHydrator } from './hydrator.js'
 import { EstatesGameInitializer } from './gameInitializer.js'
 import { EstatesApiActions } from './apiActions.js'
 import { EstatesStateHandlers } from './stateHandlers.js'
 import { EstatesConfigurator } from './configurator.js'
 
-export const Definition = <GameDefinition>{
+export const Definition = <GameDefinition<EstatesGameState, HydratedEstatesGameState>>{
     id: 'estates',
 
     metadata: {

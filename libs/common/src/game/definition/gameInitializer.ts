@@ -9,17 +9,23 @@ import { Value } from 'typebox/value'
 import { GameDefinition } from './gameDefinition.js'
 import { assertExists } from '../../util/assertions.js'
 
-export interface GameInitializer {
-    initializeGame(game: Partial<Game>, definition: GameDefinition): Game
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState
-    initializeExplorationState(state: GameState): GameState
+export interface GameInitializer<
+    T extends GameState = GameState,
+    U extends HydratedGameState = HydratedGameState
+> {
+    initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game
+    initializeGameState(game: Game, state: UninitializedGameState): U
+    initializeExplorationState(state: T): T
 }
 
-export abstract class BaseGameInitializer implements GameInitializer {
-    abstract initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState
-    abstract initializeExplorationState(state: GameState): GameState
+export abstract class BaseGameInitializer<
+    T extends GameState = GameState,
+    U extends HydratedGameState = HydratedGameState
+> implements GameInitializer<T, U> {
+    abstract initializeGameState(game: Game, state: UninitializedGameState): U
+    abstract initializeExplorationState(state: T): T
 
-    initializeGame(game: Partial<Game>, definition: GameDefinition): Game {
+    initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game {
         if (game.config) {
             assertExists(
                 definition.configurator,

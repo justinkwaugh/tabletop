@@ -3,16 +3,9 @@ import {
     type RandomFunction,
     BaseGameInitializer,
     Prng,
-    type UninitializedGameState,
-    GameState
+    type UninitializedGameState
 } from '@tabletop/common'
-import {
-    Game,
-    Player,
-    type HydratedGameState,
-    HydratedSimpleTurnManager,
-    shuffle
-} from '@tabletop/common'
+import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
 import { BridgesGameState, HydratedBridgesGameState } from '../model/gameState.js'
 import { BridgesPlayerState } from '../model/playerState.js'
 
@@ -22,12 +15,18 @@ import { MasterType } from './masterType.js'
 import { Village } from '../components/village.js'
 import { BridgesColors } from './colors.js'
 
-export class BridgesGameInitializer extends BaseGameInitializer implements GameInitializer {
-    initializeExplorationState(state: GameState): GameState {
+export class BridgesGameInitializer
+    extends BaseGameInitializer<BridgesGameState, HydratedBridgesGameState>
+    implements GameInitializer<BridgesGameState, HydratedBridgesGameState>
+{
+    initializeExplorationState(state: BridgesGameState): BridgesGameState {
         return state
     }
 
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState
+    ): HydratedBridgesGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length

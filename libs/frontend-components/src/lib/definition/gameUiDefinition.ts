@@ -41,7 +41,7 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
 }
 
 export interface GameUiDefinition<T extends GameState, U extends HydratedGameState & T>
-    extends GameDefinition {
+    extends GameDefinition<T, U> {
     getTableComponent: () => Promise<Component>
     sessionClass: GameSessionConstructor<T, U>
     colorizer: GameColorizer

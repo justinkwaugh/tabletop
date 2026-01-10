@@ -1,4 +1,5 @@
 import { DefaultStateLogger, type GameDefinition } from '@tabletop/common'
+import type { HydratedSampleGameState, SampleGameState } from '../model/gameState.js'
 import { SampleHydrator } from './hydrator.js'
 import { SampleGameInitializer } from './initializer.js'
 import { SampleApiActions } from './apiActions.js'
@@ -7,7 +8,8 @@ import { SampleColors } from './colors.js'
 import { SampleConfigurator } from './configurator.js'
 
 // The export MUST be named Definition and be of type GameDefinition
-export const Definition: GameDefinition = <GameDefinition>{
+export const Definition: GameDefinition<SampleGameState, HydratedSampleGameState> =
+    <GameDefinition<SampleGameState, HydratedSampleGameState>>{
     id: 'sample',
 
     metadata: {

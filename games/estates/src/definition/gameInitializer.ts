@@ -4,16 +4,9 @@ import {
     BaseGameInitializer,
     Prng,
     Color,
-    type UninitializedGameState,
-    GameState
+    type UninitializedGameState
 } from '@tabletop/common'
-import {
-    Game,
-    Player,
-    type HydratedGameState,
-    HydratedSimpleTurnManager,
-    shuffle
-} from '@tabletop/common'
+import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
 import { EstatesGameState, HydratedEstatesGameState } from '../model/gameState.js'
 import { EstatesPlayerState } from '../model/playerState.js'
 
@@ -24,14 +17,20 @@ import { HydratedRoofBag } from '../components/roofBag.js'
 import { Cube } from '../components/cube.js'
 import { PieceType } from '../components/pieceType.js'
 
-export class EstatesGameInitializer extends BaseGameInitializer implements GameInitializer {
-    initializeExplorationState(state: GameState): GameState {
-        const hydratedState = new HydratedEstatesGameState(state as EstatesGameState)
+export class EstatesGameInitializer
+    extends BaseGameInitializer<EstatesGameState, HydratedEstatesGameState>
+    implements GameInitializer<EstatesGameState, HydratedEstatesGameState>
+{
+    initializeExplorationState(state: EstatesGameState): EstatesGameState {
+        const hydratedState = new HydratedEstatesGameState(state)
         hydratedState.roofs.shuffle()
         return hydratedState.dehydrate()
     }
 
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState
+    ): HydratedEstatesGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game)
         const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)

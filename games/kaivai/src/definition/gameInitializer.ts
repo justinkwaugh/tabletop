@@ -9,18 +9,11 @@ import {
     HydratedPhaseManager,
     Prng,
     type UninitializedGameState,
-    GameState,
     HexOrientation,
     hexRingPattern,
     distanceAxial
 } from '@tabletop/common'
-import {
-    Game,
-    Player,
-    type HydratedGameState,
-    HydratedSimpleTurnManager,
-    shuffle
-} from '@tabletop/common'
+import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
 import { HydratedKaivaiGameState, KaivaiGameState } from '../model/gameState.js'
 import { KaivaiPlayerState } from '../model/playerState.js'
 
@@ -31,12 +24,18 @@ import { Cell, CellType, CultCell } from './cells.js'
 import { Island } from '../components/island.js'
 import { KaivaiGameConfig, Ruleset } from './gameConfig.js'
 
-export class KaivaiGameInitializer extends BaseGameInitializer implements GameInitializer {
-    initializeExplorationState(state: GameState): GameState {
+export class KaivaiGameInitializer
+    extends BaseGameInitializer<KaivaiGameState, HydratedKaivaiGameState>
+    implements GameInitializer<KaivaiGameState, HydratedKaivaiGameState>
+{
+    initializeExplorationState(state: KaivaiGameState): KaivaiGameState {
         return state
     }
 
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState
+    ): HydratedKaivaiGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
         const numPlayers = game.players.length

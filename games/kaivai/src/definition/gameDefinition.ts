@@ -1,4 +1,5 @@
 import { DefaultStateLogger, type GameDefinition } from '@tabletop/common'
+import type { HydratedKaivaiGameState, KaivaiGameState } from '../model/gameState.js'
 import { KaivaiHydrator } from './hydrator.js'
 import { KaivaiGameInitializer } from './gameInitializer.js'
 import { KaivaiApiActions } from './apiActions.js'
@@ -6,7 +7,7 @@ import { KaivaiStateHandlers } from './stateHandlers.js'
 import { KaivaiColors } from './colors.js'
 import { KaivaiConfigurator } from './configurator.js'
 
-export const Definition = <GameDefinition>{
+export const Definition = <GameDefinition<KaivaiGameState, HydratedKaivaiGameState>>{
     id: 'kaivai',
 
     metadata: {

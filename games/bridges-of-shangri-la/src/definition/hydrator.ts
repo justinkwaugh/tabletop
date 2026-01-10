@@ -1,9 +1,7 @@
 import {
     GameAction,
     type GameHydrator,
-    GameState,
-    type HydratedAction,
-    type HydratedGameState
+    type HydratedAction
 } from '@tabletop/common'
 import { BridgesGameState, HydratedBridgesGameState } from '../model/gameState.js'
 import { HydratedPlaceMaster, isPlaceMaster } from '../actions/placeMaster.js'
@@ -11,7 +9,9 @@ import { HydratedRecruitStudents, isRecruitStudents } from '../actions/recruitSt
 import { HydratedBeginJourney, isBeginJourney } from '../actions/beginJourney.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 
-export class BridgesHydrator implements GameHydrator {
+export class BridgesHydrator
+    implements GameHydrator<BridgesGameState, HydratedBridgesGameState>
+{
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isPlaceMaster(data): {
@@ -32,7 +32,7 @@ export class BridgesHydrator implements GameHydrator {
         }
     }
 
-    hydrateState(state: GameState): HydratedGameState {
-        return new HydratedBridgesGameState(state as BridgesGameState)
+    hydrateState(state: BridgesGameState): HydratedBridgesGameState {
+        return new HydratedBridgesGameState(state)
     }
 }
