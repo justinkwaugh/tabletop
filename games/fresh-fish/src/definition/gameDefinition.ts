@@ -1,4 +1,5 @@
 import { type GameDefinition } from '@tabletop/common'
+import type { FreshFishGameState, HydratedFreshFishGameState } from '../model/gameState.js'
 import { FreshFishHydrator } from './hydrator.js'
 import { FreshFishGameInitializer } from './gameInitializer.js'
 import { FreshFishStateLogger } from '../util/stateLogger.js'
@@ -7,7 +8,7 @@ import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
 import { FreshFishConfigurator } from './configurator.js'
 
-export const Definition = <GameDefinition>{
+export const Definition = <GameDefinition<FreshFishGameState, HydratedFreshFishGameState>>{
     id: 'freshfish',
 
     metadata: {

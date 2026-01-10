@@ -7,14 +7,18 @@ import { type HydratedAction } from '../engine/gameAction.js'
 import { type GameStateLogger } from './gameStateLogger.js'
 import { type GameConfigurator } from './gameConfigurator.js'
 import { Color } from '../model/colors.js'
+import { GameState, type HydratedGameState } from '../model/gameState.js'
 
-export interface GameDefinition {
+export interface GameDefinition<
+    T extends GameState = GameState,
+    U extends HydratedGameState = HydratedGameState
+> {
     id: string
     metadata: GameMetadata
 
-    initializer: GameInitializer
+    initializer: GameInitializer<T, U>
     configurator?: GameConfigurator
-    hydrator: GameHydrator
+    hydrator: GameHydrator<T, U>
 
     stateHandlers: Record<string, MachineStateHandler<HydratedAction>>
 

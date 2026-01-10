@@ -1,18 +1,11 @@
 import {
     BaseGameInitializer,
     type GameInitializer,
-    GameState,
     Prng,
     type RandomFunction,
     type UninitializedGameState
 } from '@tabletop/common'
-import {
-    Game,
-    Player,
-    type HydratedGameState,
-    HydratedSimpleTurnManager,
-    shuffle
-} from '@tabletop/common'
+import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
 import { FreshFishGameState, HydratedFreshFishGameState } from '../model/gameState.js'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from '../model/playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
@@ -25,14 +18,20 @@ import { generateBoard } from '../util/boardGenerator.js'
 import { FreshFishColors } from './colors.js'
 import { FreshFishGameConfig } from './gameConfig.js'
 
-export class FreshFishGameInitializer extends BaseGameInitializer implements GameInitializer {
-    initializeExplorationState(state: GameState): GameState {
-        const hydratedState = new HydratedFreshFishGameState(state as FreshFishGameState)
+export class FreshFishGameInitializer
+    extends BaseGameInitializer<FreshFishGameState, HydratedFreshFishGameState>
+    implements GameInitializer<FreshFishGameState, HydratedFreshFishGameState>
+{
+    initializeExplorationState(state: FreshFishGameState): FreshFishGameState {
+        const hydratedState = new HydratedFreshFishGameState(state)
         hydratedState.tileBag.shuffle()
         return hydratedState.dehydrate()
     }
 
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState
+    ): HydratedFreshFishGameState {
         const prng = new Prng(state.prng)
         const config = game.config as FreshFishGameConfig
 

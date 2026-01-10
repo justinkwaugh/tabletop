@@ -1,11 +1,12 @@
 import { DefaultStateLogger, type GameDefinition } from '@tabletop/common'
+import type { BridgesGameState, HydratedBridgesGameState } from '../model/gameState.js'
 import { BridgesHydrator } from './hydrator.js'
 import { BridgesGameInitializer } from './gameInitializer.js'
 import { BridgesApiActions } from './apiActions.js'
 import { BridgesStateHandlers } from './stateHandlers.js'
 import { BridgesColors } from './colors.js'
 
-export const Definition = <GameDefinition>{
+export const Definition = <GameDefinition<BridgesGameState, HydratedBridgesGameState>>{
     id: 'bridges',
 
     metadata: {

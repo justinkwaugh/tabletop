@@ -63,6 +63,10 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
     animationContext: AnimationContext
 }) => Promise<void>
 
+type PlayerStateOf<U extends HydratedGameState> = U extends HydratedGameState<infer P>
+    ? P
+    : never
+
 export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     private debug? = false
 
@@ -278,6 +282,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
         return this.gameContext.game.players.find((player) => player.userId === sessionUser.id)
     })
+
+    myPlayerState: PlayerStateOf<U> | undefined = $derived.by(() =>
+        this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
+    )
 
     isMyTurn: boolean = $derived.by(() => {
         if (

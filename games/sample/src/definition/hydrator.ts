@@ -1,9 +1,7 @@
 import {
     GameAction,
     type GameHydrator,
-    GameState,
-    type HydratedAction,
-    type HydratedGameState
+    type HydratedAction
 } from '@tabletop/common'
 import { HydratedAddAmount, isAddAmount } from '../actions/addAmount.js'
 import { HydratedSampleGameState, SampleGameState } from '../model/gameState.js'
@@ -11,7 +9,9 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Sample game.  Used by the game engine
-export class SampleHydrator implements GameHydrator {
+export class SampleHydrator
+    implements GameHydrator<SampleGameState, HydratedSampleGameState>
+{
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isAddAmount(data): {
@@ -26,7 +26,7 @@ export class SampleHydrator implements GameHydrator {
         }
     }
 
-    hydrateState(state: GameState): HydratedGameState {
-        return new HydratedSampleGameState(state as SampleGameState)
+    hydrateState(state: SampleGameState): HydratedSampleGameState {
+        return new HydratedSampleGameState(state)
     }
 }

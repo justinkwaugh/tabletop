@@ -1,4 +1,5 @@
 import { DefaultStateLogger, type GameDefinition } from '@tabletop/common'
+import type { HydratedSolGameState, SolGameState } from '../model/gameState.js'
 import { SolHydrator } from './hydrator.js'
 import { SolGameInitializer } from './gameInitializer.js'
 import { SolApiActions } from './apiActions.js'
@@ -6,7 +7,7 @@ import { SolStateHandlers } from './stateHandlers.js'
 import { SolColors } from './colors.js'
 import { SolConfigurator } from './configurator.js'
 
-export const Definition = <GameDefinition>{
+export const Definition = <GameDefinition<SolGameState, HydratedSolGameState>>{
     id: 'sol',
 
     metadata: {
