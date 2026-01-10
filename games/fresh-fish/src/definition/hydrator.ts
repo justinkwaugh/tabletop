@@ -1,9 +1,7 @@
 import {
     GameAction,
     type GameHydrator,
-    GameState,
-    type HydratedAction,
-    type HydratedGameState
+    type HydratedAction
 } from '@tabletop/common'
 import { FreshFishGameState, HydratedFreshFishGameState } from '../model/gameState.js'
 
@@ -16,7 +14,9 @@ import { HydratedPlaceStall, isPlaceStall } from '../actions/placeStall.js'
 import { HydratedEndAuction, isEndAuction } from '../actions/endAuction.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 
-export class FreshFishHydrator implements GameHydrator {
+export class FreshFishHydrator
+    implements GameHydrator<FreshFishGameState, HydratedFreshFishGameState>
+{
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isStartAuction(data): {
@@ -49,7 +49,7 @@ export class FreshFishHydrator implements GameHydrator {
         }
     }
 
-    hydrateState(state: GameState): HydratedGameState {
-        return new HydratedFreshFishGameState(state as FreshFishGameState)
+    hydrateState(state: FreshFishGameState): HydratedFreshFishGameState {
+        return new HydratedFreshFishGameState(state)
     }
 }

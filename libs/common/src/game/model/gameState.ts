@@ -39,23 +39,24 @@ export const GameState = Type.Object({
 
 export type UninitializedGameState = Omit<GameState, 'players' | 'turnManager' | 'machineState'>
 
-export interface HydratedGameState extends GameState {
+export interface HydratedGameState<P extends PlayerState = PlayerState> extends GameState {
+    players: P[]
     getPrng(): Prng
-    getPlayerState(playerId?: string): PlayerState
+    getPlayerState(playerId?: string): P
     isActivePlayer(playerId: string): boolean
     recordAction(action: GameAction): void
     isAtLeastVersion(version: number): boolean
     dehydrate(): GameState
 }
 
-export abstract class HydratableGameState<T extends TSchema, U extends PlayerState>
+export abstract class HydratableGameState<T extends TSchema, P extends PlayerState>
     extends Hydratable<T>
-    implements HydratedGameState
+    implements HydratedGameState<P>
 {
     declare systemVersion?: number
     declare id: string
     declare gameId: string
-    declare players: U[]
+    declare players: P[]
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number
@@ -69,7 +70,7 @@ export abstract class HydratableGameState<T extends TSchema, U extends PlayerSta
         return new Prng(this.prng)
     }
 
-    getPlayerState(playerId?: string): U {
+    getPlayerState(playerId?: string): P {
         assertExists(playerId, 'playerId is required to get player state')
         const player = this.players.find((player) => player.playerId === playerId)
         assertExists(player, `Player state for player ${playerId} not found`)

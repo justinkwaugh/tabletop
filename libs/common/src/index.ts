@@ -14,7 +14,7 @@ export * from './game/components/phaseManager.js'
 export * from './game/components/prng.js'
 
 export * from './game/definition/gameDefinition.js'
-export * from './game/definition/gameConfig.js'
+export * from './game/model/gameConfig.js'
 export * from './game/definition/gameConfigurator.js'
 export * from './game/definition/gameHydrator.js'
 export * from './game/definition/gameInitializer.js'

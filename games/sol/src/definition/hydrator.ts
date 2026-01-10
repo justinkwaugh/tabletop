@@ -1,9 +1,7 @@
 import {
     GameAction,
     type GameHydrator,
-    GameState,
-    type HydratedAction,
-    type HydratedGameState
+    type HydratedAction
 } from '@tabletop/common'
 import { SolGameState, HydratedSolGameState } from '../model/gameState.js'
 import { HydratedLaunch, isLaunch } from '../actions/launch.js'
@@ -31,7 +29,7 @@ import { HydratedMetamorphosize, isMetamorphosize } from '../actions/metamorphos
 import { HydratedChain, isChain } from '../actions/chain.js'
 import { HydratedDeconstruct, isDeconstruct } from '../actions/deconstruct.js'
 
-export class SolHydrator implements GameHydrator {
+export class SolHydrator implements GameHydrator<SolGameState, HydratedSolGameState> {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isChooseMove(data): {
@@ -112,7 +110,7 @@ export class SolHydrator implements GameHydrator {
         }
     }
 
-    hydrateState(state: GameState): HydratedGameState {
-        return new HydratedSolGameState(state as SolGameState)
+    hydrateState(state: SolGameState): HydratedSolGameState {
+        return new HydratedSolGameState(state)
     }
 }

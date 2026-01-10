@@ -4,16 +4,9 @@ import {
     BaseGameInitializer,
     Prng,
     PlayerState,
-    type UninitializedGameState,
-    GameState
+    type UninitializedGameState
 } from '@tabletop/common'
-import {
-    Game,
-    Player,
-    type HydratedGameState,
-    HydratedSimpleTurnManager,
-    shuffle
-} from '@tabletop/common'
+import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
 import { HydratedSolGameState, SolGameState } from '../model/gameState.js'
 import { HydratedSolPlayerState, SolPlayerState } from '../model/playerState.js'
 
@@ -30,14 +23,17 @@ import { Effect, EffectColor, Effects, EffectType } from '../components/effects.
 
 const MOTHERSHIP_SPACING = [0, 6, 4, 3, 3]
 
-export class SolGameInitializer extends BaseGameInitializer implements GameInitializer {
-    initializeExplorationState(state: GameState): GameState {
-        const hydratedState = new HydratedSolGameState(state as SolGameState)
+export class SolGameInitializer
+    extends BaseGameInitializer<SolGameState, HydratedSolGameState>
+    implements GameInitializer<SolGameState, HydratedSolGameState>
+{
+    initializeExplorationState(state: SolGameState): SolGameState {
+        const hydratedState = new HydratedSolGameState(state)
         hydratedState.deck.shuffle()
         return hydratedState.dehydrate()
     }
 
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedGameState {
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedSolGameState {
         const prng = new Prng(state.prng)
 
         const players = this.initializePlayers(game, prng)

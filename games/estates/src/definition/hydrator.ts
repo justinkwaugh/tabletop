@@ -1,9 +1,7 @@
 import {
     GameAction,
     type GameHydrator,
-    GameState,
-    type HydratedAction,
-    type HydratedGameState
+    type HydratedAction
 } from '@tabletop/common'
 import { EstatesGameState, HydratedEstatesGameState } from '../model/gameState.js'
 import { HydratedDrawRoof, isDrawRoof } from '../actions/drawRoof.js'
@@ -19,7 +17,9 @@ import { HydratedRemoveBarrier, isRemoveBarrier } from '../actions/removeBarrier
 import { HydratedDiscardPiece, isDiscardPiece } from '../actions/discardPiece.js'
 import { HydratedEmbezzle, isEmbezzle } from '../actions/embezzle.js'
 
-export class EstatesHydrator implements GameHydrator {
+export class EstatesHydrator
+    implements GameHydrator<EstatesGameState, HydratedEstatesGameState>
+{
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isDrawRoof(data): {
@@ -64,7 +64,7 @@ export class EstatesHydrator implements GameHydrator {
         }
     }
 
-    hydrateState(state: GameState): HydratedGameState {
-        return new HydratedEstatesGameState(state as EstatesGameState)
+    hydrateState(state: EstatesGameState): HydratedEstatesGameState {
+        return new HydratedEstatesGameState(state)
     }
 }

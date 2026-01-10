@@ -1,5 +1,5 @@
 import { type HydratedGameState } from '../model/gameState.js'
-import { GameConfig } from '../definition/gameConfig.js'
+import { GameConfig } from '../model/gameConfig.js'
 import { ActionSource, createAction, GameAction } from './gameAction.js'
 import { nanoid } from 'nanoid'
 import { Static, TSchema } from 'typebox'
