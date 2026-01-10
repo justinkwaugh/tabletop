@@ -2,7 +2,7 @@ import { Type, type Static } from 'typebox'
 import { DateType } from '../../util/typebox.js'
 import { Player } from './player.js'
 import { GameResult, GameState } from './gameState.js'
-import { GameConfig } from '../definition/gameConfig.js'
+import { GameConfig } from './gameConfig.js'
 import { Compile } from 'typebox/compile'
 
 export enum GameStatus {
