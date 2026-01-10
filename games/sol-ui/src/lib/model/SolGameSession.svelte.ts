@@ -75,10 +75,6 @@ export type PlayerStateOverride = {
 }
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
-    myPlayerState = $derived.by(() =>
-        this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
-    )
-
     turnPlayer: HydratedSolPlayerState | undefined = $derived.by(() => {
         const playerId = this.gameState.turnManager.currentTurn()?.playerId
         if (!playerId) {

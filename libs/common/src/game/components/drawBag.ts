@@ -61,7 +61,7 @@ export abstract class HydratedDrawBag<T, U extends TSchema> extends Hydratable<U
     }
 
     // For reasons I don't remember, the original implementation never adjusted the items array
-    // which I think was a mistake.  This will pare any old items down tot the remaining count.
+    // which I think was a mistake.  This will pare any old items down to the remaining count.
     private fixOldBags() {
         if (this.items.length > this.remaining) {
             this.items.splice(this.remaining)
