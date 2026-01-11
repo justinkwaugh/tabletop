@@ -28,9 +28,6 @@ export class BridgesGameSession extends GameSession<BridgesGameState, HydratedBr
     highlightedVillages: number[] = $state([])
     highlightedMasterType: MasterType | undefined = $state(undefined)
 
-    myPlayerState = $derived.by(() =>
-        this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
-    )
     myTurnCount = $derived.by(() => {
         if (!this.myPlayer?.id) {
             return 0

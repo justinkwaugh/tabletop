@@ -27,10 +27,6 @@ import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
 export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEstatesGameState> {
     chosenAction: string | undefined = $state(undefined)
 
-    myPlayerState = $derived.by(() =>
-        this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
-    )
-
     currentBid = $state(1)
     validBid = $derived(Math.max(this.currentBid, (this.gameState.auction?.highBid ?? 0) + 1))
 
