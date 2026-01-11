@@ -18,7 +18,7 @@ export type HistoryCallbacks = {
     onHistoryExit?: HistoryExitCallback
 }
 
-export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
+export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T> {
     private gameContext: GameContext<T, U>
 
     // This holds a clone of the game context when entering history mode
@@ -190,10 +190,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
         let lastAction: GameAction | undefined
         do {
             lastAction = this.historyContext.actions[this.actionIndex]
-            const updatedState = this.historyContext.engine.undoAction(
-                stateSnapshot,
-                lastAction
-            ) as T
+            const updatedState = this.historyContext.engine.undoAction(stateSnapshot, lastAction)
             this.actionIndex -= 1
             stateSnapshot = updatedState
         } while (
@@ -253,7 +250,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState & T> {
                 gameSnapshot,
                 RunMode.Single
             )
-            stateSnapshot = updatedState as T
+            stateSnapshot = updatedState
             this.actionIndex = nextActionIndex
         } while (
             (this.actionIndex < this.historyContext.actions.length - 1 &&

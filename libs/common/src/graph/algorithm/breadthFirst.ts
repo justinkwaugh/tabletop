@@ -1,4 +1,4 @@
-import { GraphNode, Graph, NodeIdentifier } from '../graph.js'
+import type { GraphNode, Graph, NodeIdentifier } from '../graph.js'
 
 export interface BreadthFirstAlgorithmOptions<T extends GraphNode> {
     start: T

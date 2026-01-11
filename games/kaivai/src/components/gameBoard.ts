@@ -1,7 +1,6 @@
 import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
-    AxialCoordinates,
     coordinatesToNumber,
     HexGrid,
     hexSpiralPattern,
@@ -12,11 +11,11 @@ import {
     createCoordinatedNode,
     hexRingPattern,
     FlatHexDirection,
-    HexGridNode,
     breadthFirstTraverser,
     distanceAxial,
     hexNeighborCoords
 } from '@tabletop/common'
+import type { AxialCoordinates, HexGridNode } from '@tabletop/common'
 import { Island } from './island.js'
 import {
     BoatBuildingCell,

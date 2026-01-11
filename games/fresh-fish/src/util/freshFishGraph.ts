@@ -1,4 +1,5 @@
-import { coordinatesToNumber, RectilinearGrid, RectilinearGridNode } from '@tabletop/common'
+import { coordinatesToNumber, RectilinearGrid } from '@tabletop/common'
+import type { RectilinearGridNode } from '@tabletop/common'
 
 import { Cell, CellType } from '../components/cells.js'
 

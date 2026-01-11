@@ -1,7 +1,7 @@
-import { CoordinatedNode, CoordinatedNodeFactory } from '../coordinatedGraph.js'
-import { Coordinates } from '../coordinates.js'
-import { NodeGenerator } from '../generator.js'
-import { CoordinatePattern } from '../pattern.js'
+import type { CoordinatedNode, CoordinatedNodeFactory } from '../coordinatedGraph.js'
+import type { Coordinates } from '../coordinates.js'
+import type { NodeGenerator } from '../generator.js'
+import type { CoordinatePattern } from '../pattern.js'
 
 export function patternGenerator<T extends CoordinatedNode<U>, U extends Coordinates>(
     patternOrPatterns: CoordinatePattern<U> | CoordinatePattern<U>[],

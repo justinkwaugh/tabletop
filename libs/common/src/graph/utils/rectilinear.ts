@@ -1,7 +1,7 @@
-import { OffsetCoordinates, Point } from '../coordinates.js'
-import { RectangleDimensions } from '../dimensions.js'
+import type { OffsetCoordinates, Point } from '../coordinates.js'
+import type { RectangleDimensions } from '../dimensions.js'
 import { CardinalDirection, OrdinalDirection } from '../directions.js'
-import { CellGeometry } from '../grids/rectilinear/geometry.js'
+import type { CellGeometry } from '../grids/rectilinear/geometry.js'
 
 export function areOrthogonal(coordsA: OffsetCoordinates, coordsB: OffsetCoordinates): boolean {
     return coordsA.row === coordsB.row || coordsA.col === coordsB.col

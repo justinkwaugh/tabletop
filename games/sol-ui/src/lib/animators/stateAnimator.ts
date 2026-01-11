@@ -4,7 +4,7 @@ import { untrack } from 'svelte'
 
 export abstract class StateAnimator<
     T extends GameState,
-    U extends HydratedGameState & T,
+    U extends HydratedGameState<T> & T,
     S extends GameSession<T, U>
 > {
     protected element: HTMLElement | SVGElement | undefined

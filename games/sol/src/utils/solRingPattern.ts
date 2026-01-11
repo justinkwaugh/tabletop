@@ -1,4 +1,4 @@
-import { CoordinatePattern, OffsetCoordinates } from '@tabletop/common'
+import type { CoordinatePattern, OffsetCoordinates } from '@tabletop/common'
 import { FIVE_PLAYER_RING_COUNTS, ONE_TO_FOUR_PLAYER_RING_COUNTS, Ring } from './solGraph.js'
 
 export type RingPatternConfig = {

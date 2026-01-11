@@ -1,4 +1,4 @@
-import { Deconstruct } from 'src/actions/deconstruct.js'
+import { Deconstruct } from '../actions/deconstruct.js'
 
 export enum ActionType {
     ChooseMove = 'ChooseMove',

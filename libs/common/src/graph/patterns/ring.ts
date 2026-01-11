@@ -1,4 +1,4 @@
-import { AxialCoordinates } from '../coordinates.js'
+import type { AxialCoordinates } from '../coordinates.js'
 import {
     ClockwisePointyHexDirections,
     FlatHexDirection,
@@ -8,7 +8,7 @@ import {
     RotationDirection
 } from '../directions.js'
 import { HexOrientation } from '../grids/hex/definition.js'
-import { CoordinatePattern } from '../pattern.js'
+import type { CoordinatePattern } from '../pattern.js'
 import { addAxial, FlatNeighborOffsets, PointyNeighborOffsets, scaleAxial } from '../utils/hex.js'
 
 export type HexRingPatternOptions = {

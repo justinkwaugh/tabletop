@@ -11,7 +11,7 @@ import { GameState, type HydratedGameState } from '../model/gameState.js'
 
 export interface GameDefinition<
     T extends GameState = GameState,
-    U extends HydratedGameState = HydratedGameState
+    U extends HydratedGameState<T> = HydratedGameState<T>
 > {
     id: string
     metadata: GameMetadata

@@ -1,6 +1,6 @@
 import { breadthFirstAlgorithm } from '../algorithm/breadthFirst.js'
-import { Graph, type GraphNode } from '../graph.js'
-import { Traverser } from '../traverser.js'
+import type { Graph, GraphNode } from '../graph.js'
+import type { Traverser } from '../traverser.js'
 
 export interface BreadthFirstTraverserOptions<T extends GraphNode> {
     start: T

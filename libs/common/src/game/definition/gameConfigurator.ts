@@ -1,6 +1,6 @@
-import { TSchema } from 'typebox'
+import type { TSchema } from 'typebox'
 import { Value } from 'typebox/value'
-import { GameConfig, GameConfigOptions } from '../model/gameConfig.js'
+import type { GameConfig, GameConfigOptions } from '../model/gameConfig.js'
 
 export interface GameConfigurator {
     schema: TSchema

@@ -1,4 +1,5 @@
-import { assert, BaseConfigurator, GameConfigurator } from '@tabletop/common'
+import { assert, BaseConfigurator } from '@tabletop/common'
+import type { GameConfigurator } from '@tabletop/common'
 import { KaivaiGameConfig, KaivaiGameConfigOptions } from './gameConfig.js'
 
 export class KaivaiConfigurator extends BaseConfigurator implements GameConfigurator {

@@ -1,9 +1,11 @@
-import { Coordinates, coordinatesToNumber } from './coordinates.js'
-import { Direction } from './directions.js'
+import { coordinatesToNumber } from './coordinates.js'
+import type { Coordinates } from './coordinates.js'
+import type { Direction } from './directions.js'
 import { patternGenerator } from './generators/pattern.js'
-import { GraphNode, BaseGraph, Graph } from './graph.js'
-import { CoordinatePattern } from './pattern.js'
-import { Traverser } from './traverser.js'
+import { BaseGraph } from './graph.js'
+import type { GraphNode, Graph } from './graph.js'
+import type { CoordinatePattern } from './pattern.js'
+import type { Traverser } from './traverser.js'
 import { patternTraverser } from './traversers/pattern.js'
 
 export type CoordinatedNode<T extends Coordinates> = {
