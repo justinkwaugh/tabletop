@@ -5,7 +5,7 @@ import {
     Prng,
     type UninitializedGameState
 } from '@tabletop/common'
-import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
+import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
 import { BridgesGameState, HydratedBridgesGameState } from '../model/gameState.js'
 import { BridgesPlayerState } from '../model/playerState.js'
 
@@ -23,14 +23,11 @@ export class BridgesGameInitializer
         return state
     }
 
-    initializeGameState(
-        game: Game,
-        state: UninitializedGameState
-    ): HydratedBridgesGameState {
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedBridgesGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length
-        const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random)
 
         const board = this.initializeBoard(numPlayers)
 

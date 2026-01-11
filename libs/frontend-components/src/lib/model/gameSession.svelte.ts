@@ -263,6 +263,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.primaryGame.players.find((player) => player.userId === sessionUser.id)
     })
 
+    numPlayers: number = $derived.by(() => this.gameState.numPlayers)
+
     myPlayer: Player | undefined = $derived.by(() => {
         // In hotseat games, we are just always the first active player
         if (this.isExploring || this.gameContext.game.hotseat) {
@@ -282,8 +284,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     myPlayerState: PlayerStateOf<U> | undefined = $derived.by(() =>
-        this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
+        this.gameState.findPlayerState(this.myPlayer?.id)
     )
+
+    turnPlayerState: PlayerStateOf<U> | undefined = $derived.by(() => {
+        const currentTurn = this.gameState.turnManager.currentTurn()
+        if (!currentTurn) {
+            return undefined
+        }
+        return this.gameState.findPlayerState(currentTurn.playerId)
+    })
 
     isMyTurn: boolean = $derived.by(() => {
         if (

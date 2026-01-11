@@ -5,7 +5,7 @@ import {
     HydratableGameState,
     HydratedPhaseManager,
     HydratedRoundManager,
-    HydratedSimpleTurnManager,
+    HydratedTurnManager,
     PhaseManager,
     PrngState,
     RoundManager
@@ -54,7 +54,7 @@ export class HydratedKaivaiGameState
     declare actionCount: number
     declare actionChecksum: number
     declare players: HydratedKaivaiPlayerState[]
-    declare turnManager: HydratedSimpleTurnManager
+    declare turnManager: HydratedTurnManager
     declare rounds: HydratedRoundManager
     declare phases: HydratedPhaseManager
     declare machineState: MachineState
@@ -74,7 +74,6 @@ export class HydratedKaivaiGameState
     constructor(data: KaivaiGameState) {
         super(data, KaivaiGameStateValidator)
 
-        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
         this.rounds = new HydratedRoundManager(data.rounds)
         this.phases = new HydratedPhaseManager(data.phases)
         this.players = data.players.map((player) => new HydratedKaivaiPlayerState(player))

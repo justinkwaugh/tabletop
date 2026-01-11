@@ -4,7 +4,7 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
-    HydratedSimpleTurnManager,
+    HydratedTurnManager,
     HydratedSimultaneousAuction,
     PrngState,
     SimultaneousAuction,
@@ -52,7 +52,7 @@ export class HydratedFreshFishGameState
     declare actionCount: number
     declare actionChecksum: number
     declare players: HydratedFreshFishPlayerState[]
-    declare turnManager: HydratedSimpleTurnManager
+    declare turnManager: HydratedTurnManager
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
@@ -67,7 +67,6 @@ export class HydratedFreshFishGameState
         super(data, FreshFishGameStateValidator)
 
         this.tileBag = new HydratedTileBag(data.tileBag)
-        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
         this.board = new HydratedGameBoard(data.board)
         this.players = data.players.map((player) => new HydratedFreshFishPlayerState(player))
         if (data.currentAuction) {

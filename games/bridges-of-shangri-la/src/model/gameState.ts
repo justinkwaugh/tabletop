@@ -2,7 +2,7 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
-    HydratedSimpleTurnManager,
+    HydratedTurnManager,
     PrngState
 } from '@tabletop/common'
 import { BridgesPlayerState, HydratedBridgesPlayerState } from './playerState.js'
@@ -37,7 +37,7 @@ export class HydratedBridgesGameState
     declare actionCount: number
     declare actionChecksum: number
     declare players: HydratedBridgesPlayerState[]
-    declare turnManager: HydratedSimpleTurnManager
+    declare turnManager: HydratedTurnManager
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
@@ -46,7 +46,6 @@ export class HydratedBridgesGameState
 
     constructor(data: BridgesGameState) {
         super(data, BridgesGameStateValidator)
-        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
         this.players = data.players.map((player) => new HydratedBridgesPlayerState(player))
         this.board = new HydratedBridgesGameBoard(data.board)
     }

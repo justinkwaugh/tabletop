@@ -2,7 +2,7 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
-    HydratedSimpleTurnManager,
+    HydratedTurnManager,
     PrngState
 } from '@tabletop/common'
 import { SamplePlayerState, HydratedSamplePlayerState } from './playerState.js'
@@ -40,7 +40,7 @@ export class HydratedSampleGameState
     declare actionCount: number
     declare actionChecksum: number
     declare players: HydratedSamplePlayerState[]
-    declare turnManager: HydratedSimpleTurnManager
+    declare turnManager: HydratedTurnManager
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]

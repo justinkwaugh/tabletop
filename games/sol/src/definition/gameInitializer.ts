@@ -6,7 +6,7 @@ import {
     PlayerState,
     type UninitializedGameState
 } from '@tabletop/common'
-import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
+import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
 import { HydratedSolGameState, SolGameState } from '../model/gameState.js'
 import { HydratedSolPlayerState, SolPlayerState } from '../model/playerState.js'
 
@@ -37,7 +37,7 @@ export class SolGameInitializer
         const prng = new Prng(state.prng)
 
         const players = this.initializePlayers(game, prng)
-        const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random)
         // Put players array in turn order
         const orderedPlayers: SolPlayerState[] = []
         for (const playerId of turnManager.turnOrder) {

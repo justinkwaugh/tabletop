@@ -4,7 +4,7 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
-    HydratedSimpleTurnManager,
+    HydratedTurnManager,
     OffsetCoordinates,
     PrngState
 } from '@tabletop/common'
@@ -78,7 +78,7 @@ export class HydratedSolGameState
     declare actionCount: number
     declare actionChecksum: number
     declare players: HydratedSolPlayerState[]
-    declare turnManager: HydratedSimpleTurnManager
+    declare turnManager: HydratedTurnManager
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
@@ -117,7 +117,6 @@ export class HydratedSolGameState
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)
 
-        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
         this.players = data.players.map((player) => new HydratedSolPlayerState(player))
         this.board = new HydratedSolGameBoard(data.board)
         this.deck = new HydratedDeck(data.deck)

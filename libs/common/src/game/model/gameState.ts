@@ -1,11 +1,12 @@
 import { type TSchema, Type, type Static } from 'typebox'
-import { TurnManager } from '../components/turnManager.js'
+import { HydratedTurnManager, TurnManager } from '../components/turnManager.js'
 import { Hydratable } from '../../util/hydration.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { GameAction } from '../engine/gameAction.js'
 import { PlayerState } from './playerState.js'
 import { Prng, PrngState } from '../components/prng.js'
 import { assertExists } from '../../util/assertions.js'
+import { Validator } from 'typebox/compile'
 
 export enum GameResult {
     Abandoned = 'Abandoned',
@@ -44,8 +45,11 @@ export interface HydratedGameState<
     P extends PlayerState = PlayerState
 > extends GameState {
     players: P[]
+    numPlayers: number
+    turnManager: HydratedTurnManager
     getPrng(): Prng
     getPlayerState(playerId?: string): P
+    findPlayerState(playerId?: string): P | undefined
     isActivePlayer(playerId: string): boolean
     recordAction(action: GameAction): void
     isAtLeastVersion(version: number): boolean
@@ -65,9 +69,20 @@ export abstract class HydratableGameState<T extends TSchema, P extends PlayerSta
     declare actionChecksum: number
     declare prng: PrngState
     declare machineState: string
-    declare turnManager: TurnManager
+    declare turnManager: HydratedTurnManager
     declare result?: GameResult
     declare winningPlayerIds: string[]
+
+    constructor(data: Static<T>, validator: Validator<{}, T>) {
+        super(data, validator)
+
+        // Hydrate the turn manager
+        this.turnManager = new HydratedTurnManager(data.turnManager)
+    }
+
+    get numPlayers(): number {
+        return this.players.length
+    }
 
     getPrng(): Prng {
         return new Prng(this.prng)
@@ -75,9 +90,13 @@ export abstract class HydratableGameState<T extends TSchema, P extends PlayerSta
 
     getPlayerState(playerId?: string): P {
         assertExists(playerId, 'playerId is required to get player state')
-        const player = this.players.find((player) => player.playerId === playerId)
+        const player = this.findPlayerState(playerId)
         assertExists(player, `Player state for player ${playerId} not found`)
         return player
+    }
+
+    findPlayerState(playerId: string): P | undefined {
+        return this.players.find((player) => player.playerId === playerId)
     }
 
     isActivePlayer(playerId: string): boolean {

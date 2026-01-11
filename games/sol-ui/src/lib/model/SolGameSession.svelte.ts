@@ -21,7 +21,6 @@ import {
     isChooseActivate,
     isChooseConvert,
     isChooseMove,
-    HydratedSolPlayerState,
     isFly,
     isHurl,
     PassContext,
@@ -75,22 +74,12 @@ export type PlayerStateOverride = {
 }
 
 export class SolGameSession extends GameSession<SolGameState, HydratedSolGameState> {
-    turnPlayer: HydratedSolPlayerState | undefined = $derived.by(() => {
-        const playerId = this.gameState.turnManager.currentTurn()?.playerId
-        if (!playerId) {
-            return undefined
-        }
-        return this.gameState.players.find((player) => player.playerId === playerId)
-    })
-
     justAfterMyTurn = $derived.by(() => {
         if (this.gameState.turnManager.lastPlayer() !== this.myPlayer?.id) {
             return false
         }
         return this.gameState.turnManager.currentTurn()?.start == this.gameState.actionCount
     })
-
-    numPlayers = $derived.by(() => this.gameState.players.length)
 
     chosenMothership?: string = $state(undefined)
     chosenNumDivers?: number = $state(undefined)
@@ -360,8 +349,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         }
         return gateKeys
     })
-
-    cancel() {}
 
     override willUndo(action: GameAction) {
         if (isLaunch(action)) {

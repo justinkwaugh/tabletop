@@ -4,7 +4,7 @@ import {
     Prng,
     type UninitializedGameState
 } from '@tabletop/common'
-import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
+import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
 import { HydratedSampleGameState, SampleGameState } from '../model/gameState.js'
 import { HydratedSamplePlayerState, SamplePlayerState } from '../model/playerState.js'
 
@@ -35,7 +35,7 @@ export class SampleGameInitializer
         const players = this.initializePlayers(game, prng)
 
         // Every game state has a turn manager to track whose turn it is
-        const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random)
 
         // Put players array in our randomly generated turn order
         const orderedPlayers: SamplePlayerState[] = []

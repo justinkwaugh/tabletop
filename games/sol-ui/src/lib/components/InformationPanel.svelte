@@ -16,7 +16,7 @@
 
     <div
         class="sol-font sol-panel-grid grid max-sm:leading-[18px] {!gameSession.isViewingHistory &&
-        (gameSession.isMyTurn || gameSession.turnPlayer?.playerId === gameSession.myPlayer?.id)
+        (gameSession.isMyTurn || gameSession.turnPlayerState?.playerId === gameSession.myPlayer?.id)
             ? 'min-h-[60px]'
             : ''}"
     >
@@ -24,7 +24,7 @@
             <LastActionDescription textColor="text-[#ad9c80]" />
         {:else if gameSession.isMyTurn}
             <ActionPanel />
-        {:else if gameSession.isSolarFlares || gameSession.turnPlayer?.playerId === gameSession.myPlayer?.id}
+        {:else if gameSession.isSolarFlares || gameSession.turnPlayerState?.playerId === gameSession.myPlayer?.id}
             <WaitingPanel />
         {:else}
             <LastActionDescription textColor="text-[#ad9c80]" />

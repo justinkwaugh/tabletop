@@ -3,7 +3,7 @@ import {
     GameState,
     HydratableGameState,
     HydratedOnceAroundAuction,
-    HydratedSimpleTurnManager,
+    HydratedTurnManager,
     OffsetCoordinates,
     OnceAroundAuction,
     PrngState
@@ -59,7 +59,7 @@ export class HydratedEstatesGameState
     declare actionCount: number
     declare actionChecksum: number
     declare players: HydratedEstatesPlayerState[]
-    declare turnManager: HydratedSimpleTurnManager
+    declare turnManager: HydratedTurnManager
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
@@ -80,7 +80,7 @@ export class HydratedEstatesGameState
 
     constructor(data: EstatesGameState) {
         super(data, EstatesGameStateValidator)
-        this.turnManager = new HydratedSimpleTurnManager(data.turnManager)
+
         this.players = data.players.map((player) => new HydratedEstatesPlayerState(player))
         this.board = new HydratedEstatesGameBoard(data.board)
         this.roofs = new HydratedRoofBag(data.roofs)

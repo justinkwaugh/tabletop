@@ -6,7 +6,7 @@ import {
     Color,
     type UninitializedGameState
 } from '@tabletop/common'
-import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
+import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
 import { EstatesGameState, HydratedEstatesGameState } from '../model/gameState.js'
 import { EstatesPlayerState } from '../model/playerState.js'
 
@@ -27,13 +27,10 @@ export class EstatesGameInitializer
         return hydratedState.dehydrate()
     }
 
-    initializeGameState(
-        game: Game,
-        state: UninitializedGameState
-    ): HydratedEstatesGameState {
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedEstatesGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game)
-        const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random)
 
         const board = this.initializeBoard()
 

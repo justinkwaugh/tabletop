@@ -13,7 +13,7 @@ import {
     hexRingPattern,
     distanceAxial
 } from '@tabletop/common'
-import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
+import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
 import { HydratedKaivaiGameState, KaivaiGameState } from '../model/gameState.js'
 import { KaivaiPlayerState } from '../model/playerState.js'
 
@@ -32,10 +32,7 @@ export class KaivaiGameInitializer
         return state
     }
 
-    initializeGameState(
-        game: Game,
-        state: UninitializedGameState
-    ): HydratedKaivaiGameState {
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedKaivaiGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
         const numPlayers = game.players.length
@@ -45,7 +42,7 @@ export class KaivaiGameInitializer
         const kaivaiState: KaivaiGameState = Object.assign(state, {
             players: players,
             machineState: MachineState.Bidding,
-            turnManager: HydratedSimpleTurnManager.generate(players, prng.random),
+            turnManager: HydratedTurnManager.generate(players, prng.random),
             rounds: HydratedRoundManager.generate(),
             phases: HydratedPhaseManager.generate(),
             board,

@@ -16,10 +16,7 @@ export const TurnManager = Type.Object({
 
 export const TurnManagerValidator = Compile(TurnManager)
 
-export class HydratedSimpleTurnManager
-    extends Hydratable<typeof TurnManager>
-    implements TurnManager
-{
+export class HydratedTurnManager extends Hydratable<typeof TurnManager> implements TurnManager {
     declare series: Turn[]
     declare turnOrder: string[]
     declare turnCounts: Record<string, number>
@@ -36,7 +33,7 @@ export class HydratedSimpleTurnManager
         })
 
         shuffle(turnOrder, random)
-        return new HydratedSimpleTurnManager({
+        return new HydratedTurnManager({
             series: [],
             turnOrder: turnOrder,
             turnCounts: turnCounts

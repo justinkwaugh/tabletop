@@ -5,7 +5,7 @@ import {
     type RandomFunction,
     type UninitializedGameState
 } from '@tabletop/common'
-import { Game, Player, HydratedSimpleTurnManager, shuffle } from '@tabletop/common'
+import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
 import { FreshFishGameState, HydratedFreshFishGameState } from '../model/gameState.js'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from '../model/playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
@@ -28,10 +28,7 @@ export class FreshFishGameInitializer
         return hydratedState.dehydrate()
     }
 
-    initializeGameState(
-        game: Game,
-        state: UninitializedGameState
-    ): HydratedFreshFishGameState {
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedFreshFishGameState {
         const prng = new Prng(state.prng)
         const config = game.config as FreshFishGameConfig
 
@@ -40,7 +37,7 @@ export class FreshFishGameInitializer
         const { board, numMarketTiles } = generateBoard(game.players.length, boardPrng.random)
 
         const players = this.initializePlayers(game, prng.random)
-        const turnManager = HydratedSimpleTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random)
         const finalStalls = Object.values(GoodsType).map(
             (goodsType) => <StallTile>{ type: TileType.Stall, goodsType }
         )
