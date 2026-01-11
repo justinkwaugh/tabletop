@@ -1,5 +1,5 @@
 import { OffsetCoordinates } from '@tabletop/common'
-import Type, { Static } from 'typebox'
+import Type, { type Static } from 'typebox'
 
 export type ChainEntry = Static<typeof ChainEntry>
 export const ChainEntry = Type.Object({

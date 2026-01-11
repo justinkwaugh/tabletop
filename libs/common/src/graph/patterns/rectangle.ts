@@ -1,5 +1,5 @@
-import { OffsetCoordinates } from '../coordinates.js'
-import { CoordinatePattern } from '../pattern.js'
+import type { OffsetCoordinates } from '../coordinates.js'
+import type { CoordinatePattern } from '../pattern.js'
 
 export type Rectangle = {
     start: OffsetCoordinates

@@ -1,12 +1,14 @@
 import {
     breadthFirstTraverser,
-    OffsetCoordinates,
-    OffsetTupleCoordinates,
-    RectilinearGridNode,
     sameCoordinates,
     offsetTupleToOffset,
     offsetToOffsetTuple,
     areOrthogonal
+} from '@tabletop/common'
+import type {
+    OffsetCoordinates,
+    OffsetTupleCoordinates,
+    RectilinearGridNode
 } from '@tabletop/common'
 import {
     canBeBlocked,
@@ -15,7 +17,7 @@ import {
     isTraversable,
     mustBeReachable
 } from '../components/cells.js'
-import { HydratedGameBoard } from '../components/gameBoard.js'
+import type { HydratedGameBoard } from '../components/gameBoard.js'
 import { FreshFishGraph } from './freshFishGraph.js'
 
 export type ReturnedDisks = Record<string, number>

@@ -1,12 +1,14 @@
-import { AxialCoordinates, Point } from '../coordinates.js'
+import type { AxialCoordinates, Point } from '../coordinates.js'
 import {
-    CircleDimensions,
-    EllipseDimensions,
-    RectangleDimensions,
-    HexDimensions,
     isCircleDimensions,
     isEllipseDimensions,
     isRectangleDimensions
+} from '../dimensions.js'
+import type {
+    CircleDimensions,
+    EllipseDimensions,
+    RectangleDimensions,
+    HexDimensions
 } from '../dimensions.js'
 import {
     FlatHexDirection,
@@ -14,8 +16,9 @@ import {
     isPointyHexDirection,
     PointyHexDirection
 } from '../directions.js'
-import { HexDefinition, HexOrientation } from '../grids/hex/definition.js'
-import { HexGeometry } from '../grids/hex/geometry.js'
+import { HexOrientation } from '../grids/hex/definition.js'
+import type { HexDefinition } from '../grids/hex/definition.js'
+import type { HexGeometry } from '../grids/hex/geometry.js'
 
 export function addAxial(a: AxialCoordinates, b: AxialCoordinates): AxialCoordinates {
     return { q: a.q + b.q, r: a.r + b.r }

@@ -63,11 +63,9 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
     animationContext: AnimationContext
 }) => Promise<void>
 
-type PlayerStateOf<U extends HydratedGameState> = U extends HydratedGameState<infer P>
-    ? P
-    : never
+type PlayerStateOf<U extends HydratedGameState> = U['players'][number]
 
-export class GameSession<T extends GameState, U extends HydratedGameState & T> {
+export class GameSession<T extends GameState, U extends HydratedGameState<T> & T> {
     private debug? = false
 
     processingActions = $state(false)
@@ -84,7 +82,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     private notificationService: NotificationService
 
     public definition: GameUiDefinition<T, U>
-    private engine: GameEngine
+    private engine: GameEngine<T, U>
     private api: RemoteApiService
 
     private actionsToProcess: GameAction[] = []
@@ -164,7 +162,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
     private currentVisibleGameState: U = $derived.by(() => {
         // console.log('Deriving current visible game state')
         this.updatingVisibleState = true
-        return this.definition.hydrator.hydrateState(this.currentVisibleContext.state) as U
+        return this.definition.hydrator.hydrateState(this.currentVisibleContext.state)
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
@@ -453,7 +451,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
         })
 
         // Need an initial value
-        this.gameState = $state.raw(this.definition.hydrator.hydrateState(state) as U)
+        this.gameState = $state.raw(this.definition.hydrator.hydrateState(state))
     }
 
     isBusy(): boolean {
@@ -485,8 +483,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                     RunMode.Single
                 )
                 await this.gatherAndPlayAnimations(
-                    this.definition.hydrator.hydrateState(updatedState) as U,
-                    this.definition.hydrator.hydrateState(priorState) as U,
+                    this.definition.hydrator.hydrateState(updatedState),
+                    this.definition.hydrator.hydrateState(priorState),
                     action
                 )
                 priorState = updatedState
@@ -775,7 +773,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
                         redoActions.push(redoAction)
                     }
                     localUndoneActions.push(actionToUndo)
-                    stateSnapshot = this.engine.undoAction(stateSnapshot, actionToUndo) as T
+                    stateSnapshot = this.engine.undoAction(stateSnapshot, actionToUndo)
                 } while (actionToUndo.id !== targetActionId)
 
                 // console.log('Undo updating game state')
@@ -898,7 +896,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
 
     private applyActionToGame(action: GameAction, game: Game, state: T): GameActionResults<T> {
         const { processedActions, updatedState } = this.engine.run(action, state, game)
-        return new GameActionResults(processedActions, updatedState as T)
+        return new GameActionResults(processedActions, updatedState)
     }
 
     private undoToIndex(stateSnapshot: T, index: number, context: GameContext<T, U>): T {
@@ -908,7 +906,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState & T> {
             const actionToUndo = context.popAction() as GameAction
             undoneActions.push(actionToUndo)
 
-            const updatedState = this.engine.undoAction(stateSnapshot, actionToUndo) as T
+            const updatedState = this.engine.undoAction(stateSnapshot, actionToUndo)
             stateSnapshot = updatedState
         }
 

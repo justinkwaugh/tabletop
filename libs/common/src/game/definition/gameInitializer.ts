@@ -1,17 +1,13 @@
 import { generateSeed } from '../../util/prng.js'
 import { Game, GameCategory, GameStatus, GameStorage } from '../model/game.js'
-import {
-    GameState,
-    type HydratedGameState,
-    type UninitializedGameState
-} from '../model/gameState.js'
+import type { GameState, HydratedGameState, UninitializedGameState } from '../model/gameState.js'
 import { Value } from 'typebox/value'
-import { GameDefinition } from './gameDefinition.js'
+import type { GameDefinition } from './gameDefinition.js'
 import { assertExists } from '../../util/assertions.js'
 
 export interface GameInitializer<
     T extends GameState = GameState,
-    U extends HydratedGameState = HydratedGameState
+    U extends HydratedGameState<T> = HydratedGameState<T>
 > {
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game
     initializeGameState(game: Game, state: UninitializedGameState): U
@@ -20,7 +16,7 @@ export interface GameInitializer<
 
 export abstract class BaseGameInitializer<
     T extends GameState = GameState,
-    U extends HydratedGameState = HydratedGameState
+    U extends HydratedGameState<T> = HydratedGameState<T>
 > implements GameInitializer<T, U> {
     abstract initializeGameState(game: Game, state: UninitializedGameState): U
     abstract initializeExplorationState(state: T): T

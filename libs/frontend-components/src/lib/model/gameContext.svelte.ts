@@ -19,12 +19,12 @@ export type CloneInterceptor<T extends GameState> = {
     interceptActions?: (actions: GameAction[]) => void
 }
 
-export class GameContext<T extends GameState, U extends HydratedGameState & T> {
+export class GameContext<T extends GameState, U extends HydratedGameState<T> & T> {
     definition: GameUiDefinition<T, U>
     game: Game
     state: T
     actions: GameAction[]
-    engine: GameEngine
+    engine: GameEngine<T, U>
 
     private actionsById: Map<string, GameAction> = new Map([])
 
@@ -189,7 +189,7 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
             return undefined
         }
 
-        const updatedState = this.engine.undoAction(this.state, action) as T
+        const updatedState = this.engine.undoAction(this.state, action)
         this.updateGameState(updatedState)
 
         return action
@@ -197,9 +197,9 @@ export class GameContext<T extends GameState, U extends HydratedGameState & T> {
 
     applyAction(action: GameAction): GameActionResults<T> {
         const result = this.engine.run(action, this.state, this.game)
-        this.updateGameState(result.updatedState as T)
+        this.updateGameState(result.updatedState)
         this.addActions(result.processedActions)
-        return new GameActionResults(result.processedActions, result.updatedState as T)
+        return new GameActionResults(result.processedActions, result.updatedState)
     }
 
     private initializeActions(actions: GameAction[]): GameAction[] {

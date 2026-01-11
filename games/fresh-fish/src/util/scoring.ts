@@ -1,19 +1,20 @@
-import { Record } from 'typebox'
 import { isStallCell, isTraversable, isTruckCell } from '../components/cells.js'
 import { GoodsType } from '../definition/goodsType.js'
 import { FreshFishPlayerState } from '../model/playerState.js'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import {
     areOrthogonal,
-    OffsetCoordinates,
     offsetToOffsetTuple,
-    OffsetTupleCoordinates,
-    RectilinearGridNode,
     sameCoordinates,
     shortestPathPathfinder
 } from '@tabletop/common'
+import type {
+    OffsetCoordinates,
+    OffsetTupleCoordinates,
+    RectilinearGridNode
+} from '@tabletop/common'
 import { FreshFishGraph } from './freshFishGraph.js'
-import { HydratedGameBoard } from 'src/components/gameBoard.js'
+import type { HydratedGameBoard } from '../components/gameBoard.js'
 
 export type Scores = Record<string, ScoringInfo>
 export type ScoringInfo = {

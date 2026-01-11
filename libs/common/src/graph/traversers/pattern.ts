@@ -1,7 +1,7 @@
-import { CoordinatedGraph, CoordinatedNode } from '../coordinatedGraph.js'
-import { Coordinates } from '../coordinates.js'
-import { Traverser } from '../traverser.js'
-import { CoordinatePattern } from '../pattern.js'
+import type { CoordinatedGraph, CoordinatedNode } from '../coordinatedGraph.js'
+import type { Coordinates } from '../coordinates.js'
+import type { Traverser } from '../traverser.js'
+import type { CoordinatePattern } from '../pattern.js'
 
 export function patternTraverser<T extends CoordinatedNode<U>, U extends Coordinates>(
     patternOrPatterns: CoordinatePattern<U> | CoordinatePattern<U>[]

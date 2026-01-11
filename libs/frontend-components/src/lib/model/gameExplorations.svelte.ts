@@ -13,21 +13,27 @@ import type { GameService } from '$lib/services/gameService.js'
 import { nanoid } from 'nanoid'
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
 
-export type ExplorationStartCallback<T extends GameState, U extends HydratedGameState & T> = (
+export type ExplorationStartCallback<
+    T extends GameState,
+    U extends HydratedGameState<T> & T
+> = (
     context: GameContext<T, U>
 ) => void
 export type ExplorationEndCallback = () => void
-export type ExplorationSwitchCallback<T extends GameState, U extends HydratedGameState & T> = (
+export type ExplorationSwitchCallback<
+    T extends GameState,
+    U extends HydratedGameState<T> & T
+> = (
     context: GameContext<T, U>
 ) => void
 
-export type ExplorationCallbacks<T extends GameState, U extends HydratedGameState & T> = {
+export type ExplorationCallbacks<T extends GameState, U extends HydratedGameState<T> & T> = {
     onExplorationEnter?: ExplorationStartCallback<T, U>
     onExplorationEnd?: ExplorationEndCallback
     onExplorationSwitched?: ExplorationSwitchCallback<T, U>
 }
 
-export class GameExplorations<T extends GameState, U extends HydratedGameState & T> {
+export class GameExplorations<T extends GameState, U extends HydratedGameState<T> & T> {
     private sourceContext?: GameContext<T, U> = undefined
     explorationContext?: GameContext<T, U> = $state(undefined)
     private initialChecksum: number | undefined = undefined

@@ -5,7 +5,7 @@ import type { GameContext } from './gameContext.svelte.js'
 import { ColorblindColorizer } from '$lib/utils/colorblindPalette.js'
 import { untrack } from 'svelte'
 
-export class GameColors<T extends GameState, U extends HydratedGameState & T> {
+export class GameColors<T extends GameState, U extends HydratedGameState<T> & T> {
     constructor(
         private authorizationService: AuthorizationService,
         private gameContext: GameContext<T, U>

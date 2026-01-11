@@ -14,7 +14,10 @@ import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
-export interface GameSessionConstructor<T extends GameState, U extends HydratedGameState & T> {
+export interface GameSessionConstructor<
+    T extends GameState,
+    U extends HydratedGameState<T> & T
+> {
     new ({
         gameService,
         authorizationService,
@@ -40,7 +43,7 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
     }): GameSession<T, U>
 }
 
-export interface GameUiDefinition<T extends GameState, U extends HydratedGameState & T>
+export interface GameUiDefinition<T extends GameState, U extends HydratedGameState<T> & T>
     extends GameDefinition<T, U> {
     getTableComponent: () => Promise<Component>
     sessionClass: GameSessionConstructor<T, U>

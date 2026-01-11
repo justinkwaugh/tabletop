@@ -1,5 +1,6 @@
 import { StationType } from '../components/stations.js'
-import { Type, Static } from 'typebox'
+import { Type } from 'typebox'
+import type { Static } from 'typebox'
 import { OffsetCoordinates } from '@tabletop/common'
 
 export type Activation = Static<typeof Activation>

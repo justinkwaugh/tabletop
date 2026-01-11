@@ -1,8 +1,9 @@
-import { type HydratedGameState } from '../model/gameState.js'
-import { GameConfig } from '../model/gameConfig.js'
-import { ActionSource, createAction, GameAction } from './gameAction.js'
+import type { HydratedGameState } from '../model/gameState.js'
+import type { GameConfig } from '../model/gameConfig.js'
+import { ActionSource, createAction } from './gameAction.js'
 import { nanoid } from 'nanoid'
-import { Static, TSchema } from 'typebox'
+import type { GameAction } from './gameAction.js'
+import type { Static, TSchema } from 'typebox'
 
 export class MachineContext {
     readonly gameConfig: GameConfig

@@ -1,7 +1,7 @@
-import { Direction } from './directions.js'
-import { NodeGenerator } from './generator.js'
-import { Pathfinder } from './pathfinder.js'
-import { Traverser } from './traverser.js'
+import type { Direction } from './directions.js'
+import type { NodeGenerator } from './generator.js'
+import type { Pathfinder } from './pathfinder.js'
+import type { Traverser } from './traverser.js'
 
 export type NodeIdentifier = string | number
 

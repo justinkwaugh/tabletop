@@ -1,7 +1,7 @@
-import { AxialCoordinates } from '../coordinates.js'
+import type { AxialCoordinates } from '../coordinates.js'
 import { RotationDirection } from '../directions.js'
 import { HexOrientation } from '../grids/hex/definition.js'
-import { CoordinatePattern } from '../pattern.js'
+import type { CoordinatePattern } from '../pattern.js'
 import { hexRingPattern } from './ring.js'
 
 export type HexSpiralPatternOptions = {

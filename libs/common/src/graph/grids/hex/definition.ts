@@ -1,4 +1,4 @@
-import { HexDimensions } from '../../../graph/dimensions.js'
+import type { HexDimensions } from '../../../graph/dimensions.js'
 
 export enum HexOrientation {
     Pointy = 'pointy',

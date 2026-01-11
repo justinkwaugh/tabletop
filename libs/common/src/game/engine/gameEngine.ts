@@ -14,9 +14,9 @@ import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
 
-export type ActionResult = {
+export type ActionResult<T extends GameState = GameState> = {
     processedActions: GameAction[]
-    updatedState: GameState
+    updatedState: T
     indexOffset: number
 }
 
@@ -25,8 +25,11 @@ export enum RunMode {
     Multiple = 'multiple'
 }
 
-export class GameEngine {
-    constructor(public readonly definition: GameDefinition) {}
+export class GameEngine<
+    T extends GameState = GameState,
+    U extends HydratedGameState<T> = HydratedGameState<T>
+> {
+    constructor(public readonly definition: GameDefinition<T, U>) {}
 
     generateUninitializedState(game: Game): UninitializedGameState {
         const seed = game.seed ?? generateSeed()
@@ -44,7 +47,7 @@ export class GameEngine {
         }
     }
 
-    startGame(game: Game): { startedGame: Game; initialState: GameState } {
+    startGame(game: Game): { startedGame: Game; initialState: T } {
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
         }
@@ -70,7 +73,7 @@ export class GameEngine {
         return { startedGame, initialState: initialState.dehydrate() }
     }
 
-    getValidActionTypesForPlayer(game: Game, state: GameState, playerId: string): string[] {
+    getValidActionTypesForPlayer(game: Game, state: T, playerId: string): string[] {
         const hydratedState = this.definition.hydrator.hydrateState(state)
         if (!hydratedState.isActivePlayer(playerId)) {
             return []
@@ -87,10 +90,10 @@ export class GameEngine {
 
     run(
         action: GameAction,
-        state: GameState,
+        state: T,
         game: Game,
         mode: RunMode = RunMode.Multiple
-    ): ActionResult {
+    ): ActionResult<T> {
         const processedActions: GameAction[] = []
         let updatedState = structuredClone(state)
 
@@ -169,7 +172,7 @@ export class GameEngine {
         return { processedActions, updatedState, indexOffset }
     }
 
-    undoAction(state: GameState, action: GameAction): GameState {
+    undoAction(state: T, action: GameAction): T {
         const stateCopy = structuredClone(state)
         const initialChecksum = state.actionChecksum
         const undoPatch = action.undoPatch
