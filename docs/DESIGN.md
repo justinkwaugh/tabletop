@@ -41,11 +41,23 @@ Note that the base `Hydratable` class does not know about nested hydrated proper
 
 Every game has an integer seed which is used to seed a pseudo random number generator. When needing a random number or id, the seeded pseudo random number generator should be used to provide a deterministic random value. There is a `getPrng()` method on `HydratedGameState` which will return a psuedo ranom number generator for the given game state (and which will update it when invoked)
 
+### Common library
+
+There is a library called `@tabletop/common` which contains the base definitions and classes for games and the game engine, as well as several pre-defined components and utilities including a graph library (graph in the computer science sense, not graphical).
+
 ### Example Workspaces
 
 An example of a game logic project can be found in the `games/sample` workspace
 
+### Tests
+
+Testing in this project is done using vitest. It is reasonable to provide some unit tests for actions, components, and state handlers. They should be defined alongside the source files using the same file prefix but with `.spec.ts` as the suffix. Make sure tests are written based on the game rules not based on the action implementation logic.
+
 ## Game Logic Project
+
+### Game Definition
+
+The game logic module can be imported and used by the UI and backend like a plugin, in that there is an object that defines the external interface of the module. That object should implement the `GameDefinition` interface and must be exported as `Definition`. It should be defined in a file called `gameDefinition.ts` in the `src/definition` directory of the game logic project.
 
 ### Game State Machine and Components
 
@@ -99,13 +111,23 @@ export const Pass = Type.Evaluate(
 )
 ```
 
+Notes:
+
+- It is a best practice to define a metadata type which is added as an optional property to an action type. This metadata type can store the outputs or relevant state data for a given action so that the UI or logging can provide information or a detailed description about the action in the absence of the game state at that time. Try to imagine how you would describe the action taken as a sentence, and you will be able to identify the information that may be useful to store in the metadata object. The property _must_ be optional because it will not be populated prior to action processing / validation.
+
+- All of the additional properties defined on the specific action type except for the aforementioned metadata object should be considered immutable. The metadata object is the place for any data that should be added during the action processing.
+
+- Sometimes actions may be done simultaneously by players. An example is a blind bid auction where everyone bids simultaneously and then the results are revealed. This can be supported by populated the `simultaneousGroupId` property on the action.
+
+- Actions that reveal hidden info, such as drawing from a bag or a deck, or revealing hidden bids should be marked as such by setting the `revealsInfo` property to true (or redefining it as always true when defining the type if that is the case)
+
+- A type guard function named `is<Action>` should be created for every action.
+
 ##### Hydrated Action Classes
 
 These classes extend `HydratableAction` and therefore implement `HydratedAction` and the specific action type of the given action. They should be defined in the same file as the action's type definition.
 
 it is a good practice for the hydratable action class to provide a static `can<Action>` method which accepts both a `HydratedGameState` subclass and a player id for the UI and state handlers to use to determine the ability of a player to perform the action at all. There is no need to determine all possible places or ways the action can be taken, just presence of a single ability to take the action is enough for the method to return true.
-
-It is a good practice to define a metadata type which is added as a property to an action type. This metadata type can store the outputs or relevant state data for a given action so that the UI or logging can provide information or a detailed description about the action in the absence of the game state at that time.
 
 An example class can be found in `games/sample/actions/addAmount.ts`
 
@@ -120,7 +142,11 @@ State handlers perform the following functions:
 - Handle the entering of a state
 - React to an action having been applied and provide the next state as a result.
 
-State handlers should be defined in a file in the `src/stateHandlers` named appropriately based on the state name directory of the game logic project.
+Notes:
+
+- State handlers should be defined in a file in the `src/stateHandlers` named appropriately based on the state name directory of the game logic project.
+- Gerunds are preferred for naming if it is to represent a state that normally would be a verb, i.e. name a state handler "fishing" not "fish"
+- Try to avoid overly generic state names like 'playing'. Use more specific names such as 'takingActions'.
 
 Example Naming:
 
@@ -170,6 +196,8 @@ export const SampleGameState = Type.Evaluate(
 
 - The game state should be defined in a file named `gameState.ts` in the `src/model` directory of the game logic project
 
+- Make sure the types of the hydrated game state properties match that of the base hydrated class, specifically as it relates to hydrated types.
+
 ##### Player State
 
 Every game has a defined player state type which which intersects the `PlayerState` type, adding various properties used to track the state of the players in the game.
@@ -197,14 +225,14 @@ export const SamplePlayerState = Type.Evaluate(
 
 #### Components
 
-Game components may need to be modeled in the game logic project. Examples of physical components are the game's board, one or more deck of cards, player pieces, etc.. There are conceptual components as well as physical components, with an auction being an example of a conceptual component, and a turn manager being another.
+Sometimes certain game concepts or components require more complicated logic, or can be easily encapsulated and re-used. Examples are generic concepts like draw bags, decks, auctions, game boards etc. You should implement these as such, with separately defined state to represent them and hydrated classes to add the applicable logic. They can then be added to the game/player state as the component type itself (and remember to use the hydrated type on the hydrated game/player state).
+
+- Pre-existing components have been implemented in the `@tabletop/common` library to handle many common needs in games. Some examples are a variety of auction types, draw bags, round and phase management and so on.
 
 - Components should be defined in files in the `src/components` directory of the game logic project
 
-- Certain components already exist in the `@tabletop/common` workspace and can be used or extended for specific games.
-
-- Components will likely have associated hydrated classes.
-
 - Game board components will often require use of a graph provided by the graph functionality in `@tabletop/common`
+
+- **Make sure you look to see if there is a component in `@tabletop/common` that already serves your needs before implementing it yourself!**
 
 ### Game UI
