@@ -11,7 +11,7 @@ export const SamplePlayerState = Type.Evaluate(
         PlayerState,
         Type.Object({
             score: Type.Number(), // Player's score
-            amount: Type.Number() // Some game-specific property
+            amount: Type.Number() // Some player-specific property
         })
     ])
 )
