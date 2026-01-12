@@ -31,15 +31,15 @@ type SolarFlaresActions =
     | HydratedActivate
     | HydratedActivateEffect
 
-export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresActions> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is SolarFlaresActions {
+export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresActions, HydratedSolGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is SolarFlaresActions {
         return (
             isSolarFlare(action) || isActivate(action) || isPass(action) || isActivateEffect(action)
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedSolGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+        const gameState = context.gameState
         const validActions = [ActionType.Pass, ActionType.Activate]
         if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
             validActions.push(ActionType.ActivateEffect)
@@ -48,10 +48,10 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
         return validActions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: SolarFlaresActions, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: SolarFlaresActions, context: MachineContext<HydratedSolGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isActivateEffect(action): {
@@ -138,7 +138,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
 
     static continueSolarFlaresOrEnd(
         state: HydratedSolGameState,
-        context: MachineContext
+        context: MachineContext<HydratedSolGameState>
     ): MachineState {
         state.solarFlaresRemaining = state.solarFlaresRemaining! - 1
         state.solarFlareActivationsGroupId = undefined

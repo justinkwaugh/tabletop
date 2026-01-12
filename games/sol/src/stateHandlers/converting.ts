@@ -15,16 +15,16 @@ import { HydratedInvade, isInvade } from '../actions/invade.js'
 
 type ConvertingAction = HydratedConvert | HydratedPass | HydratedActivateEffect | HydratedInvade
 
-export class ConvertingStateHandler implements MachineStateHandler<ConvertingAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is ConvertingAction {
+export class ConvertingStateHandler implements MachineStateHandler<ConvertingAction, HydratedSolGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is ConvertingAction {
         if (!action.playerId) return false
-        const gameState = context.gameState as HydratedSolGameState
+        const gameState = context.gameState
 
         return isPass(action) || isConvert(action) || isActivateEffect(action) || isInvade(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedSolGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+        const gameState = context.gameState
 
         const validActions = [ActionType.Pass]
 
@@ -46,10 +46,10 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
         return validActions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: ConvertingAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: ConvertingAction, context: MachineContext<HydratedSolGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isInvade(action): {

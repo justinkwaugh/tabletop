@@ -10,14 +10,14 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 
 type BuildingAction = HydratedBuild | HydratedPass
 
-export class BuildingStateHandler implements MachineStateHandler<BuildingAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is BuildingAction {
+export class BuildingStateHandler implements MachineStateHandler<BuildingAction, HydratedKaivaiGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): action is BuildingAction {
         if (!action.playerId) return false
         return action.type === ActionType.Build || action.type === ActionType.Pass
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
         const validActions = [ActionType.Pass]
@@ -38,10 +38,10 @@ export class BuildingStateHandler implements MachineStateHandler<BuildingAction>
         return validActions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedKaivaiGameState>) {}
 
-    onAction(action: BuildingAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: BuildingAction, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {

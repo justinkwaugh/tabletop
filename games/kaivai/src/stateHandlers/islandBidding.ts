@@ -13,16 +13,16 @@ import { ActionType } from '../definition/actions.js'
 import { ScoreIsland } from '../actions/scoreIsland.js'
 
 // Transition from IslandBidding(PlaceBid) -> IslandBidding | FinalScoring
-export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPlaceScoringBid> {
+export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPlaceScoringBid, HydratedKaivaiGameState> {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext
+        context: MachineContext<HydratedKaivaiGameState>
     ): action is HydratedPlaceScoringBid {
         if (!isPlaceScoringBid(action)) {
             return false
         }
 
-        const gameState = context.gameState as HydratedKaivaiGameState
+        const gameState = context.gameState
 
         if (!gameState.bidders.includes(action.playerId)) {
             return false
@@ -31,20 +31,20 @@ export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPl
         return true
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): string[] {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): string[] {
+        const gameState = context.gameState
         return gameState.bidders.includes(playerId) ? [ActionType.PlaceScoringBid] : []
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    enter(context: MachineContext<HydratedKaivaiGameState>) {
+        const gameState = context.gameState
         if (Object.keys(gameState.bids).length === 0) {
             gameState.activePlayerIds = structuredClone(gameState.bidders)
         }
     }
 
-    onAction(action: HydratedPlaceScoringBid, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: HydratedPlaceScoringBid, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
 
         if (!gameState.chosenIsland) {
             throw Error(`No island chosen for bidding`)

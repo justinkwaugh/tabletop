@@ -17,50 +17,50 @@ describe('Fresh Fish Board Generator Tests', () => {
         const correctCells = [
             [
                 { type: 'off' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'off' }
-            ],
-            [
-                { type: 'off' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'off' }
-            ],
-            [
-                { type: 'off' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'empty' },
-                { type: 'off' }
-            ],
-            [
-                { type: 'off' },
-                { type: 'empty' },
                 { type: 'truck', goodsType: 'cheese' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'off' }
+            ],
+            [
+                { type: 'off' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'off' }
+            ],
+            [
+                { type: 'off' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'off' }
+            ],
+            [
+                { type: 'off' },
+                { type: 'empty' },
+                { type: 'empty' },
+                { type: 'empty' },
                 { type: 'empty' },
                 { type: 'empty' },
                 { type: 'empty' },
                 { type: 'truck', goodsType: 'icecream' },
                 { type: 'empty' },
-                { type: 'empty' },
                 { type: 'off' }
             ],
             [
@@ -118,7 +118,7 @@ describe('Fresh Fish Board Generator Tests', () => {
                 { type: 'empty' },
                 { type: 'empty' },
                 { type: 'empty' },
-                { type: 'road' },
+                { type: 'truck', goodsType: 'lemonade' },
                 { type: 'empty' },
                 { type: 'empty' },
                 { type: 'empty' }
@@ -129,13 +129,14 @@ describe('Fresh Fish Board Generator Tests', () => {
                 { type: 'empty' },
                 { type: 'empty' },
                 { type: 'empty' },
-                { type: 'truck', goodsType: 'lemonade' },
+                { type: 'road' },
                 { type: 'empty' },
                 { type: 'off' },
                 { type: 'off' },
                 { type: 'off' }
             ]
         ]
+        console.log(board.cells, correctCells)
         expect(board.cells).toEqual(correctCells)
     })
 })

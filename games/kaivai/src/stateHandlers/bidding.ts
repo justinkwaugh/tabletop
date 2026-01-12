@@ -6,13 +6,13 @@ import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { PhaseName } from '../definition/phases.js'
 
 // Transition from Bidding(PlaceBid) -> PlaceBid | InitialHuts | PlacingGod
-export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedPlaceBid {
+export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid, HydratedKaivaiGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedKaivaiGameState>): action is HydratedPlaceBid {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
         if (this.isValidActionType(ActionType.PlaceBid, playerId, context)) {
             return [ActionType.PlaceBid]
         } else {
@@ -20,8 +20,8 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
         }
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    enter(context: MachineContext<HydratedKaivaiGameState>) {
+        const gameState = context.gameState
         if (!gameState.rounds.currentRound) {
             gameState.rounds.startRound(gameState.actionCount + 1)
         }
@@ -42,8 +42,8 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
         gameState.activePlayerIds = [nextPlayerId]
     }
 
-    onAction(action: HydratedPlaceBid, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: HydratedPlaceBid, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isPlaceBid(action): {
@@ -74,9 +74,9 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
     private isValidActionType(
         actionType: string,
         playerId: string,
-        context: MachineContext
+        context: MachineContext<HydratedKaivaiGameState>
     ): boolean {
-        const gameState = context.gameState as HydratedKaivaiGameState
+        const gameState = context.gameState
         switch (actionType) {
             case ActionType.PlaceBid: {
                 return gameState.bids[playerId] === undefined

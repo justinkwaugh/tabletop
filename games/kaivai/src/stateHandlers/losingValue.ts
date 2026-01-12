@@ -13,24 +13,24 @@ import { ScoreHuts } from '../actions/scoreHuts.js'
 import { nanoid } from 'nanoid'
 
 // Transition from LosingValue(LoseValue) -> Bidding
-export class LosingValueStateHandler implements MachineStateHandler<HydratedLoseValue> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is HydratedLoseValue {
+export class LosingValueStateHandler implements MachineStateHandler<HydratedLoseValue, HydratedKaivaiGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): action is HydratedLoseValue {
         return action.type === ActionType.LoseValue
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext): ActionType[] {
+    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
         return [ActionType.LoseValue]
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    enter(context: MachineContext<HydratedKaivaiGameState>) {
+        const gameState = context.gameState
 
         gameState.phases.startPhase(PhaseName.LosingValue, gameState.actionCount)
         gameState.activePlayerIds = []
     }
 
-    onAction(action: HydratedLoseValue, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: HydratedLoseValue, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isLoseValue(action): {

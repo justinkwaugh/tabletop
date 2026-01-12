@@ -8,14 +8,14 @@ import { isPass } from '../actions/pass.js'
 // Transition from Fishing(Fish) -> Fishing | TakingActions
 //                 Fishing(Pass) -> TakingActions
 
-export class FishingStateHandler implements MachineStateHandler<HydratedFish> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is HydratedFish {
+export class FishingStateHandler implements MachineStateHandler<HydratedFish, HydratedKaivaiGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): action is HydratedFish {
         if (!action.playerId) return false
         return action.type === ActionType.Fish || action.type === ActionType.Pass
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
         const validActions = [ActionType.Pass]
@@ -30,10 +30,10 @@ export class FishingStateHandler implements MachineStateHandler<HydratedFish> {
         return validActions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedKaivaiGameState>) {}
 
-    onAction(action: HydratedFish, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: HydratedFish, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {

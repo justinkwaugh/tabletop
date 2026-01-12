@@ -7,18 +7,18 @@ import {
 import { HydratedSampleGameState } from '../model/gameState.js'
 
 // Terminal state
-export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): boolean {
+export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction, HydratedSampleGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSampleGameState>): boolean {
         // No actions are valid for this state
         return false
     }
-    validActionsForPlayer(playerId: string, context: MachineContext): string[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSampleGameState>): string[] {
         // No actions are valid at the end of the game
         return []
     }
-    enter(context: MachineContext): void {
+    enter(context: MachineContext<HydratedSampleGameState>): void {
         // Record the end of game data
-        const gameState = context.gameState as HydratedSampleGameState
+        const gameState = context.gameState
 
         const winners = gameState.calculateLeadingPlayerIds()
         context.gameState.result = winners.length === 1 ? GameResult.Win : GameResult.Draw
@@ -28,7 +28,7 @@ export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction
         context.gameState.activePlayerIds = []
     }
 
-    onAction(action: unknown, context: MachineContext): string {
+    onAction(action: unknown, context: MachineContext<HydratedSampleGameState>): string {
         throw Error('No actions are valid at the end of the game')
     }
 }

@@ -7,20 +7,20 @@ import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from Accelerating(Accelerate) -> PREVIOUS STATE
 
-export class AcceleratingStateHandler implements MachineStateHandler<HydratedAccelerate> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedAccelerate {
+export class AcceleratingStateHandler implements MachineStateHandler<HydratedAccelerate, HydratedSolGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is HydratedAccelerate {
         if (!action.playerId) return false
         return isAccelerate(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
         return [ActionType.Accelerate]
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: HydratedAccelerate, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: HydratedAccelerate, context: MachineContext<HydratedSolGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isAccelerate(action): {

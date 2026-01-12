@@ -10,7 +10,7 @@ import { isPass } from '../actions/pass.js'
 
 export function drawCardsOrEndTurn(
     state: HydratedSolGameState,
-    context: MachineContext,
+    context: MachineContext<HydratedSolGameState>,
     action?: GameAction
 ): MachineState {
     const currentPlayerId = state.turnManager.currentTurn()?.playerId
@@ -42,7 +42,7 @@ export function drawCardsOrEndTurn(
     }
 }
 
-export function onActivateEffect(action: ActivateEffect, context: MachineContext): MachineState {
+export function onActivateEffect(action: ActivateEffect, context: MachineContext<HydratedSolGameState>): MachineState {
     if (action.effect === EffectType.Hatch) {
         return MachineState.Hatching
     } else if (action.effect === EffectType.Accelerate) {
@@ -53,6 +53,6 @@ export function onActivateEffect(action: ActivateEffect, context: MachineContext
         return MachineState.Chaining
     }
 
-    const state = context.gameState as HydratedSolGameState
+    const state = context.gameState
     return state.machineState
 }

@@ -6,13 +6,13 @@ import { HydratedBuild, isBuild } from '../actions/build.js'
 import { PhaseName } from '../definition/phases.js'
 
 // Transition from InitialHuts(Build) -> InitialHuts | PlacingGod
-export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuild> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedBuild {
+export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuild, HydratedKaivaiGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedKaivaiGameState>): action is HydratedBuild {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
         if (this.isValidActionType(ActionType.Build, playerId, context)) {
             return [ActionType.Build]
         } else {
@@ -20,8 +20,8 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuil
         }
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    enter(context: MachineContext<HydratedKaivaiGameState>) {
+        const gameState = context.gameState
 
         let nextPlayerId
         if (!gameState.phases.currentPhase) {
@@ -35,8 +35,8 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuil
         }
     }
 
-    onAction(action: HydratedBuild, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: HydratedBuild, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {
@@ -63,9 +63,9 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuil
     private isValidActionType(
         actionType: string,
         playerId: string,
-        context: MachineContext
+        context: MachineContext<HydratedKaivaiGameState>
     ): boolean {
-        const gameState = context.gameState as HydratedKaivaiGameState
+        const gameState = context.gameState
         return (
             actionType === ActionType.Build &&
             gameState.getPlayerState(playerId).initialHutsPlaced < 2

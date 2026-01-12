@@ -1,11 +1,15 @@
 import { type HydratedAction } from './gameAction.js'
 import { MachineContext } from './machineContext.js'
+import type { HydratedGameState } from '../model/gameState.js'
 
-export interface MachineStateHandler<T extends HydratedAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): boolean
-    validActionsForPlayer(playerId: string, context: MachineContext): string[]
-    enter(context: MachineContext): void
-    onAction(action: T, context: MachineContext): string
+export interface MachineStateHandler<
+    Action extends HydratedAction,
+    State extends HydratedGameState = HydratedGameState
+> {
+    isValidAction(action: HydratedAction, context: MachineContext<State>): boolean
+    validActionsForPlayer(playerId: string, context: MachineContext<State>): string[]
+    enter(context: MachineContext<State>): void
+    onAction(action: Action, context: MachineContext<State>): string
 }
 
 export class TerminalStateHandler implements MachineStateHandler<HydratedAction> {

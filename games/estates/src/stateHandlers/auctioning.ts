@@ -17,15 +17,15 @@ import { AuctionRecipient, ChooseRecipient } from '../actions/chooseRecipient.js
 
 type AuctioningAction = HydratedPlaceBid | HydratedEndAuction
 
-export class AuctioningStateHandler implements MachineStateHandler<AuctioningAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is AuctioningAction {
+export class AuctioningStateHandler implements MachineStateHandler<AuctioningAction, HydratedEstatesGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedEstatesGameState>): action is AuctioningAction {
         if (!action.playerId && !isEndAuction(action)) return false
         return isPlaceBid(action) || isEndAuction(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedEstatesGameState>): ActionType[] {
         const validActions: ActionType[] = []
-        const gameState = context.gameState as HydratedEstatesGameState
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
         if (playerState.money > 0) {
@@ -35,8 +35,8 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
         return validActions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedEstatesGameState
+    enter(context: MachineContext<HydratedEstatesGameState>) {
+        const gameState = context.gameState
 
         // No bidders
         if (gameState.auction?.participants.length === 0) {
@@ -61,8 +61,8 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
         }
     }
 
-    onAction(action: AuctioningAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedEstatesGameState
+    onAction(action: AuctioningAction, context: MachineContext<HydratedEstatesGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isPlaceBid(action): {

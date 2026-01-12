@@ -7,23 +7,23 @@ import { ActivatingStateHandler } from './activating.js'
 
 // Transition from Metamorphosizing(Metamorphosize) -> DrawingCards | StartOfTurn
 
-export class MetamorphosizingStateHandler implements MachineStateHandler<HydratedMetamorphosize> {
+export class MetamorphosizingStateHandler implements MachineStateHandler<HydratedMetamorphosize, HydratedSolGameState> {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext
+        context: MachineContext<HydratedSolGameState>
     ): action is HydratedMetamorphosize {
         if (!action.playerId) return false
         return isMetamorphosize(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
         return [ActionType.Metamorphosize]
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: HydratedMetamorphosize, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: HydratedMetamorphosize, context: MachineContext<HydratedSolGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isMetamorphosize(action): {

@@ -6,19 +6,19 @@ import { ActionType } from '../definition/actions.js'
 
 // Transition from MarketTileDrawn(PlaceMarket) -> StartOfTurn (for next player)
 // Transition from MarketTileDrawn(PlaceMarket) -> TileBagEmptied (if bag empty)
-export class MarketTileDrawnStateHandler implements MachineStateHandler<HydratedPlaceMarket> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is HydratedPlaceMarket {
+export class MarketTileDrawnStateHandler implements MachineStateHandler<HydratedPlaceMarket, HydratedFreshFishGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedFreshFishGameState>): action is HydratedPlaceMarket {
         return action.type === ActionType.PlaceMarket
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext): ActionType[] {
+    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedFreshFishGameState>): ActionType[] {
         return [ActionType.PlaceMarket]
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedFreshFishGameState>) {}
 
-    onAction(action: HydratedPlaceMarket, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedFreshFishGameState
+    onAction(action: HydratedPlaceMarket, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+        const gameState = context.gameState
         gameState.turnManager.endTurn(gameState.actionCount)
         if (gameState.tileBag.isEmpty()) {
             return MachineState.TileBagEmptied
