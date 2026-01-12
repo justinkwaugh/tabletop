@@ -56,8 +56,8 @@ export class HydratedResolveAuction
             assert(winner.money >= winningBid, 'Winner cannot afford bid')
 
             winner.money -= winningBid
-            seller.money += winningBid
-            seller.money += winningBid
+            // Seller receives double the winning bid
+            seller.money += winningBid * 2
             winner.island.push(...auction.containers)
         } else {
             state.ensureCash(seller, winningBid)
