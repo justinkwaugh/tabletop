@@ -55,6 +55,10 @@ Testing in this project is done using vitest. It is reasonable to provide some u
 
 ## Game Logic Project
 
+### Project Scaffolding Checklist
+
+- Include `.eslintrc.cjs`, `tsconfig.json`, `tsconfig.types.json`, `vitest.config.ts`, and `package.json` aligned with existing game packages
+
 ### Game Definition
 
 The game logic module can be imported and used by the UI and backend like a plugin, in that there is an object that defines the external interface of the module. That object should implement the `GameDefinition` interface and must be exported as `Definition`. It should be defined in a file called `gameDefinition.ts` in the `src/definition` directory of the game logic project.
@@ -235,4 +239,17 @@ Sometimes certain game concepts or components require more complicated logic, or
 
 - **Make sure you look to see if there is a component in `@tabletop/common` that already serves your needs before implementing it yourself!**
 
-### Game UI
+Reuse checklist for gameplay mechanisms (auction, draft, bag, turn order, etc.):
+
+- Search `libs/common/src/game/components` for an existing component (example: `rg -n "auction" libs/common/src/game/components`).
+- Prefer reuse or extension over bespoke implementations.
+- If you diverge, briefly explain why in the final response and cite the component you considered.
+
+## Implementation Checklist
+
+- Read the provided rules
+- Scaffold the new project
+- Ask about any missing information or rule ambiguities. Regardless of the answer, record them in a file called RULES_QUESTIONS.md at the root of the new project
+- Implement the game rules following the design and conventions outlined above
+- Build the module to verify it compiles
+- Run your generated test cases
