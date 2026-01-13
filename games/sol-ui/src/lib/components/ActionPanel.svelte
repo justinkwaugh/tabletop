@@ -8,6 +8,7 @@
         ActionType,
         EffectType,
         HydratedActivate,
+        HydratedActivateBonus,
         HydratedActivateEffect,
         HydratedChain,
         HydratedConvert,
@@ -136,6 +137,10 @@
         } else if (gameSession.isActivating) {
             if (
                 !HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id) &&
+                !HydratedActivateBonus.canActivateBonus(
+                    gameSession.gameState,
+                    gameSession.myPlayer.id
+                ) &&
                 gameSession.gameState.playerHasCardForEffect(
                     gameSession.myPlayer.id,
                     EffectType.Pulse
@@ -149,6 +154,10 @@
                 return result
             } else if (
                 !HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id) &&
+                !HydratedActivateBonus.canActivateBonus(
+                    gameSession.gameState,
+                    gameSession.myPlayer.id
+                ) &&
                 gameSession.gameState.playerHasCardForEffect(
                     gameSession.myPlayer.id,
                     EffectType.Blight
@@ -162,6 +171,10 @@
                 return result
             } else if (
                 !HydratedActivate.canActivate(gameSession.gameState, gameSession.myPlayer.id) &&
+                !HydratedActivateBonus.canActivateBonus(
+                    gameSession.gameState,
+                    gameSession.myPlayer.id
+                ) &&
                 gameSession.gameState.playerHasCardForEffect(
                     gameSession.myPlayer.id,
                     EffectType.Sacrifice
