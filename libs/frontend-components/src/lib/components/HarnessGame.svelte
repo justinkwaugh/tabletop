@@ -1,22 +1,20 @@
 <script lang="ts">
-    import type { AppContext } from '$lib/model/appContext.js'
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import HotseatPanel from './HotseatPanel.svelte'
     import ExplorationPanel from './ExplorationPanel.svelte'
 
-    import { getContext, setContext, type Component } from 'svelte'
+    import { setContext } from 'svelte'
+    import type { GameTable } from '$lib/definition/gameUiDefinition.js'
 
     let {
         Table,
         gameSession
     }: {
-        Table: Component
+        Table: GameTable<GameState, HydratedGameState>
         gameSession: GameSession<GameState, HydratedGameState>
     } = $props()
 
-    let { authorizationService } = getContext('appContext') as AppContext
-    console.log('HarnessGame received gameSession with game:', gameSession.game)
     setContext('gameSession', gameSession)
 </script>
 
@@ -25,4 +23,4 @@
 {:else if gameSession.game.hotseat}
     <HotseatPanel />
 {/if}
-<Table />
+<Table {gameSession} />

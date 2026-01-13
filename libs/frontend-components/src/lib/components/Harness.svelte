@@ -1,6 +1,6 @@
 <script lang="ts">
     import 'es-iterator-helpers/auto'
-    import { getContext, type Component } from 'svelte'
+    import { getContext } from 'svelte'
     import { onMount } from 'svelte'
     import type { Game, GameState, HydratedGameState } from '@tabletop/common'
     import { Button, Dropdown, DropdownItem, Modal, Navbar, Toggle } from 'flowbite-svelte'
@@ -10,6 +10,7 @@
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import GameEditForm from './GameEditForm.svelte'
     import DeleteModal from './DeleteModal.svelte'
+    import type { GameTable } from '$lib/definition/gameUiDefinition.js'
 
     let {
         libraryService,
@@ -20,7 +21,7 @@
         api
     } = getContext('appContext') as AppContext
 
-    let Table: Component | null = $state(null)
+    let Table: GameTable<GameState, HydratedGameState> | null = $state(null)
     let showCreateModal = $state(false)
     let gameToDelete: string | undefined = $state(undefined)
     let deleteModalOpen = $derived(gameToDelete !== undefined)
@@ -31,9 +32,11 @@
         gameService.loadGames().catch(console.error)
 
         if (definition) {
-            definition.getTableComponent().then((tableComponent: Component) => {
-                Table = tableComponent
-            })
+            definition
+                .getTableComponent()
+                .then((tableComponent: GameTable<GameState, HydratedGameState>) => {
+                    Table = tableComponent
+                })
         }
     })
 
