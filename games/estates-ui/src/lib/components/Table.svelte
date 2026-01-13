@@ -14,9 +14,9 @@
     import PlayersPanel from './PlayersPanel.svelte'
     import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let {
-        gameSession
-    }: { gameSession: GameSession<EstatesGameState, HydratedEstatesGameState> } = $props()
+    let { gameSession }: { gameSession: GameSession<EstatesGameState, HydratedEstatesGameState> } =
+        $props()
+    // svelte-ignore state_referenced_locally
     const estatesSession = gameSession as EstatesGameSession
 
     setGameSession(estatesSession)
@@ -34,9 +34,7 @@
 <div bind:this={table}>
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <DefaultSideContent
-                playersPanel={estatesSession.mobileView ? playersPanel : undefined}
-            >
+            <DefaultSideContent playersPanel={estatesSession.mobileView ? playersPanel : undefined}>
                 {#snippet history()}
                     <History />
                 {/snippet}

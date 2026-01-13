@@ -14,6 +14,8 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
     let { data }: { data: { gameSession: GameSession<GameState, HydratedGameState> } } = $props()
+
+    // svelte-ignore state_referenced_locally
     setGameSession(data.gameSession)
 
     let { gameService, notificationService, authorizationService, chatService } = getContext(

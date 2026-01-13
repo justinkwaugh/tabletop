@@ -24,7 +24,7 @@
 
     let { api } = getContext('appContext') as AppContext
 
-    let inputId = $state(`in-${id}`)
+    let inputId = $derived(`in-${id}`)
     let hiddenTriggerId = $derived(`no-${inputId}`)
 
     let isOpen: boolean = $state(false)

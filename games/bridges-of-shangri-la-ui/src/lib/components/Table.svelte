@@ -22,10 +22,10 @@
     import LastActionDescription from './LastActionDescription.svelte'
     import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let {
-        gameSession
-    }: { gameSession: GameSession<BridgesGameState, HydratedBridgesGameState> } = $props()
+    let { gameSession }: { gameSession: GameSession<BridgesGameState, HydratedBridgesGameState> } =
+        $props()
 
+    // svelte-ignore state_referenced_locally
     setGameSession(gameSession as BridgesGameSession)
     let table: HTMLDivElement
 

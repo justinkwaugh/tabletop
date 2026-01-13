@@ -15,6 +15,7 @@
         gameSession: GameSession<GameState, HydratedGameState>
     } = $props()
 
+    // svelte-ignore state_referenced_locally
     setGameSession(gameSession)
 </script>
 

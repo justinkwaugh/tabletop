@@ -39,8 +39,12 @@
             !chatActive
     )
 
-    let activeTabClasses = `relative box-border ${activeTabClass ?? 'py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900'}`
-    let inactiveTabClasses = `relative box-border ${inactiveTabClass ?? 'text-gray-200 py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700'}`
+    let activeTabClasses = $derived(
+        `relative box-border ${activeTabClass ?? 'py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900'}`
+    )
+    let inactiveTabClasses = $derived(
+        `relative box-border ${inactiveTabClass ?? 'text-gray-200 py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700'}`
+    )
 
     function onChatClick() {
         chatActive = true

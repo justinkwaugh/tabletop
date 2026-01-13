@@ -24,6 +24,7 @@
         gameSession
     }: { gameSession: GameSession<FreshFishGameState, HydratedFreshFishGameState> } = $props()
 
+    // svelte-ignore state_referenced_locally
     setGameSession(gameSession as FreshFishGameSession)
     let table: HTMLDivElement
 
