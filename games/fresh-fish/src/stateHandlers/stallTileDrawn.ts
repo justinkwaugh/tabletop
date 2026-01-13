@@ -12,22 +12,22 @@ import { PlaceBid } from '../actions/placeBid.js'
 import { nanoid } from 'nanoid'
 
 // Transition from StallTileDrawn(StartAuction) -> AuctioningTile
-export class StallTileDrawnStateHandler implements MachineStateHandler<HydratedStartAuction> {
+export class StallTileDrawnStateHandler implements MachineStateHandler<HydratedStartAuction, HydratedFreshFishGameState> {
     isValidAction(
         action: HydratedAction,
-        _context: MachineContext
+        _context: MachineContext<HydratedFreshFishGameState>
     ): action is HydratedStartAuction {
         return action.type === ActionType.StartAuction
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext): string[] {
+    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedFreshFishGameState>): string[] {
         return [ActionType.StartAuction]
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedFreshFishGameState>) {}
 
-    onAction(action: HydratedStartAuction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedFreshFishGameState
+    onAction(action: HydratedStartAuction, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+        const gameState = context.gameState
         if (!gameState.currentAuction) {
             throw Error('No auction found')
         }

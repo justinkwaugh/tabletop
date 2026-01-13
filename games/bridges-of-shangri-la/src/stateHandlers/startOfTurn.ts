@@ -19,13 +19,13 @@ type StartOfTurnAction =
 //                 StartOfTurn(RecruitStudents) -> RecruitingStudents
 //                 StartOfTurn(BeginJourney) -> StartOfTurn | EndOfGame
 //                 StartOfTurn(Pass) -> StartOfTurn
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is StartOfTurnAction {
+export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedBridgesGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedBridgesGameState>): action is StartOfTurnAction {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context) || isPass(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedBridgesGameState>): ActionType[] {
         const actions = [
             ActionType.PlaceMaster,
             ActionType.RecruitStudents,
@@ -38,15 +38,15 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         return actions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedBridgesGameState
+    enter(context: MachineContext<HydratedBridgesGameState>) {
+        const gameState = context.gameState
 
         const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
         gameState.activePlayerIds = [nextPlayerId]
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedBridgesGameState
+    onAction(action: StartOfTurnAction, context: MachineContext<HydratedBridgesGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isPlaceMaster(action) || isPass(action): {
@@ -79,9 +79,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
     private isValidActionType(
         actionType: string,
         playerId: string,
-        context: MachineContext
+        context: MachineContext<HydratedBridgesGameState>
     ): boolean {
-        const gameState = context.gameState as HydratedBridgesGameState
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
         switch (actionType) {

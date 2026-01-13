@@ -14,14 +14,14 @@ import { onActivateEffect } from './postActionHelper.js'
 
 type ChoosingCardAction = HydratedChooseCard | HydratedActivateEffect | HydratedPass
 
-export class ChoosingCardStateHandler implements MachineStateHandler<ChoosingCardAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is ChoosingCardAction {
+export class ChoosingCardStateHandler implements MachineStateHandler<ChoosingCardAction, HydratedSolGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is ChoosingCardAction {
         if (!action.playerId) return false
         return isChooseCard(action) || isPass(action) || isActivateEffect(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedSolGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+        const gameState = context.gameState
         const validActions = [ActionType.Pass, ActionType.ChooseCard]
 
         if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
@@ -31,14 +31,14 @@ export class ChoosingCardStateHandler implements MachineStateHandler<ChoosingCar
         return validActions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: ChoosingCardAction, context: MachineContext): MachineState {
+    onAction(action: ChoosingCardAction, context: MachineContext<HydratedSolGameState>): MachineState {
         if (isActivateEffect(action)) {
             return onActivateEffect(action, context)
         }
 
-        const gameState = context.gameState as HydratedSolGameState
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
         playerState.drawnCards = []
 

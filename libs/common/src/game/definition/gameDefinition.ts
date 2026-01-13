@@ -20,7 +20,7 @@ export interface GameDefinition<
     configurator?: GameConfigurator
     hydrator: GameHydrator<T, U>
 
-    stateHandlers: Record<string, MachineStateHandler<HydratedAction>>
+    stateHandlers: Record<string, MachineStateHandler<HydratedAction, U>>
 
     apiActions: Record<string, TSchema>
     playerColors: Color[]

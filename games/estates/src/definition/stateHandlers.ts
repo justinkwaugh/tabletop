@@ -6,8 +6,12 @@ import { AuctioningStateHandler } from '../stateHandlers/auctioning.js'
 import { AuctionEndedStateHandler } from '../stateHandlers/auctionEnded.js'
 import { PlacingPieceStateHandler } from '../stateHandlers/placingPiece.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import type { HydratedEstatesGameState } from '../model/gameState.js'
 
-export const EstatesStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
+export const EstatesStateHandlers: Record<
+    MachineState,
+    MachineStateHandler<HydratedAction, HydratedEstatesGameState>
+> = {
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
     [MachineState.Auctioning]: new AuctioningStateHandler(),
     [MachineState.AuctionEnded]: new AuctionEndedStateHandler(),

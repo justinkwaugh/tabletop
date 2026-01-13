@@ -21,13 +21,13 @@ type StartOfTurnAction = HydratedPlaceDisk | HydratedDrawTile
 //                 StartOfTurn(DrawTile) -> MarketTileDrawn (when market tile drawn)
 //                 StartOfTurn(DrawTile) -> StallTileDrawn (when stall tile is drawn)
 //                 StartOfTurn(Pass) -> StartOfTurn (no possible moves)
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is StartOfTurnAction {
+export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedFreshFishGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedFreshFishGameState>): action is StartOfTurnAction {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context) || isPass(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedFreshFishGameState>): ActionType[] {
         const validActions: ActionType[] = []
         if (this.isValidActionType(ActionType.PlaceDisk, playerId, context)) {
             validActions.push(ActionType.PlaceDisk)
@@ -44,8 +44,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         return validActions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedFreshFishGameState
+    enter(context: MachineContext<HydratedFreshFishGameState>) {
+        const gameState = context.gameState
 
         // If we are not still in the middle of a turn, start a new turn
         if (!gameState.turnManager.currentTurn()) {
@@ -61,8 +61,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         }
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedFreshFishGameState
+    onAction(action: StartOfTurnAction, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isPlaceDisk(action) || isPass(action): {
@@ -100,9 +100,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
     private isValidActionType(
         actionType: string,
         playerId: string,
-        context: MachineContext
+        context: MachineContext<HydratedFreshFishGameState>
     ): boolean {
-        const gameState = context.gameState as HydratedFreshFishGameState
+        const gameState = context.gameState
         const gameConfig = context.gameConfig as FreshFishGameConfig
 
         if (

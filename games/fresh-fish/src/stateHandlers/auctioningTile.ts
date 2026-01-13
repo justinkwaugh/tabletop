@@ -18,13 +18,13 @@ type AuctioningTileAction = HydratedPlaceBid | HydratedEndAuction
 
 // Transition from AuctioningTile(PlaceBid) -> AuctionEnded (if all bids placed)
 //                 AuctioningTile(PlaceBid) -> AuctioningTile (if not all bids placed)
-export class AuctioningTileStateHandler implements MachineStateHandler<HydratedPlaceBid> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedPlaceBid {
+export class AuctioningTileStateHandler implements MachineStateHandler<HydratedPlaceBid, HydratedFreshFishGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedFreshFishGameState>): action is HydratedPlaceBid {
         if (!isPlaceBid(action) && !isEndAuction(action)) {
             return false
         }
 
-        const gameState = context.gameState as HydratedFreshFishGameState
+        const gameState = context.gameState
 
         if (
             isPlaceBid(action) &&
@@ -41,14 +41,14 @@ export class AuctioningTileStateHandler implements MachineStateHandler<HydratedP
         return true
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): string[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedFreshFishGameState>): string[] {
         return this.canPlayerParticipate(context, playerId) ? [ActionType.PlaceBid] : []
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedFreshFishGameState>) {}
 
-    onAction(action: AuctioningTileAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedFreshFishGameState
+    onAction(action: AuctioningTileAction, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (action.type) {
             case ActionType.PlaceBid: {
@@ -101,9 +101,9 @@ export class AuctioningTileStateHandler implements MachineStateHandler<HydratedP
         }
     }
 
-    private canPlayerParticipate(context: MachineContext, playerId?: string): boolean {
+    private canPlayerParticipate(context: MachineContext<HydratedFreshFishGameState>, playerId?: string): boolean {
         if (!playerId) return false
-        const gameState = context.gameState as HydratedFreshFishGameState
+        const gameState = context.gameState
         const goodsType = gameState.getAuctionGoodsType()
         if (!goodsType) {
             return false
@@ -111,8 +111,8 @@ export class AuctioningTileStateHandler implements MachineStateHandler<HydratedP
         return gameState.getPlayerState(playerId).hasUnplacedStall(goodsType)
     }
 
-    private isValidEndAuction(context: MachineContext): boolean {
-        const gameState = context.gameState as HydratedFreshFishGameState
+    private isValidEndAuction(context: MachineContext<HydratedFreshFishGameState>): boolean {
+        const gameState = context.gameState
         const auction = gameState.currentAuction
         return auction !== undefined && auction.winnerId !== undefined
     }

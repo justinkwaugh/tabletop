@@ -25,17 +25,17 @@ import { onActivateEffect } from './postActionHelper.js'
 
 type DrawingCardsActions = HydratedDrawCards | HydratedActivateEffect
 
-export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCardsActions> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is DrawingCardsActions {
+export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCardsActions, HydratedSolGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is DrawingCardsActions {
         if (!action.playerId) return false
         return isDrawCards(action) || isActivateEffect(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
         const actions = [ActionType.DrawCards]
         if (
             HydratedActivateEffect.canActivateHeldEffect(
-                context.gameState as HydratedSolGameState,
+                context.gameState,
                 playerId
             )
         ) {
@@ -44,10 +44,10 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
         return actions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: DrawingCardsActions, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: DrawingCardsActions, context: MachineContext<HydratedSolGameState>): MachineState {
+        const gameState = context.gameState
 
         if (isActivateEffect(action)) {
             return onActivateEffect(action, context)
@@ -77,7 +77,7 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
 
     static handleDrawnCards(
         state: HydratedSolGameState,
-        context: MachineContext,
+        context: MachineContext<HydratedSolGameState>,
         playerId: string
     ) {
         const playerState = state.getPlayerState(playerId)

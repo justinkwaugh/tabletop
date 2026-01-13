@@ -191,7 +191,7 @@ export class GameEngine<
         return !action.playerId || state.isActivePlayer(action.playerId)
     }
 
-    private getStateHandler(state: GameState): MachineStateHandler<HydratedAction> {
+    private getStateHandler(state: GameState): MachineStateHandler<HydratedAction, U> {
         const stateHandler = this.definition.stateHandlers[state.machineState]
         assertExists(stateHandler, `Unknown machine state: ${state.machineState}`)
         return stateHandler

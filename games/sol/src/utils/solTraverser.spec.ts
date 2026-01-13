@@ -22,7 +22,7 @@ describe('Sol Traverser Tests', () => {
         const graph = new SolGraph(4)
         const coreTraverser = solTraverser({ board, start: { row: Ring.Core, col: 0 } })
         expect(Array.from(graph.traverse(coreTraverser)).length).toEqual(
-            ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Core]
+            ONE_TO_FOUR_PLAYER_RING_COUNTS[Ring.Core] + 1 // +1 for center
         )
 
         const radiativeTraverser = solTraverser({ board, start: { row: Ring.Radiative, col: 0 } })

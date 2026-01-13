@@ -17,8 +17,8 @@ type StartOfTurnAction = HydratedDrawRoof | HydratedStartAuction
 // Transition from StartOfTurn(DrawRoof) -> Auctioning
 //                 StartOfTurn(StartAuction) -> Auctioning
 
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is StartOfTurnAction {
+export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedEstatesGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedEstatesGameState>): action is StartOfTurnAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.DrawRoof ||
@@ -27,9 +27,9 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedEstatesGameState>): ActionType[] {
         const validActions: ActionType[] = []
-        const gameState = context.gameState as HydratedEstatesGameState
+        const gameState = context.gameState
 
         if (gameState.board.validRoofLocations().length > 0) {
             validActions.push(ActionType.DrawRoof)
@@ -46,8 +46,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         return validActions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedEstatesGameState
+    enter(context: MachineContext<HydratedEstatesGameState>) {
+        const gameState = context.gameState
 
         // If we are not still in the middle of a turn, start a new turn
         if (!gameState.turnManager.currentTurn()) {
@@ -56,8 +56,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         }
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedEstatesGameState
+    onAction(action: StartOfTurnAction, context: MachineContext<HydratedEstatesGameState>): MachineState {
+        const gameState = context.gameState
         switch (true) {
             case isDrawRoof(action): {
                 context.addSystemAction(StartAuction, {

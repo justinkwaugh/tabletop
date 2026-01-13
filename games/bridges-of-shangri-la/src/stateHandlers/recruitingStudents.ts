@@ -11,22 +11,22 @@ type StartOfTurnAction = HydratedRecruitStudents | HydratedPass
 
 // Transition from RecruitStudents(PlaceMaster) -> StartOfTurn
 //                 RecruitStudents(Pass) -> StartOfTurn
-export class RecruitingStudentsStateHandler implements MachineStateHandler<StartOfTurnAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is StartOfTurnAction {
+export class RecruitingStudentsStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedBridgesGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedBridgesGameState>): action is StartOfTurnAction {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedBridgesGameState>): ActionType[] {
         return Object.values(ActionType).filter((actionType) =>
             this.isValidActionType(actionType, playerId, context)
         )
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedBridgesGameState>) {}
 
-    onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedBridgesGameState
+    onAction(action: StartOfTurnAction, context: MachineContext<HydratedBridgesGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isRecruitStudents(action) || isPass(action): {
@@ -45,9 +45,9 @@ export class RecruitingStudentsStateHandler implements MachineStateHandler<Start
     private isValidActionType(
         actionType: string,
         playerId: string,
-        context: MachineContext
+        context: MachineContext<HydratedBridgesGameState>
     ): boolean {
-        const gameState = context.gameState as HydratedBridgesGameState
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
         switch (actionType) {

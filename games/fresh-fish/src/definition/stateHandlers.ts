@@ -7,8 +7,12 @@ import { AuctionEndedStateHandler } from '../stateHandlers/auctionEnded.js'
 import { TileBagEmptiedStateHandler } from '../stateHandlers/tileBagEmptied.js'
 import { MachineState } from './states.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import type { HydratedFreshFishGameState } from '../model/gameState.js'
 
-export const FreshFishStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
+export const FreshFishStateHandlers: Record<
+    MachineState,
+    MachineStateHandler<HydratedAction, HydratedFreshFishGameState>
+> = {
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
     [MachineState.MarketTileDrawn]: new MarketTileDrawnStateHandler(),
     [MachineState.StallTileDrawn]: new StallTileDrawnStateHandler(),

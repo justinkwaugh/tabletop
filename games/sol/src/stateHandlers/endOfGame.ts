@@ -7,16 +7,16 @@ import {
 import { HydratedSolGameState } from '../model/gameState.js'
 
 // Terminal state
-export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction> {
-    isValidAction(_action: HydratedAction, _context: MachineContext): boolean {
+export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction, HydratedSolGameState> {
+    isValidAction(_action: HydratedAction, _context: MachineContext<HydratedSolGameState>): boolean {
         return false
     }
-    validActionsForPlayer(_playerId: string, _context: MachineContext): string[] {
+    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedSolGameState>): string[] {
         return []
     }
-    enter(context: MachineContext): void {
+    enter(context: MachineContext<HydratedSolGameState>): void {
         // Record the end of game data
-        const gameState = context.gameState as HydratedSolGameState
+        const gameState = context.gameState
 
         const players = gameState.players.toSorted((a, b) => b.momentum - a.momentum)
 
@@ -28,7 +28,7 @@ export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction
         context.gameState.activePlayerIds = []
     }
 
-    onAction(_action: unknown, _context: MachineContext): string {
+    onAction(_action: unknown, _context: MachineContext<HydratedSolGameState>): string {
         throw Error('No actions are valid at the end of the game')
     }
 }

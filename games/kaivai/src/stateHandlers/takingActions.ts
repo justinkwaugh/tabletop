@@ -37,8 +37,8 @@ type TakingActionsAction =
     | HydratedMove
     | HydratedPass
 
-export class TakingActionsStateHandler implements MachineStateHandler<TakingActionsAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is TakingActionsAction {
+export class TakingActionsStateHandler implements MachineStateHandler<TakingActionsAction, HydratedKaivaiGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): action is TakingActionsAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.Build ||
@@ -52,8 +52,8 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
         // If player has not taken a turn this phase, they could sacrifice instead of pass
@@ -169,8 +169,8 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         return validActions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    enter(context: MachineContext<HydratedKaivaiGameState>) {
+        const gameState = context.gameState
 
         let nextPlayerId
         if (!gameState.phases.currentPhase) {
@@ -197,8 +197,8 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         }
     }
 
-    onAction(action: TakingActionsAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: TakingActionsAction, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {

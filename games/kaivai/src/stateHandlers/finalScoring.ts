@@ -23,9 +23,9 @@ import { PhaseName } from '../definition/phases.js'
 
 type FinalScoringAction = HydratedScoreHuts | HydratedChooseScoringIsland | HydratedScoreIsland
 
-export class FinalScoringStateHandler implements MachineStateHandler<FinalScoringAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is FinalScoringAction {
-        const gameState = context.gameState as HydratedKaivaiGameState
+export class FinalScoringStateHandler implements MachineStateHandler<FinalScoringAction, HydratedKaivaiGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedKaivaiGameState>): action is FinalScoringAction {
+        const gameState = context.gameState
         if (action.source === ActionSource.User && !action.playerId) return false
 
         if (!gameState.hutsScored) {
@@ -38,13 +38,13 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
         return false
     }
 
-    validActionsForPlayer(_playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    validActionsForPlayer(_playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+        const gameState = context.gameState
         return gameState.islandsToScore.length > 0 ? [ActionType.ChooseScoringIsland] : []
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    enter(context: MachineContext<HydratedKaivaiGameState>) {
+        const gameState = context.gameState
         if (!gameState.hutsScored) {
             gameState.phases.startPhase(PhaseName.FinalScoring, gameState.actionCount)
             gameState.activePlayerIds = []
@@ -55,8 +55,8 @@ export class FinalScoringStateHandler implements MachineStateHandler<FinalScorin
         gameState.activePlayerIds = [nextPlayerId]
     }
 
-    onAction(action: FinalScoringAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: FinalScoringAction, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
         switch (true) {
             case isScoreHuts(action): {
                 gameState.hutsScored = true

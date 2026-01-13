@@ -13,8 +13,12 @@ import { LosingValueStateHandler } from '../stateHandlers/losingValue.js'
 import { FinalScoringStateHandler } from '../stateHandlers/finalScoring.js'
 import { IslandBiddingStateHandler } from '../stateHandlers/islandBidding.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import type { HydratedKaivaiGameState } from '../model/gameState.js'
 
-export const KaivaiStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
+export const KaivaiStateHandlers: Record<
+    MachineState,
+    MachineStateHandler<HydratedAction, HydratedKaivaiGameState>
+> = {
     [MachineState.Bidding]: new BiddingStateHandler(),
     [MachineState.InitialHuts]: new InitialHutsStateHandler(),
     [MachineState.MovingGod]: new MovingGodStateHandler(),

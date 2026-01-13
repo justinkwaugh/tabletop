@@ -25,8 +25,8 @@ type MovingAction =
     | HydratedActivateEffect
     | HydratedFuel
 
-export class MovingStateHandler implements MachineStateHandler<MovingAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is MovingAction {
+export class MovingStateHandler implements MachineStateHandler<MovingAction, HydratedSolGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is MovingAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.Launch ||
@@ -38,8 +38,8 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedSolGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+        const gameState = context.gameState
 
         const validActions = [ActionType.Pass]
         const actions = [
@@ -85,10 +85,10 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction> {
         return validActions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: MovingAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: MovingAction, context: MachineContext<HydratedSolGameState>): MachineState {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {

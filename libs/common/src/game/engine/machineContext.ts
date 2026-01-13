@@ -5,9 +5,9 @@ import { nanoid } from 'nanoid'
 import type { GameAction } from './gameAction.js'
 import type { Static, TSchema } from 'typebox'
 
-export class MachineContext {
+export class MachineContext<State extends HydratedGameState = HydratedGameState> {
     readonly gameConfig: GameConfig
-    readonly gameState: HydratedGameState
+    readonly gameState: State
     private pendingActions: GameAction[]
 
     constructor({
@@ -17,7 +17,7 @@ export class MachineContext {
     }: {
         action?: GameAction
         gameConfig: GameConfig
-        gameState: HydratedGameState
+        gameState: State
     }) {
         this.initialActionId = action?.id ?? nanoid()
         this.gameConfig = gameConfig

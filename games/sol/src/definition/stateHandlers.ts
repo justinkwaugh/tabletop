@@ -18,8 +18,12 @@ import { TributingStateHandler } from '../stateHandlers/tributing.js'
 import { MetamorphosizingStateHandler } from '../stateHandlers/metamorphosizing.js'
 import { ChainingStateHandler } from '../stateHandlers/chaining.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import type { HydratedSolGameState } from '../model/gameState.js'
 
-export const SolStateHandlers: Record<MachineState, MachineStateHandler<HydratedAction>> = {
+export const SolStateHandlers: Record<
+    MachineState,
+    MachineStateHandler<HydratedAction, HydratedSolGameState>
+> = {
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
     [MachineState.Moving]: new MovingStateHandler(),
     [MachineState.Converting]: new ConvertingStateHandler(),

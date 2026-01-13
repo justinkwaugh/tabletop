@@ -13,22 +13,22 @@ import { nanoid } from 'nanoid'
 
 // Transition from TileBagEmptiedStateHandler(PlaceStall) -> TileBagEmptiedStateHandler (for next player)
 //                 TileBagEmptiedStateHandler(PlaceStall) -> GameEnded (when all stalls are placed)
-export class TileBagEmptiedStateHandler implements MachineStateHandler<HydratedPlaceStall> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is HydratedPlaceStall {
+export class TileBagEmptiedStateHandler implements MachineStateHandler<HydratedPlaceStall, HydratedFreshFishGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedFreshFishGameState>): action is HydratedPlaceStall {
         return action.type === ActionType.PlaceStall
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext): string[] {
+    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedFreshFishGameState>): string[] {
         return [ActionType.PlaceStall]
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedFreshFishGameState
+    enter(context: MachineContext<HydratedFreshFishGameState>) {
+        const gameState = context.gameState
         this.selectNextFinalStallAndPlayer(gameState, context)
     }
 
-    onAction(action: HydratedPlaceStall, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedFreshFishGameState
+    onAction(action: HydratedPlaceStall, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+        const gameState = context.gameState
 
         // Remove placed stall from final stalls list
         gameState.finalStalls.shift()
@@ -50,7 +50,7 @@ export class TileBagEmptiedStateHandler implements MachineStateHandler<HydratedP
         }
     }
 
-    selectNextFinalStallAndPlayer(gameState: HydratedFreshFishGameState, context: MachineContext) {
+    selectNextFinalStallAndPlayer(gameState: HydratedFreshFishGameState, context: MachineContext<HydratedFreshFishGameState>) {
         if (gameState.finalStalls.length === 0) {
             throw Error('No more final stalls to place')
         }

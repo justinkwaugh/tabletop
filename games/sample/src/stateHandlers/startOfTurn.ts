@@ -11,9 +11,9 @@ type StartOfTurnAction = HydratedAddAmount | HydratedPass
 // State handler for the StartOfTurn state.  The main purposes of a state handler are to
 // define what actions are valid in this state, handle entering the state, and provide
 // a new state after an action has happened.
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction> {
+export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedSampleGameState> {
     // Type guard to ensure action is one of the valid types for this state
-    isValidAction(action: HydratedAction, context: MachineContext): action is StartOfTurnAction {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSampleGameState>): action is StartOfTurnAction {
         // Types are not the only thing that has to be checked here
         if (!action.playerId) return false
 
@@ -22,8 +22,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
     // This returns the valid action type names for the given player in this state.
     // it is used by the UI to show valid options, and by the engine to validate actions.
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedSampleGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSampleGameState>): ActionType[] {
+        const gameState = context.gameState
 
         // Always can pass
         const validActions = [ActionType.Pass]
@@ -36,8 +36,8 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         return validActions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedSampleGameState
+    enter(context: MachineContext<HydratedSampleGameState>) {
+        const gameState = context.gameState
 
         // This would be a good place to reset turn-specific flags on the state
         // if there were any
@@ -51,10 +51,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         playerState.addAmount(5) // Give some amount at start of turn
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext): MachineState {
+    onAction(action: StartOfTurnAction, context: MachineContext<HydratedSampleGameState>): MachineState {
         switch (true) {
             case isAddAmount(action): {
-                const state = context.gameState as HydratedSampleGameState
+                const state = context.gameState
                 // Check to see if this action ends the game
                 if (state.total === state.maxTotal) {
                     return MachineState.EndOfGame

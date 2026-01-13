@@ -7,14 +7,14 @@ import { isPass } from '../actions/pass.js'
 
 // Transition from Delivering(Deliver) -> Delivering | TakingActions
 //                 Delivering(Pass) -> TakingActions
-export class DeliveringStateHandler implements MachineStateHandler<HydratedDeliver> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is HydratedDeliver {
+export class DeliveringStateHandler implements MachineStateHandler<HydratedDeliver, HydratedKaivaiGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): action is HydratedDeliver {
         if (!action.playerId) return false
         return action.type === ActionType.Deliver || action.type === ActionType.Pass
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
         const validActions = [ActionType.Pass]
@@ -29,10 +29,10 @@ export class DeliveringStateHandler implements MachineStateHandler<HydratedDeliv
         return validActions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedKaivaiGameState>) {}
 
-    onAction(action: HydratedDeliver, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedKaivaiGameState
+    onAction(action: HydratedDeliver, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+        const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {

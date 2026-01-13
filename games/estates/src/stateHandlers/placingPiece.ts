@@ -19,8 +19,8 @@ import { isDiscardPiece } from '../actions/discardPiece.js'
 
 type PlacingPieceAction = HydratedPlaceCube
 
-export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPieceAction> {
-    isValidAction(action: HydratedAction, _context: MachineContext): action is PlacingPieceAction {
+export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPieceAction, HydratedEstatesGameState> {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedEstatesGameState>): action is PlacingPieceAction {
         if (!action.playerId) return false
         return (
             isPlaceCube(action) ||
@@ -32,9 +32,9 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedEstatesGameState>): ActionType[] {
         const validActions: ActionType[] = []
-        const gameState = context.gameState as HydratedEstatesGameState
+        const gameState = context.gameState
 
         switch (true) {
             case isCube(gameState.chosenPiece): {
@@ -67,16 +67,16 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
         return validActions
     }
 
-    enter(context: MachineContext) {
-        const gameState = context.gameState as HydratedEstatesGameState
+    enter(context: MachineContext<HydratedEstatesGameState>) {
+        const gameState = context.gameState
         if (!gameState.recipient) {
             throw Error(`No recipient found`)
         }
         gameState.activePlayerIds = [gameState.recipient]
     }
 
-    onAction(action: PlacingPieceAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedEstatesGameState
+    onAction(action: PlacingPieceAction, context: MachineContext<HydratedEstatesGameState>): MachineState {
+        const gameState = context.gameState
         if (
             !isPlaceCube(action) &&
             !isPlaceMayor(action) &&

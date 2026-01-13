@@ -13,20 +13,20 @@ import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from Hatching(Hatch) -> PREVIOUS STATE
 
-export class HatchingStateHandler implements MachineStateHandler<HydratedHatch> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is HydratedHatch {
+export class HatchingStateHandler implements MachineStateHandler<HydratedHatch, HydratedSolGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is HydratedHatch {
         if (!action.playerId) return false
         return isHatch(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
         return [ActionType.Hatch]
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: HydratedHatch, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: HydratedHatch, context: MachineContext<HydratedSolGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isHatch(action): {

@@ -28,10 +28,10 @@ type ActivatingAction =
     | HydratedBlight
     | HydratedSacrifice
 
-export class ActivatingStateHandler implements MachineStateHandler<ActivatingAction> {
-    isValidAction(action: HydratedAction, context: MachineContext): action is ActivatingAction {
+export class ActivatingStateHandler implements MachineStateHandler<ActivatingAction, HydratedSolGameState> {
+    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is ActivatingAction {
         if (!action.playerId) return false
-        const gameState = context.gameState as HydratedSolGameState
+        const gameState = context.gameState
 
         return (
             isPass(action) ||
@@ -43,8 +43,8 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext): ActionType[] {
-        const gameState = context.gameState as HydratedSolGameState
+    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+        const gameState = context.gameState
 
         // Maybe need to check activate effect more?
         const validActions = [ActionType.Pass]
@@ -78,10 +78,10 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         return validActions
     }
 
-    enter(_context: MachineContext) {}
+    enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: ActivatingAction, context: MachineContext): MachineState {
-        const gameState = context.gameState as HydratedSolGameState
+    onAction(action: ActivatingAction, context: MachineContext<HydratedSolGameState>): MachineState {
+        const gameState = context.gameState
 
         switch (true) {
             case isBlight(action): {
@@ -174,7 +174,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
 
     static handleActivation(
         state: HydratedSolGameState,
-        context: MachineContext,
+        context: MachineContext<HydratedSolGameState>,
         playerId: string
     ): MachineState {
         const activation = state.getActivationForPlayer(playerId)
@@ -199,7 +199,7 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
 
     static continueActivatingOrEnd(
         state: HydratedSolGameState,
-        context: MachineContext,
+        context: MachineContext<HydratedSolGameState>,
         activation: Activation
     ): MachineState {
         // Squeeze ends after one activation
