@@ -14,7 +14,7 @@
     import DiscordSignIn, {
         isEnabled as isDiscordSigninEnabled
     } from '$lib/components/DiscordSignIn.svelte'
-    import { getAppContext, trim} from '@tabletop/frontend-components'
+    import { getAppContext, trim } from '@tabletop/frontend-components'
 
     let { authorizationService, api } = getAppContext()
 

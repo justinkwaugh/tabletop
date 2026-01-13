@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
     import { GameStorage } from '@tabletop/common'
     import { Button, Dropdown, DropdownDivider, DropdownGroup, DropdownItem } from 'flowbite-svelte'
     import {

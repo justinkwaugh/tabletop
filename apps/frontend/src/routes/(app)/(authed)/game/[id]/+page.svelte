@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
     import {
         ExplorationPanel,
         GameSession,

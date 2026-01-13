@@ -1,6 +1,5 @@
 <script lang="ts">
     import 'es-iterator-helpers/auto'
-    import { getContext } from 'svelte'
     import { onMount } from 'svelte'
     import type { Game, GameState, HydratedGameState } from '@tabletop/common'
     import { Button, Dropdown, DropdownItem, Modal, Navbar, Toggle } from 'flowbite-svelte'
@@ -11,7 +10,6 @@
     import DeleteModal from './DeleteModal.svelte'
     import type { GameTable } from '$lib/definition/gameUiDefinition.js'
     import { getAppContext } from '$lib/model/appContext.js'
-
 
     let {
         libraryService,
