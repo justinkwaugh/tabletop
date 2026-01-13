@@ -2,7 +2,7 @@
     import { GameSessionMode, GameSession } from '@tabletop/frontend-components'
 
     import { getContext, type Snippet } from 'svelte'
-
+    import { scrollToRight } from '$lib/utils/scrollOnLoad.js'
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import AdminPanel from './AdminPanel.svelte'
     import HistoryControls from './HistoryControls.svelte'
@@ -63,7 +63,7 @@
                 <HistoryControls borderClass="border-gray-700 border-b-2" />
             {/if}
         </div>
-        <div class="w-full overflow-auto">
+        <div {@attach scrollToRight} class="w-full overflow-auto">
             <div class="p-2 w-full h-full flex flex-row justify-between items-start">
                 <div
                     class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
