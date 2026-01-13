@@ -1,7 +1,7 @@
-import { createContext } from 'svelte'
+import { createGameSessionContext } from '@tabletop/frontend-components'
 import { EstatesGameSession } from './EstatesGameSession.svelte.js'
 
-const [getContext, setContext] = createContext<EstatesGameSession>()
+const [getContext, setContext] = createGameSessionContext<EstatesGameSession>()
 
 export function setGameSession(session: EstatesGameSession) {
     setContext(session)

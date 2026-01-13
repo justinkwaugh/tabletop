@@ -1,11 +1,9 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
     import JSONTree from 'svelte-json-tree'
     import { Tabs, TabItem } from 'flowbite-svelte'
-    import type { GameSession } from '../model/gameSession.svelte'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/gameSessionContext.js'
 
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+    let gameSession = getGameSession()
 </script>
 
 <div

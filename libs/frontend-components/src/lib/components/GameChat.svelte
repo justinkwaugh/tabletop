@@ -1,9 +1,8 @@
 <script lang="ts">
-    import type { GameSession } from '$lib/model/gameSession.svelte'
-    import { GameChatMessage, GameState, type HydratedGameState } from '@tabletop/common'
+    import { GameChatMessage } from '@tabletop/common'
     import { Button } from 'flowbite-svelte'
     import { nanoid } from 'nanoid'
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import TimeAgo from 'javascript-time-ago'
     import { flip } from 'svelte/animate'
     import { fade } from 'svelte/transition'
@@ -11,6 +10,7 @@
     import type { ChatEvent } from '$lib/services/chatService'
     import EmojiPicker from './EmojiPicker.svelte'
     import emojiRegex from 'emoji-regex'
+    import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
         height = 'max-sm:h-[calc(100vh-16px-44px-44px-8px-24px-var(--table-height-offset)-var(--chat-height-offset))] sm:h-[calc(100vh-16px-44px-44px-8px-var(--table-height-offset)-var(--chat-height-offset))]',
@@ -29,7 +29,7 @@
     } = $props()
     const timeAgo = new TimeAgo('en-US')
 
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+    let gameSession = getGameSession()
     let chatService = gameSession.chatService
     let text: string = $state('')
     let input: HTMLTextAreaElement

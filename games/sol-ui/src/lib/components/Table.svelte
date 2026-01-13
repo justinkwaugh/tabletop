@@ -13,19 +13,19 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { HydratedSolGameState, SolGameState } from '@tabletop/sol'
     import starsBg from '$lib/images/stars.jpg'
     import Momentum from './Momentum.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
     import InformationPanel from './InformationPanel.svelte'
     import SolFont from '$lib/fonts/Metropolis-Bold.woff'
     import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import type { HydratedSolGameState, SolGameState } from '@tabletop/sol'
 
-    let { gameSession }: { gameSession: GameSession<SolGameState, HydratedSolGameState> } =
-        $props()
+    let {
+        gameSession
+    }: { gameSession: GameSession<SolGameState, HydratedSolGameState> } = $props()
 
     setGameSession(gameSession as SolGameSession)
-
 </script>
 
 <!-- This is a hack to allow for the game to provide its own font without

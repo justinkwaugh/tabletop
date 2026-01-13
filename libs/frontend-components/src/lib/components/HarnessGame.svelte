@@ -3,9 +3,9 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import HotseatPanel from './HotseatPanel.svelte'
     import ExplorationPanel from './ExplorationPanel.svelte'
-
-    import { setContext } from 'svelte'
     import type { GameTable } from '$lib/definition/gameUiDefinition.js'
+    import HistoryKeyControls from './HistoryKeyControls.svelte'
+    import { setGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
         Table,
@@ -15,8 +15,10 @@
         gameSession: GameSession<GameState, HydratedGameState>
     } = $props()
 
-    setContext('gameSession', gameSession)
+    setGameSession(gameSession)
 </script>
+
+<HistoryKeyControls />
 
 {#if gameSession.isExploring}
     <ExplorationPanel />

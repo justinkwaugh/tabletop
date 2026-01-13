@@ -1,7 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { GameSession } from '$lib/model/gameSession.svelte.ts'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
         playerId,
@@ -21,7 +19,7 @@
         additionalClasses?: string
     } = $props()
 
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+    let gameSession = getGameSession()
 
     let text = $derived.by(() => {
         if (playerId === gameSession.myPlayer?.id) {

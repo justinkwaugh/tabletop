@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { GameSessionMode, GameSession } from '@tabletop/frontend-components'
 
-    import { getContext, type Snippet } from 'svelte'
+
+    import { type Snippet } from 'svelte'
     import { scrollToRight } from '$lib/utils/scrollOnLoad.js'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
     import AdminPanel from './AdminPanel.svelte'
     import HistoryControls from './HistoryControls.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
         mobileControlsContent,
@@ -19,7 +19,7 @@
         debugContent?: Snippet
     } = $props()
 
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+    let gameSession = getGameSession()
 
     // Heights used in CSS calculations:
     // Not Mobile(sm and up):

@@ -1,10 +1,8 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import { type GameSession } from '$lib/model/gameSession.svelte'
     import { UserSolid } from 'flowbite-svelte-icons'
-    import { GameStatus, type GameState, type HydratedGameState } from '@tabletop/common'
     import ForkModal from './ForkModal.svelte'
     import { goto } from '$app/navigation'
+    import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
         enabledColor = 'text-white',
@@ -20,7 +18,7 @@
         bgClass?: string
     } = $props()
 
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+    let gameSession = getGameSession()
 
     let forkRequested = $state(false)
 
