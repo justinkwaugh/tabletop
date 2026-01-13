@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import Cert2d from './Cert2d.svelte'
     import { EstatesPlayerState, MachineState } from '@tabletop/estates'
     import type { Player } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     let { player, playerState }: { player: Player; playerState: EstatesPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(playerState.playerId))

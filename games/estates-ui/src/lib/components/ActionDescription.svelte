@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { type GameAction, range } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import {
         Barrier,
         BarrierDirection,
@@ -23,7 +23,7 @@
 
     let { action }: { action: GameAction } = $props()
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     function playerIdForAction(action: GameAction): string | undefined {
         if (!action) {

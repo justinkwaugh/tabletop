@@ -1,10 +1,10 @@
 <script lang="ts">
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { ScoreHuts } from '@tabletop/kaivai'
-    import { getContext } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     let { action, justify = 'center', history = false }: { action: ScoreHuts; justify: 'center' | 'left'; history?: boolean } = $props()
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
 
     let justifyClass = justify === 'center' ? 'items-center' : 'items-start'
 </script>

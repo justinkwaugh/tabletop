@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/estates'
+import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/estates'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { MachineState } from '@tabletop/estates'
 
@@ -8,9 +7,10 @@
     import PlaceButtons from './PlaceButtons.svelte'
     import BuyOutButtons from './BuyOutButtons.svelte'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { hidden }: { hidden?: boolean } = $props()
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     let ref: HTMLDivElement
     const instructions = $derived.by(() => {
         if (gameSession.gameState.machineState === MachineState.StartOfTurn) {

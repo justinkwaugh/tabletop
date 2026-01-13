@@ -1,7 +1,7 @@
 <script lang="ts">
     import { T, useTask, useThrelte } from '@threlte/core'
     import { useViewport } from '@threlte/extras'
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import Cube3d from './Cube3d.svelte'
     import {
@@ -22,8 +22,9 @@
     import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
     import type { GameAction } from '@tabletop/common'
     import type { AnimationContext } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     let { invalidate } = useThrelte()
     const viewport = useViewport()
     let {

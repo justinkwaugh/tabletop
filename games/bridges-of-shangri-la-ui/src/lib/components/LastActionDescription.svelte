@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let gameSession = getGameSession() as BridgesGameSession
     let windowHeight: number | null | undefined = $state()
 </script>
 

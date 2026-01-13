@@ -5,25 +5,27 @@
         GameChat,
         DefaultTableLayout,
         DefaultTabs,
-        CustomFont
+        CustomFont,
+        GameSession
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
-    import { getContext, onMount } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { HydratedSolGameState, SolGameState } from '@tabletop/sol'
     import starsBg from '$lib/images/stars.jpg'
     import Momentum from './Momentum.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
     import InformationPanel from './InformationPanel.svelte'
     import SolFont from '$lib/fonts/Metropolis-Bold.woff'
+    import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
-    let table: HTMLDivElement
-    onMount(() => {
-        table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
-    })
+    let {
+        gameSession
+    }: { gameSession: GameSession<SolGameState, HydratedSolGameState> } = $props()
+
+    setGameSession(gameSession as SolGameSession)
 </script>
 
 <!-- This is a hack to allow for the game to provide its own font without
@@ -31,11 +33,7 @@
 <CustomFont fontFamily="metropolis" url={SolFont} format="woff" />
 
 <!-- Full Height and Width with 8px padding-->
-<div
-    bind:this={table}
-    class="bg-repeat"
-    style="background-image: url('{starsBg}'); --chat-height-offset: 47px;"
->
+<div class="bg-repeat" style="background-image: url('{starsBg}'); --chat-height-offset: 47px;">
     <DefaultTableLayout>
         {#snippet sideContent()}
             <div class="max-sm:hidden">
@@ -60,11 +58,11 @@
                 {/snippet}
                 {#snippet chat()}
                     <GameChat
-                        timeColor={'text-[#ad9c80]'}
-                        bgColor={'bg-black'}
-                        inputBgColor={'bg-black'}
-                        inputBorderColor={'border-[#ad9c80]'}
-                        borderColor={'border-[#ad9c80]'}
+                        timeColor="text-[#ad9c80]"
+                        bgColor="bg-black"
+                        inputBgColor="bg-black"
+                        inputBorderColor="border-[#ad9c80]"
+                        borderColor="border-[#ad9c80]"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -81,7 +79,7 @@
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper justify={'center'} controls={'bottom-left'}>
+                <ScalingWrapper justify="center" controls="bottom-left">
                     <Board />
                 </ScalingWrapper>
             </div>

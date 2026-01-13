@@ -1,10 +1,10 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
     import { FreshFishPlayerState, GoodsType } from '@tabletop/fresh-fish'
-    import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
     let { player, playerState }: { player: Player; playerState: FreshFishPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))

@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import { isCube, isRoof, MachineState } from '@tabletop/estates'
+import { isCube, isRoof, MachineState } from '@tabletop/estates'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
     import { fade } from 'svelte/transition'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { position, ...others }: { position?: [number, number, number] } = $props()
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     async function discardPiece(event: any) {
         event.stopPropagation()

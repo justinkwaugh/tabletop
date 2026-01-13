@@ -3,20 +3,30 @@
         GameSessionMode,
         ScalingWrapper,
         DefaultSideContent,
-        DefaultTableLayout
+        DefaultTableLayout,
+        GameSession
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+    import type {
+        BridgesGameState,
+        HydratedBridgesGameState
+    } from '@tabletop/bridges-of-shangri-la'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
+    import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let {
+        gameSession
+    }: { gameSession: GameSession<BridgesGameState, HydratedBridgesGameState> } = $props()
+
+    setGameSession(gameSession as BridgesGameSession)
     let table: HTMLDivElement
 
     onMount(() => {

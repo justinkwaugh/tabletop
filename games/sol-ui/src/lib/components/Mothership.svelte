@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import GreenShip from '$lib/images/greenShip.svelte'
+import GreenShip from '$lib/images/greenShip.svelte'
     import GreenShipMask from '$lib/images/greenShipMask.svelte'
     import PurpleShip from '$lib/images/purpleShip.svelte'
     import PurpleShipMask from '$lib/images/purpleShipMask.svelte'
@@ -22,13 +21,11 @@
     import { Color } from '@tabletop/common'
     import { HydratedLaunch } from '@tabletop/sol'
     import DropShadow from './DropShadow.svelte'
-    import {
-        animateMothership,
-        MothershipAnimator
-    } from '$lib/animators/mothershipAnimator.svelte.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import { animateMothership, MothershipAnimator } from '$lib/animators/mothershipAnimator.svelte.js'
 
     let { playerId }: { playerId: string } = $props()
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     let numPlayers = gameSession.gameState.players.length
     let color = gameSession.gameState.getPlayerState(playerId).color

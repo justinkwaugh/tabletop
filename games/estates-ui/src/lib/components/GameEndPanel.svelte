@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { GameResult } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { hidden }: { hidden?: boolean } = $props()
     let ref: HTMLDivElement
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     let isWin = $derived(gameSession.gameState.result === GameResult.Win)
     let winner = $derived(isWin ? gameSession.gameState.winningPlayerIds[0] : undefined)
 

@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { GameResult } from '@tabletop/common'
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let gameSession = getGameSession() as BridgesGameSession
     let isWin = $derived(gameSession.gameState.result === GameResult.Win)
     let winner = $derived(isWin ? gameSession.gameState.winningPlayerIds[0] : undefined)
 </script>

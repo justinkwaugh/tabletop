@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { StationType } from '@tabletop/sol'
     import Tower from '$lib/images/tower.svelte'
     import Foundry from '$lib/images/foundry.svelte'
     import EnergyNode from '$lib/images/energynode.svelte'
     import SolPicker from './SolPicker.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
     let picker: SolPicker
 
     let station = $derived.by(() => {

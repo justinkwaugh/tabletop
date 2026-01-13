@@ -19,12 +19,12 @@
         isRecruitStudents,
         isBeginJourney
     } from '@tabletop/bridges-of-shangri-la'
-    import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { GameSessionMode } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { village, index }: { village: HydratedVillage; index: number } = $props()
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let gameSession = getGameSession() as BridgesGameSession
 
     let interacting = $derived.by(() => {
         if (

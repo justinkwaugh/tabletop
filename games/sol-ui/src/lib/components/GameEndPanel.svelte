@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { GameResult } from '@tabletop/common'
     import Header from './Header.svelte'
     import Ship from './Ship.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
     let isWin = $derived(gameSession.gameState.result === GameResult.Win)
 
     const numbers: Map<number, string> = new Map<number, string>([

@@ -1,6 +1,6 @@
 <script lang="ts">
     import 'es-iterator-helpers/auto'
-    import { getContext, type Component } from 'svelte'
+    import { getContext } from 'svelte'
     import { onMount } from 'svelte'
     import type { Game, GameState, HydratedGameState } from '@tabletop/common'
     import { Button, Dropdown, DropdownItem, Modal, Navbar, Toggle } from 'flowbite-svelte'
@@ -10,6 +10,8 @@
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import GameEditForm from './GameEditForm.svelte'
     import DeleteModal from './DeleteModal.svelte'
+    import type { GameTable } from '$lib/definition/gameUiDefinition.js'
+    import { setGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
         libraryService,
@@ -20,7 +22,7 @@
         api
     } = getContext('appContext') as AppContext
 
-    let Table: Component | null = $state(null)
+    let Table: GameTable<GameState, HydratedGameState> | null = $state(null)
     let showCreateModal = $state(false)
     let gameToDelete: string | undefined = $state(undefined)
     let deleteModalOpen = $derived(gameToDelete !== undefined)
@@ -31,51 +33,13 @@
         gameService.loadGames().catch(console.error)
 
         if (definition) {
-            definition.getTableComponent().then((tableComponent: Component) => {
-                Table = tableComponent
-            })
+            definition
+                .getTableComponent()
+                .then((tableComponent: GameTable<GameState, HydratedGameState>) => {
+                    Table = tableComponent
+                })
         }
     })
-
-    function onKeyDown(event: KeyboardEvent) {
-        if (
-            !gameSession ||
-            event.target instanceof HTMLInputElement ||
-            event.target instanceof HTMLTextAreaElement
-        ) {
-            return
-        }
-
-        if (event.key === 'ArrowUp') {
-            event.preventDefault()
-            if (gameSession.isBusy()) {
-                return
-            }
-            if (gameSession.myPlayer) {
-                gameSession.history.goToPlayersNextTurn(gameSession.myPlayer.id)
-            }
-        } else if (event.key === 'ArrowDown') {
-            event.preventDefault()
-            if (gameSession.isBusy()) {
-                return
-            }
-            if (gameSession.myPlayer) {
-                gameSession.history.goToPlayersPreviousTurn(gameSession.myPlayer.id)
-            }
-        } else if (event.key === 'ArrowLeft') {
-            event.preventDefault()
-            if (gameSession.isBusy()) {
-                return
-            }
-            gameSession.history.goToPreviousAction()
-        } else if (event.key === 'ArrowRight') {
-            event.preventDefault()
-            if (gameSession.isBusy()) {
-                return
-            }
-            gameSession.history.goToNextAction(event.shiftKey)
-        }
-    }
 
     function closeCreateModal() {
         showCreateModal = false
@@ -132,8 +96,6 @@
         })
     }
 </script>
-
-<svelte:window onkeydown={onKeyDown} />
 
 {#snippet gameDropdownItem(game: Game)}
     <DropdownItem class="w-full px-2" onclick={() => loadGame(game.id)}

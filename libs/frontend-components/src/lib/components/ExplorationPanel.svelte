@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getContext } from 'svelte'
-    import { GameStorage, type GameState, type HydratedGameState } from '@tabletop/common'
+    import { GameStorage } from '@tabletop/common'
     import { Button, Dropdown, DropdownDivider, DropdownGroup, DropdownItem } from 'flowbite-svelte'
     import {
         FloppyDiskAltOutline,
@@ -12,10 +12,10 @@
     import DeleteModal from './DeleteModal.svelte'
     import UnsavedExplorationModal from './UnsavedExplorationModal.svelte'
     import type { AppContext } from '$lib/model/appContext.js'
-    import type { GameSession } from '$lib/model/gameSession.svelte.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let { gameService } = getContext('appContext') as AppContext
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+    let gameSession = getGameSession()
 
     let playerBgColor = $derived(gameSession.colors.getPlayerBgColor(gameSession.myPlayer?.id))
     let playerTextColor = $derived(gameSession.colors.getPlayerTextColor(gameSession.myPlayer?.id))

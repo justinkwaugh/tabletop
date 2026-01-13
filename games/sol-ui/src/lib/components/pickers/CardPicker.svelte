@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { MachineState, Suit } from '@tabletop/sol'
     import Card from '$lib/components/Card.svelte'
     import { animateCard, type CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
     import { Popover } from 'flowbite-svelte'
     import EffectCard from '$lib/components/EffectCard.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     let {
         animator

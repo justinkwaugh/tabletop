@@ -1,14 +1,14 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/estates'
+import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/estates'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { MachineState } from '@tabletop/estates'
 
     import { PlayerName } from '@tabletop/frontend-components'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { hidden }: { hidden?: boolean } = $props()
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     let activePlayerId: string | undefined = $derived.by(() => {
         if (gameSession.gameState.activePlayerIds.length === 1) {
             return gameSession.gameState.activePlayerIds[0]

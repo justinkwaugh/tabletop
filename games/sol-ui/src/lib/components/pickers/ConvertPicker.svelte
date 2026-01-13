@@ -1,14 +1,14 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { HydratedConvert } from '@tabletop/sol'
     import Gate from '$lib/images/gate.svelte'
     import Tower from '$lib/images/tower.svelte'
     import Foundry from '$lib/images/foundry.svelte'
     import EnergyNode from '$lib/images/energynode.svelte'
     import { ConvertType } from '$lib/definition/convertType.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     const canConvertSolarGate = $derived(
         HydratedConvert.canConvertSolarGate(gameSession.gameState, gameSession.myPlayer?.id ?? '')

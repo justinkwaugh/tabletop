@@ -3,10 +3,10 @@
     import { Text, RoundedBoxGeometry } from '@threlte/extras'
     import { Cube } from '@tabletop/estates'
     import { Group, MeshBasicMaterial } from 'three'
-    import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     let {
         cube,

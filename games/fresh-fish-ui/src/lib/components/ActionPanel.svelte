@@ -1,12 +1,12 @@
 <script lang="ts">
     import { Button } from 'flowbite-svelte'
-    import { getContext } from 'svelte'
     import { ActionType } from '@tabletop/fresh-fish'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import StallTile from '$lib/components/StallTile.svelte'
     import MarketTile from '$lib/components/MarketTile.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
     let bidValue = $state(0)
     let playerState = $derived.by(() =>
         gameSession.gameState.players.find((p) => p.playerId === gameSession.myPlayer?.id)

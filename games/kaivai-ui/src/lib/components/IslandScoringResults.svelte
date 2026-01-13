@@ -1,11 +1,11 @@
 <script lang="ts">
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { ScoreIsland } from '@tabletop/kaivai'
-    import { getContext } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import influenceImg from '$lib/images/influence.png'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     let { action, history = false }: { action: ScoreIsland; history?: boolean } = $props()
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
 
     function totalForPlayer(playerId: string) {
         const huts = action.metadata?.playerMajorities[playerId].huts ?? 0

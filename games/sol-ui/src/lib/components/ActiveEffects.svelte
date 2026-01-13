@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { Point } from '@tabletop/common'
     import EffectCardSvg from './EffectCardSvg.svelte'
     import {
@@ -9,6 +8,7 @@
         animateEffectCard
     } from '$lib/animators/activeEffectsAnimator.js'
     import type { Effect, Suit } from '@tabletop/sol'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let {
         width = 35,
@@ -20,7 +20,7 @@
         location?: Point
     } = $props()
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     let effects = $derived(Object.entries(gameSession.gameState.effects) as [Suit, Effect][])
     let isOpen = $state(false)

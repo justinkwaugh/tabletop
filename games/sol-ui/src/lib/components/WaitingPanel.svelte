@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
     let activePlayerId = $derived.by(() => {
         if (gameSession.activePlayers.length === 0) {
             return

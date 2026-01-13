@@ -33,10 +33,11 @@
     import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
     import { Bloomer } from '$lib/utils/bloomer'
     import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const wood = useTexture(woodImg)
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     let { ...others }: Props<typeof Group> = $props()
 

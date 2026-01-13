@@ -1,17 +1,12 @@
 <script lang="ts">
-    import {
-        GameChat,
-        type ChatEvent,
-        ChatEventType,
-        GameSession,
-        ChatToast
-    } from '@tabletop/frontend-components'
-
-    import { getContext, onMount, type ComponentType, type Snippet } from 'svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.js'
+    import { onMount, type ComponentType, type Snippet } from 'svelte'
     import { Tabs, TabItem, Indicator } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
     import { toast } from 'svelte-sonner'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import { ChatEventType, type ChatEvent } from '$lib/services/chatService.js'
+    import ChatToast from '$lib/components/ChatToast.svelte'
+    import GameChat from '$lib/components/GameChat.svelte'
 
     let {
         history,
@@ -35,7 +30,7 @@
         inactiveTabClass?: string
     } = $props()
 
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+    let gameSession = getGameSession()
 
     let chatActive: boolean = $state(false)
     let showNewMessageIndicator: boolean = $derived(

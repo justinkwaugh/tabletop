@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
     import { AuctionRecipient, MachineState } from '@tabletop/estates'
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    let gameSession = getGameSession() as EstatesGameSession
 
     async function chooseRecipient(recipient: AuctionRecipient) {
         await gameSession.chooseRecipient(recipient)

@@ -11,7 +11,6 @@
         RadioButton
     } from 'flowbite-svelte'
     import {
-        assert,
         assertExists,
         BooleanConfigOption,
         ConfigOption,

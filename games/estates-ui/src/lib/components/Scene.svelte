@@ -6,7 +6,6 @@
     import Map from './Map.svelte'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
-    import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Offer3d from './Offer3d.svelte'
@@ -21,12 +20,13 @@
     import { useDebounce } from 'runed'
     import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
     import type { GameAction } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     // import { Checkbox, Folder, FpsGraph, List, Pane, Slider } from 'svelte-tweakpane-ui'
     // import RenderIndicator from './RenderIndicator.svelte'
 
     CameraControls.install({ THREE: THREE })
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     let ghostHat: number | undefined = $state()
     let showMayorHighlights = $derived(
         gameSession.isMyTurn &&

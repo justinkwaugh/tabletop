@@ -2,10 +2,10 @@
     import type { Player } from '@tabletop/common'
     import type { FreshFishPlayerState } from '@tabletop/fresh-fish'
     import PlayerState from '$lib/components/PlayerState.svelte'
-    import { getContext } from 'svelte'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
 
     type PlayerAndState = { player: Player; playerState: FreshFishPlayerState }
 

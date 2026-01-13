@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import { SvelteMap } from 'svelte/reactivity'
+import { SvelteMap } from 'svelte/reactivity'
     import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { coordinatesToNumber, sameCoordinates } from '@tabletop/common'
@@ -36,9 +35,10 @@
     import { animateStation, CellStationAnimator } from '$lib/animators/cellStationAnimator.js'
     import UIStation from './Station.svelte'
     import BoardSvg from './BoardSvg.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { cell }: { cell: Cell } = $props()
-    const gameSession = getContext('gameSession') as SolGameSession
+    const gameSession = getGameSession() as SolGameSession
     const dimensions = dimensionsForSpace(gameSession.numPlayers, cell.coords)
     const isCenterCell = sameCoordinates(cell.coords, CENTER_COORDS)
     let station: Station | undefined = $derived(cell.station)

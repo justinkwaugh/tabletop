@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Point } from '@tabletop/common'
     import { offsetFromCenter, translateFromCenter } from '$lib/utils/boardGeometry.js'
     import { HydratedChain } from '@tabletop/sol'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const CIRCLE_RADIUS = 25
 
-    const gameSession = getContext('gameSession') as SolGameSession
+    const gameSession = getGameSession() as SolGameSession
 
     const locations: Point[] = $derived.by(() => {
         if (!gameSession.chain) {

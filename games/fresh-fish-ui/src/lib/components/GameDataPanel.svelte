@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import StallTile from '$lib/components/StallTile.svelte'
     import type { GoodsType } from '@tabletop/fresh-fish'
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    let gameSession = getGameSession() as FreshFishGameSession
 
     function playerForFinalStall(goodsType: GoodsType) {
         const playersWithUnplacedStall = gameSession.gameState.players.filter((player) =>

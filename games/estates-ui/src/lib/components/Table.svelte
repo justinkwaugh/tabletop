@@ -2,16 +2,24 @@
     import {
         GameSessionMode,
         DefaultSideContent,
-        DefaultTableLayout
+        DefaultTableLayout,
+        GameSession
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { EstatesGameState, HydratedEstatesGameState } from '@tabletop/estates'
     import History from '$lib/components/History.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
+    import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let {
+        gameSession
+    }: { gameSession: GameSession<EstatesGameState, HydratedEstatesGameState> } = $props()
+    const estatesSession = gameSession as EstatesGameSession
+
+    setGameSession(estatesSession)
 
     let table: HTMLDivElement
     onMount(() => {
@@ -26,7 +34,9 @@
 <div bind:this={table}>
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <DefaultSideContent playersPanel={gameSession.mobileView ? playersPanel : undefined}>
+            <DefaultSideContent
+                playersPanel={estatesSession.mobileView ? playersPanel : undefined}
+            >
                 {#snippet history()}
                     <History />
                 {/snippet}

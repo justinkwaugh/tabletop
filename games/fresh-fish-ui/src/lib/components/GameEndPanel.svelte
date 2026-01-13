@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { GameResult } from '@tabletop/common'
     import { fade } from 'svelte/transition'
     import { Scorer } from '@tabletop/fresh-fish'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
 
     const maxDistance = $derived(
         Scorer.MAXIMUM_DISTANCE_BY_PLAYER_COUNT[gameSession.game.players.length]

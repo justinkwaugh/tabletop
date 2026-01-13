@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import board from '$lib/images/board.png'
     import Cell from './Cell.svelte'
     import buildImg from '$lib/images/build.png'
@@ -34,6 +33,7 @@
     } from '@tabletop/common'
 
     import { KaivaiHexDefinition, KaivaiHexGeometry } from '$lib/utils/hexDefinition.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     type Line = {
         x1: number
@@ -42,7 +42,7 @@
         y2: number
     }
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
 
     const grid = new HexGrid({
         hexDefinition: KaivaiHexDefinition

@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
     import ActionDescription from '$lib/components/ActionDescription.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     let lastAction = $derived(gameSession.currentAction)
 </script>
 

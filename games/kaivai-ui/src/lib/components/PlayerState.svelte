@@ -1,10 +1,10 @@
 <script lang="ts">
     import { range, type Player } from '@tabletop/common'
     import { HydratedKaivaiPlayerState, MachineState } from '@tabletop/kaivai'
-    import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
     let { player, playerState }: { player: Player; playerState: HydratedKaivaiPlayerState } =
         $props()
 

@@ -1,8 +1,8 @@
 <script lang="ts">
     import Cell from '$lib/components/Cell.svelte'
-    import { getContext } from 'svelte'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    let gameSession = getGameSession() as FreshFishGameSession
 </script>
 
 <div

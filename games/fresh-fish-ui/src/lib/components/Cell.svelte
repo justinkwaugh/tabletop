@@ -10,15 +10,15 @@
     } from '@tabletop/fresh-fish'
     import emptyTileImg from '$lib/images/tile-empty.png'
     import roadImg from '$lib/images/tile-road.png'
-    import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import StallTile from '$lib/components/StallTile.svelte'
     import MarketTile from '$lib/components/MarketTile.svelte'
     import TruckTile from '$lib/components/TruckTile.svelte'
     import { fadeScale, GameSessionMode } from '@tabletop/frontend-components'
     import type { GameAction, OffsetTupleCoordinates } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
     let { cell, coords }: { cell: Cell; coords: OffsetTupleCoordinates } = $props()
 
     let cellBgColor = $derived.by(() => {

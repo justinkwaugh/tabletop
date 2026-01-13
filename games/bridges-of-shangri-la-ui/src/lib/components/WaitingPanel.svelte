@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { MachineState } from '@tabletop/bridges-of-shangri-la'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let gameSession = getGameSession() as BridgesGameSession
 
     const currentPlayerId = $derived(
         gameSession.gameState.activePlayerIds.length === 1

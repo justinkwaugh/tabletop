@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { Point } from '@tabletop/common'
     import InstabilityMarker from '$lib/images/instability.svelte'
     import { InstabilityAnimator } from '$lib/animators/instabilityAnimator.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let {
         width = 840,
@@ -14,7 +14,7 @@
         height?: number
         location?: Point
     } = $props()
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     let cellWidth = width / 14
     let markerWidth = cellWidth * 0.45

@@ -1,9 +1,7 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { GameSession } from '../model/gameSession.svelte'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/gameSessionContext.js'
 
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
+    let gameSession = getGameSession()
     let hotseatPlayerBgColor = $derived(
         gameSession.colors.getPlayerBgColor(gameSession.myPlayer?.id)
     )

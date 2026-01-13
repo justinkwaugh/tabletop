@@ -1,10 +1,5 @@
 <script lang="ts">
-    import type { GameSession } from '$lib/model/gameSession.svelte.js'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
     import { Alert, Input, Modal } from 'flowbite-svelte'
-    import { getContext } from 'svelte'
-
-    let gameSession = getContext('gameSession') as GameSession<GameState, HydratedGameState>
 
     let {
         open = $bindable(),

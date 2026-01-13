@@ -1,8 +1,8 @@
 <script lang="ts">
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { getContext } from 'svelte'
+import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 </script>
 
 <div

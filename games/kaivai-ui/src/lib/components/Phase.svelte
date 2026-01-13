@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { MachineState, PhaseName } from '@tabletop/kaivai'
     import { flip } from 'svelte/animate'
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    let gameSession = getGameSession() as KaivaiGameSession
     const phase = $derived.by(() => {
         switch (gameSession.gameState.phases.currentPhase?.name) {
             case PhaseName.Bidding:

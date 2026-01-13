@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import boardImg from '$lib/images/board.jpg'
     import Cell from '$lib/components/Cell.svelte'
     import DropShadow from '$lib/components/DropShadow.svelte'
@@ -32,8 +31,9 @@
     import Station from './Station.svelte'
     import { ConvertType } from '$lib/definition/convertType.js'
     import ActiveEffects from './ActiveEffects.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
 
     const gates = $derived.by(() => {

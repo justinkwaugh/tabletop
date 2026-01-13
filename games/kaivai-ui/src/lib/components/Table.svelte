@@ -5,23 +5,30 @@
         HistoryControls,
         DefaultTabs,
         GameChat,
-        CustomFont
+        CustomFont,
+        GameSession
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import Phase from '$lib/components/Phase.svelte'
     import BidBoard from '$lib/components/BidBoard.svelte'
     import { ActionType, MachineState } from '@tabletop/kaivai'
+    import type { HydratedKaivaiGameState, KaivaiGameState } from '@tabletop/kaivai'
     import History from '$lib/components/History.svelte'
     import LastHistoryDescription from '$lib/components/LastHistoryDescription.svelte'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import EndOfGamePanel from './EndOfGamePanel.svelte'
     import KaivaiFont from '$lib/fonts/stacatto222bt.woff'
+    import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let {
+        gameSession
+    }: { gameSession: GameSession<KaivaiGameState, HydratedKaivaiGameState> } = $props()
+
+    setGameSession(gameSession as KaivaiGameSession)
 
     let showBidBoard = $derived.by(() => {
         if (gameSession.isPlayable) {

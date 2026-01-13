@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import MoveArrows from '$lib/images/movearrows.svelte'
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
@@ -12,8 +11,9 @@
     import PlayerAid from '$lib/images/sol-player-aid.jpg'
     import { Popover } from 'flowbite-svelte'
     import EffectsPicker from './pickers/EffectsPicker.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
     let showEffectPicker = $state(false)
     let cardBackImage = `url(${CardBack})`
     function back() {

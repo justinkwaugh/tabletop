@@ -1,14 +1,14 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
 
     import Header from './Header.svelte'
     import ActionPanel from './ActionPanel.svelte'
     import WaitingPanel from './WaitingPanel.svelte'
     import Pickers from './Pickers.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 </script>
 
 <div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">

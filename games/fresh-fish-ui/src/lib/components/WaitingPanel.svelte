@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import { isMarketTile, isStallTile } from '@tabletop/fresh-fish'
+import { isMarketTile, isStallTile } from '@tabletop/fresh-fish'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { MachineState } from '@tabletop/fresh-fish'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
 
     let isAuctioning = $derived.by(() => {
         return gameSession.gameState.machineState === MachineState.AuctioningTile

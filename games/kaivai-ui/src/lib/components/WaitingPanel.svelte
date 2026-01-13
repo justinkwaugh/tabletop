@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { MachineState } from '@tabletop/kaivai'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
 
     const currentPlayerId = $derived(
         gameSession.gameState.activePlayerIds.length === 1

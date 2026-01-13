@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { Point } from '@tabletop/common'
     import CardBack from '$lib/images/cardBack2.png'
     import { DeckAnimator } from '$lib/animators/deckAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { EffectType } from '@tabletop/sol'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let {
         width = 35,
@@ -16,7 +16,7 @@
         height?: number
         location?: Point
     } = $props()
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     async function drawCards() {
         if (!interactable) {
