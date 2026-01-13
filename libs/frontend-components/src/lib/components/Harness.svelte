@@ -1,30 +1,35 @@
+<script module lang="ts">
+    import TimeAgo from 'javascript-time-ago'
+    import en from 'javascript-time-ago/locale/en'
+
+    TimeAgo.addDefaultLocale(en)
+</script>
+
 <script lang="ts">
     import 'es-iterator-helpers/auto'
     import { onMount } from 'svelte'
-    import type { Game, GameState, HydratedGameState } from '@tabletop/common'
+    import type { Game } from '@tabletop/common'
     import { Button, Dropdown, DropdownItem, Modal, Navbar, Toggle } from 'flowbite-svelte'
     import { ChevronDownOutline, TrashBinSolid } from 'flowbite-svelte-icons'
     import HarnessGame from './HarnessGame.svelte'
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import GameEditForm from './GameEditForm.svelte'
     import DeleteModal from './DeleteModal.svelte'
-    import type { GameTable } from '$lib/definition/gameUiDefinition.js'
-    import { getAppContext } from '$lib/model/appContext.js'
+    import type { GameTable, GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+    import { setAppContext } from '$lib/model/appContext.js'
+    import { createHarnessAppContext } from '$lib/harness/harnessContext.js'
+    import type { GameState, HydratedGameState } from '@tabletop/common'
 
-    let {
-        libraryService,
-        gameService,
-        authorizationService,
-        notificationService,
-        chatService,
-        api
-    } = getAppContext()
+    let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
+    const appContext = createHarnessAppContext(definition)
+    setAppContext(createHarnessAppContext(definition))
+
+    let { gameService, authorizationService, notificationService, chatService, api } = appContext
 
     let Table: GameTable<GameState, HydratedGameState> | null = $state(null)
     let showCreateModal = $state(false)
     let gameToDelete: string | undefined = $state(undefined)
     let deleteModalOpen = $derived(gameToDelete !== undefined)
-    let definition = libraryService.getTitle('any')
     let gameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
 
     onMount(() => {
