@@ -2,10 +2,9 @@
     import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
     import { goto } from '$app/navigation'
     import { UserStatus } from '@tabletop/common'
-    import { getContext } from 'svelte'
-    import type { AppContext } from '@tabletop/frontend-components'
+    import { getAppContext } from '@tabletop/frontend-components'
 
-    let { authorizationService, api } = getContext('appContext') as AppContext
+    let { authorizationService, api } = getAppContext()
 
     let unexpectedError = $state(false)
     let errors: Record<string, string[]> = $state({})

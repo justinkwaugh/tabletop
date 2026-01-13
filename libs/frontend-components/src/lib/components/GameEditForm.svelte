@@ -31,14 +31,13 @@
         type HydratedGameState
     } from '@tabletop/common'
     import { nanoid } from 'nanoid'
-    import { getContext } from 'svelte'
     import { playerSortValue } from '$lib/utils/player'
     import { TrashBinSolid } from 'flowbite-svelte-icons'
     import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
-    import type { AppContext } from '$lib/model/appContext.js'
     import { APIError } from '$lib/network/errors.js'
     import { trim } from '$lib/utils/trimInput.js'
     import Typeahead from '$lib/components/Typeahead.svelte'
+    import { getAppContext } from '$lib/model/appContext.js'
 
     type EditableGame = Pick<
         Game,
@@ -63,9 +62,7 @@
         onsave: (game: Game) => void
     } = $props()
 
-    let { libraryService, authorizationService, gameService } = getContext(
-        'appContext'
-    ) as AppContext
+    let { libraryService, authorizationService, gameService } = getAppContext()
     let sessionUser = authorizationService.getSessionUser()
 
     let mode = game ? EditMode.Edit : EditMode.Create

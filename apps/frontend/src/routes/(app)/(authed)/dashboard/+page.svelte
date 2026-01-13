@@ -1,11 +1,9 @@
 <script lang="ts">
     import GameCard from '$lib/components/GameCard.svelte'
-    import { getContext } from 'svelte'
     import type { Game } from '@tabletop/common'
-    import { type AppContext } from '@tabletop/frontend-components'
+    import { getAppContext } from '@tabletop/frontend-components'
 
-    let appContext = getContext('appContext') as AppContext
-    let { gameService } = appContext
+    let { gameService } = getAppContext()
 
     const wait = () => new Promise((res) => setTimeout(res, 1000))
 </script>

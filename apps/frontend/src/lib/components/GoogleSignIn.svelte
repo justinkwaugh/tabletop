@@ -4,13 +4,13 @@
 </script>
 
 <script lang="ts">
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import { isLibraryLoaded, markLibraryLoaded } from '$lib/stores/libraryLoaded.svelte'
-    import type { AppContext } from '@tabletop/frontend-components'
+    import { getAppContext } from '@tabletop/frontend-components'
 
     let { mode = 'login' }: { mode: 'link' | 'login' } = $props()
 
-    let { authorizationService, api } = getContext('appContext') as AppContext
+    let { authorizationService, api } = getAppContext()
 
     const LIBRARY_ID = 'google-sign-in'
 

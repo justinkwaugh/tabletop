@@ -1,9 +1,9 @@
 <script lang="ts">
-    import type { AppContext } from '$lib/model/appContext.js'
+    import { getAppContext } from '$lib/model/appContext.js'
     import { trim } from '$lib/utils/trimInput'
     import { Dropdown, DropdownGroup, DropdownItem, Input, type InputProps } from 'flowbite-svelte'
     import { nanoid } from 'nanoid'
-    import { getContext, type Snippet } from 'svelte'
+    import { type Snippet } from 'svelte'
 
     let {
         id = nanoid(),
@@ -22,7 +22,7 @@
         children: Snippet
     } & InputProps = $props()
 
-    let { api } = getContext('appContext') as AppContext
+    let { api } = getAppContext()
 
     let inputId = $derived(`in-${id}`)
     let hiddenTriggerId = $derived(`no-${inputId}`)

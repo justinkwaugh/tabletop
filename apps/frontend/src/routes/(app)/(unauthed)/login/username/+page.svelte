@@ -1,11 +1,10 @@
 <script lang="ts">
     import { Card, Label, Button, Input, Helper, Alert } from 'flowbite-svelte'
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
-    import { trim, type AppContext, type Credentials } from '@tabletop/frontend-components'
+    import { getAppContext, trim, type Credentials } from '@tabletop/frontend-components'
     import { goto } from '$app/navigation'
-    import { getContext } from 'svelte'
 
-    let { authorizationService, api } = getContext('appContext') as AppContext
+    let { authorizationService, api } = getAppContext()
 
     let passwordToggle = $state(false)
     let loginFailed = $state(false)

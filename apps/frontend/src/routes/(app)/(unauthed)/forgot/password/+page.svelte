@@ -1,10 +1,9 @@
 <script lang="ts">
     import { Card, Input, Button, Alert } from 'flowbite-svelte'
     import { goto } from '$app/navigation'
-    import { getContext } from 'svelte'
-    import type { AppContext } from '@tabletop/frontend-components'
+    import { getAppContext } from '@tabletop/frontend-components'
 
-    let { api } = getContext('appContext') as AppContext
+    let { api } = getAppContext()
     let email: string | undefined = $state(undefined)
     let newEmailSent = $state(false)
 

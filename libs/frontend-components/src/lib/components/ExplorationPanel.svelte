@@ -11,10 +11,8 @@
     import SaveExplorationModal from './SaveExplorationModal.svelte'
     import DeleteModal from './DeleteModal.svelte'
     import UnsavedExplorationModal from './UnsavedExplorationModal.svelte'
-    import type { AppContext } from '$lib/model/appContext.js'
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
-    let { gameService } = getContext('appContext') as AppContext
     let gameSession = getGameSession()
 
     let playerBgColor = $derived(gameSession.colors.getPlayerBgColor(gameSession.myPlayer?.id))
@@ -30,7 +28,7 @@
     let currentExploration = $derived(gameSession.explorations.getCurrentExploration())
 
     let explorations = $derived.by(() => {
-        return gameService.getExplorations(gameSession.primaryGame.id)
+        return gameSession.gameService.getExplorations(gameSession.primaryGame.id)
     })
 
     let explorationList = $derived.by(() => {

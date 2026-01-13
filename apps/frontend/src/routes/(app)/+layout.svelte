@@ -20,15 +20,15 @@
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
     import { goto } from '$app/navigation'
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import { UserStatus } from '@tabletop/common'
-    import { VersionChange, type AppContext, GameEditForm } from '@tabletop/frontend-components'
+    import { VersionChange, GameEditForm, getAppContext } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
     import { BellSolid } from 'flowbite-svelte-icons'
 
     let { api, authorizationService, gameService, notificationService, visibilityService } =
-        getContext('appContext') as AppContext
+        getAppContext()
 
     let { children } = $props()
 

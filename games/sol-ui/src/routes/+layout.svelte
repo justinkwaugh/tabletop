@@ -11,9 +11,9 @@
 </script>
 
 <script lang="ts">
-    import { setContext } from 'svelte'
+    import { setAppContext } from '@tabletop/frontend-components'
     let { children } = $props()
-    setContext('appContext', createHarnessAppContext(definition))
+    setAppContext(createHarnessAppContext(definition))
 </script>
 
 {@render children()}

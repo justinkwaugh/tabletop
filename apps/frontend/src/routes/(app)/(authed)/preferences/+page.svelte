@@ -1,15 +1,14 @@
 <script lang="ts">
-    import { Card, Label, Button, Alert, Helper, Toggle } from 'flowbite-svelte'
+    import { Card, Button, Alert, Helper, Toggle } from 'flowbite-svelte'
     import { Color, UserPreferences } from '@tabletop/common'
     import { flip } from 'svelte/animate'
-    import { getContext } from 'svelte'
     import {
         ColorblindColorizer,
         DefaultColorizer,
-        type AppContext
+        getAppContext
     } from '@tabletop/frontend-components'
 
-    let { authorizationService, api } = getContext('appContext') as AppContext
+    let { authorizationService, api } = getAppContext()
 
     const colorblindColorizer = new ColorblindColorizer()
     const defaultColorizer = new DefaultColorizer()

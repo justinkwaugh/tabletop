@@ -1,6 +1,6 @@
 <script lang="ts">
     import RunOnceMounted from '$lib/components/RunOnceMounted.svelte'
-    import { setContext } from 'svelte'
+    import { setAppContext } from '@tabletop/frontend-components'
     import { Toaster } from 'svelte-sonner'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import TimeAgo from 'javascript-time-ago'
@@ -8,7 +8,7 @@
     TimeAgo.addDefaultLocale(en)
 
     let { children } = $props()
-    setContext('appContext', getAppContext())
+    setAppContext(getAppContext())
 </script>
 
 <Toaster position={'top-center'} richColors closeButton />

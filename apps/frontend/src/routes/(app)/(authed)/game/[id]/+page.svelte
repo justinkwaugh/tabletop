@@ -5,9 +5,9 @@
         GameSession,
         HotseatPanel,
         setGameSession,
-        type AppContext,
         type GameTable,
-        HistoryKeyControls
+        HistoryKeyControls,
+        getAppContext
     } from '@tabletop/frontend-components'
     import { onMount } from 'svelte'
     import AdminPanel from '$lib/components/AdminPanel.svelte'
@@ -18,9 +18,7 @@
     // svelte-ignore state_referenced_locally
     setGameSession(data.gameSession)
 
-    let { gameService, notificationService, authorizationService, chatService } = getContext(
-        'appContext'
-    ) as AppContext
+    let { gameService, notificationService, authorizationService, chatService } = getAppContext()
 
     let Table: GameTable<GameState, HydratedGameState> | null = $state(null)
 
