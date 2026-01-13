@@ -4,10 +4,9 @@
     import { goto } from '$app/navigation'
     import { z } from 'zod'
     import { zfd } from 'zod-form-data'
-    import { getContext } from 'svelte'
-    import { trim, type AppContext } from '@tabletop/frontend-components'
+    import { getAppContext, trim } from '@tabletop/frontend-components'
 
-    let { api } = getContext('appContext') as AppContext
+    let { api } = getAppContext()
     let { data } = $props()
 
     let errors: Record<string, string[]> | null = $state(null)

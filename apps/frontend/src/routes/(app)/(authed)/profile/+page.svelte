@@ -6,7 +6,6 @@
     import { ExternalAuthService, UserStatus } from '@tabletop/common'
     import { InfoCircleSolid } from 'flowbite-svelte-icons'
     import { goto } from '$app/navigation'
-    import { getContext } from 'svelte'
     import googleLogo from '$lib/components/images/google.jpg'
     import discordLogo from '$lib/components/images/discord.png'
     import GoogleSignIn, {
@@ -15,9 +14,9 @@
     import DiscordSignIn, {
         isEnabled as isDiscordSigninEnabled
     } from '$lib/components/DiscordSignIn.svelte'
-    import { trim, type AppContext } from '@tabletop/frontend-components'
+    import { getAppContext, trim } from '@tabletop/frontend-components'
 
-    let { authorizationService, api } = getContext('appContext') as AppContext
+    let { authorizationService, api } = getAppContext()
 
     const enum ReauthType {
         None = 'none',

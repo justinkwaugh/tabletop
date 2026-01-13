@@ -5,6 +5,7 @@ import type { LibraryService } from '$lib/services/libraryService.js'
 import type { VisibilityService } from '$lib/services/visibilityService.svelte'
 import type { ChatService } from '$lib/services/chatService.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
+import { createContext } from 'svelte'
 
 export type AppContext = {
     libraryService: LibraryService
@@ -15,3 +16,8 @@ export type AppContext = {
     chatService: ChatService
     api: RemoteApiService
 }
+
+const [getAppContextContext, setAppContextContext] = createContext<AppContext>()
+
+export const setAppContext = setAppContextContext
+export const getAppContext = getAppContextContext

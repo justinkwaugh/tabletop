@@ -1,14 +1,13 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
     import LibraryGameCard from '$lib/components/LibraryGameCard.svelte'
     import LargeLibraryGameCard from '$lib/components/LargeLibraryGameCard.svelte'
-    import { Button, Heading } from 'flowbite-svelte'
-    import { type GameUiDefinition, type AppContext } from '@tabletop/frontend-components'
+    import { Heading } from 'flowbite-svelte'
+    import { type GameUiDefinition, getAppContext } from '@tabletop/frontend-components'
     import { fade } from 'svelte/transition'
     import type { Game, GameState, HydratedGameState } from '@tabletop/common'
     import GameCard from '$lib/components/GameCard.svelte'
 
-    let { libraryService, gameService } = getContext('appContext') as AppContext
+    let { libraryService, gameService } = getAppContext()
 
     let selectedTitle: GameUiDefinition<GameState, HydratedGameState> | undefined = $state()
 

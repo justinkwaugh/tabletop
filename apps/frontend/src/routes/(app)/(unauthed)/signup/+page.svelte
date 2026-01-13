@@ -5,11 +5,10 @@
     import { zfd } from 'zod-form-data'
 
     import { goto } from '$app/navigation'
-    import { getContext } from 'svelte'
-    import { trim, type AppContext } from '@tabletop/frontend-components'
+    import { getAppContext, trim } from '@tabletop/frontend-components'
 
-    const { authorizationService, api } = getContext('appContext') as AppContext
-
+    const { authorizationService, api } = getAppContext()
+    
     let unexpectedError = $state(false)
     let errors: Record<string, string[]> = $state({})
     let passwordToggle: boolean = $state(false)

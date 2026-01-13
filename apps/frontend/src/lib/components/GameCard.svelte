@@ -1,13 +1,12 @@
 <script lang="ts">
     import { Card, Hr, Button, Modal } from 'flowbite-svelte'
     import { Game, GameStatus, PlayerStatus, GameResult, ConfigOptionType } from '@tabletop/common'
-    import { getContext } from 'svelte'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { goto } from '$app/navigation'
     import TimeAgo from 'javascript-time-ago'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
-    import { GameEditForm, type AppContext } from '@tabletop/frontend-components'
+    import { GameEditForm, getAppContext } from '@tabletop/frontend-components'
 
     const timeAgo = new TimeAgo('en-US')
 
@@ -27,9 +26,7 @@
         expanded?: boolean | 'always'
     } = $props()
 
-    let { libraryService, authorizationService, gameService } = getContext(
-        'appContext'
-    ) as AppContext
+    let { libraryService, authorizationService, gameService } = getAppContext()
 
     let editing = $state(false)
     let canToggle = $derived(expanded !== 'always')

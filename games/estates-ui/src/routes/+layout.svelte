@@ -1,5 +1,9 @@
 <script module lang="ts">
-    import { createHarnessAppContext, type GameUiDefinition } from '@tabletop/frontend-components'
+    import {
+        createHarnessAppContext,
+        setAppContext,
+        type GameUiDefinition
+    } from '@tabletop/frontend-components'
     import TimeAgo from 'javascript-time-ago'
     import en from 'javascript-time-ago/locale/en'
     import type { GameState, HydratedGameState } from '@tabletop/common'
@@ -11,9 +15,8 @@
 </script>
 
 <script lang="ts">
-    import { setContext } from 'svelte'
     let { children } = $props()
-    setContext('appContext', createHarnessAppContext(definition))
+    setAppContext(createHarnessAppContext(definition))
 </script>
 
 {@render children()}
