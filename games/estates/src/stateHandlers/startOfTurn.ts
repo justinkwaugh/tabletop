@@ -6,19 +6,23 @@ import {
 } from '@tabletop/common'
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
-import { nanoid } from 'nanoid'
 import { ActionType } from '../definition/actions.js'
 import { HydratedStartAuction, isStartAuction, StartAuction } from '../actions/startAuction.js'
 import { HydratedDrawRoof, isDrawRoof } from '../actions/drawRoof.js'
 import { HydratedEmbezzle, isEmbezzle } from '../actions/embezzle.js'
 
-type StartOfTurnAction = HydratedDrawRoof | HydratedStartAuction
+type StartOfTurnAction = HydratedDrawRoof | HydratedStartAuction | HydratedEmbezzle
 
 // Transition from StartOfTurn(DrawRoof) -> Auctioning
 //                 StartOfTurn(StartAuction) -> Auctioning
 
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedEstatesGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedEstatesGameState>): action is StartOfTurnAction {
+export class StartOfTurnStateHandler
+    implements MachineStateHandler<StartOfTurnAction, HydratedEstatesGameState>
+{
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedEstatesGameState>
+    ): action is StartOfTurnAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.DrawRoof ||
@@ -27,7 +31,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedEstatesGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedEstatesGameState>
+    ): ActionType[] {
         const validActions: ActionType[] = []
         const gameState = context.gameState
 
@@ -56,7 +63,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         }
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext<HydratedEstatesGameState>): MachineState {
+    onAction(
+        action: StartOfTurnAction,
+        context: MachineContext<HydratedEstatesGameState>
+    ): MachineState {
         const gameState = context.gameState
         switch (true) {
             case isDrawRoof(action): {

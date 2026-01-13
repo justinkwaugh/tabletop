@@ -136,7 +136,7 @@ describe('Fresh Fish Board Generator Tests', () => {
                 { type: 'off' }
             ]
         ]
-        console.log(board.cells, correctCells)
+
         expect(board.cells).toEqual(correctCells)
     })
 })
