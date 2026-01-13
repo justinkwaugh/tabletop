@@ -75,6 +75,11 @@
         await goto('/preferences')
     }
 
+    async function gotoNotifications() {
+        showCancelPrompt = false
+        await goto('/notifications')
+    }
+
     async function gotoDashboard() {
         await goto('/dashboard')
     }
@@ -236,6 +241,9 @@
                             >
                             <DropdownItem class="w-full text-left" onclick={gotoPreferences}
                                 >Preferences</DropdownItem
+                            >
+                            <DropdownItem class="w-full text-left" onclick={gotoNotifications}
+                                >Notifications</DropdownItem
                             >
                             <DropdownDivider />
                             <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
