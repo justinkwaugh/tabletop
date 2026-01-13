@@ -1,33 +1,35 @@
-import {
-    ActionSource,
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import { TileType } from '../components/tiles.js'
 import { HydratedDrawTile, isDrawTile } from '../actions/drawTile.js'
 import { HydratedPlaceDisk, isPlaceDisk } from '../actions/placeDisk.js'
 import { StartAuction } from '../actions/startAuction.js'
-import { nanoid } from 'nanoid'
 import { FreshFishGameConfig } from '../definition/gameConfig.js'
 import { ActionType } from '../definition/actions.js'
-import { isPass, Pass } from '../actions/pass.js'
+import { HydratedPass, isPass, Pass } from '../actions/pass.js'
 
-type StartOfTurnAction = HydratedPlaceDisk | HydratedDrawTile
+type StartOfTurnAction = HydratedPlaceDisk | HydratedDrawTile | HydratedPass
 
 // Transition from StartOfTurn(PlaceDisk) -> StartOfTurn
 //                 StartOfTurn(DrawTile) -> MarketTileDrawn (when market tile drawn)
 //                 StartOfTurn(DrawTile) -> StallTileDrawn (when stall tile is drawn)
 //                 StartOfTurn(Pass) -> StartOfTurn (no possible moves)
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedFreshFishGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedFreshFishGameState>): action is StartOfTurnAction {
+export class StartOfTurnStateHandler
+    implements MachineStateHandler<StartOfTurnAction, HydratedFreshFishGameState>
+{
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedFreshFishGameState>
+    ): action is StartOfTurnAction {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context) || isPass(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedFreshFishGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedFreshFishGameState>
+    ): ActionType[] {
         const validActions: ActionType[] = []
         if (this.isValidActionType(ActionType.PlaceDisk, playerId, context)) {
             validActions.push(ActionType.PlaceDisk)
@@ -61,7 +63,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         }
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+    onAction(
+        action: StartOfTurnAction,
+        context: MachineContext<HydratedFreshFishGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {
