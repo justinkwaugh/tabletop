@@ -32,8 +32,8 @@
     ) as AppContext
 
     let editing = $state(false)
-    let canToggle = expanded !== 'always'
-    let isExpanded = $state(expanded ? true : false)
+    let canToggle = $derived(expanded !== 'always')
+    let isExpanded = $derived(expanded ? true : false)
 
     let sessionUser = authorizationService.getSessionUser()
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
@@ -111,7 +111,7 @@
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
     )
     let totalSeats = $derived(game.players.length)
-    let explorations = gameService.getExplorations(game.id)
+    let explorations = $derived(gameService.getExplorations(game.id))
 
     let seed = $derived.by(() => {
         if (!authorizationService.isAdmin) {

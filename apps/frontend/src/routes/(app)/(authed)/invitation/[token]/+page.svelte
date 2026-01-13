@@ -6,7 +6,7 @@
 
     let { data }: { data: { game: Game } } = $props()
 
-    let invitationGame: Game | undefined = $state(data.game)
+    let invitationGame: Game | undefined = $derived(data.game)
 
     function gotoDashboard() {
         invitationGame = undefined
