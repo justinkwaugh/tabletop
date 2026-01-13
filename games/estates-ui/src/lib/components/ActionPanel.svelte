@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import { ActionType } from '@tabletop/estates'
+import { ActionType } from '@tabletop/estates'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { AuctionRecipient, MachineState } from '@tabletop/estates'
     import { Button } from 'flowbite-svelte'
     import { slide, fade } from 'svelte/transition'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     async function chooseAction(action: string) {
         switch (action) {

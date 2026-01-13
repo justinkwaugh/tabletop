@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { ActionType, HydratedSolPlayerState } from '@tabletop/sol'
     import { Color, range, type Player } from '@tabletop/common'
@@ -20,8 +20,9 @@
     import Sun from '$lib/images/sun.png'
     import { Popover } from 'flowbite-svelte'
     import EffectCard from './EffectCard.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
     let { player, playerState }: { player: Player; playerState: HydratedSolPlayerState } = $props()
     let animateReady = false
     let playerStateOverride = $derived.by(() =>

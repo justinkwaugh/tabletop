@@ -27,8 +27,9 @@
     import type { Object3D } from 'three'
     import { ColumnOffsets } from '$lib/utils/boardOffsets'
     import type { AnimationContext } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     const effects = getContext('effects') as Effects
     const bloomer = new Bloomer(effects)
 

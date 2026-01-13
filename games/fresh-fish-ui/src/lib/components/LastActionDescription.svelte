@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import { PlayerName } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
     import AuctionResults from './AuctionResults.svelte'
     import { isEndAuction, isPlaceBid } from '@tabletop/fresh-fish'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
 
     let windowHeight: number | null | undefined = $state()
 

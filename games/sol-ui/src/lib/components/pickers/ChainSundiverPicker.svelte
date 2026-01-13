@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import Sundiver from '$lib/components/Sundiver.svelte'
     import { sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
     import { HydratedChain } from '@tabletop/sol'
     import SolPicker from './SolPicker.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let {
         coords
@@ -12,7 +12,7 @@
         coords: OffsetCoordinates
     } = $props()
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     let players = $derived.by(() => {
         if (!coords) {

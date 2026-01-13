@@ -1,10 +1,10 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
     import { BridgesPlayerState, MasterType } from '@tabletop/bridges-of-shangri-la'
-    import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let gameSession = getGameSession() as BridgesGameSession
     let { player, playerState }: { player: Player; playerState: BridgesPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))

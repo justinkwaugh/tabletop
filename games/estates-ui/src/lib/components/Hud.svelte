@@ -5,7 +5,7 @@
     import BidControls from './BidControls.svelte'
     import BidButtons from './BidButtons.svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import { EstatesGameState, HydratedEstatesGameState, MachineState } from '@tabletop/estates'
     import Instructions from './Instructions.svelte'
     import WaitingInstructions from './WaitingInstructions.svelte'
@@ -14,8 +14,9 @@
     import { fadeIn, fadeOut } from '$lib/utils/animations'
     import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
     import type { GameAction } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     const viewport = useViewport()
     let ready = $state(false)

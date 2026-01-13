@@ -1,9 +1,9 @@
 <script lang="ts">
     import { Fish } from '@tabletop/kaivai'
-    import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
     let { action, justify = 'center' }: { action: Fish; justify: 'center' | 'left' } = $props()
 
     const dieCircleSize = [

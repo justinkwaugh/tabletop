@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import '$lib/styles/focusable-control.css'
+import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Color, OffsetCoordinates, sameCoordinates } from '@tabletop/common'
     import {
@@ -11,6 +10,7 @@
     } from '$lib/utils/boardGeometry.js'
     import { ConvertType } from '$lib/definition/convertType.js'
     import { CENTER_COORDS } from '@tabletop/sol'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let {
         key,
@@ -24,7 +24,7 @@
         neighborCoords: OffsetCoordinates
     } = $props()
 
-    const gameSession = getContext('gameSession') as SolGameSession
+    const gameSession = getGameSession() as SolGameSession
     let location = $derived(getCirclePoint(position.radius, toRadians(position.angle)))
 
     let myConvert = $derived(gameSession.isMyTurn && gameSession.isConverting)

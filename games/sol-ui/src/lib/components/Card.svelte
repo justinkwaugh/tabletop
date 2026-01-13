@@ -8,8 +8,8 @@
     import SubductionCard from '$lib/images/subductionCard.png'
     import { Card, EffectType, Suit } from '@tabletop/sol'
     import type { HTMLAttributes } from 'svelte/elements'
-    import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let {
         card,
@@ -22,7 +22,7 @@
         showActive?: boolean
     } & HTMLAttributes<HTMLDivElement> = $props()
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     function cardImageForSuit(suit: Suit) {
         switch (suit) {

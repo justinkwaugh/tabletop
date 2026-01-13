@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { hidden, ...others }: { hidden?: boolean } = $props()
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     let ref: HTMLDivElement
 

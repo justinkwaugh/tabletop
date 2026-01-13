@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import {
+import {
         ActionType,
         isCelebrate,
         isDeliver,
@@ -20,8 +19,9 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import CelebrateResults from './CelebrateResults.svelte'
     import MoveGodResults from './MoveGodResults.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
 
     let lastAction = $derived.by(() => {
         const actionIndex = gameSession.currentActionIndex

@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { type GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
@@ -10,10 +9,11 @@
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { isDrawRoof } from '@tabletop/estates'
     import ActionDescription from '$lib/components/ActionDescription.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const timeAgo = new TimeAgo('en-US')
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     let reversedActions = $derived.by(() => {
         const reversed = gameSession.actions

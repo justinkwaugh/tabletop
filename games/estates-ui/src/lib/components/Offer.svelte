@@ -5,10 +5,10 @@
     import { BarrierDirection, Cube, MachineState, PieceType } from '@tabletop/estates'
     import { useThrelte } from '@threlte/core'
 
-    import { getContext } from 'svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { hidden }: { hidden?: boolean } = $props()
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
     let ref: HTMLDivElement
     let { size } = useThrelte()
 

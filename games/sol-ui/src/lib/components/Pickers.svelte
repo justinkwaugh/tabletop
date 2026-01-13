@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { EffectType } from '@tabletop/sol'
     import ConvertPicker from '$lib/components/pickers/ConvertPicker.svelte'
     import CardPicker from '$lib/components/pickers/CardPicker.svelte'
@@ -14,8 +13,9 @@
     import ChainSundiverPicker from '$lib/components/pickers/ChainSundiverPicker.svelte'
     import ClusterPicker from '$lib/components/pickers/ClusterPicker.svelte'
     import TeleportPicker from '$lib/components/pickers/TeleportPicker.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     const cardPickerAnimator = new CardPickerAnimator(gameSession)
     cardPickerAnimator.register()

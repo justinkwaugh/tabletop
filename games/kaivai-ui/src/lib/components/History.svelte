@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import {
         ActionType,
@@ -27,6 +26,7 @@
     import HutScoringResults from './HutScoringResults.svelte'
     import CelebrateResults from './CelebrateResults.svelte'
     import MoveGodResults from './MoveGodResults.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import {
         HistoryItemType,
         isActionHistoryItem,
@@ -38,7 +38,7 @@
 
     const timeAgo = new TimeAgo('en-US')
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
 
     let filteredActions = $derived.by(() => {
         return gameSession.actions.filter(

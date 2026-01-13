@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import cultTile from '$lib/images/culttile.png'
     import fishtoken from '$lib/images/fishtoken.png'
     import FishGod from '$lib/images/fishgod.svelte'
@@ -36,8 +35,9 @@
     import { flipIn, flipInterest, flipKey, flipOut, saveFlipState } from '$lib/utils/transition'
     import { fade } from 'svelte/transition'
     import { KaivaiHexDefinition, KaivaiHexGeometry } from '$lib/utils/hexDefinition.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
     let { coords, origin }: { coords: AxialCoordinates; origin: Point } = $props()
 
     const cellGeometry = calculateHexGeometry(KaivaiHexDefinition, coords)

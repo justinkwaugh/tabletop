@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import bidding from '$lib/images/bidding.png'
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    let gameSession = getGameSession() as KaivaiGameSession
 
     type BidData = {
         bid: number

@@ -2,7 +2,6 @@
     import { T, type Props } from '@threlte/core'
     import { Text, HTML } from '@threlte/extras'
     import { Group, MeshBasicMaterial } from 'three'
-    import { getContext } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
 
     import PlayerInfo from './PlayerInfo.svelte'
@@ -11,8 +10,9 @@
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { isEndAuction } from '@tabletop/estates'
     import type { OnceAroundAuction } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as EstatesGameSession
+    let gameSession = getGameSession() as EstatesGameSession
 
     let { ref = $bindable(), ...others }: Props<typeof Group> = $props()
     let players = $derived.by(() => {

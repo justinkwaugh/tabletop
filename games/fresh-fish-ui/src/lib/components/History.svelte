@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { ActionType, isDrawTile, isEndAuction, isMarketTile } from '@tabletop/fresh-fish'
     import type { GameAction } from '@tabletop/common'
@@ -11,10 +10,11 @@
     import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import AuctionResults from './AuctionResults.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const timeAgo = new TimeAgo('en-US')
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
     let unhighlightTimeout: ReturnType<typeof setTimeout>
 
     let reversedActions = $derived.by(() => {

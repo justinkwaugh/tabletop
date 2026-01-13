@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
+import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import DeliverySelection from './DeliverySelection.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
     let bidValue = $state(0)
     let showCancel = $derived.by(() => {
         if (isMultiBoatState() && !gameSession.chosenBoat) {

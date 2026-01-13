@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Button } from 'flowbite-svelte'
-    import { getContext } from 'svelte'
     import {
         ActionType,
         HydratedPlaceMaster,
@@ -9,8 +8,9 @@
         Placement
     } from '@tabletop/bridges-of-shangri-la'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let gameSession = getGameSession() as BridgesGameSession
     let showCancel = $derived.by(() => {
         if (!gameSession.chosenAction) {
             return false

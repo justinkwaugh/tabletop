@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import { getContext } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import {
         isPlaceMaster,
@@ -14,10 +13,11 @@
     import { quartIn } from 'svelte/easing'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const timeAgo = new TimeAgo('en-US')
 
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let gameSession = getGameSession() as BridgesGameSession
     let unhighlightTimeout: ReturnType<typeof setTimeout>
 
     let reversedActions = $derived.by(() => {

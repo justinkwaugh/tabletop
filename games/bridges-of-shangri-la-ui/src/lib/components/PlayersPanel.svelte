@@ -2,10 +2,10 @@
     import type { Player } from '@tabletop/common'
     import type { BridgesPlayerState } from '@tabletop/bridges-of-shangri-la'
     import PlayerState from '$lib/components/PlayerState.svelte'
-    import { getContext } from 'svelte'
-    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    let gameSession = getGameSession() as BridgesGameSession
 
     type PlayerAndState = { player: Player; playerState: BridgesPlayerState }
 

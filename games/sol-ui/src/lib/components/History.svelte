@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import { getContext } from 'svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
@@ -12,10 +11,11 @@
     import { isChooseActivate, isChooseConvert, isChooseMove } from '@tabletop/sol'
     import ActionDescription from './ActionDescription.svelte'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const timeAgo = new TimeAgo('en-US')
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
     let unhighlightTimeout: ReturnType<typeof setTimeout>
 
     let reversedActions = $derived.by(() => {

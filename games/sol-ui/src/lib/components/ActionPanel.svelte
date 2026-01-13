@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import MoveArrows from '$lib/images/movearrows.svelte'
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
@@ -18,6 +17,7 @@
     import { fade } from 'svelte/transition'
 
     import { NotifierAnimator } from '$lib/animators/notifierAnimator.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     enum YesActions {
         ActivateBonus = 'ActivateBonus'
@@ -35,7 +35,7 @@
         noAction?: NoActions
     }
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     const canMove = $derived(gameSession.validActionTypes.includes(ActionType.ChooseMove))
     const canConvert = $derived(gameSession.validActionTypes.includes(ActionType.ChooseConvert))

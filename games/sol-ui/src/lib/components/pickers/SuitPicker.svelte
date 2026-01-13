@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Card, Suit } from '@tabletop/sol'
     import CardComponent from '$lib/components/Card.svelte'
     import { nanoid } from 'nanoid'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as SolGameSession
+    let gameSession = getGameSession() as SolGameSession
 
     const cards = $derived.by(() => {
         return Object.keys(gameSession.gameState.effects).map((suit) => {

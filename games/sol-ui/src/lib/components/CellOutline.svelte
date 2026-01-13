@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { coordinatesToNumber, OffsetCoordinates, sameCoordinates } from '@tabletop/common'
     import {
         dimensionsForSpace,
@@ -10,9 +9,10 @@
         translateFromCenter
     } from '$lib/utils/boardGeometry.js'
     import { CENTER_COORDS, Ring } from '@tabletop/sol'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { coords }: { coords: OffsetCoordinates } = $props()
-    const gameSession = getContext('gameSession') as SolGameSession
+    const gameSession = getGameSession() as SolGameSession
     const dimensions = dimensionsForSpace(gameSession.numPlayers, coords)
     const isCenterCell = sameCoordinates(coords, CENTER_COORDS)
 

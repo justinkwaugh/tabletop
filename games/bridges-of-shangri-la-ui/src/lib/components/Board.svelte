@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import Village from '$lib/components/Village.svelte'
     import Bridge from '$lib/components/Bridge.svelte'
     import boardImg from '$lib/images/board.jpg'
-    let gameSession = getContext('gameSession') as BridgesGameSession
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    let gameSession = getGameSession() as BridgesGameSession
 
     const locationsForVillages: string[] = [
         'top-[125px] left-[143px]',

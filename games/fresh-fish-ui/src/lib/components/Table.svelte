@@ -3,21 +3,28 @@
         GameSessionMode,
         ScalingWrapper,
         DefaultSideContent,
-        DefaultTableLayout
+        DefaultTableLayout,
+        GameSession
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
-    import { getContext, onMount } from 'svelte'
+    import { onMount } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+    import type { FreshFishGameState, HydratedFreshFishGameState } from '@tabletop/fresh-fish'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import GameDataPanel from '$lib/components/GameDataPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
+    import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let {
+        gameSession
+    }: { gameSession: GameSession<FreshFishGameState, HydratedFreshFishGameState> } = $props()
+
+    setGameSession(gameSession as FreshFishGameSession)
     let table: HTMLDivElement
 
     onMount(() => {

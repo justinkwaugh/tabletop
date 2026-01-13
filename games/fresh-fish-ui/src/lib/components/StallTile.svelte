@@ -9,8 +9,8 @@
     import sodaStallDarkImg from '$lib/images/soda-stall-dark.png'
     import { GoodsType } from '@tabletop/fresh-fish'
     import { Color } from '@tabletop/common'
-    import { getContext } from 'svelte'
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let {
         size = 100,
@@ -18,7 +18,7 @@
         goodsType
     }: { size?: number; playerId?: string; goodsType?: GoodsType } = $props()
 
-    let gameSession = getContext('gameSession') as FreshFishGameSession
+    let gameSession = getGameSession() as FreshFishGameSession
 
     let sizePx = $derived(`${size}px`)
     let stallBgColor = $derived(

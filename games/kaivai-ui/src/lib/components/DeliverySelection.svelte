@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { getContext } from 'svelte'
-    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import fishtoken from '$lib/images/fishtoken.png'
     import { isDeliveryCell } from '@tabletop/kaivai'
     import { sameCoordinates } from '@tabletop/common'
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    let gameSession = getGameSession() as KaivaiGameSession
 
     let maxValue = $derived.by(() => {
         if (!gameSession.myPlayerState) {

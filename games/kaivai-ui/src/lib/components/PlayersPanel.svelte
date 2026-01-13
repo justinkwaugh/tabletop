@@ -6,12 +6,12 @@
         type KaivaiPlayerState
     } from '@tabletop/kaivai'
     import PlayerState from '$lib/components/PlayerState.svelte'
-    import { getContext } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { flip } from 'svelte/animate'
     import Bids from './Bids.svelte'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getContext('gameSession') as KaivaiGameSession
+    let gameSession = getGameSession() as KaivaiGameSession
     let showBids = $derived(
         (gameSession.gameState.phases.currentPhase?.name === PhaseName.TakingActions ||
             gameSession.gameState.phases.currentPhase?.name === PhaseName.InitialHuts ||
