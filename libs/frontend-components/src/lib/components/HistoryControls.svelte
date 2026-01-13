@@ -1,7 +1,6 @@
 <script lang="ts">
     import { UserSolid } from 'flowbite-svelte-icons'
     import ForkModal from './ForkModal.svelte'
-    import { goto } from '$app/navigation'
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
@@ -36,7 +35,6 @@
     async function onForkConfirm(newGameName: string) {
         forkRequested = false
         await gameSession.forkGame(newGameName)
-        goto('/dashboard')
     }
 
     let hasPriorPlayerAction = $derived.by(() => {

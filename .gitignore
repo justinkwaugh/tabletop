@@ -39,6 +39,7 @@ out
 
 dist
 build
+public
 esm
 firebase/data/export/*
 !firebase/data/export/.gitkeep

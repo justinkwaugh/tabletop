@@ -34,7 +34,6 @@ import {
 } from '$lib/services/notificationService.js'
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
 import type { ChatService } from '$lib/services/chatService'
-import { goto } from '$app/navigation'
 import type { GameService } from '$lib/services/gameService.js'
 import { GameContext } from './gameContext.svelte.js'
 import { GameHistory } from './gameHistory.svelte.js'
@@ -1038,7 +1037,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (notification.data.game.id === this.gameContext.game.id) {
             toast.error('The game has been deleted')
             this.stopListeningToGame()
-            await goto('/dashboard')
         }
     }
 
