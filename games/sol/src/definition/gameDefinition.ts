@@ -15,7 +15,7 @@ export const Definition = <GameDefinition<SolGameState, HydratedSolGameState>>{
         designer: 'Ryan and Sean Spangler, Jodi Sweetman',
         description:
             'Sol: Last Days of a Star is a board game for one to five players where each player represents a different planetary effort to transmit as much energy from the Sun back to their Ark so they can try to escape the solar system before the Sun explodes!',
-        year: '2005',
+        year: '2017',
         minPlayers: 2,
         maxPlayers: 5,
         defaultPlayerCount: 4,
