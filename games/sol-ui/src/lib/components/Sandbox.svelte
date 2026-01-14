@@ -91,12 +91,12 @@
         }
 
         if (station) {
-            const newStation = {
-                id: nanoid(),
-                playerId: 'p1',
-                type: station
-            }
             for (const cell of board) {
+                const newStation = {
+                    id: nanoid(),
+                    playerId: 'p1',
+                    type: station
+                }
                 board.addStationAt(newStation, cell.coords)
             }
         }
@@ -160,6 +160,7 @@
                 }
             }
         }
+
         return stationPoints
     })
 
@@ -351,7 +352,7 @@
         {#each gatePositions as gatePosition}
             <Gate color="blue" position={gatePosition} />
         {/each}
-        {#each stations as stationInfo}
+        {#each stations as stationInfo (stationInfo.station.id)}
             <g transform={translateFromCenter(stationInfo.point.x, stationInfo.point.y)}>
                 <UIStation
                     station={stationInfo.station}

@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import boardImg from '$lib/images/board.jpg'
     import Cell from '$lib/components/Cell.svelte'
     import DropShadow from '$lib/components/DropShadow.svelte'

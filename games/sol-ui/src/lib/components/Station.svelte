@@ -19,8 +19,8 @@
         height?: number
     } = $props()
 
-    let actualWidth = width ?? (station.type === StationType.TransmitTower ? 48 : 46)
-    let actualHeight = height ?? (station.type === StationType.TransmitTower ? 100 : 48)
+    let actualWidth = $derived(width ?? (station.type === StationType.TransmitTower ? 48 : 46))
+    let actualHeight = $derived(height ?? (station.type === StationType.TransmitTower ? 100 : 48))
 </script>
 
 <g transform="translate({-actualWidth / 2}, {-actualHeight / 2})">
