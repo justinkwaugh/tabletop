@@ -170,28 +170,28 @@
             />
             <g transform="scale(1.1)" style="transform-box:fill-box; transform-origin: center;">
                 <Mask
-                    fill={'white'}
+                    fill="white"
                     opacity="1"
                     overflow="visible"
                     style="filter: url(#{highlightId})"
                 />
             </g>
             <Mask
-                fill={'transparent'}
-                stroke={'black'}
-                stroke-width={'10px'}
+                fill="transparent"
+                stroke="black"
+                stroke-width="10px"
                 opacity=".8"
                 overflow="visible"
             />
         {:else if !animator.animating}
-            <Mask fill={'black'} opacity=".5" overflow="visible" style="filter: url(#{shadowId})" />
+            <Mask fill="black" opacity=".5" overflow="visible" style="filter: url(#{shadowId})" />
         {/if}
         {#if outlined}
-            <Mask fill={'transparent'} stroke={'white'} stroke-width={'50px'} overflow="visible" />
+            <Mask fill="transparent" stroke="white" stroke-width="50px" overflow="visible" />
         {/if}
         <Ship />
         {#if disabled}
-            <Mask fill={'black'} opacity={0.5} />
+            <Mask fill="black" opacity={0.5} />
         {/if}
     </g>
 </g>

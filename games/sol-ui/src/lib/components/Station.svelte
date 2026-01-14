@@ -29,7 +29,7 @@
             <EnergyNodeMask
                 width={actualWidth + 4}
                 height={actualHeight + 4}
-                fill={'black'}
+                fill="black"
                 opacity=".6"
                 overflow="visible"
             />
@@ -40,7 +40,7 @@
             <FoundryMask
                 width={actualWidth + 4}
                 height={actualHeight + 4}
-                fill={'black'}
+                fill="black"
                 opacity=".6"
                 overflow="visible"
             />
@@ -51,7 +51,7 @@
             <TowerMask
                 width={actualWidth + 4}
                 height={actualHeight + 4}
-                fill={'black'}
+                fill="black"
                 opacity=".6"
                 overflow="visible"
             />

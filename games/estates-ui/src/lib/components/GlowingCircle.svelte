@@ -19,5 +19,5 @@
     {...others}
 >
     <T.CircleGeometry args={[0.65, 20]} />
-    <T.MeshBasicMaterial color={'white'} transparent={true} {opacity} />
+    <T.MeshBasicMaterial color="white" transparent={true} {opacity} />
 </T.Mesh>

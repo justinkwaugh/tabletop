@@ -377,7 +377,7 @@
         >
             <T.PlaneGeometry args={site.cubes.length === 0 ? [1, 1] : [1, 1]} />
             <T.MeshBasicMaterial
-                color={'white'}
+                color="white"
                 transparent={true}
                 opacity={pulseOpacity.opacity}
             />
@@ -393,7 +393,7 @@
             onclick={onClick}
         >
             <T.BoxGeometry args={[dims, height, dims]} />
-            <T.MeshBasicMaterial color={'white'} transparent={true} opacity={0} />
+            <T.MeshBasicMaterial color="white" transparent={true} opacity={0} />
         </T.Mesh>
     {/if}
     {#each site.cubes as cube, i}

@@ -447,7 +447,7 @@
             <T.MeshPhysicalMaterial
                 map={woodValue}
                 roughness={0.3}
-                color={'#cccccc'}
+                color="#cccccc"
                 clearcoat={1}
                 clearcoatRoughness={0.33}
             />

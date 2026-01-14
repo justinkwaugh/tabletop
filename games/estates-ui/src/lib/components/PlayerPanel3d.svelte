@@ -81,7 +81,7 @@
             <RoundedRectangleGeometry width={5} height={2.5} radius={0.2} />
             <T.MeshPhysicalMaterial
                 roughness={0.7}
-                color={'#222222'}
+                color="#222222"
                 clearcoat={1}
                 clearcoatRoughness={0.33}
             />

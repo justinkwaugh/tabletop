@@ -13,7 +13,7 @@
         roughness={0.8}
         transmission={1}
         thickness={0.5}
-        color={'#cccccc'}
+        color="#cccccc"
         transparent={true}
         opacity={0.3}
         clearcoat={1}

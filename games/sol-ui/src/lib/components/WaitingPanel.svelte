@@ -26,8 +26,8 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
                     <div>
                         <PlayerName
                             {playerId}
-                            additionalClasses={'pt-[2px]'}
-                            capitalization={'uppercase'}
+                            additionalClasses="pt-[2px]"
+                            capitalization="uppercase"
                         />
                     </div>
                 {/each}
@@ -35,8 +35,8 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
         {:else}
             WAITING FOR <PlayerName
                 playerId={activePlayerId}
-                additionalClasses={'pt-[2px]'}
-                capitalization={'uppercase'}
+                additionalClasses="pt-[2px]"
+                capitalization="uppercase"
             />
             {#if gameSession.isDrawingCards}
                 TO DRAW CARDS

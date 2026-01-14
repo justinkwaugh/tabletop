@@ -15,7 +15,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     }
 </script>
 
-<Floater placement="bottom" reference={`#sol-header`}>
+<Floater placement="bottom" reference="#sol-header">
     <div
         class="flex flex-col justify-center items-center space-y-2 rounded-lg dark:bg-black/90 p-2 border-1 border-[#ad9c80]"
     >

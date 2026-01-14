@@ -73,7 +73,7 @@
                 <div>{action.metadata?.playerMajorities[player.playerId].huts}</div>
                 <div>{action.metadata?.playerMajorities[player.playerId].boats}</div>
                 <div>{action.metadata?.playerMajorities[player.playerId].influence}</div>
-                <div>{'\u2192'}</div>
+                <div>&#8594;</div>
                 <div>
                     {totalForPlayer(player.playerId)}
                 </div>

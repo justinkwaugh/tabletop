@@ -194,7 +194,7 @@
                                 ? 'cursor-default'
                                 : 'cursor-pointer'}"
                         >
-                            {'X'}
+                            X
                         </button>
                     {/if}
                 </div>
