@@ -54,7 +54,7 @@
 </script>
 
 <T.Group bind:ref {...others}>
-    {#each players as player, i}
+    {#each players as player, i (player.playerId)}
         <Text
             position.x={i * (players.length === 5 ? 5.5 : 6)}
             color="#f9d057"

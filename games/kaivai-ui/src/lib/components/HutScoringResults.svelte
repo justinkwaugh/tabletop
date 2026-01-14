@@ -30,7 +30,7 @@
             <div></div>
             <div>Glory</div>
 
-            {#each gameSession.gameState.players as player}
+            {#each gameSession.gameState.players as player (player.playerId)}
                 <div class="flex flex-row justify-start items-center">
                     <PlayerName playerId={player.playerId} capitalization={history ? 'capitalize' : 'uppercase'} />
                 </div>

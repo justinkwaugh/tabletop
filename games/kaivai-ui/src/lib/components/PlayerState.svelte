@@ -82,7 +82,7 @@
                     ></path>
                 </svg>
             </div>
-            {#each movementBonusList as bonus, i}
+            {#each movementBonusList as bonus, i (i)}
                 <div
                     class="w-[32px] h-[24px] kaivai-font text-xs text-black flex justify-center items-center"
                 >
@@ -145,7 +145,7 @@
                 </div>
             </div>
 
-            {#each range(0, 5) as i}
+            {#each range(0, 5) as i (i)}
                 <div class="flex flex-col justify-center items-center">
                     <div
                         class="w-[40px] h-[12px] kaivai-font"

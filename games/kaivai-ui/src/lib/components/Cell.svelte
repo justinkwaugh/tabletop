@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import cultTile from '$lib/images/culttile.png'
     import fishtoken from '$lib/images/fishtoken.png'
     import FishGod from '$lib/images/fishgod.svelte'
@@ -580,7 +580,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     {#if !hidden}
         <polygon points={pointsString} fill="none" stroke="none" opacity="1"></polygon>
         {#if cellImage}
-            <g transform="rotate(30)">
+            <g pointer-events="none" transform="rotate(30)">
                 <image
                     in:fadeScale={{ baseScale: 0.1, duration: 100 }}
                     out:fadeScale={{ baseScale: 0.1, duration: 100 }}

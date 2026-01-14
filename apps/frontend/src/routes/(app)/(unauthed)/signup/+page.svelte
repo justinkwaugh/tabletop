@@ -89,7 +89,7 @@
                 required
             />
             {#if errors?.username}
-                {#each errors.username as error}
+                {#each errors.username as error, i (i)}
                     <Helper class="mb-2" color="red"
                         ><span class="font-medium">{error}</span></Helper
                     >
@@ -115,7 +115,7 @@
                 {/snippet}
             </Input>
             {#if errors?.password}
-                {#each errors.password as error}
+                {#each errors.password as error, i (i)}
                     <Helper class="mb-2" color="red"
                         ><span class="font-medium">{error}</span></Helper
                     >
@@ -131,7 +131,7 @@
                 required
             />
             {#if errors?.email}
-                {#each errors.email as error}
+                {#each errors.email as error, i (i)}
                     <Helper class="mb-2" color="red"
                         ><span class="font-medium">{error}</span></Helper
                     >

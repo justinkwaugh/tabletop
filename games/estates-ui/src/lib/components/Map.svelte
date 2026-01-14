@@ -18,7 +18,7 @@
 {#await map then mapValue}
     <T.Mesh position.y={-0.6} rotation.x={-Math.PI / 2} rotation.z={Math.PI} receiveShadow>
         <T.BoxGeometry args={[width, height, 0.2]} />
-        {#each { length: 4 } as _}
+        {#each { length: 4 } as _, i (i)}
             <T.MeshStandardMaterial
                 color="#444444"
                 attach={({ parent, ref }) => {

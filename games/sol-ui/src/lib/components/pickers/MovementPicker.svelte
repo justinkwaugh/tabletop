@@ -214,7 +214,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
         {#if catapultedDivers.length > 0}
             <div class="flex flex-col justify-center items-center gap-y-2">
                 <div class="flex flex-row justify-center items-center gap-x-2">
-                    {#each range(1, catapultedDivers.length) as amount}
+                    {#each range(1, catapultedDivers.length) as amount (amount)}
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="24px"
@@ -248,7 +248,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
         {#if regularSundivers.length > 0}
             <div class="flex flex-col justify-center items-center gap-y-2">
                 <div class="flex flex-row justify-center items-center gap-x-2">
-                    {#each range(1, regularSundivers.length) as amount}
+                    {#each range(1, regularSundivers.length) as amount (amount)}
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="24px"

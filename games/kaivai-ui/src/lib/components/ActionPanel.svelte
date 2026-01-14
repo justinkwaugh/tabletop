@@ -267,7 +267,7 @@ import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
                 >
                     <h1 class="text-md md:text-lg kaivai-font uppercase">Majority</h1>
                     <div class="flex flex-col justify-center items-start">
-                        {#each gameSession.gameState.players as player}
+                        {#each gameSession.gameState.players as player (player.playerId)}
                             <div class="flex flex-row justify-between items-center w-full">
                                 <div class="mr-8">
                                     <PlayerName

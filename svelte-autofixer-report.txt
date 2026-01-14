@@ -8,11 +8,6 @@ apps/frontend/src/routes/(app)/+layout.svelte
   - You are calling the function `onceMounted` inside an $effect... (2x)
   - You are calling the function `setTimeout` inside an $effect...
 
-games/bridges-of-shangri-la-ui/src/lib/components/PlayerState.svelte
-- issues:
-  - Each block should have a key at line 24, column 13
-- suggestions: none
-
 games/bridges-of-shangri-la-ui/src/lib/components/Table.svelte
 - issues: none
 - suggestions:
@@ -20,33 +15,14 @@ games/bridges-of-shangri-la-ui/src/lib/components/Table.svelte
   - svelte-ignore comment is used, but not warned at line 28, column 22
 
 games/bridges-of-shangri-la-ui/src/lib/components/ActionPanel.svelte
-- issues:
-  - Each block should have a key at line 151, column 21
-  - Each block should have a key at line 199, column 17
+- issues: none
 - suggestions:
-  - You are calling a function inside an $effect... (3x)
-  - You are calling the function `chooseAction` inside an $effect...
-  - You are calling the function `chooseMaster` inside an $effect... (2x)
-
-games/bridges-of-shangri-la-ui/src/lib/components/PlayersPanel.svelte
-- issues:
-  - Each block should have a key at line 33, column 5
-- suggestions: none
-
-games/bridges-of-shangri-la-ui/src/lib/components/Board.svelte
-- issues:
-  - Each block should have a key at line 39, column 5
-- suggestions: none
-
-games/bridges-of-shangri-la-ui/src/lib/components/GameEndPanel.svelte
-- issues:
-  - Each block should have a key at line 29, column 21
-- suggestions: none
-
-apps/frontend/src/routes/(app)/(public)/email/passwordReset/[token]/+page.svelte
-- issues:
-  - Each block should have a key at line 98, column 21
-- suggestions: none
+  - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - You are calling the function `chooseAction` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - You are calling the function `chooseMaster` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - You are calling the function `chooseMaster` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
 
 games/sol-ui/src/lib/model/SolGameSession.svelte.ts
 - issues: none
@@ -85,27 +61,8 @@ games/sol-ui/src/lib/components/Sandbox.svelte
   - TypeScript language features like enums are not natively supported... at line 35, column 4
 - suggestions: none
 
-apps/frontend/src/routes/(app)/(onboarding)/onboarding/+page.svelte
-- issues:
-  - Each block should have a key at line 161, column 25
-  - Each block should have a key at line 179, column 25
-- suggestions: none
-
-games/estates-ui/src/lib/components/PlayerState.svelte
-- issues:
-  - Each block should have a key at line 56, column 13
-  - Each block should have a key at line 69, column 17
-- suggestions: none
-
-games/estates-ui/src/lib/components/PlayerPanel3d.svelte
-- issues:
-  - Each block should have a key at line 57, column 5
-- suggestions: none
-
 games/estates-ui/src/lib/components/Site.svelte
-- issues:
-  - Each block should have a key at line 399, column 5
-  - Each block should have a key at line 449, column 5
+- issues: none
 - suggestions:
   - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
@@ -121,18 +78,12 @@ games/estates-ui/src/lib/components/Table.svelte
   - svelte-ignore comment is used, but not warned at line 19, column 22
 
 games/estates-ui/src/lib/components/Offer3d.svelte
-- issues:
-  - Each block should have a key at line 455, column 9
-  - Each block should have a key at line 478, column 9
-  - Each block should have a key at line 480, column 17
+- issues: none
 - suggestions:
   - Found a mutable instance of the built-in Map class. Use SvelteMap instead. at line 72, column 46
 
 games/estates-ui/src/lib/components/Offer.svelte
-- issues:
-  - Each block should have a key at line 75, column 9
-  - Each block should have a key at line 108, column 13
-  - Each block should have a key at line 110, column 21
+- issues: none
 - suggestions:
   - You are calling the function `fadeIn` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - You are calling the function `fadeOut` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
@@ -178,33 +129,11 @@ games/estates-ui/src/lib/components/Renderer.svelte
   - You are calling the function `setupEffectComposer` inside an $effect...
   - You are calling a function inside an $effect...
 
-games/estates-ui/src/lib/components/PlayerInfo.svelte
-- issues:
-  - Each block should have a key at line 65, column 13
-  - Each block should have a key at line 76, column 17
-- suggestions: none
-
-games/estates-ui/src/lib/components/PlayersPanel.svelte
-- issues:
-  - Each block should have a key at line 33, column 5
-- suggestions: none
-
-games/estates-ui/src/lib/components/Map.svelte
-- issues:
-  - Each block should have a key at line 21, column 9
-- suggestions: none
-
-games/estates-ui/src/lib/components/ActionDescription.svelte
-- issues:
-  - Each block should have a key at line 89, column 9
-- suggestions: none
-
 games/estates-ui/src/lib/components/GameEndPanel.svelte
-- issues:
-  - Each block should have a key at line 39, column 21
+- issues: none
 - suggestions:
-  - You are calling the function `fadeIn` inside an $effect...
-  - You are calling the function `fadeOut` inside an $effect...
+  - You are calling the function `fadeIn` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - You are calling the function `fadeOut` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - The usage of `bind:this` can often be replaced with an easier to read `action` or even better an `attachment`. Consider using the latter if possible.
 
 games/estates-ui/src/lib/components/AuctionPreview.svelte
@@ -223,19 +152,14 @@ games/estates-ui/src/lib/components/BidButtons.svelte
   - The usage of `bind:this` can often be replaced with an easier to read `action` or even better an `attachment`. Consider using the latter if possible.
 
 games/estates-ui/src/lib/components/Scene.svelte
-- issues:
-  - Each block should have a key at line 368, column 5
-  - Each block should have a key at line 369, column 9
+- issues: none
 - suggestions:
-  - You are calling the function `adjustRenderSize` inside an $effect...
-  - You are calling a function inside an $effect... (3x)
-  - The stateful variable "showingMayorHighlights" is assigned inside an $effect... (2x)
-
-games/kaivai-ui/src/lib/components/PlayerState.svelte
-- issues:
-  - Each block should have a key at line 85, column 13
-  - Each block should have a key at line 148, column 13
-- suggestions: none
+  - You are calling the function `adjustRenderSize` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
+  - The stateful variable "showingMayorHighlights" is assigned inside an $effect which is generally consider a malpractice. Consider using $derived if possible.
+  - The stateful variable "showingMayorHighlights" is assigned inside an $effect which is generally consider a malpractice. Consider using $derived if possible.
+  - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
 
 games/kaivai-ui/src/lib/components/Table.svelte
 - issues: none
@@ -244,8 +168,7 @@ games/kaivai-ui/src/lib/components/Table.svelte
   - svelte-ignore comment is used, but not warned at line 30, column 22
 
 games/kaivai-ui/src/lib/components/ActionPanel.svelte
-- issues:
-  - Each block should have a key at line 270, column 25
+- issues: none
 - suggestions:
   - You are calling the function `chooseAction` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
@@ -256,22 +179,6 @@ games/kaivai-ui/src/lib/components/ActionPanel.svelte
   - You are calling the function `chooseAction` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - You are calling the function `chooseAction` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
-
-games/kaivai-ui/src/lib/components/HutScoringResults.svelte
-- issues:
-  - Each block should have a key at line 33, column 13
-- suggestions: none
-
-games/sol-ui/src/lib/components/pickers/ChainSundiverPicker.svelte
-- issues:
-  - Each block should have a key at line 48, column 9
-- suggestions: none
-
-games/sol-ui/src/lib/components/pickers/MovementPicker.svelte
-- issues:
-  - Each block should have a key at line 217, column 21
-  - Each block should have a key at line 251, column 21
-- suggestions: none
 
 games/sol-ui/src/lib/components/pickers/HatchPicker.svelte
 - issues: none
@@ -302,8 +209,7 @@ games/sol-ui/src/lib/components/Cell.svelte
   - Found a mutable instance of the built-in Map class. Use SvelteMap instead. at line 459, column 31
 
 games/sol-ui/src/lib/components/Board.svelte
-- issues:
-  - Each block should have a key at line 177, column 9
+- issues: none
 - suggestions:
   - You are trying to update the stateful variable "gates" using "set". stateful variables should be updated with a normal assignment/mutation, do not use methods to update them. However I can't verify if "gates" is a state variable of an object or a class with a "set" method on it. Please verify that before updating the code to use a normal assignment
 
@@ -313,12 +219,6 @@ games/sol-ui/src/lib/components/Deck.svelte
     https://svelte.dev/e/a11y_click_events_have_key_events at line 36, column 0
   - `<g>` with a click handler must have an ARIA role
     https://svelte.dev/e/a11y_no_static_element_interactions at line 36, column 0
-- suggestions: none
-
-games/sol-ui/src/lib/components/ActionDescription.svelte
-- issues:
-  - Each block should have a key at line 170, column 9
-  - Each block should have a key at line 252, column 9
 - suggestions: none
 
 games/sol-ui/src/lib/components/Mothership.svelte
@@ -363,18 +263,6 @@ games/estates-ui/src/lib/3d/TopHat.svelte
     https://svelte.dev/e/legacy_rest_props_invalid at line 34, column 34
 - suggestions: none
 
-games/kaivai-ui/src/lib/components/FishingResults.svelte
-- issues:
-  - Each block should have a key at line 29, column 9
-- suggestions: none
-
-games/kaivai-ui/src/lib/components/Bids.svelte
-- issues:
-  - Each block should have a key at line 59, column 13
-  - Each block should have a key at line 88, column 13
-  - Each block should have a key at line 116, column 13
-- suggestions: none
-
 games/kaivai-ui/src/lib/components/Cell.svelte
 - issues:
   - Elements with the 'button' interactive role must have a tabindex value
@@ -387,46 +275,12 @@ games/kaivai-ui/src/lib/components/Cell.svelte
   - You are calling the function `flipKey` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - The usage of `bind:this` can often be replaced with an easier to read `action` or even better an `attachment`. Consider using the latter if possible.
 
-games/kaivai-ui/src/lib/components/WaitingPanel.svelte
-- issues:
-  - Each block should have a key at line 47, column 17
-- suggestions: none
-
 games/kaivai-ui/src/lib/components/Board.svelte
 - issues:
   - Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
-    https://svelte.dev/e/a11y_click_events_have_key_events at line 225, column 8
+https://svelte.dev/e/a11y_click_events_have_key_events at line 225, column 8
   - `<circle>` with a click handler must have an ARIA role
-    https://svelte.dev/e/a11y_no_static_element_interactions at line 225, column 8
-  - Each block should have a key at line 328, column 21
-  - Each block should have a key at line 331, column 21
-- suggestions: none
-
-games/kaivai-ui/src/lib/components/CelebrateResults.svelte
-- issues:
-  - Each block should have a key at line 22, column 17
-- suggestions: none
-
-games/kaivai-ui/src/lib/components/MoveGodResults.svelte
-- issues:
-  - Each block should have a key at line 22, column 17
-- suggestions: none
-
-games/kaivai-ui/src/lib/components/IslandScoringResults.svelte
-- issues:
-  - Each block should have a key at line 66, column 13
-- suggestions: none
-
-games/kaivai-ui/src/lib/components/BidBoard.svelte
-- issues:
-  - Each block should have a key at line 79, column 5
-- suggestions: none
-
-apps/frontend/src/routes/(app)/(unauthed)/signup/+page.svelte
-- issues:
-  - Each block should have a key at line 92, column 17
-  - Each block should have a key at line 118, column 17
-  - Each block should have a key at line 134, column 17
+https://svelte.dev/e/a11y_no_static_element_interactions at line 225, column 8
 - suggestions: none
 
 apps/frontend/src/lib/services/notificationService.svelte.ts

@@ -45,7 +45,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
 <SolPicker {onClose}>
     <div class="sol-font text-xs select-none text-[#ad9c80] tracking-widest">CHOOSE</div>
     <div class="flex flex-row justify-center items-center gap-x-2">
-        {#each players as playerId}
+        {#each players as playerId (playerId)}
             <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="32px" viewBox="0 0 24 32">
                 <Sundiver
                     color={gameSession.colors.getPlayerColor(playerId)}

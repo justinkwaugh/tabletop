@@ -44,7 +44,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
                 Collecting other players' bids...
             </h1>
             <div class="flex flex-row justify-center items-center">
-                {#each gameSession.gameState.activePlayerIds as playerId}
+                {#each gameSession.gameState.activePlayerIds as playerId (playerId)}
                     <div class="flex flex-col justify-center items-center mx-2">
                         <h1 class="text-lg">
                             <PlayerName capitalization="uppercase" {playerId} />

@@ -174,7 +174,7 @@
             </g>
         {/each}
 
-        {#each gameSession.gameState.board as cell}
+        {#each gameSession.gameState.board as cell (coordinatesToNumber(cell.coords))}
             <Cell {cell} />
         {/each}
 

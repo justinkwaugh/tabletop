@@ -376,11 +376,7 @@
             rotation.x={-Math.PI / 2}
         >
             <T.PlaneGeometry args={site.cubes.length === 0 ? [1, 1] : [1, 1]} />
-            <T.MeshBasicMaterial
-                color="white"
-                transparent={true}
-                opacity={pulseOpacity.opacity}
-            />
+            <T.MeshBasicMaterial color="white" transparent={true} opacity={pulseOpacity.opacity} />
         </T.Mesh>
     {/if}
     <!-- This mesh is used to make pointer enter/leave more simple -->
@@ -396,7 +392,7 @@
             <T.MeshBasicMaterial color="white" transparent={true} opacity={0} />
         </T.Mesh>
     {/if}
-    {#each site.cubes as cube, i}
+    {#each site.cubes as cube, i (`${cube.company}-${cube.value}`)}
         <Cube3d
             {cube}
             oncreate={(ref: Object3D) => {
@@ -446,7 +442,7 @@
             rotation.y={gameSession.mobileView ? -Math.PI / 2 : 0}
         />
     {/if}
-    {#each site.barriers as barrier, i}
+    {#each site.barriers as barrier, i (barrier.value)}
         <Barrier3d
             oncreate={(ref: Object3D) => {
                 barrierObjects.set(barrier.value, ref)

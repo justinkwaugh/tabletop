@@ -62,7 +62,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
             {#if (playerState?.certificates.length ?? 0) === 0}
                 <h1 class="text-xs text-gray-400">NO CERTIFICATES</h1>
             {/if}
-            {#each playerState?.certificates ?? [] as company, i}
+            {#each playerState?.certificates ?? [] as company, i (i)}
                 {#if i < 4}
                     <Cert2d
                         {company}
@@ -73,7 +73,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
         </div>
         {#if (playerState?.certificates.length ?? 0) > 4}
             <div class="flex flex-row justify-center items-center gap-x-1">
-                {#each playerState?.certificates ?? [] as company, i}
+                {#each playerState?.certificates ?? [] as company, i (i)}
                     {#if i >= 4}
                         <Cert2d
                             {company}

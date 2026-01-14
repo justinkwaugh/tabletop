@@ -86,7 +86,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     <span
         class="inline-flex justify-around items-start rounded-sm w-6 h-6 font-bold text-xl px-1 select-none bg-gray-500"
     >
-        {#each range(0, barrier.value) as value, i}
+        {#each range(0, barrier.value) as value, i (value)}
             <span class="w-1 bg-[#DDDDDD] h-4"></span>
         {/each}
     </span>

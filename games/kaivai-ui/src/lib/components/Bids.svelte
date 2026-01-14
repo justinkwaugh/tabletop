@@ -56,7 +56,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     >
         <div class="flex flex-row justify-center items-center">
             <div class="w-[20px]">&nbsp;</div>
-            {#each bidList as bid, i}
+            {#each bidList as bid, i (i)}
                 <div
                     class="w-[28px] h-[26px] kaivai-font text-[.9rem] flex justify-center items-center"
                 >
@@ -85,7 +85,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
                     ></path></svg
                 >
             </div>
-            {#each costList as cost, i}
+            {#each costList as cost, i (i)}
                 <div
                     class="w-[28px] h-[24px] kaivai-font text-[.9rem] flex justify-center items-center"
                 >
@@ -113,7 +113,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
                     ></path>
                 </svg>
             </div>
-            {#each movementList as cost, i}
+            {#each movementList as cost, i (i)}
                 <div
                     class="w-[28px] h-[24px] kaivai-font text-[.9rem] flex justify-center items-center"
                 >

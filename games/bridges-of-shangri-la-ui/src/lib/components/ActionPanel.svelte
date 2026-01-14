@@ -148,7 +148,7 @@
         {#if gameSession.chosenAction === ActionType.PlaceMaster || gameSession.chosenAction === ActionType.RecruitStudents}
             {#if !gameSession.chosenMasterType}
                 <div class="flex flex-row justify-start items-center space-x-2 mb-2">
-                    {#each validMasterTypesToPlace as masterType}
+                    {#each validMasterTypesToPlace as masterType (masterType)}
                         {#if validMasterTypesToPlace.includes(masterType as MasterType)}
                             <div class="flex flex-col justify-center items-center">
                                 <div class="mb-0 leading-3" style="font-size:.7rem; ">
@@ -196,7 +196,7 @@
                 >
             {/if}
             {#if showActions}
-                {#each gameSession.validActionTypes as action}
+                {#each gameSession.validActionTypes as action (action)}
                     <Button
                         onclick={async () => chooseAction(action)}
                         size="xs"

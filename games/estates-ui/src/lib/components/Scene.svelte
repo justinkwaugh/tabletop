@@ -365,8 +365,8 @@
         {/if}
     </T>
 
-    {#each gameSession.gameState.board.rows as row, i}
-        {#each row.sites as site, j}
+    {#each gameSession.gameState.board.rows as row, i (i)}
+        {#each row.sites as site, j (j)}
             <Site {site} coords={{ row: i, col: j }} x={ColumnOffsets[j]} z={RowOffsets[i]} />
         {/each}
         {#if row.mayor}

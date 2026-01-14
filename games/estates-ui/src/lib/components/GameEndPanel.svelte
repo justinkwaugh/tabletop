@@ -36,7 +36,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
                 </h1>
             {:else}
                 <h1 class="text-lg">
-                    {#each gameSession.gameState.winningPlayerIds as winner, i}
+                    {#each gameSession.gameState.winningPlayerIds as winner, i (winner)}
                         {#if i > 0}
                             and
                         {/if}

@@ -63,7 +63,7 @@
             <div></div>
             <div></div>
 
-            {#each gameSession.gameState.players as player}
+            {#each gameSession.gameState.players as player (player.playerId)}
                 <div class="flex flex-row justify-start items-center">
                     <PlayerName
                         playerId={player.playerId}
