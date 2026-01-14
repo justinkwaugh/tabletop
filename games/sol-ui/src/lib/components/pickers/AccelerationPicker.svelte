@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import Counterclockwise from '$lib/images/counterclockwise.svelte'
     import Clockwise from '$lib/images/clockwise.svelte'
     import SolPicker from './SolPicker.svelte'
@@ -7,6 +7,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
 
     let gameSession = getGameSession() as SolGameSession
     let amount: number = $state(0)
+    let amountChosen = $state(false)
     let picker: SolPicker
 
     let maxAmount = $derived(gameSession.gameState.board.numMothershipLocations - 1)
@@ -32,19 +33,21 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
         }
     }
 
-    function selectAmount() {
+    async function selectAmount() {
         if (amount === 0) {
             return
         }
-
+        amountChosen = true
         picker.toggle()
 
         gameSession.accelerationAmount = amount
-        gameSession.accelerate()
+        await gameSession.accelerate()
     }
 
     async function onClose() {
-        await gameSession.undo()
+        if (!amountChosen) {
+            await gameSession.undo()
+        }
     }
 </script>
 
