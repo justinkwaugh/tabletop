@@ -6,10 +6,10 @@
         setGameSession,
         type GameTable,
         HistoryKeyControls,
-        getAppContext
+        getAppContext,
+        AdminPanel
     } from '@tabletop/frontend-components'
     import { onMount } from 'svelte'
-    import AdminPanel from '$lib/components/AdminPanel.svelte'
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
     let { data }: { data: { gameSession: GameSession<GameState, HydratedGameState> } } = $props()

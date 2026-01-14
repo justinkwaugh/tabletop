@@ -23,7 +23,7 @@ export class MothershipAnimator extends StateAnimator<
         private playerId: string
     ) {
         super(gameSession)
-        this.color = gameSession.gameState.getPlayerState(playerId).color
+        this.color = gameSession.colors.getPlayerColor(playerId)
     }
 
     setIndex(

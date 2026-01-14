@@ -1,9 +1,7 @@
 <script lang="ts">
-
-
     import { type Snippet } from 'svelte'
     import { scrollToRight } from '$lib/utils/scrollOnLoad.js'
-    import AdminPanel from './AdminPanel.svelte'
+    import DebugPanel from './DebugPanel.svelte'
     import HistoryControls from './HistoryControls.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
@@ -84,7 +82,7 @@
                         {#if debugContent}
                             {@render debugContent()}
                         {:else}
-                            <AdminPanel />
+                            <DebugPanel />
                         {/if}
                     </div>
                 {/if}

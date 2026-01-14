@@ -247,11 +247,7 @@
                                     use:popOnChange={count}
                                 >
                                     <div class="tracking-normal">{count}</div>
-                                    <Sundiver
-                                        width={25 * 0.75}
-                                        height={25}
-                                        color={gameSession.colors.getPlayerColor(playerId)}
-                                    />
+                                    <Sundiver width={25 * 0.75} height={25} {color} />
                                 </div>
                             {/each}
 
@@ -277,7 +273,7 @@
                                 <Sundiver
                                     width={25 * 0.75}
                                     height={25}
-                                    color={playerState.color}
+                                    {color}
                                     opacity={reserveSundiversCount > 0 ? 1 : 0.3}
                                 />
                                 <div class="tracking-normal">
@@ -291,7 +287,7 @@
                                 <Gate
                                     width={25}
                                     height={21}
-                                    color={playerState.color}
+                                    {color}
                                     opacity={solarGatesCount > 0 ? 1 : 0.3}
                                 />
                                 <div class="tracking-normal">{solarGatesCount}</div>
@@ -303,7 +299,7 @@
                                 <EnergyNode
                                     width={23}
                                     height={25}
-                                    color={playerState.color}
+                                    {color}
                                     opacity={energyNodesCount > 0 ? 1 : 0.3}
                                 />
                                 <div class="tracking-normal">{energyNodesCount}</div>
@@ -315,7 +311,7 @@
                                 <Foundry
                                     width={23}
                                     height={25}
-                                    color={playerState.color}
+                                    {color}
                                     opacity={sundiverFoundriesCount > 0 ? 1 : 0.3}
                                 />
                                 <div class="tracking-normal">
@@ -330,7 +326,7 @@
                                 <Tower
                                     width={19}
                                     height={40}
-                                    color={playerState.color}
+                                    {color}
                                     opacity={transmitTowersCount > 0 ? 1 : 0.3}
                                 />
                                 <div class="tracking-normal">

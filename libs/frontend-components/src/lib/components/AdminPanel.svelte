@@ -1,29 +1,59 @@
 <script lang="ts">
-    import JSONTree from 'svelte-json-tree'
-    import { Tabs, TabItem } from 'flowbite-svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.js'
+    import { Button, Select } from 'flowbite-svelte'
 
     let gameSession = getGameSession()
+
+    async function undo() {
+        gameSession.undo()
+    }
+
+    let activePlayerOptions = $derived.by(() => {
+        return gameSession.activePlayers.map((player) => {
+            return {
+                name: player.name,
+                value: player.id
+            }
+        })
+    })
+
+    async function setActivePlayer(event: Event) {
+        const choice = (event.target as HTMLSelectElement).value
+        const player = gameSession.activePlayers.find((player) => player.id === choice)
+        if (player) {
+            gameSession.chosenAdminPlayerId = player.id
+        }
+    }
+
+    $effect(() => {
+        if (gameSession.activePlayers.length === 1) {
+            gameSession.chosenAdminPlayerId = gameSession.activePlayers[0].id
+        }
+    })
 </script>
 
 <div
-    class="rounded-lg dark:bg-black space-y-2 text-left ms-2 p-4 sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] overflow-auto"
+    class="rounded-lg bg-transparent p-2 text-center flex flex-row flex-wrap justify-between items-center"
 >
-    <Tabs tabStyle="pill" divider={false} classes={{ content: 'dark:bg-gray-200 rounded-lg p-2' }}>
-        <TabItem open title="Game">
-            <div style="--json-tree-font-size: 14px;">
-                <JSONTree value={gameSession.game} />
-            </div>
-        </TabItem>
-        <TabItem title="State">
-            <div style="--json-tree-font-size: 14px;">
-                <JSONTree value={gameSession.gameState.dehydrate()} />
-            </div>
-        </TabItem>
-        <TabItem title="Actions">
-            <div style="--json-tree-font-size: 14px;">
-                <JSONTree value={gameSession.actions.toReversed()} />
-            </div>
-        </TabItem>
-    </Tabs>
+    <div class="flex gap-4 justify-center items-center">
+        <h1 class="text-2xl text-[#372b0a] text-white leading-none">
+            Acting as {gameSession.myPlayer?.name}
+        </h1>
+        {#if gameSession.activePlayers.length > 1}
+            <Select
+                class="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded w-[200px]"
+                onchange={(event: Event) => setActivePlayer(event)}
+                size="sm"
+                items={activePlayerOptions}
+                value={gameSession.adminPlayerId}
+            />
+        {/if}
+    </div>
+    <Button
+        onclick={() => undo()}
+        size="xs"
+        class="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded"
+    >
+        Undo
+    </Button>
 </div>

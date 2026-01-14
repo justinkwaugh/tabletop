@@ -1,5 +1,6 @@
 export { default as ScalingWrapper } from './components/ScalingWrapper.svelte'
 export { default as AdminPanel } from './components/AdminPanel.svelte'
+export { default as DebugPanel } from './components/DebugPanel.svelte'
 export { default as HistoryControls } from './components/HistoryControls.svelte'
 export { default as PlayerName } from './components/PlayerName.svelte'
 export { default as GameChat } from './components/GameChat.svelte'
