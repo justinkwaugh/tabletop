@@ -19,7 +19,7 @@ export const Definition = <GameDefinition<SolGameState, HydratedSolGameState>>{
         minPlayers: 2,
         maxPlayers: 5,
         defaultPlayerCount: 4,
-        beta: true
+        beta: false
     },
 
     initializer: new SolGameInitializer(),
