@@ -67,6 +67,15 @@ export class SolGameInitializer
                 (effect) => effect.color !== EffectColor.Red && effect.type !== EffectType.Sacrifice
             )
         }
+        if (config.noBlue) {
+            allEffects = allEffects.filter((effect) => effect.color !== EffectColor.Blue)
+        }
+        if (config.noGreen) {
+            allEffects = allEffects.filter((effect) => effect.color !== EffectColor.Green)
+        }
+        if (config.noYellow) {
+            allEffects = allEffects.filter((effect) => effect.color !== EffectColor.Yellow)
+        }
         shuffle(allEffects, prng.random)
         const effects: Record<string, Effect> = {}
 
