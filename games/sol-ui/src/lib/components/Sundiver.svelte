@@ -70,7 +70,7 @@
             <SundiverMask
                 width={width + 4}
                 height={height + 4}
-                fill={'black'}
+                fill="black"
                 opacity=".6"
                 overflow="visible"
             />

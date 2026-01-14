@@ -62,7 +62,7 @@
                         Click the button to add the bot to your Discord account.
                     </div>
                     <div class="flex flex-row justify-center">
-                        <DiscordSignIn mode={'bot'} />
+                        <DiscordSignIn mode="bot" />
                     </div>
                     <div class="mt-2text-white-600 text-sm dark:text-gray-300">
                         Bot Commands:
@@ -83,7 +83,7 @@
                         to do so.
                     </div>
                     <div class="flex flex-row justify-center">
-                        <DiscordSignIn mode={'link'} />
+                        <DiscordSignIn mode="link" />
                     </div>
                 {/if}
             {/if}

@@ -64,19 +64,19 @@ import {
                 {/if}
             </h1>
             {#if isFish(lastAction)}
-                <FishingResults action={lastAction} justify={'center'} />
+                <FishingResults action={lastAction} justify="center" />
             {/if}
             {#if isScoreIsland(lastAction)}
                 <IslandScoringResults action={lastAction} />
             {/if}
             {#if isScoreHuts(lastAction)}
-                <HutScoringResults action={lastAction} justify={'center'} />
+                <HutScoringResults action={lastAction} justify="center" />
             {/if}
             {#if isCelebrate(lastAction)}
-                <CelebrateResults action={lastAction} justify={'center'} />
+                <CelebrateResults action={lastAction} justify="center" />
             {/if}
             {#if isMoveGod(lastAction)}
-                <MoveGodResults action={lastAction} justify={'center'} />
+                <MoveGodResults action={lastAction} justify="center" />
             {/if}
         </div>
     </div>
