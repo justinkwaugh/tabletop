@@ -16,22 +16,17 @@
 
     let { gameSession }: { gameSession: GameSession<EstatesGameState, HydratedEstatesGameState> } =
         $props()
+
     // svelte-ignore state_referenced_locally
     const estatesSession = gameSession as EstatesGameSession
-
     setGameSession(estatesSession)
-
-    let table: HTMLDivElement
-    onMount(() => {
-        table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
-    })
 </script>
 
 {#snippet playersPanel()}
     <PlayersPanel />
 {/snippet}
 
-<div bind:this={table}>
+<div>
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent playersPanel={estatesSession.mobileView ? playersPanel : undefined}>

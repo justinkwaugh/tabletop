@@ -27,15 +27,10 @@
 
     // svelte-ignore state_referenced_locally
     setGameSession(gameSession as BridgesGameSession)
-    let table: HTMLDivElement
-
-    onMount(() => {
-        table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
-    })
 </script>
 
 <!-- Full Height and Width with 8px padding-->
-<div bind:this={table}>
+<div>
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent>

@@ -8,12 +8,6 @@ apps/frontend/src/routes/(app)/+layout.svelte
   - You are calling the function `onceMounted` inside an $effect... (2x)
   - You are calling the function `setTimeout` inside an $effect...
 
-games/bridges-of-shangri-la-ui/src/lib/components/Table.svelte
-- issues: none
-- suggestions:
-  - The usage of `bind:this` can often be replaced with an easier to read `action` or even better an `attachment`. Consider using the latter if possible.
-  - svelte-ignore comment is used, but not warned at line 28, column 22
-
 games/bridges-of-shangri-la-ui/src/lib/components/ActionPanel.svelte
 - issues: none
 - suggestions:
@@ -40,7 +34,6 @@ games/kaivai-ui/src/lib/model/HistoryItem.svelte.ts
 games/kaivai-ui/src/lib/model/KaivaiGameSession.svelte.ts
 - issues: none
 - suggestions:
-  - Found a mutable instance of the built-in Set class. Use SvelteSet instead. at line 52, column 44
   - Found a mutable instance of the built-in Set class. Use SvelteSet instead. at line 115, column 20
   - Found a mutable instance of the built-in Set class. Use SvelteSet instead. at line 120, column 20
   - Found a mutable instance of the built-in Set class. Use SvelteSet instead. at line 124, column 20
@@ -56,11 +49,6 @@ games/sol-ui/src/lib/components/PlayerState.svelte
 - suggestions:
   - Consider using an `attachment` instead of an `action` for "popOnChange". (7x)
 
-games/sol-ui/src/lib/components/Sandbox.svelte
-- issues:
-  - TypeScript language features like enums are not natively supported... at line 35, column 4
-- suggestions: none
-
 games/estates-ui/src/lib/components/Site.svelte
 - issues: none
 - suggestions:
@@ -70,12 +58,6 @@ games/estates-ui/src/lib/components/Site.svelte
   - The stateful variable "showing" is assigned inside an $effect which is generally consider a malpractice. Consider using $derived if possible.
   - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - Found a mutable instance of the built-in Map class. Use SvelteMap instead. at line 52, column 49
-
-games/estates-ui/src/lib/components/Table.svelte
-- issues: none
-- suggestions:
-  - The usage of `bind:this` can often be replaced with an easier to read `action` or even better an `attachment`. Consider using the latter if possible.
-  - svelte-ignore comment is used, but not warned at line 19, column 22
 
 games/estates-ui/src/lib/components/Offer3d.svelte
 - issues: none
@@ -161,12 +143,6 @@ games/estates-ui/src/lib/components/Scene.svelte
   - The stateful variable "showingMayorHighlights" is assigned inside an $effect which is generally consider a malpractice. Consider using $derived if possible.
   - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
 
-games/kaivai-ui/src/lib/components/Table.svelte
-- issues: none
-- suggestions:
-  - The usage of `bind:this` can often be replaced with an easier to read `action` or even better an `attachment`. Consider using the latter if possible.
-  - svelte-ignore comment is used, but not warned at line 30, column 22
-
 games/kaivai-ui/src/lib/components/ActionPanel.svelte
 - issues: none
 - suggestions:
@@ -180,24 +156,12 @@ games/kaivai-ui/src/lib/components/ActionPanel.svelte
   - You are calling a function inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
   - You are calling the function `chooseAction` inside an $effect. Please check if the function is reassigning a stateful variable because that's considered malpractice and check if it could use  `$derived` instead. Ignore this suggestion if you are sure this function is not assigning any stateful variable or if you can't check if it does.
 
-games/sol-ui/src/lib/components/pickers/HatchPicker.svelte
-- issues: none
-- suggestions:
-  - Found a mutable instance of the built-in Set class. Use SvelteSet instead. at line 18, column 25
-
-games/sol-ui/src/lib/components/pickers/CardPicker.svelte
-- issues: none
-- suggestions:
-  - Found a mutable instance of the built-in Set class. Use SvelteSet instead. at line 24, column 31
-
 games/sol-ui/src/lib/components/Sundiver.svelte
 - issues:
   - Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
 https://svelte.dev/e/a11y_click_events_have_key_events at line 57, column 0
   - `<g>` with a click handler must have an ARIA role
 https://svelte.dev/e/a11y_no_static_element_interactions at line 57, column 0
-  - Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
-https://svelte.dev/e/event_directive_deprecated at line 62, column 4
 - suggestions: none
 
 games/sol-ui/src/lib/components/Cell.svelte
@@ -207,11 +171,6 @@ games/sol-ui/src/lib/components/Cell.svelte
 - suggestions:
   - The usage of `bind:this` can often be replaced with an easier to read `action` or even better an `attachment`. Consider using the latter if possible.
   - Found a mutable instance of the built-in Map class. Use SvelteMap instead. at line 459, column 31
-
-games/sol-ui/src/lib/components/Board.svelte
-- issues: none
-- suggestions:
-  - You are trying to update the stateful variable "gates" using "set". stateful variables should be updated with a normal assignment/mutation, do not use methods to update them. However I can't verify if "gates" is a state variable of an object or a class with a "set" method on it. Please verify that before updating the code to use a normal assignment
 
 games/sol-ui/src/lib/components/Deck.svelte
 - issues:

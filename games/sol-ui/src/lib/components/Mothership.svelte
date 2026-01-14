@@ -42,7 +42,9 @@
     const offsets = $derived(MOTHERSHIP_OFFSETS[color])
 
     // This is the basic transformation for the mothership from which we rotate it around the center point
-    let shapeTransformation = `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${offsets.rotation}) translate(${offsets.x},${offsets.y}) `
+    let shapeTransformation = $derived(
+        `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${offsets.rotation}) translate(${offsets.x},${offsets.y})`
+    )
 
     let shipElement: SVGElement
 
@@ -141,7 +143,7 @@
         return offset
     })
 
-    const animator = new MothershipAnimator(gameSession, playerId)
+    const animator = $derived(new MothershipAnimator(gameSession, playerId))
 </script>
 
 <g

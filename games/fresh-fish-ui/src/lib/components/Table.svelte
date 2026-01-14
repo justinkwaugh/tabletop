@@ -26,14 +26,9 @@
 
     // svelte-ignore state_referenced_locally
     setGameSession(gameSession as FreshFishGameSession)
-    let table: HTMLDivElement
-
-    onMount(() => {
-        table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
-    })
 </script>
 
-<div bind:this={table}>
+<div>
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent>

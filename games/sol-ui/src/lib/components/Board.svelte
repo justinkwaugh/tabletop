@@ -14,7 +14,7 @@
         offsetFromCenter,
         type GatePosition
     } from '$lib/utils/boardGeometry.js'
-    import { coordinatesToNumber, type OffsetCoordinates } from '@tabletop/common'
+    import { assertExists, coordinatesToNumber, type OffsetCoordinates } from '@tabletop/common'
     import GateDestination from './GateDestination.svelte'
     import Gate from './BoardGate.svelte'
     import InstabilityTrack from './InstabilityTrack.svelte'
@@ -83,9 +83,13 @@
     stationAnimator.register()
 
     const gateAnimator = new GateAnimator(gameSession, (gate) => {
-        if (gate) {
-            gates.set(gateKey(gate.innerCoords!, gate.outerCoords!), gate)
+        if (!gate) {
+            return
         }
+
+        assertExists(gate.innerCoords, 'Gate must have inner coordinates')
+        assertExists(gate.outerCoords, 'Gate must have outer coordinates')
+        gates.set(gateKey(gate.innerCoords, gate.outerCoords), gate)
     })
     gateAnimator.register()
 

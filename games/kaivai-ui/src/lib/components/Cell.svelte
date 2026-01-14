@@ -345,14 +345,6 @@
             return false
         }
 
-        if (gameSession.highlightedHexes.size > 0) {
-            if (!gameSession.highlightedHexes.has(coordinatesToNumber(coords))) {
-                return true
-            } else {
-                return false
-            }
-        }
-
         if (state.machineState === MachineState.IslandBidding && state.chosenIsland !== undefined) {
             if (isBoatCell(cell) && !isBoatBuildingCell(cell) && cell.boat) {
                 return !state.board.isNeighborToCultSiteOfIsland(cell.coords, state.chosenIsland)
