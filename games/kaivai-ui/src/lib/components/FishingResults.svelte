@@ -26,7 +26,7 @@
 {#if action.metadata?.dieResults && action.metadata?.dieResults.length > 0}
     <div class="flex flex-row {justifyClass} items-center space-x-2 w-full mt-2">
         <div>Die results{ev}:</div>
-        {#each action.metadata?.dieResults as result, i}
+        {#each action.metadata?.dieResults as result, i (i)}
             <div
                 class="flex justify-center items-center w-[30px] h-[30px] border border-gray-400 rounded-lg bg-gray-200"
             >

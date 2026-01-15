@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { StationType } from '@tabletop/sol'
     import Tower from '$lib/images/tower.svelte'
     import Foundry from '$lib/images/foundry.svelte'
@@ -9,6 +9,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
 
     let gameSession = getGameSession() as SolGameSession
     let picker: SolPicker
+    let choiceMade = $state(false)
 
     let station = $derived.by(() => {
         const playerState = gameSession.myPlayerState
@@ -48,12 +49,16 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     })
 
     async function chooseMetamorphosisType(type: StationType) {
+        choiceMade = true
         picker.toggle()
         gameSession.metamorphosisType = type
         await gameSession.metamorphosize()
     }
 
     async function onClose() {
+        if (choiceMade) {
+            return
+        }
         await gameSession.undo()
     }
 </script>

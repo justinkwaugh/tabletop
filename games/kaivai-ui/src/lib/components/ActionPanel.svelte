@@ -267,7 +267,7 @@ import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
                 >
                     <h1 class="text-md md:text-lg kaivai-font uppercase">Majority</h1>
                     <div class="flex flex-col justify-center items-start">
-                        {#each gameSession.gameState.players as player}
+                        {#each gameSession.gameState.players as player (player.playerId)}
                             <div class="flex flex-row justify-between items-center w-full">
                                 <div class="mr-8">
                                     <PlayerName
@@ -365,14 +365,14 @@ import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
                     <button
                         onclick={() => gameSession.cancel()}
                         class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
-                        >{'\u21bc'} Back</button
+                        >&#8636; Back</button
                     >
                 {/if}
                 {#if gameSession.chosenAction === ActionType.Deliver && gameSession.chosenDeliveries.length > 0}
                     <button
                         onclick={async () => deliverFish()}
                         class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
-                        >Deliver the fish! {'\u21c0'}</button
+                        >Deliver the fish! &#8640;</button
                     >
                 {/if}
             </div>

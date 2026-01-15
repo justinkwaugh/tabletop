@@ -36,7 +36,7 @@ import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     <div class="absolute top left w-[1280px] h-[1322px]">
         <img src={boardImg} alt="game board" />
     </div>
-    {#each gameSession.gameState.board.villages as village, i}
+    {#each gameSession.gameState.board.villages as village, i (i)}
         <div class="absolute {locationsForVillages[i]}">
             <Village {village} index={i} />
         </div>

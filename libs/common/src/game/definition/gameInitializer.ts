@@ -17,17 +17,18 @@ export interface GameInitializer<
 export abstract class BaseGameInitializer<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
-> implements GameInitializer<T, U> {
+> implements GameInitializer<T, U>
+{
     abstract initializeGameState(game: Game, state: UninitializedGameState): U
     abstract initializeExplorationState(state: T): T
 
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game {
-        if (game.config) {
+        if (Object.keys(game.config ?? {}).length > 0) {
             assertExists(
                 definition.configurator,
                 'Config handler is required to validate game config'
             )
-            definition.configurator.validateConfig(game.config)
+            definition.configurator.validateConfig(game.config!)
         }
 
         const newGame: Game = <Game>{

@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import SolPicker from './SolPicker.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
@@ -13,11 +13,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
         choiceMade = true
     }
 
-    function onClose() {
-        if (choiceMade) {
-            return
-        }
-    }
+    function onClose() {}
 </script>
 
 <SolPicker bind:this={picker} {onClose}>

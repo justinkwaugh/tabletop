@@ -49,19 +49,25 @@
         return gameSession.gameState.effects[suit].type
     }
 
-    function onActivate() {
+    async function onActivate() {
         if (!gameSession.isMyTurn) {
             return
         }
 
-        gameSession.activateEffect(effectForSuit(card.suit))
+        await gameSession.activateEffect(effectForSuit(card.suit))
+        if (
+            effectForSuit(card.suit) === EffectType.Puncture &&
+            (gameSession.chosenNumDivers ?? 0) > 1
+        ) {
+            gameSession.chosenNumDivers = 1
+        }
     }
 
-    function onFuel() {
+    async function onFuel() {
         if (!gameSession.isMyTurn) {
             return
         }
-        gameSession.fuel()
+        await gameSession.fuel()
     }
 
     function labelSize(name: string): string {

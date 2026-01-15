@@ -42,15 +42,11 @@
 
         return false
     })
-    let table: HTMLDivElement
-    onMount(() => {
-        table.scrollTo({ left: table.scrollWidth, behavior: 'instant' })
-    })
 </script>
 
 <CustomFont fontFamily="stacatto" url={KaivaiFont} format="woff" />
 
-<div bind:this={table} class="bg-[#f5e397]">
+<div class="bg-[#f5e397]">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -80,10 +76,10 @@
                 {/snippet}
                 {#snippet chat()}
                     <GameChat
-                        timeColor={'text-[#8d794d]'}
-                        bgColor={'bg-[#302408]'}
-                        inputBgColor={'bg-[#634a11]'}
-                        inputBorderColor={'border-[#302408]'}
+                        timeColor="text-[#8d794d]"
+                        bgColor="bg-[#302408]"
+                        inputBgColor="bg-[#634a11]"
+                        inputBorderColor="border-[#302408]"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -109,7 +105,7 @@
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper justify={'center'} controls={'bottom-left'}>
+                <ScalingWrapper justify="center" controls="bottom-left">
                     <div class="w-fit h-fit">
                         {#if showBidBoard}
                             <BidBoard />

@@ -325,10 +325,10 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
                         {/if}
                     {/if}
 
-                    {#each grid as hex}
+                    {#each grid as hex (coordinatesToNumber(hex.coords))}
                         <Cell coords={hex.coords} {origin} />
                     {/each}
-                    {#each outlineBorders as border}
+                    {#each outlineBorders as border (`${border.center.x}-${border.center.y}-${border.index}`)}
                         <line
                             class="z-50"
                             x1={origin.x + border.center.x + borders[border.index].x1}

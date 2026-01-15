@@ -68,8 +68,4 @@ export class SolGameColorizer extends DefaultColorizer {
     override supportsColorblindPalette(): boolean {
         return false
     }
-
-    override allowPreferredPlayerColors(): boolean {
-        return false
-    }
 }

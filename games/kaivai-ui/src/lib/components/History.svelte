@@ -109,19 +109,19 @@
                 .metadata?.numSold} fish for {action.metadata?.earnings}
         {/if}
         {#if isFish(action)}
-            <FishingResults {action} justify={'left'} />
+            <FishingResults {action} justify="left" />
         {/if}
         {#if isScoreIsland(action)}
             <IslandScoringResults {action} history={true} />
         {/if}
         {#if isScoreHuts(action)}
-            <HutScoringResults {action} justify={'left'} history={true} />
+            <HutScoringResults {action} justify="left" history={true} />
         {/if}
         {#if isCelebrate(action)}
-            <CelebrateResults {action} justify={'left'} history={true} />
+            <CelebrateResults {action} justify="left" history={true} />
         {/if}
         {#if isMoveGod(action)}
-            <MoveGodResults {action} justify={'left'} history={true} />
+            <MoveGodResults {action} justify="left" history={true} />
         {/if}
     </p>
 {/snippet}
@@ -135,7 +135,7 @@
 {#snippet roundStartItem(roundNumber: number)}
     <div class="flex flex-row justify-center items-center">
         <p class="dark:text-[#cabb7a] mt-1 text-center text-2xl font-normal kaivai-font">
-            {'\u2191'} ROUND {roundNumber} STARTED {'\u2191'}
+            &#8593; ROUND {roundNumber} STARTED &#8593;
         </p>
     </div>
 {/snippet}

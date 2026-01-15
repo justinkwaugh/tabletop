@@ -1,5 +1,5 @@
 <script lang="ts">
-import GreenShip from '$lib/images/greenShip.svelte'
+    import GreenShip from '$lib/images/greenShip.svelte'
     import GreenShipMask from '$lib/images/greenShipMask.svelte'
     import PurpleShip from '$lib/images/purpleShip.svelte'
     import PurpleShipMask from '$lib/images/purpleShipMask.svelte'
@@ -22,24 +22,29 @@ import GreenShip from '$lib/images/greenShip.svelte'
     import { HydratedLaunch } from '@tabletop/sol'
     import DropShadow from './DropShadow.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import { animateMothership, MothershipAnimator } from '$lib/animators/mothershipAnimator.svelte.js'
+    import {
+        animateMothership,
+        MothershipAnimator
+    } from '$lib/animators/mothershipAnimator.svelte.js'
 
     let { playerId }: { playerId: string } = $props()
     let gameSession = getGameSession() as SolGameSession
 
     let numPlayers = gameSession.gameState.players.length
-    let color = gameSession.gameState.getPlayerState(playerId).color
-    let Ship = componentForColor(color)
-    let Mask = maskForColor(color)
-    let shadowId = `shipshadow-${playerId}`
-    let highlightId = `highlight-${shadowId}`
+    let color = $derived(gameSession.colors.getPlayerColor(playerId))
+    let Ship = $derived(componentForColor(color))
+    let Mask = $derived(maskForColor(color))
+    let shadowId = $derived(`shipshadow-${playerId}`)
+    let highlightId = $derived(`highlight-${shadowId}`)
 
     let locationIndex = $derived(gameSession.mothershipLocations.get(playerId) ?? 0)
 
-    const offsets = MOTHERSHIP_OFFSETS[color]
+    const offsets = $derived(MOTHERSHIP_OFFSETS[color])
 
     // This is the basic transformation for the mothership from which we rotate it around the center point
-    let shapeTransformation = `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${offsets.rotation}) translate(${offsets.x},${offsets.y}) `
+    let shapeTransformation = $derived(
+        `translate(${MOTHERSHIP_RADIUS}, 0), translate(${CENTER_POINT.x}, ${CENTER_POINT.y}) scale(.35) rotate(${offsets.rotation}) translate(${offsets.x},${offsets.y})`
+    )
 
     let shipElement: SVGElement
 
@@ -138,7 +143,7 @@ import GreenShip from '$lib/images/greenShip.svelte'
         return offset
     })
 
-    const animator = new MothershipAnimator(gameSession, playerId)
+    const animator = $derived(new MothershipAnimator(gameSession, playerId))
 </script>
 
 <g
@@ -167,28 +172,28 @@ import GreenShip from '$lib/images/greenShip.svelte'
             />
             <g transform="scale(1.1)" style="transform-box:fill-box; transform-origin: center;">
                 <Mask
-                    fill={'white'}
+                    fill="white"
                     opacity="1"
                     overflow="visible"
                     style="filter: url(#{highlightId})"
                 />
             </g>
             <Mask
-                fill={'transparent'}
-                stroke={'black'}
-                stroke-width={'10px'}
+                fill="transparent"
+                stroke="black"
+                stroke-width="10px"
                 opacity=".8"
                 overflow="visible"
             />
         {:else if !animator.animating}
-            <Mask fill={'black'} opacity=".5" overflow="visible" style="filter: url(#{shadowId})" />
+            <Mask fill="black" opacity=".5" overflow="visible" style="filter: url(#{shadowId})" />
         {/if}
         {#if outlined}
-            <Mask fill={'transparent'} stroke={'white'} stroke-width={'50px'} overflow="visible" />
+            <Mask fill="transparent" stroke="white" stroke-width="50px" overflow="visible" />
         {/if}
         <Ship />
         {#if disabled}
-            <Mask fill={'black'} opacity={0.5} />
+            <Mask fill="black" opacity={0.5} />
         {/if}
     </g>
 </g>

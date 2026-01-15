@@ -72,7 +72,7 @@
     <div
         class="flex justify-around items-start rounded-sm w-6 h-6 font-bold text-xl px-1 select-none bg-gray-500"
     >
-        {#each range(0, stripes) as value}
+        {#each range(0, stripes) as value (value)}
             <span class="w-1 bg-[#DDDDDD] h-4"></span>
         {/each}
     </div>
@@ -105,9 +105,9 @@
             <h1 class="text-xs text-black font-semibold text-center leading-none">DRAW ROOF</h1>
         </button>
         <div class="flex flex-col justify-center items-center gap-y-1">
-            {#each gameSession.gameState.cubes as cubeRow, row}
+            {#each gameSession.gameState.cubes as cubeRow, row (row)}
                 <div class="flex items-center gap-x-1">
-                    {#each cubeRow as cube, col}
+                    {#each cubeRow as cube, col (col)}
                         <button
                             tabindex="-1"
                             onclick={() => chooseCube(cube, { row, col })}
@@ -194,7 +194,7 @@
                                 ? 'cursor-default'
                                 : 'cursor-pointer'}"
                         >
-                            {'X'}
+                            X
                         </button>
                     {/if}
                 </div>

@@ -468,7 +468,6 @@ export class CardPickerAnimator extends StateAnimator<
             if (i !== flareIndex) {
                 this.stopPulsingCard(card.card.id)
             } else {
-                console.log('pulsing flare card at index:', i, 'card id:', card.card.id)
                 this.pulseCard(card.card, card.element)
             }
         }

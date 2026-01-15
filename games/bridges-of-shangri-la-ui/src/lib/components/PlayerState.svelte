@@ -21,7 +21,7 @@
             {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
         </h1>
         <div class="flex flex-row justify-between items-center">
-            {#each Object.entries(playerState.pieces) as [masterType, count]}
+            {#each Object.entries(playerState.pieces) as [masterType, count] (masterType)}
                 <div class="flex flex-row justify-start items-center space-x-2">
                     <div class="flex flex-col justify-center items-center">
                         <div class="" style="font-size:.7rem; line-height:.8rem">

@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import Ark from '$lib/images/ark.svelte'
     import { flip } from 'svelte/animate'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
@@ -27,7 +27,11 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
                     viewBox="0 0 32 32"
                     xmlns="http://www.w3.org/2000/svg"
                 >
-                    <Ark width={32} height={32} color={playerState.color} />
+                    <Ark
+                        width={32}
+                        height={32}
+                        color={gameSession.colors.getPlayerColor(playerState.playerId)}
+                    />
                     <text
                         class="select-none sol-font"
                         style="letter-spacing:0.1em"

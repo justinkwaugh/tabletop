@@ -49,7 +49,7 @@ import {
     toRadians
 } from '$lib/utils/boardGeometry.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { fadeOut, move, scale, path, fadeIn } from '$lib/utils/animations.js'
+import { fadeOut, move, scale, path, fadeIn, rotate } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import {
@@ -581,7 +581,7 @@ export class SundiverAnimator extends StateAnimator<
 
             const delayBetween = 0.3
             const flightStart = index * delayBetween
-            const approachDuration = getFlightDuration(fly, 2)
+            const approachDuration = getFlightDuration(fly, 2) + 0.25
             const jitterLead = 0
             const jitterDuration = 1 + jitterLead
             const jitterRampDuration = 1
@@ -590,6 +590,18 @@ export class SundiverAnimator extends StateAnimator<
             const burstStart = jitterStart + jitterDuration
             const jitterMaxOffset = 7
             const approachOffset = offsetFromCenter(approachPoint)
+            const approachVector = {
+                x: approachPoint.x - diverLocation.x,
+                y: approachPoint.y - diverLocation.y
+            }
+            const approachAngle =
+                approachVector.x === 0 && approachVector.y === 0
+                    ? 0
+                    : (Math.atan2(approachVector.y, approachVector.x) * 180) / Math.PI + 90
+            const approachRotation = (() => {
+                const normalized = ((approachAngle % 360) + 360) % 360
+                return normalized > 180 ? normalized - 360 : normalized
+            })()
 
             timeline.set(
                 element,
@@ -597,11 +609,20 @@ export class SundiverAnimator extends StateAnimator<
                     opacity: 1,
                     transformOrigin: '50% 50%',
                     transformBox: 'fill-box',
+                    rotation: 0,
                     x: offsetFromCenter(diverLocation).x,
                     y: offsetFromCenter(diverLocation).y
                 },
                 flightStart
             )
+
+            const scaleTarget =
+                (element.firstElementChild as SVGElement | HTMLElement | null) ?? element
+            gsap.set(scaleTarget, {
+                transformOrigin: '50% 50%',
+                transformBox: 'fill-box',
+                rotation: 0
+            })
 
             move({
                 object: element,
@@ -611,12 +632,13 @@ export class SundiverAnimator extends StateAnimator<
                 timeline,
                 position: flightStart
             })
-
-            const scaleTarget =
-                (element.firstElementChild as SVGElement | HTMLElement | null) ?? element
-            gsap.set(scaleTarget, {
-                transformOrigin: '50% 50%',
-                transformBox: 'fill-box'
+            rotate({
+                object: scaleTarget,
+                degrees: approachRotation,
+                duration: approachDuration,
+                ease: 'power1.inOut',
+                timeline,
+                position: flightStart
             })
 
             const jitterElement = element
@@ -673,6 +695,13 @@ export class SundiverAnimator extends StateAnimator<
             scale({
                 object: scaleTarget,
                 to: 1,
+                duration: 0,
+                timeline,
+                position: burstStart + burstDuration + 0.1
+            })
+            rotate({
+                object: scaleTarget,
+                degrees: 0,
                 duration: 0,
                 timeline,
                 position: burstStart + burstDuration + 0.1

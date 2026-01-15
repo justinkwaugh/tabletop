@@ -95,7 +95,7 @@
                     {/snippet}
                 </Input>
                 {#if errors?.password}
-                    {#each errors.password as error}
+                    {#each errors.password as error, i (i)}
                         <Helper class="mb-2" color="red"
                             ><span class="font-medium">{error}</span></Helper
                         >

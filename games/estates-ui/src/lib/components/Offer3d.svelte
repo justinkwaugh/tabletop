@@ -447,12 +447,12 @@
             <T.MeshPhysicalMaterial
                 map={woodValue}
                 roughness={0.3}
-                color={'#cccccc'}
+                color="#cccccc"
                 clearcoat={1}
                 clearcoatRoughness={0.33}
             />
         </T.Mesh>
-        {#each gameSession.gameState.roofs.items as _, i}
+        {#each gameSession.gameState.roofs.items as _, i (i)}
             {#if gameSession.gameState.visibleRoofs[i]}
                 <Roof
                     roof={{ pieceType: PieceType.Roof, value: -1 }}
@@ -475,9 +475,9 @@
             {/if}
         {/each}
 
-        {#each gameSession.gameState.cubes as cubeRow, row}
+        {#each gameSession.gameState.cubes as cubeRow, row (row)}
             <div class="flex items-center gap-x-1">
-                {#each cubeRow as cube, col}
+                {#each cubeRow as cube, col (col)}
                     {#if cube}
                         <Cube3d
                             {cube}

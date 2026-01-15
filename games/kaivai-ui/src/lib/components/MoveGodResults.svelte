@@ -19,7 +19,7 @@
             <div
                 class="mt-1 p-2 rounded-lg grid grid-cols-[min-content_min-content] gap-x-2 gap-y-1 text-center border-2 border-[#634a11]"
             >
-                {#each gameSession.gameState.players as player}
+                {#each gameSession.gameState.players as player (player.playerId)}
                     {#if action.metadata?.influenceGained[player.playerId]}
                         <div class="flex flex-row justify-end items-center">
                             <PlayerName

@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import Cert2d from './Cert2d.svelte'
     import { EstatesPlayerState, MachineState } from '@tabletop/estates'
     import type { Player } from '@tabletop/common'
@@ -53,7 +53,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
             {#if (playerState?.certificates.length ?? 0) === 0}
                 <h1 class="text-md text-gray-400">NO CERTIFICATES</h1>
             {/if}
-            {#each playerState?.certificates ?? [] as company, i}
+            {#each playerState?.certificates ?? [] as company, i (company)}
                 {#if i < 4}
                     <div class="rounded-sm overflow-hidden">
                         <Cert2d
@@ -66,7 +66,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
         </div>
         {#if (playerState?.certificates.length ?? 0) > 4}
             <div class="flex flex-row justify-center items-center gap-x-0">
-                {#each playerState?.certificates ?? [] as company, i}
+                {#each playerState?.certificates ?? [] as company, i (company)}
                     {#if i >= 4}
                         <Cert2d
                             {company}

@@ -250,7 +250,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             flyOrHurl.passage &&
             (state.getEffectTracking().passageSundiverId || flyOrHurl.sundiverIds.length !== 1)
         ) {
-            console.log('invalid passage flight')
             return
         }
 
@@ -265,7 +264,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             flyOrHurl.cluster &&
             (state.activeEffect !== EffectType.Cluster || !state.effectTracking?.clustersRemaining)
         ) {
-            console.log('no more clusters remaining')
             return
         }
 
@@ -275,7 +273,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 (state.effectTracking?.flownSundiverId &&
                     state.effectTracking?.flownSundiverId !== flyOrHurl.sundiverIds[0]))
         ) {
-            console.log('invalid hyperdrive flight')
             return
         }
 
@@ -284,7 +281,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 state.effectTracking?.flownStationId &&
                 state.effectTracking?.flownStationId !== flyOrHurl.stationId
             ) {
-                console.log('invalid juggernaut flight')
                 return
             }
         }
@@ -301,7 +297,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 catapult: flyOrHurl.catapult
             })
         ) {
-            console.log('invalid flight destination')
             return
         }
 
@@ -363,13 +358,11 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
         // Check to see if destination can hold the pieces
         if (juggernaut && !state.board.canAddStationToCell(destination)) {
-            console.log('Cannot add station to cell')
             return false
         } else if (
             !juggernaut &&
             !state.board.canAddSundiversToCell(playerId, numSundivers, destination)
         ) {
-            console.log('Cannot add sundivers to cell')
             return false
         }
 
@@ -396,7 +389,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         // If no gate, then we try again without extra range to be sure.
         let path
         if (catapult) {
-            console.log('Trying catapult flight with extra range')
             const firstTry = state.board.pathToDestination({
                 start,
                 destination,

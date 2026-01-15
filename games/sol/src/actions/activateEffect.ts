@@ -326,7 +326,6 @@ export class HydratedActivateEffect
     }
 
     static canActivateSqueeze(state: HydratedSolGameState, playerId: string): boolean {
-        console.log('Checking can activate squeeze for player:', playerId)
         const activation = state.getActivationForPlayer(playerId)
         if (!activation) {
             return false
@@ -436,7 +435,6 @@ export class HydratedActivateEffect
         }
 
         const hasStation = state.board.hasStationOnBoard(playerId)
-        console.log('Can activate juggernaut:', hasStation)
         return hasStation
     }
 

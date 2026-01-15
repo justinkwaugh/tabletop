@@ -177,12 +177,12 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
             ?
         </div>
         <Popover
-            reference={'#sol-header'}
+            reference="#sol-header"
             classes={{
                 content: 'p-0 rounded-md overflow-hidden dark:border-0'
             }}
             placement="bottom"
-            triggeredBy={`#player-aid`}
+            triggeredBy="#player-aid"
             trigger="click"
             offset={25}
             arrow={false}><img src={PlayerAid} alt="player aid" class="w-[640px]" /></Popover

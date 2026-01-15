@@ -59,7 +59,7 @@
     use:animateSundiver={sundiverAnimator && sundiverId
         ? { animator: sundiverAnimator, sundiverId }
         : undefined}
-    on:click={onClick}
+    onclick={onClick}
     style="will-change: transform"
     transform={offBoard
         ? `translate(${width / 2}, ${height / 2})`
@@ -70,7 +70,7 @@
             <SundiverMask
                 width={width + 4}
                 height={height + 4}
-                fill={'black'}
+                fill="black"
                 opacity=".6"
                 overflow="visible"
             />

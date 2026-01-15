@@ -24,7 +24,7 @@
         <T.MeshPhysicalMaterial
             transparent={opacity !== 1}
             {opacity}
-            color={'#888888'}
+            color="#888888"
             clearcoat={1}
             clearcoatRoughness={0.33}
         />

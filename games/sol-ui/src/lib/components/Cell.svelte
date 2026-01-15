@@ -1,5 +1,5 @@
 <script lang="ts">
-import { SvelteMap } from 'svelte/reactivity'
+    import { SvelteMap } from 'svelte/reactivity'
     import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { coordinatesToNumber, sameCoordinates } from '@tabletop/common'
@@ -34,13 +34,12 @@ import { SvelteMap } from 'svelte/reactivity'
     import { ConvertType } from '$lib/definition/convertType.js'
     import { animateStation, CellStationAnimator } from '$lib/animators/cellStationAnimator.js'
     import UIStation from './Station.svelte'
-    import BoardSvg from './BoardSvg.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { cell }: { cell: Cell } = $props()
     const gameSession = getGameSession() as SolGameSession
-    const dimensions = dimensionsForSpace(gameSession.numPlayers, cell.coords)
-    const isCenterCell = sameCoordinates(cell.coords, CENTER_COORDS)
+    const dimensions = $derived(dimensionsForSpace(gameSession.numPlayers, cell.coords))
+    const isCenterCell = $derived(sameCoordinates(cell.coords, CENTER_COORDS))
     let station: Station | undefined = $derived(cell.station)
     let stationLocation: { x: number; y: number } = $derived(
         gameSession.locationForStationInCell(cell) ?? { x: 0, y: 0 }
@@ -473,7 +472,7 @@ import { SvelteMap } from 'svelte/reactivity'
         }
     )
     stationAnimator.register()
-    let stationClipRect: SVGRectElement | undefined
+    let stationClipRect: SVGRectElement | undefined = $state(undefined)
 
     let hovered = false
     function onMouseEnter() {

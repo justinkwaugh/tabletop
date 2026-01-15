@@ -167,7 +167,7 @@
     A solar flare occured
     <ul class="ms-4 list-inside">
         <li>Stability decreased to {action.metadata?.newInstability}</li>
-        {#each action.metadata?.unstableEnergy ?? [] as unstableEnergy}
+        {#each action.metadata?.unstableEnergy ?? [] as unstableEnergy (unstableEnergy.playerId)}
             <li>
                 <PlayerName
                     possessive={true}
@@ -249,7 +249,7 @@
 {:else if isChain(action)}
     executed a chain action
     <ul class="ms-4 list-inside">
-        {#each Object.entries(action.metadata?.chainResults ?? {}) as [playerId, result]}
+        {#each Object.entries(action.metadata?.chainResults ?? {}) as [playerId, result] (playerId)}
             <li>
                 <PlayerName
                     fontFamily={history ? 'ui-sans-serif, system-ui, sans-serif' : 'inherit'}

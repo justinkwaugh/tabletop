@@ -99,7 +99,7 @@ export class GateAnimator extends StateAnimator<
             const jitterDuration = 1
             const burstDuration = 0.25
             const fadeOutDuration = 0.1
-            const approachDuration = getFlightDuration(action as Fly, 2)
+            const approachDuration = getFlightDuration(action as Fly, 2) + 0.25
             const lastIndex = Math.max(0, (action as Fly).sundiverIds.length - 1)
             punctureFadeStart =
                 lastIndex * delayBetween +

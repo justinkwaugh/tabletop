@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import cultTile from '$lib/images/culttile.png'
     import fishtoken from '$lib/images/fishtoken.png'
     import FishGod from '$lib/images/fishgod.svelte'
@@ -345,14 +345,6 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
             return false
         }
 
-        if (gameSession.highlightedHexes.size > 0) {
-            if (!gameSession.highlightedHexes.has(coordinatesToNumber(coords))) {
-                return true
-            } else {
-                return false
-            }
-        }
-
         if (state.machineState === MachineState.IslandBidding && state.chosenIsland !== undefined) {
             if (isBoatCell(cell) && !isBoatBuildingCell(cell) && cell.boat) {
                 return !state.board.isNeighborToCultSiteOfIsland(cell.coords, state.chosenIsland)
@@ -580,7 +572,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     {#if !hidden}
         <polygon points={pointsString} fill="none" stroke="none" opacity="1"></polygon>
         {#if cellImage}
-            <g transform="rotate(30)">
+            <g pointer-events="none" transform="rotate(30)">
                 <image
                     in:fadeScale={{ baseScale: 0.1, duration: 100 }}
                     out:fadeScale={{ baseScale: 0.1, duration: 100 }}

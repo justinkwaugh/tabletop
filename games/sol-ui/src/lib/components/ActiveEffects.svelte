@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { Point } from '@tabletop/common'
     import EffectCardSvg from './EffectCardSvg.svelte'
     import {
@@ -37,7 +37,6 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
         } else {
             close()
         }
-        console.log('clicked effect card')
     }
 
     function close() {

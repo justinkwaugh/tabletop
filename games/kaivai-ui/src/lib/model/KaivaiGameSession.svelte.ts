@@ -47,10 +47,9 @@ import {
     sameCoordinates,
     type AxialCoordinates
 } from '@tabletop/common'
+import { SvelteSet } from 'svelte/reactivity'
 
 export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaivaiGameState> {
-    highlightedHexes: Set<number> = $state(new Set())
-
     chosenAction: string | undefined = $state(undefined)
     chosenBoat: string | undefined = $state(undefined)
     chosenHutType: HutType | undefined = $state(undefined)

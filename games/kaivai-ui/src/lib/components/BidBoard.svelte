@@ -76,7 +76,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     class="pb-4 relative flex flex-col justify-center items-center w-full rounded-lg overflow-hidden"
 >
     <img class="z-0 w-[1032px]" src={bidding} alt="bidding" />
-    {#each bidData as bid}
+    {#each bidData as bid (bid.bid)}
         <div
             role="button"
             tabindex={bid.playerId ? -1 : 0}

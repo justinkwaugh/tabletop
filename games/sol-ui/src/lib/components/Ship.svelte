@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Color } from '@tabletop/common'
     import GreenShip from '$lib/images/greenShip.svelte'
     import PurpleShip from '$lib/images/purpleShip.svelte'
@@ -19,8 +19,8 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     } = $props()
 
     let gameSession = getGameSession() as SolGameSession
-    let color = gameSession.gameState.getPlayerState(playerId).color
-    let Ship = componentForColor(color)
+    let color = $derived(gameSession.colors.getPlayerColor(playerId))
+    let Ship = $derived(componentForColor(color))
 
     function componentForColor(color: Color) {
         switch (color) {

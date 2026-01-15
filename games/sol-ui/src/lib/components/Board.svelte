@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import boardImg from '$lib/images/board.jpg'
     import Cell from '$lib/components/Cell.svelte'
     import DropShadow from '$lib/components/DropShadow.svelte'
@@ -14,7 +14,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
         offsetFromCenter,
         type GatePosition
     } from '$lib/utils/boardGeometry.js'
-    import { coordinatesToNumber, type OffsetCoordinates } from '@tabletop/common'
+    import { assertExists, coordinatesToNumber, type OffsetCoordinates } from '@tabletop/common'
     import GateDestination from './GateDestination.svelte'
     import Gate from './BoardGate.svelte'
     import InstabilityTrack from './InstabilityTrack.svelte'
@@ -83,9 +83,13 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     stationAnimator.register()
 
     const gateAnimator = new GateAnimator(gameSession, (gate) => {
-        if (gate) {
-            gates.set(gateKey(gate.innerCoords!, gate.outerCoords!), gate)
+        if (!gate) {
+            return
         }
+
+        assertExists(gate.innerCoords, 'Gate must have inner coordinates')
+        assertExists(gate.outerCoords, 'Gate must have outer coordinates')
+        gates.set(gateKey(gate.innerCoords, gate.outerCoords), gate)
     })
     gateAnimator.register()
 
@@ -174,7 +178,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
             </g>
         {/each}
 
-        {#each gameSession.gameState.board as cell}
+        {#each gameSession.gameState.board as cell (coordinatesToNumber(cell.coords))}
             <Cell {cell} />
         {/each}
 

@@ -54,7 +54,7 @@
 </script>
 
 <T.Group bind:ref {...others}>
-    {#each players as player, i}
+    {#each players as player, i (player.playerId)}
         <Text
             position.x={i * (players.length === 5 ? 5.5 : 6)}
             color="#f9d057"
@@ -81,7 +81,7 @@
             <RoundedRectangleGeometry width={5} height={2.5} radius={0.2} />
             <T.MeshPhysicalMaterial
                 roughness={0.7}
-                color={'#222222'}
+                color="#222222"
                 clearcoat={1}
                 clearcoatRoughness={0.33}
             />
