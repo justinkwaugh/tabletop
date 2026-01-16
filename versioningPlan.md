@@ -10,6 +10,10 @@
 - The `config-games` project publishes a manifest describing:
   - `frontend` object with a `version` property
   - per-game `logicVersion` and `uiVersion`
+- The manifest lives at `config/config-games/src/site-manifest.json` (replaces `games.json`).
+- `config-games` exports the parsed manifest so the backend can import it at build time.
+- The manifest is baked into the backend at build time (no runtime manifest switching).
+- No top-level manifest `version` field.
 
 Example manifest:
 ```json
@@ -23,25 +27,26 @@ Example manifest:
 ```
 
 ## Storage Layout (GCS)
-- Frontend builds: `gs://<bucket>/frontend/<frontendVersion>/...`
+- Frontend builds: `gs://<bucket>/frontend/<frontend.version>/...`
 - Game UI bundles: `gs://<bucket>/games/<gameId>/<uiVersion>/...`
 
 ## Mount Mapping (Backend)
-- `gs://<bucket>/frontend/<frontendVersion>/` is mounted at `/`.
-- `gs://<bucket>/games/<gameId>/<uiVersion>/` is mounted at `/games/<gameId>/<uiVersion>/`.
+- `gs://<bucket>/frontend/<frontend.version>/` is mounted at `/` (via `/mnt/gcs/frontend/<frontend.version>/`).
+- `gs://<bucket>/games/<gameId>/<uiVersion>/` is mounted at `/games/<gameId>/<uiVersion>/` (via `/mnt/gcs/games/<gameId>/<uiVersion>/`).
 - This allows the frontend to use **relative URLs** like:
   - `/games/bridges/1.4.2/index.js`
 
 ## Backend Responsibilities
-- Choose a `frontendVersion` at startup (from manifest or env override).
+- Choose a `frontend.version` at startup from the baked manifest (or env override).
 - Serve frontend assets from the mounted versioned directory at `/`:
   - `/index.html` should be `no-store` (or very short max-age).
   - `/assets/*` (hashed) should be `public,max-age=31536000,immutable`.
-- Expose `/games/manifest` with the manifest used by the backend.
+- Expose `/manifest` with the manifest baked into the backend (uncached or very short max-age).
+- Include a small `backend` object in `/manifest` (build SHA, build time, Cloud Run revision) for debugging.
 - Build with game logic packages pinned to the manifest’s `logicVersion`.
 
 ## Frontend Responsibilities
-- Load `/games/manifest` on boot.
+- Load `/manifest` on boot.
 - For each game, construct the UI module URL as:
   - `/games/<gameId>/<uiVersion>/index.js`
 - Use `base: '/'` in Vite so assets are relative to the mounted root.
@@ -55,12 +60,11 @@ Example manifest:
 
 ### Frontend update
 1. Bump `frontend.version` in `config-games`.
-2. Build frontend (`base: '/'`) and upload to `gs://.../frontend/<frontendVersion>/`.
+2. Build frontend (`base: '/'`) and upload to `gs://.../frontend/<frontend.version>/`.
 3. Deploy/restart backend to mount the new frontend version at `/`.
 
 ## Rollback
-- Update manifest (or env override) to a previous `frontend.version` or `uiVersion`.
-- Restart backend to switch the mounted frontend version or served manifest.
+- Shift Cloud Run traffic to a previous backend revision to roll back the manifest and logic.
 
 ## Notes on Separate Versions
 - Separate `logicVersion` and `uiVersion` provides maximum flexibility.
@@ -74,11 +78,14 @@ Example manifest:
 - Enforce versioning rules (e.g., logic bump implies UI bump/deploy).
 - Make rollbacks easy and safe.
 - Prefer building the TUI with Ink (Node/TypeScript).
+- Place the release orchestration tool in a top-level package: `tools/deploy`.
 
 ### Data Sources
-- `config-games` manifest (read/write).
-- Backend `/games/manifest` (reported deployed versions).
+- `config-games` manifest (read/write, `site-manifest.json`).
+- Backend `/manifest` (reported deployed versions).
 - Mounted GCS directories (`/games/*` and `/frontend/*`) for existence checks.
+- Build/upload steps use the `gcloud` CLI.
+- Deploy permissions are assumed to come from the user’s existing `gcloud` login.
 
 ### Core Commands
 - `status`: show manifest vs deployed versions (frontend + games).
@@ -90,7 +97,7 @@ Example manifest:
 - `build:frontend`: build frontend (`base: '/'`).
 - `deploy:frontend`: upload to `/frontend/<version>/`.
 - `publish:manifest`: publish updated manifest.
-- `rollback`: switch manifest or frontend mount to a previous version.
+- `rollback`: switch Cloud Run traffic to a previous backend revision.
 
 ### TUI Layout
 - Left pane: game list with logic/ui versions.
@@ -102,3 +109,4 @@ Example manifest:
 - Changing `logicVersion` requires a `uiVersion` bump.
 - UI deploy must precede backend deploy for the same logic change.
 - Refuse deploy if the versioned UI directory does not exist (or require build first).
+- Manual edits to `site-manifest.json` are allowed, but the deploy tool should enforce these rules when it is used.
