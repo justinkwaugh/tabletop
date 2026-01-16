@@ -5,7 +5,29 @@ import { VitestConfig } from '@tabletop/vitest-config'
 
 export default defineProject(
     mergeConfig(VitestConfig, {
-        server: { host: '0.0.0.0', fs: { strict: false } },
+        server: {
+            host: '0.0.0.0',
+            fs: { strict: false },
+            proxy: {
+                '/games': {
+                    target: 'http://localhost:3000',
+                    changeOrigin: true,
+                    configure: (proxy) => {
+                        proxy.on('proxyReq', (proxyReq, req) => {
+                            const acceptEncoding = req.headers['accept-encoding']
+                            if (!acceptEncoding) {
+                                return
+                            }
+
+                            const headerValue = Array.isArray(acceptEncoding)
+                                ? acceptEncoding.join(', ')
+                                : acceptEncoding
+                            proxyReq.setHeader('accept-encoding', headerValue)
+                        })
+                    }
+                }
+            }
+        },
         plugins: [sveltekit(), devtoolsJson()],
         assetsInclude: ['**/*.gltf'],
         build: {

@@ -18,7 +18,7 @@
     "dependencies": {
         "@tabletop/common": "*",
         "@tabletop/frontend-components": "*",
-        "@tabletop/frontend-games": "*",
+        "@tabletop/games-config": "*",
         "ably": "^2.3.1",
         "es-iterator-helpers": "^1.2.1",
         "idb": "^8.0.3",

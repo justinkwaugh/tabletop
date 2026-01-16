@@ -4,11 +4,12 @@
         GameSession,
         HotseatPanel,
         setGameSession,
-        type GameTable,
         HistoryKeyControls,
         getAppContext,
-        AdminPanel
+        AdminPanel,
+        GameUI
     } from '@tabletop/frontend-components'
+
     import { onMount } from 'svelte'
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
@@ -19,17 +20,9 @@
 
     let { gameService, notificationService, authorizationService, chatService } = getAppContext()
 
-    let Table: GameTable<GameState, HydratedGameState> | null = $state(null)
-
     onMount(() => {
         const gameSession = data.gameSession
-
         gameService.currentGameSession = gameSession
-        gameSession.definition
-            .getTableComponent()
-            .then((tableComponent: GameTable<GameState, HydratedGameState>) => {
-                Table = tableComponent
-            })
 
         if (!gameSession.game.hotseat) {
             setTimeout(() => {
@@ -57,5 +50,5 @@
     {:else if data.gameSession.game.hotseat}
         <HotseatPanel />
     {/if}
-    <Table gameSession={data.gameSession} />
+    <GameUI definition={data.gameSession.definition} gameSession={data.gameSession} />
 </div>

@@ -1,6 +1,5 @@
 <script lang="ts">
     import {
-        GameSessionMode,
         ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
@@ -11,7 +10,6 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
 
-    import { onMount } from 'svelte'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import type {
         BridgesGameState,

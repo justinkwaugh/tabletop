@@ -18,6 +18,7 @@ export const Definition = <GameDefinition<BridgesGameState, HydratedBridgesGameS
         minPlayers: 3,
         maxPlayers: 4,
         defaultPlayerCount: 3,
+        version: '1.0.0',
         beta: false
     },
 

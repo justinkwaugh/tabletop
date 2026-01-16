@@ -157,13 +157,80 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             options: { ...opts, prefix: API_PREFIX }
         })
 
-        // Serve the frontend as static files
-        console.log('Registering static handlers')
-        await fastify.register(fastifyStatic, {
-            root: path.join(__dirname, 'static'),
-            immutable: true,
-            maxAge: '1d'
-        })
+        if (service === 'local') {
+            // Serve the frontend as static files
+            console.log('Registering local static handlers')
+            await fastify.register(fastifyStatic, {
+                root: path.join(__dirname, 'static'),
+                preCompressed: true,
+                immutable: true,
+                maxAge: '1d',
+                setHeaders: (res, pathName) => {
+                    if (pathName.endsWith('.br')) {
+                        res.setHeader('Content-Encoding', 'br')
+                        if (pathName.endsWith('.js.br')) {
+                            res.setHeader('Content-Type', 'text/javascript')
+                        }
+                    }
+
+                    if (pathName.endsWith('.gz')) {
+                        res.setHeader('Content-Encoding', 'gzip')
+                        if (pathName.endsWith('.js.gz')) {
+                            res.setHeader('Content-Type', 'text/javascript')
+                        }
+                    }
+                }
+            })
+        }
+
+        if (service === 'backend') {
+            await fastify.register(fastifyStatic, {
+                root: '/mnt/gcs/frontend',
+                preCompressed: true,
+                immutable: true,
+                maxAge: '30d',
+                setHeaders: (res, pathName) => {
+                    if (pathName.endsWith('.br')) {
+                        res.setHeader('Content-Encoding', 'br')
+                        if (pathName.endsWith('.js.br')) {
+                            res.setHeader('Content-Type', 'text/javascript')
+                        }
+                    }
+
+                    if (pathName.endsWith('.gz')) {
+                        res.setHeader('Content-Encoding', 'gzip')
+                        if (pathName.endsWith('.js.gz')) {
+                            res.setHeader('Content-Type', 'text/javascript')
+                        }
+                    }
+                }
+            })
+
+            // Serve assets from GCS as static files
+            await fastify.register(fastifyStatic, {
+                root: '/mnt/gcs/games',
+                prefix: '/games/',
+                decorateReply: false, // avoid reply.sendFile collisions
+                preCompressed: true,
+                immutable: true,
+                maxAge: '60s',
+                setHeaders: (res, pathName) => {
+                    if (pathName.endsWith('.br')) {
+                        res.setHeader('Content-Encoding', 'br')
+                        if (pathName.endsWith('.js.br')) {
+                            res.setHeader('Content-Type', 'text/javascript')
+                        }
+                    }
+
+                    if (pathName.endsWith('.gz')) {
+                        res.setHeader('Content-Encoding', 'gzip')
+                        if (pathName.endsWith('.js.gz')) {
+                            res.setHeader('Content-Type', 'text/javascript')
+                        }
+                    }
+                }
+            })
+        }
 
         // Override root path to serve index.html with no caching
         fastify.get('/', async function (req, reply) {

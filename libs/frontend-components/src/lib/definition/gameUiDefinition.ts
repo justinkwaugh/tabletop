@@ -1,23 +1,17 @@
-import { GameSession } from '$lib/model/gameSession.svelte'
+import type { GameSession } from '$lib/model/gameSession.svelte'
 import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import type { NotificationService } from '$lib/services/notificationService.js'
-import {
-    Game,
-    GameAction,
-    GameState,
-    type GameDefinition,
-    type HydratedGameState
-} from '@tabletop/common'
-import type { Component } from 'svelte'
+import type { Game, GameAction, GameState, GameDefinition, HydratedGameState } from '@tabletop/common'
+import { type Component } from 'svelte'
 import type { GameColorizer } from './gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
+import type { DynamicComponent } from '$lib/utils/dynamicComponent.js'
 
 export type GameTable<T extends GameState, U extends HydratedGameState<T> & T> = Component<{
     gameSession: GameSession<T, U>
 }>
-
 export interface GameSessionConstructor<T extends GameState, U extends HydratedGameState<T> & T> {
     new ({
         gameService,
@@ -46,8 +40,8 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
 
 export interface GameUiDefinition<T extends GameState, U extends HydratedGameState<T> & T>
     extends GameDefinition<T, U> {
-    getTableComponent: () => Promise<GameTable<T, U>>
-    sessionClass: GameSessionConstructor<T, U>
+    gameUI: DynamicComponent<GameTable<T, U>>
+    sessionClass: () => Promise<GameSessionConstructor<T, U>>
     colorizer: GameColorizer
     thumbnailUrl: string
 }

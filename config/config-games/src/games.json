@@ -1,9 +1,11 @@
 {
-    "availableGames": [
-        "@tabletop/fresh-fish",
-        "@tabletop/bridges-of-shangri-la",
-        "@tabletop/estates",
-        "@tabletop/kaivai",
-        "@tabletop/sol"
+    "availableGames": ["@tabletop/sol"],
+    "games": [
+        {
+            "id": "bridges-of-shangri-la",
+            "version": "1.0.0",
+            "logic": "@tabletop/bridges-of-shangri-la",
+            "ui": "@tabletop/bridges-of-shangri-la-ui"
+        }
     ]
 }

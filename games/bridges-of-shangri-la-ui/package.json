@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/bridges-of-shangri-la-ui",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
@@ -31,24 +31,29 @@
         "!dist/**/*.spec.*"
     ],
     "peerDependencies": {
-        "svelte": "^5.0.0",
-        "@sveltejs/kit": "^2.48.4"
+        "@sveltejs/kit": "^2.48.4",
+        "svelte": "^5.0.0"
     },
     "dependencies": {
-        "@tabletop/common": "*",
         "@tabletop/bridges-of-shangri-la": "*",
+        "@tabletop/common": "*",
         "@tabletop/frontend-components": "*",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^5.1.6"
     },
     "devDependencies": {
-        "@sveltejs/package": "^2.5.4",
         "@playwright/test": "^1.42.1",
+        "@rollup/plugin-alias": "^6.0.0",
+        "@rollup/plugin-commonjs": "^24.0.1",
+        "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/plugin-typescript": "^12.3.0",
+        "@rollup/plugin-url": "8.0.2",
         "@sveltejs/adapter-static": "^3.0.10",
         "@sveltejs/kit": "^2.48.4",
+        "@sveltejs/package": "^2.5.4",
         "@sveltejs/vite-plugin-svelte": "^6.2.1",
-        "@tabletop/vitest-config": "*",
         "@tabletop/eslint-config": "*",
+        "@tabletop/vitest-config": "*",
         "@tailwindcss/postcss": "^4.1.16",
         "@typescript-eslint/eslint-plugin": "^8.46.4",
         "@typescript-eslint/parser": "^8.46.4",
@@ -61,10 +66,8 @@
         "prettier": "^3.3.3",
         "prettier-plugin-svelte": "^3.2.6",
         "rollup": "4.55.1",
+        "rollup-plugin-brotli": "3.1.0",
         "rollup-plugin-svelte": "^7.1.0",
-        "@rollup/plugin-typescript": "^12.3.0",
-        "@rollup/plugin-commonjs": "^24.0.1",
-        "@rollup/plugin-url": "8.0.2",
         "svelte": "^5.0.0",
         "svelte-check": "^4.0.5",
         "tailwindcss": "^4.1.16",

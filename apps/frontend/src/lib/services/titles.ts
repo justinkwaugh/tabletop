@@ -1,26 +1,22 @@
 import type { GameState, HydratedGameState } from '@tabletop/common'
 import type { GameUiDefinition } from '@tabletop/frontend-components'
-import { AvailableGames } from '@tabletop/frontend-games'
+import { Games } from '@tabletop/games-config'
 
 const definitions: GameUiDefinition<GameState, HydratedGameState>[] = []
-for (const [name, scope] of AvailableGames) {
-    // This is obviously incredibly gross, but vite/rollup does not support dynamic imports
-    // with variables from node_modules directly.  It has to be a relative import with a file extension
-    // so we traverse all the way back up to get it.
-    let gameModule = null
-    if (scope) {
-        gameModule = await import(`../../../../../node_modules/${scope}/${name}-ui/dist/index.js`)
-    } else {
-        gameModule = await import(`../../../../../node_modules/${name}-ui/dist/index.js`)
+for (const game of Games) {
+    try {
+        const url = new URL(/* @vite-ignore */ `/games/${game.id}/index.js`, import.meta.url)
+        let gameModule = await import(url.href)
+        if (!gameModule) {
+            throw new Error()
+        }
+        const gameDefinition = gameModule[
+            `UiDefinition` as keyof typeof gameModule
+        ] as GameUiDefinition<GameState, HydratedGameState>
+        definitions.push(gameDefinition)
+    } catch (e) {
+        console.log(`Could not load game module for ${game.id} at ${game.version} from ${game.id}`)
     }
-
-    if (!gameModule) {
-        throw new Error(`Could not load game module for ${scope}/${name}`)
-    }
-    const gameDefinition = gameModule[
-        `UiDefinition` as keyof typeof gameModule
-    ] as GameUiDefinition<GameState, HydratedGameState>
-    definitions.push(gameDefinition)
 }
 
 // create a record of definitions keyed by their id for each definition in definitions

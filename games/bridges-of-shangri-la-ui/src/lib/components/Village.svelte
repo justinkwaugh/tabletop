@@ -20,7 +20,6 @@
         isBeginJourney
     } from '@tabletop/bridges-of-shangri-la'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
-    import { GameSessionMode } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { village, index }: { village: HydratedVillage; index: number } = $props()

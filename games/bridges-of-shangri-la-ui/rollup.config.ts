@@ -5,6 +5,8 @@ import resolve from '@rollup/plugin-node-resolve'
 import typescript from '@rollup/plugin-typescript'
 import commonjs from '@rollup/plugin-commonjs'
 import url from '@rollup/plugin-url'
+import terser from '@rollup/plugin-terser'
+import brotli from 'rollup-plugin-brotli'
 
 const libAlias = {
     name: 'lib-alias',
@@ -57,6 +59,7 @@ export default {
         // see NOTICE below
         resolve({
             browser: true,
+            dedupe: ['svelte'],
             exportConditions: ['svelte'],
             extensions: ['.svelte', '.ts', '.js', '.mjs']
         }),
@@ -66,11 +69,12 @@ export default {
             // Where to copy files (relative to the main output.dir)
             destDir: 'public/assets',
             // Public path in the bundled code (relative to your website's root)
-            publicPath: '/assets/',
+            publicPath: '/games/bridges-of-shangri-la/1.0.0/assets/',
             // File name format once copied
             fileName: '[name]-[hash][extname]',
             // Set limit to 0 or a very small number to ensure files are always copied, not inlined as base64
             limit: 0
-        })
+        }),
+        brotli()
     ]
 }

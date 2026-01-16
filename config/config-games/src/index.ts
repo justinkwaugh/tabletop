@@ -14,4 +14,5 @@ function loadGamePackages(): GamePackage[] {
     return packages
 }
 
-export const AvailableGames = loadGamePackages()
+export const AvailableGames = loadGamePackages() // old
+export const Games = gamesJson.games // new

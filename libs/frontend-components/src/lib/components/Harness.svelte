@@ -15,18 +15,17 @@
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import GameEditForm from './GameEditForm.svelte'
     import DeleteModal from './DeleteModal.svelte'
-    import type { GameTable, GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+    import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
     import { setAppContext } from '$lib/model/appContext.js'
     import { createHarnessAppContext } from '$lib/harness/harnessContext.js'
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
     let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
     const appContext = createHarnessAppContext(definition)
-    setAppContext(createHarnessAppContext(definition))
+    setAppContext(appContext)
 
     let { gameService, authorizationService, notificationService, chatService, api } = appContext
 
-    let Table: GameTable<GameState, HydratedGameState> | null = $state(null)
     let showCreateModal = $state(false)
     let gameToDelete: string | undefined = $state(undefined)
     let deleteModalOpen = $derived(gameToDelete !== undefined)
@@ -34,14 +33,6 @@
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
-
-        if (definition) {
-            definition
-                .getTableComponent()
-                .then((tableComponent: GameTable<GameState, HydratedGameState>) => {
-                    Table = tableComponent
-                })
-        }
     })
 
     function closeCreateModal() {
@@ -86,7 +77,8 @@
             return
         }
 
-        gameSession = new definition.sessionClass({
+        const sessionClass = await definition.sessionClass()
+        gameSession = new sessionClass({
             gameService: gameService,
             authorizationService: authorizationService,
             notificationService: notificationService,
@@ -159,9 +151,9 @@
 </Navbar>
 
 <div class="flex flex-col w-screen overflow-auto">
-    {#if gameSession && Table}
+    {#if gameSession}
         {#key gameSession}
-            <HarnessGame {Table} {gameSession} />
+            <HarnessGame {definition} {gameSession} />
         {/key}
     {/if}
 </div>

@@ -21,6 +21,16 @@
             "types": "./dist/index.ts",
             "svelte": "./dist/index.js",
             "import": "./dist/index.js"
+        },
+        "./definition/gameUiDefinition": {
+            "types": "./dist/definition/gameUiDefinition.d.ts",
+            "svelte": "./dist/definition/gameUiDefinition.js",
+            "import": "./dist/definition/gameUiDefinition.js"
+        },
+        "./utils/dynamicComponent": {
+            "types": "./dist/utils/dynamicComponent.d.ts",
+            "svelte": "./dist/utils/dynamicComponent.js",
+            "import": "./dist/utils/dynamicComponent.js"
         }
     },
     "files": [
