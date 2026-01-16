@@ -65,3 +65,40 @@ Example manifest:
 ## Notes on Separate Versions
 - Separate `logicVersion` and `uiVersion` provides maximum flexibility.
 - If desired, keep them in lockstep by default and only diverge when needed.
+- **Rule:** If `logicVersion` changes, `uiVersion` must also be bumped and the UI must be rebuilt/deployed, because the UI bundle embeds game logic.
+
+## Deploy Tool (Draft Spec)
+
+### Goals
+- Provide a single interface to view and update versions, publish manifests, and deploy assets.
+- Enforce versioning rules (e.g., logic bump implies UI bump/deploy).
+- Make rollbacks easy and safe.
+- Prefer building the TUI with Ink (Node/TypeScript).
+
+### Data Sources
+- `config-games` manifest (read/write).
+- Backend `/games/manifest` (reported deployed versions).
+- Mounted GCS directories (`/games/*` and `/frontend/*`) for existence checks.
+
+### Core Commands
+- `status`: show manifest vs deployed versions (frontend + games).
+- `edit`: bump versions (frontend, per-game logic/ui) with validation rules.
+- `build:ui <gameId>`: build UI bundle.
+- `deploy:ui <gameId>`: upload UI bundle to `/games/<gameId>/<uiVersion>/`.
+- `build:backend`: build backend with pinned logic versions.
+- `deploy:backend`: deploy backend and mount selected frontend version.
+- `build:frontend`: build frontend (`base: '/'`).
+- `deploy:frontend`: upload to `/frontend/<version>/`.
+- `publish:manifest`: publish updated manifest.
+- `rollback`: switch manifest or frontend mount to a previous version.
+
+### TUI Layout
+- Left pane: game list with logic/ui versions.
+- Right pane: selected game details and actions.
+- Top bar: manifest version + backend reported versions + mounted frontend version.
+- Bottom bar: command palette (deploy/build/publish/rollback).
+
+### Validation Rules
+- Changing `logicVersion` requires a `uiVersion` bump.
+- UI deploy must precede backend deploy for the same logic change.
+- Refuse deploy if the versioned UI directory does not exist (or require build first).
