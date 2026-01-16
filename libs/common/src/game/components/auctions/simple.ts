@@ -1,8 +1,8 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Auction, AuctionParticipant, AuctionType, HydratedAuction } from './auction.js'
 
-export type SimpleAuction = Static<typeof SimpleAuction>
+export type SimpleAuction = Type.Static<typeof SimpleAuction>
 export const SimpleAuction = Type.Evaluate(
     Type.Intersect([
         Auction,

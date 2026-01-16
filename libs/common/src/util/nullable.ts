@@ -1,3 +1,3 @@
-import { Type, type TSchema } from 'typebox'
+import * as Type from 'typebox'
 
-export const Nullable = <T extends TSchema>(schema: T) => Type.Union([Type.Null(), schema])
+export const Nullable = <T extends Type.TSchema>(schema: T) => Type.Union([Type.Null(), schema])

@@ -6,12 +6,12 @@ import {
     PrngState
 } from '@tabletop/common'
 import { BridgesPlayerState, HydratedBridgesPlayerState } from './playerState.js'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { BridgesGameBoard, HydratedBridgesGameBoard } from '../components/gameBoard.js'
 
-export type BridgesGameState = Static<typeof BridgesGameState>
+export type BridgesGameState = Type.Static<typeof BridgesGameState>
 export const BridgesGameState = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameState, ['players', 'machineState']),

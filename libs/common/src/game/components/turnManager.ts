@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Turn } from '../model/turn.js'
 import { findLast } from '../../util/findLast.js'
@@ -7,7 +7,7 @@ import { PlayerState } from '../model/playerState.js'
 import { shuffle } from '../../util/shuffle.js'
 import type { RandomFunction } from '../../util/prng.js'
 
-export type TurnManager = Static<typeof TurnManager>
+export type TurnManager = Type.Static<typeof TurnManager>
 export const TurnManager = Type.Object({
     series: Type.Array(Turn),
     turnOrder: Type.Array(Type.String()),

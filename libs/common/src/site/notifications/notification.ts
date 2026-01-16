@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 
 export enum NotificationCategory {
@@ -7,7 +7,7 @@ export enum NotificationCategory {
     System = 'system'
 }
 
-export type Notification = Static<typeof Notification>
+export type Notification = Type.Static<typeof Notification>
 export const Notification = Type.Object({
     id: Type.String(),
     type: Type.Enum(NotificationCategory),

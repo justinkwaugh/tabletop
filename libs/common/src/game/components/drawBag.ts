@@ -1,21 +1,21 @@
-import { Type, type TSchema, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { shuffle } from '../../util/shuffle.js'
 import { Hydratable } from '../../util/hydration.js'
 import { type RandomFunction } from '../../util/prng.js'
 
-export const DrawBag = <T extends TSchema>(T: T) =>
+export const DrawBag = <T extends Type.TSchema>(T: T) =>
     Type.Object({
         items: Type.Array(T),
         remaining: Type.Number()
     })
 
-export type AnyDrawBag = Static<typeof AnyDrawBag>
+export type AnyDrawBag = Type.Static<typeof AnyDrawBag>
 export const AnyDrawBag = Type.Object({
     items: Type.Array(Type.Any()),
     remaining: Type.Number()
 })
 
-export abstract class HydratedDrawBag<T, U extends TSchema> extends Hydratable<U> {
+export abstract class HydratedDrawBag<T, U extends Type.TSchema> extends Hydratable<U> {
     //
     declare items: T[]
     declare remaining: number

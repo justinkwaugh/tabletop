@@ -1,4 +1,4 @@
-import { type TSchema, Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { HydratedTurnManager, TurnManager } from '../components/turnManager.js'
 import { Hydratable } from '../../util/hydration.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
@@ -14,13 +14,13 @@ export enum GameResult {
     Win = 'Win'
 }
 
-export type ExplorationState = Static<typeof ExplorationState>
+export type ExplorationState = Type.Static<typeof ExplorationState>
 export const ExplorationState = Type.Object({
     actionCount: Type.Number(),
     invocations: Type.Number()
 })
 
-export type GameState = Static<typeof GameState>
+export type GameState = Type.Static<typeof GameState>
 export const GameState = Type.Object({
     systemVersion: Type.Optional(Type.Number()), // Not game specific versioning
     id: Type.String(),
@@ -56,9 +56,9 @@ export interface HydratedGameState<
     dehydrate(): T
 }
 
-export abstract class HydratableGameState<T extends TSchema, P extends PlayerState>
+export abstract class HydratableGameState<T extends Type.TSchema, P extends PlayerState>
     extends Hydratable<T>
-    implements HydratedGameState<Static<T>, P>
+    implements HydratedGameState<Type.Static<T>, P>
 {
     declare systemVersion?: number
     declare id: string
@@ -73,7 +73,7 @@ export abstract class HydratableGameState<T extends TSchema, P extends PlayerSta
     declare result?: GameResult
     declare winningPlayerIds: string[]
 
-    constructor(data: Static<T>, validator: Validator<{}, T>) {
+    constructor(data: Type.Static<T>, validator: Validator<{}, T>) {
         super(data, validator)
 
         // Hydrate the turn manager

@@ -1,7 +1,7 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { ChatMessage } from './chatMessage.js'
 
-export type GameChatMessage = Static<typeof GameChatMessage>
+export type GameChatMessage = Type.Static<typeof GameChatMessage>
 export const GameChatMessage = Type.Evaluate(
     Type.Intersect([
         ChatMessage,

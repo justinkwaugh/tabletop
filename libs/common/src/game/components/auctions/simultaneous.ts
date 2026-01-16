@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Auction, AuctionParticipant, AuctionType, HydratedAuction } from './auction.js'
 import { findLast } from '../../../util/findLast.js'
@@ -8,7 +8,7 @@ export enum TieResolutionStrategy {
     LastInOrder
 }
 
-export type SimultaneousAuction = Static<typeof SimultaneousAuction>
+export type SimultaneousAuction = Type.Static<typeof SimultaneousAuction>
 export const SimultaneousAuction = Type.Evaluate(
     Type.Intersect([
         Auction,

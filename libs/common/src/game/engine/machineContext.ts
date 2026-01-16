@@ -3,7 +3,7 @@ import type { GameConfig } from '../model/gameConfig.js'
 import { ActionSource, createAction } from './gameAction.js'
 import { nanoid } from 'nanoid'
 import type { GameAction } from './gameAction.js'
-import type { Static, TSchema } from 'typebox'
+import type * as Type from 'typebox'
 
 export class MachineContext<State extends HydratedGameState = HydratedGameState> {
     readonly gameConfig: GameConfig
@@ -33,12 +33,12 @@ export class MachineContext<State extends HydratedGameState = HydratedGameState>
         return this.pendingActions
     }
 
-    addSystemAction<T extends TSchema>(schema: T, data?: Partial<Static<T>>) {
+    addSystemAction<T extends Type.TSchema>(schema: T, data?: Partial<Type.Static<T>>) {
         const action = this.createSystemAction(schema, data)
         this.pendingActions.push(action)
     }
 
-    createSystemAction<T extends TSchema>(schema: T, data?: Partial<Static<T>>): Static<T> {
+    createSystemAction<T extends Type.TSchema>(schema: T, data?: Partial<Type.Static<T>>): Type.Static<T> {
         const actionData = data ?? {}
         const partialAction = this.generatePartialSystemAction()
         Object.assign(actionData, partialAction)

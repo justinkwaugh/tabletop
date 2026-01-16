@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { DateType } from '../../util/typebox.js'
 import { Player } from './player.js'
 import { GameResult, GameState } from './gameState.js'
@@ -50,7 +50,7 @@ export enum GameCategory {
     Exploration = 'exploration'
 }
 
-export type Game = Static<typeof Game>
+export type Game = Type.Static<typeof Game>
 export const Game = Type.Object({
     id: Type.String(),
     typeId: Type.String(),

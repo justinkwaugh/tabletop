@@ -1,54 +1,54 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { szudzikPairSigned } from '../util/pairing.js'
 
-export type Point = Static<typeof Point>
+export type Point = Type.Static<typeof Point>
 export const Point = Type.Object({
     x: Type.Number(),
     y: Type.Number()
 })
 
-export type PolarCoordinates = Static<typeof PolarCoordinates>
+export type PolarCoordinates = Type.Static<typeof PolarCoordinates>
 export const PolarCoordinates = Type.Object({
     radius: Type.Number(),
     angle: Type.Number()
 })
 
-export type OffsetCoordinates = Static<typeof OffsetCoordinates>
+export type OffsetCoordinates = Type.Static<typeof OffsetCoordinates>
 export const OffsetCoordinates = Type.Object({
     col: Type.Number(),
     row: Type.Number()
 })
 
-export type OffsetTupleCoordinates = Static<typeof OffsetTupleCoordinates>
+export type OffsetTupleCoordinates = Type.Static<typeof OffsetTupleCoordinates>
 export const OffsetTupleCoordinates = Type.Tuple([Type.Number(), Type.Number()])
 
-export type AxialCoordinates = Static<typeof AxialCoordinates>
+export type AxialCoordinates = Type.Static<typeof AxialCoordinates>
 export const AxialCoordinates = Type.Object({
     q: Type.Number(),
     r: Type.Number()
 })
 
-export type HexTupleCoordinates = Static<typeof HexTupleCoordinates>
+export type HexTupleCoordinates = Type.Static<typeof HexTupleCoordinates>
 export const HexTupleCoordinates = Type.Tuple([
     Type.Number(),
     Type.Number(),
     Type.Optional(Type.Number())
 ])
 
-export type CubeCoordinates = Static<typeof CubeCoordinates>
+export type CubeCoordinates = Type.Static<typeof CubeCoordinates>
 export const CubeCoordinates = Type.Object({
     q: Type.Number(),
     r: Type.Number(),
     s: Type.Number()
 })
 
-export type HexCoordinates = Static<typeof HexCoordinates>
+export type HexCoordinates = Type.Static<typeof HexCoordinates>
 export const HexCoordinates = Type.Union([AxialCoordinates, OffsetCoordinates, HexTupleCoordinates])
 
-export type RectilinearCoordinates = Static<typeof RectilinearCoordinates>
+export type RectilinearCoordinates = Type.Static<typeof RectilinearCoordinates>
 export const RectilinearCoordinates = Type.Union([OffsetCoordinates, OffsetTupleCoordinates])
 
-export type Coordinates = Static<typeof Coordinates>
+export type Coordinates = Type.Static<typeof Coordinates>
 export const Coordinates = Type.Union([
     OffsetCoordinates,
     OffsetTupleCoordinates,

@@ -1,11 +1,11 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedBridgesGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedVillage } from '../components/village.js'
 
-export type BeginJourney = Static<typeof BeginJourney>
+export type BeginJourney = Type.Static<typeof BeginJourney>
 export const BeginJourney = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

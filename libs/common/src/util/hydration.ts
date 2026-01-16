@@ -1,10 +1,10 @@
-import { type TSchema, type Static } from 'typebox'
+import type * as Type from 'typebox'
 import { Validator } from 'typebox/compile'
 
-export abstract class Hydratable<T extends TSchema> {
+export abstract class Hydratable<T extends Type.TSchema> {
     private _validator: Validator<{}, T>
 
-    constructor(data: Static<T>, validator: Validator<{}, T>) {
+    constructor(data: Type.Static<T>, validator: Validator<{}, T>) {
         this._validator = validator
 
         if (!validator.Check(data)) {
@@ -31,14 +31,14 @@ export abstract class Hydratable<T extends TSchema> {
         Object.assign(this, structuredClone(data))
     }
 
-    private cloneable(): Static<T> {
+    private cloneable(): Type.Static<T> {
         // Shallow clone removes the _validator property
         const { _validator, ...rest } = this
 
         this.dehydrateChildren(rest)
 
         // Return the shallow clone
-        return rest as Static<T>
+        return rest as Type.Static<T>
     }
 
     private dehydrateChildren(obj: object) {
@@ -55,7 +55,7 @@ export abstract class Hydratable<T extends TSchema> {
         }
     }
 
-    dehydrate(): Static<T> {
-        return this._validator.Clean(structuredClone(this.cloneable())) as Static<T>
+    dehydrate(): Type.Static<T> {
+        return this._validator.Clean(structuredClone(this.cloneable())) as Type.Static<T>
     }
 }

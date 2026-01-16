@@ -1,9 +1,9 @@
-import type { TSchema } from 'typebox'
+import type * as Type from 'typebox'
 import { Value } from 'typebox/value'
 import type { GameConfig, GameConfigOptions } from '../model/gameConfig.js'
 
 export interface GameConfigurator {
-    schema: TSchema
+    schema: Type.TSchema
     options: GameConfigOptions
 
     validateConfig(config: GameConfig): void
@@ -14,7 +14,7 @@ export interface GameConfigurator {
 }
 
 export abstract class BaseConfigurator implements GameConfigurator {
-    abstract schema: TSchema
+    abstract schema: Type.TSchema
     abstract options: GameConfigOptions
 
     validateConfig(config: GameConfig): void {

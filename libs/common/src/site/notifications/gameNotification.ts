@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Notification, NotificationCategory } from './notification.js'
 import { Game } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
@@ -13,42 +13,42 @@ export enum GameNotificationAction {
     Chat = 'chat'
 }
 
-export type GameNotificationUpdateData = Static<typeof GameNotificationUpdateData>
+export type GameNotificationUpdateData = Type.Static<typeof GameNotificationUpdateData>
 export const GameNotificationUpdateData = Type.Object({
     game: Game
 })
 
-export type GameNotificationCreateData = Static<typeof GameNotificationCreateData>
+export type GameNotificationCreateData = Type.Static<typeof GameNotificationCreateData>
 export const GameNotificationCreateData = Type.Object({
     game: Game
 })
 
-export type GameNotificationDeleteData = Static<typeof GameNotificationDeleteData>
+export type GameNotificationDeleteData = Type.Static<typeof GameNotificationDeleteData>
 export const GameNotificationDeleteData = Type.Object({
     game: Game
 })
 
-export type GameNotificationAddActionsData = Static<typeof GameNotificationAddActionsData>
+export type GameNotificationAddActionsData = Type.Static<typeof GameNotificationAddActionsData>
 export const GameNotificationAddActionsData = Type.Object({
     game: Game,
     actions: Type.Array(GameAction)
 })
 
-export type GameNotificationUndoActionData = Static<typeof GameNotificationUndoActionData>
+export type GameNotificationUndoActionData = Type.Static<typeof GameNotificationUndoActionData>
 export const GameNotificationUndoActionData = Type.Object({
     game: Game,
     action: GameAction,
     redoneActions: Type.Array(GameAction)
 })
 
-export type GameNotificationChatData = Static<typeof GameNotificationChatData>
+export type GameNotificationChatData = Type.Static<typeof GameNotificationChatData>
 export const GameNotificationChatData = Type.Object({
     game: Game,
     message: GameChatMessage,
     checksum: Type.Number()
 })
 
-export type GameCreateNotification = Static<typeof GameCreateNotification>
+export type GameCreateNotification = Type.Static<typeof GameCreateNotification>
 export const GameCreateNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -60,7 +60,7 @@ export const GameCreateNotification = Type.Evaluate(
     ])
 )
 
-export type GameDeleteNotification = Static<typeof GameDeleteNotification>
+export type GameDeleteNotification = Type.Static<typeof GameDeleteNotification>
 export const GameDeleteNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -72,7 +72,7 @@ export const GameDeleteNotification = Type.Evaluate(
     ])
 )
 
-export type GameUpdateNotification = Static<typeof GameUpdateNotification>
+export type GameUpdateNotification = Type.Static<typeof GameUpdateNotification>
 export const GameUpdateNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -84,7 +84,7 @@ export const GameUpdateNotification = Type.Evaluate(
     ])
 )
 
-export type GameAddActionsNotification = Static<typeof GameAddActionsNotification>
+export type GameAddActionsNotification = Type.Static<typeof GameAddActionsNotification>
 export const GameAddActionsNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -96,7 +96,7 @@ export const GameAddActionsNotification = Type.Evaluate(
     ])
 )
 
-export type GameUndoActionNotification = Static<typeof GameUndoActionNotification>
+export type GameUndoActionNotification = Type.Static<typeof GameUndoActionNotification>
 export const GameUndoActionNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -108,7 +108,7 @@ export const GameUndoActionNotification = Type.Evaluate(
     ])
 )
 
-export type GameChatNotification = Static<typeof GameChatNotification>
+export type GameChatNotification = Type.Static<typeof GameChatNotification>
 export const GameChatNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),

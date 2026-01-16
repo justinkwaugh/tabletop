@@ -1,4 +1,4 @@
-import { type TSchema } from 'typebox'
+import type * as Type from 'typebox'
 import { type GameHydrator } from './gameHydrator.js'
 import { type GameMetadata } from './gameMetadata.js'
 import { type GameInitializer } from './gameInitializer.js'
@@ -22,7 +22,7 @@ export interface GameDefinition<
 
     stateHandlers: Record<string, MachineStateHandler<HydratedAction, U>>
 
-    apiActions: Record<string, TSchema>
+    apiActions: Record<string, Type.TSchema>
     playerColors: Color[]
 
     stateLogger?: GameStateLogger

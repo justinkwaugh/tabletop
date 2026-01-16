@@ -1,6 +1,6 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 
-export type ActionGroup = Static<typeof ActionGroup>
+export type ActionGroup = Type.Static<typeof ActionGroup>
 export const ActionGroup = Type.Object({
     type: Type.String(),
     start: Type.Number(),

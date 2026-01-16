@@ -1,10 +1,10 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Hydratable } from '../../util/hydration.js'
 import { Round } from '../model/round.js'
 import { findLast } from '../../util/findLast.js'
 
-export type RoundManager = Static<typeof RoundManager>
+export type RoundManager = Type.Static<typeof RoundManager>
 export const RoundManager = Type.Object({
     series: Type.Array(Round)
 })

@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Notification, NotificationCategory } from './notification.js'
 import { Game } from '../../game/model/game.js'
 import { Player } from '../../game/model/player.js'
@@ -12,7 +12,7 @@ export enum UserNotificationAction {
     IsYourTurn = 'isYourTurn'
 }
 
-export type PlayerJoinedNotification = Static<typeof PlayerJoinedNotification>
+export type PlayerJoinedNotification = Type.Static<typeof PlayerJoinedNotification>
 export const PlayerJoinedNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -28,7 +28,7 @@ export const PlayerJoinedNotification = Type.Evaluate(
     ])
 )
 
-export type PlayerDeclinedNotification = Static<typeof PlayerDeclinedNotification>
+export type PlayerDeclinedNotification = Type.Static<typeof PlayerDeclinedNotification>
 export const PlayerDeclinedNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -44,7 +44,7 @@ export const PlayerDeclinedNotification = Type.Evaluate(
     ])
 )
 
-export type WasInvitedNotification = Static<typeof WasInvitedNotification>
+export type WasInvitedNotification = Type.Static<typeof WasInvitedNotification>
 export const WasInvitedNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -60,7 +60,7 @@ export const WasInvitedNotification = Type.Evaluate(
     ])
 )
 
-export type GameStartedNotification = Static<typeof GameStartedNotification>
+export type GameStartedNotification = Type.Static<typeof GameStartedNotification>
 export const GameStartedNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),
@@ -75,7 +75,7 @@ export const GameStartedNotification = Type.Evaluate(
     ])
 )
 
-export type IsYourTurnNotification = Static<typeof IsYourTurnNotification>
+export type IsYourTurnNotification = Type.Static<typeof IsYourTurnNotification>
 export const IsYourTurnNotification = Type.Evaluate(
     Type.Intersect([
         Type.Omit(Notification, ['type', 'action', 'data']),

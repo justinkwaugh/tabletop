@@ -1,16 +1,16 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Hydratable } from '@tabletop/common'
 import { MasterType } from '../definition/masterType.js'
 import { HydratedVillage, Village } from './village.js'
 
-export type Placement = Static<typeof Placement>
+export type Placement = Type.Static<typeof Placement>
 export const Placement = Type.Object({
     masterType: Type.Enum(MasterType),
     village: Type.Number()
 })
 
-export type BridgesGameBoard = Static<typeof BridgesGameBoard>
+export type BridgesGameBoard = Type.Static<typeof BridgesGameBoard>
 export const BridgesGameBoard = Type.Object({
     villages: Type.Array(Village)
 })

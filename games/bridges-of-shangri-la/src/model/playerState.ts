@@ -1,13 +1,13 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MasterType } from '../definition/masterType.js'
 import { Color } from '@tabletop/common'
 
-export type PlayerTile = Static<typeof PlayerTile>
+export type PlayerTile = Type.Static<typeof PlayerTile>
 export const PlayerTile = Type.Object({})
 
-export type BridgesPlayerState = Static<typeof BridgesPlayerState>
+export type BridgesPlayerState = Type.Static<typeof BridgesPlayerState>
 export const BridgesPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,

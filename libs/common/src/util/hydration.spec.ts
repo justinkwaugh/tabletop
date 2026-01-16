@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import Type, { Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Hydratable } from './hydration.js'
 
 describe('Hydration Tests', () => {
     it('hydrates and dehydrates', () => {
-        type TestObject = Static<typeof TestObject>
+        type TestObject = Type.Static<typeof TestObject>
         const TestObject = Type.Object({
             val: Type.Number()
         })
@@ -44,7 +44,7 @@ describe('Hydration Tests', () => {
     })
 
     it('validates schema on construction', () => {
-        type TestObject = Static<typeof TestObject>
+        type TestObject = Type.Static<typeof TestObject>
         const TestObject = Type.Object({
             val: Type.Number()
         })
@@ -68,7 +68,7 @@ describe('Hydration Tests', () => {
     })
 
     it('hydrates nested hydratables', () => {
-        type ChildObject = Static<typeof ChildObject>
+        type ChildObject = Type.Static<typeof ChildObject>
         const ChildObject = Type.Object({
             name: Type.String()
         })
@@ -86,7 +86,7 @@ describe('Hydration Tests', () => {
             }
         }
 
-        type ParentObject = Static<typeof ParentObject>
+        type ParentObject = Type.Static<typeof ParentObject>
         const ParentObject = Type.Object({
             child: ChildObject
         })
@@ -126,7 +126,7 @@ describe('Hydration Tests', () => {
     })
 
     it('hydrates children in arrays', () => {
-        type ChildObject = Static<typeof ChildObject>
+        type ChildObject = Type.Static<typeof ChildObject>
         const ChildObject = Type.Object({
             name: Type.String()
         })
@@ -144,7 +144,7 @@ describe('Hydration Tests', () => {
             }
         }
 
-        type ParentObject = Static<typeof ParentObject>
+        type ParentObject = Type.Static<typeof ParentObject>
         const ParentObject = Type.Object({
             children: Type.Array(ChildObject)
         })
@@ -176,7 +176,7 @@ describe('Hydration Tests', () => {
     })
 
     it('hydrates children in nested objects', () => {
-        type ChildObject = Static<typeof ChildObject>
+        type ChildObject = Type.Static<typeof ChildObject>
         const ChildObject = Type.Object({
             name: Type.String()
         })
@@ -194,7 +194,7 @@ describe('Hydration Tests', () => {
             }
         }
 
-        type ParentObject = Static<typeof ParentObject>
+        type ParentObject = Type.Static<typeof ParentObject>
         const ParentObject = Type.Object({
             children: Type.Object({
                 child: ChildObject

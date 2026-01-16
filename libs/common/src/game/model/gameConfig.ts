@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 
 export enum ConfigOptionType {
     Boolean = 'Boolean',
@@ -7,7 +7,7 @@ export enum ConfigOptionType {
     NumberInput = 'NumberInput'
 }
 
-export type BaseConfigOption = Static<typeof BaseConfigOption>
+export type BaseConfigOption = Type.Static<typeof BaseConfigOption>
 export const BaseConfigOption = Type.Object({
     id: Type.String(),
     type: Type.Enum(ConfigOptionType),
@@ -16,14 +16,14 @@ export const BaseConfigOption = Type.Object({
     alwaysShow: Type.Optional(Type.Boolean())
 })
 
-export type BooleanConfigOption = Static<typeof BooleanConfigOption>
+export type BooleanConfigOption = Type.Static<typeof BooleanConfigOption>
 export const BooleanConfigOption = Type.Object({
     ...BaseConfigOption.properties,
     type: Type.Literal(ConfigOptionType.Boolean),
     default: Type.Boolean()
 })
 
-export type ListConfigOption = Static<typeof ListConfigOption>
+export type ListConfigOption = Type.Static<typeof ListConfigOption>
 export const ListConfigOption = Type.Object({
     ...BaseConfigOption.properties,
     type: Type.Literal(ConfigOptionType.List),
@@ -36,13 +36,13 @@ export const ListConfigOption = Type.Object({
     )
 })
 
-export type InputConfigOption = Static<typeof InputConfigOption>
+export type InputConfigOption = Type.Static<typeof InputConfigOption>
 export const InputConfigOption = Type.Object({
     ...BaseConfigOption.properties,
     placeholder: Type.Optional(Type.String())
 })
 
-export type StringInputConfigOption = Static<typeof StringInputConfigOption>
+export type StringInputConfigOption = Type.Static<typeof StringInputConfigOption>
 export const StringInputConfigOption = Type.Object({
     ...InputConfigOption.properties,
     type: Type.Literal(ConfigOptionType.StringInput),
@@ -50,7 +50,7 @@ export const StringInputConfigOption = Type.Object({
     default: Type.Optional(Type.String())
 })
 
-export type NumberInputConfigOption = Static<typeof NumberInputConfigOption>
+export type NumberInputConfigOption = Type.Static<typeof NumberInputConfigOption>
 export const NumberInputConfigOption = Type.Object({
     ...InputConfigOption.properties,
     type: Type.Literal(ConfigOptionType.NumberInput),
@@ -58,7 +58,7 @@ export const NumberInputConfigOption = Type.Object({
     default: Type.Optional(Type.Number())
 })
 
-export type ConfigOption = Static<typeof ConfigOption>
+export type ConfigOption = Type.Static<typeof ConfigOption>
 export const ConfigOption = Type.Union([
     BooleanConfigOption,
     ListConfigOption,
@@ -82,10 +82,10 @@ export function isNumberInputConfigOption(option: ConfigOption): option is Numbe
     return option.type === ConfigOptionType.NumberInput
 }
 
-export type GameConfigOptions = Static<typeof GameConfigOptions>
+export type GameConfigOptions = Type.Static<typeof GameConfigOptions>
 export const GameConfigOptions = Type.Array(ConfigOption)
 
-export type GameConfig = Static<typeof GameConfig>
+export type GameConfig = Type.Static<typeof GameConfig>
 export const GameConfig = Type.Record(
     Type.String(),
     Type.Union([Type.Boolean(), Type.String(), Type.Number(), Type.Null()])

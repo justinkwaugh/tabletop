@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import Value from 'typebox/value'
-import Type, { Static } from 'typebox'
+import * as Type from 'typebox'
 import { DateType } from './typebox.js'
 
 describe('Chat Message Data Object Tests', () => {
     it('converts dates', () => {
-        type ObjectWithDate = Static<typeof ObjectWithDate>
+        type ObjectWithDate = Type.Static<typeof ObjectWithDate>
         const ObjectWithDate = Type.Object({
             timestamp: DateType()
         })
@@ -20,12 +20,12 @@ describe('Chat Message Data Object Tests', () => {
     })
 
     it('converts composite dates', () => {
-        type ObjectWithDate = Static<typeof ObjectWithDate>
+        type ObjectWithDate = Type.Static<typeof ObjectWithDate>
         const ObjectWithDate = Type.Object({
             timestamp: DateType()
         })
 
-        type CompositeDate = Static<typeof CompositeDate>
+        type CompositeDate = Type.Static<typeof CompositeDate>
         const CompositeDate = Type.Evaluate(
             Type.Intersect([
                 ObjectWithDate,

@@ -1,4 +1,4 @@
-import Type from 'typebox'
+import * as Type from 'typebox'
 
 // ------------------------------------------------------------------
 // Definition

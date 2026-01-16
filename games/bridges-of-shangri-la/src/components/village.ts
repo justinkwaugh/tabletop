@@ -1,17 +1,17 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 
 import { Hydratable } from '@tabletop/common'
 import { MasterType } from '../definition/masterType.js'
 
-export type MasterAndStudents = Static<typeof MasterAndStudents>
+export type MasterAndStudents = Type.Static<typeof MasterAndStudents>
 export const MasterAndStudents = Type.Object({
     masterType: Type.Enum(MasterType),
     playerId: Type.String(),
     student: Type.Boolean()
 })
 
-export type Village = Static<typeof Village>
+export type Village = Type.Static<typeof Village>
 export const Village = Type.Object({
     spaces: Type.Record(Type.Enum(MasterType), Type.Optional(MasterAndStudents)),
     neighbors: Type.Array(Type.Number()),

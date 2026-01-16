@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { DateType } from '../util/typebox.js'
 import { Color } from '../game/model/colors.js'
 
@@ -22,7 +22,7 @@ export enum ExternalAuthService {
     Discord = 'discord'
 }
 
-export type UserPreferences = Static<typeof UserPreferences>
+export type UserPreferences = Type.Static<typeof UserPreferences>
 export const UserPreferences = Type.Object({
     preventWebNotificationPrompt: Type.Boolean(),
     preferredColorsEnabled: Type.Boolean(),
@@ -30,7 +30,7 @@ export const UserPreferences = Type.Object({
     colorBlindPalette: Type.Optional(Type.Boolean())
 })
 
-export type User = Static<typeof User>
+export type User = Type.Static<typeof User>
 export const User = Type.Object({
     id: Type.String(),
     status: Type.Enum(UserStatus),

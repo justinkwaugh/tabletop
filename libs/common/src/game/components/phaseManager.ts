@@ -1,10 +1,10 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Hydratable } from '../../util/hydration.js'
 import { Phase } from '../model/phase.js'
 import { findLast } from '../../util/findLast.js'
 
-export type PhaseManager = Static<typeof PhaseManager>
+export type PhaseManager = Type.Static<typeof PhaseManager>
 export const PhaseManager = Type.Object({
     series: Type.Array(Phase)
 })

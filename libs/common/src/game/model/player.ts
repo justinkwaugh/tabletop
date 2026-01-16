@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 
 export enum PlayerStatus {
     Open = 'open',
@@ -7,7 +7,7 @@ export enum PlayerStatus {
     Declined = 'declined'
 }
 
-export type Player = Static<typeof Player>
+export type Player = Type.Static<typeof Player>
 export const Player = Type.Object({
     id: Type.String(),
     isHuman: Type.Boolean(),

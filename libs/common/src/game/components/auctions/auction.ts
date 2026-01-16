@@ -1,4 +1,4 @@
-import { Type, type Static, type TSchema } from 'typebox'
+import * as Type from 'typebox'
 import { Hydratable } from '../../../util/hydration.js'
 import { range } from '../../../util/range.js'
 
@@ -8,14 +8,14 @@ export enum AuctionType {
     Simultaneous = 'simultaneous'
 }
 
-export type AuctionParticipant = Static<typeof AuctionParticipant>
+export type AuctionParticipant = Type.Static<typeof AuctionParticipant>
 export const AuctionParticipant = Type.Object({
     playerId: Type.String(),
     bid: Type.Optional(Type.Number()),
     passed: Type.Boolean({ default: false })
 })
 
-export type Auction = Static<typeof Auction>
+export type Auction = Type.Static<typeof Auction>
 export const Auction = Type.Object({
     id: Type.String(),
     type: Type.Enum(AuctionType),
@@ -25,7 +25,7 @@ export const Auction = Type.Object({
     winnerId: Type.Optional(Type.String())
 })
 
-export abstract class HydratedAuction<T extends TSchema> extends Hydratable<T> implements Auction {
+export abstract class HydratedAuction<T extends Type.TSchema> extends Hydratable<T> implements Auction {
     declare id: string
     declare type: AuctionType
     declare participants: AuctionParticipant[]

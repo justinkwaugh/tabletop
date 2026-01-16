@@ -1,8 +1,8 @@
-import { type Static, Type } from 'typebox'
+import * as Type from 'typebox'
 import { getPrng, type RandomFunction } from '../../util/prng.js'
 import { customRandom } from 'nanoid'
 
-export type PrngState = Static<typeof PrngState>
+export type PrngState = Type.Static<typeof PrngState>
 export const PrngState = Type.Object({
     seed: Type.Number(),
     invocations: Type.Number()

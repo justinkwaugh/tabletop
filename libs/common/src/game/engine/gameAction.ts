@@ -1,4 +1,4 @@
-import { Type, type Static, type TSchema } from 'typebox'
+import * as Type from 'typebox'
 import { DateType } from '../../util/typebox.js'
 import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
@@ -10,7 +10,7 @@ export enum ActionSource {
     System = 'system'
 }
 
-export type PatchOperation = Static<typeof PatchOperation>
+export type PatchOperation = Type.Static<typeof PatchOperation>
 export const PatchOperation = Type.Object({
     op: Type.String(),
     path: Type.String(),
@@ -18,10 +18,10 @@ export const PatchOperation = Type.Object({
     value: Type.Optional(Type.Any())
 })
 
-export type Patch = Static<typeof Patch>
+export type Patch = Type.Static<typeof Patch>
 export const Patch = Type.Array(PatchOperation)
 
-export type GameAction = Static<typeof GameAction>
+export type GameAction = Type.Static<typeof GameAction>
 export const GameAction = Type.Object({
     id: Type.String(),
     gameId: Type.String(),
@@ -36,7 +36,7 @@ export const GameAction = Type.Object({
     updatedAt: Type.Optional(DateType())
 })
 
-export type PlayerAction = Static<typeof PlayerAction>
+export type PlayerAction = Type.Static<typeof PlayerAction>
 export const PlayerAction = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),
@@ -46,7 +46,7 @@ export const PlayerAction = Type.Evaluate(
     ])
 )
 
-export const ToAPIAction = (schema: TSchema) =>
+export const ToAPIAction = (schema: Type.TSchema) =>
     Type.Evaluate(
         Type.Intersect([
             Type.Omit(schema, ['createdAt', 'updatedAt']),
@@ -62,7 +62,7 @@ export interface HydratedAction extends GameAction {
     dehydrate(): GameAction
 }
 
-export abstract class HydratableAction<T extends TSchema>
+export abstract class HydratableAction<T extends Type.TSchema>
     extends Hydratable<T>
     implements HydratedAction
 {
@@ -81,7 +81,7 @@ export abstract class HydratableAction<T extends TSchema>
     abstract apply(state: GameState, context?: MachineContext): void
 }
 
-export function createAction<T extends TSchema>(schema: T, data?: Partial<Static<T>>): Static<T> {
+export function createAction<T extends Type.TSchema>(schema: T, data?: Partial<Type.Static<T>>): Type.Static<T> {
     // Create a new action with dummy values/defaults
     const newAction = Value.Create(schema)
 
