@@ -1,5 +1,5 @@
 import { Color } from '@tabletop/common'
-import { DefaultColorizer } from '@tabletop/frontend-components'
+import { DefaultColorizer } from '@tabletop/frontend-components/definition/gameColorizer'
 
 export class BridgesGameColorizer extends DefaultColorizer {
     override getUiColor(color: Color): string {

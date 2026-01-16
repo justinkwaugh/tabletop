@@ -27,6 +27,11 @@
             "svelte": "./dist/definition/gameUiDefinition.js",
             "import": "./dist/definition/gameUiDefinition.js"
         },
+        "./definition/gameColorizer": {
+            "types": "./dist/definition/gameColorizer.d.ts",
+            "svelte": "./dist/definition/gameColorizer.js",
+            "import": "./dist/definition/gameColorizer.js"
+        },
         "./utils/dynamicComponent": {
             "types": "./dist/utils/dynamicComponent.d.ts",
             "svelte": "./dist/utils/dynamicComponent.js",

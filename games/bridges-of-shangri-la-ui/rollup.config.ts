@@ -23,11 +23,22 @@ const libAlias = {
     }
 }
 
+const treeShakeSafeIds = [
+    '/libs/common/esm/',
+    '/libs/frontend-components/dist/',
+    '/games/bridges-of-shangri-la/esm/'
+]
+
+const isTreeShakeSafe = (id: string) => treeShakeSafeIds.some((segment) => id.includes(segment))
+
 export default {
     input: 'src/lib/index.ts',
     output: {
         dir: 'public',
         format: 'es'
+    },
+    treeshake: {
+        moduleSideEffects: (id: string) => !isTreeShakeSafe(id)
     },
     plugins: [
         libAlias,
