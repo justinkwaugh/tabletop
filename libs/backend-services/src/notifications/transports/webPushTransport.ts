@@ -2,7 +2,7 @@ import { Notification } from '@tabletop/common'
 import { WebPushSubscription } from '../subscriptions/webPushSubscription.js'
 import { SecretsService } from '../../secrets/secretsService.js'
 import { Type, type Static } from 'typebox'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 import webpush, { WebPushError } from 'web-push'
 import crypto from 'crypto'
 

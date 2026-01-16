@@ -105,17 +105,17 @@
     let numPlayers = $state(
         mode === EditMode.Edit
             ? editedGame.players.length
-            : (gameTitle.metadata.defaultPlayerCount ?? 1)
+            : (gameTitle.info.metadata.defaultPlayerCount ?? 1)
     )
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
     let isHotseat: boolean = $state(hotseatOnly || editedGame.hotseat)
-    let minPlayers: number = $derived(gameTitle?.metadata.minPlayers ?? 1)
-    let maxPlayers: number = $derived(gameTitle?.metadata.maxPlayers ?? 1)
+    let minPlayers: number = $derived(gameTitle?.info.metadata.minPlayers ?? 1)
+    let maxPlayers: number = $derived(gameTitle?.info.metadata.maxPlayers ?? 1)
 
     function generateDefaultOptions() {
         const defaultConfig: GameConfig = {}
-        for (const option of gameTitle.configurator?.options ?? []) {
+        for (const option of gameTitle.info.configurator?.options ?? []) {
             defaultConfig[option.id] = option.default ?? null
         }
         return defaultConfig
@@ -137,8 +137,8 @@
             return
         }
 
-        assertExists(gameTitle?.configurator, 'No configurator found for selected title')
-        gameTitle.configurator.updateConfig(config, { id: option.id, value })
+        assertExists(gameTitle?.info.configurator, 'No configurator found for selected title')
+        gameTitle.info.configurator.updateConfig(config, { id: option.id, value })
     }
 
     function updatePlayers(numPlayers: number) {
@@ -212,7 +212,7 @@
         }
 
         if (mode === EditMode.Create) {
-            gameData.typeId = gameTitle.id
+            gameData.typeId = gameTitle.info.id
             if (seed.trim().length > 0) {
                 try {
                     gameData.seed = parseInt(seed.trim())
@@ -332,7 +332,7 @@
 <div class="flex flex-row w-full justify-between items-center mb-4">
     <div>
         <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200">
-            {gameTitle.metadata.name}
+            {gameTitle.info.metadata.name}
         </h1>
     </div>
     <div>
@@ -460,14 +460,14 @@
             {/if}
         {/each}
     </div>
-    {#if !gameTitle.metadata.beta && mode === EditMode.Create}
+    {#if !gameTitle.info.metadata.beta && mode === EditMode.Create}
         <Toggle bind:checked={isPublic}>Public</Toggle>
     {/if}
-    {#if gameTitle.configurator && gameTitle.configurator.options.length > 0}
+    {#if gameTitle.info.configurator && gameTitle.info.configurator.options.length > 0}
         <div
             class="p-4 border-2 border-gray-700 rounded-lg flex flex-col space-y-4 justify-center items-start"
         >
-            {#each gameTitle.configurator.options as option (option.id)}
+            {#each gameTitle.info.configurator.options as option (option.id)}
                 {#if isBooleanConfigOption(option)}
                     {@render booleanOption(option)}
                 {:else if isListConfigOption(option)}

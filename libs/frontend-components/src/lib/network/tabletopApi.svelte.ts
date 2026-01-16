@@ -1,5 +1,5 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 import {
     Bookmark,
     Game,

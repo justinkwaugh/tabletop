@@ -15,7 +15,7 @@
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import GameEditForm from './GameEditForm.svelte'
     import DeleteModal from './DeleteModal.svelte'
-    import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+    import { type GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
     import { setAppContext } from '$lib/model/appContext.js'
     import { createHarnessAppContext } from '$lib/harness/harnessContext.js'
     import type { GameState, HydratedGameState } from '@tabletop/common'
@@ -77,14 +77,15 @@
             return
         }
 
-        const sessionClass = await definition.sessionClass()
+        const runtime = await definition.runtime()
+        const sessionClass = runtime.sessionClass
         gameSession = new sessionClass({
             gameService: gameService,
             authorizationService: authorizationService,
             notificationService: notificationService,
             chatService: chatService,
             api: api,
-            definition,
+            runtime: runtime,
             game,
             state: game.state,
             actions
@@ -153,7 +154,7 @@
 <div class="flex flex-col w-screen overflow-auto">
     {#if gameSession}
         {#key gameSession}
-            <HarnessGame {definition} {gameSession} />
+            <HarnessGame {gameSession} />
         {/key}
     {/if}
 </div>

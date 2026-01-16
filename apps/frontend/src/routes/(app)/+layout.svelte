@@ -27,8 +27,14 @@
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
     import { BellSolid } from 'flowbite-svelte-icons'
 
-    let { api, authorizationService, gameService, notificationService, visibilityService } =
-        getAppContext()
+    let {
+        api,
+        authorizationService,
+        gameService,
+        notificationService,
+        visibilityService,
+        libraryService
+    } = getAppContext()
 
     let { children } = $props()
 
@@ -48,6 +54,14 @@
         }
 
         return game.seed
+    })
+
+    let currentDefinition = $derived.by(() => {
+        if (!gameService.currentGameSession) {
+            return undefined
+        }
+
+        return libraryService.getTitle(gameService.currentGameSession.primaryGame.typeId)
     })
 
     async function onLogout() {
@@ -176,8 +190,8 @@
             class="text-nowrap text-center mt-2 sm:mt-0 max-w-[320px] dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
             style=""
             tag="h4"
-            >{gameService.currentGameSession.definition.metadata.beta ? 'BETA: ' : ''}{gameService
-                .currentGameSession.primaryGame.name}</Heading
+            >{currentDefinition?.info.metadata.beta ? 'BETA: ' : ''}{gameService.currentGameSession
+                .primaryGame.name}</Heading
         >
     {/if}
 {/snippet}
@@ -195,9 +209,7 @@
 
 <Navbar
     fluid={true}
-    class="{gameService.currentGameSession?.definition.metadata.beta
-        ? 'dark:bg-red-900'
-        : 'dark:bg-gray-800'} "
+    class="{currentDefinition?.info.metadata.beta ? 'dark:bg-red-900' : 'dark:bg-gray-800'} "
 >
     <div class="flex flex-col w-full">
         <div class="flex flex-row justify-between items-center w-full">

@@ -87,14 +87,14 @@ export class ResendEmailService implements EmailService {
             GameInvitation({
                 ownerName: owner.username ?? 'someone',
                 gameName: game.name,
-                title: definition.metadata.name,
+                title: definition.info.metadata.name,
                 url
             })
         )
         await this.resend.emails.send({
             from: 'noreply@boardtogether.games',
             to: toEmail,
-            subject: `Join ${owner.username}'s game of ${definition.metadata.name}`,
+            subject: `Join ${owner.username}'s game of ${definition.info.metadata.name}`,
             html: emailHTML,
             headers: {
                 'X-Entity-Ref-ID': nanoid()

@@ -1,7 +1,7 @@
 import { DateType } from '@tabletop/common'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 
 type BookmarkPostRequest = Static<typeof BookmarkPostRequest>
 const BookmarkPostRequest = Type.Object(

@@ -98,7 +98,7 @@ export class GameService {
         game.ownerId = owner.id // Don't trust client
         game.storage = GameStorage.Remote // Has to be remote here on the backend
 
-        const newGame = definition.initializer.initializeGame(game, definition)
+        const newGame = definition.runtime.initializer.initializeGame(game, definition)
 
         // Check the specified players and populate them with user data
         const usersByPlayerId = await this.validateAndPopulatePlayers(newGame.players, owner)
@@ -107,14 +107,14 @@ export class GameService {
 
         // Validate player count
         if (
-            newGame.players.length < definition.metadata.minPlayers ||
-            newGame.players.length > definition.metadata.maxPlayers
+            newGame.players.length < definition.info.metadata.minPlayers ||
+            newGame.players.length > definition.info.metadata.maxPlayers
         ) {
             throw new GamePlayerCountInvalidError({
                 id: newGame.id,
                 playerCount: newGame.players.length,
-                minPlayers: definition.metadata.minPlayers,
-                maxPlayers: definition.metadata.maxPlayers
+                minPlayers: definition.info.metadata.minPlayers,
+                maxPlayers: definition.info.metadata.maxPlayers
             })
         }
 
@@ -224,7 +224,7 @@ export class GameService {
         }
 
         // Generate initial state
-        const engine = new GameEngine(definition)
+        const engine = new GameEngine(definition.runtime)
         const { startedGame, initialState } = engine.startGame(forkedGame)
 
         // Reset state to waiting
@@ -444,14 +444,14 @@ export class GameService {
             }
 
             if (
-                fields.players.length < definition.metadata.minPlayers ||
-                fields.players.length > definition.metadata.maxPlayers
+                fields.players.length < definition.info.metadata.minPlayers ||
+                fields.players.length > definition.info.metadata.maxPlayers
             ) {
                 throw new GamePlayerCountInvalidError({
                     id: gameId,
                     playerCount: fields.players.length,
-                    minPlayers: definition.metadata.minPlayers,
-                    maxPlayers: definition.metadata.maxPlayers
+                    minPlayers: definition.info.metadata.minPlayers,
+                    maxPlayers: definition.info.metadata.maxPlayers
                 })
             }
 
@@ -726,7 +726,7 @@ export class GameService {
                 }
             })
         } else {
-            const { startedGame, initialState } = new GameEngine(definition).startGame(game)
+            const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(game)
             startedGame.state = initialState
             ;[updatedGame] = await this.gameStore.updateGame({
                 game,
@@ -793,7 +793,7 @@ export class GameService {
 
         const initialIndex = action.index
 
-        const gameEngine = new GameEngine(definition)
+        const gameEngine = new GameEngine(definition.runtime)
         const { processedActions, updatedState, indexOffset } = gameEngine.run(
             action,
             game.state,
@@ -1010,7 +1010,7 @@ export class GameService {
             }
         }
 
-        const gameEngine = new GameEngine(definition)
+        const gameEngine = new GameEngine(definition.runtime)
         actions.reverse()
 
         for (const action of actions) {

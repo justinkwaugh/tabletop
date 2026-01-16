@@ -8,6 +8,48 @@ import url from '@rollup/plugin-url'
 import terser from '@rollup/plugin-terser'
 import brotli from 'rollup-plugin-brotli'
 
+const analyze = process.env.ROLLUP_ANALYZE === '1'
+
+const analyzeBundle = () => ({
+    name: 'analyze-bundle',
+    generateBundle(
+        _options: unknown,
+        bundle: Record<
+            string,
+            { type: string; modules?: Record<string, { renderedLength: number }> }
+        >
+    ) {
+        if (!analyze) return
+
+        const stats: Record<
+            string,
+            {
+                total: number
+                topModules: { id: string; renderedLength: number }[]
+            }
+        > = {}
+
+        for (const [fileName, output] of Object.entries(bundle)) {
+            if (output.type !== 'chunk' || !output.modules) continue
+
+            const modules = Object.entries(output.modules)
+                .map(([id, moduleInfo]) => ({ id, renderedLength: moduleInfo.renderedLength ?? 0 }))
+                .sort((a, b) => b.renderedLength - a.renderedLength)
+
+            stats[fileName] = {
+                total: modules.reduce((sum, moduleInfo) => sum + moduleInfo.renderedLength, 0),
+                topModules: modules.slice(0, 50)
+            }
+        }
+
+        this.emitFile({
+            type: 'asset',
+            fileName: 'rollup-stats.json',
+            source: JSON.stringify(stats, null, 2)
+        })
+    }
+})
+
 const libAlias = {
     name: 'lib-alias',
     resolveId(source: string) {
@@ -23,22 +65,11 @@ const libAlias = {
     }
 }
 
-const treeShakeSafeIds = [
-    '/libs/common/esm/',
-    '/libs/frontend-components/dist/',
-    '/games/bridges-of-shangri-la/esm/'
-]
-
-const isTreeShakeSafe = (id: string) => treeShakeSafeIds.some((segment) => id.includes(segment))
-
 export default {
     input: 'src/lib/index.ts',
     output: {
         dir: 'public',
         format: 'es'
-    },
-    treeshake: {
-        moduleSideEffects: (id: string) => !isTreeShakeSafe(id)
     },
     plugins: [
         libAlias,
@@ -86,6 +117,8 @@ export default {
             // Set limit to 0 or a very small number to ensure files are always copied, not inlined as base64
             limit: 0
         }),
+        analyzeBundle(),
+        terser(),
         brotli()
     ]
 }

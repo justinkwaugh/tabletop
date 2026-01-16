@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import Value from 'typebox/value'
+import * as Value from 'typebox/value'
 import * as Type from 'typebox'
 import { DateType } from './typebox.js'
 

@@ -221,13 +221,16 @@
         if (!title || !game.config) {
             return {}
         }
-        if (title.configurator?.options.length === 0 || Object.keys(game.config).length === 0) {
+        if (
+            title.info.configurator?.options.length === 0 ||
+            Object.keys(game.config).length === 0
+        ) {
             return {}
         }
         const configs: Record<string, string> = {}
         if (game.config) {
             for (const [key, value] of Object.entries(game.config)) {
-                const option = title.configurator?.options.find((opt) => opt.id === key)
+                const option = title.info.configurator?.options.find((opt) => opt.id === key)
                 if (!option) {
                     continue
                 }

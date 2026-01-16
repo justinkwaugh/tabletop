@@ -15,7 +15,7 @@ import { RedisCacheService } from '../../cache/cacheService.js'
 import { StoredGameChat } from '../model/storedGameChat.js'
 import { nanoid } from 'nanoid'
 import { StoredBookmark } from '../model/storedBookmark.js'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 
 const GAME_CHAT_MESSAGE_LIMIT = 2000
 

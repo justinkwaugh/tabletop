@@ -8,7 +8,7 @@ import {
 } from '../model/gameState.js'
 import { MachineContext } from './machineContext.js'
 import { type MachineStateHandler } from './machineStateHandler.js'
-import { type GameDefinition } from '../definition/gameDefinition.js'
+import { type GameRuntime } from '../definition/gameDefinition.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
@@ -29,7 +29,7 @@ export class GameEngine<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
 > {
-    constructor(public readonly definition: GameDefinition<T, U>) {}
+    constructor(public readonly runtime: GameRuntime<T, U>) {}
 
     generateUninitializedState(game: Game): UninitializedGameState {
         const seed = game.seed ?? generateSeed()
@@ -57,7 +57,7 @@ export class GameEngine<
         startedGame.status = GameStatus.Started
 
         const uninitializedState = this.generateUninitializedState(game)
-        const initialState = this.definition.initializer.initializeGameState(
+        const initialState = this.runtime.initializer.initializeGameState(
             game,
             uninitializedState
         )
@@ -74,7 +74,7 @@ export class GameEngine<
     }
 
     getValidActionTypesForPlayer(game: Game, state: T, playerId: string): string[] {
-        const hydratedState = this.definition.hydrator.hydrateState(state)
+        const hydratedState = this.runtime.hydrator.hydrateState(state)
         if (!hydratedState.isActivePlayer(playerId)) {
             return []
         }
@@ -97,7 +97,7 @@ export class GameEngine<
         const processedActions: GameAction[] = []
         let updatedState = structuredClone(state)
 
-        const hydratedState = this.definition.hydrator.hydrateState(updatedState)
+        const hydratedState = this.runtime.hydrator.hydrateState(updatedState)
         const machineContext = new MachineContext({
             action: action,
             gameConfig: game.config,
@@ -128,7 +128,7 @@ export class GameEngine<
                 `Player ${currentAction.playerId} is not an active player`
             )
 
-            const hydratedAction = this.definition.hydrator.hydrateAction(
+            const hydratedAction = this.runtime.hydrator.hydrateAction(
                 structuredClone(currentAction)
             )
             if (!hydratedAction.createdAt) {
@@ -192,7 +192,7 @@ export class GameEngine<
     }
 
     private getStateHandler(state: GameState): MachineStateHandler<HydratedAction, U> {
-        const stateHandler = this.definition.stateHandlers[state.machineState]
+        const stateHandler = this.runtime.stateHandlers[state.machineState]
         assertExists(stateHandler, `Unknown machine state: ${state.machineState}`)
         return stateHandler
     }

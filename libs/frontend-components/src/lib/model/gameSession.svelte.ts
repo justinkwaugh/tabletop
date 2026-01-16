@@ -21,7 +21,7 @@ import {
     createAction
 } from '@tabletop/common'
 import { watch } from 'runed'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import { toast } from 'svelte-sonner'
 import { nanoid } from 'nanoid'
@@ -32,7 +32,7 @@ import {
     type NotificationEvent,
     type NotificationService
 } from '$lib/services/notificationService.js'
-import type { GameUiDefinition } from '$lib/definition/gameUiDefinition'
+import type { GameUIRuntime } from '$lib/definition/gameUiDefinition'
 import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import { GameContext } from './gameContext.svelte.js'
@@ -80,7 +80,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private authorizationService: AuthorizationService
     private notificationService: NotificationService
 
-    public definition: GameUiDefinition<T, U>
+    public runtime: GameUIRuntime<T, U>
     private engine: GameEngine<T, U>
     private api: RemoteApiService
 
@@ -161,7 +161,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private currentVisibleGameState: U = $derived.by(() => {
         // console.log('Deriving current visible game state')
         this.updatingVisibleState = true
-        return this.definition.hydrator.hydrateState(this.currentVisibleContext.state)
+        return this.runtime.hydrator.hydrateState(this.currentVisibleContext.state)
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
@@ -340,7 +340,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         notificationService,
         chatService,
         api,
-        definition,
+        runtime,
         game,
         state,
         actions,
@@ -351,7 +351,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         notificationService: NotificationService
         chatService: ChatService
         api: RemoteApiService
-        definition: GameUiDefinition<T, U>
+        runtime: GameUIRuntime<T, U>
         game: Game
         state: T
         actions: GameAction[]
@@ -364,14 +364,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         this.api = api
 
-        this.definition = definition
-        this.engine = new GameEngine(definition)
+        this.runtime = runtime
+        this.engine = new GameEngine(runtime)
 
         this.debug = debug
 
         delete game.state
         this.gameContext = new GameContext<T, U>({
-            definition,
+            runtime,
             game,
             state,
             actions
@@ -391,7 +391,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.explorations = new GameExplorations<T, U>(
             this.authorizationService,
             this.gameService,
-            this.definition,
+            this.runtime,
             {
                 onExplorationEnter: (context) => {
                     this.suppressStateChangeActions = true
@@ -460,7 +460,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         })
 
         // Need an initial value
-        this.gameState = $state.raw(this.definition.hydrator.hydrateState(state))
+        this.gameState = $state.raw(this.runtime.hydrator.hydrateState(state))
     }
 
     isBusy(): boolean {
@@ -492,8 +492,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     RunMode.Single
                 )
                 await this.gatherAndPlayAnimations(
-                    this.definition.hydrator.hydrateState(updatedState),
-                    this.definition.hydrator.hydrateState(priorState),
+                    this.runtime.hydrator.hydrateState(updatedState),
+                    this.runtime.hydrator.hydrateState(priorState),
                     action
                 )
                 priorState = updatedState
@@ -1081,7 +1081,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 throw new Error('Game state is missing from server')
             }
             const newContext = new GameContext<T, U>({
-                definition: this.definition,
+                runtime: this.runtime,
                 game,
                 state: game.state as T,
                 actions

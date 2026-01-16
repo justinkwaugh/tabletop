@@ -41,14 +41,17 @@ export const load: PageLoad = async ({ params, url }) => {
             return
         }
 
+        const runtime = await definition.runtime()
+        const sessionClass = runtime.sessionClass
+
         return {
-            gameSession: new definition.sessionClass({
+            gameSession: new sessionClass({
                 gameService: appContext.gameService,
                 authorizationService: appContext.authorizationService,
                 notificationService: appContext.notificationService,
                 chatService: appContext.chatService,
                 api: appContext.api,
-                definition,
+                runtime: runtime,
                 game,
                 state: game.state,
                 actions

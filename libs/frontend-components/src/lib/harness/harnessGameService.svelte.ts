@@ -86,7 +86,7 @@ export class HarnessGameService implements GameService {
         const games = await this.localGameStore.findGamesForUser(user)
 
         games
-            .filter((game) => game.typeId === definition.id)
+            .filter((game) => game.typeId === definition.info.id)
             .forEach((game) => {
                 this.gamesById.set(game.id, game)
             })
@@ -126,9 +126,11 @@ export class HarnessGameService implements GameService {
             player.userId = game.ownerId
         }
 
-        const initializedGame = definition.initializer.initializeGame(game, definition)
+        const runtime = await definition.runtime()
+        const gameDefinition = { info: definition.info, runtime }
+        const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
 
-        const engine = new GameEngine(definition)
+        const engine = new GameEngine(runtime)
         const { startedGame, initialState } = engine.startGame(initializedGame)
 
         startedGame.activePlayerIds = initialState.activePlayerIds
@@ -172,7 +174,8 @@ export class HarnessGameService implements GameService {
         forkedGame.winningPlayerIds = []
 
         // Generate initial state
-        const engine = new GameEngine(definition)
+        const runtime = await definition.runtime()
+        const engine = new GameEngine(runtime)
         const { startedGame, initialState } = engine.startGame(forkedGame)
 
         // Copy the entire action history up to the specified index

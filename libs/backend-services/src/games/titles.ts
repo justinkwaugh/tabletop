@@ -10,5 +10,5 @@ for (const [name, scope] of AvailableGames) {
 
 // create a record of definitions keyed by their id for each definition in definitions
 export const AVAILABLE_TITLES: Record<string, GameDefinition> = Object.fromEntries(
-    definitions.map((definition) => [definition.id, definition])
+    definitions.map((definition) => [definition.info.id, definition])
 )

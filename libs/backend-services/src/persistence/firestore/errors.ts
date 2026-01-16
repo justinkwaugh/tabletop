@@ -1,5 +1,5 @@
 import { Type, type Static } from 'typebox'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 
 export type FirestoreError = Static<typeof FirestoreError>
 export const FirestoreError = Type.Object({

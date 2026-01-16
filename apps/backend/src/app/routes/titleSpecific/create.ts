@@ -10,7 +10,9 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
                 Type.Intersect([
                     Type.Pick(Game, ['id', 'name', 'players', 'isPublic']),
                     Type.Object({
-                        config: Type.Optional(definition.configurator?.schema ?? Type.Object({}))
+                        config: Type.Optional(
+                            definition.info.configurator?.schema ?? Type.Object({})
+                        )
                     })
                 ])
             )
@@ -33,7 +35,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
             }
 
             const game = request.body.game as Partial<Game>
-            game.typeId = definition.id
+            game.typeId = definition.info.id
 
             const newGame = await fastify.gameService.createGame({
                 definition,

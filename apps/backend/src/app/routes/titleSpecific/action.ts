@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { TSchema, Type, type Static } from 'typebox'
 import { GameAction, ActionSource, GameDefinition, ToAPIAction } from '@tabletop/common'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 
 export default async function (
     definition: GameDefinition,

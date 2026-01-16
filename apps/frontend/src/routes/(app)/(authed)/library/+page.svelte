@@ -12,9 +12,9 @@
     let selectedTitle: GameUiDefinition<GameState, HydratedGameState> | undefined = $state()
 
     function selectTitle(title: GameUiDefinition<GameState, HydratedGameState>) {
-        if (title.id !== selectedTitle?.id) {
+        if (title.info.id !== selectedTitle?.info.id) {
             selectedTitle = title
-            gameService.loadOpenGames(title.id).catch(console.error)
+            gameService.loadOpenGames(title.info.id).catch(console.error)
         }
     }
     const wait = () => new Promise((res) => setTimeout(res, 1000))
@@ -100,7 +100,7 @@
                     </div>
 
                     <div class="flex justify-center gap-x-2 gap-y-2 flex-wrap sm:p-0">
-                        {#each libraryService.getTitles() as title (title.id)}
+                        {#each libraryService.getTitles() as title (title.info.id)}
                             <LibraryGameCard onclick={() => selectTitle(title)} {title} />
                         {/each}
                     </div>
@@ -108,7 +108,7 @@
             </div>
             {#if selectedTitle}
                 {@render gameColumn(
-                    gameService.openGamesByTitleId.get(selectedTitle.id) ?? [],
+                    gameService.openGamesByTitleId.get(selectedTitle.info.id) ?? [],
                     'Open Games'
                 )}
             {/if}

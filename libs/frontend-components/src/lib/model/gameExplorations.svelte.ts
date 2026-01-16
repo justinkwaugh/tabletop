@@ -11,7 +11,7 @@ import { GameContext } from './gameContext.svelte.js'
 import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import type { GameService } from '$lib/services/gameService.js'
 import { nanoid } from 'nanoid'
-import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+import type { GameUIRuntime } from '$lib/definition/gameUiDefinition.js'
 
 export type ExplorationStartCallback<
     T extends GameState,
@@ -41,7 +41,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
     constructor(
         private authorizationService: AuthorizationService,
         private gameService: GameService,
-        private definition: GameUiDefinition<T, U>,
+        private runtime: GameUIRuntime<T, U>,
         private callbacks?: ExplorationCallbacks<T, U>
     ) {}
 
@@ -158,7 +158,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
                 state.gameId = newGameId
 
                 // Allow the game to address any random initialization it needs
-                const initializedState = this.definition.initializer.initializeExplorationState(
+                const initializedState = this.runtime.initializer.initializeExplorationState(
                     state
                 ) as T
                 Object.assign(state, initializedState)
@@ -204,7 +204,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
         delete game.state
 
         const explorationContext = new GameContext<T, U>({
-            definition: this.definition,
+            runtime: this.runtime,
             game,
             state: state as T,
             actions

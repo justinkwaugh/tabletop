@@ -27,7 +27,7 @@ import {
     PlayerStatus,
     assertExists
 } from '@tabletop/common'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
 
@@ -200,9 +200,11 @@ export class GameService implements GameServiceInterface {
                 player.userId = game.ownerId
             }
 
-            const initializedGame = definition.initializer.initializeGame(game, definition)
+            const runtime = await definition.runtime()
+            const gameDefinition = { info: definition.info, runtime }
+            const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
 
-            const engine = new GameEngine(definition)
+            const engine = new GameEngine(runtime)
             const { startedGame, initialState } = engine.startGame(initializedGame)
 
             startedGame.activePlayerIds = initialState.activePlayerIds
@@ -253,7 +255,8 @@ export class GameService implements GameServiceInterface {
             forkedGame.winningPlayerIds = []
 
             // Generate initial state
-            const engine = new GameEngine(definition)
+            const runtime = await definition.runtime()
+            const engine = new GameEngine(runtime)
             const { startedGame, initialState } = engine.startGame(forkedGame)
 
             // Copy the entire action history up to the specified index

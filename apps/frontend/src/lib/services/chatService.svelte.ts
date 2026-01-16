@@ -18,7 +18,7 @@ import {
     GameChatNotification,
     GameNotificationAction
 } from '@tabletop/common'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 import { NotificationService } from './notificationService.svelte'
 
 export class ChatService {

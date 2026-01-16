@@ -60,8 +60,8 @@
     >
         <div class="max-sm:w-full shrink-0 max-sm:max-w-[90vw]">
             <img
-                src={title.thumbnailUrl}
-                alt={title.metadata.name}
+                src={title.info.thumbnailUrl}
+                alt={title.info.metadata.name}
                 class="w-full sm:w-auto sm:h-[340px]"
             />
         </div>
@@ -71,16 +71,16 @@
                 <div class="flex flex-row justify-between items-start w-full">
                     <div class="flex flex-col items-start">
                         <div class="text-3xl text-pretty leading-none mt-2 me-2 max-w-[300px]">
-                            {title.metadata.name}
+                            {title.info.metadata.name}
                         </div>
-                        <div class="text-md text-gray-400">{title.metadata.year}</div>
+                        <div class="text-md text-gray-400">{title.info.metadata.year}</div>
                     </div>
                     <Button onclick={createGame} size="xs" class="mt-2">Play</Button>
                 </div>
 
                 <div class="flex flex-col items-start">
                     <div class="text-xs text-gray-500 mt-4">DESCRIPTION</div>
-                    {#each splitLines(title.metadata.description) as line, index (index)}
+                    {#each splitLines(title.info.metadata.description) as line, index (index)}
                         <div class="text-sm leading-[1.15] text-pretty">
                             {line}
                         </div>
@@ -92,13 +92,13 @@
                 <div class="flex flex-col items-start mb-2">
                     <div class="text-xs text-gray-500 mt-4">DESIGNED BY</div>
                     <div class="text-sm leading-[1.15] text-pretty">
-                        {title.metadata.designer}
+                        {title.info.metadata.designer}
                     </div>
                 </div>
                 <div class="flex flex-col items-end mb-2">
                     <div class="text-xs text-gray-500 mt-4">PLAYERS</div>
                     <div class="text-md leading-[1.15]">
-                        {title.metadata.minPlayers} - {title.metadata.maxPlayers}
+                        {title.info.metadata.minPlayers} - {title.info.metadata.maxPlayers}
                     </div>
                 </div>
             </div>

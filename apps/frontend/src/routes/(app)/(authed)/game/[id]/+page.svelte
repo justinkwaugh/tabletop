@@ -50,5 +50,5 @@
     {:else if data.gameSession.game.hotseat}
         <HotseatPanel />
     {/if}
-    <GameUI definition={data.gameSession.definition} gameSession={data.gameSession} />
+    <GameUI gameSession={data.gameSession} />
 </div>

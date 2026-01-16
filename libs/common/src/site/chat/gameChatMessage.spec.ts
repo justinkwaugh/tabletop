@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import Value from 'typebox/value'
+import * as Value from 'typebox/value'
 import { GameChatMessage } from './gameChatMessage.js'
 
 describe('Game Chat Message Data Object Tests', () => {

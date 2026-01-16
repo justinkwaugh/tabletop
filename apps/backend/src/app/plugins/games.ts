@@ -15,7 +15,7 @@ async function registerGame(
     fastify: FastifyInstance,
     opts: AppOptions
 ) {
-    const prefix = `${opts.prefix || ''}/game/${definition.id}`
+    const prefix = `${opts.prefix || ''}/game/${definition.info.id}`
 
     await fastify.register(CreateGame.bind(null, definition), { prefix })
     await fastify.register(StartGame.bind(null, definition), { prefix })
@@ -23,8 +23,8 @@ async function registerGame(
     await fastify.register(ForkGame.bind(null, definition), { prefix })
 
     // Register all the actions
-    for (const actionType of Object.keys(definition.apiActions)) {
-        const actionSchema = definition.apiActions[actionType]
+    for (const actionType of Object.keys(definition.runtime.apiActions)) {
+        const actionSchema = definition.runtime.apiActions[actionType]
         await fastify.register(ApplyAction.bind(null, definition, actionType, actionSchema), {
             prefix
         })

@@ -1,7 +1,7 @@
 import { generateSeed } from '../../util/prng.js'
 import { Game, GameCategory, GameStatus, GameStorage } from '../model/game.js'
 import type { GameState, HydratedGameState, UninitializedGameState } from '../model/gameState.js'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 import type { GameDefinition } from './gameDefinition.js'
 import { assertExists } from '../../util/assertions.js'
 
@@ -25,10 +25,10 @@ export abstract class BaseGameInitializer<
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game {
         if (Object.keys(game.config ?? {}).length > 0) {
             assertExists(
-                definition.configurator,
+                definition.info.configurator,
                 'Config handler is required to validate game config'
             )
-            definition.configurator.validateConfig(game.config!)
+            definition.info.configurator.validateConfig(game.config!)
         }
 
         const newGame: Game = <Game>{

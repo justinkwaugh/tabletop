@@ -1,5 +1,5 @@
 import type * as Type from 'typebox'
-import { Value } from 'typebox/value'
+import * as Value from 'typebox/value'
 import type { GameConfig, GameConfigOptions } from '../model/gameConfig.js'
 
 export interface GameConfigurator {

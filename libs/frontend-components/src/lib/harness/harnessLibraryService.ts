@@ -13,9 +13,9 @@ export class HarnessLibraryService implements LibraryService {
         return this.definition
     }
     getNameForTitle(id: string): string {
-        return this.definition.metadata.name
+        return this.definition.info.metadata.name
     }
     getThumbnailForTitle(id: string): string {
-        return this.definition.thumbnailUrl
+        return this.definition.info.thumbnailUrl
     }
 }

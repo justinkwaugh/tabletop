@@ -13,10 +13,10 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
 
     private colorizer: GameColorizer = $derived.by(() => {
         return this.colorBlind &&
-            this.gameContext.definition.colorizer.supportsColorblindPalette() &&
+            this.gameContext.runtime.colorizer.supportsColorblindPalette() &&
             !this.authorizationService.actAsAdmin
             ? new ColorblindColorizer()
-            : this.gameContext.definition.colorizer
+            : this.gameContext.runtime.colorizer
     })
 
     private playerColorsById = $derived.by(() => {
@@ -57,7 +57,7 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
 
     private getPreferredColor(user?: User): Color | undefined {
         if (
-            !this.gameContext.definition.colorizer.allowPreferredPlayerColors() ||
+            !this.gameContext.runtime.colorizer.allowPreferredPlayerColors() ||
             this.gameContext.game.hotseat ||
             !user ||
             !user.preferences ||
@@ -70,7 +70,7 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
         const preferredColors = user.preferences.preferredColors
         let preferredColor: Color | undefined
         let bestRank = 999
-        for (const color of this.gameContext.definition.playerColors) {
+        for (const color of this.gameContext.runtime.playerColors) {
             const rank = preferredColors.indexOf(color)
             if (rank >= 0 && rank < bestRank) {
                 preferredColor = color

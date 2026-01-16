@@ -1,4 +1,4 @@
-import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+import type { GameUIRuntime } from '$lib/definition/gameUiDefinition.js'
 import {
     calculateActionChecksum,
     type Game,
@@ -20,7 +20,7 @@ export type CloneInterceptor<T extends GameState> = {
 }
 
 export class GameContext<T extends GameState, U extends HydratedGameState<T> & T> {
-    definition: GameUiDefinition<T, U>
+    runtime: GameUIRuntime<T, U>
     game: Game
     state: T
     actions: GameAction[]
@@ -29,22 +29,22 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
     private actionsById: Map<string, GameAction> = new Map([])
 
     constructor({
-        definition,
+        runtime,
         game,
         state,
         actions
     }: {
-        definition: GameUiDefinition<T, U>
+        runtime: GameUIRuntime<T, U>
         game: Game
         state: T
         actions: GameAction[]
     }) {
-        this.definition = definition
+        this.runtime = runtime
         this.game = $state.raw(game)
         this.state = $state.raw(state)
         this.actions = $state.raw(this.initializeActions(actions))
         this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
-        this.engine = new GameEngine(definition)
+        this.engine = new GameEngine(runtime)
 
         this.verifyFullChecksum()
     }
@@ -71,7 +71,7 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         return new GameContext({
-            definition: this.definition,
+            runtime: this.runtime,
             game,
             state,
             actions

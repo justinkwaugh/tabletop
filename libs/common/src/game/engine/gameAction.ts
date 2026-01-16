@@ -3,7 +3,7 @@ import { DateType } from '../../util/typebox.js'
 import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
 import { MachineContext } from './machineContext.js'
-import Value from 'typebox/value'
+import * as Value from 'typebox/value'
 
 export enum ActionSource {
     User = 'user',

@@ -13,11 +13,11 @@ export class LibraryService {
         return Object.values(this.titles)
             .filter(
                 (title) =>
-                    !title.metadata.beta ||
+                    !title.info.metadata.beta ||
                     (user &&
                         (user.roles.includes(Role.Admin) || user.roles.includes(Role.BetaTester)))
             )
-            .sort((a, b) => a.metadata.name.localeCompare(b.metadata.name))
+            .sort((a, b) => a.info.metadata.name.localeCompare(b.info.metadata.name))
     }
 
     getTitle(id: string): GameUiDefinition<GameState, HydratedGameState> | undefined {
@@ -25,10 +25,10 @@ export class LibraryService {
     }
 
     getNameForTitle(id: string): string {
-        return this.titles[id]?.metadata.name ?? 'Unknown Game'
+        return this.titles[id]?.info.metadata.name ?? 'Unknown Game'
     }
 
     getThumbnailForTitle(id: string): string {
-        return this.titles[id]?.thumbnailUrl ?? ''
+        return this.titles[id]?.info.thumbnailUrl ?? ''
     }
 }

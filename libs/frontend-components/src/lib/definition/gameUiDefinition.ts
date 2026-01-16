@@ -1,7 +1,14 @@
 import type { GameSession } from '$lib/model/gameSession.svelte'
 import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import type { NotificationService } from '$lib/services/notificationService.js'
-import type { Game, GameAction, GameState, GameDefinition, HydratedGameState } from '@tabletop/common'
+import type {
+    Game,
+    GameAction,
+    GameInfo,
+    GameRuntime,
+    GameState,
+    HydratedGameState
+} from '@tabletop/common'
 import { type Component } from 'svelte'
 import type { GameColorizer } from './gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
@@ -19,7 +26,7 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
         notificationService,
         chatService,
         api,
-        definition,
+        runtime,
         game,
         state,
         actions,
@@ -30,7 +37,7 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
         notificationService: NotificationService
         chatService: ChatService
         api: RemoteApiService
-        definition: GameUiDefinition<T, U>
+        runtime: GameUIRuntime<T, U>
         game: Game
         state: T
         actions: GameAction[]
@@ -38,10 +45,18 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
     }): GameSession<T, U>
 }
 
-export interface GameUiDefinition<T extends GameState, U extends HydratedGameState<T> & T>
-    extends GameDefinition<T, U> {
-    gameUI: DynamicComponent<GameTable<T, U>>
-    sessionClass: () => Promise<GameSessionConstructor<T, U>>
-    colorizer: GameColorizer
+export type GameUIInfo = GameInfo & {
     thumbnailUrl: string
+}
+
+export interface GameUIRuntime<T extends GameState, U extends HydratedGameState<T> & T>
+    extends GameRuntime<T, U> {
+    gameUI: DynamicComponent<GameTable<T, U>>
+    sessionClass: GameSessionConstructor<T, U>
+    colorizer: GameColorizer
+}
+
+export type GameUiDefinition<T extends GameState, U extends HydratedGameState<T> & T> = {
+    info: GameUIInfo
+    runtime: () => Promise<GameUIRuntime<T, U>>
 }

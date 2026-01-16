@@ -5,7 +5,10 @@ import { Games } from '@tabletop/games-config'
 const definitions: GameUiDefinition<GameState, HydratedGameState>[] = []
 for (const game of Games) {
     try {
-        const url = new URL(/* @vite-ignore */ `/games/${game.id}/index.js`, import.meta.url)
+        const url = new URL(
+            /* @vite-ignore */ `/games/${game.id}/${game.version}/index.js`,
+            import.meta.url
+        )
         let gameModule = await import(url.href)
         if (!gameModule) {
             throw new Error()
@@ -23,4 +26,4 @@ for (const game of Games) {
 export const AVAILABLE_TITLES: Record<
     string,
     GameUiDefinition<GameState, HydratedGameState>
-> = Object.fromEntries(definitions.map((definition) => [definition.id, definition]))
+> = Object.fromEntries(definitions.map((definition) => [definition.info.id, definition]))

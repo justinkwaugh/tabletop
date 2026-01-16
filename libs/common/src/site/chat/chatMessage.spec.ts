@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ChatMessage } from './chatMessage.js'
-import Value from 'typebox/value'
+import * as Value from 'typebox/value'
 
 describe('Chat Message Data Object Tests', () => {
     it('converts dates', () => {
