@@ -154,6 +154,6 @@ export class DiscordTransport implements NotificationTransport {
     }
 
     private gameTitle(typeId: string): string | undefined {
-        return this.gameService.getTitle(typeId)?.metadata.name
+        return this.gameService.getTitle(typeId)?.info.metadata.name
     }
 }

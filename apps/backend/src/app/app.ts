@@ -11,6 +11,7 @@ import fastifyStatic from '@fastify/static'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { BaseError, ErrorCategory } from '@tabletop/common'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
+import { SiteManifest } from '@tabletop/games-config'
 import AuthorizationPlugin from './plugins/authorization.js'
 import FirestorePlugin from './plugins/firestore.js'
 import SensiblePlugin from './plugins/sensible.js'
@@ -32,6 +33,7 @@ const TASKS_PREFIX = '/tasks'
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
+const frontendVersion = process.env['FRONTEND_VERSION'] ?? SiteManifest.frontend.version
 
 const SESSION_SECRET = process.env['SESSION_SECRET']
     ? process.env['SESSION_SECRET']
@@ -185,7 +187,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
         if (service === 'backend') {
             await fastify.register(fastifyStatic, {
-                root: '/mnt/gcs/frontend',
+                root: path.join('/mnt/gcs/frontend', frontendVersion),
                 preCompressed: true,
                 immutable: true,
                 maxAge: '30d',
@@ -231,6 +233,21 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                 }
             })
         }
+
+        fastify.get('/manifest', async function (_req, reply) {
+            const backend = {
+                buildSha: process.env['GIT_SHA'] ?? process.env['COMMIT_SHA'] ?? null,
+                buildTime: process.env['BUILD_TIME'] ?? process.env['BUILD_TIMESTAMP'] ?? null,
+                revision: process.env['K_REVISION'] ?? null
+            }
+
+            reply.header('Cache-Control', 'no-store')
+            return {
+                ...SiteManifest,
+                frontend: { ...SiteManifest.frontend, version: frontendVersion },
+                backend
+            }
+        })
 
         // Override root path to serve index.html with no caching
         fastify.get('/', async function (req, reply) {

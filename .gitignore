@@ -46,3 +46,4 @@ firebase/data/export/*
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+tools/deploy/deploy.config.json

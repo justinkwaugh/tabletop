@@ -30,6 +30,7 @@
         "@tabletop/backend-services": "*",
         "@tabletop/common": "*",
         "@tabletop/email": "*",
+        "@tabletop/games-config": "*",
         "bcrypt": "^6.0.0",
         "discord-api-types": "^0.37.93",
         "discord-interactions": "^4.0.0",

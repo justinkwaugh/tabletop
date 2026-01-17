@@ -19,6 +19,7 @@ export const Definition = <GameDefinition<KaivaiGameState, HydratedKaivaiGameSta
             minPlayers: 3,
             maxPlayers: 4,
             defaultPlayerCount: 4,
+            version: '0.0.1',
             beta: false
         },
         configurator: new KaivaiConfigurator()

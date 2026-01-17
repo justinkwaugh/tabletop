@@ -1,0 +1,20 @@
+{
+    "name": "@tabletop/deploy",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "bin": {
+        "tabletop-deploy": "./esm/cli.js"
+    },
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsc",
+        "deploy": "node --enable-source-maps esm/cli.js tui",
+        "start": "node --enable-source-maps esm/cli.js"
+    },
+    "dependencies": {
+        "@tabletop/games-config": "*",
+        "ink": "^6.6.0",
+        "react": "^19.2.0"
+    }
+}

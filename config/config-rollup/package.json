@@ -1,0 +1,22 @@
+{
+    "name": "@tabletop/rollup-config",
+    "type": "module",
+    "version": "0.0.0",
+    "exports": "./index.js",
+    "dependencies": {
+        "@tabletop/games-config": "*",
+        "@rollup/plugin-commonjs": "^24.0.1",
+        "@rollup/plugin-node-resolve": "^15.2.3",
+        "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/plugin-typescript": "^12.3.0",
+        "@rollup/plugin-url": "8.0.2",
+        "@sveltejs/vite-plugin-svelte": "^6.2.1",
+        "rollup-plugin-brotli": "3.1.0",
+        "rollup-plugin-postcss": "^4.0.2",
+        "rollup-plugin-svelte": "^7.1.0",
+        "typescript": "5.9.3"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}

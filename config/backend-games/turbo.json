@@ -2,7 +2,7 @@
     "extends": ["//"],
     "tasks": {
         "build": {
-            "dependsOn": ["update-games", "^build"],
+            "dependsOn": ["^build"],
             "outputs": ["esm/**/*"]
         },
         "update-games": {

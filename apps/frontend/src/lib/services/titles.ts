@@ -1,12 +1,40 @@
 import type { GameState, HydratedGameState } from '@tabletop/common'
 import type { GameUiDefinition } from '@tabletop/frontend-components'
-import { Games } from '@tabletop/games-config'
+import { SiteManifest } from '@tabletop/games-config'
+
+type ManifestResponse = typeof SiteManifest & {
+    backend?: {
+        buildSha?: string | null
+        buildTime?: string | null
+        revision?: string | null
+    }
+}
+
+async function loadManifest(): Promise<ManifestResponse> {
+    if (typeof window === 'undefined') {
+        return SiteManifest
+    }
+
+    try {
+        const response = await fetch('/manifest', { cache: 'no-store' })
+        if (!response.ok) {
+            throw new Error(`Failed to load /manifest: ${response.status}`)
+        }
+        return (await response.json()) as ManifestResponse
+    } catch (error) {
+        console.error('Failed to load /manifest. Falling back to local manifest.', error)
+        return SiteManifest
+    }
+}
+
+const manifest = await loadManifest()
+const games = Object.entries(manifest.games).map(([id, entry]) => ({ id, ...entry }))
 
 const definitions: GameUiDefinition<GameState, HydratedGameState>[] = []
-for (const game of Games) {
+for (const game of games) {
     try {
         const url = new URL(
-            /* @vite-ignore */ `/games/${game.id}/${game.version}/index.js`,
+            /* @vite-ignore */ `/games/${game.id}/${game.uiVersion}/index.js`,
             import.meta.url
         )
         let gameModule = await import(url.href)
@@ -18,7 +46,7 @@ for (const game of Games) {
         ] as GameUiDefinition<GameState, HydratedGameState>
         definitions.push(gameDefinition)
     } catch (e) {
-        console.log(`Could not load game module for ${game.id} at ${game.version} from ${game.id}`)
+        console.log(`Could not load game module for ${game.id} at ${game.uiVersion}`)
     }
 }
 

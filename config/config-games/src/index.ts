@@ -1,18 +1,18 @@
-import gamesJson from './games.json' with { type: 'json' }
+import siteManifest from './site-manifest.json' with { type: 'json' }
 
 type GamePackage = [name: string, scope?: string]
 
-function loadGamePackages(): GamePackage[] {
-    const packages: GamePackage[] = gamesJson.availableGames.map((fullName: string) => {
-        const parts = fullName.split('/')
-        if (parts.length === 2) {
-            return [parts[1], parts[0]] as GamePackage
-        } else {
-            return [parts[0]] as GamePackage
-        }
-    })
-    return packages
-}
+export type SiteManifest = typeof siteManifest
+export type SiteManifestGame = SiteManifest['games'][keyof SiteManifest['games']]
 
-export const AvailableGames = loadGamePackages() // old
-export const Games = gamesJson.games // new
+const DEFAULT_SCOPE = '@tabletop'
+
+export const SiteManifest = siteManifest
+export const Games = Object.entries(siteManifest.games).map(([id, entry]) => ({
+    id,
+    ...entry
+}))
+
+export const AvailableGames: GamePackage[] = Object.keys(siteManifest.games).map(
+    (name) => [name, DEFAULT_SCOPE]
+)

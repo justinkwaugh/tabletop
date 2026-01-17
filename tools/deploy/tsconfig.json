@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "paths": { "*": ["./*"] },
+        "target": "es2017",
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "allowJs": false,
+        "skipLibCheck": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "esModuleInterop": false,
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "jsx": "react-jsx",
+        "sourceMap": true,
+        "outDir": "esm",
+        "rootDir": "src"
+    },
+    "include": ["./src"],
+    "exclude": ["node_modules", "esm", "types"]
+}

@@ -20,6 +20,7 @@ export const Definition = <GameDefinition<FreshFishGameState, HydratedFreshFishG
             minPlayers: 2,
             maxPlayers: 5,
             defaultPlayerCount: 4,
+            version: '0.0.1',
             beta: false
         },
         configurator: new FreshFishConfigurator()

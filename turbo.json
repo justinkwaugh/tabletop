@@ -51,6 +51,10 @@
             "dependsOn": ["@tabletop/backend#build", "@tabletop/frontend#build", "^build"],
             "cache": false
         },
+        "bundle": {
+            "dependsOn": ["^build"],
+            "outputs": ["public/**/*"]
+        },
         "update-games": {
             "dependsOn": ["@tabletop/games-config#build", "^update-games"],
             "cache": false

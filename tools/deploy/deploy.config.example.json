@@ -1,0 +1,10 @@
+{
+  "gcsBucket": "your-gcs-bucket",
+  "backendManifestUrl": "https://your-backend.example.com/manifest",
+  "backend": {
+    "service": "your-cloud-run-service",
+    "region": "us-central1",
+    "project": "your-gcp-project",
+    "deployCommand": []
+  }
+}

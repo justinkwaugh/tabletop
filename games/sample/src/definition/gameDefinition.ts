@@ -21,6 +21,7 @@ export const Definition: GameDefinition<SampleGameState, HydratedSampleGameState
             minPlayers: 2,
             maxPlayers: 5,
             defaultPlayerCount: 4,
+            version: '0.0.1',
             beta: true
         },
         configurator: new SampleConfigurator()
