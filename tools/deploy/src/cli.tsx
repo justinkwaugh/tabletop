@@ -3,12 +3,13 @@ import React from 'react'
 import { render } from 'ink'
 import { parseArgs } from 'node:util'
 import App from './app.js'
-import { readManifest } from './lib/manifest.js'
+import { readManifest, writeManifest } from './lib/manifest.js'
 import { mergeEnvConfig, readDeployConfig } from './lib/config.js'
 import {
     buildBackendCommand,
     buildFrontendCommand,
     buildGameUiCommand,
+    buildGameUiPackageCommand,
     deployBackendCommand,
     deployFrontendCommand,
     deployGameUiCommand,
@@ -16,6 +17,7 @@ import {
     runCommand
 } from './lib/commands.js'
 import { getDeployConfigPath, getManifestPath, getRepoRoot } from './lib/paths.js'
+import { syncManifestFromPackages } from './lib/versions.js'
 
 const repoRoot = getRepoRoot()
 const manifestPath = getManifestPath(repoRoot)
@@ -26,8 +28,9 @@ const usage = `tabletop-deploy [command]
 Commands:
   tui                          Launch the TUI (default)
   status                       Print the current manifest
+  sync-manifest                Sync site-manifest.json from package versions
   build-ui <gameId>            Build a game UI bundle (rollup)
-  deploy-ui <gameId>           Deploy a game UI bundle to GCS
+  deploy-ui <gameId>           Build + bundle a game UI and deploy to GCS
   build-frontend               Build the frontend
   deploy-frontend              Deploy the frontend bundle to GCS
   build-backend                Build the backend
@@ -36,7 +39,6 @@ Commands:
 
 Environment:
   TABLETOP_GCS_BUCKET           GCS bucket name
-  TABLETOP_DEPLOY_ENABLE=1      Allow deploy commands to run
   TABLETOP_BACKEND_SERVICE      Cloud Run service name
   TABLETOP_BACKEND_REGION       Cloud Run region
   GCLOUD_PROJECT                GCP project
@@ -47,6 +49,18 @@ const runAndReport = async (spec: { label: string; logPath: string }, action: ()
     console.log(`${spec.label}: running (log: ${spec.logPath})`)
     await action()
     console.log(`${spec.label}: complete`) 
+}
+
+const loadSyncedManifest = async () => {
+    const manifest = await readManifest(manifestPath)
+    const { manifest: syncedManifest, changed } = await syncManifestFromPackages(
+        repoRoot,
+        manifest
+    )
+    if (changed) {
+        await writeManifest(manifestPath, syncedManifest)
+    }
+    return syncedManifest
 }
 
 const main = async () => {
@@ -71,7 +85,13 @@ const main = async () => {
     }
 
     if (command === 'status') {
-        const manifest = await readManifest(manifestPath)
+        const manifest = await loadSyncedManifest()
+        console.log(JSON.stringify(manifest, null, 2))
+        return
+    }
+
+    if (command === 'sync-manifest') {
+        const manifest = await loadSyncedManifest()
         console.log(JSON.stringify(manifest, null, 2))
         return
     }
@@ -89,7 +109,11 @@ const main = async () => {
     if (command === 'deploy-ui') {
         const gameId = positionals[1]
         if (!gameId) throw new Error('deploy-ui requires a gameId')
-        const manifest = await readManifest(manifestPath)
+        const buildSpec = buildGameUiPackageCommand(repoRoot, gameId)
+        await runAndReport(buildSpec, () => runCommand(buildSpec))
+        const bundleSpec = buildGameUiCommand(repoRoot, gameId)
+        await runAndReport(bundleSpec, () => runCommand(bundleSpec))
+        const manifest = await loadSyncedManifest()
         const spec = deployGameUiCommand(repoRoot, manifest, gameId, deployConfig)
         await runAndReport(spec, () => runCommand(spec))
         return
@@ -102,7 +126,7 @@ const main = async () => {
     }
 
     if (command === 'deploy-frontend') {
-        const manifest = await readManifest(manifestPath)
+        const manifest = await loadSyncedManifest()
         const spec = deployFrontendCommand(repoRoot, manifest, deployConfig)
         await runAndReport(spec, () => runCommand(spec))
         return

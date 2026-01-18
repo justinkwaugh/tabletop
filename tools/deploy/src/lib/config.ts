@@ -13,6 +13,7 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
             typeof config.backendManifestUrl === 'string' ? config.backendManifestUrl : undefined,
         backend: isObject(backend)
             ? {
+                  image: typeof backend.image === 'string' ? backend.image : undefined,
                   service: typeof backend.service === 'string' ? backend.service : undefined,
                   region: typeof backend.region === 'string' ? backend.region : undefined,
                   project: typeof backend.project === 'string' ? backend.project : undefined,
@@ -38,9 +39,11 @@ export const readDeployConfig = async (configPath: string): Promise<DeployConfig
 
 export const mergeEnvConfig = (config: DeployConfig): DeployConfig => {
     const backend = {
+        image: process.env.TABLETOP_BACKEND_IMAGE ?? config.backend?.image,
         service: process.env.TABLETOP_BACKEND_SERVICE ?? config.backend?.service,
         region: process.env.TABLETOP_BACKEND_REGION ?? config.backend?.region,
-        project: process.env.GCLOUD_PROJECT ?? config.backend?.project
+        project: process.env.GCLOUD_PROJECT ?? config.backend?.project,
+        deployCommand: config.backend?.deployCommand
     }
 
     return {

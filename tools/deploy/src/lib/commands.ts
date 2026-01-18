@@ -12,15 +12,15 @@ export type CommandSpec = {
     requiresDeploy?: boolean
 }
 
+type RunCommandOptions = {
+    onOutput?: (chunk: string) => void
+}
+
 const ensureDir = (dirPath: string) => {
     fs.mkdirSync(dirPath, { recursive: true })
 }
 
-export const runCommand = (spec: CommandSpec): Promise<void> => {
-    if (spec.requiresDeploy && process.env.TABLETOP_DEPLOY_ENABLE !== '1') {
-        throw new Error('Deploy commands require TABLETOP_DEPLOY_ENABLE=1')
-    }
-
+export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Promise<void> => {
     ensureDir(path.dirname(spec.logPath))
     const logStream = fs.createWriteStream(spec.logPath, { flags: 'w' })
 
@@ -31,8 +31,14 @@ export const runCommand = (spec: CommandSpec): Promise<void> => {
             stdio: ['ignore', 'pipe', 'pipe']
         })
 
-        child.stdout.on('data', (chunk) => logStream.write(chunk))
-        child.stderr.on('data', (chunk) => logStream.write(chunk))
+        child.stdout.on('data', (chunk) => {
+            logStream.write(chunk)
+            options?.onOutput?.(chunk.toString())
+        })
+        child.stderr.on('data', (chunk) => {
+            logStream.write(chunk)
+            options?.onOutput?.(chunk.toString())
+        })
 
         child.on('error', (error) => {
             logStream.end()
@@ -51,11 +57,19 @@ export const runCommand = (spec: CommandSpec): Promise<void> => {
 }
 
 export const buildGameUiCommand = (repoRoot: string, gameId: string): CommandSpec => ({
-    label: `build-ui:${gameId}`,
+    label: `bundle-ui:${gameId}`,
     command: 'npm',
     args: ['run', 'bundle', '--workspace', `@tabletop/${gameId}-ui`],
     cwd: repoRoot,
     logPath: `/tmp/${gameId}-ui-bundle.log`
+})
+
+export const buildGameUiPackageCommand = (repoRoot: string, gameId: string): CommandSpec => ({
+    label: `build-ui:${gameId}`,
+    command: 'npm',
+    args: ['run', 'build', '--workspace', `@tabletop/${gameId}-ui`],
+    cwd: repoRoot,
+    logPath: `/tmp/${gameId}-ui-build.log`
 })
 
 export const buildFrontendCommand = (repoRoot: string): CommandSpec => ({
@@ -66,12 +80,39 @@ export const buildFrontendCommand = (repoRoot: string): CommandSpec => ({
     logPath: '/tmp/frontend-build.log'
 })
 
-export const buildBackendCommand = (repoRoot: string): CommandSpec => ({
+export const buildBackendCommand = (
+    repoRoot: string,
+    options?: { force?: boolean }
+): CommandSpec => ({
     label: 'build-backend',
     command: 'turbo',
-    args: ['build', '--filter=@tabletop/backend'],
+    args: ['build', '--filter=@tabletop/backend', ...(options?.force ? ['--force'] : [])],
     cwd: repoRoot,
-    logPath: '/tmp/backend-build.log'
+    logPath: options?.force ? '/tmp/backend-build-force.log' : '/tmp/backend-build.log'
+})
+
+export const buildBackendImageCommand = (repoRoot: string): CommandSpec => ({
+    label: 'build-backend-image',
+    command: 'npm',
+    args: ['run', 'docker-build', '--workspace', '@tabletop/backend'],
+    cwd: repoRoot,
+    logPath: '/tmp/backend-image-build.log'
+})
+
+export const tagBackendImageCommand = (repoRoot: string, image: string): CommandSpec => ({
+    label: 'tag-backend-image',
+    command: 'docker',
+    args: ['tag', 'backend', image],
+    cwd: repoRoot,
+    logPath: '/tmp/backend-image-tag.log'
+})
+
+export const pushBackendImageCommand = (repoRoot: string, image: string): CommandSpec => ({
+    label: 'push-backend-image',
+    command: 'docker',
+    args: ['push', image],
+    cwd: repoRoot,
+    logPath: '/tmp/backend-image-push.log'
 })
 
 export const deployGameUiCommand = (
@@ -152,6 +193,33 @@ export const deployBackendCommand = (
         throw new Error(
             'Missing backend deploy config (service/region/project or backend.deployCommand)'
         )
+    }
+
+    if (backend.image) {
+        const args = [
+            'run',
+            'deploy',
+            backend.service,
+            '--image',
+            backend.image,
+            '--region',
+            backend.region,
+            '--project',
+            backend.project
+        ]
+
+        if (!allowTraffic) {
+            args.push('--no-traffic')
+        }
+
+        return {
+            label: 'deploy-backend',
+            command: 'gcloud',
+            args,
+            cwd: repoRoot,
+            logPath: '/tmp/backend-deploy.log',
+            requiresDeploy: true
+        }
     }
 
     const args = [

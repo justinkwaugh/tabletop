@@ -35,8 +35,9 @@ Note: the root script runs the compiled file; run `npm run build --workspace @ta
 ```text
 tui                          Launch the TUI (default)
 status                       Print the current manifest
+sync-manifest                Sync site-manifest.json from package versions
 build-ui <gameId>            Build a game UI bundle (rollup)
-deploy-ui <gameId>           Deploy a game UI bundle to GCS
+deploy-ui <gameId>           Build + bundle a game UI and deploy to GCS
 build-frontend               Build the frontend
 deploy-frontend              Deploy the frontend bundle to GCS
 build-backend                Build the backend
@@ -53,6 +54,7 @@ Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.exampl
     "gcsBucket": "your-gcs-bucket",
     "backendManifestUrl": "https://your-backend.example.com/manifest",
     "backend": {
+        "image": "us-central1-docker.pkg.dev/your-project/your-repo/backend",
         "service": "your-cloud-run-service",
         "region": "us-central1",
         "project": "your-gcp-project",
@@ -65,9 +67,13 @@ Environment overrides:
 
 - `TABLETOP_GCS_BUCKET`
 - `TABLETOP_BACKEND_MANIFEST_URL` (or `TABLETOP_MANIFEST_URL`)
+- `TABLETOP_BACKEND_IMAGE`
 - `TABLETOP_BACKEND_SERVICE`
 - `TABLETOP_BACKEND_REGION`
 - `GCLOUD_PROJECT`
+
+Notes:
+- `backend.image` is required for backend deploy in the TUI; it is used for the docker build/tag/push flow.
 
 ## Deploy guardrail
 
@@ -78,3 +84,4 @@ Deploy commands are blocked unless `TABLETOP_DEPLOY_ENABLE=1` is set.
 - UI build logs write to `/tmp/<gameId>-ui-bundle.log`.
 - Backend/frontend build logs write to `/tmp/backend-build.log` and `/tmp/frontend-build.log`.
 - Deploy logs write to `/tmp/*-deploy.log`.
+- Package versions are the source of truth; the manifest is synced from package.json.

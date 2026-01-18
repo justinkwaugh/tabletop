@@ -9,7 +9,7 @@
         "dev": "vite dev",
         "clean": "rimraf public && rimraf build && rimraf dist",
         "build": "vite build && npm run package",
-        "bundle": "npm run build --workspace @tabletop/games-config && rimraf public && rollup -c ./rollup.config.ts",
+        "bundle": "rimraf public && rollup -c ./rollup.config.ts",
         "package": "svelte-kit sync && svelte-package",
         "test": "npm run test:integration && npm run test:unit",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

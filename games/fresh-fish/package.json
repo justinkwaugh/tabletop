@@ -6,6 +6,7 @@
         "import": "./esm/index.js",
         "types": "./src/index.ts"
     },
+    "sideEffects": false,
     "private": true,
     "scripts": {
         "clean": "rimraf esm",

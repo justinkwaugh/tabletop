@@ -1,7 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { SiteManifest as PackageManifest } from '@tabletop/games-config'
 import svelte from 'rollup-plugin-svelte'
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 import resolve from '@rollup/plugin-node-resolve'
@@ -30,21 +29,6 @@ const assetExtensions = [
 ]
 
 const toPath = (value) => (value instanceof URL ? fileURLToPath(value) : value)
-
-const resolveManifestUiVersion = (manifestPath, gameId) => {
-    if (manifestPath) {
-        if (!fs.existsSync(manifestPath)) {
-            throw new Error(`Site manifest not found at ${manifestPath}`)
-        }
-        const raw = fs.readFileSync(manifestPath, 'utf8')
-        const manifest = JSON.parse(raw)
-        const entry = manifest?.games?.[gameId]
-        return entry?.uiVersion ?? null
-    }
-
-    const entry = PackageManifest?.games?.[gameId]
-    return entry?.uiVersion ?? null
-}
 
 const analyzeBundle = (enabled) => ({
     name: 'analyze-bundle',
@@ -160,9 +144,7 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
     const packageName = packageJson.name ?? ''
     const packageVersion = packageJson.version ?? '0.0.0'
     const gameId = packageName.replace(/^@[^/]+\//, '').replace(/-ui$/, '')
-    const manifestPath = process.env.TABLETOP_SITE_MANIFEST_PATH
-    const manifestUiVersion = resolveManifestUiVersion(manifestPath, gameId)
-    const uiVersion = process.env.ROLLUP_UI_VERSION ?? manifestUiVersion ?? packageVersion
+    const uiVersion = process.env.ROLLUP_UI_VERSION ?? packageVersion
     const publicAssetsPath = `/games/${gameId}/${uiVersion}/assets/`
     const analyze = process.env.ROLLUP_ANALYZE === '1'
     const minify = process.env.ROLLUP_TERSER === '1'

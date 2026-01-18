@@ -1,10 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { SiteManifest } from './types.js'
+import { spawn } from 'node:child_process'
+import { DeployConfig, SiteManifest } from './types.js'
 
 export type GcsStatus = {
-    frontendExists: boolean
-    games: Record<string, boolean>
+    frontendExists: boolean | null
+    games: Record<string, boolean | null>
 }
 
 const pathExists = (target: string) => {
@@ -15,17 +16,52 @@ const pathExists = (target: string) => {
     }
 }
 
-export const checkGcsStatus = (manifest: SiteManifest, gcsRoot: string): GcsStatus => {
+const gcsPathExists = (target: string): Promise<boolean> =>
+    new Promise((resolve) => {
+        const child = spawn('gcloud', ['storage', 'ls', target], {
+            stdio: ['ignore', 'pipe', 'pipe']
+        })
+        let hasOutput = false
+
+        child.stdout.on('data', (chunk) => {
+            if (chunk.toString().trim()) {
+                hasOutput = true
+            }
+        })
+
+        child.on('error', () => resolve(false))
+        child.on('close', (code) => resolve(code === 0 && hasOutput))
+    })
+
+export const checkFrontendDeployed = async (
+    manifest: SiteManifest,
+    config: DeployConfig,
+    gcsRoot: string
+): Promise<boolean> => {
+    const bucket = config.gcsBucket
+    if (bucket) {
+        const frontendPath = `gs://${bucket}/frontend/${manifest.frontend.version}/`
+        return gcsPathExists(frontendPath)
+    }
+
     const frontendPath = path.join(gcsRoot, 'frontend', manifest.frontend.version)
-    const games: Record<string, boolean> = {}
+    return pathExists(frontendPath)
+}
 
-    for (const [gameId, entry] of Object.entries(manifest.games)) {
-        const uiPath = path.join(gcsRoot, 'games', gameId, entry.uiVersion)
-        games[gameId] = pathExists(uiPath)
+export const checkGameDeployed = async (
+    manifest: SiteManifest,
+    gameId: string,
+    config: DeployConfig,
+    gcsRoot: string
+): Promise<boolean> => {
+    const entry = manifest.games[gameId]
+    if (!entry) return false
+    const bucket = config.gcsBucket
+    if (bucket) {
+        const uiPath = `gs://${bucket}/games/${gameId}/${entry.uiVersion}/index.js`
+        return gcsPathExists(uiPath)
     }
 
-    return {
-        frontendExists: pathExists(frontendPath),
-        games
-    }
+    const uiPath = path.join(gcsRoot, 'games', gameId, entry.uiVersion, 'index.js')
+    return pathExists(uiPath)
 }

@@ -21,6 +21,7 @@ export type BackendManifest = SiteManifest & {
 export type DeployConfig = {
     gcsBucket?: string
     backend?: {
+        image?: string
         service?: string
         region?: string
         project?: string
