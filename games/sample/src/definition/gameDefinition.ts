@@ -6,6 +6,7 @@ import { SampleApiActions } from './apiActions.js'
 import { SampleStateHandlers } from './stateHandlers.js'
 import { SampleColors } from './colors.js'
 import { SampleConfigurator } from './configurator.js'
+import { GAME_VERSION } from './version.js'
 
 // The export MUST be named Definition and be of type GameDefinition
 export const Definition: GameDefinition<SampleGameState, HydratedSampleGameState> =
@@ -21,7 +22,7 @@ export const Definition: GameDefinition<SampleGameState, HydratedSampleGameState
             minPlayers: 2,
             maxPlayers: 5,
             defaultPlayerCount: 4,
-            version: '0.0.1',
+            version: GAME_VERSION,
             beta: true
         },
         configurator: new SampleConfigurator()

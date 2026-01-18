@@ -13,9 +13,10 @@ import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 import { ChatService } from '$lib/services/chatService.svelte'
 import { SseConnection } from '$lib/network/sseConnection.svelte.js'
 
-const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, PUBLIC_VERSION)
+const libraryService = new LibraryService()
+
+const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, libraryService, PUBLIC_VERSION)
 const authorizationService = new AuthorizationService(api)
-const libraryService = new LibraryService(authorizationService)
 
 const visibilityService = new VisibilityService()
 let realtimeConnection

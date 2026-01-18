@@ -7,6 +7,7 @@ import FastifyFirebase from '@now-ims/fastify-firebase'
 import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
+import FastifyRestartable from '@fastify/restartable'
 import fastifyStatic from '@fastify/static'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { BaseError, ErrorCategory } from '@tabletop/common'
@@ -47,6 +48,7 @@ export interface AppOptions {
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(fastifyPrintRoutes)
+    await fastify.register(FastifyRestartable)
 
     fastify.addHook('onSend', async (request, reply, payload) => {
         if (typeof payload !== 'string' && !(payload instanceof String)) {

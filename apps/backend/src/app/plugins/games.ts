@@ -15,19 +15,23 @@ async function registerGame(
     fastify: FastifyInstance,
     opts: AppOptions
 ) {
-    const prefix = `${opts.prefix || ''}/game/${definition.info.id}`
+    // Base for backwards compatibility, can remove later
+    const basePrefix = `${opts.prefix || ''}/game/${definition.info.id}`
+    const versionedPrefix = `${opts.prefix || ''}/game/${definition.info.id}/${definition.info.metadata.version}`
 
-    await fastify.register(CreateGame.bind(null, definition), { prefix })
-    await fastify.register(StartGame.bind(null, definition), { prefix })
-    await fastify.register(UndoAction.bind(null, definition), { prefix })
-    await fastify.register(ForkGame.bind(null, definition), { prefix })
+    for (const prefix of [basePrefix, versionedPrefix]) {
+        await fastify.register(CreateGame.bind(null, definition), { prefix })
+        await fastify.register(StartGame.bind(null, definition), { prefix })
+        await fastify.register(UndoAction.bind(null, definition), { prefix })
+        await fastify.register(ForkGame.bind(null, definition), { prefix })
 
-    // Register all the actions
-    for (const actionType of Object.keys(definition.runtime.apiActions)) {
-        const actionSchema = definition.runtime.apiActions[actionType]
-        await fastify.register(ApplyAction.bind(null, definition, actionType, actionSchema), {
-            prefix
-        })
+        // Register all the actions
+        for (const actionType of Object.keys(definition.runtime.apiActions)) {
+            const actionSchema = definition.runtime.apiActions[actionType]
+            await fastify.register(ApplyAction.bind(null, definition, actionType, actionSchema), {
+                prefix
+            })
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 import type { GameInfo } from '@tabletop/common'
 import { KaivaiConfigurator } from './configurator.js'
+import { GAME_VERSION } from './version.js'
 
 export const KaivaiInfo: GameInfo = {
     id: 'kaivai',
@@ -12,7 +13,7 @@ export const KaivaiInfo: GameInfo = {
         minPlayers: 3,
         maxPlayers: 4,
         defaultPlayerCount: 4,
-        version: '0.0.1',
+        version: GAME_VERSION,
         beta: false
     },
     configurator: new KaivaiConfigurator()

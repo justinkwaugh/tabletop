@@ -1,5 +1,6 @@
 import type { GameInfo } from '@tabletop/common'
 import { SolConfigurator } from './configurator.js'
+import { GAME_VERSION } from './version.js'
 
 export const SolInfo: GameInfo = {
     id: 'sol',
@@ -12,7 +13,7 @@ export const SolInfo: GameInfo = {
         minPlayers: 2,
         maxPlayers: 5,
         defaultPlayerCount: 4,
-        version: '1.0.0',
+        version: GAME_VERSION,
         beta: false
     },
     configurator: new SolConfigurator()

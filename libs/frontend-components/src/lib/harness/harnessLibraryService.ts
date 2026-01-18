@@ -1,11 +1,11 @@
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
 import type { LibraryService } from '$lib/services/libraryService.js'
-import { type GameState, type HydratedGameState } from '@tabletop/common'
+import { User, type GameState, type HydratedGameState } from '@tabletop/common'
 
 export class HarnessLibraryService implements LibraryService {
     constructor(private readonly definition: GameUiDefinition<GameState, HydratedGameState>) {}
 
-    getTitles(): GameUiDefinition<GameState, HydratedGameState>[] {
+    getTitles(user: User): GameUiDefinition<GameState, HydratedGameState>[] {
         return [this.definition]
     }
 

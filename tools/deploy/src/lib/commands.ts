@@ -66,8 +66,8 @@ export const buildGameUiCommand = (repoRoot: string, gameId: string): CommandSpe
 
 export const buildGameUiPackageCommand = (repoRoot: string, gameId: string): CommandSpec => ({
     label: `build-ui:${gameId}`,
-    command: 'npm',
-    args: ['run', 'build', '--workspace', `@tabletop/${gameId}-ui`],
+    command: 'turbo',
+    args: ['build', `--filter=@tabletop/${gameId}-ui`],
     cwd: repoRoot,
     logPath: `/tmp/${gameId}-ui-build.log`
 })

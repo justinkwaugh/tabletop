@@ -1,6 +1,7 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
 import {
+    assertExists,
     Bookmark,
     Game,
     GameAction,
@@ -34,6 +35,7 @@ import type { Credentials } from './requestTypes.js'
 import Ably from 'ably'
 import { checkVersion, VersionChange } from './versionChecker.js'
 import { toast } from 'svelte-sonner'
+import type { LibraryService } from '$lib/services/libraryService.js'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
@@ -49,6 +51,7 @@ export class TabletopApi {
     constructor(
         host: string = DEFAULT_HOST,
         sseHost: string = DEFAULT_HOST,
+        private readonly libraryService: LibraryService,
         private readonly version?: string
     ) {
         this.host = host
@@ -277,26 +280,6 @@ export class TabletopApi {
         return { game: game, actions }
     }
 
-    async createGame(game: Partial<Game>): Promise<Game> {
-        const response = await this.wretch
-            .post({ game }, `/game/${game.typeId}/create`)
-            .unauthorized(this.on401)
-            .badRequest(this.handleError)
-            .json<GameResponse>()
-
-        return this.validateGame(response.payload.game)
-    }
-
-    async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
-        const response = await this.wretch
-            .post({ gameId: game.id, actionIndex, name }, `/game/${game.typeId}/fork`)
-            .unauthorized(this.on401)
-            .badRequest(this.handleError)
-            .json<GameResponse>()
-
-        return this.validateGame(response.payload.game)
-    }
-
     async updateGame(game: Partial<Game>): Promise<Game> {
         const response = await this.wretch
             .post({ game }, '/game/update')
@@ -356,9 +339,34 @@ export class TabletopApi {
         return this.validateGame(response.payload.game)
     }
 
-    async startGame(game: Game): Promise<Game> {
+    /** Game Specific Endpoints */
+
+    async createGame(game: Partial<Game>): Promise<Game> {
+        const version = this.versionForGame(game.typeId!)
         const response = await this.wretch
-            .post({ gameId: game.id }, `/game/${game.typeId}/start`)
+            .post({ game }, `/game/${game.typeId}/${version}/create`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
+    }
+
+    async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
+        const version = this.versionForGame(game.typeId!)
+        const response = await this.wretch
+            .post({ gameId: game.id, actionIndex, name }, `/game/${game.typeId}/${version}/fork`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
+    }
+
+    async startGame(game: Game): Promise<Game> {
+        const version = this.versionForGame(game.typeId!)
+        const response = await this.wretch
+            .post({ gameId: game.id }, `/game/${game.typeId}/${version}/start`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -370,8 +378,12 @@ export class TabletopApi {
         game: Game,
         action: GameAction
     ): Promise<{ actions: GameAction[]; game: Game; missingActions?: GameAction[] }> {
+        const version = this.versionForGame(game.typeId!)
         const response = await this.wretch
-            .post({ gameId: game.id, action }, `/game/${game.typeId}/action/${action.type}`)
+            .post(
+                { gameId: game.id, action },
+                `/game/${game.typeId}/${version}/action/${action.type}`
+            )
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<ApplyActionResponse>()
@@ -400,8 +412,9 @@ export class TabletopApi {
         redoneActions: GameAction[]
         checksum: number
     }> {
+        const version = this.versionForGame(game.typeId!)
         const response = await this.wretch
-            .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
+            .post({ gameId: game.id, actionId }, `/game/${game.typeId}/${version}/undo`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UndoActionResponse>()
@@ -421,6 +434,8 @@ export class TabletopApi {
             checksum: response.payload.checksum
         }
     }
+
+    /** End of Game Specific Endpoints */
 
     async checkSync(
         gameId: string,
@@ -550,6 +565,12 @@ export class TabletopApi {
         return new EventSource(`${this.baseSseUrl}${path}`, {
             withCredentials: true
         })
+    }
+
+    private versionForGame(gameId: string): string {
+        const title = this.libraryService.getTitle(gameId)
+        assertExists(title, `No title found for game ID: ${gameId}`)
+        return title.info.metadata.version
     }
 
     private async handleError(error: WretchError) {

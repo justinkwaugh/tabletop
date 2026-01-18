@@ -1,5 +1,6 @@
 import type { GameInfo } from '@tabletop/common'
 import { FreshFishConfigurator } from './configurator.js'
+import { GAME_VERSION } from './version.js'
 
 export const FreshFishInfo: GameInfo = {
     id: 'freshfish',
@@ -12,7 +13,7 @@ export const FreshFishInfo: GameInfo = {
         minPlayers: 2,
         maxPlayers: 5,
         defaultPlayerCount: 4,
-        version: '0.0.1',
+        version: GAME_VERSION,
         beta: false
     },
     configurator: new FreshFishConfigurator()

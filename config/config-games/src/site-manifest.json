@@ -1,27 +1,27 @@
 {
   "frontend": {
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "games": {
     "bridges-of-shangri-la": {
-      "logicVersion": "1.0.0",
-      "uiVersion": "1.0.0"
+      "logicVersion": "1.0.2",
+      "uiVersion": "1.0.2"
     },
     "estates": {
-      "logicVersion": "1.0.0",
-      "uiVersion": "1.0.0"
+      "logicVersion": "1.0.1",
+      "uiVersion": "1.0.1"
     },
     "fresh-fish": {
-      "logicVersion": "1.0.0",
-      "uiVersion": "1.0.0"
+      "logicVersion": "1.0.1",
+      "uiVersion": "1.0.1"
     },
     "kaivai": {
-      "logicVersion": "0.0.1",
-      "uiVersion": "0.0.1"
+      "logicVersion": "1.0.1",
+      "uiVersion": "1.0.1"
     },
     "sol": {
-      "logicVersion": "1.0.0",
-      "uiVersion": "0.0.1"
+      "logicVersion": "1.0.1",
+      "uiVersion": "1.0.1"
     }
   }
 }

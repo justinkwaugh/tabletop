@@ -1,15 +1,14 @@
 import { type GameUiDefinition } from '@tabletop/frontend-components'
 import { AVAILABLE_TITLES } from './titles.js'
 import type { AuthorizationService } from './authorizationService.svelte'
-import { GameState, Role, type HydratedGameState } from '@tabletop/common'
+import { GameState, Role, User, type HydratedGameState } from '@tabletop/common'
 
 export class LibraryService {
     private readonly titles = AVAILABLE_TITLES
 
-    constructor(private readonly authorizationService: AuthorizationService) {}
+    constructor() {}
 
-    getTitles(): GameUiDefinition<GameState, HydratedGameState>[] {
-        const user = this.authorizationService.getSessionUser()
+    getTitles(user: User): GameUiDefinition<GameState, HydratedGameState>[] {
         return Object.values(this.titles)
             .filter(
                 (title) =>

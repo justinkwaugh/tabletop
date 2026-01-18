@@ -7,9 +7,10 @@
     import type { Game, GameState, HydratedGameState } from '@tabletop/common'
     import GameCard from '$lib/components/GameCard.svelte'
 
-    let { libraryService, gameService } = getAppContext()
+    let { libraryService, gameService, authorizationService } = getAppContext()
 
     let selectedTitle: GameUiDefinition<GameState, HydratedGameState> | undefined = $state()
+    let user = $derived(authorizationService.getSessionUser())
 
     function selectTitle(title: GameUiDefinition<GameState, HydratedGameState>) {
         if (title.info.id !== selectedTitle?.info.id) {
@@ -100,9 +101,11 @@
                     </div>
 
                     <div class="flex justify-center gap-x-2 gap-y-2 flex-wrap sm:p-0">
-                        {#each libraryService.getTitles() as title (title.info.id)}
-                            <LibraryGameCard onclick={() => selectTitle(title)} {title} />
-                        {/each}
+                        {#if user}
+                            {#each libraryService.getTitles(user) as title (title.info.id)}
+                                <LibraryGameCard onclick={() => selectTitle(title)} {title} />
+                            {/each}
+                        {/if}
                     </div>
                 </div>
             </div>

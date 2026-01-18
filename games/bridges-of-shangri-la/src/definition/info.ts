@@ -1,4 +1,5 @@
 import type { GameInfo } from '@tabletop/common'
+import { GAME_VERSION } from './version.js'
 
 export const BridgesInfo: GameInfo = {
     id: 'bridges',
@@ -11,7 +12,7 @@ export const BridgesInfo: GameInfo = {
         minPlayers: 3,
         maxPlayers: 4,
         defaultPlayerCount: 3,
-        version: '1.0.0',
+        version: GAME_VERSION,
         beta: false
     }
 }

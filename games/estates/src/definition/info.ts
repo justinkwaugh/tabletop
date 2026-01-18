@@ -1,5 +1,6 @@
 import type { GameInfo } from '@tabletop/common'
 import { EstatesConfigurator } from './configurator.js'
+import { GAME_VERSION } from './version.js'
 
 export const EstatesInfo: GameInfo = {
     id: 'estates',
@@ -12,7 +13,7 @@ export const EstatesInfo: GameInfo = {
         minPlayers: 2,
         maxPlayers: 5,
         defaultPlayerCount: 4,
-        version: '0.0.1',
+        version: GAME_VERSION,
         beta: false
     },
     configurator: new EstatesConfigurator()
