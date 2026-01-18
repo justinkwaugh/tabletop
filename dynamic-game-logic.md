@@ -50,6 +50,7 @@ Caching:
 - Redis cached indefinitely by default.
 - Allow TTL via env (optional).
 - Invalidation will be triggered by the deploy tool via an admin endpoint (preferred for prod).
+- Production failure behavior: keep serving the last-known-good manifest if refresh fails; if none exists, return 503 and avoid registering game routes.
 
 ## Route Changes
 - Move `/manifest` handler into a dedicated route file.
