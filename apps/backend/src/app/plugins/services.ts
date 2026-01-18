@@ -1,5 +1,7 @@
+import path from 'node:path'
 import {
     GameService,
+    LibraryService,
     CloudTasksTaskService,
     EmailService,
     FirestoreTokenStore,
@@ -27,8 +29,10 @@ import {
     ChatService,
     FirestoreChatStore,
     ResendEmailService,
-    PubSubTransport
+    PubSubTransport,
+    EnvService
 } from '@tabletop/backend-services'
+import type { GameDefinition } from '@tabletop/common'
 
 import { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -46,11 +50,20 @@ declare module 'fastify' {
         discordService: DiscordService
         ablyService: AblyService
         chatService: ChatService
+        cacheService: RedisCacheService
+        libraryService: LibraryService
     }
 }
 
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const TASKS_HOST = process.env['TASKS_HOST'] ?? ''
+const GCS_MOUNT_ROOT = process.env['GCS_MOUNT_ROOT'] ?? '/mnt/gcs'
+const SITE_MANIFEST_PATH =
+    process.env['SITE_MANIFEST_PATH'] ??
+    path.join(GCS_MOUNT_ROOT, 'config', 'site-manifest.json')
+const MANIFEST_CACHE_SECONDS = process.env['MANIFEST_CACHE_SECONDS']
+    ? Number.parseInt(process.env['MANIFEST_CACHE_SECONDS'], 10)
+    : undefined
 
 const useAbly = !!process.env['ABLY_API_KEY']
 
@@ -59,6 +72,19 @@ export default fp(async (fastify: FastifyInstance) => {
     const emailService = await ResendEmailService.createEmailService(secretsService)
     const redisService = await RedisService.createRedisService(secretsService)
     const redisCacheService = new RedisCacheService(redisService)
+
+    const libraryService = new LibraryService(redisCacheService, {
+        manifestPath: SITE_MANIFEST_PATH,
+        cacheSeconds: MANIFEST_CACHE_SECONDS,
+        allowFallback: EnvService.isLocal()
+    })
+
+    let availableTitles: Record<string, GameDefinition> = {}
+    try {
+        availableTitles = await libraryService.getTitlesMap()
+    } catch (error) {
+        console.warn('Unable to load game definitions from manifest', error)
+    }
 
     const taskService: TaskService =
         service === 'local'
@@ -87,7 +113,8 @@ export default fp(async (fastify: FastifyInstance) => {
         tokenService,
         taskService,
         notificationService,
-        redisCacheService
+        redisCacheService,
+        availableTitles
     )
 
     const discordService = new DiscordService(notificationService, userService)
@@ -124,8 +151,10 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('emailService', emailService)
     fastify.decorate('secretsService', secretsService)
     fastify.decorate('gameService', gameService)
+    fastify.decorate('libraryService', libraryService)
     fastify.decorate('pubSubService', pubSubService)
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)
     fastify.decorate('chatService', chatService)
+    fastify.decorate('cacheService', redisCacheService)
 })

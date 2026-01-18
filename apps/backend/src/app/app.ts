@@ -7,17 +7,16 @@ import FastifyFirebase from '@now-ims/fastify-firebase'
 import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
-import FastifyRestartable from '@fastify/restartable'
 import fastifyStatic from '@fastify/static'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { BaseError, ErrorCategory } from '@tabletop/common'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
-import { SiteManifest } from '@tabletop/games-config'
 import AuthorizationPlugin from './plugins/authorization.js'
 import FirestorePlugin from './plugins/firestore.js'
 import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
+import ManifestRoutes from './routes/manifest.js'
 
 const __dirname = import.meta.dirname
 
@@ -34,7 +33,9 @@ const TASKS_PREFIX = '/tasks'
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
-const frontendVersion = process.env['FRONTEND_VERSION'] ?? SiteManifest.frontend.version
+const GCS_MOUNT_ROOT = process.env['GCS_MOUNT_ROOT'] ?? '/mnt/gcs'
+const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
+const MIN_RESTART_INTERVAL_MS = 30_000
 
 const SESSION_SECRET = process.env['SESSION_SECRET']
     ? process.env['SESSION_SECRET']
@@ -48,8 +49,6 @@ export interface AppOptions {
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(fastifyPrintRoutes)
-    await fastify.register(FastifyRestartable)
-
     fastify.addHook('onSend', async (request, reply, payload) => {
         if (typeof payload !== 'string' && !(payload instanceof String)) {
             return payload
@@ -149,6 +148,17 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
+
+    let lastRestartAt = 0
+    fastify.libraryService.onManifestMismatch(() => {
+        const now = Date.now()
+        if (now - lastRestartAt < MIN_RESTART_INTERVAL_MS) {
+            return
+        }
+        lastRestartAt = now
+        void fastify.restart()
+    })
+
     await fastify.register(GamesPlugin, { prefix: API_PREFIX })
 
     // This sets up the service to handle the API and frontend
@@ -159,6 +169,10 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             dir: path.join(__dirname, 'routes/api'),
             options: { ...opts, prefix: API_PREFIX }
         })
+
+        await fastify.register(ManifestRoutes)
+
+        let frontendStaticReady = false
 
         if (service === 'local') {
             // Serve the frontend as static files
@@ -184,34 +198,51 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                     }
                 }
             })
+            frontendStaticReady = true
         }
 
         if (service === 'backend') {
-            await fastify.register(fastifyStatic, {
-                root: path.join('/mnt/gcs/frontend', frontendVersion),
-                preCompressed: true,
-                immutable: true,
-                maxAge: '30d',
-                setHeaders: (res, pathName) => {
-                    if (pathName.endsWith('.br')) {
-                        res.setHeader('Content-Encoding', 'br')
-                        if (pathName.endsWith('.js.br')) {
-                            res.setHeader('Content-Type', 'text/javascript')
-                        }
-                    }
+            let frontendVersion = FRONTEND_VERSION_OVERRIDE
 
-                    if (pathName.endsWith('.gz')) {
-                        res.setHeader('Content-Encoding', 'gzip')
-                        if (pathName.endsWith('.js.gz')) {
-                            res.setHeader('Content-Type', 'text/javascript')
+            if (!frontendVersion) {
+                try {
+                    const manifest = await fastify.libraryService.getManifest()
+                    frontendVersion = manifest.frontend?.version ?? null
+                } catch (error) {
+                    console.warn('Unable to resolve frontend version from manifest', error)
+                }
+            }
+
+            if (frontendVersion) {
+                await fastify.register(fastifyStatic, {
+                    root: path.join(GCS_MOUNT_ROOT, 'frontend', frontendVersion),
+                    preCompressed: true,
+                    immutable: true,
+                    maxAge: '30d',
+                    setHeaders: (res, pathName) => {
+                        if (pathName.endsWith('.br')) {
+                            res.setHeader('Content-Encoding', 'br')
+                            if (pathName.endsWith('.js.br')) {
+                                res.setHeader('Content-Type', 'text/javascript')
+                            }
+                        }
+
+                        if (pathName.endsWith('.gz')) {
+                            res.setHeader('Content-Encoding', 'gzip')
+                            if (pathName.endsWith('.js.gz')) {
+                                res.setHeader('Content-Type', 'text/javascript')
+                            }
                         }
                     }
-                }
-            })
+                })
+                frontendStaticReady = true
+            } else {
+                console.warn('Frontend static handlers skipped (version unavailable)')
+            }
 
             // Serve assets from GCS as static files
             await fastify.register(fastifyStatic, {
-                root: '/mnt/gcs/games',
+                root: path.join(GCS_MOUNT_ROOT, 'games'),
                 prefix: '/games/',
                 decorateReply: false, // avoid reply.sendFile collisions
                 preCompressed: true,
@@ -235,37 +266,26 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             })
         }
 
-        fastify.get('/manifest', async function (_req, reply) {
-            const backend = {
-                buildSha: process.env['GIT_SHA'] ?? process.env['COMMIT_SHA'] ?? null,
-                buildTime: process.env['BUILD_TIME'] ?? process.env['BUILD_TIMESTAMP'] ?? null,
-                revision: process.env['K_REVISION'] ?? null
-            }
+        if (frontendStaticReady) {
+            // Override root path to serve index.html with no caching
+            fastify.get('/', async function (req, reply) {
+                await reply.sendFile('index.html', { immutable: false, maxAge: 0 })
+            })
 
-            reply.header('Cache-Control', 'no-store')
-            return {
-                ...SiteManifest,
-                frontend: { ...SiteManifest.frontend, version: frontendVersion },
-                backend
-            }
-        })
-
-        // Override root path to serve index.html with no caching
-        fastify.get('/', async function (req, reply) {
-            await reply.sendFile('index.html', { immutable: false, maxAge: 0 })
-        })
-
-        fastify.get('/service-worker.js', async function (req, reply) {
-            await reply.sendFile('service-worker.js', { immutable: false, maxAge: 0 })
-        })
+            fastify.get('/service-worker.js', async function (req, reply) {
+                await reply.sendFile('service-worker.js', { immutable: false, maxAge: 0 })
+            })
+        }
 
         // Handle 404 differently for API and frontend
         console.log('Registering 404 handlers')
         fastify.setNotFoundHandler(async (request, reply) => {
             if (request.url.startsWith(API_PREFIX) || request.url.startsWith(TASKS_PREFIX)) {
                 await reply.code(404).send({ message: 'Not Found' })
-            } else {
+            } else if (frontendStaticReady) {
                 await reply.sendFile('index.html', { immutable: false, maxAge: 0 })
+            } else {
+                await reply.code(404).send({ message: 'Not Found' })
             }
         })
     }

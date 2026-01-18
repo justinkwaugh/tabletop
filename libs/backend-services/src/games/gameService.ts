@@ -65,7 +65,6 @@ import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
-import { AVAILABLE_TITLES } from './titles.js'
 
 export class GameService {
     constructor(
@@ -75,7 +74,7 @@ export class GameService {
         private readonly taskService: TaskService,
         private readonly notificationService: NotificationService,
         private readonly cacheService: RedisCacheService,
-        private readonly availableTitles: Record<string, GameDefinition> = AVAILABLE_TITLES
+        private readonly availableTitles: Record<string, GameDefinition>
     ) {}
 
     getTitle(titleId: string): GameDefinition | undefined {

@@ -36,7 +36,15 @@ async function registerGame(
 }
 
 const Games = async (fastify: FastifyInstance, opts: AppOptions) => {
-    for (const title of Object.values(fastify.gameService.getTitles())) {
+    let titles: GameDefinition[] = []
+    try {
+        titles = await fastify.libraryService.getTitles()
+    } catch (error) {
+        console.warn('Unable to register game routes from manifest', error)
+        return
+    }
+
+    for (const title of titles) {
         await registerGame(title, fastify, opts)
     }
 }
