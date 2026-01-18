@@ -1,9 +1,9 @@
-import { type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Card, Suit } from './cards.js'
 import { HydratedDrawBag, DrawBag, type RandomFunction, Prng } from '@tabletop/common'
+import * as Type from 'typebox'
 
-export type Deck = Static<typeof Deck>
+export type Deck = Type.Static<typeof Deck>
 export const Deck = DrawBag(Card)
 
 export const DeckValidator = Compile(Deck)

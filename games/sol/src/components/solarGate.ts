@@ -1,7 +1,7 @@
-import { type Static, Type } from 'typebox'
+import * as Type from 'typebox'
 import { assert, coordinatesToNumber, OffsetCoordinates, szudzikPairSigned } from '@tabletop/common'
 
-export type SolarGate = Static<typeof SolarGate>
+export type SolarGate = Type.Static<typeof SolarGate>
 export const SolarGate = Type.Object({
     id: Type.String(),
     playerId: Type.String(),

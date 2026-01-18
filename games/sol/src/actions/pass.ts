@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -12,13 +12,13 @@ export enum PassContext {
     DeclinedBonus = 'declinedBonus'
 }
 
-export type PassMetadata = Static<typeof PassMetadata>
+export type PassMetadata = Type.Static<typeof PassMetadata>
 export const PassMetadata = Type.Object({
     energyGained: Type.Optional(Type.Number()),
     hyperdriveSundiverId: Type.Optional(Type.String())
 })
 
-export type Pass = Static<typeof Pass>
+export type Pass = Type.Static<typeof Pass>
 export const Pass = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

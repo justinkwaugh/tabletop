@@ -1,17 +1,17 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { AxialCoordinates, GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { CellType, CultCell } from '../definition/cells.js'
 
-export type MoveGodMetadata = Static<typeof MoveGodMetadata>
+export type MoveGodMetadata = Type.Static<typeof MoveGodMetadata>
 export const MoveGodMetadata = Type.Object({
     originalCoords: Type.Optional(AxialCoordinates),
     influenceGained: Type.Record(Type.String(), Type.Number())
 })
 
-export type MoveGod = Static<typeof MoveGod>
+export type MoveGod = Type.Static<typeof MoveGod>
 export const MoveGod = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

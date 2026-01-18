@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
@@ -6,14 +6,14 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { MachineState } from '../definition/states.js'
 
-export type MoveMetadata = Static<typeof MoveMetadata>
+export type MoveMetadata = Type.Static<typeof MoveMetadata>
 export const MoveMetadata = Type.Object({
     originalCoords: AxialCoordinates,
     playerSunk: Type.Optional(Type.String()),
     gloryLost: Type.Number()
 })
 
-export type Move = Static<typeof Move>
+export type Move = Type.Static<typeof Move>
 export const Move = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

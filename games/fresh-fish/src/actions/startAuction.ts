@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import {
     GameAction,
     HydratedSimultaneousAuction,
@@ -16,7 +16,7 @@ import { ActionType } from '../definition/actions.js'
 import { GoodsType } from '../definition/goodsType.js'
 import { FreshFishGameConfig } from '../definition/gameConfig.js'
 
-export type StartAuction = Static<typeof StartAuction>
+export type StartAuction = Type.Static<typeof StartAuction>
 export const StartAuction = Type.Evaluate(
     Type.Intersect([
         GameAction,

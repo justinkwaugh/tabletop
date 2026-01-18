@@ -1,10 +1,10 @@
-import { type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GoodsType } from '../definition/goodsType.js'
 import { Tile, generateMarketTile, generateStallTile } from './tiles.js'
 import { HydratedDrawBag, DrawBag, type RandomFunction } from '@tabletop/common'
+import * as Type from 'typebox'
 
-export type TileBag = Static<typeof TileBag>
+export type TileBag = Type.Static<typeof TileBag>
 export const TileBag = DrawBag(Tile)
 
 export const TileBagValidator = Compile(TileBag)

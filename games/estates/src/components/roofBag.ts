@@ -1,10 +1,10 @@
-import { type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Roof } from './roof.js'
 import { HydratedDrawBag, DrawBag, type RandomFunction } from '@tabletop/common'
 import { PieceType } from './pieceType.js'
+import * as Type from 'typebox'
 
-export type RoofBag = Static<typeof RoofBag>
+export type RoofBag = Type.Static<typeof RoofBag>
 export const RoofBag = DrawBag(Roof)
 
 export const RoofBagValidator = Compile(RoofBag)

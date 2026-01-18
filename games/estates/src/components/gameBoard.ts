@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Hydratable, OffsetCoordinates } from '@tabletop/common'
 import { Cube } from './cube.js'
@@ -6,7 +6,7 @@ import { Roof } from './roof.js'
 import { Barrier, BarrierDirection } from './barrier.js'
 import { EstatesPlayerState } from '../model/playerState.js'
 
-export type Site = Static<typeof Site>
+export type Site = Type.Static<typeof Site>
 export const Site = Type.Object({
     single: Type.Boolean(),
     cubes: Type.Array(Cube),
@@ -14,14 +14,14 @@ export const Site = Type.Object({
     barriers: Type.Array(Barrier)
 })
 
-export type BoardRow = Static<typeof BoardRow>
+export type BoardRow = Type.Static<typeof BoardRow>
 export const BoardRow = Type.Object({
     mayor: Type.Boolean(),
     sites: Type.Array(Site),
     length: Type.Number()
 })
 
-export type EstatesGameBoard = Static<typeof EstatesGameBoard>
+export type EstatesGameBoard = Type.Static<typeof EstatesGameBoard>
 export const EstatesGameBoard = Type.Object({
     rows: Type.Array(BoardRow)
 })

@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assert,
@@ -12,13 +12,13 @@ import { ActionType } from '../definition/actions.js'
 
 import { Sundiver } from '../components/sundiver.js'
 
-export type HatchMetadata = Static<typeof HatchMetadata>
+export type HatchMetadata = Type.Static<typeof HatchMetadata>
 export const HatchMetadata = Type.Object({
     replacedSundiver: Sundiver,
     addedSundivers: Type.Array(Sundiver)
 })
 
-export type Hatch = Static<typeof Hatch>
+export type Hatch = Type.Static<typeof Hatch>
 export const Hatch = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

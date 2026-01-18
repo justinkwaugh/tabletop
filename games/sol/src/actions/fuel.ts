@@ -1,13 +1,13 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assert, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
-export type FuelMetadata = Static<typeof FuelMetadata>
+export type FuelMetadata = Type.Static<typeof FuelMetadata>
 export const FuelMetadata = Type.Object({})
 
-export type Fuel = Static<typeof Fuel>
+export type Fuel = Type.Static<typeof Fuel>
 export const Fuel = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

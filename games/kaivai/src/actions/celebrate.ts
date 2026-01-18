@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
@@ -6,12 +6,12 @@ import { ActionType } from '../definition/actions.js'
 import { isCelebratableCell } from '../definition/cells.js'
 import { MachineState } from '../definition/states.js'
 
-export type CelebrateMetadata = Static<typeof CelebrateMetadata>
+export type CelebrateMetadata = Type.Static<typeof CelebrateMetadata>
 export const CelebrateMetadata = Type.Object({
     scores: Type.Record(Type.String(), Type.Number())
 })
 
-export type Celebrate = Static<typeof Celebrate>
+export type Celebrate = Type.Static<typeof Celebrate>
 export const Celebrate = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

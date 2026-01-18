@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assertExists,
@@ -16,7 +16,7 @@ import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { Hurl } from './hurl.js'
 import { Station } from '../components/stations.js'
 
-export type FlyMetadata = Static<typeof FlyMetadata>
+export type FlyMetadata = Type.Static<typeof FlyMetadata>
 export const FlyMetadata = Type.Object({
     flightPath: Type.Array(OffsetCoordinates),
     puncturedGate: Type.Optional(SolarGate),
@@ -29,7 +29,7 @@ export const FlyMetadata = Type.Object({
     transcend: Type.Optional(Type.Boolean())
 })
 
-export type Fly = Static<typeof Fly>
+export type Fly = Type.Static<typeof Fly>
 export const Fly = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

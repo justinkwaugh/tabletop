@@ -13,7 +13,7 @@ import {
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from './playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
 import { isStallTile, StallTile, Tile, TileType } from '../components/tiles.js'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameBoard, HydratedGameBoard } from '../components/gameBoard.js'
 import { MachineState } from '../definition/states.js'
@@ -22,7 +22,7 @@ import { Expropriator } from '../util/expropriation.js'
 import { CellType, RoadCell } from '../components/cells.js'
 import { Scorer } from '../util/scoring.js'
 
-export type FreshFishGameState = Static<typeof FreshFishGameState>
+export type FreshFishGameState = Type.Static<typeof FreshFishGameState>
 export const FreshFishGameState = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameState, ['players', 'machineState']),

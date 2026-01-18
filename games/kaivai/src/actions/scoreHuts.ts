@@ -1,16 +1,16 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { ActionSource, GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 
-export type HutScore = Static<typeof HutScore>
+export type HutScore = Type.Static<typeof HutScore>
 export const HutScore = Type.Object({
     numHuts: Type.Number(),
     score: Type.Number()
 })
 
-export type ScoreHuts = Static<typeof ScoreHuts>
+export type ScoreHuts = Type.Static<typeof ScoreHuts>
 export const ScoreHuts = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['source']),

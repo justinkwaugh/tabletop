@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import {
     BooleanConfigOption,
     ConfigOptionType,
@@ -31,7 +31,7 @@ const boardSeedOption: NumberInputConfigOption = {
     placeholder: 'seed value'
 }
 
-export type FreshFishGameConfig = Static<typeof FreshFishGameConfig>
+export type FreshFishGameConfig = Type.Static<typeof FreshFishGameConfig>
 export const FreshFishGameConfig = Type.Object({
     forceThreeDisks: Type.Optional(Type.Boolean({ default: forceThreeDisksOption.default })),
     auctioneerWinsTie: Type.Optional(Type.Boolean({ default: auctioneerWinsTieOption.default })),

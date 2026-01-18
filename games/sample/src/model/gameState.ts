@@ -6,13 +6,13 @@ import {
     PrngState
 } from '@tabletop/common'
 import { SamplePlayerState, HydratedSamplePlayerState } from './playerState.js'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 
 // Define the shape of the SampleGameState by extending the common GameState
 // We use TypeBox to define the schema, and Static to extract the TypeScript type from the schema
-export type SampleGameState = Static<typeof SampleGameState>
+export type SampleGameState = Type.Static<typeof SampleGameState>
 export const SampleGameState = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameState, ['players', 'machineState']),

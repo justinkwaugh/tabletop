@@ -9,7 +9,7 @@ import {
     PrngState
 } from '@tabletop/common'
 import { SolPlayerState, HydratedSolPlayerState } from './playerState.js'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { HydratedSolGameBoard, SolGameBoard } from '../components/gameBoard.js'
@@ -21,7 +21,7 @@ import { Activation } from './activation.js'
 import { Suit } from '../components/cards.js'
 import { Ring } from '../utils/solGraph.js'
 
-export type SolGameState = Static<typeof SolGameState>
+export type SolGameState = Type.Static<typeof SolGameState>
 export const SolGameState = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameState, ['players', 'machineState']),

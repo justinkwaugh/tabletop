@@ -1,5 +1,5 @@
 import { assertExists, Hydratable, PlayerState } from '@tabletop/common'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
 import { Card } from '../components/cards.js'
@@ -7,7 +7,7 @@ import { Sundiver } from '../components/sundiver.js'
 import { SolarGate } from '../components/solarGate.js'
 import { EnergyNode, SundiverFoundry, TransmitTower } from '../components/stations.js'
 
-export type SolPlayerState = Static<typeof SolPlayerState>
+export type SolPlayerState = Type.Static<typeof SolPlayerState>
 export const SolPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,

@@ -1,4 +1,6 @@
 export * from './definition/gameDefinition.js'
+export * from './definition/info.js'
+export * from './definition/runtime.js'
 export * from './model/gameState.js'
 export * from './components/gameBoard.js'
 export * from './model/playerState.js'

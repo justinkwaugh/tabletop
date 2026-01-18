@@ -1,11 +1,11 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 
-export type Increase = Static<typeof Increase>
+export type Increase = Type.Static<typeof Increase>
 export const Increase = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

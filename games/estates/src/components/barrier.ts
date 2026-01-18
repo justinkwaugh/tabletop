@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { PieceType } from './pieceType.js'
 
 export enum BarrierDirection {
@@ -7,7 +7,7 @@ export enum BarrierDirection {
     Shorten = 'shorten'
 }
 
-export type Barrier = Static<typeof Barrier>
+export type Barrier = Type.Static<typeof Barrier>
 export const Barrier = Type.Object({
     pieceType: Type.Literal(PieceType.Barrier),
     value: Type.Number(),

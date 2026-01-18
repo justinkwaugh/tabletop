@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assertExists,
@@ -15,7 +15,7 @@ import { BONUS_AWARD_PER_RING } from '../utils/solConstants.js'
 import { EffectType } from '../components/effects.js'
 import { Activation } from '../model/activation.js'
 
-export type ActivateBonusMetadata = Static<typeof ActivateBonusMetadata>
+export type ActivateBonusMetadata = Type.Static<typeof ActivateBonusMetadata>
 export const ActivateBonusMetadata = Type.Object({
     stationId: Type.String(),
     coords: OffsetCoordinates,
@@ -24,7 +24,7 @@ export const ActivateBonusMetadata = Type.Object({
     momentumAdded: Type.Number()
 })
 
-export type ActivateBonus = Static<typeof ActivateBonus>
+export type ActivateBonus = Type.Static<typeof ActivateBonus>
 export const ActivateBonus = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

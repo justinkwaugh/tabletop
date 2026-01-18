@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { GameAction, HydratableAction, remove } from '@tabletop/common'
 
 import { HydratedEstatesGameState } from '../model/gameState.js'
@@ -11,7 +11,7 @@ export enum AuctionRecipient {
     HighestBidder = 'highestBidder'
 }
 
-export type ChooseRecipient = Static<typeof ChooseRecipient>
+export type ChooseRecipient = Type.Static<typeof ChooseRecipient>
 export const ChooseRecipient = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId', 'type']),

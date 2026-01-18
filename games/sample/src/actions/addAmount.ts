@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSampleGameState } from '../model/gameState.js'
@@ -7,14 +7,14 @@ import { ActionType } from '../definition/actions.js'
 // Metadata can be used to store additional information about the action, generally for logging or UI purposes
 // It tends to be output of the action, and is often denormalized data from the game state at the time of the action
 // This allows for display and logging without needing to reference the game state at the time of action execution
-export type AddAmountMetadata = Static<typeof AddAmountMetadata>
+export type AddAmountMetadata = Type.Static<typeof AddAmountMetadata>
 export const AddAmountMetadata = Type.Object({
     priorTotal: Type.Number(),
     newTotal: Type.Number()
 })
 
 // Define the shape of the AddAmount based on GameAction
-export type AddAmount = Static<typeof AddAmount>
+export type AddAmount = Type.Static<typeof AddAmount>
 export const AddAmount = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']), // Omit playerId to redefine it

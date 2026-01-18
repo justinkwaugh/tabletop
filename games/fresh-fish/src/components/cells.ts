@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { GoodsType } from '../definition/goodsType.js'
 
 export enum CellType {
@@ -11,12 +11,12 @@ export enum CellType {
     Truck = 'truck'
 }
 
-export type OffBoardCell = Static<typeof OffBoardCell>
+export type OffBoardCell = Type.Static<typeof OffBoardCell>
 export const OffBoardCell = Type.Object({
     type: Type.Literal(CellType.OffBoard)
 })
 
-export type EmptyCell = Static<typeof EmptyCell>
+export type EmptyCell = Type.Static<typeof EmptyCell>
 export const EmptyCell = Type.Object({
     type: Type.Literal(CellType.Empty)
 })
@@ -25,17 +25,17 @@ export function isEmptyCell(cell: Cell): cell is EmptyCell {
     return cell.type === CellType.Empty
 }
 
-export type RoadCell = Static<typeof RoadCell>
+export type RoadCell = Type.Static<typeof RoadCell>
 export const RoadCell = Type.Object({
     type: Type.Literal(CellType.Road)
 })
 
-export type MarketCell = Static<typeof MarketCell>
+export type MarketCell = Type.Static<typeof MarketCell>
 export const MarketCell = Type.Object({
     type: Type.Literal(CellType.Market)
 })
 
-export type DiskCell = Static<typeof DiskCell>
+export type DiskCell = Type.Static<typeof DiskCell>
 export const DiskCell = Type.Object({
     type: Type.Literal(CellType.Disk),
     playerId: Type.String()
@@ -45,7 +45,7 @@ export function isDiskCell(cell: Cell): cell is DiskCell {
     return cell.type === CellType.Disk
 }
 
-export type StallCell = Static<typeof StallCell>
+export type StallCell = Type.Static<typeof StallCell>
 export const StallCell = Type.Object({
     type: Type.Literal(CellType.Stall),
     playerId: Type.String(),
@@ -56,7 +56,7 @@ export function isStallCell(cell: Cell): cell is StallCell {
     return cell.type === CellType.Stall
 }
 
-export type TruckCell = Static<typeof TruckCell>
+export type TruckCell = Type.Static<typeof TruckCell>
 export const TruckCell = Type.Object({
     type: Type.Literal(CellType.Truck),
     goodsType: Type.Enum(GoodsType)
@@ -66,7 +66,7 @@ export function isTruckCell(cell: Cell): cell is TruckCell {
     return cell.type === CellType.Truck
 }
 
-export type Cell = Static<typeof Cell>
+export type Cell = Type.Static<typeof Cell>
 export const Cell = Type.Union([
     OffBoardCell,
     EmptyCell,
@@ -85,7 +85,7 @@ export const PopulatedCellTypes = [
     CellType.Road
 ]
 
-export type PopulatedCell = Static<typeof PopulatedCell>
+export type PopulatedCell = Type.Static<typeof PopulatedCell>
 export const PopulatedCell = Type.Union([MarketCell, DiskCell, StallCell, TruckCell, RoadCell])
 
 export function isTraversable(cell: Cell): boolean {

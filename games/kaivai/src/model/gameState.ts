@@ -11,12 +11,12 @@ import {
     RoundManager
 } from '@tabletop/common'
 import { KaivaiPlayerState, HydratedKaivaiPlayerState } from './playerState.js'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { KaivaiGameBoard, HydratedKaivaiGameBoard } from '../components/gameBoard.js'
 
-export type KaivaiGameState = Static<typeof KaivaiGameState>
+export type KaivaiGameState = Type.Static<typeof KaivaiGameState>
 export const KaivaiGameState = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameState, ['players', 'machineState']),

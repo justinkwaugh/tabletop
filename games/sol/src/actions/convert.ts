@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -9,13 +9,13 @@ import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { SolarGate } from '../components/solarGate.js'
 import { EffectType } from '../components/effects.js'
 
-export type ConvertMetadata = Static<typeof ConvertMetadata>
+export type ConvertMetadata = Type.Static<typeof ConvertMetadata>
 export const ConvertMetadata = Type.Object({
     convertedStation: Type.Optional(Station),
     convertedGate: Type.Optional(SolarGate)
 })
 
-export type Convert = Static<typeof Convert>
+export type Convert = Type.Static<typeof Convert>
 export const Convert = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

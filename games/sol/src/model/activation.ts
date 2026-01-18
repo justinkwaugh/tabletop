@@ -1,9 +1,8 @@
 import { StationType } from '../components/stations.js'
-import { Type } from 'typebox'
-import type { Static } from 'typebox'
+import * as Type from 'typebox'
 import { OffsetCoordinates } from '@tabletop/common'
 
-export type Activation = Static<typeof Activation>
+export type Activation = Type.Static<typeof Activation>
 export const Activation = Type.Object({
     playerId: Type.String(),
     stationType: Type.Optional(Type.Enum(StationType)),

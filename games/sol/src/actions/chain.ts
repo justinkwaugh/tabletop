@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assert,
@@ -14,19 +14,19 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { SundiverChain } from '../model/chain.js'
 
-export type PlayerChainResult = Static<typeof PlayerChainResult>
+export type PlayerChainResult = Type.Static<typeof PlayerChainResult>
 export const PlayerChainResult = Type.Object({
     playerId: Type.String(),
     momentumGained: Type.Number(),
     sundiverIdsReturned: Type.Array(Type.String())
 })
 
-export type ChainMetadata = Static<typeof ChainMetadata>
+export type ChainMetadata = Type.Static<typeof ChainMetadata>
 export const ChainMetadata = Type.Object({
     chainResults: Type.Record(Type.String(), PlayerChainResult)
 })
 
-export type Chain = Static<typeof Chain>
+export type Chain = Type.Static<typeof Chain>
 export const Chain = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

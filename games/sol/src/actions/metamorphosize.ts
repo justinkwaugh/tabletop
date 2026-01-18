@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assert,
@@ -18,13 +18,13 @@ import {
     StationType
 } from '../components/stations.js'
 
-export type MetamorphosizeMetadata = Static<typeof MetamorphosizeMetadata>
+export type MetamorphosizeMetadata = Type.Static<typeof MetamorphosizeMetadata>
 export const MetamorphosizeMetadata = Type.Object({
     priorStation: Station,
     newStation: Station
 })
 
-export type Metamorphosize = Static<typeof Metamorphosize>
+export type Metamorphosize = Type.Static<typeof Metamorphosize>
 export const Metamorphosize = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

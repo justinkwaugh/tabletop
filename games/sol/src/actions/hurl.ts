@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assert,
@@ -17,7 +17,7 @@ import { EffectType } from '../components/effects.js'
 import { HydratedFly } from './fly.js'
 import { Station } from '../components/stations.js'
 
-export type HurlMetadata = Static<typeof HurlMetadata>
+export type HurlMetadata = Type.Static<typeof HurlMetadata>
 export const HurlMetadata = Type.Object({
     flightPath: Type.Array(OffsetCoordinates),
     portal: Type.Boolean(),
@@ -29,7 +29,7 @@ export const HurlMetadata = Type.Object({
     transcend: Type.Optional(Type.Boolean())
 })
 
-export type Hurl = Static<typeof Hurl>
+export type Hurl = Type.Static<typeof Hurl>
 export const Hurl = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

@@ -1,4 +1,4 @@
-import { type Static, Type } from 'typebox'
+import * as Type from 'typebox'
 import { OffsetCoordinates } from '@tabletop/common'
 
 export enum StationType {
@@ -7,14 +7,14 @@ export enum StationType {
     TransmitTower = 'TransmitTower'
 }
 
-export type BaseStation = Static<typeof BaseStation>
+export type BaseStation = Type.Static<typeof BaseStation>
 export const BaseStation = Type.Object({
     id: Type.String(),
     playerId: Type.String(),
     coords: Type.Optional(OffsetCoordinates)
 })
 
-export type EnergyNode = Static<typeof EnergyNode>
+export type EnergyNode = Type.Static<typeof EnergyNode>
 export const EnergyNode = Type.Evaluate(
     Type.Intersect([
         BaseStation,
@@ -28,7 +28,7 @@ export function isEnergyNode(station: Station): station is EnergyNode {
     return station.type === StationType.EnergyNode
 }
 
-export type SundiverFoundry = Static<typeof SundiverFoundry>
+export type SundiverFoundry = Type.Static<typeof SundiverFoundry>
 export const SundiverFoundry = Type.Evaluate(
     Type.Intersect([
         BaseStation,
@@ -42,7 +42,7 @@ export function isSundiverFoundry(station: Station): station is SundiverFoundry 
     return station.type === StationType.SundiverFoundry
 }
 
-export type TransmitTower = Static<typeof TransmitTower>
+export type TransmitTower = Type.Static<typeof TransmitTower>
 export const TransmitTower = Type.Evaluate(
     Type.Intersect([
         BaseStation,
@@ -56,5 +56,5 @@ export function isTransmitTower(station: Station): station is TransmitTower {
     return station.type === StationType.TransmitTower
 }
 
-export type Station = Static<typeof Station>
+export type Station = Type.Static<typeof Station>
 export const Station = Type.Union([EnergyNode, SundiverFoundry, TransmitTower])

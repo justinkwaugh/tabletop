@@ -1,14 +1,14 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Suit } from '../components/cards.js'
 
-export type ChooseCardMetadata = Static<typeof ChooseCardMetadata>
+export type ChooseCardMetadata = Type.Static<typeof ChooseCardMetadata>
 export const ChooseCardMetadata = Type.Object({})
 
-export type ChooseCard = Static<typeof ChooseCard>
+export type ChooseCard = Type.Static<typeof ChooseCard>
 export const ChooseCard = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

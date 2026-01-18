@@ -9,7 +9,7 @@ import {
     PrngState
 } from '@tabletop/common'
 import { EstatesPlayerState, HydratedEstatesPlayerState } from './playerState.js'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { EstatesGameBoard, HydratedEstatesGameBoard } from '../components/gameBoard.js'
@@ -18,10 +18,10 @@ import { HydratedRoofBag, RoofBag } from '../components/roofBag.js'
 import { Company } from '../definition/companies.js'
 import { Piece } from '../components/pieces.js'
 
-export type OptionalCube = Static<typeof OptionalCube>
+export type OptionalCube = Type.Static<typeof OptionalCube>
 export const OptionalCube = Type.Union([Type.Undefined(), Type.Null(), Cube])
 
-export type EstatesGameState = Static<typeof EstatesGameState>
+export type EstatesGameState = Type.Static<typeof EstatesGameState>
 export const EstatesGameState = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameState, ['players', 'machineState']),

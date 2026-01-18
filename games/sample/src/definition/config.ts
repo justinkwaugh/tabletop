@@ -1,7 +1,7 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
 
-export type SampleGameConfig = Static<typeof SampleGameConfig>
+export type SampleGameConfig = Type.Static<typeof SampleGameConfig>
 export const SampleGameConfig = Type.Object({
     bigTotalsAllowed: Type.Boolean()
 })

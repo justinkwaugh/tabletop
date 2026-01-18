@@ -1,11 +1,11 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSampleGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
 // Define the shape of the Pass action based on GameAction
-export type Pass = Static<typeof Pass>
+export type Pass = Type.Static<typeof Pass>
 export const Pass = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']), // Omit playerId to redefine it

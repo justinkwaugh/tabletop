@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assertExists,
@@ -14,7 +14,7 @@ import { EffectType } from '../components/effects.js'
 import { Station } from '../components/stations.js'
 import { HydratedActivate } from './activate.js'
 
-export type DrawCardsMetadata = Static<typeof DrawCardsMetadata>
+export type DrawCardsMetadata = Type.Static<typeof DrawCardsMetadata>
 export const DrawCardsMetadata = Type.Object({
     drawnCards: Type.Array(Card),
     squeezedCards: Type.Array(Card),
@@ -26,7 +26,7 @@ export const DrawCardsMetadata = Type.Object({
     effect: Type.Optional(Type.Enum(EffectType))
 })
 
-export type DrawCards = Static<typeof DrawCards>
+export type DrawCards = Type.Static<typeof DrawCards>
 export const DrawCards = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId', 'revealsInfo']),

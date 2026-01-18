@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import {
     GameAction,
     AuctionType,
@@ -11,7 +11,7 @@ import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
 import { isBarrier, isCancelCube, isCube, isMayor, Piece } from '../components/pieces.js'
 
-export type StartAuction = Static<typeof StartAuction>
+export type StartAuction = Type.Static<typeof StartAuction>
 export const StartAuction = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId', 'type']),

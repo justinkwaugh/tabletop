@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assertExists,
@@ -16,14 +16,14 @@ import {
     Station
 } from '../components/stations.js'
 
-export type DeconstructMetadata = Static<typeof DeconstructMetadata>
+export type DeconstructMetadata = Type.Static<typeof DeconstructMetadata>
 export const DeconstructMetadata = Type.Object({
     removedStation: Station,
     oldMovement: Type.Number(),
     newMovement: Type.Number()
 })
 
-export type Deconstruct = Static<typeof Deconstruct>
+export type Deconstruct = Type.Static<typeof Deconstruct>
 export const Deconstruct = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
@@ -11,14 +11,14 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { KaivaiGameConfig, Ruleset } from '../definition/gameConfig.js'
 
-export type PlayerIslandMajority = Static<typeof PlayerIslandMajority>
+export type PlayerIslandMajority = Type.Static<typeof PlayerIslandMajority>
 export const PlayerIslandMajority = Type.Object({
     huts: Type.Number(),
     boats: Type.Number(),
     influence: Type.Number()
 })
 
-export type ScoreIsland = Static<typeof ScoreIsland>
+export type ScoreIsland = Type.Static<typeof ScoreIsland>
 export const ScoreIsland = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['source']),

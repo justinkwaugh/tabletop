@@ -1,11 +1,11 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
 
 // Here we define the shape of the player state for the Sample game by extending the common PlayerState
 // We use TypeBox to define the schema, and Static to extract the TypeScript type from the schema
-export type SamplePlayerState = Static<typeof SamplePlayerState>
+export type SamplePlayerState = Type.Static<typeof SamplePlayerState>
 export const SamplePlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,

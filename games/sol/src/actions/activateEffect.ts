@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, OffsetCoordinates } from '@tabletop/common'
 import type { MachineContext } from '@tabletop/common'
@@ -20,7 +20,7 @@ import { HydratedTribute } from './tribute.js'
 import { HydratedChain } from './chain.js'
 import { Ring } from '../utils/solGraph.js'
 
-export type ActivateEffectMetadata = Static<typeof ActivateEffectMetadata>
+export type ActivateEffectMetadata = Type.Static<typeof ActivateEffectMetadata>
 export const ActivateEffectMetadata = Type.Object({
     coords: Type.Optional(OffsetCoordinates),
     energyAdded: Type.Number(),
@@ -29,7 +29,7 @@ export const ActivateEffectMetadata = Type.Object({
     procreatedCoords: Type.Array(OffsetCoordinates)
 })
 
-export type ActivateEffect = Static<typeof ActivateEffect>
+export type ActivateEffect = Type.Static<typeof ActivateEffect>
 export const ActivateEffect = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

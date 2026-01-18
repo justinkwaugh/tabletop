@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { AxialCoordinates } from '@tabletop/common'
 import { Boat } from '../components/boat.js'
 import { HutType } from './huts.js'
@@ -11,27 +11,27 @@ export enum CellType {
     Meeting = 'Meeting'
 }
 
-export type BaseCell = Static<typeof BaseCell>
+export type BaseCell = Type.Static<typeof BaseCell>
 export const BaseCell = Type.Object({
     type: Type.Enum(CellType),
     coords: AxialCoordinates
 })
 
-export type WaterCell = Static<typeof WaterCell>
+export type WaterCell = Type.Static<typeof WaterCell>
 export const WaterCell = Type.Object({
     ...BaseCell.properties,
     type: Type.Literal(CellType.Water),
     boat: Type.Optional(Boat)
 })
 
-export type CultCell = Static<typeof CultCell>
+export type CultCell = Type.Static<typeof CultCell>
 export const CultCell = Type.Object({
     ...BaseCell.properties,
     type: Type.Literal(CellType.Cult),
     islandId: Type.String()
 })
 
-export type MeetingCell = Static<typeof MeetingCell>
+export type MeetingCell = Type.Static<typeof MeetingCell>
 export const MeetingCell = Type.Object({
     ...BaseCell.properties,
     type: Type.Literal(CellType.Meeting),
@@ -41,7 +41,7 @@ export const MeetingCell = Type.Object({
     fish: Type.Number()
 })
 
-export type FishingCell = Static<typeof FishingCell>
+export type FishingCell = Type.Static<typeof FishingCell>
 export const FishingCell = Type.Object({
     ...BaseCell.properties,
     type: Type.Literal(CellType.Fishing),
@@ -50,7 +50,7 @@ export const FishingCell = Type.Object({
     owner: Type.String()
 })
 
-export type BoatBuildingCell = Static<typeof BoatBuildingCell>
+export type BoatBuildingCell = Type.Static<typeof BoatBuildingCell>
 export const BoatBuildingCell = Type.Object({
     ...BaseCell.properties,
     type: Type.Literal(CellType.BoatBuilding),
@@ -109,5 +109,5 @@ export function isBoatCell(cell?: Cell): cell is WaterCell | BoatBuildingCell {
     return cell?.type === CellType.Water || isBoatBuildingCell(cell)
 }
 
-export type Cell = Static<typeof Cell>
+export type Cell = Type.Static<typeof Cell>
 export const Cell = Type.Union([WaterCell, CultCell, MeetingCell, FishingCell, BoatBuildingCell])

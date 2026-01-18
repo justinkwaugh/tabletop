@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     coordinatesToNumber,
@@ -20,14 +20,14 @@ import {
 import { solPathfinder } from '../utils/solPathfinder.js'
 import { solRingPattern } from '../utils/solRingPattern.js'
 
-export type Cell = Static<typeof Cell>
+export type Cell = Type.Static<typeof Cell>
 export const Cell = Type.Object({
     coords: OffsetCoordinates,
     station: Type.Optional(Station),
     sundivers: Type.Array(Sundiver)
 })
 
-export type SolGameBoard = Static<typeof SolGameBoard>
+export type SolGameBoard = Type.Static<typeof SolGameBoard>
 export const SolGameBoard = Type.Object({
     numPlayers: Type.Number(),
     motherships: Type.Record(Type.String(), Type.Number()), // PlayerId -> Index

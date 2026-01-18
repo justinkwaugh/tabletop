@@ -1,11 +1,11 @@
 import { Hydratable, OffsetTupleCoordinates, PlayerState } from '@tabletop/common'
 import { GoodsType } from '../definition/goodsType.js'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { type ScoringInfo } from '../util/scoring.js'
 import { Color } from '@tabletop/common'
 
-export type PlayerStall = Static<typeof PlayerStall>
+export type PlayerStall = Type.Static<typeof PlayerStall>
 export const PlayerStall = Type.Object({
     goodsType: Type.Enum(GoodsType),
     placed: Type.Boolean({ default: false }),
@@ -14,7 +14,7 @@ export const PlayerStall = Type.Object({
     coords: Type.Optional(OffsetTupleCoordinates)
 })
 
-export type FreshFishPlayerState = Static<typeof FreshFishPlayerState>
+export type FreshFishPlayerState = Type.Static<typeof FreshFishPlayerState>
 export const FreshFishPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,

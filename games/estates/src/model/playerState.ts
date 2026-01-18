@@ -1,10 +1,10 @@
 import { Hydratable, PlayerState } from '@tabletop/common'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
 import { Company } from '../definition/companies.js'
 
-export type EstatesPlayerState = Static<typeof EstatesPlayerState>
+export type EstatesPlayerState = Type.Static<typeof EstatesPlayerState>
 export const EstatesPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,

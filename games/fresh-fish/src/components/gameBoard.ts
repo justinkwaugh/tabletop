@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     CellType,
@@ -21,7 +21,7 @@ import {
 } from '@tabletop/common'
 import { FreshFishGraph } from '../util/freshFishGraph.js'
 
-export type GameBoard = Static<typeof GameBoard>
+export type GameBoard = Type.Static<typeof GameBoard>
 export const GameBoard = Type.Object({
     cells: Type.Array(Type.Array(Cell))
 })

@@ -1,5 +1,4 @@
-import { type Static, Type } from 'typebox'
-
+import * as Type from 'typebox'
 export enum EffectType {
     Accelerate = 'Accelerate',
     Augment = 'Augment',
@@ -40,7 +39,7 @@ export enum EffectColor {
     Yellow = 'Yellow'
 }
 
-export type Effect = Static<typeof Effect>
+export type Effect = Type.Static<typeof Effect>
 export const Effect = Type.Object({
     type: Type.Enum(EffectType),
     color: Type.Enum(EffectColor)

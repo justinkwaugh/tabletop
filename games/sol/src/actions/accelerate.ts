@@ -1,16 +1,16 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Ring } from '../utils/solGraph.js'
 
-export type AccelerateMetadata = Static<typeof AccelerateMetadata>
+export type AccelerateMetadata = Type.Static<typeof AccelerateMetadata>
 export const AccelerateMetadata = Type.Object({
     sundiverId: Type.String()
 })
 
-export type Accelerate = Static<typeof Accelerate>
+export type Accelerate = Type.Static<typeof Accelerate>
 export const Accelerate = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

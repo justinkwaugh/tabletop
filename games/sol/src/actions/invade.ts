@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assert,
@@ -12,7 +12,7 @@ import { ActionType } from '../definition/actions.js'
 import { Station, StationType } from '../components/stations.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 
-export type InvadeMetadata = Static<typeof InvadeMetadata>
+export type InvadeMetadata = Type.Static<typeof InvadeMetadata>
 export const InvadeMetadata = Type.Object({
     invadedStation: Station,
     invaderStation: Station,
@@ -20,7 +20,7 @@ export const InvadeMetadata = Type.Object({
     addedSundiverIds: Type.Array(Type.String())
 })
 
-export type Invade = Static<typeof Invade>
+export type Invade = Type.Static<typeof Invade>
 export const Invade = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

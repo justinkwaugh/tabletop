@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     AxialCoordinates,
@@ -15,7 +15,7 @@ import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { MachineState } from '../definition/states.js'
 import { KaivaiGameConfig, Ruleset } from '../definition/gameConfig.js'
 
-export type FishMetadata = Static<typeof FishMetadata>
+export type FishMetadata = Type.Static<typeof FishMetadata>
 export const FishMetadata = Type.Object({
     originalCoords: Type.Optional(AxialCoordinates),
     numFish: Type.Number(),
@@ -24,7 +24,7 @@ export const FishMetadata = Type.Object({
     dieResults: Type.Array(Type.Boolean())
 })
 
-export type Fish = Static<typeof Fish>
+export type Fish = Type.Static<typeof Fish>
 export const Fish = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

@@ -1,11 +1,11 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, OffsetTupleCoordinates } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { CellType } from '../components/cells.js'
 import { ActionType } from '../definition/actions.js'
 
-export type PlaceDisk = Static<typeof PlaceDisk>
+export type PlaceDisk = Type.Static<typeof PlaceDisk>
 
 export const PlaceDisk = Type.Evaluate(
     Type.Intersect([

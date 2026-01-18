@@ -32,10 +32,7 @@ const toPath = (value) => (value instanceof URL ? fileURLToPath(value) : value)
 
 const analyzeBundle = (enabled) => ({
     name: 'analyze-bundle',
-    generateBundle(
-        _options,
-        bundle
-    ) {
+    generateBundle(_options, bundle) {
         if (!enabled) return
 
         const stats = {}
@@ -99,12 +96,7 @@ const createResolveJsExtensions = (packageRoot) => ({
 
         const candidates = isSvelte
             ? [`${basePath}.svelte`, `${basePath}.svelte.ts`]
-            : [
-                  `${basePath}.ts`,
-                  `${basePath}.svelte.ts`,
-                  `${basePath}.js`,
-                  `${basePath}.svelte`
-              ]
+            : [`${basePath}.ts`, `${basePath}.svelte.ts`, `${basePath}.js`, `${basePath}.svelte`]
 
         for (const candidate of candidates) {
             if (fs.existsSync(candidate)) {
@@ -138,16 +130,14 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
     }
 
     const packageRoot = toPath(packageRootUrl)
-    const packageJson = JSON.parse(
-        fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8')
-    )
+    const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'))
     const packageName = packageJson.name ?? ''
     const packageVersion = packageJson.version ?? '0.0.0'
     const gameId = packageName.replace(/^@[^/]+\//, '').replace(/-ui$/, '')
     const uiVersion = process.env.ROLLUP_UI_VERSION ?? packageVersion
     const publicAssetsPath = `/games/${gameId}/${uiVersion}/assets/`
     const analyze = process.env.ROLLUP_ANALYZE === '1'
-    const minify = process.env.ROLLUP_TERSER === '1'
+    const minify = true // process.env.ROLLUP_TERSER === '1'
 
     return {
         input: path.join(packageRoot, 'src/lib/index.ts'),

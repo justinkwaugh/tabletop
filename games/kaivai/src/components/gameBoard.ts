@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     coordinatesToNumber,
@@ -34,7 +34,7 @@ import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { Boat } from './boat.js'
 import { HutType } from '../definition/huts.js'
 
-export type KaivaiGameBoard = Static<typeof KaivaiGameBoard>
+export type KaivaiGameBoard = Type.Static<typeof KaivaiGameBoard>
 export const KaivaiGameBoard = Type.Object({
     cells: Type.Record(Type.Number(), Cell),
     islands: Type.Record(Type.String(), Island)

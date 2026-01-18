@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
 
 export enum Ruleset {
@@ -6,7 +6,7 @@ export enum Ruleset {
     SecondEdition = 'SecondEdition'
 }
 
-export type KaivaiGameConfig = Static<typeof KaivaiGameConfig>
+export type KaivaiGameConfig = Type.Static<typeof KaivaiGameConfig>
 export const KaivaiGameConfig = Type.Object({
     ruleset: Type.Enum(Ruleset),
     lucklessFishing: Type.Boolean(),

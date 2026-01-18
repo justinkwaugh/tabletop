@@ -1,13 +1,13 @@
 import { AxialCoordinates, Hydratable, PlayerState } from '@tabletop/common'
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
 import { Boat } from '../components/boat.js'
 
-export type PlayerTile = Static<typeof PlayerTile>
+export type PlayerTile = Type.Static<typeof PlayerTile>
 export const PlayerTile = Type.Object({})
 
-export type KaivaiPlayerState = Static<typeof KaivaiPlayerState>
+export type KaivaiPlayerState = Type.Static<typeof KaivaiPlayerState>
 export const KaivaiPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,

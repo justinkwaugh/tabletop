@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assert,
@@ -10,12 +10,12 @@ import {
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
-export type TributeMetadata = Static<typeof TributeMetadata>
+export type TributeMetadata = Type.Static<typeof TributeMetadata>
 export const TributeMetadata = Type.Object({
     payments: Type.Record(Type.String(), Type.Number())
 })
 
-export type Tribute = Static<typeof Tribute>
+export type Tribute = Type.Static<typeof Tribute>
 export const Tribute = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

@@ -1,16 +1,16 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Ring } from '../utils/solGraph.js'
 
-export type BlightMetadata = Static<typeof BlightMetadata>
+export type BlightMetadata = Type.Static<typeof BlightMetadata>
 export const BlightMetadata = Type.Object({
     sundiverId: Type.String()
 })
 
-export type Blight = Static<typeof Blight>
+export type Blight = Type.Static<typeof Blight>
 export const Blight = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

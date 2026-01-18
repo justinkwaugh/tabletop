@@ -1,7 +1,7 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
 
-export type EstatesGameConfig = Static<typeof EstatesGameConfig>
+export type EstatesGameConfig = Type.Static<typeof EstatesGameConfig>
 export const EstatesGameConfig = Type.Object({
     hiddenMoney: Type.Boolean(),
     sneakyBuildings: Type.Boolean()

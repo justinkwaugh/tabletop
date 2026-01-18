@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     AxialCoordinates,
@@ -13,13 +13,13 @@ import { HydratedKaivaiPlayerState } from '../model/playerState.js'
 import { isDeliverableCell } from '../definition/cells.js'
 import { MachineState } from '../definition/states.js'
 
-export type Delivery = Static<typeof Delivery>
+export type Delivery = Type.Static<typeof Delivery>
 export const Delivery = Type.Object({
     coords: AxialCoordinates,
     amount: Type.Number()
 })
 
-export type DeliverMetadata = Static<typeof DeliverMetadata>
+export type DeliverMetadata = Type.Static<typeof DeliverMetadata>
 export const DeliverMetadata = Type.Object({
     originalCoords: AxialCoordinates,
     numSold: Type.Number(),
@@ -27,7 +27,7 @@ export const DeliverMetadata = Type.Object({
     numKept: Type.Number()
 })
 
-export type Deliver = Static<typeof Deliver>
+export type Deliver = Type.Static<typeof Deliver>
 export const Deliver = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

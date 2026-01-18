@@ -1,7 +1,7 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
 
-export type SolGameConfig = Static<typeof SolGameConfig>
+export type SolGameConfig = Type.Static<typeof SolGameConfig>
 export const SolGameConfig = Type.Object({
     lowConflict: Type.Boolean(),
     noBlue: Type.Boolean(),

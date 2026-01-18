@@ -1,4 +1,4 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     assert,
@@ -13,13 +13,13 @@ import { ActionType } from '../definition/actions.js'
 import { EffectType } from '../components/effects.js'
 import { Ring } from '../utils/solGraph.js'
 
-export type LaunchMetadata = Static<typeof LaunchMetadata>
+export type LaunchMetadata = Type.Static<typeof LaunchMetadata>
 export const LaunchMetadata = Type.Object({
     sundiverIds: Type.Array(Type.String()),
     energyGained: Type.Number()
 })
 
-export type Launch = Static<typeof Launch>
+export type Launch = Type.Static<typeof Launch>
 export const Launch = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameAction, ['playerId']),

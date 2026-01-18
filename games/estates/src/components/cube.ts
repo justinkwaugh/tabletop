@@ -1,8 +1,8 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Company } from '../definition/companies.js'
 import { PieceType } from './pieceType.js'
 
-export type Cube = Static<typeof Cube>
+export type Cube = Type.Static<typeof Cube>
 export const Cube = Type.Object({
     pieceType: Type.Literal(PieceType.Cube),
     value: Type.Number(),

@@ -1,10 +1,10 @@
-import { Type, type Static } from 'typebox'
+import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
-export type SolarFlareMetadata = Static<typeof SolarFlareMetadata>
+export type SolarFlareMetadata = Type.Static<typeof SolarFlareMetadata>
 export const SolarFlareMetadata = Type.Object({
     newInstability: Type.Number(),
     unstableEnergy: Type.Array(
@@ -17,7 +17,7 @@ export const SolarFlareMetadata = Type.Object({
     hurlBonus: Type.Optional(Type.String())
 })
 
-export type SolarFlare = Static<typeof SolarFlare>
+export type SolarFlare = Type.Static<typeof SolarFlare>
 export const SolarFlare = Type.Evaluate(
     Type.Intersect([
         GameAction,
