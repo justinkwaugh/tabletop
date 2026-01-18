@@ -101,10 +101,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         }
     })
 
-    // If I do this as an async hook with await, it hangs forever... why?
-    fastify.addHook('onSend', function handleCors(req, reply, payload, next) {
+    fastify.addHook('onSend', async (request, reply, payload) => {
         void reply.header('X-Tabletop-Version', TABLETOP_VERSION)
-        next()
+        return payload
     })
 
     await fastify.register(FastifyFormbody)
