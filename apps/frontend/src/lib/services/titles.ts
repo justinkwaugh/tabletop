@@ -28,6 +28,8 @@ async function loadManifest(): Promise<ManifestResponse> {
 }
 
 const manifest = await loadManifest()
+export const FRONTEND_VERSION =
+    manifest.frontend?.version ?? SiteManifest.frontend?.version ?? '0.0.0'
 const games = manifest.games
 export const GAME_UI_VERSIONS: Record<string, string> = Object.fromEntries(
     games.map((game) => [game.gameId, game.uiVersion])

@@ -21,11 +21,6 @@ import ManifestRoutes from './routes/manifest.js'
 
 const __dirname = import.meta.dirname
 
-// Major - Force Page Reload
-// Minor - Suggest Page Reload
-// Patch - No Reload Needed
-const TABLETOP_VERSION = process.env['VERSION'] ?? '0.0.1'
-
 const API_VERSION = 1
 const API_PREFIX = `/api/v${API_VERSION}`
 
@@ -105,7 +100,16 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     })
 
     fastify.addHook('onSend', async (request, reply, payload) => {
-        void reply.header('X-Tabletop-Version', TABLETOP_VERSION)
+        let frontendVersion = FRONTEND_VERSION_OVERRIDE
+        if (!frontendVersion) {
+            try {
+                const manifest = await fastify.libraryService.getManifest()
+                frontendVersion = manifest.frontend?.version ?? null
+            } catch (error) {
+                console.warn('Unable to resolve frontend version for response header', error)
+            }
+        }
+        void reply.header('X-Tabletop-Version', frontendVersion ?? '0.0.0')
         return payload
     })
 
@@ -236,7 +240,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             decorateReply: false, // avoid reply.sendFile collisions
             preCompressed: true,
             immutable: true,
-            maxAge: '60s',
+            maxAge: '365d',
             setHeaders: (res, pathName) => {
                 if (pathName.endsWith('.br')) {
                     res.setHeader('Content-Encoding', 'br')
@@ -271,7 +275,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                     root: path.join(STATIC_ROOT, 'frontend', frontendVersion),
                     preCompressed: true,
                     immutable: true,
-                    maxAge: '30d',
+                    maxAge: '365d',
                     setHeaders: (res, pathName) => {
                         if (pathName.endsWith('.br')) {
                             res.setHeader('Content-Encoding', 'br')

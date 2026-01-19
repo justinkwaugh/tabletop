@@ -2,7 +2,6 @@ import { TabletopApi, type AppContext, VisibilityService } from '@tabletop/front
 import {
     PUBLIC_API_HOST,
     PUBLIC_SSE_HOST,
-    PUBLIC_VERSION,
     PUBLIC_ENABLE_ABLY_REALTIME
 } from '$env/static/public'
 import { AuthorizationService } from '$lib/services/authorizationService.svelte'
@@ -12,10 +11,11 @@ import { LibraryService } from '$lib/services/libraryService'
 import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 import { ChatService } from '$lib/services/chatService.svelte'
 import { SseConnection } from '$lib/network/sseConnection.svelte.js'
+import { FRONTEND_VERSION } from '$lib/services/titles.js'
 
 const libraryService = new LibraryService()
 
-const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, libraryService, PUBLIC_VERSION)
+const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, libraryService, FRONTEND_VERSION)
 const authorizationService = new AuthorizationService(api)
 
 const visibilityService = new VisibilityService()
