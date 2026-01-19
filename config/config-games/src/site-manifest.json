@@ -1,37 +1,48 @@
 {
   "frontend": {
-    "version": "1.0.1"
+    "version": "1.0.1",
+    "priorVersions": []
   },
   "games": [
     {
       "gameId": "bridges",
       "packageId": "bridges-of-shangri-la",
       "logicVersion": "1.1.2",
-      "uiVersion": "1.1.2"
+      "uiVersion": "1.1.2",
+      "priorLogicVersions": [],
+      "priorUiVersions": []
     },
     {
       "gameId": "estates",
       "packageId": "estates",
       "logicVersion": "1.0.1",
-      "uiVersion": "1.0.1"
+      "uiVersion": "1.0.1",
+      "priorLogicVersions": [],
+      "priorUiVersions": []
     },
     {
       "gameId": "freshfish",
       "packageId": "fresh-fish",
       "logicVersion": "1.1.5",
-      "uiVersion": "1.1.5"
+      "uiVersion": "1.1.5",
+      "priorLogicVersions": [],
+      "priorUiVersions": []
     },
     {
       "gameId": "kaivai",
       "packageId": "kaivai",
       "logicVersion": "1.0.2",
-      "uiVersion": "1.0.2"
+      "uiVersion": "1.0.2",
+      "priorLogicVersions": [],
+      "priorUiVersions": []
     },
     {
       "gameId": "sol",
       "packageId": "sol",
       "logicVersion": "1.0.1",
-      "uiVersion": "1.0.1"
+      "uiVersion": "1.0.1",
+      "priorLogicVersions": [],
+      "priorUiVersions": []
     }
   ]
 }

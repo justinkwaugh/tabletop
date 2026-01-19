@@ -13,6 +13,13 @@ export type PackageVersions = {
     games: Record<string, { logicVersion: string; uiVersion: string }>
 }
 
+const updatePriorVersions = (current: string, next: string, prior?: string[]) => {
+    if (current === next) {
+        return prior ?? []
+    }
+    return [current, ...(prior ?? [])].slice(0, 5)
+}
+
 const readJson = async (filePath: string) => {
     const raw = await fs.readFile(filePath, 'utf8')
     return JSON.parse(raw) as PackageJson
@@ -88,17 +95,40 @@ export const syncManifestFromPackages = async (
     manifest: SiteManifest
 ): Promise<{ manifest: SiteManifest; changed: boolean }> => {
     const versions = await readPackageVersions(repoRoot, manifest)
+    const frontendPrior = updatePriorVersions(
+        manifest.frontend.version,
+        versions.frontendVersion,
+        manifest.frontend.priorVersions
+    )
     const nextManifest: SiteManifest = {
-        frontend: { version: versions.frontendVersion },
+        frontend: {
+            ...manifest.frontend,
+            version: versions.frontendVersion,
+            priorVersions: frontendPrior
+        },
         games: []
     }
 
     for (const entry of manifest.games) {
         const gameVersions = versions.games[entry.packageId]
+        const nextLogicVersion = gameVersions?.logicVersion ?? entry.logicVersion
+        const nextUiVersion = gameVersions?.uiVersion ?? entry.uiVersion
+        const priorLogicVersions = updatePriorVersions(
+            entry.logicVersion,
+            nextLogicVersion,
+            entry.priorLogicVersions
+        )
+        const priorUiVersions = updatePriorVersions(
+            entry.uiVersion,
+            nextUiVersion,
+            entry.priorUiVersions
+        )
         nextManifest.games.push({
             ...entry,
-            logicVersion: gameVersions?.logicVersion ?? entry.logicVersion,
-            uiVersion: gameVersions?.uiVersion ?? entry.uiVersion
+            logicVersion: nextLogicVersion,
+            uiVersion: nextUiVersion,
+            priorLogicVersions,
+            priorUiVersions
         })
     }
 

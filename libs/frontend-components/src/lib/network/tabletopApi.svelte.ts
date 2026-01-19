@@ -570,7 +570,10 @@ export class TabletopApi {
     private versionForGame(gameId: string): string {
         const title = this.libraryService.getTitle(gameId)
         assertExists(title, `No title found for game ID: ${gameId}`)
-        return title.info.metadata.version
+        const version = title.info.metadata.version ?? '0.0.0'
+        const majorPart = version.split('.')[0] ?? '0'
+        const majorVersion = Number.parseInt(majorPart, 10)
+        return Number.isFinite(majorVersion) ? `v${majorVersion}` : 'v0'
     }
 
     private async handleError(error: WretchError) {

@@ -3,11 +3,14 @@ export type GameManifestEntry = {
     packageId: string
     logicVersion: string
     uiVersion: string
+    priorLogicVersions?: string[]
+    priorUiVersions?: string[]
 }
 
 export type SiteManifest = {
     frontend: {
         version: string
+        priorVersions?: string[]
     }
     games: GameManifestEntry[]
 }
