@@ -8,10 +8,13 @@ import { mergeEnvConfig, readDeployConfig } from './lib/config.js'
 import {
     buildBackendCommand,
     buildFrontendCommand,
+    buildGameLogicCommand,
+    buildGameLogicPackageCommand,
     buildGameUiCommand,
     buildGameUiPackageCommand,
     deployBackendCommand,
     deployFrontendCommand,
+    deployGameLogicCommand,
     deployGameUiCommand,
     rollbackBackendCommand,
     runCommand
@@ -31,6 +34,8 @@ Commands:
   sync-manifest                Sync site-manifest.json from package versions
   build-ui <gameId>            Build a game UI bundle (rollup)
   deploy-ui <gameId>           Build + bundle a game UI and deploy to GCS
+  build-logic <gameId>         Build a game logic bundle (rollup)
+  deploy-logic <gameId>        Build + bundle game logic and deploy to GCS
   build-frontend               Build the frontend
   deploy-frontend              Deploy the frontend bundle to GCS
   build-backend                Build the backend
@@ -115,6 +120,27 @@ const main = async () => {
         await runAndReport(bundleSpec, () => runCommand(bundleSpec))
         const manifest = await loadSyncedManifest()
         const spec = deployGameUiCommand(repoRoot, manifest, gameId, deployConfig)
+        await runAndReport(spec, () => runCommand(spec))
+        return
+    }
+
+    if (command === 'build-logic') {
+        const gameId = positionals[1]
+        if (!gameId) throw new Error('build-logic requires a gameId')
+        const spec = buildGameLogicCommand(repoRoot, gameId)
+        await runAndReport(spec, () => runCommand(spec))
+        return
+    }
+
+    if (command === 'deploy-logic') {
+        const gameId = positionals[1]
+        if (!gameId) throw new Error('deploy-logic requires a gameId')
+        const buildSpec = buildGameLogicPackageCommand(repoRoot, gameId)
+        await runAndReport(buildSpec, () => runCommand(buildSpec))
+        const bundleSpec = buildGameLogicCommand(repoRoot, gameId)
+        await runAndReport(bundleSpec, () => runCommand(bundleSpec))
+        const manifest = await loadSyncedManifest()
+        const spec = deployGameLogicCommand(repoRoot, manifest, gameId, deployConfig)
         await runAndReport(spec, () => runCommand(spec))
         return
     }

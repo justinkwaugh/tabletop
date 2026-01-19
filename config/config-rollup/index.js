@@ -135,14 +135,14 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
     const packageVersion = packageJson.version ?? '0.0.0'
     const gameId = packageName.replace(/^@[^/]+\//, '').replace(/-ui$/, '')
     const uiVersion = process.env.ROLLUP_UI_VERSION ?? packageVersion
-    const publicAssetsPath = `/games/${gameId}/${uiVersion}/assets/`
+    const publicAssetsPath = `/games/${gameId}/ui/${uiVersion}/assets/`
     const analyze = process.env.ROLLUP_ANALYZE === '1'
-    const minify = true // process.env.ROLLUP_TERSER === '1'
+    const minify = process.env.ROLLUP_TERSER !== '0'
 
     return {
         input: path.join(packageRoot, 'src/lib/index.ts'),
         output: {
-            dir: path.join(packageRoot, 'public'),
+            dir: path.join(packageRoot, 'bundle'),
             format: 'es'
         },
         plugins: [
@@ -171,7 +171,7 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
             postcss({ inject: true }),
             url({
                 include: assetExtensions,
-                destDir: path.join(packageRoot, 'public/assets'),
+                destDir: path.join(packageRoot, 'bundle/assets'),
                 publicPath: publicAssetsPath,
                 fileName: '[name]-[hash][extname]',
                 limit: 0
@@ -179,6 +179,35 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
             analyzeBundle(analyze),
             ...(minify ? [terser()] : []),
             brotli()
+        ]
+    }
+}
+
+export const createGameLogicRollupConfig = ({ packageRootUrl }) => {
+    if (!packageRootUrl) {
+        throw new Error('createGameLogicRollupConfig requires packageRootUrl')
+    }
+
+    const packageRoot = toPath(packageRootUrl)
+    const outputDir = path.join(packageRoot, 'bundle')
+
+    return {
+        input: path.join(packageRoot, 'src/index.ts'),
+        output: {
+            file: path.join(outputDir, 'index.js'),
+            format: 'es',
+            sourcemap: true,
+            inlineDynamicImports: true
+        },
+        plugins: [
+            createResolveJsExtensions(packageRoot),
+            typescript({ tsconfig: path.join(packageRoot, 'tsconfig.rollup.json') }),
+            resolve({
+                preferBuiltins: true,
+                exportConditions: ['node'],
+                extensions: ['.ts', '.js', '.mjs']
+            }),
+            commonjs()
         ]
     }
 }

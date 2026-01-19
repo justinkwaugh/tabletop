@@ -26,9 +26,9 @@ const writeJson = async (filePath: string, data: PackageJson) => {
 export const getFrontendPackagePath = (repoRoot: string) =>
     path.join(repoRoot, 'apps', 'frontend', 'package.json')
 
-export const getGamePackagePaths = (repoRoot: string, gameId: string) => ({
-    logic: path.join(repoRoot, 'games', gameId, 'package.json'),
-    ui: path.join(repoRoot, 'games', `${gameId}-ui`, 'package.json')
+export const getGamePackagePaths = (repoRoot: string, packageId: string) => ({
+    logic: path.join(repoRoot, 'games', packageId, 'package.json'),
+    ui: path.join(repoRoot, 'games', `${packageId}-ui`, 'package.json')
 })
 
 export const readPackageVersion = async (filePath: string) => {
@@ -71,13 +71,13 @@ export const readPackageVersions = async (
     const frontendVersion = await readPackageVersion(getFrontendPackagePath(repoRoot))
     const games: Record<string, { logicVersion: string; uiVersion: string }> = {}
 
-    for (const gameId of Object.keys(manifest.games)) {
-        const paths = getGamePackagePaths(repoRoot, gameId)
+    for (const entry of manifest.games) {
+        const paths = getGamePackagePaths(repoRoot, entry.packageId)
         const [logicVersion, uiVersion] = await Promise.all([
             readPackageVersion(paths.logic),
             readPackageVersion(paths.ui)
         ])
-        games[gameId] = { logicVersion, uiVersion }
+        games[entry.packageId] = { logicVersion, uiVersion }
     }
 
     return { frontendVersion, games }
@@ -90,15 +90,16 @@ export const syncManifestFromPackages = async (
     const versions = await readPackageVersions(repoRoot, manifest)
     const nextManifest: SiteManifest = {
         frontend: { version: versions.frontendVersion },
-        games: {}
+        games: []
     }
 
-    for (const [gameId, entry] of Object.entries(manifest.games)) {
-        const gameVersions = versions.games[gameId]
-        nextManifest.games[gameId] = {
+    for (const entry of manifest.games) {
+        const gameVersions = versions.games[entry.packageId]
+        nextManifest.games.push({
+            ...entry,
             logicVersion: gameVersions?.logicVersion ?? entry.logicVersion,
             uiVersion: gameVersions?.uiVersion ?? entry.uiVersion
-        }
+        })
     }
 
     const changed = JSON.stringify(manifest) !== JSON.stringify(nextManifest)

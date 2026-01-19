@@ -53,7 +53,7 @@
         },
         "bundle": {
             "dependsOn": ["^build"],
-            "outputs": ["public/**/*"]
+            "outputs": ["bundle/**/*"]
         },
         "update-games": {
             "dependsOn": ["@tabletop/games-config#build", "^update-games"],

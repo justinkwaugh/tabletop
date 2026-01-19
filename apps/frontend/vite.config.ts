@@ -2,6 +2,11 @@ import devtoolsJson from 'vite-plugin-devtools-json'
 import { sveltekit } from '@sveltejs/kit/vite'
 import { defineProject, mergeConfig } from 'vitest/config'
 import { VitestConfig } from '@tabletop/vitest-config'
+import type { ClientRequest, IncomingMessage } from 'node:http'
+
+type ProxyServer = {
+    on: (event: 'proxyReq', listener: (proxyReq: ClientRequest, req: IncomingMessage) => void) => void
+}
 
 export default defineProject(
     mergeConfig(VitestConfig, {
@@ -12,8 +17,8 @@ export default defineProject(
                 '/games': {
                     target: 'http://localhost:3000',
                     changeOrigin: true,
-                    configure: (proxy) => {
-                        proxy.on('proxyReq', (proxyReq, req) => {
+                    configure: (proxy: ProxyServer) => {
+                        proxy.on('proxyReq', (proxyReq: ClientRequest, req: IncomingMessage) => {
                             const acceptEncoding = req.headers['accept-encoding']
                             if (!acceptEncoding) {
                                 return

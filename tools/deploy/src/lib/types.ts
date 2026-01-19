@@ -1,4 +1,6 @@
 export type GameManifestEntry = {
+    gameId: string
+    packageId: string
     logicVersion: string
     uiVersion: string
 }
@@ -7,7 +9,7 @@ export type SiteManifest = {
     frontend: {
         version: string
     }
-    games: Record<string, GameManifestEntry>
+    games: GameManifestEntry[]
 }
 
 export type BackendManifest = SiteManifest & {

@@ -1,15 +1,15 @@
 {
     "name": "@tabletop/bridges-of-shangri-la-ui",
-    "version": "1.0.2",
+    "version": "1.1.2",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
     "types": "./dist/index.ts",
     "scripts": {
         "dev": "vite dev",
-        "clean": "rimraf public && rimraf build && rimraf dist",
+        "clean": "rimraf bundle && rimraf build && rimraf dist",
         "build": "vite build && npm run package",
-        "bundle": "rimraf public && rollup -c ./rollup.config.ts",
+        "bundle": "rimraf bundle && rollup -c ./rollup.config.ts",
         "package": "svelte-kit sync && svelte-package",
         "test": "npm run test:integration && npm run test:unit",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

@@ -41,6 +41,7 @@ dist
 build
 public
 esm
+bundle
 firebase/data/export/*
 !firebase/data/export/.gitkeep
 firebase-debug.log

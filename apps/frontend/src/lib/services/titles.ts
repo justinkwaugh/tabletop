@@ -28,13 +28,13 @@ async function loadManifest(): Promise<ManifestResponse> {
 }
 
 const manifest = await loadManifest()
-const games = Object.entries(manifest.games).map(([id, entry]) => ({ id, ...entry }))
+const games = manifest.games
 
 const definitions: GameUiDefinition<GameState, HydratedGameState>[] = []
 for (const game of games) {
     try {
         const url = new URL(
-            /* @vite-ignore */ `/games/${game.id}/${game.uiVersion}/index.js`,
+            /* @vite-ignore */ `/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
             import.meta.url
         )
         let gameModule = await import(url.href)
@@ -46,7 +46,9 @@ for (const game of games) {
         ] as GameUiDefinition<GameState, HydratedGameState>
         definitions.push(gameDefinition)
     } catch (e) {
-        console.log(`Could not load game module for ${game.id} at ${game.uiVersion}`)
+        console.log(
+            `Could not load game module for ${game.gameId} (${game.packageId}) at ${game.uiVersion}`
+        )
     }
 }
 

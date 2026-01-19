@@ -4,6 +4,7 @@ import AutoLoad from '@fastify/autoload'
 import SecureSession from '@fastify/secure-session'
 import Auth from '@fastify/auth'
 import FastifyFirebase from '@now-ims/fastify-firebase'
+import { deleteApp } from 'firebase-admin/app'
 import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
@@ -36,6 +37,7 @@ const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
 const GCS_MOUNT_ROOT = process.env['GCS_MOUNT_ROOT'] ?? '/mnt/gcs'
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
 const MIN_RESTART_INTERVAL_MS = 30_000
+let firebaseAppIndex = 0
 
 const SESSION_SECRET = process.env['SESSION_SECRET']
     ? process.env['SESSION_SECRET']
@@ -132,8 +134,20 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     })
 
     await fastify.register(Auth)
+    const firebaseAppName = `tabletop-${process.pid}-${firebaseAppIndex++}`
     await fastify.register(FastifyFirebase, <FastifyFirebase.FirebaseOptions>{
-        projectId: GCLOUD_PROJECT
+        projectId: GCLOUD_PROJECT,
+        name: firebaseAppName
+    })
+    fastify.addHook('onClose', async () => {
+        try {
+            await deleteApp(fastify.firebase)
+        } catch (error) {
+            fastify.log.warn(
+                { err: error },
+                `Failed to delete firebase app "${firebaseAppName}"`
+            )
+        }
     })
     await fastify.register(FastifySSEPlugin)
 
@@ -156,6 +170,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             return
         }
         lastRestartAt = now
+        console.log('Manifest mismatch detected, restarting server...')
         void fastify.restart()
     })
 

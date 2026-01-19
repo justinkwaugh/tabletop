@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
+import type { ChildProcess } from 'node:child_process'
 import { DeployConfig, SiteManifest } from './types.js'
 
 export type CommandSpec = {
@@ -14,6 +15,7 @@ export type CommandSpec = {
 
 type RunCommandOptions = {
     onOutput?: (chunk: string) => void
+    onSpawn?: (child: ChildProcess) => void
 }
 
 const ensureDir = (dirPath: string) => {
@@ -30,6 +32,7 @@ export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Prom
             env: process.env,
             stdio: ['ignore', 'pipe', 'pipe']
         })
+        options?.onSpawn?.(child)
 
         child.stdout.on('data', (chunk) => {
             logStream.write(chunk)
@@ -56,20 +59,20 @@ export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Prom
     })
 }
 
-export const buildGameUiCommand = (repoRoot: string, gameId: string): CommandSpec => ({
-    label: `bundle-ui:${gameId}`,
+export const buildGameUiCommand = (repoRoot: string, packageId: string): CommandSpec => ({
+    label: `bundle-ui:${packageId}`,
     command: 'npm',
-    args: ['run', 'bundle', '--workspace', `@tabletop/${gameId}-ui`],
+    args: ['run', 'bundle', '--workspace', `@tabletop/${packageId}-ui`],
     cwd: repoRoot,
-    logPath: `/tmp/${gameId}-ui-bundle.log`
+    logPath: `/tmp/${packageId}-ui-bundle.log`
 })
 
-export const buildGameUiPackageCommand = (repoRoot: string, gameId: string): CommandSpec => ({
-    label: `build-ui:${gameId}`,
+export const buildGameUiPackageCommand = (repoRoot: string, packageId: string): CommandSpec => ({
+    label: `build-ui:${packageId}`,
     command: 'turbo',
-    args: ['build', `--filter=@tabletop/${gameId}-ui`],
+    args: ['build', `--filter=@tabletop/${packageId}-ui`],
     cwd: repoRoot,
-    logPath: `/tmp/${gameId}-ui-build.log`
+    logPath: `/tmp/${packageId}-ui-build.log`
 })
 
 export const buildFrontendCommand = (repoRoot: string): CommandSpec => ({
@@ -118,21 +121,70 @@ export const pushBackendImageCommand = (repoRoot: string, image: string): Comman
 export const deployGameUiCommand = (
     repoRoot: string,
     manifest: SiteManifest,
-    gameId: string,
+    packageId: string,
     config: DeployConfig
 ): CommandSpec => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
-    const sourceDir = path.join(repoRoot, 'games', `${gameId}-ui`, 'public')
-    const destination = `gs://${config.gcsBucket}/games/${gameId}/${manifest.games[gameId].uiVersion}`
+    const entry = manifest.games.find((game) => game.packageId === packageId)
+    if (!entry) {
+        throw new Error(`Missing manifest entry for ${packageId}`)
+    }
+    const sourceDir = path.join(repoRoot, 'games', `${packageId}-ui`, 'bundle')
+    const destination = `gs://${config.gcsBucket}/games/${packageId}/ui/${entry.uiVersion}`
 
     return {
-        label: `deploy-ui:${gameId}`,
+        label: `deploy-ui:${packageId}`,
         command: 'gcloud',
         args: ['storage', 'rsync', '--recursive', sourceDir, destination],
         cwd: repoRoot,
-        logPath: `/tmp/${gameId}-ui-deploy.log`,
+        logPath: `/tmp/${packageId}-ui-deploy.log`,
+        requiresDeploy: true
+    }
+}
+
+export const buildGameLogicPackageCommand = (
+    repoRoot: string,
+    packageId: string
+): CommandSpec => ({
+    label: `build-logic:${packageId}`,
+    command: 'turbo',
+    args: ['build', `--filter=@tabletop/${packageId}`],
+    cwd: repoRoot,
+    logPath: `/tmp/${packageId}-logic-build.log`
+})
+
+export const buildGameLogicCommand = (repoRoot: string, packageId: string): CommandSpec => ({
+    label: `bundle-logic:${packageId}`,
+    command: 'npm',
+    args: ['run', 'bundle', '--workspace', `@tabletop/${packageId}`],
+    cwd: repoRoot,
+    logPath: `/tmp/${packageId}-logic-bundle.log`
+})
+
+export const deployGameLogicCommand = (
+    repoRoot: string,
+    manifest: SiteManifest,
+    packageId: string,
+    config: DeployConfig
+): CommandSpec => {
+    if (!config.gcsBucket) {
+        throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
+    }
+    const entry = manifest.games.find((game) => game.packageId === packageId)
+    if (!entry) {
+        throw new Error(`Missing manifest entry for ${packageId}`)
+    }
+    const sourceDir = path.join(repoRoot, 'games', packageId, 'bundle')
+    const destination = `gs://${config.gcsBucket}/games/${packageId}/logic/${entry.logicVersion}`
+
+    return {
+        label: `deploy-logic:${packageId}`,
+        command: 'gcloud',
+        args: ['storage', 'rsync', '--recursive', sourceDir, destination],
+        cwd: repoRoot,
+        logPath: `/tmp/${packageId}-logic-deploy.log`,
         requiresDeploy: true
     }
 }
@@ -154,6 +206,25 @@ export const deployFrontendCommand = (
         args: ['storage', 'rsync', '--recursive', sourceDir, destination],
         cwd: repoRoot,
         logPath: '/tmp/frontend-deploy.log',
+        requiresDeploy: true
+    }
+}
+
+export const deployManifestCommand = (
+    manifestPath: string,
+    config: DeployConfig
+): CommandSpec => {
+    if (!config.gcsBucket) {
+        throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
+    }
+    const destination = `gs://${config.gcsBucket}/config/site-manifest.json`
+
+    return {
+        label: 'deploy-manifest',
+        command: 'gcloud',
+        args: ['storage', 'cp', manifestPath, destination],
+        cwd: path.dirname(manifestPath),
+        logPath: '/tmp/manifest-deploy.log',
         requiresDeploy: true
     }
 }

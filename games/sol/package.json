@@ -10,7 +10,8 @@
     "private": true,
     "scripts": {
         "clean": "rimraf esm",
-        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo"
+        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts"
     },
     "dependencies": {
         "@tabletop/common": "*",
@@ -21,9 +22,11 @@
         "@babel/core": "^7.25.2",
         "@babel/preset-env": "^7.25.3",
         "@tabletop/eslint-config": "*",
+        "@tabletop/rollup-config": "*",
         "@tabletop/vitest-config": "*",
         "@typescript/native-preview": "*",
         "rimraf": "^6.1.0",
+        "rollup": "4.55.1",
         "typescript": "5.9.3"
     }
 }

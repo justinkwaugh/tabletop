@@ -50,18 +50,18 @@ export const checkFrontendDeployed = async (
 
 export const checkGameDeployed = async (
     manifest: SiteManifest,
-    gameId: string,
+    packageId: string,
     config: DeployConfig,
     gcsRoot: string
 ): Promise<boolean> => {
-    const entry = manifest.games[gameId]
+    const entry = manifest.games.find((game) => game.packageId === packageId)
     if (!entry) return false
     const bucket = config.gcsBucket
     if (bucket) {
-        const uiPath = `gs://${bucket}/games/${gameId}/${entry.uiVersion}/index.js`
+        const uiPath = `gs://${bucket}/games/${packageId}/ui/${entry.uiVersion}/index.js`
         return gcsPathExists(uiPath)
     }
 
-    const uiPath = path.join(gcsRoot, 'games', gameId, entry.uiVersion, 'index.js')
+    const uiPath = path.join(gcsRoot, 'games', packageId, 'ui', entry.uiVersion, 'index.js')
     return pathExists(uiPath)
 }

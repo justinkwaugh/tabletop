@@ -2,26 +2,36 @@
   "frontend": {
     "version": "1.0.1"
   },
-  "games": {
-    "bridges-of-shangri-la": {
+  "games": [
+    {
+      "gameId": "bridges",
+      "packageId": "bridges-of-shangri-la",
+      "logicVersion": "1.1.2",
+      "uiVersion": "1.1.2"
+    },
+    {
+      "gameId": "estates",
+      "packageId": "estates",
+      "logicVersion": "1.0.1",
+      "uiVersion": "1.0.1"
+    },
+    {
+      "gameId": "freshfish",
+      "packageId": "fresh-fish",
+      "logicVersion": "1.1.5",
+      "uiVersion": "1.1.5"
+    },
+    {
+      "gameId": "kaivai",
+      "packageId": "kaivai",
       "logicVersion": "1.0.2",
       "uiVersion": "1.0.2"
     },
-    "estates": {
-      "logicVersion": "1.0.1",
-      "uiVersion": "1.0.1"
-    },
-    "fresh-fish": {
-      "logicVersion": "1.0.1",
-      "uiVersion": "1.0.1"
-    },
-    "kaivai": {
-      "logicVersion": "1.0.1",
-      "uiVersion": "1.0.1"
-    },
-    "sol": {
+    {
+      "gameId": "sol",
+      "packageId": "sol",
       "logicVersion": "1.0.1",
       "uiVersion": "1.0.1"
     }
-  }
+  ]
 }

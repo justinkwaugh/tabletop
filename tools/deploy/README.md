@@ -38,6 +38,8 @@ status                       Print the current manifest
 sync-manifest                Sync site-manifest.json from package versions
 build-ui <gameId>            Build a game UI bundle (rollup)
 deploy-ui <gameId>           Build + bundle a game UI and deploy to GCS
+build-logic <gameId>         Build a game logic bundle (rollup)
+deploy-logic <gameId>        Build + bundle game logic and deploy to GCS
 build-frontend               Build the frontend
 deploy-frontend              Deploy the frontend bundle to GCS
 build-backend                Build the backend
@@ -75,13 +77,10 @@ Environment overrides:
 Notes:
 - `backend.image` is required for backend deploy in the TUI; it is used for the docker build/tag/push flow.
 
-## Deploy guardrail
-
-Deploy commands are blocked unless `TABLETOP_DEPLOY_ENABLE=1` is set.
-
 ## Notes
 
 - UI build logs write to `/tmp/<gameId>-ui-bundle.log`.
+- Logic build logs write to `/tmp/<gameId>-logic-bundle.log`.
 - Backend/frontend build logs write to `/tmp/backend-build.log` and `/tmp/frontend-build.log`.
 - Deploy logs write to `/tmp/*-deploy.log`.
 - Package versions are the source of truth; the manifest is synced from package.json.

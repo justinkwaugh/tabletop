@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Text, useApp, useInput, useStdout } from 'ink'
+import type { ChildProcess } from 'node:child_process'
 import { readManifest, writeManifest } from './lib/manifest.js'
 import { fetchBackendManifest } from './lib/backend.js'
 import { checkFrontendDeployed, checkGameDeployed, GcsStatus } from './lib/gcs.js'
@@ -8,11 +9,15 @@ import {
     buildBackendCommand,
     buildBackendImageCommand,
     buildFrontendCommand,
+    buildGameLogicCommand,
+    buildGameLogicPackageCommand,
     buildGameUiCommand,
     buildGameUiPackageCommand,
     pushBackendImageCommand,
     deployBackendCommand,
     deployFrontendCommand,
+    deployGameLogicCommand,
+    deployManifestCommand,
     deployGameUiCommand,
     tagBackendImageCommand,
     rollbackBackendCommand,
@@ -38,6 +43,7 @@ type Mode =
     | 'bump-ui'
     | 'rollback'
     | 'confirm-overwrite'
+    | 'confirm-post-bump'
     | 'confirm-deploy'
 
 type SelectionType = 'frontend' | 'backend' | 'game'
@@ -47,24 +53,37 @@ type Selection = {
     type: SelectionType
     label: string
     gameId?: string
+    packageId?: string
+}
+
+type DeployStep = {
+    spec?: CommandSpec
+    specs?: CommandSpec[]
+    taskIndex?: number
 }
 
 type PendingDeploy = {
     spec: CommandSpec
     specWithTraffic?: CommandSpec
+    steps?: DeployStep[]
     targetLabel: string
     taskIndex?: number
     version?: string
     remoteVersion?: string
-    upload?: string
+    uploads?: string[]
     type: SelectionType
-    gameId?: string
+    packageId?: string
 }
 
 type PendingOverwrite = {
     targetLabel: string
     version: string
     remoteVersion: string
+    onConfirm: () => void
+}
+
+type PendingPostBump = {
+    targetLabel: string
     onConfirm: () => void
 }
 
@@ -111,26 +130,30 @@ export default function App() {
     const [runningLogPath, setRunningLogPath] = useState<string | null>(null)
     const [pendingDeploy, setPendingDeploy] = useState<PendingDeploy | null>(null)
     const [pendingOverwrite, setPendingOverwrite] = useState<PendingOverwrite | null>(null)
+    const [pendingPostBump, setPendingPostBump] = useState<PendingPostBump | null>(null)
     const [checkingBackend, setCheckingBackend] = useState(false)
     const [checkingGcsTarget, setCheckingGcsTarget] = useState<string | null>(null)
     const [taskState, setTaskState] = useState<TaskState | null>(null)
+    const runningChildRef = useRef<ChildProcess | null>(null)
+    const cancelRequestedRef = useRef(false)
     const { stdout } = useStdout()
 
-    const games = useMemo(() => {
-        if (!manifest) return []
-        return Object.entries(manifest.games).map(([id, entry]) => ({ id, ...entry }))
-    }, [manifest])
+    const games = useMemo(() => manifest?.games ?? [], [manifest])
 
-    const gameById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games])
+    const gameByPackageId = useMemo(
+        () => new Map(games.map((game) => [game.packageId, game])),
+        [games]
+    )
     const selections = useMemo<Selection[]>(
         () => [
             { key: 'frontend', type: 'frontend', label: 'Frontend' },
             { key: 'backend', type: 'backend', label: 'Backend' },
             ...games.map((game) => ({
-                key: `game:${game.id}`,
+                key: `game:${game.packageId}`,
                 type: 'game' as const,
-                label: game.id,
-                gameId: game.id
+                label: game.gameId,
+                gameId: game.gameId,
+                packageId: game.packageId
             }))
         ],
         [games]
@@ -144,16 +167,20 @@ export default function App() {
 
     const selected = selections[selectedIndex]
     const selectedGame =
-        selected?.type === 'game' && selected.gameId ? gameById.get(selected.gameId) : undefined
-    const selectedServing = selectedGame ? backendManifest?.games?.[selectedGame.id] : undefined
+        selected?.type === 'game' && selected.packageId
+            ? gameByPackageId.get(selected.packageId)
+            : undefined
+    const selectedServing = selectedGame
+        ? backendManifest?.games?.find((game) => game.packageId === selectedGame.packageId)
+        : undefined
     const selectedServingMismatch =
         selectedGame && selectedServing
             ? selectedServing.logicVersion !== selectedGame.logicVersion ||
               selectedServing.uiVersion !== selectedGame.uiVersion
             : false
-    const selectedDeployed = selectedGame ? gcsStatus.games[selectedGame.id] : null
+    const selectedDeployed = selectedGame ? gcsStatus.games[selectedGame.packageId] : null
     const selectedDeployedChecking = selectedGame
-        ? checkingGcsTarget === `game:${selectedGame.id}`
+        ? checkingGcsTarget === `game:${selectedGame.packageId}`
         : false
     const selectedDeployedColor =
         !selectedDeployedChecking && selectedDeployed === false ? 'red' : 'gray'
@@ -163,6 +190,16 @@ export default function App() {
     const frontendServing = backendManifest?.frontend?.version
     const frontendServingMismatch =
         frontendServing != null && manifest?.frontend.version !== frontendServing
+    const canBumpFrontend = selected?.type === 'frontend' && !!manifest
+    const canRollback = selected?.type === 'backend'
+    const canBumpGame = selected?.type === 'game' && !!selectedGame
+    const canUseServing =
+        !!backendManifest &&
+        (selected?.type === 'frontend' || (selected?.type === 'game' && !!selectedGame))
+    const canDeploy =
+        selected?.type === 'backend' ||
+        (selected?.type === 'frontend' && !!manifest) ||
+        (selected?.type === 'game' && !!manifest && !!selectedGame)
     const outputActive = isBusy || outputHold
     const confirmDeployActive = mode === 'confirm-deploy' && pendingDeploy
     const taskActive = taskState !== null && !confirmDeployActive
@@ -170,6 +207,9 @@ export default function App() {
     const commandHint = useMemo(() => {
         if (mode === 'confirm-overwrite' && pendingOverwrite) {
             return 'y/Enter overwrite  n/Esc cancel'
+        }
+        if (mode === 'confirm-post-bump' && pendingPostBump) {
+            return 'y/Enter deploy  n/Esc cancel'
         }
         if (mode === 'confirm-deploy' && pendingDeploy) {
             const commands =
@@ -193,25 +233,42 @@ export default function App() {
             return 'Enter confirm  Esc cancel'
         }
         const commands = ['↑/↓ select', 'r reload', 'd deploy']
-        if (selected?.type === 'frontend') {
+        if (!canDeploy) {
+            commands.pop()
+        }
+        if (canBumpFrontend) {
             commands.push('f bump-frontend')
         }
-        if (selected?.type === 'backend') {
+        if (canRollback) {
             commands.push('k rollback')
         }
-        if (selected?.type === 'game') {
+        if (canBumpGame) {
             commands.push('l bump-logic', 'u bump-ui')
         }
-        commands.push('s use-serving')
+        if (canUseServing) {
+            commands.push('s use-serving')
+        }
         commands.push('q quit')
         return commands.join('  ')
-    }, [mode, outputActive, outputHold, pendingDeploy, pendingOverwrite, selected?.type, taskActive])
+    }, [
+        canBumpFrontend,
+        canBumpGame,
+        canDeploy,
+        canRollback,
+        canUseServing,
+        mode,
+        outputActive,
+        outputHold,
+        pendingDeploy,
+        pendingOverwrite,
+        taskActive
+    ])
 
     const terminalCols = stdout?.columns ?? 80
     const terminalRows = stdout?.rows ?? 24
     const modalPaddingX = 1
     const modalPaddingY = 1
-    const modalWidth = Math.min(100, Math.max(20, terminalCols - 4), terminalCols)
+    const modalWidth = Math.min(110, Math.max(20, terminalCols - 2), terminalCols)
     const modalHeight = Math.min(
         Math.max(6, Math.floor(terminalRows * 0.7)),
         Math.max(4, terminalRows - 2)
@@ -282,11 +339,42 @@ export default function App() {
         }
     }
 
+    const cancelRunningCommand = () => {
+        cancelRequestedRef.current = true
+        const child = runningChildRef.current
+        if (child && child.exitCode == null) {
+            child.kill('SIGTERM')
+            setTimeout(() => {
+                if (child.exitCode == null) {
+                    child.kill('SIGKILL')
+                }
+            }, 2000)
+        }
+        runningChildRef.current = null
+        setIsBusy(false)
+        setOutputHold(false)
+        setOutputScroll(0)
+        setRunningLabel(null)
+        setRunningLogPath(null)
+        setTaskState(null)
+        setStatus(formatStatus('Command cancelled'))
+    }
+
     const commandString = (spec: CommandSpec) => [spec.command, ...spec.args].join(' ')
+    const resolveDeploySteps = (target: PendingDeploy): DeployStep[] =>
+        target.steps && target.steps.length > 0
+            ? target.steps
+            : [{ spec: target.spec, taskIndex: target.taskIndex }]
+    const confirmDeploySteps =
+        confirmDeployActive && pendingDeploy ? resolveDeploySteps(pendingDeploy) : []
+    const confirmDeployCommands = confirmDeploySteps.flatMap((step) =>
+        step.specs && step.specs.length > 0 ? step.specs : step.spec ? [step.spec] : []
+    )
     const describeUpload = (spec: CommandSpec) => {
         if (spec.command !== 'gcloud') return undefined
-        if (spec.args[0] !== 'storage' || spec.args[1] !== 'rsync') return undefined
+        if (spec.args[0] !== 'storage') return undefined
         if (spec.args.length < 2) return undefined
+        if (spec.args[1] !== 'rsync' && spec.args[1] !== 'cp') return undefined
         const source = spec.args[spec.args.length - 2]
         const destination = spec.args[spec.args.length - 1]
         return `${source} -> ${destination}`
@@ -319,19 +407,19 @@ export default function App() {
         }
     }
 
-    const refreshGameDeployed = async (gameId: string) => {
+    const refreshGameDeployed = async (packageId: string) => {
         if (!manifest) return
-        const targetKey = `game:${gameId}`
+        const targetKey = `game:${packageId}`
         setCheckingGcsTarget(targetKey)
         setGcsStatus((current) => ({
             ...current,
-            games: { ...current.games, [gameId]: null }
+            games: { ...current.games, [packageId]: null }
         }))
         try {
-            const exists = await checkGameDeployed(manifest, gameId, deployConfig, gcsRoot)
+            const exists = await checkGameDeployed(manifest, packageId, deployConfig, gcsRoot)
             setGcsStatus((current) => ({
                 ...current,
-                games: { ...current.games, [gameId]: exists }
+                games: { ...current.games, [packageId]: exists }
             }))
         } finally {
             setCheckingGcsTarget((current) => (current === targetKey ? null : current))
@@ -340,17 +428,27 @@ export default function App() {
 
     const queueFrontendDeploy = (currentManifest: SiteManifest) => {
         void (async () => {
-            startTasks('Frontend deploy', ['Build frontend', 'Deploy frontend'])
+            startTasks('Frontend deploy', ['Build frontend', 'Deploy frontend', 'Deploy manifest'])
             const buildSpec = buildFrontendCommand(repoRoot)
             if (!(await runTask(0, buildSpec))) return
             const spec = deployFrontendCommand(repoRoot, currentManifest, deployConfig)
+            const upload = describeUpload(spec)
+            const manifestSpec = deployManifestCommand(manifestPath, deployConfig)
+            const manifestUpload = describeUpload(manifestSpec)
+            const uploads = [
+                upload ? upload : undefined,
+                manifestUpload ? `manifest: ${manifestUpload}` : undefined
+            ].filter(Boolean) as string[]
             setPendingDeploy({
                 spec,
-                taskIndex: 1,
+                steps: [
+                    { spec, taskIndex: 1 },
+                    { spec: manifestSpec, taskIndex: 2 }
+                ],
                 targetLabel: 'Frontend',
                 version: currentManifest.frontend.version,
                 remoteVersion: backendManifest?.frontend?.version ?? 'unknown',
-                upload: describeUpload(spec),
+                uploads: uploads.length > 0 ? uploads : undefined,
                 type: 'frontend'
             })
             setMode('confirm-deploy')
@@ -358,26 +456,119 @@ export default function App() {
         })()
     }
 
-    const queueGameDeploy = (gameId: string, currentManifest: SiteManifest) => {
+    const queueGameDeploy = (packageId: string, currentManifest: SiteManifest) => {
         void (async () => {
-            startTasks(`Game deploy (${gameId})`, ['Build UI', 'Bundle UI', 'Deploy UI'])
-            const buildSpec = buildGameUiPackageCommand(repoRoot, gameId)
-            if (!(await runTask(0, buildSpec))) return
-            const bundleSpec = buildGameUiCommand(repoRoot, gameId)
-            if (!(await runTask(1, bundleSpec))) return
-            const spec = deployGameUiCommand(repoRoot, currentManifest, gameId, deployConfig)
-            setPendingDeploy({
-                spec,
-                taskIndex: 2,
-                targetLabel: `Game UI (${gameId})`,
-                version: currentManifest.games[gameId].uiVersion,
-                remoteVersion: backendManifest?.games?.[gameId]?.uiVersion ?? 'unknown',
-                upload: describeUpload(spec),
-                type: 'game',
-                gameId
-            })
+            const localEntry = currentManifest.games.find(
+                (game) => game.packageId === packageId
+            )
+            if (!localEntry) {
+                setStatus(formatStatus(`Missing manifest entry for ${packageId}`, 'error'))
+                return
+            }
+            const remoteEntry = backendManifest?.games?.find(
+                (game) => game.packageId === packageId
+            )
+            const logicMatches =
+                remoteEntry?.logicVersion != null &&
+                remoteEntry.logicVersion === localEntry.logicVersion
+            const uiMatches =
+                remoteEntry?.uiVersion != null && remoteEntry.uiVersion === localEntry.uiVersion
+            const deployUiOnly = logicMatches && !uiMatches
+            const deployManifestSpec = deployManifestCommand(manifestPath, deployConfig)
+            const manifestUpload = describeUpload(deployManifestSpec)
+
+            if (!deployUiOnly) {
+                startTasks(`Game deploy (${localEntry.gameId})`, [
+                    'Build logic',
+                    'Bundle logic',
+                    'Build UI',
+                    'Bundle UI',
+                    'Deploy logic + UI',
+                    'Deploy manifest'
+                ])
+                const buildLogicSpec = buildGameLogicPackageCommand(repoRoot, packageId)
+                if (!(await runTask(0, buildLogicSpec))) return
+                const bundleLogicSpec = buildGameLogicCommand(repoRoot, packageId)
+                if (!(await runTask(1, bundleLogicSpec))) return
+                const buildUiSpec = buildGameUiPackageCommand(repoRoot, packageId)
+                if (!(await runTask(2, buildUiSpec))) return
+                const bundleUiSpec = buildGameUiCommand(repoRoot, packageId)
+                if (!(await runTask(3, bundleUiSpec))) return
+                const deployLogicSpec = deployGameLogicCommand(
+                    repoRoot,
+                    currentManifest,
+                    packageId,
+                    deployConfig
+                )
+                const deployUiSpec = deployGameUiCommand(
+                    repoRoot,
+                    currentManifest,
+                    packageId,
+                    deployConfig
+                )
+                const logicUpload = describeUpload(deployLogicSpec)
+                const uiUpload = describeUpload(deployUiSpec)
+                const uploads = [
+                    logicUpload ? `logic: ${logicUpload}` : undefined,
+                    uiUpload ? `ui: ${uiUpload}` : undefined,
+                    manifestUpload ? `manifest: ${manifestUpload}` : undefined
+                ].filter(Boolean) as string[]
+                setPendingDeploy({
+                    spec: deployLogicSpec,
+                    steps: [
+                        { specs: [deployLogicSpec, deployUiSpec], taskIndex: 4 },
+                        { spec: deployManifestSpec, taskIndex: 5 }
+                    ],
+                    targetLabel: `Game (${localEntry.gameId})`,
+                    version: `logic ${localEntry.logicVersion} / ui ${localEntry.uiVersion}`,
+                    remoteVersion: remoteEntry
+                        ? `logic ${remoteEntry.logicVersion} / ui ${remoteEntry.uiVersion}`
+                        : 'unknown',
+                    uploads: uploads.length > 0 ? uploads : undefined,
+                    type: 'game',
+                    packageId
+                })
+            } else {
+                startTasks(`Game deploy (${localEntry.gameId})`, [
+                    'Build UI',
+                    'Bundle UI',
+                    'Deploy UI',
+                    'Deploy manifest'
+                ])
+                const buildUiSpec = buildGameUiPackageCommand(repoRoot, packageId)
+                if (!(await runTask(0, buildUiSpec))) return
+                const bundleUiSpec = buildGameUiCommand(repoRoot, packageId)
+                if (!(await runTask(1, bundleUiSpec))) return
+                const deployUiSpec = deployGameUiCommand(
+                    repoRoot,
+                    currentManifest,
+                    packageId,
+                    deployConfig
+                )
+                const uiUpload = describeUpload(deployUiSpec)
+                const uploads = [
+                    uiUpload ? `ui: ${uiUpload}` : undefined,
+                    manifestUpload ? `manifest: ${manifestUpload}` : undefined
+                ].filter(Boolean) as string[]
+                setPendingDeploy({
+                    spec: deployUiSpec,
+                    steps: [
+                        { spec: deployUiSpec, taskIndex: 2 },
+                        { spec: deployManifestSpec, taskIndex: 3 }
+                    ],
+                    targetLabel: `Game (${localEntry.gameId})`,
+                    version: `logic ${localEntry.logicVersion} / ui ${localEntry.uiVersion}`,
+                    remoteVersion: remoteEntry
+                        ? `logic ${remoteEntry.logicVersion} / ui ${remoteEntry.uiVersion}`
+                        : 'unknown',
+                    uploads: uploads.length > 0 ? uploads : undefined,
+                    type: 'game',
+                    packageId
+                })
+            }
+
             setMode('confirm-deploy')
-            setStatus(formatStatus(`Confirm ${gameId} deploy`))
+            setStatus(formatStatus(`Confirm ${localEntry.gameId} deploy`))
         })()
     }
 
@@ -400,12 +591,14 @@ export default function App() {
             setManifest(syncedManifest)
             setGcsStatus((current) => {
                 const nextGames: Record<string, boolean | null> = {}
-                for (const [gameId, entry] of Object.entries(syncedManifest.games)) {
-                    const versionChanged =
-                        manifest?.games[gameId]?.uiVersion !== entry.uiVersion
-                    nextGames[gameId] = versionChanged
+                for (const entry of syncedManifest.games) {
+                    const previousEntry = manifest?.games.find(
+                        (game) => game.packageId === entry.packageId
+                    )
+                    const versionChanged = previousEntry?.uiVersion !== entry.uiVersion
+                    nextGames[entry.packageId] = versionChanged
                         ? null
-                        : current.games[gameId] ?? null
+                        : current.games[entry.packageId] ?? null
                 }
                 const frontendChanged =
                     manifest?.frontend.version !== syncedManifest.frontend.version
@@ -454,19 +647,24 @@ export default function App() {
             return
         }
 
-        if (selected.type === 'game' && selected.gameId) {
-            const gameId = selected.gameId
-            if (checkingGcsTarget === `game:${gameId}`) return
-            const currentStatus = gcsStatus.games[gameId]
+        if (selected.type === 'game' && selected.packageId) {
+            const packageId = selected.packageId
+            if (checkingGcsTarget === `game:${packageId}`) return
+            const currentStatus = gcsStatus.games[packageId]
             if (currentStatus !== null && currentStatus !== undefined) return
-            const targetKey = `game:${gameId}`
+            const targetKey = `game:${packageId}`
             setCheckingGcsTarget(targetKey)
             void (async () => {
                 try {
-                    const exists = await checkGameDeployed(manifest, gameId, deployConfig, gcsRoot)
+                    const exists = await checkGameDeployed(
+                        manifest,
+                        packageId,
+                        deployConfig,
+                        gcsRoot
+                    )
                     setGcsStatus((current) => ({
                         ...current,
-                        games: { ...current.games, [gameId]: exists }
+                        games: { ...current.games, [packageId]: exists }
                     }))
                 } finally {
                     setCheckingGcsTarget((current) => (current === targetKey ? null : current))
@@ -511,34 +709,44 @@ export default function App() {
 
         try {
             let statusMessage = ''
+            let postBump: PendingPostBump | null = null
             if (target === 'frontend') {
                 const path = getFrontendPackagePath(repoRoot)
                 const current = await readPackageVersion(path)
                 const next = bumpVersion(current, bump)
                 await writePackageVersion(path, next)
                 statusMessage = `Frontend bumped to ${next} (${bump})`
+                postBump = {
+                    targetLabel: 'Frontend',
+                    onConfirm: () => queueFrontendDeploy(manifest)
+                }
             }
 
             if (target === 'logic' && selectedGame) {
-                const paths = getGamePackagePaths(repoRoot, selectedGame.id)
+                const paths = getGamePackagePaths(repoRoot, selectedGame.packageId)
                 const currentLogic = await readPackageVersion(paths.logic)
                 const nextLogic = bumpVersion(currentLogic, bump)
                 const currentUi = await readPackageVersion(paths.ui)
+                const nextUi = bumpVersion(currentUi, bump)
                 await writePackageVersion(paths.logic, nextLogic)
-                if (currentUi === selectedGame.uiVersion) {
-                    await writePackageVersion(paths.ui, nextLogic)
-                    statusMessage = `Logic bumped to ${nextLogic} (${bump}); uiVersion -> ${nextLogic}`
-                } else {
-                    statusMessage = `Logic bumped to ${nextLogic} (${bump})`
+                await writePackageVersion(paths.ui, nextUi)
+                statusMessage = `Logic bumped to ${nextLogic} (${bump}); UI bumped to ${nextUi} (${bump})`
+                postBump = {
+                    targetLabel: `Game (${selectedGame.gameId})`,
+                    onConfirm: () => queueGameDeploy(selectedGame.packageId, manifest)
                 }
             }
 
             if (target === 'ui' && selectedGame) {
-                const paths = getGamePackagePaths(repoRoot, selectedGame.id)
+                const paths = getGamePackagePaths(repoRoot, selectedGame.packageId)
                 const currentUi = await readPackageVersion(paths.ui)
                 const nextUi = bumpVersion(currentUi, bump)
                 await writePackageVersion(paths.ui, nextUi)
                 statusMessage = `UI bumped to ${nextUi} (${bump})`
+                postBump = {
+                    targetLabel: `Game (${selectedGame.gameId})`,
+                    onConfirm: () => queueGameDeploy(selectedGame.packageId, manifest)
+                }
             }
 
             const { manifest: syncedManifest, changed } = await syncManifestFromPackages(
@@ -549,6 +757,21 @@ export default function App() {
                 await writeManifest(manifestPath, syncedManifest)
             }
             setStatus(formatStatus(statusMessage || 'Version bumped'))
+            if (postBump) {
+                postBump.onConfirm = () => {
+                    if (target === 'frontend') {
+                        queueFrontendDeploy(syncedManifest)
+                        return
+                    }
+                    if (selectedGame) {
+                        queueGameDeploy(selectedGame.packageId, syncedManifest)
+                    }
+                }
+                setPendingPostBump(postBump)
+                setMode('confirm-post-bump')
+            } else {
+                setMode('view')
+            }
         } catch (error) {
             setStatus(
                 formatStatus(
@@ -556,9 +779,8 @@ export default function App() {
                     'error'
                 )
             )
+            setMode('view')
         }
-
-        setMode('view')
         await refresh(true)
     }
 
@@ -585,23 +807,25 @@ export default function App() {
                 }
                 await writePackageVersion(getFrontendPackagePath(repoRoot), servingVersion)
                 setStatus(formatStatus(`Frontend reverted to ${servingVersion}`))
-            } else if (selected.type === 'game' && selected.gameId) {
-                const servedGame = backendManifest.games?.[selected.gameId]
+            } else if (selected.type === 'game' && selected.packageId) {
+                const servedGame = backendManifest.games?.find(
+                    (game) => game.packageId === selected.packageId
+                )
                 if (!servedGame?.logicVersion || !servedGame?.uiVersion) {
                     setStatus(
                         formatStatus(
-                            `Serving versions for ${selected.gameId} are unknown`,
+                            `Serving versions for ${selected.gameId ?? selected.packageId} are unknown`,
                             'error'
                         )
                     )
                     return
                 }
-                const paths = getGamePackagePaths(repoRoot, selected.gameId)
+                const paths = getGamePackagePaths(repoRoot, selected.packageId)
                 await writePackageVersion(paths.logic, servedGame.logicVersion)
                 await writePackageVersion(paths.ui, servedGame.uiVersion)
                 setStatus(
                     formatStatus(
-                        `${selected.gameId} reverted to logic ${servedGame.logicVersion} / ui ${servedGame.uiVersion}`
+                        `${selected.gameId ?? selected.packageId} reverted to logic ${servedGame.logicVersion} / ui ${servedGame.uiVersion}`
                     )
                 )
             } else {
@@ -633,6 +857,7 @@ export default function App() {
         label: string,
         logPath?: string
     ): Promise<boolean> => {
+        cancelRequestedRef.current = false
         setIsBusy(true)
         setOutputHold(false)
         setOutputScroll(0)
@@ -641,31 +866,53 @@ export default function App() {
         setOutputBuffer('')
         setStatus(formatStatus(`Running ${label}... ${logPath ? `(${logPath})` : ''}`))
         let failed = false
+        let cancelled = false
         try {
             await action()
-            setStatus(formatStatus(`Finished ${label}. ${logPath ? `Log: ${logPath}` : ''}`))
+            if (!cancelRequestedRef.current) {
+                setStatus(formatStatus(`Finished ${label}. ${logPath ? `Log: ${logPath}` : ''}`))
+            } else {
+                cancelled = true
+            }
         } catch (error) {
-            failed = true
-            setOutputHold(true)
-            setStatus(
-                formatStatus(
-                    error instanceof Error ? error.message : `${label} failed`,
-                    'error'
+            cancelled = cancelRequestedRef.current
+            if (cancelled) {
+                setStatus(formatStatus('Command cancelled'))
+            } else {
+                failed = true
+                setOutputHold(true)
+                setStatus(
+                    formatStatus(
+                        error instanceof Error ? error.message : `${label} failed`,
+                        'error'
+                    )
                 )
-            )
+            }
         } finally {
             setIsBusy(false)
-            if (!failed) {
+            if (!failed || cancelled) {
                 setRunningLabel(null)
                 setRunningLogPath(null)
             }
+            runningChildRef.current = null
+            cancelRequestedRef.current = false
             await refresh(true)
         }
-        return !failed
+        return !failed && !cancelled
     }
 
     const runSpec = (spec: CommandSpec) =>
-        runWithStatus(() => runCommand(spec, { onOutput: appendOutput }), spec.label, spec.logPath)
+        runWithStatus(
+            () =>
+                runCommand(spec, {
+                    onOutput: appendOutput,
+                    onSpawn: (child) => {
+                        runningChildRef.current = child
+                    }
+                }),
+            spec.label,
+            spec.logPath
+        )
 
     const runTask = async (index: number, spec: CommandSpec) => {
         updateTaskStatus(index, 'running')
@@ -674,12 +921,67 @@ export default function App() {
         return ok
     }
 
-    const runDeploySpec = async (spec: CommandSpec, taskIndex?: number) => {
+    const runTaskGroup = async (index: number, specs: CommandSpec[]) => {
+        updateTaskStatus(index, 'running')
+        for (const spec of specs) {
+            const ok = await runSpec(spec)
+            if (!ok) {
+                updateTaskStatus(index, 'failed')
+                return false
+            }
+        }
+        updateTaskStatus(index, 'success')
+        return true
+    }
+
+    const runDeploySpec = async (
+        spec: CommandSpec,
+        taskIndex?: number,
+        options?: { clearTasks?: boolean }
+    ) => {
         const ok = taskIndex == null ? await runSpec(spec) : await runTask(taskIndex, spec)
-        if (ok) {
+        if (ok && options?.clearTasks !== false) {
             setTaskState(null)
         }
         return ok
+    }
+
+    const runSpecs = async (specs: CommandSpec[]) => {
+        for (const spec of specs) {
+            const ok = await runSpec(spec)
+            if (!ok) return false
+        }
+        return true
+    }
+
+    const runDeployGroup = async (
+        specs: CommandSpec[],
+        taskIndex?: number,
+        options?: { clearTasks?: boolean }
+    ) => {
+        const ok =
+            taskIndex == null ? await runSpecs(specs) : await runTaskGroup(taskIndex, specs)
+        if (ok && options?.clearTasks !== false) {
+            setTaskState(null)
+        }
+        return ok
+    }
+
+    const runDeploySteps = async (steps: DeployStep[]) => {
+        for (let index = 0; index < steps.length; index += 1) {
+            const step = steps[index]
+            const clearTasks = index === steps.length - 1
+            const ok =
+                step.specs && step.specs.length > 0
+                    ? await runDeployGroup(step.specs, step.taskIndex, { clearTasks })
+                    : step.spec
+                      ? await runDeploySpec(step.spec, step.taskIndex, { clearTasks })
+                      : true
+            if (!ok) {
+                return false
+            }
+        }
+        return true
     }
 
     useInput((input, key) => {
@@ -703,6 +1005,32 @@ export default function App() {
                 setMode('view')
                 setPendingOverwrite(null)
                 setStatus(formatStatus('Deploy cancelled'))
+                return
+            }
+
+            return
+        }
+
+        if (mode === 'confirm-post-bump' && pendingPostBump) {
+            if (key.escape) {
+                setMode('view')
+                setPendingPostBump(null)
+                setStatus(formatStatus('Deploy skipped'))
+                return
+            }
+
+            if (input === 'y' || input === 'Y' || key.return) {
+                const action = pendingPostBump.onConfirm
+                setMode('view')
+                setPendingPostBump(null)
+                action()
+                return
+            }
+
+            if (input === 'n' || input === 'N') {
+                setMode('view')
+                setPendingPostBump(null)
+                setStatus(formatStatus('Deploy skipped'))
                 return
             }
 
@@ -746,12 +1074,13 @@ export default function App() {
                 const target = pendingDeploy
                 setPendingDeploy(null)
                 void (async () => {
-                    const ok = await runDeploySpec(target.spec, target.taskIndex)
+                    const steps = resolveDeploySteps(target)
+                    const ok = await runDeploySteps(steps)
                     if (!ok) return
                     if (target.type === 'frontend') {
                         await refreshFrontendDeployed()
-                    } else if (target.type === 'game' && target.gameId) {
-                        await refreshGameDeployed(target.gameId)
+                    } else if (target.type === 'game' && target.packageId) {
+                        await refreshGameDeployed(target.packageId)
                     }
                 })()
                 return
@@ -803,12 +1132,11 @@ export default function App() {
             return
         }
 
-        if (input === 'q' || key.escape) {
-            exit()
-            return
-        }
-
         if (outputActive || taskActive) {
+            if (key.escape) {
+                cancelRunningCommand()
+                return
+            }
             const lineScrollStep = Math.max(2, Math.floor(outputContentLines / 4))
             const scrollBy = (delta: number) => {
                 setOutputScroll((current) =>
@@ -849,6 +1177,11 @@ export default function App() {
             return
         }
 
+        if (input === 'q' || key.escape) {
+            exit()
+            return
+        }
+
         if (key.upArrow) {
             setSelectedIndex((index) => Math.max(0, index - 1))
             return
@@ -867,6 +1200,7 @@ export default function App() {
         if (!selected) return
 
         if (input === 'f') {
+            if (!canBumpFrontend) return
             const currentManifest = requireManifest('Bump frontend version')
             if (!currentManifest) return
             setMode('bump-frontend')
@@ -874,39 +1208,32 @@ export default function App() {
         }
 
         if (input === 'l') {
-            if (selected.type !== 'game' || !selectedGame) {
-                setStatus(formatStatus('Select a game to bump logic', 'error'))
-                return
-            }
+            if (!canBumpGame) return
             setMode('bump-logic')
             return
         }
 
         if (input === 'u') {
-            if (selected.type !== 'game' || !selectedGame) {
-                setStatus(formatStatus('Select a game to bump UI version', 'error'))
-                return
-            }
+            if (!canBumpGame) return
             setMode('bump-ui')
             return
         }
 
         if (input === 'k') {
-            if (selected.type !== 'backend') {
-                setStatus(formatStatus('Select backend to rollback', 'error'))
-                return
-            }
+            if (!canRollback) return
             setInputValue('')
             setMode('rollback')
             return
         }
 
         if (input === 's') {
+            if (!canUseServing) return
             void handleRevertToServing()
             return
         }
 
         if (input === 'd') {
+            if (!canDeploy) return
             if (selected.type === 'backend') {
                 const image = resolveBackendImage()
                 if (!image) {
@@ -947,7 +1274,7 @@ export default function App() {
                         taskIndex: 4,
                         version: image,
                         remoteVersion: backendManifest?.backend?.revision ?? 'unknown',
-                        upload: `image: ${image}`,
+                        uploads: [`image: ${image}`],
                         type: 'backend'
                     })
                     setMode('confirm-deploy')
@@ -977,22 +1304,31 @@ export default function App() {
                 return
             }
             if (selected.type === 'game') {
-                const gameId = selected.gameId
-                if (!gameId) return
-                const localVersion = currentManifest.games[gameId].uiVersion
-                const remoteVersion = backendManifest?.games?.[gameId]?.uiVersion
+                const packageId = selected.packageId
+                if (!packageId) return
+                const localEntry = currentManifest.games.find(
+                    (game) => game.packageId === packageId
+                )
+                if (!localEntry) {
+                    setStatus(formatStatus(`Missing manifest entry for ${packageId}`, 'error'))
+                    return
+                }
+                const localVersion = localEntry.uiVersion
+                const remoteVersion = backendManifest?.games?.find(
+                    (game) => game.packageId === packageId
+                )?.uiVersion
                 if (remoteVersion && remoteVersion === localVersion) {
                     setPendingOverwrite({
-                        targetLabel: `Game UI (${gameId})`,
+                        targetLabel: `Game UI (${localEntry.gameId})`,
                         version: localVersion,
                         remoteVersion,
-                        onConfirm: () => queueGameDeploy(gameId, currentManifest)
+                        onConfirm: () => queueGameDeploy(packageId, currentManifest)
                     })
                     setMode('confirm-overwrite')
                     setStatus(formatStatus('Confirm overwrite'))
                     return
                 }
-                queueGameDeploy(gameId, currentManifest)
+                queueGameDeploy(packageId, currentManifest)
             }
             return
         }
@@ -1045,24 +1381,31 @@ export default function App() {
                     <Text color="magenta">Games</Text>
                     {selections.slice(2).map((item, index) => {
                         const selectionIndex = index + 2
-                        const gameId = item.gameId ?? ''
-                        const servedGame = backendManifest?.games?.[gameId]
-                        const serveMismatch = servedGame
-                            ? servedGame.logicVersion !== manifest?.games[gameId]?.logicVersion ||
-                              servedGame.uiVersion !== manifest?.games[gameId]?.uiVersion
-                            : false
+                        const packageId = item.packageId ?? ''
+                        const localGame = manifest?.games.find(
+                            (game) => game.packageId === packageId
+                        )
+                        const servedGame = backendManifest?.games?.find(
+                            (game) => game.packageId === packageId
+                        )
+                        const serveMismatch =
+                            servedGame && localGame
+                                ? servedGame.logicVersion !== localGame.logicVersion ||
+                                  servedGame.uiVersion !== localGame.uiVersion
+                                : false
                         const deployedKnown =
-                            gcsStatus.games[gameId] !== null &&
-                            gcsStatus.games[gameId] !== undefined
-                        const deployedMissing = deployedKnown && gcsStatus.games[gameId] === false
+                            gcsStatus.games[packageId] !== null &&
+                            gcsStatus.games[packageId] !== undefined
+                        const deployedMissing =
+                            deployedKnown && gcsStatus.games[packageId] === false
                         const warn = serveMismatch || deployedMissing
                         const itemColor =
-                            warn ? 'red' : selectionIndex === selectedIndex ? 'cyan' : undefined
+                            selectionIndex === selectedIndex ? 'cyan' : warn ? 'red' : undefined
                         const indicator = warn
                             ? '✗'
                             : formatIndicator(
-                                  gcsStatus.games[gameId],
-                                  checkingGcsTarget === `game:${gameId}`
+                                  gcsStatus.games[packageId],
+                                  checkingGcsTarget === `game:${packageId}`
                               )
                         return (
                             <Text
@@ -1085,6 +1428,12 @@ export default function App() {
                                 {pendingOverwrite.remoteVersion}
                             </Text>
                             <Text color="yellow">Overwrite existing version?</Text>
+                        </Box>
+                    ) : mode === 'confirm-post-bump' && pendingPostBump ? (
+                        <Box flexDirection="column" borderStyle="round" paddingX={1} paddingY={1}>
+                            <Text color="magenta">Deploy now?</Text>
+                            <Text color="gray">target: {pendingPostBump.targetLabel}</Text>
+                            <Text color="yellow">Start deploy workflow for this target?</Text>
                         </Box>
                     ) : (
                         <>
@@ -1170,6 +1519,8 @@ export default function App() {
                     </Text>
                 ) : mode === 'confirm-overwrite' ? (
                     <Text color="yellow">Confirm overwrite in the right panel</Text>
+                ) : mode === 'confirm-post-bump' ? (
+                    <Text color="yellow">Confirm deploy in the right panel</Text>
                 ) : mode === 'confirm-deploy' ? (
                     <Text color="yellow">Confirm deploy details in the modal</Text>
                 ) : (
@@ -1178,9 +1529,9 @@ export default function App() {
                             {mode === 'bump-frontend'
                                 ? 'Bump frontend version: 1=major 2=minor 3=patch'
                                 : mode === 'bump-logic'
-                                  ? `Bump logic version (${selectedGame?.id ?? ''}): 1=major 2=minor 3=patch`
+                                  ? `Bump logic version (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): 1=major 2=minor 3=patch`
                                   : mode === 'bump-ui'
-                                    ? `Bump UI version (${selectedGame?.id ?? ''}): 1=major 2=minor 3=patch`
+                                    ? `Bump UI version (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): 1=major 2=minor 3=patch`
                                     : 'Rollback to revision:'}
                         </Text>
                         {mode === 'rollback' ? <Text>{inputValue}</Text> : null}
@@ -1266,23 +1617,48 @@ export default function App() {
                                                 remote: {pendingDeploy.remoteVersion}
                                             </Text>
                                         ) : null}
-                                        {pendingDeploy.upload ? (
-                                            <Text color="gray" wrap="wrap">
-                                                upload: {pendingDeploy.upload}
-                                            </Text>
-                                        ) : null}
-                                        <Text color="gray" wrap="wrap">
-                                            command: {commandString(pendingDeploy.spec)}
-                                        </Text>
+                                        {pendingDeploy.uploads && pendingDeploy.uploads.length > 0
+                                            ? pendingDeploy.uploads.map((upload, index) => (
+                                                  <Text
+                                                      key={`upload-${index}`}
+                                                      color="gray"
+                                                      wrap="wrap"
+                                                  >
+                                                      upload {index + 1}: {upload}
+                                                  </Text>
+                                              ))
+                                            : null}
                                         {pendingDeploy.type === 'backend' ? (
+                                            <>
+                                                <Text color="gray" wrap="wrap">
+                                                    command: {commandString(pendingDeploy.spec)}
+                                                </Text>
+                                                <Text color="gray" wrap="wrap">
+                                                    command (with traffic):{' '}
+                                                    {commandString(
+                                                        pendingDeploy.specWithTraffic ??
+                                                            pendingDeploy.spec
+                                                    )}
+                                                </Text>
+                                            </>
+                                        ) : confirmDeployCommands.length > 1 ? (
+                                            confirmDeployCommands.map((spec, index) => (
+                                                <Text
+                                                    key={`command-${index}`}
+                                                    color="gray"
+                                                    wrap="wrap"
+                                                >
+                                                    command {index + 1}: {commandString(spec)}
+                                                </Text>
+                                            ))
+                                        ) : (
                                             <Text color="gray" wrap="wrap">
-                                                command (with traffic):{' '}
-                                                {commandString(
-                                                    pendingDeploy.specWithTraffic ??
-                                                        pendingDeploy.spec
-                                                )}
+                                                command:{' '}
+                                                {confirmDeployCommands[0]
+                                                    ? commandString(confirmDeployCommands[0])
+                                                    : 'unknown'}
                                             </Text>
-                                        ) : null}
+                                        )}
                                         <Text color="yellow">
                                             {pendingDeploy.type === 'backend'
                                                 ? 'y = deploy with traffic, n/Enter = no traffic, Esc cancel'

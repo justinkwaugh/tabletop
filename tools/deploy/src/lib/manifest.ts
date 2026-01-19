@@ -18,19 +18,25 @@ export const readManifest = async (manifestPath: string): Promise<SiteManifest> 
     }
 
     const games = parsed.games
-    if (!isObject(games)) {
-        throw new Error('Manifest games must be an object')
+    if (!Array.isArray(games)) {
+        throw new Error('Manifest games must be an array')
     }
 
-    for (const [gameId, entry] of Object.entries(games)) {
+    for (const entry of games) {
         if (!isObject(entry)) {
-            throw new Error(`Manifest game entry for ${gameId} must be an object`)
+            throw new Error('Manifest game entry must be an object')
+        }
+        if (typeof entry.gameId !== 'string') {
+            throw new Error('Manifest game entry gameId must be a string')
+        }
+        if (typeof entry.packageId !== 'string') {
+            throw new Error(`Manifest game entry ${entry.gameId} packageId must be a string`)
         }
         if (typeof entry.logicVersion !== 'string') {
-            throw new Error(`Manifest ${gameId}.logicVersion must be a string`)
+            throw new Error(`Manifest ${entry.gameId}.logicVersion must be a string`)
         }
         if (typeof entry.uiVersion !== 'string') {
-            throw new Error(`Manifest ${gameId}.uiVersion must be a string`)
+            throw new Error(`Manifest ${entry.gameId}.uiVersion must be a string`)
         }
     }
 

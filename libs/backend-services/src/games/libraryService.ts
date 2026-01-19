@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { readFile } from 'node:fs/promises'
 import { GameDefinition } from '@tabletop/common'
 import { SiteManifest } from '@tabletop/games-config'
@@ -7,8 +8,9 @@ import { RedisCacheService } from '../cache/cacheService.js'
 const DEFAULT_CACHE_KEY = 'site-manifest'
 const DEFAULT_GCS_ROOT = process.env['GCS_MOUNT_ROOT'] ?? '/mnt/gcs'
 const DEFAULT_MANIFEST_PATH =
-    process.env['SITE_MANIFEST_PATH'] ??
-    path.join(DEFAULT_GCS_ROOT, 'config', 'site-manifest.json')
+    process.env['SITE_MANIFEST_PATH'] ?? path.join(DEFAULT_GCS_ROOT, 'config', 'site-manifest.json')
+const DEFAULT_LOGIC_ROOT =
+    process.env['GAME_LOGIC_ROOT'] ?? path.join(DEFAULT_GCS_ROOT, 'games')
 
 type ManifestMismatchChanges = {
     frontend: boolean
@@ -28,6 +30,7 @@ export type LibraryServiceOptions = {
     cacheKey?: string
     cacheSeconds?: number
     allowFallback?: boolean
+    logicRoot?: string
 }
 
 export class LibraryService {
@@ -35,6 +38,7 @@ export class LibraryService {
     private readonly manifestCacheKey: string
     private readonly cacheSeconds?: number
     private readonly allowFallback: boolean
+    private readonly logicRoot: string
 
     private manifestSnapshot?: SiteManifest
     private manifestSignature?: string
@@ -50,6 +54,7 @@ export class LibraryService {
         this.manifestCacheKey = options.cacheKey ?? DEFAULT_CACHE_KEY
         this.cacheSeconds = options.cacheSeconds
         this.allowFallback = options.allowFallback ?? false
+        this.logicRoot = options.logicRoot ?? DEFAULT_LOGIC_ROOT
     }
 
     onManifestMismatch(listener: ManifestMismatchListener): () => void {
@@ -86,9 +91,9 @@ export class LibraryService {
     }
 
     async getManifest(options: { force?: boolean } = {}): Promise<SiteManifest> {
-        if (!options.force && this.manifestSnapshot) {
-            return this.manifestSnapshot
-        }
+        // if (!options.force && this.manifestSnapshot) {
+        //     return this.manifestSnapshot
+        // }
 
         return this.refreshManifest()
     }
@@ -123,26 +128,67 @@ export class LibraryService {
     }
 
     private async loadDefinitions(manifest: SiteManifest): Promise<GameDefinition[]> {
-        const gameIds = Object.keys(manifest.games ?? {})
+        const entries = manifest.games ?? []
 
         const definitions = await Promise.all(
-            gameIds.map(async (gameId) => {
-                const moduleName = `@tabletop/${gameId}`
-                const gameModule = await import(moduleName)
-                const definition = gameModule['Definition' as keyof typeof gameModule] as
-                    | GameDefinition
-                    | undefined
+            entries.map(async (entry) => {
+                const packageId = entry.packageId
+                const logicVersion = entry.logicVersion
+                if (!packageId) {
+                    throw new Error('Manifest entry missing packageId')
+                }
+                if (!logicVersion) {
+                    throw new Error(`Manifest missing logicVersion for "${packageId}"`)
+                }
+
+                const logicPath = path.join(
+                    this.logicRoot,
+                    packageId,
+                    'logic',
+                    logicVersion,
+                    'index.js'
+                )
+                const moduleName = `@tabletop/${packageId}`
+                let gameModule: unknown
+
+                try {
+                    gameModule = await import(pathToFileURL(logicPath).href)
+                } catch (error) {
+                    if (!this.allowFallback) {
+                        throw error
+                    }
+
+                    console.warn(
+                        `Unable to import game logic bundle for ${packageId} (${logicVersion}); falling back to ${moduleName}`,
+                        error
+                    )
+                    gameModule = await import(moduleName)
+                }
+
+                const expectedGameId = entry.gameId ?? packageId
+                const definition = (gameModule as Record<string, unknown>)[
+                    'Definition'
+                ] as GameDefinition | undefined
 
                 if (!definition) {
                     throw new Error(`Game module "${moduleName}" does not export Definition`)
                 }
 
-                if (definition.info.id !== gameId) {
+                if (definition.info.id !== expectedGameId) {
                     console.warn(
                         `Game definition id mismatch for ${moduleName}:`,
                         definition.info.id,
                         '!==',
-                        gameId
+                        expectedGameId
+                    )
+                }
+
+                if (definition.info.metadata.version !== logicVersion) {
+                    console.warn(
+                        `Game definition version mismatch for ${packageId}:`,
+                        definition.info.metadata.version,
+                        '!==',
+                        logicVersion
                     )
                 }
 
@@ -226,9 +272,18 @@ export class LibraryService {
         return true
     }
 
-    private getLogicVersionEntries(manifest: SiteManifest): Array<[string, string | null]> {
-        return Object.entries(manifest.games ?? {})
-            .map(([id, entry]) => [id, entry.logicVersion ?? null] as [string, string | null])
+    private getLogicVersionEntries(
+        manifest: SiteManifest
+    ): Array<[string, string | null, string | null]> {
+        return (manifest.games ?? [])
+            .map(
+                (entry) =>
+                    [entry.packageId, entry.logicVersion ?? null, entry.gameId ?? null] as [
+                        string,
+                        string | null,
+                        string | null
+                    ]
+            )
             .sort(([left], [right]) => left.localeCompare(right))
     }
 }
