@@ -6,11 +6,10 @@ import { SiteManifest } from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
 
 const DEFAULT_CACHE_KEY = 'site-manifest'
-const DEFAULT_GCS_ROOT = process.env['GCS_MOUNT_ROOT'] ?? '/mnt/gcs'
-const DEFAULT_MANIFEST_PATH =
-    process.env['SITE_MANIFEST_PATH'] ?? path.join(DEFAULT_GCS_ROOT, 'config', 'site-manifest.json')
-const DEFAULT_LOGIC_ROOT =
-    process.env['GAME_LOGIC_ROOT'] ?? path.join(DEFAULT_GCS_ROOT, 'games')
+const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '/mnt/gcs'
+const MANIFEST_PATH =
+    process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
+const GAMES_ROOT = process.env['GAME_LOGIC_ROOT'] ?? path.join(STATIC_ROOT, 'games')
 
 type ManifestMismatchChanges = {
     frontend: boolean
@@ -50,11 +49,11 @@ export class LibraryService {
         private readonly cacheService: RedisCacheService,
         options: LibraryServiceOptions = {}
     ) {
-        this.manifestPath = options.manifestPath ?? DEFAULT_MANIFEST_PATH
+        this.manifestPath = options.manifestPath ?? MANIFEST_PATH
         this.manifestCacheKey = options.cacheKey ?? DEFAULT_CACHE_KEY
         this.cacheSeconds = options.cacheSeconds
         this.allowFallback = options.allowFallback ?? false
-        this.logicRoot = options.logicRoot ?? DEFAULT_LOGIC_ROOT
+        this.logicRoot = options.logicRoot ?? GAMES_ROOT
     }
 
     onManifestMismatch(listener: ManifestMismatchListener): () => void {
@@ -166,9 +165,9 @@ export class LibraryService {
                 }
 
                 const expectedGameId = entry.gameId ?? packageId
-                const definition = (gameModule as Record<string, unknown>)[
-                    'Definition'
-                ] as GameDefinition | undefined
+                const definition = (gameModule as Record<string, unknown>)['Definition'] as
+                    | GameDefinition
+                    | undefined
 
                 if (!definition) {
                     throw new Error(`Game module "${moduleName}" does not export Definition`)

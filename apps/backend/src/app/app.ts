@@ -34,7 +34,7 @@ const TASKS_PREFIX = '/tasks'
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
-const GCS_MOUNT_ROOT = process.env['GCS_MOUNT_ROOT'] ?? '/mnt/gcs'
+const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '/mnt/gcs'
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
 const MIN_RESTART_INTERVAL_MS = 30_000
 let firebaseAppIndex = 0
@@ -230,7 +230,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
             if (frontendVersion) {
                 await fastify.register(fastifyStatic, {
-                    root: path.join(GCS_MOUNT_ROOT, 'frontend', frontendVersion),
+                    root: path.join(STATIC_ROOT, 'frontend', frontendVersion),
                     preCompressed: true,
                     immutable: true,
                     maxAge: '30d',
@@ -257,7 +257,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
             // Serve assets from GCS as static files
             await fastify.register(fastifyStatic, {
-                root: path.join(GCS_MOUNT_ROOT, 'games'),
+                root: path.join(STATIC_ROOT, 'games'),
                 prefix: '/games/',
                 decorateReply: false, // avoid reply.sendFile collisions
                 preCompressed: true,
