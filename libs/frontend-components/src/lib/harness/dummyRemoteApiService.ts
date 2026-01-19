@@ -28,6 +28,14 @@ export class DummyRemoteApiService implements RemoteApiService {
         this.fail('versionChange')
     }
 
+    get gameUiVersionChange(): { gameId: string; change: VersionChange } | undefined {
+        return this.fail('gameUiVersionChange')
+    }
+
+    set gameUiVersionChange(_value: { gameId: string; change: VersionChange } | undefined) {
+        this.fail('gameUiVersionChange')
+    }
+
     async getSelf(): Promise<User | undefined> {
         return this.fail('getSelf')
     }

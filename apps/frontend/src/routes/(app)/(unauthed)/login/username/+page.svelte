@@ -21,6 +21,7 @@
             form.reset()
             await authorizationService.onLogin(sessionUser)
         } catch (e) {
+            console.log(e)
             loginFailed = true
         }
     }

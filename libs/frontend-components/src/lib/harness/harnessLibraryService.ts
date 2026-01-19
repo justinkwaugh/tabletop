@@ -12,6 +12,9 @@ export class HarnessLibraryService implements LibraryService {
     getTitle(id: string): GameUiDefinition<GameState, HydratedGameState> | undefined {
         return this.definition
     }
+    getUiVersionForTitle(id: string): string | undefined {
+        return this.definition.info.metadata.version
+    }
     getNameForTitle(id: string): string {
         return this.definition.info.metadata.name
     }

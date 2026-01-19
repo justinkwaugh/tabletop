@@ -1,5 +1,5 @@
 import { type GameUiDefinition } from '@tabletop/frontend-components'
-import { AVAILABLE_TITLES } from './titles.js'
+import { AVAILABLE_TITLES, GAME_UI_VERSIONS } from './titles.js'
 import type { AuthorizationService } from './authorizationService.svelte'
 import { GameState, Role, User, type HydratedGameState } from '@tabletop/common'
 
@@ -21,6 +21,10 @@ export class LibraryService {
 
     getTitle(id: string): GameUiDefinition<GameState, HydratedGameState> | undefined {
         return this.titles[id]
+    }
+
+    getUiVersionForTitle(id: string): string | undefined {
+        return GAME_UI_VERSIONS[id]
     }
 
     getNameForTitle(id: string): string {

@@ -160,6 +160,22 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
 
+    fastify.addHook('onRequest', async (request, _reply) => {
+        const path = request.url.split('?')[0]
+        if (
+            path !== '/manifest' &&
+            !path.startsWith(API_PREFIX) &&
+            !path.startsWith(TASKS_PREFIX)
+        ) {
+            return
+        }
+        try {
+            await fastify.libraryService.refreshManifest()
+        } catch (error) {
+            console.warn('Unable to refresh manifest', error)
+        }
+    })
+
     let lastRestartAt = 0
     fastify.libraryService.onManifestMismatch(() => {
         const now = Date.now()

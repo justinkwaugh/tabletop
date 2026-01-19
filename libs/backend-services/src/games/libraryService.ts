@@ -90,10 +90,9 @@ export class LibraryService {
     }
 
     async getManifest(options: { force?: boolean } = {}): Promise<SiteManifest> {
-        // if (!options.force && this.manifestSnapshot) {
-        //     return this.manifestSnapshot
-        // }
-
+        if (!options.force && this.manifestSnapshot) {
+            return this.manifestSnapshot
+        }
         return this.refreshManifest()
     }
 

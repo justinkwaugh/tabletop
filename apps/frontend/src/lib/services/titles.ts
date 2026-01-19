@@ -29,6 +29,9 @@ async function loadManifest(): Promise<ManifestResponse> {
 
 const manifest = await loadManifest()
 const games = manifest.games
+export const GAME_UI_VERSIONS: Record<string, string> = Object.fromEntries(
+    games.map((game) => [game.gameId, game.uiVersion])
+)
 
 const definitions: GameUiDefinition<GameState, HydratedGameState>[] = []
 for (const game of games) {

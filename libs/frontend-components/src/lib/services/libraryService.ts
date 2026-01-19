@@ -4,6 +4,7 @@ import { type User, type GameState, type HydratedGameState } from '@tabletop/com
 export type LibraryService = {
     getTitles(user: User): GameUiDefinition<GameState, HydratedGameState>[]
     getTitle(id: string): GameUiDefinition<GameState, HydratedGameState> | undefined
+    getUiVersionForTitle(id: string): string | undefined
     getNameForTitle(id: string): string
     getThumbnailForTitle(id: string): string
 }

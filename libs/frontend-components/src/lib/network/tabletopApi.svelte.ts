@@ -1,4 +1,4 @@
-import wretch, { type Wretch, type WretchError } from 'wretch'
+import wretch, { type ConfiguredMiddleware, type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
 import {
     assertExists,
@@ -33,7 +33,7 @@ import type {
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
 import Ably from 'ably'
-import { checkVersion, VersionChange } from './versionChecker.js'
+import { checkVersion, resolveVersionChange, VersionChange } from './versionChecker.js'
 import { toast } from 'svelte-sonner'
 import type { LibraryService } from '$lib/services/libraryService.js'
 
@@ -47,6 +47,12 @@ export class TabletopApi {
     private readonly baseSseUrl: string
     private wretch: Wretch
     versionChange: VersionChange | undefined = $state()
+    gameUiVersionChange:
+        | {
+              gameId: string
+              change: VersionChange
+          }
+        | undefined = $state()
 
     constructor(
         host: string = DEFAULT_HOST,
@@ -66,9 +72,18 @@ export class TabletopApi {
                 this.versionChange = changeType
             }
         })
+        const gameUiVersionChecker: ConfiguredMiddleware = (next) => (url, opts) =>
+            next(url, opts).then((response) => {
+                const gameId = this.resolveGameIdFromUrl(url)
+                if (!gameId) {
+                    return response
+                }
+                this.checkGameUiVersion(gameId, response)
+                return response
+            })
         this.wretch = wretch()
             .url(this.baseUrl)
-            .middlewares([versionCheckerMiddleware])
+            .middlewares([versionCheckerMiddleware, gameUiVersionChecker])
             .options({ credentials: 'include' })
     }
 
@@ -574,6 +589,41 @@ export class TabletopApi {
         const majorPart = version.split('.')[0] ?? '0'
         const majorVersion = Number.parseInt(majorPart, 10)
         return Number.isFinite(majorVersion) ? `v${majorVersion}` : 'v0'
+    }
+
+    private resolveGameIdFromUrl(url: string): string | null {
+        const raw = url.split('?')[0] ?? ''
+        let pathname = raw
+        if (raw.startsWith('http://') || raw.startsWith('https://')) {
+            try {
+                pathname = new URL(raw).pathname
+            } catch {
+                return null
+            }
+        } else if (!raw.startsWith('/')) {
+            pathname = `/${raw}`
+        }
+        const match = pathname.match(/\/game\/([^/]+)\/v\d+(?:\/|$)/)
+        return match?.[1] ?? null
+    }
+
+    private checkGameUiVersion(gameId: string, response: Response) {
+        const responseVersion = response.headers.get('X-TABLETOP-GAME-UI-VERSION')
+        if (!responseVersion) {
+            return
+        }
+        const expectedVersion = this.libraryService.getUiVersionForTitle(gameId) ?? '0.0.0'
+        const change = resolveVersionChange(expectedVersion, responseVersion)
+        if (!change) {
+            return
+        }
+        if (
+            this.gameUiVersionChange?.gameId === gameId &&
+            this.gameUiVersionChange.change === change
+        ) {
+            return
+        }
+        this.gameUiVersionChange = { gameId, change }
     }
 
     private async handleError(error: WretchError) {

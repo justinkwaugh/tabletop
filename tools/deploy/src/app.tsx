@@ -78,6 +78,7 @@ type PendingDeploy = {
     uploads?: string[]
     type: SelectionType
     packageId?: string
+    gameId?: string
 }
 
 type PendingOverwrite = {
@@ -90,6 +91,13 @@ type PendingOverwrite = {
 type PendingPostBump = {
     targetLabel: string
     onConfirm: () => void
+}
+
+type ActiveDeployContext = {
+    type: SelectionType
+    label: string
+    version?: string
+    gameId?: string
 }
 
 type TaskStatus = 'pending' | 'running' | 'success' | 'failed'
@@ -136,11 +144,13 @@ export default function App() {
     const [pendingDeploy, setPendingDeploy] = useState<PendingDeploy | null>(null)
     const [pendingOverwrite, setPendingOverwrite] = useState<PendingOverwrite | null>(null)
     const [pendingPostBump, setPendingPostBump] = useState<PendingPostBump | null>(null)
+    const [activeDeployContext, setActiveDeployContext] = useState<ActiveDeployContext | null>(null)
     const [checkingBackend, setCheckingBackend] = useState(false)
     const [checkingGcsTarget, setCheckingGcsTarget] = useState<string | null>(null)
     const [taskState, setTaskState] = useState<TaskState | null>(null)
     const runningChildRef = useRef<ChildProcess | null>(null)
     const cancelRequestedRef = useRef(false)
+    const commandRunningRef = useRef(false)
     const { stdout } = useStdout()
 
     const games = useMemo(() => manifest?.games ?? [], [manifest])
@@ -305,6 +315,12 @@ export default function App() {
         return afterColon.replace(/^(build|bundle|deploy|tag|push)-/, '')
     }
     const displayRunningLabel = formatRunningLabel(runningLabel)
+    const activeDeployLabel =
+        activeDeployContext?.type === 'game'
+            ? activeDeployContext.gameId ?? activeDeployContext.label
+            : displayRunningLabel
+    const activeDeployVersion =
+        activeDeployContext?.type === 'game' ? activeDeployContext.version : undefined
     const outputStart = Math.max(0, outputLines.length - outputContentLines - clampedOutputScroll)
     const visibleOutputLines = outputLines.slice(outputStart, outputStart + outputContentLines)
     const paddedOutputLines = visibleOutputLines.concat(
@@ -344,6 +360,14 @@ export default function App() {
         }
     }
 
+    const ensureNoRunningCommand = (action: string) => {
+        if (commandRunningRef.current) {
+            setStatus(formatStatus(`${action} blocked: command already running`, 'error'))
+            return false
+        }
+        return true
+    }
+
     const cancelRunningCommand = () => {
         cancelRequestedRef.current = true
         const child = runningChildRef.current
@@ -356,12 +380,14 @@ export default function App() {
             }, 2000)
         }
         runningChildRef.current = null
+        commandRunningRef.current = false
         setIsBusy(false)
         setOutputHold(false)
         setOutputScroll(0)
         setRunningLabel(null)
         setRunningLogPath(null)
         setTaskState(null)
+        setActiveDeployContext(null)
         setStatus(formatStatus('Command cancelled'))
     }
 
@@ -433,6 +459,14 @@ export default function App() {
 
     const queueFrontendDeploy = (currentManifest: SiteManifest) => {
         void (async () => {
+            if (!ensureNoRunningCommand('Deploy')) {
+                return
+            }
+            setActiveDeployContext({
+                type: 'frontend',
+                label: 'Frontend',
+                version: currentManifest.frontend.version
+            })
             startTasks('Frontend deploy', ['Build frontend', 'Deploy frontend', 'Deploy manifest'])
             const buildSpec = buildFrontendCommand(repoRoot)
             if (!(await runTask(0, buildSpec))) return
@@ -463,6 +497,9 @@ export default function App() {
 
     const queueGameDeploy = (packageId: string, currentManifest: SiteManifest) => {
         void (async () => {
+            if (!ensureNoRunningCommand('Deploy')) {
+                return
+            }
             const localEntry = currentManifest.games.find(
                 (game) => game.packageId === packageId
             )
@@ -479,6 +516,15 @@ export default function App() {
             const uiMatches =
                 remoteEntry?.uiVersion != null && remoteEntry.uiVersion === localEntry.uiVersion
             const deployUiOnly = logicMatches && !uiMatches
+            const deployVersionLabel = deployUiOnly
+                ? `ui ${localEntry.uiVersion}`
+                : `logic ${localEntry.logicVersion} / ui ${localEntry.uiVersion}`
+            setActiveDeployContext({
+                type: 'game',
+                label: `Game (${localEntry.gameId})`,
+                gameId: localEntry.gameId,
+                version: deployVersionLabel
+            })
             const deployManifestSpec = deployManifestCommand(manifestPath, deployConfig)
             const manifestUpload = describeUpload(deployManifestSpec)
 
@@ -525,13 +571,14 @@ export default function App() {
                         { spec: deployManifestSpec, taskIndex: 5 }
                     ],
                     targetLabel: `Game (${localEntry.gameId})`,
-                    version: `logic ${localEntry.logicVersion} / ui ${localEntry.uiVersion}`,
+                    version: deployVersionLabel,
                     remoteVersion: remoteEntry
                         ? `logic ${remoteEntry.logicVersion} / ui ${remoteEntry.uiVersion}`
                         : 'unknown',
                     uploads: uploads.length > 0 ? uploads : undefined,
                     type: 'game',
-                    packageId
+                    packageId,
+                    gameId: localEntry.gameId
                 })
             } else {
                 startTasks(`Game deploy (${localEntry.gameId})`, [
@@ -562,13 +609,14 @@ export default function App() {
                         { spec: deployManifestSpec, taskIndex: 3 }
                     ],
                     targetLabel: `Game (${localEntry.gameId})`,
-                    version: `logic ${localEntry.logicVersion} / ui ${localEntry.uiVersion}`,
+                    version: deployVersionLabel,
                     remoteVersion: remoteEntry
                         ? `logic ${remoteEntry.logicVersion} / ui ${remoteEntry.uiVersion}`
                         : 'unknown',
                     uploads: uploads.length > 0 ? uploads : undefined,
                     type: 'game',
-                    packageId
+                    packageId,
+                    gameId: localEntry.gameId
                 })
             }
 
@@ -862,6 +910,11 @@ export default function App() {
         label: string,
         logPath?: string
     ): Promise<boolean> => {
+        if (commandRunningRef.current) {
+            setStatus(formatStatus('Command already running', 'error'))
+            return false
+        }
+        commandRunningRef.current = true
         cancelRequestedRef.current = false
         setIsBusy(true)
         setOutputHold(false)
@@ -895,6 +948,7 @@ export default function App() {
             }
         } finally {
             setIsBusy(false)
+            commandRunningRef.current = false
             if (!failed || cancelled) {
                 setRunningLabel(null)
                 setRunningLogPath(null)
@@ -1047,6 +1101,7 @@ export default function App() {
                 setMode('view')
                 setPendingDeploy(null)
                 setTaskState(null)
+                setActiveDeployContext(null)
                 setStatus(formatStatus('Deploy cancelled'))
                 return
             }
@@ -1079,8 +1134,15 @@ export default function App() {
                 const target = pendingDeploy
                 setPendingDeploy(null)
                 void (async () => {
+                    setActiveDeployContext({
+                        type: target.type,
+                        label: target.targetLabel,
+                        version: target.version,
+                        gameId: target.gameId
+                    })
                     const steps = resolveDeploySteps(target)
                     const ok = await runDeploySteps(steps)
+                    setActiveDeployContext(null)
                     if (!ok) return
                     if (target.type === 'frontend') {
                         await refreshFrontendDeployed()
@@ -1095,6 +1157,7 @@ export default function App() {
                 setMode('view')
                 setPendingDeploy(null)
                 setTaskState(null)
+                setActiveDeployContext(null)
                 setStatus(formatStatus('Deploy cancelled'))
                 return
             }
@@ -1178,6 +1241,7 @@ export default function App() {
                 setRunningLogPath(null)
                 setOutputScroll(0)
                 setTaskState(null)
+                setActiveDeployContext(null)
             }
             return
         }
@@ -1239,6 +1303,7 @@ export default function App() {
 
         if (input === 'd') {
             if (!canDeploy) return
+            if (!ensureNoRunningCommand('Deploy')) return
             if (selected.type === 'backend') {
                 const image = resolveBackendImage()
                 if (!image) {
@@ -1251,6 +1316,9 @@ export default function App() {
                     return
                 }
                 void (async () => {
+                    if (!ensureNoRunningCommand('Deploy')) {
+                        return
+                    }
                     startTasks('Backend deploy', [
                         'Build backend (force)',
                         'Build image',
@@ -1675,7 +1743,9 @@ export default function App() {
                         ) : (
                             <>
                                 <Text color="magenta" wrap="truncate">
-                                    Deploying: {displayRunningLabel} [{outputModeLabel}]
+                                    Deploying: {activeDeployLabel}
+                                    {activeDeployVersion ? ` (${activeDeployVersion})` : ''} [
+                                    {outputModeLabel}]
                                 </Text>
                                 {runningLogPath ? (
                                     <Text color="gray" wrap="truncate">

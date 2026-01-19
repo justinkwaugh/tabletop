@@ -143,7 +143,8 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
         input: path.join(packageRoot, 'src/lib/index.ts'),
         output: {
             dir: path.join(packageRoot, 'bundle'),
-            format: 'es'
+            format: 'es',
+            sourcemap: true
         },
         plugins: [
             createResolveJsExtensions(packageRoot),
