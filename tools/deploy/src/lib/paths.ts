@@ -10,4 +10,5 @@ export const getManifestPath = (repoRoot: string) =>
 export const getDeployConfigPath = (repoRoot: string) =>
     path.join(repoRoot, 'tools/deploy/deploy.config.json')
 
-export const getGcsRoot = () => process.env.GCS_MOUNT_ROOT ?? '/mnt/gcs'
+export const getStaticRoot = () =>
+    process.env.STATIC_ROOT ?? process.env.GCS_MOUNT_ROOT ?? '/mnt/gcs'

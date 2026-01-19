@@ -34,7 +34,7 @@ const TASKS_PREFIX = '/tasks'
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
-const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '/mnt/gcs'
+const STATIC_ROOT = process.env['STATIC_ROOT'] ?? path.join(__dirname, '../../../../.local-static')
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
 const MIN_RESTART_INTERVAL_MS = 30_000
 let firebaseAppIndex = 0
@@ -143,10 +143,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         try {
             await deleteApp(fastify.firebase)
         } catch (error) {
-            fastify.log.warn(
-                { err: error },
-                `Failed to delete firebase app "${firebaseAppName}"`
-            )
+            fastify.log.warn({ err: error }, `Failed to delete firebase app "${firebaseAppName}"`)
         }
     })
     await fastify.register(FastifySSEPlugin)
@@ -216,6 +213,31 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             frontendStaticReady = true
         }
 
+        // Serve assets from GCS as static files
+        await fastify.register(fastifyStatic, {
+            root: path.join(STATIC_ROOT, 'games'),
+            prefix: '/games/',
+            decorateReply: false, // avoid reply.sendFile collisions
+            preCompressed: true,
+            immutable: true,
+            maxAge: '60s',
+            setHeaders: (res, pathName) => {
+                if (pathName.endsWith('.br')) {
+                    res.setHeader('Content-Encoding', 'br')
+                    if (pathName.endsWith('.js.br')) {
+                        res.setHeader('Content-Type', 'text/javascript')
+                    }
+                }
+
+                if (pathName.endsWith('.gz')) {
+                    res.setHeader('Content-Encoding', 'gzip')
+                    if (pathName.endsWith('.js.gz')) {
+                        res.setHeader('Content-Type', 'text/javascript')
+                    }
+                }
+            }
+        })
+
         if (service === 'backend') {
             let frontendVersion = FRONTEND_VERSION_OVERRIDE
 
@@ -254,31 +276,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             } else {
                 console.warn('Frontend static handlers skipped (version unavailable)')
             }
-
-            // Serve assets from GCS as static files
-            await fastify.register(fastifyStatic, {
-                root: path.join(STATIC_ROOT, 'games'),
-                prefix: '/games/',
-                decorateReply: false, // avoid reply.sendFile collisions
-                preCompressed: true,
-                immutable: true,
-                maxAge: '60s',
-                setHeaders: (res, pathName) => {
-                    if (pathName.endsWith('.br')) {
-                        res.setHeader('Content-Encoding', 'br')
-                        if (pathName.endsWith('.js.br')) {
-                            res.setHeader('Content-Type', 'text/javascript')
-                        }
-                    }
-
-                    if (pathName.endsWith('.gz')) {
-                        res.setHeader('Content-Encoding', 'gzip')
-                        if (pathName.endsWith('.js.gz')) {
-                            res.setHeader('Content-Type', 'text/javascript')
-                        }
-                    }
-                }
-            })
         }
 
         if (frontendStaticReady) {

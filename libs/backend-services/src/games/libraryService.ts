@@ -6,7 +6,7 @@ import { SiteManifest } from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
 
 const DEFAULT_CACHE_KEY = 'site-manifest'
-const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '/mnt/gcs'
+const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '.local-static'
 const MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
 const GAMES_ROOT = process.env['GAME_LOGIC_ROOT'] ?? path.join(STATIC_ROOT, 'games')

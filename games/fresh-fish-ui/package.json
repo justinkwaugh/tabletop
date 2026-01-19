@@ -10,6 +10,7 @@
         "clean": "rimraf bundle && rimraf build && rimraf dist",
         "build": "vite build && npm run package",
         "bundle": "rimraf bundle && rollup -c ./rollup.config.ts",
+        "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
         "package": "svelte-kit sync && svelte-package",
         "test": "npm run test:integration && npm run test:unit",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

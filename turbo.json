@@ -56,6 +56,10 @@
             "dependsOn": ["^build"],
             "outputs": ["bundle/**/*"]
         },
+        "stage-ui": {
+            "dependsOn": ["bundle"],
+            "cache": false
+        },
         "update-games": {
             "dependsOn": ["@tabletop/games-config#build", "^update-games"],
             "cache": false

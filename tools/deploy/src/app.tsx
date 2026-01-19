@@ -24,7 +24,12 @@ import {
     runCommand
 } from './lib/commands.js'
 import type { CommandSpec } from './lib/commands.js'
-import { getDeployConfigPath, getGcsRoot, getManifestPath, getRepoRoot } from './lib/paths.js'
+import {
+    getDeployConfigPath,
+    getManifestPath,
+    getRepoRoot,
+    getStaticRoot
+} from './lib/paths.js'
 import { BackendManifest, DeployConfig, SiteManifest } from './lib/types.js'
 import {
     bumpVersion,
@@ -99,7 +104,7 @@ type StatusTone = 'info' | 'error'
 const repoRoot = getRepoRoot()
 const manifestPath = getManifestPath(repoRoot)
 const deployConfigPath = getDeployConfigPath(repoRoot)
-const gcsRoot = getGcsRoot()
+const staticRoot = getStaticRoot()
 
 const formatStatus = (message: string, tone: StatusTone = 'info') => ({ message, tone })
 const formatIndicator = (value: boolean | null | undefined, isChecking: boolean) => {
@@ -400,7 +405,7 @@ export default function App() {
         setCheckingGcsTarget('frontend')
         setGcsStatus((current) => ({ ...current, frontendExists: null }))
         try {
-            const exists = await checkFrontendDeployed(manifest, deployConfig, gcsRoot)
+            const exists = await checkFrontendDeployed(manifest, deployConfig, staticRoot)
             setGcsStatus((current) => ({ ...current, frontendExists: exists }))
         } finally {
             setCheckingGcsTarget((current) => (current === 'frontend' ? null : current))
@@ -416,7 +421,7 @@ export default function App() {
             games: { ...current.games, [packageId]: null }
         }))
         try {
-            const exists = await checkGameDeployed(manifest, packageId, deployConfig, gcsRoot)
+            const exists = await checkGameDeployed(manifest, packageId, deployConfig, staticRoot)
             setGcsStatus((current) => ({
                 ...current,
                 games: { ...current.games, [packageId]: exists }
@@ -638,7 +643,7 @@ export default function App() {
             setCheckingGcsTarget(targetKey)
             void (async () => {
                 try {
-                    const exists = await checkFrontendDeployed(manifest, deployConfig, gcsRoot)
+                    const exists = await checkFrontendDeployed(manifest, deployConfig, staticRoot)
                     setGcsStatus((current) => ({ ...current, frontendExists: exists }))
                 } finally {
                     setCheckingGcsTarget((current) => (current === targetKey ? null : current))
@@ -660,7 +665,7 @@ export default function App() {
                         manifest,
                         packageId,
                         deployConfig,
-                        gcsRoot
+                        staticRoot
                     )
                     setGcsStatus((current) => ({
                         ...current,
@@ -674,7 +679,7 @@ export default function App() {
     }, [
         checkingGcsTarget,
         deployConfig,
-        gcsRoot,
+        staticRoot,
         gcsStatus.frontendExists,
         gcsStatus.games,
         manifest,

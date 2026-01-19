@@ -57,7 +57,7 @@ declare module 'fastify' {
 
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const TASKS_HOST = process.env['TASKS_HOST'] ?? ''
-const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '/mnt/gcs'
+const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '.local-static'
 const SITE_MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
 const MANIFEST_CACHE_SECONDS = process.env['MANIFEST_CACHE_SECONDS']
