@@ -23,6 +23,14 @@ export type BackendManifest = SiteManifest & {
     }
 }
 
+export type BackendAdminConfig = {
+    url?: string
+    token?: string
+    username?: string
+    password?: string
+    cookie?: string
+}
+
 export type DeployConfig = {
     gcsBucket?: string
     backend?: {
@@ -33,4 +41,5 @@ export type DeployConfig = {
         deployCommand?: string[]
     }
     backendManifestUrl?: string
+    backendAdmin?: BackendAdminConfig
 }

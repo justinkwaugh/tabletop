@@ -7,6 +7,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const coerceDeployConfig = (config: unknown): DeployConfig => {
     if (!isObject(config)) return {}
     const backend = config.backend
+    const backendAdmin = config.backendAdmin
     return {
         gcsBucket: typeof config.gcsBucket === 'string' ? config.gcsBucket : undefined,
         backendManifestUrl:
@@ -20,6 +21,17 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
                   deployCommand: Array.isArray(backend.deployCommand)
                       ? backend.deployCommand.filter((value) => typeof value === 'string')
                       : undefined
+              }
+            : undefined,
+        backendAdmin: isObject(backendAdmin)
+            ? {
+                  url: typeof backendAdmin.url === 'string' ? backendAdmin.url : undefined,
+                  token: typeof backendAdmin.token === 'string' ? backendAdmin.token : undefined,
+                  username:
+                      typeof backendAdmin.username === 'string' ? backendAdmin.username : undefined,
+                  password:
+                      typeof backendAdmin.password === 'string' ? backendAdmin.password : undefined,
+                  cookie: typeof backendAdmin.cookie === 'string' ? backendAdmin.cookie : undefined
               }
             : undefined
     }
@@ -45,6 +57,13 @@ export const mergeEnvConfig = (config: DeployConfig): DeployConfig => {
         project: process.env.GCLOUD_PROJECT ?? config.backend?.project,
         deployCommand: config.backend?.deployCommand
     }
+    const backendAdmin = {
+        url: process.env.TABLETOP_BACKEND_ADMIN_URL ?? config.backendAdmin?.url,
+        token: process.env.TABLETOP_BACKEND_ADMIN_TOKEN ?? config.backendAdmin?.token,
+        username: process.env.TABLETOP_BACKEND_ADMIN_USER ?? config.backendAdmin?.username,
+        password: process.env.TABLETOP_BACKEND_ADMIN_PASSWORD ?? config.backendAdmin?.password,
+        cookie: process.env.TABLETOP_BACKEND_ADMIN_COOKIE ?? config.backendAdmin?.cookie
+    }
 
     return {
         ...config,
@@ -53,6 +72,7 @@ export const mergeEnvConfig = (config: DeployConfig): DeployConfig => {
             process.env.TABLETOP_BACKEND_MANIFEST_URL ??
             process.env.TABLETOP_MANIFEST_URL ??
             config.backendManifestUrl,
-        backend
+        backend,
+        backendAdmin
     }
 }

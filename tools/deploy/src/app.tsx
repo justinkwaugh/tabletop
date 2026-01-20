@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Text, useApp, useInput, useStdout } from 'ink'
 import type { ChildProcess } from 'node:child_process'
+import fs from 'node:fs/promises'
 import { readManifest, writeManifest } from './lib/manifest.js'
-import { fetchBackendManifest } from './lib/backend.js'
+import { fetchBackendManifest, invalidateBackendManifestCache } from './lib/backend.js'
 import { checkFrontendDeployed, checkGameDeployed, GcsStatus } from './lib/gcs.js'
 import { mergeEnvConfig, readDeployConfig } from './lib/config.js'
 import {
@@ -64,6 +65,9 @@ type Selection = {
 type DeployStep = {
     spec?: CommandSpec
     specs?: CommandSpec[]
+    action?: (signal: AbortSignal) => Promise<void>
+    label?: string
+    logPath?: string
     taskIndex?: number
 }
 
@@ -149,6 +153,7 @@ export default function App() {
     const [checkingGcsTarget, setCheckingGcsTarget] = useState<string | null>(null)
     const [taskState, setTaskState] = useState<TaskState | null>(null)
     const runningChildRef = useRef<ChildProcess | null>(null)
+    const runningAbortRef = useRef<AbortController | null>(null)
     const cancelRequestedRef = useRef(false)
     const commandRunningRef = useRef(false)
     const { stdout } = useStdout()
@@ -360,6 +365,15 @@ export default function App() {
         }
     }
 
+    const appendOutputWithLog = async (logPath: string, chunk: string) => {
+        appendOutput(chunk)
+        try {
+            await fs.appendFile(logPath, chunk, 'utf8')
+        } catch {
+            // Ignore log write errors; output buffer still updates.
+        }
+    }
+
     const ensureNoRunningCommand = (action: string) => {
         if (commandRunningRef.current) {
             setStatus(formatStatus(`${action} blocked: command already running`, 'error'))
@@ -370,6 +384,10 @@ export default function App() {
 
     const cancelRunningCommand = () => {
         cancelRequestedRef.current = true
+        const controller = runningAbortRef.current
+        if (controller) {
+            controller.abort()
+        }
         const child = runningChildRef.current
         if (child && child.exitCode == null) {
             child.kill('SIGTERM')
@@ -380,6 +398,7 @@ export default function App() {
             }, 2000)
         }
         runningChildRef.current = null
+        runningAbortRef.current = null
         commandRunningRef.current = false
         setIsBusy(false)
         setOutputHold(false)
@@ -457,6 +476,20 @@ export default function App() {
         }
     }
 
+    const manifestInvalidateLogPath = '/tmp/manifest-invalidate.log'
+    const invalidateManifestCache = async (signal: AbortSignal) => {
+        await fs.writeFile(manifestInvalidateLogPath, '', 'utf8')
+        await appendOutputWithLog(
+            manifestInvalidateLogPath,
+            'Invalidating backend manifest cache...\n'
+        )
+        await invalidateBackendManifestCache(deployConfig, { signal })
+        await appendOutputWithLog(
+            manifestInvalidateLogPath,
+            'Backend manifest cache invalidated.\n'
+        )
+    }
+
     const queueFrontendDeploy = (currentManifest: SiteManifest) => {
         void (async () => {
             if (!ensureNoRunningCommand('Deploy')) {
@@ -467,23 +500,31 @@ export default function App() {
                 label: 'Frontend',
                 version: currentManifest.frontend.version
             })
-            startTasks('Frontend deploy', ['Build frontend', 'Deploy frontend', 'Deploy manifest'])
+            startTasks('Frontend deploy', [
+                'Build frontend',
+                'Deploy frontend',
+                'Deploy manifest',
+                'Invalidate manifest cache'
+            ])
             const buildSpec = buildFrontendCommand(repoRoot)
             if (!(await runTask(0, buildSpec))) return
             const spec = deployFrontendCommand(repoRoot, currentManifest, deployConfig)
             const upload = describeUpload(spec)
             const manifestSpec = deployManifestCommand(manifestPath, deployConfig)
             const manifestUpload = describeUpload(manifestSpec)
+            const invalidateStep: DeployStep = {
+                action: invalidateManifestCache,
+                label: 'invalidate-manifest',
+                logPath: manifestInvalidateLogPath,
+                taskIndex: 3
+            }
             const uploads = [
                 upload ? upload : undefined,
                 manifestUpload ? `manifest: ${manifestUpload}` : undefined
             ].filter(Boolean) as string[]
             setPendingDeploy({
                 spec,
-                steps: [
-                    { spec, taskIndex: 1 },
-                    { spec: manifestSpec, taskIndex: 2 }
-                ],
+                steps: [{ spec, taskIndex: 1 }, { spec: manifestSpec, taskIndex: 2 }, invalidateStep],
                 targetLabel: 'Frontend',
                 version: currentManifest.frontend.version,
                 remoteVersion: backendManifest?.frontend?.version ?? 'unknown',
@@ -535,7 +576,8 @@ export default function App() {
                     'Build UI',
                     'Bundle UI',
                     'Deploy logic + UI',
-                    'Deploy manifest'
+                    'Deploy manifest',
+                    'Invalidate manifest cache'
                 ])
                 const buildLogicSpec = buildGameLogicPackageCommand(repoRoot, packageId)
                 if (!(await runTask(0, buildLogicSpec))) return
@@ -557,6 +599,12 @@ export default function App() {
                     packageId,
                     deployConfig
                 )
+                const invalidateStep: DeployStep = {
+                    action: invalidateManifestCache,
+                    label: 'invalidate-manifest',
+                    logPath: manifestInvalidateLogPath,
+                    taskIndex: 6
+                }
                 const logicUpload = describeUpload(deployLogicSpec)
                 const uiUpload = describeUpload(deployUiSpec)
                 const uploads = [
@@ -568,7 +616,8 @@ export default function App() {
                     spec: deployLogicSpec,
                     steps: [
                         { specs: [deployLogicSpec, deployUiSpec], taskIndex: 4 },
-                        { spec: deployManifestSpec, taskIndex: 5 }
+                        { spec: deployManifestSpec, taskIndex: 5 },
+                        invalidateStep
                     ],
                     targetLabel: `Game (${localEntry.gameId})`,
                     version: deployVersionLabel,
@@ -585,7 +634,8 @@ export default function App() {
                     'Build UI',
                     'Bundle UI',
                     'Deploy UI',
-                    'Deploy manifest'
+                    'Deploy manifest',
+                    'Invalidate manifest cache'
                 ])
                 const buildUiSpec = buildGameUiPackageCommand(repoRoot, packageId)
                 if (!(await runTask(0, buildUiSpec))) return
@@ -597,6 +647,12 @@ export default function App() {
                     packageId,
                     deployConfig
                 )
+                const invalidateStep: DeployStep = {
+                    action: invalidateManifestCache,
+                    label: 'invalidate-manifest',
+                    logPath: manifestInvalidateLogPath,
+                    taskIndex: 4
+                }
                 const uiUpload = describeUpload(deployUiSpec)
                 const uploads = [
                     uiUpload ? `ui: ${uiUpload}` : undefined,
@@ -606,7 +662,8 @@ export default function App() {
                     spec: deployUiSpec,
                     steps: [
                         { spec: deployUiSpec, taskIndex: 2 },
-                        { spec: deployManifestSpec, taskIndex: 3 }
+                        { spec: deployManifestSpec, taskIndex: 3 },
+                        invalidateStep
                     ],
                     targetLabel: `Game (${localEntry.gameId})`,
                     version: deployVersionLabel,
@@ -973,9 +1030,29 @@ export default function App() {
             spec.logPath
         )
 
+    const runAction = (action: (signal: AbortSignal) => Promise<void>, label: string, logPath?: string) => {
+        const controller = new AbortController()
+        runningAbortRef.current = controller
+        return runWithStatus(() => action(controller.signal), label, logPath).finally(() => {
+            runningAbortRef.current = null
+        })
+    }
+
     const runTask = async (index: number, spec: CommandSpec) => {
         updateTaskStatus(index, 'running')
         const ok = await runSpec(spec)
+        updateTaskStatus(index, ok ? 'success' : 'failed')
+        return ok
+    }
+
+    const runActionTask = async (
+        index: number,
+        action: (signal: AbortSignal) => Promise<void>,
+        label: string,
+        logPath?: string
+    ) => {
+        updateTaskStatus(index, 'running')
+        const ok = await runAction(action, label, logPath)
         updateTaskStatus(index, ok ? 'success' : 'failed')
         return ok
     }
@@ -1030,14 +1107,25 @@ export default function App() {
         for (let index = 0; index < steps.length; index += 1) {
             const step = steps[index]
             const clearTasks = index === steps.length - 1
-            const ok =
-                step.specs && step.specs.length > 0
-                    ? await runDeployGroup(step.specs, step.taskIndex, { clearTasks })
-                    : step.spec
-                      ? await runDeploySpec(step.spec, step.taskIndex, { clearTasks })
-                      : true
+            const ok = step.action
+                ? step.taskIndex == null
+                    ? await runAction(step.action, step.label ?? 'action', step.logPath)
+                    : await runActionTask(
+                          step.taskIndex,
+                          step.action,
+                          step.label ?? 'action',
+                          step.logPath
+                      )
+                : step.specs && step.specs.length > 0
+                  ? await runDeployGroup(step.specs, step.taskIndex, { clearTasks })
+                  : step.spec
+                    ? await runDeploySpec(step.spec, step.taskIndex, { clearTasks })
+                    : true
             if (!ok) {
                 return false
+            }
+            if (ok && clearTasks && step.action) {
+                setTaskState(null)
             }
         }
         return true

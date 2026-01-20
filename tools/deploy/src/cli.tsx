@@ -48,6 +48,11 @@ Environment:
   TABLETOP_BACKEND_REGION       Cloud Run region
   GCLOUD_PROJECT                GCP project
   TABLETOP_BACKEND_MANIFEST_URL Backend /manifest URL
+  TABLETOP_BACKEND_ADMIN_URL    Backend admin invalidate URL
+  TABLETOP_BACKEND_ADMIN_USER   Backend admin username
+  TABLETOP_BACKEND_ADMIN_PASSWORD Backend admin password
+  TABLETOP_BACKEND_ADMIN_TOKEN  Backend admin auth token
+  TABLETOP_BACKEND_ADMIN_COOKIE Backend admin session cookie
 `
 
 const runAndReport = async (spec: { label: string; logPath: string }, action: () => Promise<void>) => {

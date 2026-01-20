@@ -55,6 +55,11 @@ Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.exampl
 {
     "gcsBucket": "your-gcs-bucket",
     "backendManifestUrl": "https://your-backend.example.com/api/v1/manifest",
+    "backendAdmin": {
+        "url": "https://your-backend.example.com/api/v1/admin/manifest/invalidate",
+        "username": "admin",
+        "password": "your-password"
+    },
     "backend": {
         "image": "us-central1-docker.pkg.dev/your-project/your-repo/backend",
         "service": "your-cloud-run-service",
@@ -69,6 +74,11 @@ Environment overrides:
 
 - `TABLETOP_GCS_BUCKET`
 - `TABLETOP_BACKEND_MANIFEST_URL` (or `TABLETOP_MANIFEST_URL`)
+- `TABLETOP_BACKEND_ADMIN_URL`
+- `TABLETOP_BACKEND_ADMIN_USER`
+- `TABLETOP_BACKEND_ADMIN_PASSWORD`
+- `TABLETOP_BACKEND_ADMIN_TOKEN`
+- `TABLETOP_BACKEND_ADMIN_COOKIE`
 - `TABLETOP_BACKEND_IMAGE`
 - `TABLETOP_BACKEND_SERVICE`
 - `TABLETOP_BACKEND_REGION`
@@ -76,6 +86,7 @@ Environment overrides:
 
 Notes:
 - `backend.image` is required for backend deploy in the TUI; it is used for the docker build/tag/push flow.
+- `backendAdmin` is required to invalidate the manifest cache after deploys; provide a cookie, token, or username/password.
 
 ## Notes
 
