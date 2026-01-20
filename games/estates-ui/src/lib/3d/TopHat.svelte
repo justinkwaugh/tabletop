@@ -13,9 +13,11 @@ Title: Top Hat
     import { useGltf } from '@threlte/extras'
     // @ts-ignore
     import TopHatMesh from '$lib/3d/TopHat.gltf'
+    import TopHatBin from '$lib/3d/TopHat.bin?url'
 
     export let onloaded: ((ref: Object3D) => void) | undefined = undefined
     export const group = new Group()
+    void TopHatBin
 
     type GLTFResult = {
         nodes: {

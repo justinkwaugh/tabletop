@@ -9,10 +9,12 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
     import { useGltf } from '@threlte/extras'
     // @ts-ignore
     import BarrierMesh from '$lib/3d/BarrierOne.gltf'
+    import BarrierBin from '$lib/3d/BarrierOne.bin?url'
 
     export let stripes: number = 1
     export let onloaded: ((ref: Object3D) => void) | undefined = undefined
     export const group = new Group()
+    void BarrierBin
 
     type GLTFResult = {
         nodes: {

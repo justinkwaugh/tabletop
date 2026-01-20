@@ -11,6 +11,8 @@ import terser from '@rollup/plugin-terser'
 import brotli from 'rollup-plugin-brotli'
 import postcss from 'rollup-plugin-postcss'
 
+const modelAssetExtensions = ['**/*.gltf', '**/*.bin', '**/*.glb']
+
 const assetExtensions = [
     '**/*.svg',
     '**/*.png',
@@ -22,10 +24,7 @@ const assetExtensions = [
     '**/*.woff2',
     '**/*.ttf',
     '**/*.otf',
-    '**/*.eot',
-    '**/*.gltf',
-    '**/*.bin',
-    '**/*.glb'
+    '**/*.eot'
 ]
 
 const toPath = (value) => (value instanceof URL ? fileURLToPath(value) : value)
@@ -170,6 +169,13 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
                 extensions: ['.ts', '.js', '.mjs', '.svelte']
             }),
             postcss({ inject: true }),
+            url({
+                include: modelAssetExtensions,
+                destDir: path.join(packageRoot, 'bundle/assets'),
+                publicPath: publicAssetsPath,
+                fileName: '[name][extname]',
+                limit: 0
+            }),
             url({
                 include: assetExtensions,
                 destDir: path.join(packageRoot, 'bundle/assets'),

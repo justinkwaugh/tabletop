@@ -9,9 +9,11 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
     import { useGltf } from '@threlte/extras'
     // @ts-ignore
     import RoofMesh from '$lib/3d/Roof.gltf?no-inline'
+    import RoofBin from '$lib/3d/Roof.bin?url'
 
     export let onloaded: ((ref: Object3D) => void) | undefined
     export const group = new Group()
+    void RoofBin
 
     type GLTFResult = {
         nodes: {
