@@ -1,6 +1,6 @@
 import type { Game, GameState, HydratedGameState, Player } from '@tabletop/common'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
-import { writable, type Writable } from 'svelte/store'
+import { RuneBackedStore } from '$lib/utils/runeBackedStore.svelte.js'
 
 export type GameSessionBridgeColors = {
     getPlayerBgColor: (playerId?: string) => string
@@ -8,48 +8,48 @@ export type GameSessionBridgeColors = {
 }
 
 export class GameSessionBridge<T extends GameState, U extends HydratedGameState<T> & T> {
-    readonly isExploring: Writable<boolean>
-    readonly gameHotseat: Writable<boolean>
-    readonly activePlayers: Writable<Player[]>
-    readonly adminPlayerId: Writable<string | undefined>
-    readonly myPlayer: Writable<Player | undefined>
-    readonly explorationsForGame: Writable<Game[]>
-    readonly currentExplorationGame: Writable<Game | undefined>
-    readonly hasUnsavedChanges: Writable<boolean>
-    readonly isViewingHistory: Writable<boolean>
-    readonly gameState: Writable<U | undefined>
-    readonly colors: Writable<GameSessionBridgeColors>
+    readonly isExploring: RuneBackedStore<boolean>
+    readonly gameHotseat: RuneBackedStore<boolean>
+    readonly activePlayers: RuneBackedStore<Player[]>
+    readonly adminPlayerId: RuneBackedStore<string | undefined>
+    readonly myPlayer: RuneBackedStore<Player | undefined>
+    readonly explorationsForGame: RuneBackedStore<Game[]>
+    readonly currentExplorationGame: RuneBackedStore<Game | undefined>
+    readonly hasUnsavedChanges: RuneBackedStore<boolean>
+    readonly isViewingHistory: RuneBackedStore<boolean>
+    readonly gameState: RuneBackedStore<U | undefined>
+    readonly colors: RuneBackedStore<GameSessionBridgeColors>
 
     constructor(private session: GameSession<T, U>) {
-        this.isExploring = writable(this.session.isExploring)
-        this.gameHotseat = writable(this.session.game.hotseat)
-        this.activePlayers = writable(this.session.activePlayers)
-        this.adminPlayerId = writable(this.session.adminPlayerId)
-        this.myPlayer = writable(this.session.myPlayer)
-        this.explorationsForGame = writable(this.session.explorationsForGame)
-        this.currentExplorationGame = writable(
-            this.session.explorations.getCurrentExploration()?.game
+        this.isExploring = new RuneBackedStore(() => this.session.isExploring)
+        this.gameHotseat = new RuneBackedStore(() => this.session.game.hotseat)
+        this.activePlayers = new RuneBackedStore(() => this.session.activePlayers)
+        this.adminPlayerId = new RuneBackedStore(() => this.session.adminPlayerId)
+        this.myPlayer = new RuneBackedStore(() => this.session.myPlayer)
+        this.explorationsForGame = new RuneBackedStore(() => this.session.explorationsForGame)
+        this.currentExplorationGame = new RuneBackedStore(
+            () => this.session.explorations.getCurrentExploration()?.game
         )
-        this.hasUnsavedChanges = writable(this.session.explorations.hasUnsavedChanges())
-        this.isViewingHistory = writable(this.session.isViewingHistory)
-        this.gameState = writable(this.session.gameState)
-        this.colors = writable(this.buildColorsSnapshot())
+        this.hasUnsavedChanges = new RuneBackedStore(
+            () => this.session.explorations.hasUnsavedChanges()
+        )
+        this.isViewingHistory = new RuneBackedStore(() => this.session.isViewingHistory)
+        this.gameState = new RuneBackedStore(() => this.session.gameState)
+        this.colors = new RuneBackedStore(() => this.buildColorsSnapshot())
     }
 
     connect() {
-        $effect(() => {
-            this.isExploring.set(this.session.isExploring)
-            this.gameHotseat.set(this.session.game.hotseat)
-            this.activePlayers.set(this.session.activePlayers)
-            this.adminPlayerId.set(this.session.adminPlayerId)
-            this.myPlayer.set(this.session.myPlayer)
-            this.explorationsForGame.set(this.session.explorationsForGame)
-            this.currentExplorationGame.set(this.session.explorations.getCurrentExploration()?.game)
-            this.hasUnsavedChanges.set(this.session.explorations.hasUnsavedChanges())
-            this.isViewingHistory.set(this.session.isViewingHistory)
-            this.gameState.set(this.session.gameState)
-            this.colors.set(this.buildColorsSnapshot())
-        })
+        this.isExploring.connect()
+        this.gameHotseat.connect()
+        this.activePlayers.connect()
+        this.adminPlayerId.connect()
+        this.myPlayer.connect()
+        this.explorationsForGame.connect()
+        this.currentExplorationGame.connect()
+        this.hasUnsavedChanges.connect()
+        this.isViewingHistory.connect()
+        this.gameState.connect()
+        this.colors.connect()
     }
 
     setChosenAdminPlayerId(value: string | undefined) {

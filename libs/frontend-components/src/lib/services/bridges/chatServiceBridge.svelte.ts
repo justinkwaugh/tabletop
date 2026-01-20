@@ -1,20 +1,18 @@
 import type { GameChat } from '@tabletop/common'
 import type { ChatService } from '$lib/services/chatService.js'
-import { writable, type Writable } from 'svelte/store'
+import { RuneBackedStore } from '$lib/utils/runeBackedStore.svelte.js'
 
 export class ChatServiceBridge {
-    readonly currentGameChat: Writable<GameChat | undefined>
-    readonly hasUnreadMessages: Writable<boolean>
+    readonly currentGameChat: RuneBackedStore<GameChat | undefined>
+    readonly hasUnreadMessages: RuneBackedStore<boolean>
 
     constructor(private chatService: ChatService) {
-        this.currentGameChat = writable(this.chatService.currentGameChat)
-        this.hasUnreadMessages = writable(this.chatService.hasUnreadMessages)
+        this.currentGameChat = new RuneBackedStore(() => this.chatService.currentGameChat)
+        this.hasUnreadMessages = new RuneBackedStore(() => this.chatService.hasUnreadMessages)
     }
 
     connect() {
-        $effect(() => {
-            this.currentGameChat.set(this.chatService.currentGameChat)
-            this.hasUnreadMessages.set(this.chatService.hasUnreadMessages)
-        })
+        this.currentGameChat.connect()
+        this.hasUnreadMessages.connect()
     }
 }

@@ -307,11 +307,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     isMyTurn: boolean = $derived.by(() => {
-        if (
-            this.isExploring ||
-            this.gameContext.game.hotseat ||
-            this.actAsAdminStore.current
-        ) {
+        if (this.isExploring || this.gameContext.game.hotseat || this.actAsAdminStore.current) {
             return true
         }
 
@@ -360,6 +356,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     hasUnreadMessages = $derived.by(() => {
         return this.hasUnreadMessagesStore.current
     })
+
+    private effectDisposer: () => void
 
     constructor({
         gameService,
@@ -460,8 +458,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         // This effect watches for changes to the current game state, then calls the listeners and
         // finally updates the exposed gameState so that the UI can react to the change
-        $effect.root(() => {
+        this.effectDisposer = $effect.root(() => {
             this.bridge.connect()
+
             watch(
                 () => this.currentVisibleGameState,
                 (newState, oldState) => {
@@ -496,6 +495,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 }
             )
         })
+    }
+
+    dispose() {
+        this.effectDisposer()
     }
 
     isBusy(): boolean {

@@ -34,6 +34,7 @@
         }
         return () => {
             gameSession.stopListeningToGame()
+            gameSession.dispose()
             gameService.currentGameSession = undefined
             chatService.clear()
         }

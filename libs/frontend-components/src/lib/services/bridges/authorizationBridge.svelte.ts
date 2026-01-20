@@ -1,23 +1,21 @@
 import type { User } from '@tabletop/common'
 import type { AuthorizationService } from '$lib/services/authorizationService.js'
-import { writable, type Writable } from 'svelte/store'
+import { RuneBackedStore } from '$lib/utils/runeBackedStore.svelte.js'
 
 export class AuthorizationBridge {
-    readonly showDebug: Writable<boolean>
-    readonly actAsAdmin: Writable<boolean>
-    readonly user: Writable<User | undefined>
+    readonly showDebug: RuneBackedStore<boolean>
+    readonly actAsAdmin: RuneBackedStore<boolean>
+    readonly user: RuneBackedStore<User | undefined>
 
     constructor(private authorizationService: AuthorizationService) {
-        this.showDebug = writable(this.authorizationService.showDebug)
-        this.actAsAdmin = writable(this.authorizationService.actAsAdmin)
-        this.user = writable(this.authorizationService.getSessionUser())
+        this.showDebug = new RuneBackedStore(() => this.authorizationService.showDebug)
+        this.actAsAdmin = new RuneBackedStore(() => this.authorizationService.actAsAdmin)
+        this.user = new RuneBackedStore(() => this.authorizationService.getSessionUser())
     }
 
     connect() {
-        $effect(() => {
-            this.showDebug.set(this.authorizationService.showDebug)
-            this.actAsAdmin.set(this.authorizationService.actAsAdmin)
-            this.user.set(this.authorizationService.getSessionUser())
-        })
+        this.showDebug.connect()
+        this.actAsAdmin.connect()
+        this.user.connect()
     }
 }
