@@ -13,9 +13,18 @@
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let gameSession = getGameSession()
+    const {
+        colors,
+        myPlayer,
+        explorationsForGame,
+        currentExplorationGame,
+        hasUnsavedChanges,
+        isViewingHistory,
+        gameState
+    } = gameSession.bridge
 
-    let playerBgColor = $derived(gameSession.colors.getPlayerBgColor(gameSession.myPlayer?.id))
-    let playerTextColor = $derived(gameSession.colors.getPlayerTextColor(gameSession.myPlayer?.id))
+    let playerBgColor = $derived($colors.getPlayerBgColor($myPlayer?.id))
+    let playerTextColor = $derived($colors.getPlayerTextColor($myPlayer?.id))
 
     let saveRequested = $state(false)
     let deleteRequested = $state(false)
@@ -24,12 +33,12 @@
 
     let dropdownOpen = $state(false)
 
-    let currentExploration = $derived(gameSession.explorations.getCurrentExploration())
+    let currentExploration = $derived($currentExplorationGame)
 
-    let explorations = $derived(gameSession.explorationsForGame)
+    let explorations = $derived($explorationsForGame)
 
     let explorationList = $derived.by(() => {
-        return explorations.filter((e) => e.id !== currentExploration?.game.id)
+        return explorations.filter((e) => e.id !== currentExploration?.id)
     })
 
     function onSaveCancel() {
@@ -62,7 +71,7 @@
     async function switchToExploration(explorationId: string) {
         dropdownOpen = false
 
-        if (gameSession.explorations.hasUnsavedChanges()) {
+        if ($hasUnsavedChanges) {
             unsavedConfirmationId = explorationId
             unsavedConfirmationRequested = true
         } else {
@@ -72,7 +81,7 @@
 
     async function createNewExploration() {
         dropdownOpen = false
-        if (gameSession.explorations.hasUnsavedChanges()) {
+        if ($hasUnsavedChanges) {
             unsavedConfirmationId = null
             unsavedConfirmationRequested = true
         } else {
@@ -84,7 +93,7 @@
         if (!currentExploration) {
             return
         }
-        await gameSession.explorations.deleteExploration(currentExploration.game.id)
+        await gameSession.explorations.deleteExploration(currentExploration.id)
         deleteRequested = false
     }
 </script>
@@ -107,19 +116,19 @@
         <div class="text-xs font-bold whitespace-nowrap overflow-hidden text-ellipsis">
             EXPLORATION<span class="max-sm:hidden">&nbsp;MODE</span> -
             <div id="exploration-drop" class="inline cursor-pointer">
-                {currentExploration?.game.name ??
+                {currentExploration?.name ??
                     'Unknown'}{#if explorations.length > 0}<ChevronDownOutline
                         class="inline h-4 w-4"
                     />{/if}
             </div>
         </div>
         <div class="text-md leading-tight">
-            {#if gameSession.gameState.result}
+            {#if $gameState?.result}
                 End of Game
-            {:else if gameSession.isViewingHistory}
+            {:else if $isViewingHistory}
                 Viewing History
             {:else}
-                Acting as&nbsp;<span class="font-bold">{gameSession.myPlayer?.name}</span>
+                Acting as&nbsp;<span class="font-bold">{$myPlayer?.name}</span>
             {/if}
         </div>
         {#if explorations.length > 0}
@@ -138,7 +147,7 @@
                             {item.name}
                         </DropdownItem>
                     {/each}
-                    {#if currentExploration?.game.storage !== GameStorage.None || gameSession.explorations.hasUnsavedChanges()}
+                    {#if currentExploration?.storage !== GameStorage.None || $hasUnsavedChanges}
                         {#if explorationList.length > 0}
                             <DropdownDivider />
                         {/if}
@@ -153,7 +162,7 @@
         {/if}
     </div>
     <div class="shrink-0">
-        {#if currentExploration?.game.storage === GameStorage.None}
+        {#if currentExploration?.storage === GameStorage.None}
             <Button
                 onclick={() => {
                     saveRequested = true

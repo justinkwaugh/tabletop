@@ -14,6 +14,7 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
     let { data }: { data: { gameSession: GameSession<GameState, HydratedGameState> } } = $props()
+    const { isExploring, gameHotseat } = data.gameSession.bridge
 
     // svelte-ignore state_referenced_locally
     setGameSession(data.gameSession)
@@ -45,9 +46,9 @@
     {#if authorizationService.actAsAdmin}
         <AdminPanel />
     {/if}
-    {#if data.gameSession.isExploring}
+    {#if $isExploring}
         <ExplorationPanel />
-    {:else if data.gameSession.game.hotseat}
+    {:else if $gameHotseat}
         <HotseatPanel />
     {/if}
     <GameUI gameSession={data.gameSession} />

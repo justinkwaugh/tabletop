@@ -40,6 +40,7 @@ import type { ChatServiceBridge } from '$lib/services/bridges/chatServiceBridge.
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition'
 import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
+import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
 import { GameHistory } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
@@ -106,6 +107,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     history: GameHistory<T, U>
     explorations: GameExplorations<T, U>
     colors: GameColors<T, U>
+    bridge: GameSessionBridge<T, U>
 
     chatService: ChatService
     gameService: GameService
@@ -446,6 +448,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         this.colors = new GameColors(this.authorizationBridge, this.gameContext)
 
+        this.gameState = $state.raw(this.runtime.hydrator.hydrateState(state))
+        this.bridge = new GameSessionBridge(this)
+
         if (!game.hotseat) {
             this.chatService.setGameId(game.id)
         }
@@ -456,6 +461,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         // This effect watches for changes to the current game state, then calls the listeners and
         // finally updates the exposed gameState so that the UI can react to the change
         $effect.root(() => {
+            this.bridge.connect()
             watch(
                 () => this.currentVisibleGameState,
                 (newState, oldState) => {
@@ -490,9 +496,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 }
             )
         })
-
-        // Need an initial value
-        this.gameState = $state.raw(this.runtime.hydrator.hydrateState(state))
     }
 
     isBusy(): boolean {

@@ -2,18 +2,19 @@
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let gameSession = getGameSession()
+    const { myPlayer, colors } = gameSession.bridge
     let hotseatPlayerBgColor = $derived(
-        gameSession.colors.getPlayerBgColor(gameSession.myPlayer?.id)
+        $colors.getPlayerBgColor($myPlayer?.id)
     )
     let hotseatPlayerTextColor = $derived(
-        gameSession.colors.getPlayerTextColor(gameSession.myPlayer?.id)
+        $colors.getPlayerTextColor($myPlayer?.id)
     )
 </script>
 
-{#if gameSession.myPlayer}
+{#if $myPlayer}
     <div
         class=" {hotseatPlayerBgColor} {hotseatPlayerTextColor} shrink-0 grow-0 p-2 h-[44px] flex flex-row justify-center items-center text-lg"
     >
-        <span class="font-bold">{gameSession.myPlayer?.name}</span>&nbsp;- It's your turn
+        <span class="font-bold">{$myPlayer?.name}</span>&nbsp;- It's your turn
     </div>
 {/if}
