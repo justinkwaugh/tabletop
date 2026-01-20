@@ -7,7 +7,17 @@ export class ChatServiceBridge {
     readonly hasUnreadMessages: RuneBackedStore<boolean>
 
     constructor(private chatService: ChatService) {
-        this.currentGameChat = new RuneBackedStore(() => this.chatService.currentGameChat)
+        this.currentGameChat = new RuneBackedStore(() => {
+            const chat = this.chatService.currentGameChat
+            if (!chat) {
+                return chat
+            }
+            const messages = chat.messages.map((message) => ({ ...message }))
+            return {
+                ...chat,
+                messages
+            }
+        })
         this.hasUnreadMessages = new RuneBackedStore(() => this.chatService.hasUnreadMessages)
     }
 
