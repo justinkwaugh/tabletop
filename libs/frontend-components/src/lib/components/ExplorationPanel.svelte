@@ -26,9 +26,7 @@
 
     let currentExploration = $derived(gameSession.explorations.getCurrentExploration())
 
-    let explorations = $derived.by(() => {
-        return gameSession.gameService.getExplorations(gameSession.primaryGame.id)
-    })
+    let explorations = $derived(gameSession.explorationsForGame)
 
     let explorationList = $derived.by(() => {
         return explorations.filter((e) => e.id !== currentExploration?.game.id)

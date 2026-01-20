@@ -80,7 +80,12 @@
 
         const runtime = await definition.runtime()
         const sessionClass = runtime.sessionClass
-        const bridgedContext = new BridgedContext({ authorizationService })
+        const bridgedContext = new BridgedContext({
+            authorizationService,
+            gameService,
+            chatService,
+            gameId: game.id
+        })
         gameSession = new sessionClass({
             gameService: gameService,
             bridgedContext: bridgedContext,

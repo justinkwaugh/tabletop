@@ -37,7 +37,7 @@
     let lastCursorPosition: number = -1
 
     let messages: GameChatMessage[] = $derived.by(() => {
-        return (chatService.currentGameChat?.messages ?? []).toSorted(
+        return (gameSession.currentGameChat?.messages ?? []).toSorted(
             (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
         )
     })
@@ -225,7 +225,7 @@
 <div
     class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg {borderColor} border gap-y-2 text-sm {bgColor} {height} overflow-hidden"
 >
-    {#if chatService.hasUnreadMessages && messagePanel && messagePanel.scrollTop !== 0}
+    {#if gameSession.hasUnreadMessages && messagePanel && messagePanel.scrollTop !== 0}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">
             {@render newMessageIndicator()}
         </div>

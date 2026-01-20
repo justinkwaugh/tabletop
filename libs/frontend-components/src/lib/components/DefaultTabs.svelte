@@ -34,9 +34,7 @@
 
     let chatActive: boolean = $state(false)
     let showNewMessageIndicator: boolean = $derived(
-        gameSession.myPlayer !== undefined &&
-            gameSession.chatService.hasUnreadMessages &&
-            !chatActive
+        gameSession.myPlayer !== undefined && gameSession.hasUnreadMessages && !chatActive
     )
 
     let activeTabClasses = $derived(

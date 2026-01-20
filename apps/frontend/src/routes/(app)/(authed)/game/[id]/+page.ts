@@ -46,7 +46,10 @@ export const load: PageLoad = async ({ params, url }) => {
         const sessionClass = runtime.sessionClass
 
         const bridgedContext = new BridgedContext({
-            authorizationService: appContext.authorizationService
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: game.id
         })
         return {
             gameSession: new sessionClass({

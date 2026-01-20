@@ -19,7 +19,8 @@ import {
     RunMode,
     assertExists,
     createAction,
-    type User
+    type User,
+    type GameChat
 } from '@tabletop/common'
 import { watch } from 'runed'
 import * as Value from 'typebox/value'
@@ -35,6 +36,7 @@ import {
 } from '$lib/services/notificationService.js'
 import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBridge.svelte.js'
 import type { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
+import type { ChatServiceBridge } from '$lib/services/bridges/chatServiceBridge.svelte.js'
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition'
 import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
@@ -81,6 +83,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     private authorizationBridge: AuthorizationBridge
+    private chatBridge: ChatServiceBridge
+    private explorationGamesStore: { current: Game[] }
     private showDebugStore: { current: boolean }
     private actAsAdminStore: { current: boolean }
     private sessionUserStore: { current: User | undefined }
@@ -340,6 +344,21 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.actAsAdminStore.current
     })
 
+    explorationsForGame: Game[] = $derived.by(() => {
+        return this.explorationGamesStore.current
+    })
+
+    private currentGameChatStore: { current: GameChat | undefined }
+    private hasUnreadMessagesStore: { current: boolean }
+
+    currentGameChat = $derived.by(() => {
+        return this.currentGameChatStore.current
+    })
+
+    hasUnreadMessages = $derived.by(() => {
+        return this.hasUnreadMessagesStore.current
+    })
+
     constructor({
         gameService,
         bridgedContext,
@@ -364,9 +383,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         debug?: boolean
     }) {
         this.authorizationBridge = bridgedContext.authorization
+        this.chatBridge = bridgedContext.chatService
         this.showDebugStore = fromStore(this.authorizationBridge.showDebug)
         this.actAsAdminStore = fromStore(this.authorizationBridge.actAsAdmin)
         this.sessionUserStore = fromStore(this.authorizationBridge.user)
+        this.explorationGamesStore = fromStore(bridgedContext.gameService.explorations)
+        this.currentGameChatStore = fromStore(this.chatBridge.currentGameChat)
+        this.hasUnreadMessagesStore = fromStore(this.chatBridge.hasUnreadMessages)
         this.notificationService = notificationService
         this.chatService = chatService
         this.gameService = gameService
