@@ -1,10 +1,33 @@
 import { type GameUiDefinition } from '@tabletop/frontend-components'
-import { AVAILABLE_TITLES, GAME_UI_VERSIONS } from './titles.js'
-import type { AuthorizationService } from './authorizationService.svelte'
 import { GameState, Role, User, type HydratedGameState } from '@tabletop/common'
+import { Manifest, GAME_UI_VERSIONS } from './manifestService.js'
+
+const definitions: GameUiDefinition<GameState, HydratedGameState>[] = []
+for (const game of Manifest.games) {
+    try {
+        const url = new URL(
+            /* @vite-ignore */ `/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
+            import.meta.url
+        )
+        let gameModule = await import(url.href)
+        if (!gameModule) {
+            throw new Error()
+        }
+        const gameDefinition = gameModule[
+            `UiDefinition` as keyof typeof gameModule
+        ] as GameUiDefinition<GameState, HydratedGameState>
+        definitions.push(gameDefinition)
+    } catch (e) {
+        console.log(
+            `Could not load game module for ${game.gameId} (${game.packageId}) at ${game.uiVersion}`
+        )
+    }
+}
 
 export class LibraryService {
-    private readonly titles = AVAILABLE_TITLES
+    private readonly titles = Object.fromEntries(
+        definitions.map((definition) => [definition.info.id, definition])
+    )
 
     constructor() {}
 
