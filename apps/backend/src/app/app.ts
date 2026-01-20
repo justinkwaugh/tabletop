@@ -17,7 +17,6 @@ import FirestorePlugin from './plugins/firestore.js'
 import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
-import ManifestRoutes from './routes/manifest.js'
 
 const __dirname = import.meta.dirname
 
@@ -166,11 +165,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
     fastify.addHook('onRequest', async (request, _reply) => {
         const path = request.url.split('?')[0]
-        if (
-            path !== '/manifest' &&
-            !path.startsWith(API_PREFIX) &&
-            !path.startsWith(TASKS_PREFIX)
-        ) {
+        if (!path.startsWith(API_PREFIX) && !path.startsWith(TASKS_PREFIX)) {
             return
         }
         try {
@@ -201,8 +196,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             dir: path.join(__dirname, 'routes/api'),
             options: { ...opts, prefix: API_PREFIX }
         })
-
-        await fastify.register(ManifestRoutes)
 
         let frontendStaticReady = false
 

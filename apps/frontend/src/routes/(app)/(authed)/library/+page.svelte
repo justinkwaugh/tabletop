@@ -4,13 +4,28 @@
     import { Heading } from 'flowbite-svelte'
     import { type GameUiDefinition, getAppContext } from '@tabletop/frontend-components'
     import { fade } from 'svelte/transition'
-    import type { Game, GameState, HydratedGameState } from '@tabletop/common'
+    import { Role, type Game, type GameState, type HydratedGameState } from '@tabletop/common'
     import GameCard from '$lib/components/GameCard.svelte'
 
     let { libraryService, gameService, authorizationService } = getAppContext()
+    let titlesById = $derived(libraryService.titlesById)
+    let loading = $derived(libraryService.loading)
 
     let selectedTitle: GameUiDefinition<GameState, HydratedGameState> | undefined = $state()
     let user = $derived(authorizationService.getSessionUser())
+    let availableTitles = $derived.by(() => {
+        if (!user) {
+            return []
+        }
+        return Object.values(titlesById)
+            .filter(
+                (title) =>
+                    !title.info.metadata.beta ||
+                    user.roles.includes(Role.Admin) ||
+                    user.roles.includes(Role.BetaTester)
+            )
+            .sort((a, b) => a.info.metadata.name.localeCompare(b.info.metadata.name))
+    })
 
     function selectTitle(title: GameUiDefinition<GameState, HydratedGameState>) {
         if (title.info.id !== selectedTitle?.info.id) {
@@ -102,9 +117,51 @@
 
                     <div class="flex justify-center gap-x-2 gap-y-2 flex-wrap sm:p-0">
                         {#if user}
-                            {#each libraryService.getTitles(user) as title (title.info.id)}
-                                <LibraryGameCard onclick={() => selectTitle(title)} {title} />
-                            {/each}
+                            {#if loading}
+                                {#each Array(6) as _, index (index)}
+                                    <div
+                                        class="min-w-[320px] max-w-[340px] w-full rounded-xl border border-gray-700/40 bg-gray-200/10 dark:bg-gray-700/30 overflow-hidden animate-pulse"
+                                    >
+                                        <div class="flex gap-x-4 p-2 pe-4">
+                                            <div
+                                                class="h-[150px] w-[150px] shrink-0 rounded-md bg-gray-300/20 dark:bg-gray-600/30"
+                                            ></div>
+                                            <div class="flex flex-col justify-between w-full">
+                                                <div class="space-y-2 mt-2">
+                                                    <div
+                                                        class="h-6 w-3/4 rounded bg-gray-300/20 dark:bg-gray-600/30"
+                                                    ></div>
+                                                    <div
+                                                        class="h-4 w-1/3 rounded bg-gray-300/20 dark:bg-gray-600/30"
+                                                    ></div>
+                                                </div>
+                                                <div class="flex justify-between mb-2">
+                                                    <div class="space-y-2">
+                                                        <div
+                                                            class="h-3 w-20 rounded bg-gray-300/20 dark:bg-gray-600/30"
+                                                        ></div>
+                                                        <div
+                                                            class="h-4 w-24 rounded bg-gray-300/20 dark:bg-gray-600/30"
+                                                        ></div>
+                                                    </div>
+                                                    <div class="space-y-2 text-right">
+                                                        <div
+                                                            class="h-3 w-16 rounded bg-gray-300/20 dark:bg-gray-600/30"
+                                                        ></div>
+                                                        <div
+                                                            class="h-4 w-12 rounded bg-gray-300/20 dark:bg-gray-600/30"
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/each}
+                            {:else}
+                                {#each availableTitles as title (title.info.id)}
+                                    <LibraryGameCard onclick={() => selectTitle(title)} {title} />
+                                {/each}
+                            {/if}
                         {/if}
                     </div>
                 </div>

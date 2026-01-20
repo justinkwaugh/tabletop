@@ -24,11 +24,13 @@ export default async function (fastify: FastifyInstance) {
             ? { ...manifest.frontend, version: frontendVersionOverride }
             : manifest.frontend
 
-        reply.header('Cache-Control', 'no-store')
-        return {
+        const payload = {
             ...manifest,
             frontend,
             backend: getBackendMetadata()
         }
+
+        reply.header('Cache-Control', 'no-store')
+        return { status: 'ok', payload }
     })
 }

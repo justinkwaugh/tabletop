@@ -27,6 +27,8 @@
     } = $props()
 
     let { libraryService, authorizationService, gameService } = getAppContext()
+    let titlesById = $derived(libraryService.titlesById)
+    let loading = $derived(libraryService.loading)
 
     let editing = $state(false)
     let canToggle = $derived(expanded !== 'always')
@@ -77,7 +79,8 @@
     )
 
     let canEdit = $derived(
-        isOwnedByMe &&
+        !loading &&
+            isOwnedByMe &&
             !game.parentId &&
             (game.status === GameStatus.WaitingForPlayers ||
                 game.status === GameStatus.WaitingToStart)
@@ -146,6 +149,9 @@
 
     function editGame(event: Event) {
         event.stopPropagation()
+        if (loading) {
+            return
+        }
         editing = true
     }
 
@@ -216,8 +222,8 @@
         }
     }
 
+    let title = $derived.by(() => titlesById[game.typeId])
     let displayableConfigs: Record<string, string> = $derived.by(() => {
-        const title = libraryService.getTitle(game.typeId)
         if (!title || !game.config) {
             return {}
         }
@@ -264,7 +270,7 @@
                 <img
                     class="h-[80px]"
                     alt="cover thumbnail"
-                    src={libraryService.getThumbnailForTitle(game.typeId)}
+                    src={title?.info.thumbnailUrl ?? ''}
                 />
             </div>
             <div class="pl-4 pr-2 py-0 w-full">
@@ -357,7 +363,7 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    {libraryService.getNameForTitle(game.typeId)}
+                                    {title?.info.metadata.name ?? 'Unknown Game'}
                                 </div>
                                 <div class="text-xs text-gray-400">
                                     {totalSeats} player

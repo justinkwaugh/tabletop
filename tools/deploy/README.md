@@ -54,7 +54,7 @@ Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.exampl
 ```json
 {
     "gcsBucket": "your-gcs-bucket",
-    "backendManifestUrl": "https://your-backend.example.com/manifest",
+    "backendManifestUrl": "https://your-backend.example.com/api/v1/manifest",
     "backend": {
         "image": "us-central1-docker.pkg.dev/your-project/your-repo/backend",
         "service": "your-cloud-run-service",

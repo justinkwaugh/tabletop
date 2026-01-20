@@ -1,8 +1,7 @@
-import type { GameState, HydratedGameState } from '@tabletop/common'
-import type { GameUiDefinition } from '@tabletop/frontend-components'
+import { TabletopApi, type GameVersionProvider } from '@tabletop/frontend-components'
 import { SiteManifest } from '@tabletop/games-config'
 
-type ManifestResponse = typeof SiteManifest & {
+export type ManifestResponse = typeof SiteManifest & {
     backend?: {
         buildSha?: string | null
         buildTime?: string | null
@@ -10,27 +9,55 @@ type ManifestResponse = typeof SiteManifest & {
     }
 }
 
-async function loadManifest(): Promise<ManifestResponse> {
-    if (typeof window === 'undefined') {
-        return SiteManifest
+type ManifestGame = (typeof SiteManifest)['games'][number]
+
+export class ManifestService implements GameVersionProvider {
+    private manifest: ManifestResponse | null = null
+    private readonly gamesById = new Map<string, ManifestGame>()
+    private readonly loadPromise: Promise<ManifestResponse>
+
+    constructor(private readonly api: TabletopApi) {
+        this.loadPromise = this.load()
     }
 
-    try {
-        const response = await fetch('/manifest', { cache: 'no-store' })
-        if (!response.ok) {
-            throw new Error(`Failed to load /manifest: ${response.status}`)
+    async whenReady(): Promise<ManifestResponse> {
+        return this.loadPromise
+    }
+
+    getManifestSnapshot(): ManifestResponse | null {
+        return this.manifest
+    }
+
+    getLogicVersion(gameId: string): string | undefined {
+        return this.gamesById.get(gameId)?.logicVersion
+    }
+
+    getUiVersion(gameId: string): string | undefined {
+        return this.gamesById.get(gameId)?.uiVersion
+    }
+
+    private async load(): Promise<ManifestResponse> {
+        if (typeof window === 'undefined') {
+            this.applyManifest(SiteManifest)
+            return SiteManifest
         }
-        return (await response.json()) as ManifestResponse
-    } catch (error) {
-        console.error('Failed to load /manifest. Falling back to local manifest.', error)
-        return SiteManifest
+
+        try {
+            const manifest = await this.api.manifest<ManifestResponse>()
+            this.applyManifest(manifest)
+            return manifest
+        } catch (error) {
+            console.error('Failed to load manifest. Falling back to local manifest.', error)
+            this.applyManifest(SiteManifest)
+            return SiteManifest
+        }
+    }
+
+    private applyManifest(manifest: ManifestResponse) {
+        this.manifest = manifest
+        this.gamesById.clear()
+        for (const game of manifest.games) {
+            this.gamesById.set(game.gameId, game)
+        }
     }
 }
-
-export const Manifest = await loadManifest()
-export const FRONTEND_VERSION =
-    Manifest.frontend?.version ?? SiteManifest.frontend?.version ?? '0.0.0'
-const games = Manifest.games
-export const GAME_UI_VERSIONS: Record<string, string> = Object.fromEntries(
-    games.map((game) => [game.gameId, game.uiVersion])
-)

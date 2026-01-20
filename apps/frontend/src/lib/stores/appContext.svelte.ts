@@ -7,14 +7,16 @@ import {
 import { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { NotificationService } from '$lib/services/notificationService.svelte'
 import { GameService } from '$lib/services/gameService.svelte'
-import { LibraryService } from '$lib/services/libraryService'
+import { LibraryService } from '$lib/services/libraryService.svelte'
+import { ManifestService } from '$lib/services/manifestService'
+import { FRONTEND_VERSION } from '$lib/version'
 import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 import { ChatService } from '$lib/services/chatService.svelte'
 import { SseConnection } from '$lib/network/sseConnection.svelte.js'
-import { FRONTEND_VERSION } from '$lib/services/manifestService.js'
-const libraryService = new LibraryService()
-
-const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, libraryService, FRONTEND_VERSION)
+const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, FRONTEND_VERSION)
+const manifestService = new ManifestService(api)
+api.setGameVersionProvider(manifestService)
+const libraryService = new LibraryService(manifestService)
 const authorizationService = new AuthorizationService(api)
 
 const visibilityService = new VisibilityService()

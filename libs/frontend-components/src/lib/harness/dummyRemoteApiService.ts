@@ -10,6 +10,7 @@ import type {
     User,
     UserPreferences
 } from '@tabletop/common'
+import type { GameVersionProvider } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
 import type { GameChatMessageResponsePayload } from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
@@ -38,6 +39,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getSelf(): Promise<User | undefined> {
         return this.fail('getSelf')
+    }
+
+    async manifest<T = unknown>(): Promise<T> {
+        return this.fail('manifest')
+    }
+
+    setGameVersionProvider(_provider: GameVersionProvider | null) {
+        this.fail('setGameVersionProvider')
     }
 
     async login(_credentials: Credentials): Promise<User> {

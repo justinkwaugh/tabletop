@@ -15,6 +15,7 @@ import {
 } from '@tabletop/common'
 import type {
     AblyTokenResponse,
+    ApiResponse,
     ApplyActionResponse,
     BookmarkResponse,
     CheckSyncResponse,
@@ -35,14 +36,14 @@ import type { Credentials } from './requestTypes.js'
 import Ably from 'ably'
 import { checkVersion, resolveVersionChange, VersionChange } from './versionChecker.js'
 import { toast } from 'svelte-sonner'
-import type { LibraryService } from '$lib/services/libraryService.js'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
 export class TabletopApi {
+    private static readonly API_PREFIX = '/api/v1'
     private readonly host: string
     private readonly sseHost: string
-    private readonly basePath = '/api/v1'
+    private readonly basePath = TabletopApi.API_PREFIX
     private readonly baseUrl: string
     private readonly baseSseUrl: string
     private wretch: Wretch
@@ -54,10 +55,11 @@ export class TabletopApi {
           }
         | undefined = $state()
 
+    private gameVersionProvider: GameVersionProvider | null = null
+
     constructor(
         host: string = DEFAULT_HOST,
         sseHost: string = DEFAULT_HOST,
-        private readonly libraryService: LibraryService,
         private readonly version?: string
     ) {
         this.host = host
@@ -85,6 +87,16 @@ export class TabletopApi {
             .url(this.baseUrl)
             .middlewares([versionCheckerMiddleware, gameUiVersionChecker])
             .options({ credentials: 'include' })
+    }
+
+    async manifest<T = unknown>(): Promise<T> {
+        const response = await this.wretch
+            .get('/manifest')
+            .unauthorized(() => {}) // 401 is okay here, we just return undefined
+            .badRequest(this.handleError)
+            .json<ApiResponse>()
+
+        return response.payload as T
     }
 
     async getSelf(): Promise<User | undefined> {
@@ -582,10 +594,13 @@ export class TabletopApi {
         })
     }
 
+    setGameVersionProvider(provider: GameVersionProvider | null) {
+        this.gameVersionProvider = provider
+    }
+
     private versionForGame(gameId: string): string {
-        const title = this.libraryService.getTitle(gameId)
-        assertExists(title, `No title found for game ID: ${gameId}`)
-        const version = title.info.metadata.version ?? '0.0.0'
+        const version = this.gameVersionProvider?.getLogicVersion(gameId)
+        assertExists(version, `No logic version found for game ID: ${gameId}`)
         const majorPart = version.split('.')[0] ?? '0'
         const majorVersion = Number.parseInt(majorPart, 10)
         return Number.isFinite(majorVersion) ? `v${majorVersion}` : 'v0'
@@ -612,7 +627,10 @@ export class TabletopApi {
         if (!responseVersion) {
             return
         }
-        const expectedVersion = this.libraryService.getUiVersionForTitle(gameId) ?? '0.0.0'
+        const expectedVersion = this.gameVersionProvider?.getUiVersion(gameId)
+        if (!expectedVersion) {
+            return
+        }
         const change = resolveVersionChange(expectedVersion, responseVersion)
         if (!change) {
             return
@@ -660,3 +678,8 @@ export class TabletopApi {
 }
 
 export type TabletopApiPublic = Pick<TabletopApi, keyof TabletopApi>
+
+export type GameVersionProvider = {
+    getLogicVersion(gameId: string): string | undefined
+    getUiVersion(gameId: string): string | undefined
+}

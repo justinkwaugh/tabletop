@@ -31,7 +31,7 @@ import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
 
-import type { LibraryService } from './libraryService.js'
+import type { LibraryService } from './libraryService.svelte'
 import { nanoid } from 'nanoid'
 
 export class GameService implements GameServiceInterface {
@@ -117,6 +117,7 @@ export class GameService implements GameServiceInterface {
 
     // Only allow a single async load at a time
     async loadGames() {
+        await this.libraryService.whenReady()
         await this.loadLocalGames()
 
         if (!this.loadingPromise) {
@@ -154,11 +155,13 @@ export class GameService implements GameServiceInterface {
 
     // Should debounce this
     async loadOpenGames(titleId: string) {
+        await this.libraryService.whenReady()
         const response = await this.api.getOpenGames(titleId)
         this.openGamesByTitleId.set(titleId, response)
     }
 
     async loadGame(id: string): Promise<{ game?: Game; actions: GameAction[] }> {
+        await this.libraryService.whenReady()
         // First check local hotseat games
         if (!this.localGamesById.has(id)) {
             const localGame = await this.localGameStore.findGameById(id)
@@ -185,6 +188,7 @@ export class GameService implements GameServiceInterface {
     }
 
     async createGame(game: Partial<Game>): Promise<Game> {
+        await this.libraryService.whenReady()
         let newGame: Game
         if (!game.typeId) {
             throw new Error('Game typeId is required to create a game')

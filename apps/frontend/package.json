@@ -1,12 +1,12 @@
 {
     "name": "@tabletop/frontend",
-    "version": "1.0.1",
+    "version": "2.0.0",
     "private": true,
     "type": "module",
     "scripts": {
         "clean": "rimraf build",
-        "dev": "vite dev",
-        "build": "vite build",
+        "dev": "node ../../tools/scripts/write-frontend-version.cjs && vite dev",
+        "build": "node ../../tools/scripts/write-frontend-version.cjs && vite build",
         "preview": "vite preview",
         "test": "npm run test:integration && npm run test:unit",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

@@ -35,6 +35,8 @@
         visibilityService,
         libraryService
     } = getAppContext()
+    let titlesById = $derived(libraryService.titlesById)
+    let loading = $derived(libraryService.loading)
 
     let { children } = $props()
 
@@ -62,7 +64,7 @@
             return undefined
         }
 
-        return libraryService.getTitle(gameService.currentGameSession.primaryGame.typeId)
+        return titlesById[gameService.currentGameSession.primaryGame.typeId]
     })
 
     async function onLogout() {
@@ -104,6 +106,10 @@
     }
 
     function createGame() {
+        if (loading) {
+            toast.info('Loading game library...')
+            return
+        }
         showCreateGameModel = true
     }
 

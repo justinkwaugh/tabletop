@@ -63,13 +63,14 @@
     } = $props()
 
     let { libraryService, authorizationService, gameService } = getAppContext()
+    let titlesById = $derived(libraryService.titlesById)
     let sessionUser = authorizationService.getSessionUser()
 
     let mode = game ? EditMode.Edit : EditMode.Create
     let gameTitle = $derived.by(() => {
         let gameTitle = title
         if (!gameTitle && game) {
-            gameTitle = libraryService.getTitle(game.typeId)
+            gameTitle = titlesById[game.typeId]
         }
         assertExists(gameTitle, 'No title found for the game being edited')
         return gameTitle

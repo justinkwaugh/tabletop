@@ -33,6 +33,7 @@ export const load: PageLoad = async ({ params, url }) => {
             return
         }
 
+        await appContext.libraryService.whenReady()
         const definition = appContext.libraryService.getTitle(game.typeId)
         if (!definition) {
             onceMounted(() => {
