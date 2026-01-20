@@ -18,13 +18,14 @@ import {
     GameStorage,
     RunMode,
     assertExists,
-    createAction
+    createAction,
+    type User
 } from '@tabletop/common'
 import { watch } from 'runed'
 import * as Value from 'typebox/value'
-import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import { toast } from 'svelte-sonner'
 import { nanoid } from 'nanoid'
+import { fromStore } from 'svelte/store'
 import {
     isDataEvent,
     isDiscontinuityEvent,
@@ -32,6 +33,8 @@ import {
     type NotificationEvent,
     type NotificationService
 } from '$lib/services/notificationService.js'
+import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBridge.svelte.js'
+import type { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition'
 import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
@@ -77,7 +80,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return actions || state
     })
 
-    private authorizationService: AuthorizationService
+    private authorizationBridge: AuthorizationBridge
+    private showDebugStore: { current: boolean }
+    private actAsAdminStore: { current: boolean }
+    private sessionUserStore: { current: User | undefined }
     private notificationService: NotificationService
 
     public runtime: GameUIRuntime<T, U>
@@ -165,7 +171,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
-        const superUserAccess = this.authorizationService.actAsAdmin || this.isExploring
+        const superUserAccess = this.actAsAdminStore.current || this.isExploring
 
         // No spectators, must have actions, not viewing history
         if (
@@ -255,7 +261,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     myPrimaryPlayer: Player | undefined = $derived.by(() => {
-        const sessionUser = this.authorizationService.getSessionUser()
+        const sessionUser = this.sessionUserStore.current
         if (!sessionUser) {
             return undefined
         }
@@ -270,12 +276,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return this.activePlayers.at(0)
         }
 
-        const sessionUser = this.authorizationService.getSessionUser()
+        const sessionUser = this.sessionUserStore.current
         if (!sessionUser) {
             return undefined
         }
 
-        if (this.authorizationService.actAsAdmin && this.adminPlayerId) {
+        if (this.actAsAdminStore.current && this.adminPlayerId) {
             return this.gameContext.game.players.find((player) => player.id === this.adminPlayerId)
         }
 
@@ -298,7 +304,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (
             this.isExploring ||
             this.gameContext.game.hotseat ||
-            this.authorizationService.actAsAdmin
+            this.actAsAdminStore.current
         ) {
             return true
         }
@@ -327,16 +333,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     // For admin users
     showDebug: boolean = $derived.by(() => {
-        return this.authorizationService.showDebug
+        return this.showDebugStore.current
     })
 
     isActingAdmin: boolean = $derived.by(() => {
-        return this.authorizationService.actAsAdmin
+        return this.actAsAdminStore.current
     })
 
     constructor({
         gameService,
-        authorizationService,
+        bridgedContext,
         notificationService,
         chatService,
         api,
@@ -347,7 +353,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         debug = false
     }: {
         gameService: GameService
-        authorizationService: AuthorizationService
+        bridgedContext: BridgedContext
         notificationService: NotificationService
         chatService: ChatService
         api: RemoteApiService
@@ -357,7 +363,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         actions: GameAction[]
         debug?: boolean
     }) {
-        this.authorizationService = authorizationService
+        this.authorizationBridge = bridgedContext.authorization
+        this.showDebugStore = fromStore(this.authorizationBridge.showDebug)
+        this.actAsAdminStore = fromStore(this.authorizationBridge.actAsAdmin)
+        this.sessionUserStore = fromStore(this.authorizationBridge.user)
         this.notificationService = notificationService
         this.chatService = chatService
         this.gameService = gameService
@@ -389,7 +398,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         })
 
         this.explorations = new GameExplorations<T, U>(
-            this.authorizationService,
+            this.authorizationBridge,
             this.gameService,
             this.runtime,
             {
@@ -412,7 +421,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             }
         )
 
-        this.colors = new GameColors(this.authorizationService, this.gameContext)
+        this.colors = new GameColors(this.authorizationBridge, this.gameContext)
 
         if (!game.hotseat) {
             this.chatService.setGameId(game.id)

@@ -1,5 +1,5 @@
 import type { GameSession } from '$lib/model/gameSession.svelte'
-import type { AuthorizationService } from '$lib/services/authorizationService.js'
+import type { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
 import type { NotificationService } from '$lib/services/notificationService.js'
 import type {
     Game,
@@ -22,7 +22,7 @@ export type GameTable<T extends GameState, U extends HydratedGameState<T> & T> =
 export interface GameSessionConstructor<T extends GameState, U extends HydratedGameState<T> & T> {
     new ({
         gameService,
-        authorizationService,
+        bridgedContext,
         notificationService,
         chatService,
         api,
@@ -33,7 +33,7 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
         debug
     }: {
         gameService: GameService
-        authorizationService: AuthorizationService
+        bridgedContext: BridgedContext
         notificationService: NotificationService
         chatService: ChatService
         api: RemoteApiService

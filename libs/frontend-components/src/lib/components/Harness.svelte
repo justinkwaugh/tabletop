@@ -19,6 +19,7 @@
     import { setAppContext } from '$lib/model/appContext.js'
     import { createHarnessAppContext } from '$lib/harness/harnessContext.js'
     import type { GameState, HydratedGameState } from '@tabletop/common'
+    import { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
 
     let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
     const appContext = createHarnessAppContext(definition)
@@ -79,9 +80,10 @@
 
         const runtime = await definition.runtime()
         const sessionClass = runtime.sessionClass
+        const bridgedContext = new BridgedContext({ authorizationService })
         gameSession = new sessionClass({
             gameService: gameService,
-            authorizationService: authorizationService,
+            bridgedContext: bridgedContext,
             notificationService: notificationService,
             chatService: chatService,
             api: api,

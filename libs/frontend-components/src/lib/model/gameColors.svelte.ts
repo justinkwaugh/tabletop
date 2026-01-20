@@ -1,20 +1,27 @@
 import type { GameColorizer } from '$lib/definition/gameColorizer.js'
-import type { AuthorizationService } from '$lib/services/authorizationService.js'
+import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBridge.svelte.js'
 import { Color, GameState, User, type HydratedGameState } from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
 import { ColorblindColorizer } from '$lib/utils/colorblindPalette.js'
 import { untrack } from 'svelte'
+import { fromStore } from 'svelte/store'
 
 export class GameColors<T extends GameState, U extends HydratedGameState<T> & T> {
     constructor(
-        private authorizationService: AuthorizationService,
+        private authorizationBridge: AuthorizationBridge,
         private gameContext: GameContext<T, U>
-    ) {}
+    ) {
+        this.sessionUserStore = fromStore(this.authorizationBridge.user)
+        this.actAsAdminStore = fromStore(this.authorizationBridge.actAsAdmin)
+    }
+
+    private sessionUserStore: { current: User | undefined }
+    private actAsAdminStore: { current: boolean }
 
     private colorizer: GameColorizer = $derived.by(() => {
         return this.colorBlind &&
             this.gameContext.runtime.colorizer.supportsColorblindPalette() &&
-            !this.authorizationService.actAsAdmin
+            !this.actAsAdminStore.current
             ? new ColorblindColorizer()
             : this.gameContext.runtime.colorizer
     })
@@ -24,7 +31,7 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
         // We only use it to get the list of assigned players/colors
         const state = untrack(() => this.gameContext.state)
 
-        const sessionUser = this.authorizationService.getSessionUser()
+        const sessionUser = this.sessionUserStore.current
         const preferredColor = this.getPreferredColor(sessionUser)
 
         const gamePlayer = sessionUser?.id
@@ -62,7 +69,7 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
             !user ||
             !user.preferences ||
             !user.preferences.preferredColorsEnabled ||
-            this.authorizationService.actAsAdmin
+            this.actAsAdminStore.current
         ) {
             return undefined
         }
@@ -81,7 +88,7 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
     }
 
     colorBlind: boolean = $derived.by(() => {
-        const sessionUser = this.authorizationService.getSessionUser()
+        const sessionUser = this.sessionUserStore.current
         if (!sessionUser || !sessionUser.preferences) {
             return false
         }

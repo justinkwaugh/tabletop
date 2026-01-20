@@ -53,7 +53,8 @@
         },
         "bundle": {
             "dependsOn": ["^build"],
-            "outputs": ["bundle/**/*"]
+            "outputs": ["bundle/**/*"],
+            "env": ["ROLLUP_TERSER"]
         },
         "stage-ui": {
             "dependsOn": ["bundle"],

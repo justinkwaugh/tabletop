@@ -5,13 +5,15 @@ import {
     GameStorage,
     type Game,
     type GameState,
-    type HydratedGameState
+    type HydratedGameState,
+    type User
 } from '@tabletop/common'
 import { GameContext } from './gameContext.svelte.js'
-import type { AuthorizationService } from '$lib/services/authorizationService.js'
+import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBridge.svelte.js'
 import type { GameService } from '$lib/services/gameService.js'
 import { nanoid } from 'nanoid'
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition.js'
+import { fromStore } from 'svelte/store'
 
 export type ExplorationStartCallback<
     T extends GameState,
@@ -37,13 +39,16 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
     private sourceContext?: GameContext<T, U> = undefined
     explorationContext?: GameContext<T, U> = $state(undefined)
     private initialChecksum: number | undefined = undefined
+    private sessionUserStore: { current: User | undefined }
 
     constructor(
-        private authorizationService: AuthorizationService,
+        private authorizationBridge: AuthorizationBridge,
         private gameService: GameService,
         private runtime: GameUIRuntime<T, U>,
         private callbacks?: ExplorationCallbacks<T, U>
-    ) {}
+    ) {
+        this.sessionUserStore = fromStore(this.authorizationBridge.user)
+    }
 
     async startExploring(gameContext: GameContext<T, U>): Promise<void> {
         const explorationContext = await this.getNextExplorationContext(gameContext)
@@ -131,7 +136,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
     }
 
     private createExploration(originalContext: GameContext<T, U>): GameContext<T, U> | undefined {
-        const myUserId = this.authorizationService.getSessionUser()?.id
+        const myUserId = this.sessionUserStore.current?.id
         if (!myUserId) {
             return
         }

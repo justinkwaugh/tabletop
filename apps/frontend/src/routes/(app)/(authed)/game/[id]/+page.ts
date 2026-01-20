@@ -2,6 +2,7 @@ import { goto } from '$app/navigation'
 import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
 import { AuthorizationCategory } from '@tabletop/frontend-components'
 import { getAppContext } from '$lib/stores/appContext.svelte.js'
+import { BridgedContext } from '@tabletop/frontend-components'
 import { toast } from 'svelte-sonner'
 import type { PageLoad } from './$types.js'
 
@@ -44,10 +45,13 @@ export const load: PageLoad = async ({ params, url }) => {
         const runtime = await definition.runtime()
         const sessionClass = runtime.sessionClass
 
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService
+        })
         return {
             gameSession: new sessionClass({
                 gameService: appContext.gameService,
-                authorizationService: appContext.authorizationService,
+                bridgedContext: bridgedContext,
                 notificationService: appContext.notificationService,
                 chatService: appContext.chatService,
                 api: appContext.api,
