@@ -70,6 +70,7 @@ export class HydratedSacrifice extends HydratableAction<typeof Sacrifice> implem
         }
 
         state.cardsToDraw += CARDS_DRAWN_PER_RING[this.coords.row]
+        state.activeEffect = undefined
     }
 
     static canSacrifice(state: HydratedSolGameState): boolean {
