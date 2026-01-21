@@ -25,8 +25,8 @@
         "@fastify/static": "^9.0.0",
         "@google-cloud/firestore": "^7.8.0",
         "@now-ims/fastify-firebase": "^2.0.5",
-        "@react-email/components": "^0.3.1",
-        "@react-email/render": "^1.4.0",
+        "@react-email/components": "^1.0.6",
+        "@react-email/render": "^2.0.4",
         "typebox": "^1.0.79",
         "@tabletop/backend-services": "*",
         "@tabletop/common": "*",
@@ -43,7 +43,7 @@
         "firebase-admin": "^12.1.1",
         "google-auth-library": "^9.11.0",
         "nanoid": "^5.1.6",
-        "resend": "^3.4.0",
+        "resend": "^6.8.0",
         "typescript-retry-decorator": "^2.5.1"
     },
     "devDependencies": {
