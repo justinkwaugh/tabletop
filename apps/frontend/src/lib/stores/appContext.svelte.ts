@@ -1,9 +1,5 @@
 import { TabletopApi, type AppContext, VisibilityService } from '@tabletop/frontend-components'
-import {
-    PUBLIC_API_HOST,
-    PUBLIC_SSE_HOST,
-    PUBLIC_ENABLE_ABLY_REALTIME
-} from '$env/static/public'
+import { PUBLIC_API_HOST, PUBLIC_SSE_HOST, PUBLIC_ENABLE_ABLY_REALTIME } from '$env/static/public'
 import { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { NotificationService } from '$lib/services/notificationService.svelte'
 import { GameService } from '$lib/services/gameService.svelte'
@@ -36,6 +32,7 @@ const notificationService = new NotificationService(
 const chatService = new ChatService(authorizationService, notificationService, api)
 
 const appContext: AppContext = {
+    manifestService,
     libraryService,
     authorizationService,
     notificationService,

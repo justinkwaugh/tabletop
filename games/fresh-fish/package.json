@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/fresh-fish",
-    "version": "1.4.0",
+    "version": "2.1.0",
     "type": "module",
     "exports": {
         "import": "./esm/index.js",

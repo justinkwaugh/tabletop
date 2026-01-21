@@ -1,23 +1,31 @@
 {
   "frontend": {
-    "version": "2.2.0",
+    "version": "2.5.0",
     "priorVersions": [
-      "2.1.0",
-      "2.0.0",
-      "1.0.1"
+      "2.4.1",
+      "2.4.0",
+      "2.3.0",
+      "2.2.0",
+      "2.1.0"
     ]
   },
   "games": [
     {
       "gameId": "bridges",
       "packageId": "bridges-of-shangri-la",
-      "logicVersion": "1.3.0",
-      "uiVersion": "1.3.0",
+      "logicVersion": "2.0.0",
+      "uiVersion": "2.0.0",
       "priorLogicVersions": [
+        "2.1.0",
+        "2.0.0",
+        "1.3.0",
         "1.2.0",
         "1.1.2"
       ],
       "priorUiVersions": [
+        "2.1.0",
+        "2.0.0",
+        "1.3.0",
         "1.2.0",
         "1.1.2"
       ]
@@ -25,55 +33,70 @@
     {
       "gameId": "estates",
       "packageId": "estates",
-      "logicVersion": "1.1.0",
-      "uiVersion": "1.1.0",
+      "logicVersion": "1.2.0",
+      "uiVersion": "1.2.0",
       "priorLogicVersions": [
+        "2.0.0",
+        "1.2.0",
+        "1.1.0",
         "1.0.1"
       ],
       "priorUiVersions": [
+        "2.0.0",
+        "1.2.0",
+        "1.1.0",
         "1.0.1"
       ]
     },
     {
       "gameId": "freshfish",
       "packageId": "fresh-fish",
-      "logicVersion": "1.4.0",
-      "uiVersion": "2.4.0",
+      "logicVersion": "2.1.0",
+      "uiVersion": "3.1.0",
       "priorLogicVersions": [
-        "1.3.0",
-        "1.2.1",
-        "1.2.0",
-        "1.1.5"
-      ],
-      "priorUiVersions": [
-        "2.3.0",
-        "2.2.0",
+        "3.0.0",
         "2.1.0",
         "2.0.0",
-        "1.2.1"
+        "1.5.0",
+        "1.4.0"
+      ],
+      "priorUiVersions": [
+        "4.0.0",
+        "3.1.0",
+        "3.0.0",
+        "2.5.0",
+        "2.4.0"
       ]
     },
     {
       "gameId": "kaivai",
       "packageId": "kaivai",
-      "logicVersion": "1.1.0",
-      "uiVersion": "1.1.0",
+      "logicVersion": "2.0.0",
+      "uiVersion": "2.0.0",
       "priorLogicVersions": [
+        "1.3.0",
+        "1.2.0",
+        "1.1.0",
         "1.0.2"
       ],
       "priorUiVersions": [
+        "1.3.0",
+        "1.2.0",
+        "1.1.0",
         "1.0.2"
       ]
     },
     {
       "gameId": "sol",
       "packageId": "sol",
-      "logicVersion": "1.1.0",
-      "uiVersion": "1.1.0",
+      "logicVersion": "1.2.0",
+      "uiVersion": "1.2.0",
       "priorLogicVersions": [
+        "1.1.0",
         "1.0.1"
       ],
       "priorUiVersions": [
+        "1.1.0",
         "1.0.1"
       ]
     }

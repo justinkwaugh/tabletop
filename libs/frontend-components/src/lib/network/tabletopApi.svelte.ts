@@ -369,9 +369,14 @@ export class TabletopApi {
     /** Game Specific Endpoints */
 
     async createGame(game: Partial<Game>): Promise<Game> {
-        const version = this.versionForGame(game.typeId!)
+        const logicVersion = this.getGameLogicVersion(game.typeId!)
+        const uiVersion = this.getGameUiVersion(game.typeId!)
         const response = await this.wretch
-            .post({ game }, `/game/${game.typeId}/${version}/create`)
+            .headers({
+                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
+                'X-TABLETOP-GAME-UI-VERSION': uiVersion
+            })
+            .post({ game }, `/game/${game.typeId}/create`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -380,9 +385,14 @@ export class TabletopApi {
     }
 
     async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
-        const version = this.versionForGame(game.typeId!)
+        const logicVersion = this.getGameLogicVersion(game.typeId!)
+        const uiVersion = this.getGameUiVersion(game.typeId!)
         const response = await this.wretch
-            .post({ gameId: game.id, actionIndex, name }, `/game/${game.typeId}/${version}/fork`)
+            .headers({
+                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
+                'X-TABLETOP-GAME-UI-VERSION': uiVersion
+            })
+            .post({ gameId: game.id, actionIndex, name }, `/game/${game.typeId}/fork`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -391,9 +401,14 @@ export class TabletopApi {
     }
 
     async startGame(game: Game): Promise<Game> {
-        const version = this.versionForGame(game.typeId!)
+        const logicVersion = this.getGameLogicVersion(game.typeId!)
+        const uiVersion = this.getGameUiVersion(game.typeId!)
         const response = await this.wretch
-            .post({ gameId: game.id }, `/game/${game.typeId}/${version}/start`)
+            .headers({
+                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
+                'X-TABLETOP-GAME-UI-VERSION': uiVersion
+            })
+            .post({ gameId: game.id }, `/game/${game.typeId}/start`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -405,12 +420,14 @@ export class TabletopApi {
         game: Game,
         action: GameAction
     ): Promise<{ actions: GameAction[]; game: Game; missingActions?: GameAction[] }> {
-        const version = this.versionForGame(game.typeId!)
+        const logicVersion = this.getGameLogicVersion(game.typeId!)
+        const uiVersion = this.getGameUiVersion(game.typeId!)
         const response = await this.wretch
-            .post(
-                { gameId: game.id, action },
-                `/game/${game.typeId}/${version}/action/${action.type}`
-            )
+            .headers({
+                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
+                'X-TABLETOP-GAME-UI-VERSION': uiVersion
+            })
+            .post({ gameId: game.id, action }, `/game/${game.typeId}/action/${action.type}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<ApplyActionResponse>()
@@ -439,9 +456,14 @@ export class TabletopApi {
         redoneActions: GameAction[]
         checksum: number
     }> {
-        const version = this.versionForGame(game.typeId!)
+        const logicVersion = this.getGameLogicVersion(game.typeId!)
+        const uiVersion = this.getGameUiVersion(game.typeId!)
         const response = await this.wretch
-            .post({ gameId: game.id, actionId }, `/game/${game.typeId}/${version}/undo`)
+            .headers({
+                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
+                'X-TABLETOP-GAME-UI-VERSION': uiVersion
+            })
+            .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UndoActionResponse>()
@@ -598,12 +620,16 @@ export class TabletopApi {
         this.gameVersionProvider = provider
     }
 
-    private versionForGame(gameId: string): string {
+    private getGameLogicVersion(gameId: string): string {
         const version = this.gameVersionProvider?.getLogicVersion(gameId)
         assertExists(version, `No logic version found for game ID: ${gameId}`)
-        const majorPart = version.split('.')[0] ?? '0'
-        const majorVersion = Number.parseInt(majorPart, 10)
-        return Number.isFinite(majorVersion) ? `v${majorVersion}` : 'v0'
+        return version
+    }
+
+    private getGameUiVersion(gameId: string): string {
+        const version = this.gameVersionProvider?.getUiVersion(gameId)
+        assertExists(version, `No UI version found for game ID: ${gameId}`)
+        return version
     }
 
     private resolveGameIdFromUrl(url: string): string | null {

@@ -9,7 +9,7 @@ export type ManifestResponse = typeof SiteManifest & {
     }
 }
 
-type ManifestGame = (typeof SiteManifest)['games'][number]
+export type ManifestGame = (typeof SiteManifest)['games'][number]
 
 export class ManifestService implements GameVersionProvider {
     private manifest: ManifestResponse | null = null
@@ -26,6 +26,10 @@ export class ManifestService implements GameVersionProvider {
 
     getManifestSnapshot(): ManifestResponse | null {
         return this.manifest
+    }
+
+    getFrontendVersion(): string | undefined {
+        return this.manifest?.frontend.version
     }
 
     getLogicVersion(gameId: string): string | undefined {

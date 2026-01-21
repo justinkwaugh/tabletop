@@ -6,8 +6,10 @@ import type { VisibilityService } from '$lib/services/visibilityService.svelte'
 import type { ChatService } from '$lib/services/chatService.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 import { createContext } from 'svelte'
+import type { ManifestService } from '$lib/services/manifestService.js'
 
 export type AppContext = {
+    manifestService: ManifestService
     libraryService: LibraryService
     authorizationService: AuthorizationService
     notificationService: NotificationService

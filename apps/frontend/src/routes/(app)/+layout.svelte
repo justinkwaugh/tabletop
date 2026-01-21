@@ -33,7 +33,8 @@
         gameService,
         notificationService,
         visibilityService,
-        libraryService
+        libraryService,
+        manifestService
     } = getAppContext()
     let titlesById = $derived(libraryService.titlesById)
     let loading = $derived(libraryService.loading)
@@ -57,6 +58,24 @@
         }
 
         return game.seed
+    })
+
+    let gameLogicVersion = $derived.by(() => {
+        if (!gameService.currentGameSession) {
+            return undefined
+        }
+
+        const game = gameService.currentGameSession.primaryGame
+        return manifestService.getLogicVersion(game.typeId)
+    })
+
+    let gameUiVersion = $derived.by(() => {
+        if (!gameService.currentGameSession) {
+            return undefined
+        }
+
+        const game = gameService.currentGameSession.primaryGame
+        return manifestService.getUiVersion(game.typeId)
     })
 
     let currentDefinition = $derived.by(() => {
@@ -337,11 +356,29 @@
                             <DropdownItem class="w-full text-left" onclick={logout}
                                 >Sign out</DropdownItem
                             >
-                            {#if seed}
+                            {#if authorizationService.isAdmin}
                                 <DropdownDivider />
-                                <DropdownItem class="w-full text-left"
-                                    >{@render gameSeed()}</DropdownItem
+                                <DropdownItem
+                                    class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"
+                                    >FE: v{manifestService.getFrontendVersion()}</DropdownItem
                                 >
+                                {#if gameLogicVersion}
+                                    <DropdownItem
+                                        class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"
+                                        >Logic: v{gameLogicVersion ?? 'N/A'}</DropdownItem
+                                    >
+                                {/if}
+                                {#if gameUiVersion}
+                                    <DropdownItem
+                                        class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"
+                                        >UI: v{gameUiVersion ?? 'N/A'}</DropdownItem
+                                    >
+                                {/if}
+                                {#if seed}
+                                    <DropdownItem class="w-full text-left py-1"
+                                        >{@render gameSeed()}</DropdownItem
+                                    >
+                                {/if}
                             {/if}
                         </DropdownGroup>
                     </Dropdown>

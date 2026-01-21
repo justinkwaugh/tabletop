@@ -45,14 +45,17 @@ import {
 type Mode =
     | 'view'
     | 'bump-frontend'
+    | 'bump-game-target'
     | 'bump-logic'
     | 'bump-ui'
     | 'rollback'
+    | 'confirm-reset-mismatch'
+    | 'confirm-deploy-all'
     | 'confirm-overwrite'
     | 'confirm-post-bump'
     | 'confirm-deploy'
 
-type SelectionType = 'frontend' | 'backend' | 'game'
+type SelectionType = 'frontend' | 'backend' | 'game' | 'games'
 
 type Selection = {
     key: string
@@ -95,6 +98,30 @@ type PendingOverwrite = {
 type PendingPostBump = {
     targetLabel: string
     onConfirm: () => void
+}
+
+type PendingMismatchReset = {
+    details: string[]
+    onConfirm: () => void
+}
+
+type PendingDeployAll = {
+    gameCount: number
+    onConfirm: () => void
+}
+
+type MismatchFrontend = {
+    local: string
+    remote: string
+}
+
+type MismatchGame = {
+    gameId: string
+    packageId: string
+    localLogic: string
+    localUi: string
+    remoteLogic: string
+    remoteUi: string
 }
 
 type ActiveDeployContext = {
@@ -148,6 +175,9 @@ export default function App() {
     const [pendingDeploy, setPendingDeploy] = useState<PendingDeploy | null>(null)
     const [pendingOverwrite, setPendingOverwrite] = useState<PendingOverwrite | null>(null)
     const [pendingPostBump, setPendingPostBump] = useState<PendingPostBump | null>(null)
+    const [pendingMismatchReset, setPendingMismatchReset] =
+        useState<PendingMismatchReset | null>(null)
+    const [pendingDeployAll, setPendingDeployAll] = useState<PendingDeployAll | null>(null)
     const [activeDeployContext, setActiveDeployContext] = useState<ActiveDeployContext | null>(null)
     const [checkingBackend, setCheckingBackend] = useState(false)
     const [checkingGcsTarget, setCheckingGcsTarget] = useState<string | null>(null)
@@ -168,6 +198,7 @@ export default function App() {
         () => [
             { key: 'frontend', type: 'frontend', label: 'Frontend' },
             { key: 'backend', type: 'backend', label: 'Backend' },
+            { key: 'games:all', type: 'games', label: 'All games' },
             ...games.map((game) => ({
                 key: `game:${game.packageId}`,
                 type: 'game' as const,
@@ -190,6 +221,43 @@ export default function App() {
         selected?.type === 'game' && selected.packageId
             ? gameByPackageId.get(selected.packageId)
             : undefined
+    const selectedAllGames = selected?.type === 'games'
+    const mismatchState = useMemo(() => {
+        if (!manifest || !backendManifest) {
+            return { frontend: null, games: [] as MismatchGame[] }
+        }
+        const frontendRemote = backendManifest.frontend?.version
+        const frontendMismatch =
+            frontendRemote && manifest.frontend.version !== frontendRemote
+                ? { local: manifest.frontend.version, remote: frontendRemote }
+                : null
+        const backendGames = new Map(
+            (backendManifest.games ?? []).map((game) => [game.packageId, game])
+        )
+        const games = (manifest.games ?? [])
+            .map((entry) => {
+                const remote = backendGames.get(entry.packageId)
+                if (!remote) return null
+                const mismatch =
+                    remote.logicVersion !== entry.logicVersion ||
+                    remote.uiVersion !== entry.uiVersion
+                if (!mismatch) return null
+                return {
+                    gameId: entry.gameId,
+                    packageId: entry.packageId,
+                    localLogic: entry.logicVersion,
+                    localUi: entry.uiVersion,
+                    remoteLogic: remote.logicVersion,
+                    remoteUi: remote.uiVersion
+                }
+            })
+            .filter(Boolean) as MismatchGame[]
+        return { frontend: frontendMismatch, games }
+    }, [backendManifest, manifest])
+    const mismatchedGamePackages = useMemo(
+        () => new Set(mismatchState.games.map((game) => game.packageId)),
+        [mismatchState.games]
+    )
     const selectedServing = selectedGame
         ? backendManifest?.games?.find((game) => game.packageId === selectedGame.packageId)
         : undefined
@@ -219,17 +287,30 @@ export default function App() {
     const canDeploy =
         selected?.type === 'backend' ||
         (selected?.type === 'frontend' && !!manifest) ||
-        (selected?.type === 'game' && !!manifest && !!selectedGame)
+        (selected?.type === 'game' && !!manifest && !!selectedGame) ||
+        (selected?.type === 'games' && !!manifest && games.length > 0)
+    const canInvalidateManifest = Boolean(
+        deployConfig.backendAdmin?.url ?? deployConfig.backendManifestUrl
+    )
+    const canBumpSelection = canBumpFrontend || canBumpGame
     const outputActive = isBusy || outputHold
     const confirmDeployActive = mode === 'confirm-deploy' && pendingDeploy
+    const confirmDeployAllActive = mode === 'confirm-deploy-all' && pendingDeployAll
     const taskActive = taskState !== null && !confirmDeployActive
-    const modalActive = outputActive || confirmDeployActive || taskState !== null
+    const modalActive =
+        outputActive || confirmDeployActive || confirmDeployAllActive || taskState !== null
     const commandHint = useMemo(() => {
         if (mode === 'confirm-overwrite' && pendingOverwrite) {
             return 'y/Enter overwrite  n/Esc cancel'
         }
         if (mode === 'confirm-post-bump' && pendingPostBump) {
             return 'y/Enter deploy  n/Esc cancel'
+        }
+        if (mode === 'confirm-reset-mismatch' && pendingMismatchReset) {
+            return 'y/Enter reset  n/Esc cancel'
+        }
+        if (mode === 'confirm-deploy-all' && pendingDeployAll) {
+            return 'y/Enter deploy all  n/Esc cancel'
         }
         if (mode === 'confirm-deploy' && pendingDeploy) {
             const commands =
@@ -246,6 +327,9 @@ export default function App() {
             commands.push('q quit')
             return commands.join('  ')
         }
+        if (mode === 'bump-game-target') {
+            return 'l logic  u ui  Esc cancel'
+        }
         if (mode === 'bump-frontend' || mode === 'bump-logic' || mode === 'bump-ui') {
             return '1/major  2/minor  3/patch  Esc cancel'
         }
@@ -256,14 +340,14 @@ export default function App() {
         if (!canDeploy) {
             commands.pop()
         }
-        if (canBumpFrontend) {
-            commands.push('f bump-frontend')
+        if (canInvalidateManifest) {
+            commands.push('i invalidate')
+        }
+        if (canBumpSelection) {
+            commands.push('v bump-version')
         }
         if (canRollback) {
             commands.push('k rollback')
-        }
-        if (canBumpGame) {
-            commands.push('l bump-logic', 'u bump-ui')
         }
         if (canUseServing) {
             commands.push('s use-serving')
@@ -274,12 +358,16 @@ export default function App() {
         canBumpFrontend,
         canBumpGame,
         canDeploy,
+        canInvalidateManifest,
+        canBumpSelection,
         canRollback,
         canUseServing,
         mode,
         outputActive,
         outputHold,
+        pendingDeployAll,
         pendingDeploy,
+        pendingMismatchReset,
         pendingOverwrite,
         taskActive
     ])
@@ -323,9 +411,13 @@ export default function App() {
     const activeDeployLabel =
         activeDeployContext?.type === 'game'
             ? activeDeployContext.gameId ?? activeDeployContext.label
-            : displayRunningLabel
+            : activeDeployContext?.type === 'games'
+              ? activeDeployContext.label
+              : displayRunningLabel
     const activeDeployVersion =
-        activeDeployContext?.type === 'game' ? activeDeployContext.version : undefined
+        activeDeployContext?.type === 'game' || activeDeployContext?.type === 'games'
+            ? activeDeployContext.version
+            : undefined
     const outputStart = Math.max(0, outputLines.length - outputContentLines - clampedOutputScroll)
     const visibleOutputLines = outputLines.slice(outputStart, outputStart + outputContentLines)
     const paddedOutputLines = visibleOutputLines.concat(
@@ -682,6 +774,93 @@ export default function App() {
         })()
     }
 
+    const queueAllGamesDeploy = (currentManifest: SiteManifest) => {
+        void (async () => {
+            if (!ensureNoRunningCommand('Deploy')) {
+                return
+            }
+            const loadedManifest = await readManifest(manifestPath)
+            const { manifest: syncedManifest, changed } = await syncManifestFromPackages(
+                repoRoot,
+                loadedManifest
+            )
+            if (changed) {
+                await writeManifest(manifestPath, syncedManifest)
+            }
+            setManifest(syncedManifest)
+            const gamePackages = syncedManifest.games.map((game) => game.packageId)
+            if (gamePackages.length === 0) {
+                setStatus(formatStatus('No games available to deploy', 'error'))
+                return
+            }
+            setActiveDeployContext({
+                type: 'games',
+                label: 'All games',
+                version: `logic + ui (${gamePackages.length} games)`
+            })
+            startTasks('All games deploy', [
+                'Build logic (all)',
+                'Bundle logic (all)',
+                'Build UI (all)',
+                'Bundle UI (all)',
+                'Deploy logic + UI (all)',
+                'Deploy manifest',
+                'Invalidate manifest cache'
+            ])
+            const buildLogicSpecs = gamePackages.map((packageId) =>
+                buildGameLogicPackageCommand(repoRoot, packageId)
+            )
+            if (!(await runTaskGroup(0, buildLogicSpecs))) return
+            const bundleLogicSpecs = gamePackages.map((packageId) =>
+                buildGameLogicCommand(repoRoot, packageId)
+            )
+            if (!(await runTaskGroup(1, bundleLogicSpecs))) return
+            const buildUiSpecs = gamePackages.map((packageId) =>
+                buildGameUiPackageCommand(repoRoot, packageId)
+            )
+            if (!(await runTaskGroup(2, buildUiSpecs))) return
+            const bundleUiSpecs = gamePackages.map((packageId) =>
+                buildGameUiCommand(repoRoot, packageId)
+            )
+            if (!(await runTaskGroup(3, bundleUiSpecs))) return
+
+            const deployLogicSpecs = gamePackages.map((packageId) =>
+                deployGameLogicCommand(repoRoot, syncedManifest, packageId, deployConfig)
+            )
+            const deployUiSpecs = gamePackages.map((packageId) =>
+                deployGameUiCommand(repoRoot, syncedManifest, packageId, deployConfig)
+            )
+            const deploySpecs = [...deployLogicSpecs, ...deployUiSpecs]
+            const deployManifestSpec = deployManifestCommand(manifestPath, deployConfig)
+            const manifestUpload = describeUpload(deployManifestSpec)
+            const invalidateStep: DeployStep = {
+                action: invalidateManifestCache,
+                label: 'invalidate-manifest',
+                logPath: manifestInvalidateLogPath,
+                taskIndex: 6
+            }
+            const uploads = [
+                `games: ${gamePackages.length}`,
+                manifestUpload ? `manifest: ${manifestUpload}` : undefined
+            ].filter(Boolean) as string[]
+            setPendingDeploy({
+                spec: deploySpecs[0],
+                steps: [
+                    { specs: deploySpecs, taskIndex: 4 },
+                    { spec: deployManifestSpec, taskIndex: 5 },
+                    invalidateStep
+                ],
+                targetLabel: 'All games',
+                version: `logic + ui (${gamePackages.length} games)`,
+                remoteVersion: backendManifest ? 'varies' : 'unknown',
+                uploads: uploads.length > 0 ? uploads : undefined,
+                type: 'games'
+            })
+            setMode('confirm-deploy')
+            setStatus(formatStatus('Confirm all games deploy'))
+        })()
+    }
+
     const refresh = async (silent = false) => {
         try {
             if (!silent) {
@@ -892,6 +1071,163 @@ export default function App() {
             setMode('view')
         }
         await refresh(true)
+    }
+
+    const resetMismatchedVersions = async (): Promise<boolean> => {
+        if (!backendManifest) {
+            setStatus(formatStatus('Serving info not loaded', 'error'))
+            return false
+        }
+        if (!manifest) {
+            setStatus(formatStatus('Manifest not loaded', 'error'))
+            return false
+        }
+        try {
+            if (mismatchState.frontend) {
+                await writePackageVersion(
+                    getFrontendPackagePath(repoRoot),
+                    mismatchState.frontend.remote
+                )
+            }
+            for (const game of mismatchState.games) {
+                const paths = getGamePackagePaths(repoRoot, game.packageId)
+                await writePackageVersion(paths.logic, game.remoteLogic)
+                await writePackageVersion(paths.ui, game.remoteUi)
+            }
+            const { manifest: syncedManifest, changed } = await syncManifestFromPackages(
+                repoRoot,
+                manifest
+            )
+            if (changed) {
+                await writeManifest(manifestPath, syncedManifest)
+            }
+            setManifest(syncedManifest)
+            await refresh(true)
+            return true
+        } catch (error) {
+            setStatus(
+                formatStatus(
+                    error instanceof Error ? error.message : 'Failed to reset mismatches',
+                    'error'
+                )
+            )
+            return false
+        }
+    }
+
+    const handleDeploy = async () => {
+        if (!selected) return
+
+        if (selected.type === 'backend') {
+            const image = resolveBackendImage()
+            if (!image) {
+                setStatus(
+                    formatStatus(
+                        'Backend deploy requires backend.image (or --image in deployCommand)',
+                        'error'
+                    )
+                )
+                return
+            }
+            void (async () => {
+                if (!ensureNoRunningCommand('Deploy')) {
+                    return
+                }
+                startTasks('Backend deploy', [
+                    'Build backend (force)',
+                    'Build image',
+                    'Tag image',
+                    'Push image',
+                    'Deploy backend'
+                ])
+                const backendBuildSpec = buildBackendCommand(repoRoot, { force: true })
+                if (!(await runTask(0, backendBuildSpec))) return
+                const buildSpec = buildBackendImageCommand(repoRoot)
+                if (!(await runTask(1, buildSpec))) return
+                const tagSpec = tagBackendImageCommand(repoRoot, image)
+                if (!(await runTask(2, tagSpec))) return
+                const pushSpec = pushBackendImageCommand(repoRoot, image)
+                if (!(await runTask(3, pushSpec))) return
+                const spec = deployBackendCommand(repoRoot, deployConfig, {
+                    allowTraffic: false
+                })
+                const specWithTraffic = deployBackendCommand(repoRoot, deployConfig, {
+                    allowTraffic: true
+                })
+                setPendingDeploy({
+                    spec,
+                    specWithTraffic,
+                    targetLabel: 'Backend',
+                    taskIndex: 4,
+                    version: image,
+                    remoteVersion: backendManifest?.backend?.revision ?? 'unknown',
+                    uploads: [`image: ${image}`],
+                    type: 'backend'
+                })
+                setMode('confirm-deploy')
+                setStatus(formatStatus('Confirm backend deploy'))
+            })()
+            return
+        }
+
+        const currentManifest = requireManifest('Deploy')
+        if (!currentManifest) return
+
+        if (selected.type === 'frontend') {
+            const localVersion = currentManifest.frontend.version
+            const remoteVersion = backendManifest?.frontend?.version
+            if (remoteVersion && remoteVersion === localVersion) {
+                setPendingOverwrite({
+                    targetLabel: 'Frontend',
+                    version: localVersion,
+                    remoteVersion,
+                    onConfirm: () => queueFrontendDeploy(currentManifest)
+                })
+                setMode('confirm-overwrite')
+                setStatus(formatStatus('Confirm overwrite'))
+                return
+            }
+            queueFrontendDeploy(currentManifest)
+            return
+        }
+
+        if (selected.type === 'game') {
+            const packageId = selected.packageId
+            if (!packageId) return
+            const localEntry = currentManifest.games.find(
+                (game) => game.packageId === packageId
+            )
+            if (!localEntry) {
+                setStatus(formatStatus(`Missing manifest entry for ${packageId}`, 'error'))
+                return
+            }
+            const localVersion = localEntry.uiVersion
+            const remoteVersion = backendManifest?.games?.find(
+                (game) => game.packageId === packageId
+            )?.uiVersion
+            if (remoteVersion && remoteVersion === localVersion) {
+                setPendingOverwrite({
+                    targetLabel: `Game UI (${localEntry.gameId})`,
+                    version: localVersion,
+                    remoteVersion,
+                    onConfirm: () => queueGameDeploy(packageId, currentManifest)
+                })
+                setMode('confirm-overwrite')
+                setStatus(formatStatus('Confirm overwrite'))
+                return
+            }
+            queueGameDeploy(packageId, currentManifest)
+            return
+        }
+
+        if (selected.type === 'games') {
+            setPendingDeployAll({
+                gameCount: currentManifest.games.length,
+                onConfirm: () => queueAllGamesDeploy(currentManifest)
+            })
+            setMode('confirm-deploy-all')
+            setStatus(formatStatus('Confirm deploy all games'))
+        }
     }
 
     const handleRevertToServing = async () => {
@@ -1184,6 +1520,58 @@ export default function App() {
             return
         }
 
+        if (mode === 'confirm-reset-mismatch' && pendingMismatchReset) {
+            if (key.escape) {
+                setMode('view')
+                setPendingMismatchReset(null)
+                setStatus(formatStatus('Deploy cancelled'))
+                return
+            }
+
+            if (input === 'y' || input === 'Y' || key.return) {
+                const action = pendingMismatchReset.onConfirm
+                setMode('view')
+                setPendingMismatchReset(null)
+                action()
+                return
+            }
+
+            if (input === 'n' || input === 'N') {
+                setMode('view')
+                setPendingMismatchReset(null)
+                setStatus(formatStatus('Deploy cancelled'))
+                return
+            }
+
+            return
+        }
+
+        if (mode === 'confirm-deploy-all' && pendingDeployAll) {
+            if (key.escape) {
+                setMode('view')
+                setPendingDeployAll(null)
+                setStatus(formatStatus('Deploy cancelled'))
+                return
+            }
+
+            if (input === 'y' || input === 'Y' || key.return) {
+                const action = pendingDeployAll.onConfirm
+                setMode('view')
+                setPendingDeployAll(null)
+                action()
+                return
+            }
+
+            if (input === 'n' || input === 'N') {
+                setMode('view')
+                setPendingDeployAll(null)
+                setStatus(formatStatus('Deploy cancelled'))
+                return
+            }
+
+            return
+        }
+
         if (mode === 'confirm-deploy' && pendingDeploy) {
             if (key.escape) {
                 setMode('view')
@@ -1236,6 +1624,10 @@ export default function App() {
                         await refreshFrontendDeployed()
                     } else if (target.type === 'game' && target.packageId) {
                         await refreshGameDeployed(target.packageId)
+                    } else if (target.type === 'games') {
+                        for (const entry of manifest?.games ?? []) {
+                            await refreshGameDeployed(entry.packageId)
+                        }
                     }
                 })()
                 return
@@ -1250,6 +1642,22 @@ export default function App() {
                 return
             }
 
+            return
+        }
+
+        if (mode === 'bump-game-target') {
+            if (key.escape) {
+                setMode('view')
+                return
+            }
+            if (input === 'l' || input === 'L') {
+                setMode('bump-logic')
+                return
+            }
+            if (input === 'u' || input === 'U') {
+                setMode('bump-ui')
+                return
+            }
             return
         }
 
@@ -1354,25 +1762,31 @@ export default function App() {
             return
         }
 
+        if (input === 'i') {
+            if (!canInvalidateManifest) return
+            if (!ensureNoRunningCommand('Invalidate manifest cache')) return
+            void runAction(
+                invalidateManifestCache,
+                'Invalidate manifest cache',
+                manifestInvalidateLogPath
+            )
+            return
+        }
+
         if (!selected) return
 
-        if (input === 'f') {
-            if (!canBumpFrontend) return
-            const currentManifest = requireManifest('Bump frontend version')
-            if (!currentManifest) return
-            setMode('bump-frontend')
-            return
-        }
-
-        if (input === 'l') {
-            if (!canBumpGame) return
-            setMode('bump-logic')
-            return
-        }
-
-        if (input === 'u') {
-            if (!canBumpGame) return
-            setMode('bump-ui')
+        if (input === 'v') {
+            if (selected?.type === 'frontend') {
+                if (!canBumpFrontend) return
+                const currentManifest = requireManifest('Bump frontend version')
+                if (!currentManifest) return
+                setMode('bump-frontend')
+                return
+            }
+            if (selected?.type === 'game') {
+                if (!canBumpGame) return
+                setMode('bump-game-target')
+            }
             return
         }
 
@@ -1392,105 +1806,50 @@ export default function App() {
         if (input === 'd') {
             if (!canDeploy) return
             if (!ensureNoRunningCommand('Deploy')) return
-            if (selected.type === 'backend') {
-                const image = resolveBackendImage()
-                if (!image) {
-                    setStatus(
-                        formatStatus(
-                            'Backend deploy requires backend.image (or --image in deployCommand)',
-                            'error'
-                        )
+            const mismatchesExist =
+                !!mismatchState.frontend || mismatchState.games.length > 0
+            const selectedIsMismatchedGame =
+                selected.type === 'game' &&
+                selected.packageId &&
+                mismatchedGamePackages.has(selected.packageId)
+            const allowAllGames =
+                selected.type === 'games' &&
+                !mismatchState.frontend &&
+                mismatchState.games.length > 1
+            const mismatchBlocks =
+                (mismatchState.frontend && selected.type !== 'frontend') ||
+                (!mismatchState.frontend &&
+                    mismatchState.games.length > 0 &&
+                    !selectedIsMismatchedGame &&
+                    !allowAllGames)
+            if (mismatchesExist && mismatchBlocks) {
+                const details: string[] = []
+                if (mismatchState.frontend) {
+                    details.push(
+                        `frontend: local ${mismatchState.frontend.local} / serving ${mismatchState.frontend.remote}`
                     )
-                    return
                 }
-                void (async () => {
-                    if (!ensureNoRunningCommand('Deploy')) {
-                        return
+                for (const game of mismatchState.games) {
+                    details.push(
+                        `${game.gameId}: local ${game.localLogic}/${game.localUi} / serving ${game.remoteLogic}/${game.remoteUi}`
+                    )
+                }
+                setPendingMismatchReset({
+                    details,
+                    onConfirm: () => {
+                        void (async () => {
+                            const ok = await resetMismatchedVersions()
+                            if (!ok) return
+                            if (!ensureNoRunningCommand('Deploy')) return
+                            void handleDeploy()
+                        })()
                     }
-                    startTasks('Backend deploy', [
-                        'Build backend (force)',
-                        'Build image',
-                        'Tag image',
-                        'Push image',
-                        'Deploy backend'
-                    ])
-                    const backendBuildSpec = buildBackendCommand(repoRoot, { force: true })
-                    if (!(await runTask(0, backendBuildSpec))) return
-                    const buildSpec = buildBackendImageCommand(repoRoot)
-                    if (!(await runTask(1, buildSpec))) return
-                    const tagSpec = tagBackendImageCommand(repoRoot, image)
-                    if (!(await runTask(2, tagSpec))) return
-                    const pushSpec = pushBackendImageCommand(repoRoot, image)
-                    if (!(await runTask(3, pushSpec))) return
-                    const spec = deployBackendCommand(repoRoot, deployConfig, {
-                        allowTraffic: false
-                    })
-                    const specWithTraffic = deployBackendCommand(repoRoot, deployConfig, {
-                        allowTraffic: true
-                    })
-                    setPendingDeploy({
-                        spec,
-                        specWithTraffic,
-                        targetLabel: 'Backend',
-                        taskIndex: 4,
-                        version: image,
-                        remoteVersion: backendManifest?.backend?.revision ?? 'unknown',
-                        uploads: [`image: ${image}`],
-                        type: 'backend'
-                    })
-                    setMode('confirm-deploy')
-                    setStatus(formatStatus('Confirm backend deploy'))
-                })()
+                })
+                setMode('confirm-reset-mismatch')
+                setStatus(formatStatus('Resolve mismatched versions'))
                 return
             }
-
-            const currentManifest = requireManifest('Deploy')
-            if (!currentManifest) return
-
-            if (selected.type === 'frontend') {
-                const localVersion = currentManifest.frontend.version
-                const remoteVersion = backendManifest?.frontend?.version
-                if (remoteVersion && remoteVersion === localVersion) {
-                    setPendingOverwrite({
-                        targetLabel: 'Frontend',
-                        version: localVersion,
-                        remoteVersion,
-                        onConfirm: () => queueFrontendDeploy(currentManifest)
-                    })
-                    setMode('confirm-overwrite')
-                    setStatus(formatStatus('Confirm overwrite'))
-                    return
-                }
-                queueFrontendDeploy(currentManifest)
-                return
-            }
-            if (selected.type === 'game') {
-                const packageId = selected.packageId
-                if (!packageId) return
-                const localEntry = currentManifest.games.find(
-                    (game) => game.packageId === packageId
-                )
-                if (!localEntry) {
-                    setStatus(formatStatus(`Missing manifest entry for ${packageId}`, 'error'))
-                    return
-                }
-                const localVersion = localEntry.uiVersion
-                const remoteVersion = backendManifest?.games?.find(
-                    (game) => game.packageId === packageId
-                )?.uiVersion
-                if (remoteVersion && remoteVersion === localVersion) {
-                    setPendingOverwrite({
-                        targetLabel: `Game UI (${localEntry.gameId})`,
-                        version: localVersion,
-                        remoteVersion,
-                        onConfirm: () => queueGameDeploy(packageId, currentManifest)
-                    })
-                    setMode('confirm-overwrite')
-                    setStatus(formatStatus('Confirm overwrite'))
-                    return
-                }
-                queueGameDeploy(packageId, currentManifest)
-            }
+            void handleDeploy()
             return
         }
 
@@ -1543,31 +1902,34 @@ export default function App() {
                     {selections.slice(2).map((item, index) => {
                         const selectionIndex = index + 2
                         const packageId = item.packageId ?? ''
-                        const localGame = manifest?.games.find(
-                            (game) => game.packageId === packageId
-                        )
-                        const servedGame = backendManifest?.games?.find(
-                            (game) => game.packageId === packageId
-                        )
+                        const isAllGames = item.type === 'games'
+                        const localGame = isAllGames
+                            ? null
+                            : manifest?.games.find((game) => game.packageId === packageId)
+                        const servedGame = isAllGames
+                            ? null
+                            : backendManifest?.games?.find((game) => game.packageId === packageId)
                         const serveMismatch =
                             servedGame && localGame
                                 ? servedGame.logicVersion !== localGame.logicVersion ||
                                   servedGame.uiVersion !== localGame.uiVersion
                                 : false
                         const deployedKnown =
+                            !isAllGames &&
                             gcsStatus.games[packageId] !== null &&
                             gcsStatus.games[packageId] !== undefined
-                        const deployedMissing =
-                            deployedKnown && gcsStatus.games[packageId] === false
-                        const warn = serveMismatch || deployedMissing
+                        const deployedMissing = deployedKnown && gcsStatus.games[packageId] === false
+                        const warn = !isAllGames && (serveMismatch || deployedMissing)
                         const itemColor =
                             selectionIndex === selectedIndex ? 'cyan' : warn ? 'red' : undefined
-                        const indicator = warn
-                            ? '✗'
-                            : formatIndicator(
-                                  gcsStatus.games[packageId],
-                                  checkingGcsTarget === `game:${packageId}`
-                              )
+                        const indicator = isAllGames
+                            ? ''
+                            : warn
+                              ? '✗'
+                              : formatIndicator(
+                                    gcsStatus.games[packageId],
+                                    checkingGcsTarget === `game:${packageId}`
+                                )
                         return (
                             <Text
                                 key={`game-${item.key}`}
@@ -1590,11 +1952,31 @@ export default function App() {
                             </Text>
                             <Text color="yellow">Overwrite existing version?</Text>
                         </Box>
+                    ) : mode === 'confirm-reset-mismatch' && pendingMismatchReset ? (
+                        <Box flexDirection="column" borderStyle="round" paddingX={1} paddingY={1}>
+                            <Text color="magenta">Resolve mismatches</Text>
+                            {pendingMismatchReset.details.map((detail, index) => (
+                                <Text key={`mismatch-${index}`} color="gray">
+                                    {detail}
+                                </Text>
+                            ))}
+                            <Text color="yellow">Reset to serving versions?</Text>
+                        </Box>
                     ) : mode === 'confirm-post-bump' && pendingPostBump ? (
                         <Box flexDirection="column" borderStyle="round" paddingX={1} paddingY={1}>
                             <Text color="magenta">Deploy now?</Text>
                             <Text color="gray">target: {pendingPostBump.targetLabel}</Text>
                             <Text color="yellow">Start deploy workflow for this target?</Text>
+                        </Box>
+                    ) : mode === 'confirm-deploy-all' && pendingDeployAll ? (
+                        <Box flexDirection="column" borderStyle="round" paddingX={1} paddingY={1}>
+                            <Text color="magenta">Deploy all games?</Text>
+                            <Text color="gray">
+                                target: all games ({pendingDeployAll.gameCount})
+                            </Text>
+                            <Text color="yellow">
+                                Build/bundle and deploy every game package?
+                            </Text>
                         </Box>
                     ) : (
                         <>
@@ -1640,6 +2022,18 @@ export default function App() {
                                         <Text color="gray">error: {backendError}</Text>
                                     ) : null}
                                 </>
+                            ) : selectedAllGames ? (
+                                <>
+                                    <Text>local: {games.length} games</Text>
+                                    <Text color="gray">
+                                        {checkingBackend
+                                            ? 'serving: checking...'
+                                            : backendManifest
+                                              ? `serving: ${backendManifest.games?.length ?? 0} games`
+                                              : 'serving: unknown'}
+                                    </Text>
+                                    <Text color="gray">deployed: n/a</Text>
+                                </>
                             ) : selectedGame ? (
                                 <>
                                     <Text>
@@ -1680,8 +2074,12 @@ export default function App() {
                     </Text>
                 ) : mode === 'confirm-overwrite' ? (
                     <Text color="yellow">Confirm overwrite in the right panel</Text>
+                ) : mode === 'confirm-reset-mismatch' ? (
+                    <Text color="yellow">Resolve mismatches in the right panel</Text>
                 ) : mode === 'confirm-post-bump' ? (
                     <Text color="yellow">Confirm deploy in the right panel</Text>
+                ) : mode === 'confirm-deploy-all' ? (
+                    <Text color="yellow">Confirm all-game deploy in the modal</Text>
                 ) : mode === 'confirm-deploy' ? (
                     <Text color="yellow">Confirm deploy details in the modal</Text>
                 ) : (
@@ -1689,6 +2087,8 @@ export default function App() {
                         <Text color="yellow">
                             {mode === 'bump-frontend'
                                 ? 'Bump frontend version: 1=major 2=minor 3=patch'
+                                : mode === 'bump-game-target'
+                                  ? `Select game version to bump (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): l=logic u=ui`
                                 : mode === 'bump-logic'
                                   ? `Bump logic version (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): 1=major 2=minor 3=patch`
                                   : mode === 'bump-ui'
@@ -1719,7 +2119,26 @@ export default function App() {
                         flexDirection="column"
                         overflow="hidden"
                     >
-                        {confirmDeployActive && pendingDeploy ? (
+                        {confirmDeployAllActive && pendingDeployAll ? (
+                            <>
+                                <Text color="magenta" wrap="truncate">
+                                    Confirm deploy all games
+                                </Text>
+                                <Box
+                                    flexDirection="column"
+                                    height={confirmContentLines}
+                                    overflow="hidden"
+                                >
+                                    <Text color="gray">
+                                        target: all games ({pendingDeployAll.gameCount})
+                                    </Text>
+                                    <Text color="gray">
+                                        build/bundle: logic + ui for every game
+                                    </Text>
+                                    <Text color="yellow">y/Enter = deploy, n/Esc cancel</Text>
+                                </Box>
+                            </>
+                        ) : confirmDeployActive && pendingDeploy ? (
                             <>
                                 <Text color="magenta" wrap="truncate">
                                     Confirm deploy
