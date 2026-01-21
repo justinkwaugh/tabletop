@@ -16,11 +16,11 @@
         "@fastify/auth": "^5.0.4",
         "@fastify/autoload": "^6.3.1",
         "@fastify/cookie": "^11.0.2",
-        "@fastify/cors": "^11.1.0",
+        "@fastify/cors": "^11.2.0",
         "@fastify/formbody": "^8.0.2",
         "@fastify/rate-limit": "^10.3.0",
         "@fastify/restartable": "^3.0.2",
-        "@fastify/secure-session": "^8.2.0",
+        "@fastify/secure-session": "^8.3.0",
         "@fastify/sensible": "^6.0.4",
         "@fastify/static": "^8.3.0",
         "@google-cloud/firestore": "^7.8.0",
@@ -33,9 +33,9 @@
         "@tabletop/email": "*",
         "@tabletop/games-config": "*",
         "bcrypt": "^6.0.0",
-        "discord-api-types": "^0.37.93",
+        "discord-api-types": "^0.38.37",
         "discord-interactions": "^4.0.0",
-        "fastify": "^5.6.2",
+        "fastify": "^5.7.1",
         "fastify-plugin": "^4.5.1",
         "fastify-print-routes": "^4.1.0",
         "fastify-raw-body": "^5.0.0",
@@ -44,7 +44,7 @@
         "google-auth-library": "^9.11.0",
         "nanoid": "^5.1.6",
         "resend": "^3.4.0",
-        "typescript-retry-decorator": "^2.4.2"
+        "typescript-retry-decorator": "^2.5.1"
     },
     "devDependencies": {
         "@tabletop/vitest-config": "*",
@@ -54,7 +54,7 @@
         "@typescript/native-preview": "*",
         "nodemon": "^3.1.3",
         "rimraf": "^6.1.0",
-        "tsx": "^4.15.5",
+        "tsx": "^4.21.0",
         "typescript": "5.9.3"
     }
 }

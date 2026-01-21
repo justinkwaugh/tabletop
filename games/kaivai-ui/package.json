@@ -40,7 +40,7 @@
         "@tabletop/common": "*",
         "@tabletop/frontend-components": "*",
         "@tabletop/kaivai": "*",
-        "gsap": "^3.12.5",
+        "gsap": "^3.14.2",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^5.1.6"
     },
@@ -59,15 +59,15 @@
         "@tabletop/rollup-config": "*",
         "@tabletop/vitest-config": "*",
         "@tailwindcss/postcss": "^4.1.18",
-        "@typescript-eslint/eslint-plugin": "^8.46.4",
-        "@typescript-eslint/parser": "^8.46.4",
+        "@typescript-eslint/eslint-plugin": "^8.53.1",
+        "@typescript-eslint/parser": "^8.53.1",
         "autoprefixer": "^10.4.23",
         "eslint": "^9.39.2",
         "flowbite": "^3.1.2",
-        "flowbite-svelte": "^1.20.1",
-        "flowbite-svelte-icons": "^3.0.0",
+        "flowbite-svelte": "^1.31.0",
+        "flowbite-svelte-icons": "^3.1.0",
         "postcss": "^8.4.38",
-        "prettier": "^3.3.3",
+        "prettier": "^3.8.0",
         "prettier-plugin-svelte": "^3.4.1",
         "rollup": "4.55.2",
         "rollup-plugin-brotli": "3.1.0",
@@ -78,6 +78,6 @@
         "tailwindcss": "^4.1.18",
         "tslib": "^2.8.1",
         "typescript": "5.9.3",
-        "vite": "^7.1.12"
+        "vite": "^7.3.1"
     }
 }
