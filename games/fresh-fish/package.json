@@ -27,7 +27,7 @@
         "@tabletop/rollup-config": "*",
         "@tabletop/vitest-config": "*",
         "@typescript/native-preview": "*",
-        "@types/uuid": "^9.0.8",
+        "@types/uuid": "^10.0.0",
         "rimraf": "^6.1.0",
         "rollup": "4.55.2",
         "typescript": "5.9.3"
