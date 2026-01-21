@@ -1,6 +1,6 @@
 # Tabletop Deploy
 
-Ink-based TUI and CLI for managing `site-manifest.json`, builds, and deploys.
+Ink-based TUI and CLI for managing `site-manifest.json`, version bumps, builds, and deploys.
 
 ## Install
 
@@ -30,6 +30,20 @@ npm run deploy:tui
 ```
 Note: the root script runs the compiled file; run `npm run build --workspace @tabletop/deploy` first if needed.
 
+## TUI capabilities
+
+- Target selection: Frontend, Backend, All games, or a specific game.
+- Version bump: `v` to bump frontend or game logic/UI (major/minor/patch).
+- Deploy: `d` runs build/bundle + deploy with confirmation.
+- All games deploy builds/bundles logic + UI for all games, then deploys both, then deploys the manifest and invalidates cache.
+- Manifest cache invalidate: `i` (requires backend admin config).
+- Reset mismatched versions to serving: `s`.
+- Refresh view: `r`.
+- Backend rollback: `k` (enter revision).
+- Quit: `q` or `Esc`.
+- Deploy output shows in a modal; logs are also written to `/tmp`.
+- Backend deploy defaults to no-traffic; confirm with `y` to deploy with traffic or `n`/Enter to deploy without traffic.
+
 ## Commands
 
 ```text
@@ -41,9 +55,9 @@ deploy-ui <gameId>           Build + bundle a game UI and deploy to GCS
 build-logic <gameId>         Build a game logic bundle (rollup)
 deploy-logic <gameId>        Build + bundle game logic and deploy to GCS
 build-frontend               Build the frontend
-deploy-frontend              Deploy the frontend bundle to GCS
-build-backend                Build the backend
-deploy-backend               Deploy the backend (Cloud Run)
+  deploy-frontend              Deploy the frontend bundle to GCS
+  build-backend                Build the backend
+  deploy-backend [--with-traffic] Deploy the backend (Cloud Run)
 rollback-backend <revision>  Shift traffic to a backend revision
 ```
 
@@ -90,8 +104,9 @@ Notes:
 
 ## Notes
 
-- UI build logs write to `/tmp/<gameId>-ui-bundle.log`.
-- Logic build logs write to `/tmp/<gameId>-logic-bundle.log`.
+- UI build logs write to `/tmp/<gameId>-ui-build.log` and bundle logs to `/tmp/<gameId>-ui-bundle.log`.
+- Logic build logs write to `/tmp/<gameId>-logic-build.log` and bundle logs to `/tmp/<gameId>-logic-bundle.log`.
 - Backend/frontend build logs write to `/tmp/backend-build.log` and `/tmp/frontend-build.log`.
+- Backend image logs write to `/tmp/backend-image-*.log`.
 - Deploy logs write to `/tmp/*-deploy.log`.
-- Package versions are the source of truth; the manifest is synced from package.json.
+- Package versions are the source of truth; the manifest is synced from package.json on refresh/deploy.
