@@ -7,6 +7,6 @@
     "ignoreRoot": [".git"],
     "ext": "ts,json,js",
     "ignore": ["src/**/*.spec.ts", "src/tests/**/*"],
-    "exec": "dotenvx run -f .env.local -- tsx src/main.ts",
+    "exec": "node --env-file=.env.local --import tsx src/main.ts",
     "delay": "3000"
 }

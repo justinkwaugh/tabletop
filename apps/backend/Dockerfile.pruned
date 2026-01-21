@@ -1,0 +1,43 @@
+# Run the container with `docker run -p 3000:3000 -t backend`.
+
+# Build/deps stage (pruned context).
+FROM docker.io/node:22-bookworm AS builder
+
+ENV HOST=0.0.0.0
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y make gcc g++ python3 curl
+
+COPY json/ /app/
+
+RUN npm ci
+
+COPY full/ /app/
+
+RUN npx turbo run build \
+    --filter=@tabletop/common \
+    --filter=@tabletop/backend-services \
+    --filter=@tabletop/email \
+    --filter=@tabletop/games-config \
+    --filter=@tabletop/backend
+
+RUN npm prune --omit=dev
+
+RUN if [ -f /app/apps/backend/.env.prod ]; then cp /app/apps/backend/.env.prod /app/apps/backend/.env; fi
+
+# Runtime stage (distroless).
+FROM gcr.io/distroless/nodejs22-debian12
+
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+
+WORKDIR /app/apps/backend
+
+COPY --from=builder --chown=nonroot:nonroot /app /app
+
+USER nonroot
+
+EXPOSE 8080
+
+CMD [ "--env-file=.env", "dist/main.js" ]

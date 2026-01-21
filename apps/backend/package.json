@@ -7,12 +7,11 @@
     "scripts": {
         "dev": "nodemon",
         "clean": "rimraf dist",
-        "start": "dotenvx run -f .env.local -- tsx src/main.ts",
+        "start": "node --env-file=.env.local --import tsx src/main.ts",
         "build": "tsgo",
-        "docker-build": "docker build ../.. -f ./Dockerfile -t backend --platform=linux/amd64"
+        "docker-build": "turbo prune --scope=@tabletop/backend --docker --out-dir=/tmp/tabletop-backend-prune && cp ./Dockerfile.pruned /tmp/tabletop-backend-prune/Dockerfile && mkdir -p /tmp/tabletop-backend-prune/full/apps/backend && cp ./.env.prod /tmp/tabletop-backend-prune/full/apps/backend/.env.prod && docker build /tmp/tabletop-backend-prune -t backend --platform=linux/amd64"
     },
     "dependencies": {
-        "@dotenvx/dotenvx": "^1.51.4",
         "@fastify/auth": "^5.0.4",
         "@fastify/autoload": "^6.3.1",
         "@fastify/cookie": "^11.0.2",
