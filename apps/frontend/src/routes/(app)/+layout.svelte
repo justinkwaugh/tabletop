@@ -44,7 +44,6 @@
     let sessionUser = $derived(authorizationService.getSessionUser())
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
-    let lastGameUiNotice: string | undefined = undefined
 
     let seed = $derived.by(() => {
         if (!gameService.currentGameSession) {
@@ -209,53 +208,6 @@
         }
     })
 
-    $effect(() => {
-        const gameVersionChange = api.gameUiVersionChange
-        const currentGame = gameService.currentGameSession?.primaryGame
-        if (!gameVersionChange || !currentGame) {
-            return
-        }
-        if (gameVersionChange.gameId !== currentGame.typeId) {
-            return
-        }
-        const noticeKey = `${gameVersionChange.gameId}:${gameVersionChange.change}`
-        if (lastGameUiNotice === noticeKey) {
-            return
-        }
-        lastGameUiNotice = noticeKey
-
-        switch (gameVersionChange.change) {
-            case VersionChange.MajorUpgrade:
-            case VersionChange.Rollback:
-                onceMounted(() => {
-                    toast.warning(
-                        'This game has been updated and requires a page refresh. Refreshing in 5 seconds',
-                        {
-                            duration: Number.POSITIVE_INFINITY,
-                            classes: {
-                                closeButton: 'hidden'
-                            }
-                        }
-                    )
-                    setTimeout(() => {
-                        location.reload()
-                    }, 5000)
-                })
-                break
-            case VersionChange.MinorUpgrade:
-                onceMounted(() => {
-                    toast.info(
-                        'This game has been updated with new features or fixes, please refresh the page when you have a moment',
-                        {
-                            duration: Number.POSITIVE_INFINITY
-                        }
-                    )
-                })
-                break
-            default:
-                break
-        }
-    })
 </script>
 
 {#snippet gameName()}

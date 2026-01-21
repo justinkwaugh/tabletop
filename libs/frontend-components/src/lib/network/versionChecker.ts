@@ -8,10 +8,11 @@ export enum VersionChange {
     PatchUpgrade = 'patchUpgrade'
 }
 
-export type VersionChangeCallback = (change: VersionChange) => void
+export type VersionChangeCallback = (change: VersionChange, url: string) => void
 
 export type VersionCheckerOptions = {
-    version?: string
+    resolveExpectedVersion: (url: string) => string | undefined
+    headerName: string
     onVersionChange: VersionChangeCallback
 }
 
@@ -52,24 +53,23 @@ export const resolveVersionChange = (
 }
 
 export const checkVersion: VersionCheckerMiddleware =
-    ({ version, onVersionChange }) =>
+    ({ resolveExpectedVersion, headerName, onVersionChange }) =>
     (next) =>
     (url, opts) => {
         try {
             return next(url, opts)
                 .then((response) => {
-                    if (!version) {
+                    const expectedVersion = resolveExpectedVersion(url)
+                    if (!expectedVersion) {
                         return response
                     }
-
-                    const responseVersion = response.headers.get('X-Tabletop-Version')
+                    const responseVersion = response.headers.get(headerName)
                     if (!responseVersion) {
                         return response
                     }
-
-                    const change = resolveVersionChange(version, responseVersion)
+                    const change = resolveVersionChange(expectedVersion, responseVersion)
                     if (change) {
-                        onVersionChange(change)
+                        onVersionChange(change, url)
                     }
                     return response
                 })

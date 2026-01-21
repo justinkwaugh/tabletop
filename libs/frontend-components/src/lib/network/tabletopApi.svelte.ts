@@ -1,4 +1,4 @@
-import wretch, { type ConfiguredMiddleware, type Wretch, type WretchError } from 'wretch'
+import wretch, { type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
 import {
     assertExists,
@@ -48,13 +48,6 @@ export class TabletopApi {
     private readonly baseSseUrl: string
     private wretch: Wretch
     versionChange: VersionChange | undefined = $state()
-    gameUiVersionChange:
-        | {
-              gameId: string
-              change: VersionChange
-          }
-        | undefined = $state()
-
     private gameVersionProvider: GameVersionProvider | null = null
 
     constructor(
@@ -67,22 +60,26 @@ export class TabletopApi {
         this.baseUrl = `${host}${this.basePath}`
         this.baseSseUrl = `${sseHost}${this.basePath}`
 
+        const handleVersionChange = (changeType: VersionChange, _url: string) => {
+            console.log('Version changed:', changeType)
+            this.versionChange = changeType
+        }
         const versionCheckerMiddleware = checkVersion({
-            version: this.version,
-            onVersionChange: (changeType) => {
-                console.log('Version changed:', changeType)
-                this.versionChange = changeType
-            }
+            resolveExpectedVersion: () => this.version,
+            headerName: 'X-Tabletop-Version',
+            onVersionChange: handleVersionChange
         })
-        const gameUiVersionChecker: ConfiguredMiddleware = (next) => (url, opts) =>
-            next(url, opts).then((response) => {
+        const gameUiVersionChecker = checkVersion({
+            resolveExpectedVersion: (url) => {
                 const gameId = this.resolveGameIdFromUrl(url)
                 if (!gameId) {
-                    return response
+                    return undefined
                 }
-                this.checkGameUiVersion(gameId, response)
-                return response
-            })
+                return this.gameVersionProvider?.getUiVersion(gameId)
+            },
+            headerName: 'X-TABLETOP-GAME-UI-VERSION',
+            onVersionChange: handleVersionChange
+        })
         this.wretch = wretch()
             .url(this.baseUrl)
             .middlewares([versionCheckerMiddleware, gameUiVersionChecker])
@@ -644,39 +641,31 @@ export class TabletopApi {
         } else if (!raw.startsWith('/')) {
             pathname = `/${raw}`
         }
-        const match = pathname.match(/\/game\/([^/]+)\/v\d+(?:\/|$)/)
+        const match = pathname.match(/\/game\/([^/]+)(?:\/|$)/)
         return match?.[1] ?? null
-    }
-
-    private checkGameUiVersion(gameId: string, response: Response) {
-        const responseVersion = response.headers.get('X-TABLETOP-GAME-UI-VERSION')
-        if (!responseVersion) {
-            return
-        }
-        const expectedVersion = this.gameVersionProvider?.getUiVersion(gameId)
-        if (!expectedVersion) {
-            return
-        }
-        const change = resolveVersionChange(expectedVersion, responseVersion)
-        if (!change) {
-            return
-        }
-        if (
-            this.gameUiVersionChange?.gameId === gameId &&
-            this.gameUiVersionChange.change === change
-        ) {
-            return
-        }
-        this.gameUiVersionChange = { gameId, change }
     }
 
     private async handleError(error: WretchError) {
         if (error.json?.error.name && error.json?.error.message) {
-            throw new APIError({
+            const apiError = new APIError({
                 name: error.json.error.name,
                 message: error.json.error.message,
                 metadata: error.json.error.metadata
             })
+            if (apiError.name === 'GameVersionMismatch') {
+                const metadata = apiError.metadata as
+                    | { requestedVersion?: string; serverVersion?: string }
+                    | undefined
+                const requestedVersion = metadata?.requestedVersion
+                const serverVersion = metadata?.serverVersion
+                if (requestedVersion && serverVersion) {
+                    const change = resolveVersionChange(requestedVersion, serverVersion)
+                    if (change) {
+                        this.versionChange = change
+                    }
+                }
+            }
+            throw apiError
         } else {
             throw new APIError({ name: 'UnknownError', message: 'An unknown error occurred' })
         }

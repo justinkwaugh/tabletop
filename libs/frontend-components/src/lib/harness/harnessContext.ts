@@ -3,6 +3,7 @@ import { DummyNotificationService } from './dummyNotificationService.js'
 import { DummyChatService } from './dummyChatService.js'
 import { HarnessGameService } from './harnessGameService.svelte.js'
 import { HarnessLibraryService } from './harnessLibraryService.js'
+import { HarnessManifestService } from './harnessManifestService.js'
 import type { AppContext } from '$lib/model/appContext.js'
 import { VisibilityService } from '$lib/services/visibilityService.svelte.js'
 import { DummyRemoteApiService } from './dummyRemoteApiService.js'
@@ -19,9 +20,11 @@ const api = new DummyRemoteApiService()
 export function createHarnessAppContext(
     definition: GameUiDefinition<GameState, HydratedGameState>
 ): AppContext {
+    const manifestService = new HarnessManifestService(definition)
     const libraryService = new HarnessLibraryService(definition)
     const gameService = new HarnessGameService(libraryService, authorizationService)
     return {
+        manifestService,
         libraryService,
         authorizationService,
         notificationService,

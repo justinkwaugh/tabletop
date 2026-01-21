@@ -49,6 +49,7 @@ import { GameExplorations } from './gameExplorations.svelte.js'
 import { AnimationContext } from '$lib/utils/animations.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 import type { Static, TSchema } from 'typebox'
+import { VersionChange } from '$lib/network/versionChecker.js'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -680,90 +681,87 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 })
             } else if (relevantContext.game.storage === GameStorage.Remote) {
                 // Now send the action to the server
-                try {
-                    if (this.debug) {
-                        console.log(`Sending ${action.type} ${action.id} to server: `, action)
-                    }
+                if (this.debug) {
+                    console.log(`Sending ${action.type} ${action.id} to server: `, action)
+                }
 
-                    // Send the actions to the server and receive the updated actions back
-                    const { actions: serverActions, missingActions } = await this.api.applyAction(
-                        this.gameContext.game,
-                        action
+                // Send the actions to the server and receive the updated actions back
+                const { actions: serverActions, missingActions } = await this.api.applyAction(
+                    this.gameContext.game,
+                    action
+                )
+
+                let applyServerActions = actionResults.revealing
+
+                // Check to see if our server assigned index is less than what we calculated
+                // If so, then that means our action was accepted but something was undone that we did
+                // not know about so we we need to undo to the correct point and re-apply
+                const serverAction = serverActions.find((a) => a.id === action.id)
+                if (
+                    serverAction &&
+                    serverAction.index !== undefined &&
+                    serverAction.index < (action.index ?? 0)
+                ) {
+                    // Rollback our local action and any deferred results
+                    relevantContext.restoreFrom(priorContext)
+
+                    // Undo to the server's index
+                    stateSnapshot = this.undoToIndex(
+                        stateSnapshot,
+                        serverAction.index - 1,
+                        relevantContext
                     )
+                    priorContext = relevantContext.clone()
 
-                    let applyServerActions = actionResults.revealing
+                    applyServerActions = true
+                }
 
-                    // Check to see if our server assigned index is less than what we calculated
-                    // If so, then that means our action was accepted but something was undone that we did
-                    // not know about so we we need to undo to the correct point and re-apply
-                    const serverAction = serverActions.find((a) => a.id === action.id)
-                    if (
-                        serverAction &&
-                        serverAction.index !== undefined &&
-                        serverAction.index < (action.index ?? 0)
-                    ) {
-                        // Rollback our local action and any deferred results
-                        relevantContext.restoreFrom(priorContext)
+                // Check to see if the server told us we missed some actions
+                // If the server says so, that means our action was accepted, and these need to be processed
+                // prior to the action we sent
+                if (missingActions && missingActions.length > 0) {
+                    // Sort the actions by index to be sure, though the server should have done this
+                    // There should never be an index not provided
+                    missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
 
-                        // Undo to the server's index
-                        stateSnapshot = this.undoToIndex(
-                            stateSnapshot,
-                            serverAction.index - 1,
-                            relevantContext
-                        )
-                        priorContext = relevantContext.clone()
+                    // Rollback our local action and any deferred results
+                    relevantContext.restoreFrom(priorContext)
 
-                        applyServerActions = true
-                    }
+                    // Prepend the missing actions
+                    serverActions.unshift(...missingActions)
 
-                    // Check to see if the server told us we missed some actions
-                    // If the server says so, that means our action was accepted, and these need to be processed
-                    // prior to the action we sent
-                    if (missingActions && missingActions.length > 0) {
-                        // Sort the actions by index to be sure, though the server should have done this
-                        // There should never be an index not provided
-                        missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+                    applyServerActions = true
+                }
 
-                        // Rollback our local action and any deferred results
-                        relevantContext.restoreFrom(priorContext)
-
-                        // Prepend the missing actions
-                        serverActions.unshift(...missingActions)
-
-                        applyServerActions = true
-                    }
-
-                    // Apply the server provided actions
-                    if (applyServerActions) {
-                        for (const action of serverActions) {
-                            if (action.source === ActionSource.User) {
-                                const actionResults = this.applyActionToGame(
-                                    action,
-                                    gameSnapshot,
-                                    stateSnapshot
-                                )
-                                stateSnapshot = actionResults.updatedState
-                                relevantContext.applyActionResults(actionResults)
-                            }
+                // Apply the server provided actions
+                if (applyServerActions) {
+                    for (const action of serverActions) {
+                        if (action.source === ActionSource.User) {
+                            const actionResults = this.applyActionToGame(
+                                action,
+                                gameSnapshot,
+                                stateSnapshot
+                            )
+                            stateSnapshot = actionResults.updatedState
+                            relevantContext.applyActionResults(actionResults)
                         }
                     }
-
-                    // Overwrite the local ones if necessary so we have canonical data
-                    serverActions.forEach((action) => {
-                        relevantContext.upsertAction(action)
-                    })
-
-                    relevantContext.verifyFullChecksum()
-                } catch (e) {
-                    console.log(e)
-                    toast.error('An error occurred talking to the server, resyncing')
-                    throw e
                 }
+
+                // Overwrite the local ones if necessary so we have canonical data
+                serverActions.forEach((action) => {
+                    relevantContext.upsertAction(action)
+                })
+
+                relevantContext.verifyFullChecksum()
             }
         } catch (e) {
             console.log(e)
             relevantContext.restoreFrom(priorContext)
-            await this.checkSync()
+            if (!this.isMajorChange()) {
+                toast.error('An error occurred processing your action, resyncing')
+                await this.checkSync()
+            }
         } finally {
             if (this.mode === GameSessionMode.Play) {
                 // console.log('ApplyAction setting processingActions to false')
@@ -878,9 +876,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 relevantContext.verifyFullChecksum()
             } catch (e) {
                 console.log(e)
-                toast.error('An error occurred while undoing an action')
                 relevantContext.restoreFrom(priorContext)
-                await this.checkSync()
+                if (!this.isMajorChange()) {
+                    toast.error('An error occurred while undoing an action')
+                    await this.checkSync()
+                }
             }
         } finally {
             if (this.mode === GameSessionMode.Play) {
@@ -1203,6 +1203,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return (
             notification.type === NotificationCategory.Game &&
             notification.action === GameNotificationAction.Delete
+        )
+    }
+
+    private isMajorChange(): boolean {
+        return (
+            this.api.versionChange === VersionChange.MajorUpgrade ||
+            this.api.versionChange === VersionChange.Rollback
         )
     }
 }
