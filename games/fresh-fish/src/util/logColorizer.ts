@@ -1,6 +1,7 @@
-import chalk, { type ChalkFunction } from 'chalk'
+import chalk from 'chalk'
 
-export type Colorizers = Map<string, ChalkFunction>
+export type Colorizer = (...text: unknown[]) => string
+export type Colorizers = Map<string, Colorizer>
 
 export class LogColorizer {
     constructor(public colorizers: Colorizers = new Map()) {}

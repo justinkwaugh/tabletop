@@ -48,13 +48,13 @@
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^5.1.6",
         "runed": "^0.37.1",
-        "svelte-tweakpane-ui": "^1.5.12",
+        "svelte-tweakpane-ui": "^1.5.13",
         "three": "0.182.0"
     },
     "devDependencies": {
         "@playwright/test": "^1.42.1",
-        "@rollup/plugin-commonjs": "^24.0.1",
-        "@rollup/plugin-node-resolve": "^15.2.3",
+        "@rollup/plugin-commonjs": "^29.0.0",
+        "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^0.4.4",
         "@rollup/plugin-typescript": "^12.3.0",
         "@rollup/plugin-url": "8.0.2",
