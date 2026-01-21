@@ -16,20 +16,20 @@
     "dependencies": {
         "@tabletop/common": "*",
         "chalk": "^4.1.2",
-        "es-iterator-helpers": "^1.2.1",
-        "typebox": "^1.0.53",
+        "es-iterator-helpers": "^1.2.2",
+        "typebox": "^1.0.79",
         "uuid": "^10.0.0"
     },
     "devDependencies": {
-        "@babel/core": "^7.25.2",
-        "@babel/preset-env": "^7.25.3",
+        "@babel/core": "^7.28.6",
+        "@babel/preset-env": "^7.28.6",
         "@tabletop/eslint-config": "*",
         "@tabletop/rollup-config": "*",
         "@tabletop/vitest-config": "*",
         "@typescript/native-preview": "*",
         "@types/uuid": "^9.0.8",
         "rimraf": "^6.1.0",
-        "rollup": "4.55.1",
+        "rollup": "4.55.2",
         "typescript": "5.9.3"
     }
 }
