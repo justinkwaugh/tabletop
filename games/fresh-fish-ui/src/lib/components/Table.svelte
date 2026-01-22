@@ -28,7 +28,7 @@
     setGameSession(gameSession as FreshFishGameSession)
 </script>
 
-<div>
+<div style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent>

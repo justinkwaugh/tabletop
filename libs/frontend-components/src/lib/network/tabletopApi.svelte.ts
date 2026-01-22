@@ -61,6 +61,7 @@ export class TabletopApi {
         this.baseSseUrl = `${sseHost}${this.basePath}`
 
         const handleVersionChange = (changeType: VersionChange, _url: string) => {
+            console.log('Frontend things version is:', this.version)
             console.log('Version changed:', changeType)
             this.versionChange = changeType
         }

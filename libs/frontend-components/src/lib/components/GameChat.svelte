@@ -13,7 +13,7 @@
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
-        height = 'max-sm:h-[calc(100vh-16px-44px-44px-8px-24px-var(--table-height-offset)-var(--chat-height-offset))] sm:h-[calc(100vh-16px-44px-44px-8px-var(--table-height-offset)-var(--chat-height-offset))]',
+        height = 'max-sm:h-[calc(100vh-44px-16px-32px-16px-24px-var(--table-height-offset)-var(--chat-height-offset))] sm:h-[calc(100vh-44px-16px-32px-16px-var(--table-height-offset)-var(--chat-height-offset))]',
         timeColor = 'text-gray-600',
         bgColor = 'bg-transparent',
         inputBgColor = 'bg-gray-700',

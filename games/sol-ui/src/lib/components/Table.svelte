@@ -21,9 +21,7 @@
     import SolFont from '$lib/fonts/Metropolis-Bold.woff'
     import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let {
-        gameSession
-    }: { gameSession: GameSession<SolGameState, HydratedSolGameState> } = $props()
+    let { gameSession }: { gameSession: GameSession<SolGameState, HydratedSolGameState> } = $props()
 
     setGameSession(gameSession as SolGameSession)
 </script>
@@ -33,7 +31,7 @@
 <CustomFont fontFamily="metropolis" url={SolFont} format="woff" />
 
 <!-- Full Height and Width with 8px padding-->
-<div class="bg-repeat" style="background-image: url('{starsBg}'); --chat-height-offset: 47px;">
+<div class="bg-repeat" style="background-image: url('{starsBg}'); --chat-height-offset: 51px;">
     <DefaultTableLayout>
         {#snippet sideContent()}
             <div class="max-sm:hidden">

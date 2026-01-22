@@ -60,9 +60,6 @@ const TASKS_HOST = process.env['TASKS_HOST'] ?? ''
 const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '.local-static'
 const SITE_MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
-const MANIFEST_CACHE_SECONDS = process.env['MANIFEST_CACHE_SECONDS']
-    ? Number.parseInt(process.env['MANIFEST_CACHE_SECONDS'], 10)
-    : undefined
 
 const useAbly = !!process.env['ABLY_API_KEY']
 
@@ -74,8 +71,8 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const libraryService = new LibraryService(redisCacheService, {
         manifestPath: SITE_MANIFEST_PATH,
-        cacheSeconds: MANIFEST_CACHE_SECONDS,
-        allowFallback: EnvService.isLocal()
+        allowFallback: EnvService.isLocal(),
+        useCache: !EnvService.isLocal()
     })
 
     let availableTitles: Record<string, GameDefinition> = {}

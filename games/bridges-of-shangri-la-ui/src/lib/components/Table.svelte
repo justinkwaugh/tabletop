@@ -28,7 +28,7 @@
 </script>
 
 <!-- Full Height and Width with 8px padding-->
-<div>
+<div style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent>

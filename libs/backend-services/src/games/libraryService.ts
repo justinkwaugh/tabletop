@@ -28,6 +28,7 @@ export type LibraryServiceOptions = {
     manifestPath?: string
     cacheKey?: string
     cacheSeconds?: number
+    useCache?: boolean
     allowFallback?: boolean
     logicRoot?: string
 }
@@ -35,7 +36,7 @@ export type LibraryServiceOptions = {
 export class LibraryService {
     private readonly manifestPath: string
     private readonly manifestCacheKey: string
-    private readonly cacheSeconds?: number
+    private readonly useCache: boolean
     private readonly allowFallback: boolean
     private readonly logicRoot: string
 
@@ -51,7 +52,7 @@ export class LibraryService {
     ) {
         this.manifestPath = options.manifestPath ?? MANIFEST_PATH
         this.manifestCacheKey = options.cacheKey ?? DEFAULT_CACHE_KEY
-        this.cacheSeconds = options.cacheSeconds
+        this.useCache = options.useCache ?? true
         this.allowFallback = options.allowFallback ?? false
         this.logicRoot = options.logicRoot ?? GAMES_ROOT
     }
@@ -64,6 +65,9 @@ export class LibraryService {
     }
 
     async invalidateManifestCache(): Promise<void> {
+        if (!this.useCache) {
+            return
+        }
         await this.cacheService.delete(this.manifestCacheKey)
     }
 
@@ -198,10 +202,11 @@ export class LibraryService {
     }
 
     private async loadManifest(): Promise<SiteManifest> {
-        const cached = await this.cacheService.get<SiteManifest>(this.manifestCacheKey)
-
-        if (cached.cached && cached.value) {
-            return cached.value
+        if (this.useCache) {
+            const cached = await this.cacheService.get<SiteManifest>(this.manifestCacheKey)
+            if (cached.cached && cached.value) {
+                return cached.value
+            }
         }
 
         let manifest: SiteManifest | undefined
@@ -225,7 +230,9 @@ export class LibraryService {
             throw new Error('Manifest unavailable')
         }
 
-        await this.cacheService.set(this.manifestCacheKey, manifest, this.cacheSeconds)
+        if (this.useCache) {
+            await this.cacheService.set(this.manifestCacheKey, manifest)
+        }
 
         return manifest
     }

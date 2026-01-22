@@ -46,7 +46,7 @@
 
 <CustomFont fontFamily="stacatto" url={KaivaiFont} format="woff" />
 
-<div class="bg-[#f5e397]">
+<div class="bg-[#f5e397]" style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
