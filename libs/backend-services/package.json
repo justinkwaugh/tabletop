@@ -3,8 +3,14 @@
     "version": "0.0.1",
     "type": "module",
     "exports": {
-        "import": "./esm/index.js",
-        "types": "./src/index.ts"
+        ".": {
+            "import": "./esm/index.js",
+            "types": "./src/index.ts"
+        },
+        "./discord-commands": {
+            "import": "./esm/discord/commands.js",
+            "types": "./src/discord/commands.ts"
+        }
     },
     "private": true,
     "scripts": {
