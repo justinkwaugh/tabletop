@@ -8,13 +8,13 @@ import {
 } from 'discord-api-types/v10'
 
 import { UserService } from '../users/userService.js'
-import { NotifyCommand } from './notify.js'
 import { NotificationService } from '../notifications/notificationService.js'
 import { DiscordSubscription } from '../notifications/subscriptions/discordSubscription.js'
-import { StopCommand } from './stop.js'
 import { TransportType } from '../notifications/transports/notificationTransport.js'
 
 const TEST_DISCORD_USER_ID = process.env['TEST_DISCORD_USER_ID']
+const NOTIFY_COMMAND_NAME = 'notify'
+const STOP_COMMAND_NAME = 'stop'
 
 export class DiscordService {
     constructor(
@@ -40,9 +40,9 @@ export class DiscordService {
     async handleInteraction(interaction: APIBaseInteraction<InteractionType, unknown>) {
         if (interaction.type === InteractionType.ApplicationCommand) {
             const commandInteraction = interaction as APIApplicationCommandInteraction
-            if (commandInteraction.data.name === NotifyCommand.data.name) {
+            if (commandInteraction.data.name === NOTIFY_COMMAND_NAME) {
                 return this.handleNotifyCommand(commandInteraction)
-            } else if (commandInteraction.data.name === StopCommand.data.name) {
+            } else if (commandInteraction.data.name === STOP_COMMAND_NAME) {
                 return this.handleStopCommand(commandInteraction)
             } else {
                 return { type: InteractionResponseType.Pong }

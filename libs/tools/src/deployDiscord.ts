@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js'
-import { NotifyCommand, StopCommand } from '@tabletop/backend-services'
+import { NotifyCommand, StopCommand } from '@tabletop/backend-services/discord-commands'
 
 const { token, clientId } = {
     clientId: process.env.DISCORD_CLIENT_ID ?? '',
