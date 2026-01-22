@@ -1,5 +1,5 @@
 import * as path from 'path'
-import { FastifyInstance, FastifyRequest } from 'fastify'
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import AutoLoad from '@fastify/autoload'
 import SecureSession from '@fastify/secure-session'
 import Auth from '@fastify/auth'
@@ -201,15 +201,45 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
         let frontendStaticReady = false
 
+        const setNoCacheHeaders = (reply: FastifyReply) => {
+            reply.header('Cache-Control', 'no-store, max-age=0')
+            reply.header('Pragma', 'no-cache')
+            reply.header('Expires', '0')
+        }
+
+        const isHtmlAsset = (pathName: string) =>
+            pathName.endsWith('.html') || pathName.endsWith('.html.br') || pathName.endsWith('.html.gz')
+
+        const isServiceWorkerAsset = (pathName: string) =>
+            pathName.endsWith('service-worker.js') ||
+            pathName.endsWith('service-worker.js.br') ||
+            pathName.endsWith('service-worker.js.gz')
+
+        const setFrontendCacheHeaders = (
+            res: { setHeader: (name: string, value: string) => void },
+            pathName: string,
+            maxAgeSeconds: number
+        ) => {
+            if (isHtmlAsset(pathName) || isServiceWorkerAsset(pathName)) {
+                res.setHeader('Cache-Control', 'no-store, max-age=0')
+                res.setHeader('Pragma', 'no-cache')
+                res.setHeader('Expires', '0')
+                return
+            }
+
+            res.setHeader('Cache-Control', `public, max-age=${maxAgeSeconds}, immutable`)
+        }
+
         if (service === 'local') {
             // Serve the frontend as static files
             console.log('Registering local static handlers')
             await fastify.register(fastifyStatic, {
                 root: path.join(__dirname, 'static'),
                 preCompressed: true,
-                immutable: true,
-                maxAge: '1d',
+                cacheControl: false,
                 setHeaders: (res, pathName) => {
+                    setFrontendCacheHeaders(res, pathName, 60 * 60 * 24)
+
                     if (pathName.endsWith('.br')) {
                         res.setHeader('Content-Encoding', 'br')
                         if (pathName.endsWith('.js.br')) {
@@ -266,12 +296,17 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             }
 
             if (frontendVersion) {
+                console.log(
+                    'Serving static content for root from: ' +
+                        path.join(STATIC_ROOT, 'frontend', frontendVersion)
+                )
                 await fastify.register(fastifyStatic, {
                     root: path.join(STATIC_ROOT, 'frontend', frontendVersion),
                     preCompressed: true,
-                    immutable: true,
-                    maxAge: '365d',
+                    cacheControl: false,
                     setHeaders: (res, pathName) => {
+                        setFrontendCacheHeaders(res, pathName, 60 * 60 * 24 * 365)
+
                         if (pathName.endsWith('.br')) {
                             res.setHeader('Content-Encoding', 'br')
                             if (pathName.endsWith('.js.br')) {
@@ -296,11 +331,13 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         if (frontendStaticReady) {
             // Override root path to serve index.html with no caching
             fastify.get('/', async function (req, reply) {
-                await reply.sendFile('index.html', { immutable: false, maxAge: 0 })
+                setNoCacheHeaders(reply)
+                await reply.sendFile('index.html', { cacheControl: false })
             })
 
             fastify.get('/service-worker.js', async function (req, reply) {
-                await reply.sendFile('service-worker.js', { immutable: false, maxAge: 0 })
+                setNoCacheHeaders(reply)
+                await reply.sendFile('service-worker.js', { cacheControl: false })
             })
         }
 
@@ -310,7 +347,8 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             if (request.url.startsWith(API_PREFIX) || request.url.startsWith(TASKS_PREFIX)) {
                 await reply.code(404).send({ message: 'Not Found' })
             } else if (frontendStaticReady) {
-                await reply.sendFile('index.html', { immutable: false, maxAge: 0 })
+                setNoCacheHeaders(reply)
+                await reply.sendFile('index.html', { cacheControl: false })
             } else {
                 await reply.code(404).send({ message: 'Not Found' })
             }
