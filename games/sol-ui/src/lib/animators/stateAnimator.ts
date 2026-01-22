@@ -8,8 +8,21 @@ export abstract class StateAnimator<
     S extends GameSession<T, U>
 > {
     protected element: HTMLElement | SVGElement | undefined
+    private readonly onGameStateChangeHandler: ({
+        to,
+        from,
+        action,
+        animationContext
+    }: {
+        to: U
+        from?: U
+        action?: GameAction
+        animationContext: AnimationContext
+    }) => Promise<void>
 
-    constructor(protected gameSession: S) {}
+    constructor(protected gameSession: S) {
+        this.onGameStateChangeHandler = this.onGameStateChange.bind(this)
+    }
 
     onAttach(): void {
         // Optional override
@@ -32,11 +45,11 @@ export abstract class StateAnimator<
     }
 
     register(): void {
-        this.gameSession.addGameStateChangeListener(this.onGameStateChange.bind(this))
+        this.gameSession.addGameStateChangeListener(this.onGameStateChangeHandler)
     }
 
     unregister(): void {
-        this.gameSession.removeGameStateChangeListener(this.onGameStateChange.bind(this))
+        this.gameSession.removeGameStateChangeListener(this.onGameStateChangeHandler)
     }
 }
 

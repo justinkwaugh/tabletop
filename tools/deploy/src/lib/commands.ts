@@ -232,13 +232,14 @@ export const deployManifestCommand = (
 export const deployBackendCommand = (
     repoRoot: string,
     config: DeployConfig,
-    options?: { allowTraffic?: boolean }
+    options?: { allowTraffic?: boolean; service?: string }
 ): CommandSpec => {
     const allowTraffic = options?.allowTraffic === true
     const backend = config.backend
     if (backend?.deployCommand?.length) {
         const command = backend.deployCommand[0]
         const args = backend.deployCommand.slice(1)
+        const serviceOverride = options?.service
 
         if (
             !allowTraffic &&
@@ -248,6 +249,16 @@ export const deployBackendCommand = (
             !args.includes('--no-traffic')
         ) {
             args.push('--no-traffic')
+        }
+
+        if (serviceOverride) {
+            if (command !== 'gcloud') {
+                throw new Error('Service override requires gcloud deploy command')
+            }
+            const deployIndex = args.indexOf('deploy')
+            if (deployIndex >= 0 && args.length > deployIndex + 1) {
+                args[deployIndex + 1] = serviceOverride
+            }
         }
 
         return {
@@ -260,7 +271,8 @@ export const deployBackendCommand = (
         }
     }
 
-    if (!backend?.service || !backend.region || !backend.project) {
+    const service = options?.service ?? backend?.service
+    if (!service || !backend?.region || !backend.project) {
         throw new Error(
             'Missing backend deploy config (service/region/project or backend.deployCommand)'
         )
@@ -270,7 +282,7 @@ export const deployBackendCommand = (
         const args = [
             'run',
             'deploy',
-            backend.service,
+            service,
             '--image',
             backend.image,
             '--region',
@@ -296,7 +308,7 @@ export const deployBackendCommand = (
     const args = [
         'run',
         'deploy',
-        backend.service,
+        service,
         '--source',
         '.',
         '--region',

@@ -36,6 +36,7 @@ export type DeployConfig = {
     backend?: {
         image?: string
         service?: string
+        tasksService?: string
         region?: string
         project?: string
         deployCommand?: string[]

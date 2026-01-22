@@ -49,6 +49,7 @@ type Mode =
     | 'bump-logic'
     | 'bump-ui'
     | 'rollback'
+    | 'select-backend-service'
     | 'confirm-reset-mismatch'
     | 'confirm-deploy-all'
     | 'confirm-overwrite'
@@ -56,6 +57,8 @@ type Mode =
     | 'confirm-deploy'
 
 type SelectionType = 'frontend' | 'backend' | 'game' | 'games'
+
+type BackendDeployTarget = 'backend' | 'tasks' | 'all'
 
 type Selection = {
     key: string
@@ -75,9 +78,10 @@ type DeployStep = {
 }
 
 type PendingDeploy = {
-    spec: CommandSpec
+    spec?: CommandSpec
     specWithTraffic?: CommandSpec
     steps?: DeployStep[]
+    stepsWithTraffic?: DeployStep[]
     targetLabel: string
     taskIndex?: number
     version?: string
@@ -108,6 +112,10 @@ type PendingMismatchReset = {
 type PendingDeployAll = {
     gameCount: number
     onConfirm: () => void
+}
+
+type PendingBackendDeploy = {
+    onConfirm: (target: BackendDeployTarget) => void
 }
 
 type MismatchFrontend = {
@@ -178,6 +186,10 @@ export default function App() {
     const [pendingMismatchReset, setPendingMismatchReset] =
         useState<PendingMismatchReset | null>(null)
     const [pendingDeployAll, setPendingDeployAll] = useState<PendingDeployAll | null>(null)
+    const [pendingBackendDeploy, setPendingBackendDeploy] =
+        useState<PendingBackendDeploy | null>(null)
+    const [backendDeployTarget, setBackendDeployTarget] =
+        useState<BackendDeployTarget>('backend')
     const [activeDeployContext, setActiveDeployContext] = useState<ActiveDeployContext | null>(null)
     const [checkingBackend, setCheckingBackend] = useState(false)
     const [checkingGcsTarget, setCheckingGcsTarget] = useState<string | null>(null)
@@ -503,13 +515,31 @@ export default function App() {
     }
 
     const commandString = (spec: CommandSpec) => [spec.command, ...spec.args].join(' ')
-    const resolveDeploySteps = (target: PendingDeploy): DeployStep[] =>
-        target.steps && target.steps.length > 0
-            ? target.steps
-            : [{ spec: target.spec, taskIndex: target.taskIndex }]
+    const resolveDeploySteps = (
+        target: PendingDeploy,
+        options?: { withTraffic?: boolean }
+    ): DeployStep[] => {
+        const steps = options?.withTraffic
+            ? target.stepsWithTraffic ?? target.steps
+            : target.steps
+        if (steps && steps.length > 0) {
+            return steps
+        }
+        const spec = options?.withTraffic
+            ? target.specWithTraffic ?? target.spec
+            : target.spec
+        return spec ? [{ spec, taskIndex: target.taskIndex }] : []
+    }
     const confirmDeploySteps =
         confirmDeployActive && pendingDeploy ? resolveDeploySteps(pendingDeploy) : []
+    const confirmDeployStepsWithTraffic =
+        confirmDeployActive && pendingDeploy
+            ? resolveDeploySteps(pendingDeploy, { withTraffic: true })
+            : []
     const confirmDeployCommands = confirmDeploySteps.flatMap((step) =>
+        step.specs && step.specs.length > 0 ? step.specs : step.spec ? [step.spec] : []
+    )
+    const confirmDeployCommandsWithTraffic = confirmDeployStepsWithTraffic.flatMap((step) =>
         step.specs && step.specs.length > 0 ? step.specs : step.spec ? [step.spec] : []
     )
     const describeUpload = (spec: CommandSpec) => {
@@ -535,6 +565,14 @@ export default function App() {
             return deployCommand[imageIndex + 1]
         }
         return undefined
+    }
+    const resolveBackendServiceName = (target: 'backend' | 'tasks') => {
+        const backend = deployConfig.backend
+        if (!backend?.service) {
+            throw new Error('Missing backend service in deploy config')
+        }
+        if (target === 'backend') return backend.service
+        return backend.tasksService ?? 'tasks'
     }
 
     const refreshFrontendDeployed = async () => {
@@ -580,6 +618,93 @@ export default function App() {
             manifestInvalidateLogPath,
             'Backend manifest cache invalidated.\n'
         )
+    }
+
+    const queueBackendDeploy = (target: BackendDeployTarget, image: string) => {
+        void (async () => {
+            if (!ensureNoRunningCommand('Deploy')) {
+                return
+            }
+            let backendService: string
+            let tasksService: string
+            try {
+                backendService = resolveBackendServiceName('backend')
+                tasksService = resolveBackendServiceName('tasks')
+            } catch (error) {
+                setStatus(
+                    formatStatus(
+                        error instanceof Error ? error.message : 'Missing backend service config',
+                        'error'
+                    )
+                )
+                return
+            }
+
+            const services =
+                target === 'all'
+                    ? [backendService, tasksService]
+                    : [target === 'backend' ? backendService : tasksService]
+            const deployLabel =
+                target === 'backend'
+                    ? 'Deploy backend'
+                    : target === 'tasks'
+                      ? 'Deploy tasks'
+                      : 'Deploy backend + tasks'
+            startTasks('Backend deploy', [
+                'Build backend (force)',
+                'Build image',
+                'Tag image',
+                'Push image',
+                deployLabel
+            ])
+            const backendBuildSpec = buildBackendCommand(repoRoot, { force: true })
+            if (!(await runTask(0, backendBuildSpec))) return
+            const buildSpec = buildBackendImageCommand(repoRoot)
+            if (!(await runTask(1, buildSpec))) return
+            const tagSpec = tagBackendImageCommand(repoRoot, image)
+            if (!(await runTask(2, tagSpec))) return
+            const pushSpec = pushBackendImageCommand(repoRoot, image)
+            if (!(await runTask(3, pushSpec))) return
+
+            const noTrafficSpecs = services.map((service) =>
+                deployBackendCommand(repoRoot, deployConfig, {
+                    allowTraffic: false,
+                    service
+                })
+            )
+            const withTrafficSpecs = services.map((service) =>
+                deployBackendCommand(repoRoot, deployConfig, {
+                    allowTraffic: true,
+                    service
+                })
+            )
+
+            if (services.length > 1) {
+                setPendingDeploy({
+                    steps: [{ specs: noTrafficSpecs, taskIndex: 4 }],
+                    stepsWithTraffic: [{ specs: withTrafficSpecs, taskIndex: 4 }],
+                    targetLabel: 'Backend + Tasks',
+                    taskIndex: 4,
+                    version: image,
+                    remoteVersion: backendManifest?.backend?.revision ?? 'unknown',
+                    uploads: [`image: ${image}`],
+                    type: 'backend'
+                })
+            } else {
+                setPendingDeploy({
+                    spec: noTrafficSpecs[0],
+                    specWithTraffic: withTrafficSpecs[0],
+                    targetLabel: target === 'tasks' ? 'Tasks' : 'Backend',
+                    taskIndex: 4,
+                    version: image,
+                    remoteVersion: backendManifest?.backend?.revision ?? 'unknown',
+                    uploads: [`image: ${image}`],
+                    type: 'backend'
+                })
+            }
+            setMode('confirm-deploy')
+            setStatus(formatStatus('Confirm backend deploy'))
+        })()
     }
 
     const queueFrontendDeploy = (currentManifest: SiteManifest) => {
@@ -1129,44 +1254,12 @@ export default function App() {
                 )
                 return
             }
-            void (async () => {
-                if (!ensureNoRunningCommand('Deploy')) {
-                    return
-                }
-                startTasks('Backend deploy', [
-                    'Build backend (force)',
-                    'Build image',
-                    'Tag image',
-                    'Push image',
-                    'Deploy backend'
-                ])
-                const backendBuildSpec = buildBackendCommand(repoRoot, { force: true })
-                if (!(await runTask(0, backendBuildSpec))) return
-                const buildSpec = buildBackendImageCommand(repoRoot)
-                if (!(await runTask(1, buildSpec))) return
-                const tagSpec = tagBackendImageCommand(repoRoot, image)
-                if (!(await runTask(2, tagSpec))) return
-                const pushSpec = pushBackendImageCommand(repoRoot, image)
-                if (!(await runTask(3, pushSpec))) return
-                const spec = deployBackendCommand(repoRoot, deployConfig, {
-                    allowTraffic: false
-                })
-                const specWithTraffic = deployBackendCommand(repoRoot, deployConfig, {
-                    allowTraffic: true
-                })
-                setPendingDeploy({
-                    spec,
-                    specWithTraffic,
-                    targetLabel: 'Backend',
-                    taskIndex: 4,
-                    version: image,
-                    remoteVersion: backendManifest?.backend?.revision ?? 'unknown',
-                    uploads: [`image: ${image}`],
-                    type: 'backend'
-                })
-                setMode('confirm-deploy')
-                setStatus(formatStatus('Confirm backend deploy'))
-            })()
+            setBackendDeployTarget('backend')
+            setPendingBackendDeploy({
+                onConfirm: (target) => queueBackendDeploy(target, image)
+            })
+            setMode('select-backend-service')
+            setStatus(formatStatus('Select backend service'))
             return
         }
 
@@ -1468,6 +1561,63 @@ export default function App() {
     }
 
     useInput((input, key) => {
+        if (mode === 'select-backend-service' && pendingBackendDeploy) {
+            if (key.escape) {
+                setMode('view')
+                setPendingBackendDeploy(null)
+                setStatus(formatStatus('Deploy cancelled'))
+                return
+            }
+
+            if (key.upArrow || key.leftArrow) {
+                setBackendDeployTarget((current) =>
+                    current === 'tasks' ? 'backend' : current === 'all' ? 'tasks' : 'backend'
+                )
+                return
+            }
+
+            if (key.downArrow || key.rightArrow) {
+                setBackendDeployTarget((current) =>
+                    current === 'backend' ? 'tasks' : current === 'tasks' ? 'all' : 'all'
+                )
+                return
+            }
+
+            if (input === 'b' || input === 'B') {
+                setMode('view')
+                setPendingBackendDeploy(null)
+                setBackendDeployTarget('backend')
+                pendingBackendDeploy.onConfirm('backend')
+                return
+            }
+
+            if (input === 't' || input === 'T') {
+                setMode('view')
+                setPendingBackendDeploy(null)
+                setBackendDeployTarget('tasks')
+                pendingBackendDeploy.onConfirm('tasks')
+                return
+            }
+
+            if (input === 'a' || input === 'A') {
+                setMode('view')
+                setPendingBackendDeploy(null)
+                setBackendDeployTarget('all')
+                pendingBackendDeploy.onConfirm('all')
+                return
+            }
+
+            if (key.return) {
+                const target = backendDeployTarget
+                setMode('view')
+                setPendingBackendDeploy(null)
+                pendingBackendDeploy.onConfirm(target)
+                return
+            }
+
+            return
+        }
+
         if (mode === 'confirm-overwrite' && pendingOverwrite) {
             if (key.escape) {
                 setMode('view')
@@ -1583,22 +1733,27 @@ export default function App() {
             }
 
             if (pendingDeploy.type === 'backend') {
-                if (input === 'y' || input === 'Y') {
+                const runBackendDeploy = (withTraffic: boolean) => {
                     setMode('view')
                     const target = pendingDeploy
                     setPendingDeploy(null)
-                    void runDeploySpec(
-                        target.specWithTraffic ?? target.spec,
-                        target.taskIndex
-                    )
+                    const steps = resolveDeploySteps(target, { withTraffic })
+                    if (steps.length === 0) {
+                        setStatus(formatStatus('Missing backend deploy command', 'error'))
+                        return
+                    }
+                    void (async () => {
+                        await runDeploySteps(steps)
+                    })()
+                }
+
+                if (input === 'y' || input === 'Y') {
+                    runBackendDeploy(true)
                     return
                 }
 
                 if (input === 'n' || input === 'N' || key.return) {
-                    setMode('view')
-                    const target = pendingDeploy
-                    setPendingDeploy(null)
-                    void runDeploySpec(target.spec, target.taskIndex)
+                    runBackendDeploy(false)
                     return
                 }
 
@@ -1978,6 +2133,22 @@ export default function App() {
                                 Build/bundle and deploy every game package?
                             </Text>
                         </Box>
+                    ) : mode === 'select-backend-service' && pendingBackendDeploy ? (
+                        <Box flexDirection="column" borderStyle="round" paddingX={1} paddingY={1}>
+                            <Text color="magenta">Deploy which service?</Text>
+                            <Text color={backendDeployTarget === 'backend' ? 'cyan' : 'gray'}>
+                                • backend (default)
+                            </Text>
+                            <Text color={backendDeployTarget === 'tasks' ? 'cyan' : 'gray'}>
+                                • tasks
+                            </Text>
+                            <Text color={backendDeployTarget === 'all' ? 'cyan' : 'gray'}>
+                                • all
+                            </Text>
+                            <Text color="yellow">
+                                b = backend, t = tasks, a = all, Enter = deploy selected, Esc cancel
+                            </Text>
+                        </Box>
                     ) : (
                         <>
                             <Text color="magenta">Details</Text>
@@ -2210,16 +2381,50 @@ export default function App() {
                                             : null}
                                         {pendingDeploy.type === 'backend' ? (
                                             <>
-                                                <Text color="gray" wrap="wrap">
-                                                    command: {commandString(pendingDeploy.spec)}
-                                                </Text>
-                                                <Text color="gray" wrap="wrap">
-                                                    command (with traffic):{' '}
-                                                    {commandString(
-                                                        pendingDeploy.specWithTraffic ??
-                                                            pendingDeploy.spec
-                                                    )}
-                                                </Text>
+                                                {confirmDeployCommands.length > 1
+                                                    ? confirmDeployCommands.map((spec, index) => (
+                                                          <Text
+                                                              key={`backend-command-${index}`}
+                                                              color="gray"
+                                                              wrap="wrap"
+                                                          >
+                                                              command {index + 1}:{' '}
+                                                              {commandString(spec)}
+                                                          </Text>
+                                                      ))
+                                                    : (
+                                                          <Text color="gray" wrap="wrap">
+                                                              command:{' '}
+                                                              {confirmDeployCommands[0]
+                                                                  ? commandString(
+                                                                        confirmDeployCommands[0]
+                                                                    )
+                                                                  : 'unknown'}
+                                                          </Text>
+                                                      )}
+                                                {confirmDeployCommandsWithTraffic.length > 1
+                                                    ? confirmDeployCommandsWithTraffic.map(
+                                                          (spec, index) => (
+                                                              <Text
+                                                                  key={`backend-command-traffic-${index}`}
+                                                                  color="gray"
+                                                                  wrap="wrap"
+                                                              >
+                                                                  command (with traffic) {index + 1}:{' '}
+                                                                  {commandString(spec)}
+                                                              </Text>
+                                                          )
+                                                      )
+                                                    : (
+                                                          <Text color="gray" wrap="wrap">
+                                                              command (with traffic):{' '}
+                                                              {confirmDeployCommandsWithTraffic[0]
+                                                                  ? commandString(
+                                                                        confirmDeployCommandsWithTraffic[0]
+                                                                    )
+                                                                  : 'unknown'}
+                                                          </Text>
+                                                      )}
                                             </>
                                         ) : confirmDeployCommands.length > 1 ? (
                                             confirmDeployCommands.map((spec, index) => (

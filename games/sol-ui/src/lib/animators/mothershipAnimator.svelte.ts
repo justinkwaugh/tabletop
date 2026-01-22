@@ -160,16 +160,25 @@ export function animateMothership(
           destroy: () => void
       }
     | undefined {
-    params.animator.setElement(node)
-    params.animator.onAttach()
-    params.animator.register()
+    let currentAnimator = params.animator
+    currentAnimator.setElement(node)
+    currentAnimator.onAttach()
+    currentAnimator.register()
     return {
         update(updateParams: { animator: MothershipAnimator; index: number }) {
-            updateParams.animator.setIndex(updateParams.index)
+            if (updateParams.animator !== currentAnimator) {
+                currentAnimator.setElement(undefined)
+                currentAnimator.unregister()
+                currentAnimator = updateParams.animator
+                currentAnimator.setElement(node)
+                currentAnimator.onAttach()
+                currentAnimator.register()
+            }
+            currentAnimator.setIndex(updateParams.index)
         },
         destroy() {
-            params.animator.setElement(undefined)
-            params.animator.unregister()
+            currentAnimator.setElement(undefined)
+            currentAnimator.unregister()
         }
     }
 }

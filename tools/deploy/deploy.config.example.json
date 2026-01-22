@@ -9,6 +9,7 @@
   "backend": {
     "image": "us-central1-docker.pkg.dev/your-project/your-repo/backend",
     "service": "your-cloud-run-service",
+    "tasksService": "your-cloud-run-tasks-service",
     "region": "us-central1",
     "project": "your-gcp-project",
     "deployCommand": []

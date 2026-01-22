@@ -43,6 +43,7 @@ Note: the root script runs the compiled file; run `npm run build --workspace @ta
 - Quit: `q` or `Esc`.
 - Deploy output shows in a modal; logs are also written to `/tmp`.
 - Backend deploy defaults to no-traffic; confirm with `y` to deploy with traffic or `n`/Enter to deploy without traffic.
+- Backend deploy prompts for service: backend (default), tasks, or all.
 
 ## Commands
 
@@ -77,6 +78,7 @@ Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.exampl
     "backend": {
         "image": "us-central1-docker.pkg.dev/your-project/your-repo/backend",
         "service": "your-cloud-run-service",
+        "tasksService": "your-cloud-run-tasks-service",
         "region": "us-central1",
         "project": "your-gcp-project",
         "deployCommand": []
@@ -95,6 +97,7 @@ Environment overrides:
 - `TABLETOP_BACKEND_ADMIN_COOKIE`
 - `TABLETOP_BACKEND_IMAGE`
 - `TABLETOP_BACKEND_SERVICE`
+- `TABLETOP_TASKS_SERVICE`
 - `TABLETOP_BACKEND_REGION`
 - `GCLOUD_PROJECT`
 
