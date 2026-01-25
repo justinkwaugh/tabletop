@@ -13,7 +13,7 @@ import { Station, StationType } from '../components/stations.js'
 import { Activation } from '../model/activation.js'
 import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { MachineState } from '../definition/states.js'
-import { EffectType, HydratedSolPlayerState, Ring, SolPlayerState } from '../index.js'
+import { EffectType, HydratedActivateEffect, HydratedSolPlayerState, Ring } from '../index.js'
 
 export type ActivateMetadata = Type.Static<typeof ActivateMetadata>
 export const ActivateMetadata = Type.Object({
@@ -235,6 +235,13 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             return false
         }
 
+        const playerState = state.getPlayerState(playerId)
+        const hasMotivateCard = HydratedActivateEffect.hasCardForEffect(
+            state,
+            playerState,
+            EffectType.Motivate
+        )
+
         if (pulse || state.activeEffect === EffectType.Pulse) {
             if (coords.row !== Ring.Outer && coords.row !== Ring.Inner) {
                 return false
@@ -243,7 +250,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             if (station.playerId !== playerId || coords.row !== Ring.Outer) {
                 return false
             }
-        } else if (state.activeEffect !== EffectType.Motivate) {
+        } else if (state.activeEffect !== EffectType.Motivate && !hasMotivateCard) {
             if (state.board.sundiversForPlayerAt(playerId, coords).length === 0) {
                 return false
             }
