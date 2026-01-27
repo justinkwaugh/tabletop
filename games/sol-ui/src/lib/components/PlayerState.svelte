@@ -247,7 +247,11 @@
                                     use:popOnChange={count}
                                 >
                                     <div class="tracking-normal">{count}</div>
-                                    <Sundiver width={25 * 0.75} height={25} {color} />
+                                    <Sundiver
+                                        width={25 * 0.75}
+                                        height={25}
+                                        color={gameSession.colors.getPlayerColor(playerId)}
+                                    />
                                 </div>
                             {/each}
 
