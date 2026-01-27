@@ -10,7 +10,7 @@
     } = $props()
 
     let fontStyle = $derived(
-        `<style>@font-face { font-family: '${fontFamily}'; src: url(${url}) format('${format}'); }</style>`
+        `<style>@font-face { font-family: '${fontFamily}'; src: url(${url}) format('${format}'); font-display: swap; }</style>`
     )
 </script>
 

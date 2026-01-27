@@ -3,7 +3,7 @@ import type { HydratedKaivaiGameState, KaivaiGameState } from '@tabletop/kaivai'
 import { KaivaiRuntime } from '@tabletop/kaivai'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
 import { KaivaiGameColorizer } from './gameColorizer.js'
-import Table from '../components/Table.svelte'
+import Table from '../components/GameTable.svelte'
 import { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte.js'
 
 export const KaivaiUiRuntime: GameUIRuntime<KaivaiGameState, HydratedKaivaiGameState> = {

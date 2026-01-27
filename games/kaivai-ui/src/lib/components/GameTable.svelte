@@ -9,7 +9,6 @@
         GameSession
     } from '@tabletop/frontend-components'
     import Board from '$lib/components/Board.svelte'
-    import { onMount } from 'svelte'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
@@ -118,7 +117,7 @@
     </DefaultTableLayout>
 </div>
 
-<style global>
+<style>
     :global(.kaivai-font) {
         font-family: 'stacatto', ui-sans-serif, system-ui, sans-serif;
     }

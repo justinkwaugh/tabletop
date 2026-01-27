@@ -131,6 +131,10 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
     const packageRoot = toPath(packageRootUrl)
     const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'))
     const packageName = packageJson.name ?? ''
+    const packageNameSlug = packageName
+        .replace(/^@/, '')
+        .replace(/\//g, '-')
+        .replace(/[^a-zA-Z0-9_-]/g, '-')
     const packageVersion = packageJson.version ?? '0.0.0'
     const gameId = packageName.replace(/^@[^/]+\//, '').replace(/-ui$/, '')
     const uiVersion = process.env.ROLLUP_UI_VERSION ?? packageVersion
@@ -159,7 +163,8 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
                     handler(warning)
                 },
                 compilerOptions: {
-                    generate: 'client'
+                    generate: 'client',
+                    cssHash: ({ css, hash }) => `svelte-${packageNameSlug}-${hash(css)}`
                 }
             }),
             resolve({
