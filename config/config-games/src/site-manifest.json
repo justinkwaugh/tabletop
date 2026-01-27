@@ -94,7 +94,7 @@
       "gameId": "sol",
       "packageId": "sol",
       "logicVersion": "5.1.0",
-      "uiVersion": "5.3.0",
+      "uiVersion": "5.3.1",
       "priorLogicVersions": [
         "5.0.0",
         "4.0.0",
@@ -103,11 +103,11 @@
         "3.0.0"
       ],
       "priorUiVersions": [
+        "5.3.0",
         "5.2.0",
         "5.1.0",
         "5.0.0",
-        "4.0.0",
-        "3.1.0"
+        "4.0.0"
       ]
     }
   ]
