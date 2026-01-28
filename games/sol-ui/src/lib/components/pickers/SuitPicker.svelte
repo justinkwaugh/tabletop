@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Card, Suit } from '@tabletop/sol'
     import CardComponent from '$lib/components/Card.svelte'
     import { nanoid } from 'nanoid'
@@ -18,7 +18,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     }
 </script>
 
-<div class="flex flex-row flex-wrap justify-center items-center gap-x-2 h-[100px] mb-2">
+<div class="flex flex-row flex-wrap justify-center items-center gap-x-2 gap-y-2 min-h-[100px] mb-2">
     {#each cards as card (card.suit)}
         <button
             onclick={() => chooseCard(card.suit)}

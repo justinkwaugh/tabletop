@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { MachineState, Suit } from '@tabletop/sol'
     import Card from '$lib/components/Card.svelte'
     import { animateCard, type CardPickerAnimator } from '$lib/animators/cardPickerAnimator.js'
@@ -46,7 +46,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     }
 </script>
 
-<div class="flex flex-row flex-wrap justify-center items-center gap-x-2 h-[100px] mb-2">
+<div class="flex flex-row flex-wrap justify-center items-center gap-x-2 gap-y-2 min-h-[100px] mb-2">
     {#each displayableCards as card (card.id)}
         <button
             use:animateCard={{ animator, card }}
