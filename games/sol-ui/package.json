@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/sol-ui",
-    "version": "5.4.0",
+    "version": "5.4.2",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",

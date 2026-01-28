@@ -49,7 +49,9 @@
         return gameSession.gameState.effects[suit].type
     }
 
-    async function onActivate() {
+    async function onActivate(event: MouseEvent) {
+        event.stopPropagation()
+
         if (!gameSession.isMyTurn) {
             return
         }
@@ -63,7 +65,9 @@
         }
     }
 
-    async function onFuel() {
+    async function onFuel(event: MouseEvent) {
+        event.stopPropagation()
+
         if (!gameSession.isMyTurn) {
             return
         }

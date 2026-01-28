@@ -94,16 +94,25 @@
     function onToggle(event: ToggleEvent) {
         event.stopPropagation()
         if (event.newState === 'closed') {
+            isOpen = false
             if (onClose) {
                 onClose()
             }
+        } else {
+            isOpen = true
         }
     }
 
     export function toggle() {
-        if (popover) {
-            popover.togglePopover()
+        popover?.togglePopover()
+    }
+
+    export function close() {
+        if (!isOpen) {
+            return
         }
+        popover?.hidePopover()
+        isOpen = false
     }
 </script>
 

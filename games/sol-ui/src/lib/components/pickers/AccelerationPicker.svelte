@@ -38,7 +38,7 @@
             return
         }
         amountChosen = true
-        picker.toggle()
+        picker.close()
 
         gameSession.accelerationAmount = amount
         await gameSession.accelerate()
@@ -49,9 +49,13 @@
             await gameSession.undo()
         }
     }
+
+    gameSession.addGameStateChangeListener(async () => {
+        picker?.close()
+    })
 </script>
 
-<SolPicker bind:this={picker} {onClose} offset={8}>
+<SolPicker bind:this={picker} {onClose} offset={8} trigger="manual">
     <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
         <button
             onclick={increaseAmount}
