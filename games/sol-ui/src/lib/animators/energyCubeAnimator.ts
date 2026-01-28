@@ -9,6 +9,7 @@ import {
     isActivateBonus,
     isActivateEffect,
     isDrawCards,
+    isFuel,
     isFly,
     isHurl,
     isPass,
@@ -80,6 +81,8 @@ export class EnergyCubeAnimator extends StateAnimator<
             await this.animateTribute(action, animationContext.actionTimeline, to, from)
         } else if (isPass(action)) {
             await this.animatePass(action, animationContext.actionTimeline, to, from)
+        } else if (isFuel(action)) {
+            this.scheduleEnergyOverride(action.playerId, to, animationContext.actionTimeline, 0)
         } else if (isFly(action) || isHurl(action)) {
             await this.animateFlyOrHurl(action, animationContext.actionTimeline, to, from)
         }

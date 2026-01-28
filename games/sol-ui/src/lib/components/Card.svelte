@@ -23,6 +23,9 @@
     } & HTMLAttributes<HTMLDivElement> = $props()
 
     let gameSession = getGameSession() as SolGameSession
+    let fuelRemaining = $derived.by(() => {
+        return gameSession.gameState.getEffectTracking().fuelRemaining
+    })
 
     function cardImageForSuit(suit: Suit) {
         switch (suit) {
@@ -68,9 +71,10 @@
     async function onFuel(event: MouseEvent) {
         event.stopPropagation()
 
-        if (!gameSession.isMyTurn) {
+        if (!gameSession.isMyTurn || gameSession.busy) {
             return
         }
+        fuelRemaining -= 1
         await gameSession.fuel()
     }
 
@@ -108,9 +112,7 @@
         <button
             onclick={onFuel}
             class="rounded-lg bg-black/80 text-[#cccccc] text-xs tracking-widest p-1 hover:border-white border-transparent border-2"
-            >ADD FUEL<br /><span class="text-[.75rem]"
-                >{gameSession.gameState.getEffectTracking().fuelRemaining} left</span
-            ></button
+            >ADD FUEL<br /><span class="text-[.75rem]">{fuelRemaining} left</span></button
         >
     {/if}
 

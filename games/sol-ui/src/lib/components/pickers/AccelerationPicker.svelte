@@ -50,13 +50,24 @@
         }
     }
 
-    gameSession.addGameStateChangeListener(async () => {
-        picker?.close()
-    })
+    function attachCloseOnStateChange(_element: HTMLElement) {
+        const onGameStateChange = async () => {
+            picker?.close()
+        }
+
+        gameSession.addGameStateChangeListener(onGameStateChange)
+
+        return () => {
+            gameSession.removeGameStateChangeListener(onGameStateChange)
+        }
+    }
 </script>
 
 <SolPicker bind:this={picker} {onClose} offset={8} trigger="manual">
-    <div class="flex flex-row flex-wrap justify-center items-center gap-x-2">
+    <div
+        {@attach attachCloseOnStateChange}
+        class="flex flex-row flex-wrap justify-center items-center gap-x-2"
+    >
         <button
             onclick={increaseAmount}
             class="tracking-none leading-none text-4xl px-2 select-none rounded-full border-1 border-transparent overflow-hidden"
