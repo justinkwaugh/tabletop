@@ -11,7 +11,11 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Station, StationType } from '../components/stations.js'
 import { Activation } from '../model/activation.js'
-import { BASE_AWARD_PER_RING, CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
+import {
+    BASE_AWARD_PER_RING,
+    BONUS_AWARD_PER_RING,
+    CARDS_DRAWN_PER_RING
+} from '../utils/solConstants.js'
 import { MachineState } from '../definition/states.js'
 import { EffectType, HydratedActivateEffect, HydratedSolPlayerState, Ring } from '../index.js'
 
@@ -279,8 +283,60 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             ...state.board.stationsInRing(Ring.Outer),
             ...state.board.stationsInRing(Ring.Inner)
         ]
-        return stations.some((station) =>
+
+        if (!this.canAffordAllStations(state, playerId, stations)) {
+            return false
+        }
+
+        return stations.every((station) =>
             HydratedActivate.canActivateStationAt(state, playerId, station.coords!, true)
         )
+    }
+
+    static canAffordAllStations(
+        state: HydratedSolGameState,
+        playerId: string,
+        stations: Station[]
+    ): boolean {
+        const energyGain = stations
+            .filter((station) => station.type === StationType.EnergyNode)
+            .reduce((sum, station) => {
+                assertExists(station.coords, 'Station missing coordinates')
+                let gained = BASE_AWARD_PER_RING[station.coords.row]
+                if (station.playerId === playerId) {
+                    gained += BONUS_AWARD_PER_RING[station.coords.row]
+                }
+                return sum + gained
+            }, 0)
+
+        const playerState = state.getPlayerState(playerId)
+        const playerEnergyTotal = playerState.energyCubes + energyGain
+        const energyCost = stations
+            .filter(
+                (station) =>
+                    station.type === StationType.TransmitTower ||
+                    station.type === StationType.SundiverFoundry
+            )
+            .reduce((sum, station) => {
+                assertExists(station.coords, 'Station missing coordinates')
+                return sum + BASE_AWARD_PER_RING[station.coords!.row]
+            }, 0)
+
+        if (playerEnergyTotal < energyCost) {
+            return false
+        }
+
+        const sundiverCost = stations
+            .filter((station) => station.type === StationType.SundiverFoundry)
+            .reduce((sum, station) => {
+                assertExists(station.coords, 'Station missing coordinates')
+                return sum + BASE_AWARD_PER_RING[station.coords.row]
+            }, 0)
+
+        if (playerState.reserveSundivers.length < sundiverCost) {
+            return false
+        }
+
+        return true
     }
 }
