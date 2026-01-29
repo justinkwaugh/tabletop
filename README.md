@@ -17,35 +17,29 @@ The project is setup as a monorepo using [npm workspaces](https://docs.npmjs.com
 |--/fresh-fish-ui - The Svelte UI for Fresh Fish
 /libs
 |--/backend-services - A variety of services used by the backend
-|--/backend-games - A module used purely to define the game logic module dependencies
 |--/common - Shared game engine objects and types
-|--/config-eslint - Lint config
-|--/config-games - A module used to define which games are available
+|--/config-eslint - Shared eslint config
+|--/config-games - A module used to define which games/versions are available
+|--/config-rollup - Shared rollup config for bundling game UIs
+|--/config-vitest - Shared vitest config
 |--/email - React Email project for email editing / previewing
 |--/frontend-components - Shared frontend components
-|--/frontend-games - A module used purely to define the game UI module dependencies
+/tools
+|--/deploy - A TUI for deployment to GCP
+|--/scripts - Some useful scripts
 ```
 
 The frontend is run as a separate Vite process during development but for deployment is compiled into a static SPA and served by the backend. Game implementations are modular and could even be imported from external repositories.
 
-## How to install and run locally
-
 ### Prerequisites
 
 1. [Node](https://nodejs.org/en) / NPM - The latest should do
-1. [Docker](https://www.docker.com/)
+1. [Docker](https://www.docker.com/) (If you want to use dev containers and/or run the whole site locally)
 
 ### Setup For Dev Containers
 
 1. Clone the repository
 1. Open the repository in VSCode and then choose "Reopen in container" when prompted.
-1. Open a terminal in VSCode and run `turbo watch dev`
-1. Navigate to http://localhost:5173
-
-### Running Locally In A Dev Container
-
-1. Open a terminal in VSCode and run `turbo watch dev`
-1. If all has gone well, you can now go to http://localhost:5173 to view the site. The backend API will be running at http://localhost:3000 and the email preview site will be running at http://localhost:3001.
 
 ### Setup Without Dev Containers
 
@@ -54,10 +48,19 @@ The frontend is run as a separate Vite process during development but for deploy
 1. Run `npm install -g turbo`
 1. Run `turbo init-project` from the root
 
-### Running Locally
+## Run a Single Game Locally
 
-1. In a terminal window navigate to the root of the project and run `docker compose up` to start redis and the firestore emulator
-1. In another terminal window, run `turbo watch dev` to build and run the actual project locally.
+1. Open a terminal in VSCode
+1. Run `turbo watch dev --filter=<ui module>` (ex. @tabletop/fresh-fish-ui)
+1. Navigate to http://localhost:5173
+
+## Run the Whole Site Locally
+
+1. (If not using dev containers) Open a terminal in VSCode
+1. (If not using dev containers) Run `docker compose up` to start redis and the firestore emulator
+1. Open a terminal in VSCode
+1. Run `turbo stage-ui`
+1. Run `turbo watch dev`
 1. If all has gone well, you can now go to http://localhost:5173 to view the site. The backend API will be running at http://localhost:3000 and the email preview site will be running at http://localhost:3001.
 
 ### First Time Running Notes
