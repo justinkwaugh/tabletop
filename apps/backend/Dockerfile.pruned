@@ -4,25 +4,28 @@
 FROM docker.io/node:22-bookworm AS builder
 
 ENV HOST=0.0.0.0
-
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y make gcc g++ python3 curl
 
 COPY json/ /app/
+COPY pnpm-workspace.yaml /app/pnpm-workspace.yaml
 
-RUN npm ci
+RUN corepack enable && corepack prepare pnpm@9.15.5 --activate
+RUN pnpm install --frozen-lockfile
 
 COPY full/ /app/
 
-RUN npx turbo run build \
+RUN pnpm install --frozen-lockfile
+
+RUN pnpm turbo run build --no-cache --no-daemon \
     --filter=@tabletop/common \
     --filter=@tabletop/backend-services \
     --filter=@tabletop/email \
     --filter=@tabletop/games-config \
     --filter=@tabletop/backend
 
-RUN npm prune --omit=dev
+RUN pnpm prune --prod --yes
 
 RUN if [ -f /app/apps/backend/.env.prod ]; then cp /app/apps/backend/.env.prod /app/apps/backend/.env; fi
 

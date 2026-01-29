@@ -14,16 +14,16 @@
         "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts"
     },
     "dependencies": {
-        "@tabletop/common": "*",
+        "@tabletop/common": "workspace:*",
         "es-iterator-helpers": "^1.2.2",
         "typebox": "^1.0.79"
     },
     "devDependencies": {
         "@babel/core": "^7.28.6",
         "@babel/preset-env": "^7.28.6",
-        "@tabletop/eslint-config": "*",
-        "@tabletop/rollup-config": "*",
-        "@tabletop/vitest-config": "*",
+        "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/rollup-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*",
         "@typescript/native-preview": "*",
         "rimraf": "^6.1.0",
         "rollup": "4.55.2",

@@ -4,7 +4,7 @@
     "version": "0.0.0",
     "exports": "./index.js",
     "dependencies": {
-        "@tabletop/games-config": "*",
+        "@tabletop/games-config": "workspace:*",
         "@rollup/plugin-commonjs": "^29.0.0",
         "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^0.4.4",

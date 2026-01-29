@@ -27,14 +27,15 @@
     --color-secondary-900: #0c4a6e;
 }
 
-@source "../../../node_modules/flowbite-svelte/dist";
-@source "../../../node_modules/flowbite-svelte-icons/dist";
-@source "../../../node_modules/@tabletop/fresh-fish-ui/**/*.{html,js,svelte,ts}";
-@source "../../../node_modules/@tabletop/bridges-of-shangri-la-ui/**/*.{html,js,svelte,ts}";
-@source "../../../node_modules/@tabletop/kaivai-ui/**/*.{html,js,svelte,ts}";
-@source "../../../node_modules/@tabletop/estates-ui/**/*.{html,js,svelte,ts}";
-@source "../../../node_modules/@tabletop/sol-ui/**/*.{html,js,svelte,ts}";
-@source "../../../node_modules/@tabletop/frontend-components/**/*.{html,js,svelte,ts}";
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../games/fresh-fish-ui/src/**/*.{html,js,svelte,ts}";
+@source "../../../games/bridges-of-shangri-la-ui/src/**/*.{html,js,svelte,ts}";
+@source "../../../games/kaivai-ui/src/**/*.{html,js,svelte,ts}";
+@source "../../../games/estates-ui/src/**/*.{html,js,svelte,ts}";
+@source "../../../games/sol-ui/src/**/*.{html,js,svelte,ts}";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
 
 @layer base {
     /* disable chrome cancel button */

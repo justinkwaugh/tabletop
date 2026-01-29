@@ -9,6 +9,10 @@
     "private": true,
     "scripts": {
         "clean": "rimraf esm",
-        "build": "tsc"
+        "build": "tsgo"
+    },
+    "devDependencies": {
+        "@typescript/native-preview": "*",
+        "typescript": "5.9.3"
     }
 }

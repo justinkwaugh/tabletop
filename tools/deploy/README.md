@@ -7,14 +7,14 @@ Ink-based TUI and CLI for managing `site-manifest.json`, version bumps, builds, 
 From repo root (installs dependencies; build is still required to create the bin entrypoint):
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## Quick start
 
 ```bash
-npm run build --workspace @tabletop/deploy
-npm exec --workspace @tabletop/deploy -- tabletop-deploy tui
+pnpm --filter @tabletop/deploy run build
+pnpm --filter @tabletop/deploy exec -- tabletop-deploy tui
 ```
 
 Or run the compiled file directly:
@@ -26,9 +26,9 @@ node tools/deploy/esm/cli.js tui
 Or use the root script:
 
 ```bash
-npm run deploy:tui
+pnpm run deploy:tui
 ```
-Note: the root script runs the compiled file; run `npm run build --workspace @tabletop/deploy` first if needed.
+Note: the root script runs the compiled file; run `pnpm --filter @tabletop/deploy run build` first if needed.
 
 ## TUI capabilities
 

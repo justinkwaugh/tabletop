@@ -27,9 +27,10 @@
     --color-secondary-900: #0c4a6e;
 }
 
-@source "../../../node_modules/flowbite-svelte/dist";
-@source "../../../node_modules/flowbite-svelte-icons/dist";
-@source "../../../node_modules/@tabletop/frontend-components/**/*.{html,js,svelte,ts}";
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
 
 @layer base {
     /* disable chrome cancel button */

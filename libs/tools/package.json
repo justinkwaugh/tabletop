@@ -9,14 +9,14 @@
     },
     "dependencies": {
         "@dotenvx/dotenvx": "^1.51.4",
-        "@tabletop/backend-services": "*",
+        "@tabletop/backend-services": "workspace:*",
         "discord.js": "^14.15.3",
         "web-push": "3.6.7"
     },
     "devDependencies": {
-        "@tabletop/vitest-config": "*",
-        "@tabletop/backend-services": "*",
-        "@tabletop/eslint-config": "*",
+        "@tabletop/vitest-config": "workspace:*",
+        "@tabletop/backend-services": "workspace:*",
+        "@tabletop/eslint-config": "workspace:*",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3"
     }

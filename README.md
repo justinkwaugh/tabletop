@@ -6,7 +6,7 @@ The project is served at [Board Together](https://boardtogether.games), which is
 
 ## Project organization
 
-The project is setup as a monorepo using [npm workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces) and [Turbo](https://turbo.build) to aid in rapid compilation and development. The workspaces are organized as follows:
+The project is setup as a monorepo using [pnpm workspaces](https://pnpm.io/workspaces) and [Turbo](https://turbo.build) to aid in rapid compilation and development. The workspaces are organized as follows:
 
 ```
 /apps
@@ -33,7 +33,7 @@ The frontend is run as a separate Vite process during development but for deploy
 
 ### Prerequisites
 
-1. [Node](https://nodejs.org/en) / NPM - The latest should do
+1. [Node](https://nodejs.org/en) (Corepack enabled for pnpm)
 1. [Docker](https://www.docker.com/) (If you want to use dev containers and/or run the whole site locally)
 
 ### Setup For Dev Containers
@@ -44,14 +44,13 @@ The frontend is run as a separate Vite process during development but for deploy
 ### Setup Without Dev Containers
 
 1. Clone the repository
-1. Run `npm install` from the root.
-1. Run `npm install -g turbo`
-1. Run `turbo init-project` from the root
+1. Run `pnpm install` from the root.
+1. Run `pnpm turbo init-project` from the root
 
 ## Run a Single Game Locally
 
 1. Open a terminal in VSCode
-1. Run `turbo watch dev --filter=<ui module>` (ex. @tabletop/fresh-fish-ui)
+1. Run `pnpm turbo watch dev --filter=<ui module>` (ex. @tabletop/fresh-fish-ui)
 1. Navigate to http://localhost:5173
 
 ## Run the Whole Site Locally
@@ -59,8 +58,8 @@ The frontend is run as a separate Vite process during development but for deploy
 1. (If not using dev containers) Open a terminal in VSCode
 1. (If not using dev containers) Run `docker compose up` to start redis and the firestore emulator
 1. Open a terminal in VSCode
-1. Run `turbo stage-ui`
-1. Run `turbo watch dev`
+1. Run `pnpm turbo stage-ui`
+1. Run `pnpm turbo watch dev`
 1. If all has gone well, you can now go to http://localhost:5173 to view the site. The backend API will be running at http://localhost:3000 and the email preview site will be running at http://localhost:3001.
 
 ### First Time Running Notes

@@ -28,7 +28,7 @@
         "node": ">=18"
     },
     "name": "tabletop",
-    "packageManager": "npm@11.6.1",
+    "packageManager": "pnpm@9.15.5",
     "workspaces": [
         "libs/*",
         "games/*",
