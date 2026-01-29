@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  typescript-retry-decorator:
+    hash: hwc5fprmx2cufi5r3676ga5mbu
+    path: patches/typescript-retry-decorator.patch
+
 importers:
 
   .:
@@ -127,8 +132,8 @@ importers:
         specifier: ^1.0.79
         version: 1.0.80
       typescript-retry-decorator:
-        specifier: ^2.5.1
-        version: 2.5.2
+        specifier: 2.5.1
+        version: 2.5.1(patch_hash=hwc5fprmx2cufi5r3676ga5mbu)
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -1295,8 +1300,8 @@ importers:
         specifier: ^1.0.79
         version: 1.0.80
       typescript-retry-decorator:
-        specifier: ^2.5.1
-        version: 2.5.2
+        specifier: 2.5.1
+        version: 2.5.1(patch_hash=hwc5fprmx2cufi5r3676ga5mbu)
       web-push:
         specifier: ^3.6.7
         version: 3.6.7
@@ -7328,8 +7333,8 @@ packages:
     resolution: {integrity: sha512-3KS2b+kL7fsuk/eJZ7EQdnEmQoaho/r6KUef7hxvltNA5DR8NAUM+8wJMbJyZ4G9/7i3v5zPBIMN5aybAh2/Jg==}
     engines: {node: '>= 0.4'}
 
-  typescript-retry-decorator@2.5.2:
-    resolution: {integrity: sha512-dE8WmCwjlf9pPed4HccZL+aKAc1WiHMkMa0qpLc9Wd1cpyQzXUlXnlt7ZwFPG1T1digapmQuzxe4Hy3J/bxT4A==}
+  typescript-retry-decorator@2.5.1:
+    resolution: {integrity: sha512-B0Ie7dB8kMsM8d4uEP49MD1yiS8Z0dALLFf72rRBT8pPNyoEjQBnX6++25P6dnJ/iC7+o0TvUSB0m1Boi3SOfw==}
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -13773,7 +13778,7 @@ snapshots:
       possible-typed-array-names: 1.1.0
       reflect.getprototypeof: 1.0.10
 
-  typescript-retry-decorator@2.5.2: {}
+  typescript-retry-decorator@2.5.1(patch_hash=hwc5fprmx2cufi5r3676ga5mbu): {}
 
   typescript@5.9.3: {}
 
