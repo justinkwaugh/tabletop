@@ -246,6 +246,10 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             EffectType.Motivate
         )
 
+        const canMotivate =
+            (hasMotivateCard && state.getEffectTracking().convertedStation) ||
+            state.activeEffect === EffectType.Motivate
+
         if (pulse || state.activeEffect === EffectType.Pulse) {
             if (coords.row !== Ring.Outer && coords.row !== Ring.Inner) {
                 return false
@@ -254,7 +258,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             if (station.playerId !== playerId || coords.row !== Ring.Outer) {
                 return false
             }
-        } else if (state.activeEffect !== EffectType.Motivate && !hasMotivateCard) {
+        } else if (!canMotivate) {
             if (state.board.sundiversForPlayerAt(playerId, coords).length === 0) {
                 return false
             }
