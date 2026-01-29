@@ -1,4 +1,5 @@
 <script lang="ts">
+    /* eslint-disable svelte/prefer-svelte-reactivity */
     import { T } from '@threlte/core'
     import {
         Barrier,

@@ -45,11 +45,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
             castShadow
             receiveShadow
         >
-            <T.MeshPhysicalMaterial
-                color={'#AAAAAA'}
-                clearcoat={1}
-                clearcoatRoughness={0.33}
-            /></T.Mesh
+            <T.MeshPhysicalMaterial color="#AAAAAA" clearcoat={1} clearcoatRoughness={0.33} /></T.Mesh>
         >
 
         {#if stripes === 1 || stripes === 3}
@@ -62,11 +58,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 depthOffset={-1}
                 geometry={gltf.nodes.blankblockerv2001.geometry}
             >
-                <T.MeshPhysicalMaterial
-                    color={'#EEEEEE'}
-                    clearcoat={1}
-                    clearcoatRoughness={0.33}
-                /></T.Mesh
+                <T.MeshPhysicalMaterial color="#EEEEEE" clearcoat={1} clearcoatRoughness={0.33} /></T.Mesh>
             >
         {/if}
 
@@ -81,11 +73,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 depthOffset={-1}
                 geometry={gltf.nodes.blankblockerv2001.geometry}
             >
-                <T.MeshPhysicalMaterial
-                    color={'#EEEEEE'}
-                    clearcoat={1}
-                    clearcoatRoughness={0.33}
-                /></T.Mesh
+                <T.MeshPhysicalMaterial color="#EEEEEE" clearcoat={1} clearcoatRoughness={0.33} /></T.Mesh>
             >
         {/if}
 
@@ -100,11 +88,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 depthOffset={-1}
                 geometry={gltf.nodes.blankblockerv2001.geometry}
             >
-                <T.MeshPhysicalMaterial
-                    color={'#EEEEEE'}
-                    clearcoat={1}
-                    clearcoatRoughness={0.33}
-                /></T.Mesh
+                <T.MeshPhysicalMaterial color="#EEEEEE" clearcoat={1} clearcoatRoughness={0.33} /></T.Mesh>
             >
         {/if}
     {:catch error}

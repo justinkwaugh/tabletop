@@ -2,6 +2,7 @@
     import { type GameUiDefinition, GameEditForm } from '@tabletop/frontend-components'
     import { Card, Button, Modal } from 'flowbite-svelte'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
     import {
         GameStorage,
         type Game,
@@ -23,9 +24,9 @@
     async function onGameCreate(game: Game) {
         await closeCreateModal()
         if (game.storage === GameStorage.Local) {
-            goto(`/game/${game.id}`)
+            goto(resolve(`/game/${game.id}`))
         } else if (!game.isPublic) {
-            goto('/dashboard')
+            goto(resolve('/dashboard'))
         }
     }
 

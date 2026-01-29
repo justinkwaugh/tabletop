@@ -1,4 +1,5 @@
 import { goto } from '$app/navigation'
+import { resolve } from '$app/paths'
 import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
 import { AuthorizationCategory } from '@tabletop/frontend-components'
 import { getAppContext } from '$lib/stores/appContext.svelte.js'
@@ -21,7 +22,7 @@ export const load: PageLoad = async ({ params, url }) => {
             onceMounted(() => {
                 toast.error('The specified game was not found')
             })
-            await goto('/dashboard')
+            await goto(resolve('/dashboard'))
             return
         }
 
@@ -29,7 +30,7 @@ export const load: PageLoad = async ({ params, url }) => {
             onceMounted(() => {
                 toast.error('The specified game has not been started')
             })
-            await goto('/dashboard')
+            await goto(resolve('/dashboard'))
             return
         }
 
@@ -39,7 +40,7 @@ export const load: PageLoad = async ({ params, url }) => {
             onceMounted(() => {
                 toast.error('The specified game is not supported')
             })
-            await goto('/dashboard')
+            await goto(resolve('/dashboard'))
             return
         }
 
@@ -70,6 +71,6 @@ export const load: PageLoad = async ({ params, url }) => {
         onceMounted(() => {
             toast.error('Unable to load the game')
         })
-        await goto('/dashboard')
+        await goto(resolve('/dashboard'))
     }
 }

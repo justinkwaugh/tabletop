@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import type { Game, GameState, HydratedGameState, Player } from '@tabletop/common'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
 import { RuneBackedStore } from '$lib/utils/runeBackedStore.svelte.js'

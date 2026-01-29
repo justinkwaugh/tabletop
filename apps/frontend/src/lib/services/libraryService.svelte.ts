@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import { type GameUiDefinition } from '@tabletop/frontend-components'
 import { GameState, Role, User, type HydratedGameState } from '@tabletop/common'
 import type { ManifestService } from './manifestService.js'
@@ -61,7 +62,7 @@ export class LibraryService {
                         throw new Error('Missing UiDefinition export')
                     }
                     definitions.push(gameDefinition)
-                } catch (error) {
+                } catch {
                     console.log(
                         `Could not load game module for ${game.gameId} (${game.packageId}) at ${game.uiVersion}`
                     )

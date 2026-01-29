@@ -1,10 +1,10 @@
 import type { NotificationListener, NotificationService } from "$lib/services/notificationService.js";
 
 export class DummyNotificationService implements NotificationService {
-    listenToGame(gameId: string) {}
-    stopListeningToGame(gameId: string) {}
-    addListener(listener: NotificationListener) {}
-    removeListener(listener: NotificationListener) {}
+    listenToGame(_gameId: string) {}
+    stopListeningToGame(_gameId: string) {}
+    addListener(_listener: NotificationListener) {}
+    removeListener(_listener: NotificationListener) {}
 
     // These should probably not be here
     onMounted(): void {}

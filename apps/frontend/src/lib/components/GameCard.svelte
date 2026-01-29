@@ -3,6 +3,7 @@
     import { Game, GameStatus, PlayerStatus, GameResult, ConfigOptionType } from '@tabletop/common'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
     import TimeAgo from 'javascript-time-ago'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
@@ -143,7 +144,7 @@
     async function startGame(event: Event) {
         event.stopPropagation()
         game = await gameService.startGame(game)
-        await goto(`/game/${game.id}`)
+        await goto(resolve(`/game/${game.id}`))
         onstart?.(game)
     }
 
@@ -172,7 +173,7 @@
 
     async function playGame(event: Event) {
         event.stopPropagation()
-        await goto(`/game/${game.id}`)
+        await goto(resolve(`/game/${game.id}`))
     }
 
     function isActive(playerId: string) {
@@ -430,7 +431,7 @@
         {#if Object.keys(displayableConfigs).length > 0}
             <div class="p-2 flex flex-col text-xs text-gray-400">
                 <Hr class="mt-1 mb-1" />
-                {#each Object.entries(displayableConfigs) as [key, value]}
+                {#each Object.entries(displayableConfigs) as [key, value] (key)}
                     <div class="flex flex-row justify-between">
                         <div>{key}</div>
                         <div>{value}</div>

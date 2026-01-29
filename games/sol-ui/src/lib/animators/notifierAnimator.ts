@@ -29,7 +29,7 @@ export class NotifierAnimator extends StateAnimator<
     SolGameSession
 > {
     override async onGameStateChange({
-        to,
+        to: _to,
         from,
         action,
         animationContext

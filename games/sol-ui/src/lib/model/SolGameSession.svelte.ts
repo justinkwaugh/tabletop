@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import { AnimationContext, GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
@@ -231,10 +232,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     skipReset = false
 
     override async onGameStateChange({
-        to,
-        from,
+        to: _to,
+        from: _from,
         action,
-        animationContext
+        animationContext: _animationContext
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState
@@ -501,7 +502,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)
         ) {
             // console.log('checking gates')
-            do {
+            for (;;) {
                 const choiceData = this.getGateChoices(
                     this.chosenSource,
                     this.chosenDestination,
@@ -531,7 +532,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 } else {
                     break
                 }
-            } while (true)
+            }
         }
 
         const playerDivers = this.gameState.board

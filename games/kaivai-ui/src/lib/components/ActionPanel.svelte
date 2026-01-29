@@ -96,6 +96,8 @@ import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
                             return 'Place your boat building hut'
                         case HutType.Fishing:
                             return 'Place your fishing hut'
+                        default:
+                            return ''
                     }
                 }
             case ActionType.Fish:
@@ -116,6 +118,7 @@ import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
                 } else if (gameSession.validDeliveryLocationIds.length > 0) {
                     return 'Choose any delivery location'
                 }
+                return ''
             case ActionType.Move:
                 if (!gameSession.chosenBoat) {
                     return 'Choose a boat to move'

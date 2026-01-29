@@ -89,7 +89,7 @@ export class AblyConnection implements RealtimeConnection {
                 if (this.handler) {
                     this.handler(realtimeEvent)
                 }
-            } catch (e) {
+            } catch {
                 console.error('Error handling realtime message', message)
                 return
             }
@@ -107,7 +107,7 @@ export class AblyConnection implements RealtimeConnection {
         channelData.ablyChannel.unsubscribe()
         try {
             await channelData.ablyChannel.detach()
-        } catch (e) {
+        } catch {
             // ignore detach errors
         }
 

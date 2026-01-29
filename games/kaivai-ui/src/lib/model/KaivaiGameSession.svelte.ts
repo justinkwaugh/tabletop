@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import { AnimationContext, GameSession } from '@tabletop/frontend-components'
 import yellowHut from '$lib/images/yellowhut.png'
 import yellowHut2 from '$lib/images/yellowhut2.png'
@@ -47,7 +48,6 @@ import {
     sameCoordinates,
     type AxialCoordinates
 } from '@tabletop/common'
-import { SvelteSet } from 'svelte/reactivity'
 
 export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaivaiGameState> {
     chosenAction: string | undefined = $state(undefined)
@@ -232,10 +232,10 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
     })
 
     override async onGameStateChange({
-        to,
-        from,
-        action,
-        animationContext
+        to: _to,
+        from: _from,
+        action: _action,
+        animationContext: _animationContext
     }: {
         to: HydratedKaivaiGameState
         from?: HydratedKaivaiGameState

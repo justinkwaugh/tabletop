@@ -39,7 +39,7 @@ Command: npx @threlte/gltf@2.0.3 public/roof.gltf --types --debug
             scale={0.05}
             geometry={gltf.nodes.roof.geometry}
         >
-            <T.MeshPhysicalMaterial color={'#333333'} clearcoat={1} clearcoatRoughness={0.33} />
+            <T.MeshPhysicalMaterial color="#333333" clearcoat={1} clearcoatRoughness={0.33} />
         </T.Mesh>
     {:catch error}
         <slot name="error" {error} />

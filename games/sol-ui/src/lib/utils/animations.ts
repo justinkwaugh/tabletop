@@ -233,8 +233,7 @@ export function call({
     callback,
     duration,
     position,
-    timeline,
-    onComplete
+    timeline
 }: {
     callback: gsap.Callback
     params?: object
@@ -242,7 +241,6 @@ export function call({
     ease?: gsap.EaseString | gsap.EaseFunction
     position?: gsap.Position
     timeline?: gsap.core.Timeline
-    onComplete?: () => void
 }) {
     const myTimeline = timeline || gsap.timeline()
     myTimeline.call(callback, [], position)
@@ -270,7 +268,7 @@ function performAnimation({
     timeline
 }: {
     object?: SVGElement | HTMLElement
-    params?: any
+    params?: gsap.TweenVars
     position?: gsap.Position
     timeline?: gsap.core.Timeline
 }): gsap.core.Timeline | undefined {
@@ -279,7 +277,8 @@ function performAnimation({
     }
 
     const myTimeline = timeline || gsap.timeline()
-    myTimeline.to(object, params, position ?? (timeline ? undefined : 0))
+    const resolvedParams = params ?? {}
+    myTimeline.to(object, resolvedParams, position ?? (timeline ? undefined : 0))
 
     if (!timeline) {
         myTimeline.play()

@@ -24,8 +24,7 @@ import {
     GameStorage,
     GameCategory,
     RunMode,
-    PlayerStatus,
-    assertExists
+    PlayerStatus
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'

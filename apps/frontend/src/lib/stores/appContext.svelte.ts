@@ -6,9 +6,9 @@ import { GameService } from '$lib/services/gameService.svelte'
 import { LibraryService } from '$lib/services/libraryService.svelte'
 import { ManifestService } from '$lib/services/manifestService'
 import { FRONTEND_VERSION } from '$lib/version'
-import { AblyConnection } from '$lib/network/ablyConnection.svelte'
+import { AblyConnection } from '$lib/network/ablyConnection'
 import { ChatService } from '$lib/services/chatService.svelte'
-import { SseConnection } from '$lib/network/sseConnection.svelte.js'
+import { SseConnection } from '$lib/network/sseConnection'
 const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, FRONTEND_VERSION)
 console.log('Initialized API with frontend version:', FRONTEND_VERSION)
 const manifestService = new ManifestService(api)

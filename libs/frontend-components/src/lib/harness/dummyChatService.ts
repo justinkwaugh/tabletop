@@ -4,11 +4,14 @@ import type { GameChat, GameChatMessage } from '@tabletop/common'
 export class DummyChatService implements ChatService {
     currentGameChat: GameChat | undefined
     hasUnreadMessages: boolean = false
-    setGameId(gameId: string): void {}
-    async sendGameChatMessage(gameChatMessage: GameChatMessage, gameId: string): Promise<void> {}
-    async setGameChatBookmark(lastReadTimestamp: Date): Promise<void> {}
+    setGameId(_gameId: string): void {}
+    async sendGameChatMessage(
+        _gameChatMessage: GameChatMessage,
+        _gameId: string
+    ): Promise<void> {}
+    async setGameChatBookmark(_lastReadTimestamp: Date): Promise<void> {}
     async markLatestRead(): Promise<void> {}
-    addListener(listener: ChatListener): void {}
-    removeListener(listener: ChatListener): void {}
+    addListener(_listener: ChatListener): void {}
+    removeListener(_listener: ChatListener): void {}
     clear(): void {}
 }

@@ -27,10 +27,10 @@ export class FreshFishGameSession extends GameSession<
     highlightedCoords: OffsetTupleCoordinates | undefined = $state()
 
     override async onGameStateChange({
-        to,
-        from,
-        action,
-        animationContext
+        to: _to,
+        from: _from,
+        action: _action,
+        animationContext: _animationContext
     }: {
         to: HydratedFreshFishGameState
         from?: HydratedFreshFishGameState

@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import {
     Game,
     GameStatus,
@@ -7,8 +8,7 @@ import {
     GameEngine,
     GameStorage,
     GameCategory,
-    RunMode,
-    assertExists
+    RunMode
 } from '@tabletop/common'
 import { SvelteMap } from 'svelte/reactivity'
 import { nanoid } from 'nanoid'
@@ -72,7 +72,7 @@ export class HarnessGameService implements GameService {
         await this.loadLocalGames()
     }
 
-    async loadOpenGames(titleId: string) {
+    async loadOpenGames(_titleId: string) {
         return
     }
 
@@ -224,7 +224,7 @@ export class HarnessGameService implements GameService {
         return startedGame
     }
 
-    async updateGame(game: Partial<Game>): Promise<Game> {
+    async updateGame(_game: Partial<Game>): Promise<Game> {
         throw new Error('Not implemented in harness')
     }
 
@@ -262,15 +262,15 @@ export class HarnessGameService implements GameService {
         }
     }
 
-    async startGame(game: Game): Promise<Game> {
+    async startGame(_game: Game): Promise<Game> {
         throw new Error('Not implemented in harness')
     }
 
-    async joinGame(gameId: string): Promise<Game> {
+    async joinGame(_gameId: string): Promise<Game> {
         throw new Error('Not implemented in harness')
     }
 
-    async declineGame(gameId: string): Promise<Game> {
+    async declineGame(_gameId: string): Promise<Game> {
         throw new Error('Not implemented in harness')
     }
 

@@ -7,9 +7,10 @@
         isEnabled as isDiscordLoginEnabled
     } from '$lib/components/DiscordSignIn.svelte'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
 
     function gotoLocalLogin() {
-        goto('/login/username')
+        goto(resolve('/login/username'))
     }
 </script>
 
@@ -17,10 +18,10 @@
     <Card class="p-4 sm:p-6">
         <h1 class="text-5xl font-medium text-gray-900 dark:text-gray-300 mb-6">Welcome!</h1>
         {#if isGoogleLoginEnabled}
-            <div class="mb-2"><GoogleSignIn mode={'login'} /></div>
+            <div class="mb-2"><GoogleSignIn mode="login" /></div>
         {/if}
         {#if isGoogleLoginEnabled}
-            <div><DiscordSignIn mode={'login'} /></div>
+            <div><DiscordSignIn mode="login" /></div>
         {/if}
         {#if isGoogleLoginEnabled || isDiscordLoginEnabled}
             <Hr class="my-8 w-64" innerDivClass="dark:bg-gray-800 dark:text-gray-300">or</Hr>
@@ -31,7 +32,7 @@
 
         <P color="dark:text-gray-300"
             >Need an account?&nbsp;&nbsp;<A
-                href="/signup"
+                href={resolve('/signup')}
                 class="font-medium hover:none dark:text-orange-300">Sign up</A
             ></P
         >

@@ -124,7 +124,7 @@
                         ms-2 text-white dark:text-white"
                     /></Button
                 ><Dropdown simple={true} class="min-w-[100px]">
-                    {#each gameService.activeGames as game}
+                    {#each gameService.activeGames as game (game.id)}
                         {@render gameDropdownItem(game)}
                     {/each}
                 </Dropdown>
@@ -132,7 +132,7 @@
                 <Button size="xs"
                     >Finished<ChevronDownOutline class="ms-2 text-white dark:text-white" /></Button
                 ><Dropdown simple={true} class="min-w-[100px]">
-                    {#each gameService.finishedGames as game}
+                    {#each gameService.finishedGames as game (game.id)}
                         {@render gameDropdownItem(game)}
                     {/each}
                 </Dropdown>

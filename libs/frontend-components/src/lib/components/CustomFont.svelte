@@ -15,5 +15,6 @@
 </script>
 
 <svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html fontStyle}
 </svelte:head>

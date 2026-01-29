@@ -1,5 +1,6 @@
 import { Role, UserStatus, type User } from '@tabletop/common'
 import { goto } from '$app/navigation'
+import { resolve } from '$app/paths'
 import { redirect } from '@sveltejs/kit'
 import type { TabletopApi } from '@tabletop/frontend-components'
 
@@ -107,16 +108,17 @@ export class AuthorizationService {
         this.setSessionUser(user)
 
         if (this.continueUrl) {
+            // eslint-disable-next-line svelte/no-navigation-without-resolve
             await goto(this.continueUrl)
             this.continueUrl = undefined
         } else {
-            await goto('/activeGamesCheck')
+            await goto(resolve('/activeGamesCheck'))
         }
     }
 
     public async onLogout() {
         this.clearSessionUser()
-        await goto('/login')
+        await goto(resolve('/login'))
     }
 
     private async loadSessionUser() {
@@ -129,7 +131,7 @@ export class AuthorizationService {
             ) {
                 this.setSessionUser(sessionUser)
             }
-        } catch (e) {
+        } catch {
             // do nothing
         }
     }

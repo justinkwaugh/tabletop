@@ -11,20 +11,20 @@ export class HarnessLibraryService implements LibraryService {
 
     async whenReady(): Promise<void> {}
 
-    getTitles(user: User): GameUiDefinition<GameState, HydratedGameState>[] {
+    getTitles(_user: User): GameUiDefinition<GameState, HydratedGameState>[] {
         return [this.definition]
     }
 
-    getTitle(id: string): GameUiDefinition<GameState, HydratedGameState> | undefined {
+    getTitle(_id: string): GameUiDefinition<GameState, HydratedGameState> | undefined {
         return this.definition
     }
-    getUiVersionForTitle(id: string): string | undefined {
+    getUiVersionForTitle(_id: string): string | undefined {
         return this.definition.info.metadata.version
     }
-    getNameForTitle(id: string): string {
+    getNameForTitle(_id: string): string {
         return this.definition.info.metadata.name
     }
-    getThumbnailForTitle(id: string): string {
+    getThumbnailForTitle(_id: string): string {
         return this.definition.info.thumbnailUrl
     }
 }

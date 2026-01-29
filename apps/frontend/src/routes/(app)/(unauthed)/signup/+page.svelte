@@ -5,6 +5,7 @@
     import { zfd } from 'zod-form-data'
 
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
     import { getAppContext, trim } from '@tabletop/frontend-components'
 
     const { authorizationService, api } = getAppContext()
@@ -39,7 +40,7 @@
             const newUser = await api.createUser(data)
             form.reset()
             authorizationService.setSessionUser(newUser)
-            goto('/library')
+            goto(resolve('/library'))
         } catch (e) {
             if (e instanceof Error && e.name === 'AlreadyExistsError') {
                 if (e.message.includes('username')) {
@@ -65,7 +66,7 @@
     }
 
     function backToLogin() {
-        goto('/login')
+        goto(resolve('/login'))
     }
 </script>
 

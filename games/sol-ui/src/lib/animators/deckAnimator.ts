@@ -1,17 +1,9 @@
-import {
-    DrawCards,
-    HydratedSolGameState,
-    isDrawCards,
-    isSolarFlare,
-    MachineState,
-    SolarFlare,
-    type SolGameState
-} from '@tabletop/sol'
+import { HydratedSolGameState, MachineState, type SolGameState } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
 import type { GameAction } from '@tabletop/common'
-import { animate, scale } from '$lib/utils/animations.js'
+import { scale } from '$lib/utils/animations.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
 
 export class DeckAnimator extends StateAnimator<
@@ -33,8 +25,8 @@ export class DeckAnimator extends StateAnimator<
 
     override async onGameStateChange({
         to,
-        from,
-        action,
+        from: _from,
+        action: _action,
         animationContext
     }: {
         to: HydratedSolGameState

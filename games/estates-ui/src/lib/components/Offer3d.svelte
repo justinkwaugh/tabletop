@@ -1,4 +1,5 @@
 <script lang="ts">
+    /* eslint-disable svelte/prefer-svelte-reactivity */
     import { T, type Props } from '@threlte/core'
     import {
         BarrierDirection,

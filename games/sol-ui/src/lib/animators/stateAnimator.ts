@@ -53,8 +53,11 @@ export abstract class StateAnimator<
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyAnimator = StateAnimator<any, any, any>
+
 export function attachAnimator(
-    animator: StateAnimator<any, any, any>
+    animator: AnyAnimator
 ): (element: HTMLElement | SVGElement) => () => void {
     return (element: HTMLElement | SVGElement) => {
         animator.setElement(element)
@@ -72,7 +75,7 @@ export function attachAnimator(
 
 export function animate(
     node: HTMLElement | SVGElement,
-    params: { animator: StateAnimator<any, any, any> }
+    params: { animator: AnyAnimator }
 ): { destroy: () => void } {
     params.animator.setElement(node)
     params.animator.onAttach()

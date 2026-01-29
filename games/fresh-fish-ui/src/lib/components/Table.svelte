@@ -62,7 +62,7 @@
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="grow-0 overflow-hidden min-h-[200px]" style="flex:1;">
-                <ScalingWrapper justify={'center'} controls={'top-right'}>
+                <ScalingWrapper justify="center" controls="top-right">
                     <div class="w-fit h-fit">
                         <GameDataPanel />
                         <Board />

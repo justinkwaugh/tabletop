@@ -360,7 +360,7 @@
         required
     />
     {#if errors?.name}
-        {#each errors.name as error}
+        {#each errors.name as error, i (i)}
             <Helper class="mb-2" color="red"><span class="font-medium">{error}</span></Helper>
         {/each}
     {/if}
@@ -368,7 +368,7 @@
         <span>Player Count</span>
     </Label>
     <ButtonGroup>
-        {#each range(minPlayers, maxPlayers - minPlayers + 1) as i}
+        {#each range(minPlayers, maxPlayers - minPlayers + 1) as i (i)}
             <RadioButton
                 value={i}
                 checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
@@ -455,7 +455,7 @@
                 >
             {/if}
             {#if errors[player.id]}
-                {#each errors[player.id] as error}
+                {#each errors[player.id] as error, i (i)}
                     <Helper color="red"><span class="font-medium">{error}</span></Helper>
                 {/each}
             {/if}

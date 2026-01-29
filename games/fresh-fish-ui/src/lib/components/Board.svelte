@@ -11,8 +11,8 @@ import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svel
         .length}, 100px); grid-template-columns: repeat({gameSession.gameState.board.cells[0]
         .length}, 100px); column-gap: 1px; row-gap: 1px;"
 >
-    {#each gameSession.gameState.board.cells ?? [] as row, y}
-        {#each row as cell, x}
+    {#each gameSession.gameState.board.cells ?? [] as row, y (y)}
+        {#each row as cell, x (`${x}:${y}`)}
             <Cell {cell} coords={[x, y]} />
         {/each}
     {/each}

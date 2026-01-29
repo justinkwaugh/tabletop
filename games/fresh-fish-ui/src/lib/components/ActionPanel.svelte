@@ -16,10 +16,11 @@
 
     async function chooseAction(action: string) {
         switch (action) {
-            case ActionType.DrawTile:
+            case ActionType.DrawTile: {
                 const drawTileAction = gameSession.createDrawTileAction()
                 await gameSession.applyAction(drawTileAction)
                 break
+            }
             default:
                 gameSession.chosenAction = action
                 break
@@ -124,7 +125,7 @@
                 >
             {/if}
             {#if showActions}
-                {#each gameSession.validActionTypes as action}
+                {#each gameSession.validActionTypes as action (action)}
                     <Button
                         onclick={async () => chooseAction(action)}
                         size="xs"

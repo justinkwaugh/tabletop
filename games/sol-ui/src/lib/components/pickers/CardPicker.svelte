@@ -1,4 +1,5 @@
 <script lang="ts">
+    /* eslint-disable svelte/prefer-svelte-reactivity */
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { MachineState, Suit } from '@tabletop/sol'
     import Card from '$lib/components/Card.svelte'

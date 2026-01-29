@@ -71,8 +71,8 @@ export class InstabilityAnimator extends StateAnimator<
     async animateSolarFlare(
         action: SolarFlare,
         timeline: gsap.core.Timeline,
-        toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        _toState: HydratedSolGameState,
+        _fromState?: HydratedSolGameState
     ) {
         this.gameSession.forcedCallToAction = "A SOLAR FLARE INCREASES THE SUN'S INSTABILITY..."
         ensureDuration(timeline, 1.5)

@@ -3,6 +3,7 @@
     import GameCard from '$lib/components/GameCard.svelte'
     import type { Game } from '@tabletop/common'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
 
     let { data }: { data: { game: Game } } = $props()
 
@@ -10,7 +11,7 @@
 
     function gotoDashboard() {
         invitationGame = undefined
-        goto('/dashboard')
+        goto(resolve('/dashboard'))
     }
 </script>
 
@@ -23,7 +24,7 @@
             {#if invitationGame}
                 <GameCard
                     game={invitationGame}
-                    expanded={'always'}
+                    expanded="always"
                     ondecline={gotoDashboard}
                     onjoin={gotoDashboard}
                 />

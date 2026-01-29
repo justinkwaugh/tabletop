@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition.js'
 import {
     calculateActionChecksum,

@@ -2,6 +2,7 @@
     import { Card, Label, Button, Input, Alert, Helper } from 'flowbite-svelte'
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
     import { z } from 'zod'
     import { zfd } from 'zod-form-data'
     import { getAppContext, trim } from '@tabletop/frontend-components'
@@ -50,7 +51,7 @@
     }
 
     function gotoDashboard() {
-        goto('/dashboard')
+        goto(resolve('/dashboard'))
     }
 </script>
 

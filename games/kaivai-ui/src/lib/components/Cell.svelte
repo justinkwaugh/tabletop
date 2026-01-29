@@ -265,7 +265,6 @@
         } else {
             return gameSession.validDeliveryLocationIds.includes(coordinatesToNumber(coords))
         }
-        return false
     }
 
     function isInteractableForMove(): boolean {

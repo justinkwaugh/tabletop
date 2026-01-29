@@ -1,5 +1,6 @@
 import { APIError } from '@tabletop/frontend-components'
 import { goto } from '$app/navigation'
+import { resolve } from '$app/paths'
 import { AuthorizationCategory } from '@tabletop/frontend-components'
 import { getAppContext } from '$lib/stores/appContext.svelte.js'
 import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
@@ -26,23 +27,23 @@ export async function load({ params, url }) {
                 onceMounted(() => {
                     toast.error('The invitation was expired or not found')
                 })
-                await goto('/dashboard')
+                await goto(resolve('/dashboard'))
                 return
             } else if (e.name === 'Unauthorized') {
                 onceMounted(() => {
                     toast.error('The invitation link is not for this user')
                 })
-                await goto('/dashboard')
+                await goto(resolve('/dashboard'))
                 return
             } else if (e.name === 'UserAlreadyJoinedError') {
                 // TODO: Goto the game
-                await goto('/dashboard')
+                await goto(resolve('/dashboard'))
                 return
             } else if (e.name === 'UserAlreadyDeclinedError') {
                 onceMounted(() => {
                     toast.error('You have already declined the invitation')
                 })
-                await goto('/dashboard')
+                await goto(resolve('/dashboard'))
                 return
             }
         }
@@ -50,6 +51,6 @@ export async function load({ params, url }) {
         onceMounted(() => {
             toast.error('Unable to validate the invitation')
         })
-        await goto('/dashboard')
+        await goto(resolve('/dashboard'))
     }
 }

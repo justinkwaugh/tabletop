@@ -3,7 +3,6 @@ import {
     ActivateBonus,
     ActivateEffect,
     Blight,
-    CENTER_COORDS,
     Chain,
     Convert,
     DrawCards,
@@ -32,13 +31,7 @@ import {
     StationType
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import {
-    GameAction,
-    OffsetCoordinates,
-    sameCoordinates,
-    samePoint,
-    type Point
-} from '@tabletop/common'
+import { GameAction, OffsetCoordinates, samePoint, type Point } from '@tabletop/common'
 import {
     getCirclePoint,
     dimensionsForSpace,
@@ -52,12 +45,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeOut, move, scale, path, fadeIn, rotate } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import {
-    getFlightDuration,
-    getFlightPath,
-    getFlightPaths,
-    TELEPORT_TIMINGS
-} from '$lib/utils/flight.js'
+import { getFlightDuration, getFlightPaths, TELEPORT_TIMINGS } from '$lib/utils/flight.js'
 import { tick } from 'svelte'
 import {
     CHAIN_MOMENTUM_MOVE_DURATION,
@@ -1176,7 +1164,6 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         const fromBoard = fromState.board
-        const toBoard = toState.board
 
         let diverLocation: Point | undefined
         let startOffset = 0

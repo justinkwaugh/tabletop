@@ -1,4 +1,5 @@
 <script lang="ts">
+    /* eslint-disable svelte/prefer-svelte-reactivity */
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import Sundiver from '$lib/components/Sundiver.svelte'
     import SolPicker from './SolPicker.svelte'

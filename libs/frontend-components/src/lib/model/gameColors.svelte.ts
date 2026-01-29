@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import type { GameColorizer } from '$lib/definition/gameColorizer.js'
 import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBridge.svelte.js'
 import { Color, GameState, User, type HydratedGameState } from '@tabletop/common'

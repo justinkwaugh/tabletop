@@ -1,6 +1,7 @@
-// import { SseConnection } from '$lib/network/sseConnection.svelte'
+// import { SseConnection } from '$lib/network/sseConnection'
 import { Notification, NotificationValidator, UserStatus } from '@tabletop/common'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import {
     VisibilityService,
     type NotificationListener,

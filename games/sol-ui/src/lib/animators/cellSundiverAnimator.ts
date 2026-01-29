@@ -33,7 +33,6 @@ import { fadeIn, fadeOut, move, scale } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import { SundiverAnimator } from './sundiverAnimator.js'
 import { getFlightDuration, getFlightPaths } from '$lib/utils/flight.js'
 import {
     CHAIN_MOMENTUM_STAGGER,
@@ -564,7 +563,6 @@ export class CellSundiverAnimator extends StateAnimator<
             return
         }
 
-        const moveDuration = 0.5
         const delayBetween = 0.3
 
         if (isStart && fromState) {
@@ -720,7 +718,7 @@ export class CellSundiverAnimator extends StateAnimator<
         activate: Activate,
         timeline: gsap.core.Timeline,
         toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        _fromState?: HydratedSolGameState
     ) {
         if (this.playerId !== activate.playerId || !sameCoordinates(activate.coords, this.coords)) {
             return

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Card, Input, Button, Alert } from 'flowbite-svelte'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
     import { getAppContext } from '@tabletop/frontend-components'
 
     let { api } = getAppContext()
@@ -23,7 +24,7 @@
     }
 
     function gotoLogin() {
-        goto('/login/username')
+        goto(resolve('/login/username'))
     }
 </script>
 

@@ -9,7 +9,7 @@ export const load: PageLoad = async ({ params }) => {
     try {
         const authUser = await getAppContext().api.loginToken(token)
         getAppContext().authorizationService.setSessionUser(authUser)
-    } catch (e) {
+    } catch {
         //TODO: add a toast message
         return redirect(302, '/login')
     }

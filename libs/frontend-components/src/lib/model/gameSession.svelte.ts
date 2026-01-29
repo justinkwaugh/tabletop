@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import {
     ActionSource,
     Game,
@@ -561,10 +562,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     async onGameStateChange({
-        to,
-        from,
-        action,
-        animationContext
+        to: _to,
+        from: _from,
+        action: _action,
+        animationContext: _animationContext
     }: {
         to: U
         from?: U
@@ -920,7 +921,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         await this.applyServerActions(queuedActions)
     }
 
-    public shouldAutoStepAction(action: GameAction, next?: GameAction) {
+    public shouldAutoStepAction(action: GameAction, _next?: GameAction) {
         return action.source === ActionSource.System
     }
 
@@ -1125,8 +1126,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 actions
             })
             this.gameContext.restoreFrom(newContext)
-        } catch (e) {
-            // console.log('Error during full resync', e)
+        } catch {
             toast.error('Unable to load game, try refreshing')
         }
     }

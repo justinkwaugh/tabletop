@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
 import {

@@ -32,7 +32,7 @@ import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svel
                 </h1>
             {:else}
                 <h1 class="text-lg">
-                    {#each gameSession.gameState.winningPlayerIds as winner, i}
+                    {#each gameSession.gameState.winningPlayerIds as winner, i (winner)}
                         {#if i > 0}
                             and
                         {/if}
@@ -45,7 +45,7 @@ import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svel
         </div>
         <div class="flex w-full shrink overflow-auto">
             <div class="flex flex-row m-auto">
-                {#each gameSession.gameState.players as player}
+                {#each gameSession.gameState.players as player (player.playerId)}
                     <div
                         class="mt-2 mx-1 min-w-[140px] rounded-lg {gameSession.colors.getPlayerBgColor(
                             player.playerId
@@ -57,7 +57,7 @@ import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svel
                             {gameSession.getPlayerName(player.playerId)}
                         </h1>
                         <div class="text-sm flex flex-col justify-center items-start w-full">
-                            {#each player.stalls as stall}
+                            {#each player.stalls as stall (stall.goodsType)}
                                 <div class="flex flex-row justify-between items-center w-full">
                                     <div class="mr-8">
                                         {getGoodsName(stall.goodsType)}

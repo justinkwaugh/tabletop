@@ -1,3 +1,4 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 import {
     TabletopApi,
     type AuthorizationService,

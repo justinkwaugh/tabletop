@@ -1,4 +1,5 @@
 <script lang="ts">
+    /* eslint-disable svelte/prefer-svelte-reactivity */
     import { SvelteMap } from 'svelte/reactivity'
     import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'

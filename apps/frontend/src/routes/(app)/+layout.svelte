@@ -20,6 +20,7 @@
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
     import { onMount } from 'svelte'
     import { UserStatus } from '@tabletop/common'
     import { VersionChange, GameEditForm, getAppContext } from '@tabletop/frontend-components'
@@ -102,25 +103,25 @@
     }
 
     async function gotoProfile() {
-        await goto('/profile')
+        await goto(resolve('/profile'))
     }
 
     async function gotoPreferences() {
         showCancelPrompt = false
-        await goto('/preferences')
+        await goto(resolve('/preferences'))
     }
 
     async function gotoNotifications() {
         showCancelPrompt = false
-        await goto('/notifications')
+        await goto(resolve('/notifications'))
     }
 
     async function gotoDashboard() {
-        await goto('/dashboard')
+        await goto(resolve('/dashboard'))
     }
 
     async function gotoAbout() {
-        await goto('/about')
+        await goto(resolve('/about'))
     }
 
     function createGame() {
@@ -240,7 +241,7 @@
     <div class="flex flex-col w-full">
         <div class="flex flex-row justify-between items-center w-full">
             <div class="flex justify-center items-center">
-                <NavBrand href="/library" class="shrink-0 cursor-pointer">
+                <NavBrand href={resolve('/library')} class="shrink-0 cursor-pointer">
                     <img src={darkLogo} alt="Board Together" class="h-8 w-auto" />
                 </NavBrand>
 
@@ -256,7 +257,7 @@
                         ul: 'flex flex-col py-0 px-4 mt-4 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:text-sm md:font-medium'
                     }}
                 >
-                    <NavLi href="/about">About Us</NavLi>
+                    <NavLi href={resolve('/about')}>About Us</NavLi>
                 </NavUl>
                 {#if sessionUser}
                     {#if sessionUser.status === UserStatus.Active}

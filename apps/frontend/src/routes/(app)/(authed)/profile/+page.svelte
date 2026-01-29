@@ -6,6 +6,7 @@
     import { ExternalAuthService, UserStatus } from '@tabletop/common'
     import { InfoCircleSolid } from 'flowbite-svelte-icons'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
     import googleLogo from '$lib/components/images/google.jpg'
     import discordLogo from '$lib/components/images/discord.png'
     import GoogleSignIn, {
@@ -131,7 +132,7 @@
             authorizationService.setSessionUser(newUser)
 
             if (newUser.status === UserStatus.Incomplete) {
-                goto('/onboarding')
+                goto(resolve('/onboarding'))
             }
         } catch (e) {
             console.log(e)
@@ -186,7 +187,7 @@
                 required
             />
             {#if errors?.username}
-                {#each errors.username as error}
+                {#each errors.username as error, i (i)}
                     <Helper class="mb-2" color="red"
                         ><span class="font-medium">{error}</span></Helper
                     >
@@ -211,7 +212,7 @@
                 {/snippet}
             </Input>
             {#if errors?.password}
-                {#each errors.password as error}
+                {#each errors.password as error, i (i)}
                     <Helper class="mb-2" color="red"
                         ><span class="font-medium">{error}</span></Helper
                     >
@@ -226,7 +227,7 @@
                 required
             />
             {#if errors?.email}
-                {#each errors.email as error}
+                {#each errors.email as error, i (i)}
                     <Helper class="mb-2" color="red"
                         ><span class="font-medium">{error}</span></Helper
                     >
@@ -253,7 +254,7 @@
                                 size="xs">Unlink</Button
                             >
                         {:else}
-                            <GoogleSignIn mode={'link'} />
+                            <GoogleSignIn mode="link" />
                         {/if}
                     </div>
                 {/if}
@@ -276,7 +277,7 @@
                                 size="xs">Unlink</Button
                             >
                         {:else}
-                            <DiscordSignIn mode={'link'} />
+                            <DiscordSignIn mode="link" />
                         {/if}
                     </div>
                 {/if}

@@ -190,7 +190,7 @@
         onclick={() => scrollToBottom()}
         class="rounded-full bg-blue-700 text-gray-200 px-3 py-2 text-xs"
     >
-        New Messages {'\u2193'}
+        New Messages &darr;
     </button>
 {/snippet}
 
@@ -207,9 +207,9 @@
         </div>
         <div class="flex flex-col justify-center items-start">
             <p class="text-xs {timeColor}">{timeAgo.format(message.timestamp)}</p>
-            {#each textSplit(message.text) as text}
+            {#each textSplit(message.text) as text, i (i)}
                 <p class="text-gray-200">
-                    {#each getSpansForText(text) as span}
+                    {#each getSpansForText(text) as span, j (j)}
                         {#if span[1]}
                             <span class="text-2xl leading-none align-middle">{span[0]}</span>
                         {:else}

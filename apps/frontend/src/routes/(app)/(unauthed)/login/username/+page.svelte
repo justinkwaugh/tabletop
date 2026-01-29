@@ -3,6 +3,7 @@
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
     import { getAppContext, trim, type Credentials } from '@tabletop/frontend-components'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
 
     let { authorizationService, api } = getAppContext()
 
@@ -31,7 +32,7 @@
     }
 
     function backToLogin() {
-        goto('/login')
+        goto(resolve('/login'))
     }
 </script>
 
@@ -65,11 +66,13 @@
                     </button>
                 {/snippet}
             </Input>
-            <Helper class="text-right"
-                ><a href="/forgot/password" class="font-medium hover:underline dark:text-orange-300"
+            <Helper class="text-right">
+                <a
+                    href={resolve('/forgot/password')}
+                    class="font-medium hover:underline dark:text-orange-300"
                     >Forgot password?</a
-                ></Helper
-            >
+                >
+            </Helper>
             <div class="flex justify-between mt-6">
                 <div><Button color="light" onclick={backToLogin}>Back</Button></div>
                 <div><Button type="submit">Submit</Button></div>

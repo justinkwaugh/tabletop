@@ -139,7 +139,7 @@
                 class=""
             >
                 <DropdownGroup class="py-1">
-                    {#each explorationList as item, i}
+                    {#each explorationList as item, i (item.id)}
                         <DropdownItem
                             onclick={() => switchToExploration(item.id)}
                             class="w-full text-left font-medium py-2 px-4 text-xs hover:bg-gray-100 dark:hover:bg-gray-600"
