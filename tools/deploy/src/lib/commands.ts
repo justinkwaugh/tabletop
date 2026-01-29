@@ -34,21 +34,21 @@ export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Prom
         })
         options?.onSpawn?.(child)
 
-        child.stdout.on('data', (chunk) => {
+        child.stdout.on('data', (chunk: Buffer) => {
             logStream.write(chunk)
             options?.onOutput?.(chunk.toString())
         })
-        child.stderr.on('data', (chunk) => {
+        child.stderr.on('data', (chunk: Buffer) => {
             logStream.write(chunk)
             options?.onOutput?.(chunk.toString())
         })
 
-        child.on('error', (error) => {
+        child.on('error', (error: Error) => {
             logStream.end()
             reject(error)
         })
 
-        child.on('close', (code) => {
+        child.on('close', (code: number | null) => {
             logStream.end()
             if (code === 0) {
                 resolve()
@@ -61,8 +61,8 @@ export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Prom
 
 export const buildGameUiCommand = (repoRoot: string, packageId: string): CommandSpec => ({
     label: `bundle-ui:${packageId}`,
-    command: 'npm',
-    args: ['run', 'bundle', '--workspace', `@tabletop/${packageId}-ui`],
+    command: 'pnpm',
+    args: ['-w', '--filter', `@tabletop/${packageId}-ui`, 'run', 'bundle'],
     cwd: repoRoot,
     logPath: `/tmp/${packageId}-ui-bundle.log`
 })
@@ -96,8 +96,8 @@ export const buildBackendCommand = (
 
 export const buildBackendImageCommand = (repoRoot: string): CommandSpec => ({
     label: 'build-backend-image',
-    command: 'npm',
-    args: ['run', 'docker-build', '--workspace', '@tabletop/backend'],
+    command: 'pnpm',
+    args: ['-w', '--filter', '@tabletop/backend', 'run', 'docker-build'],
     cwd: repoRoot,
     logPath: '/tmp/backend-image-build.log'
 })
@@ -157,8 +157,8 @@ export const buildGameLogicPackageCommand = (
 
 export const buildGameLogicCommand = (repoRoot: string, packageId: string): CommandSpec => ({
     label: `bundle-logic:${packageId}`,
-    command: 'npm',
-    args: ['run', 'bundle', '--workspace', `@tabletop/${packageId}`],
+    command: 'pnpm',
+    args: ['-w', '--filter', `@tabletop/${packageId}`, 'run', 'bundle'],
     cwd: repoRoot,
     logPath: `/tmp/${packageId}-logic-bundle.log`
 })

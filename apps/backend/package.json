@@ -9,7 +9,7 @@
         "clean": "rimraf dist",
         "start": "node --env-file=.env.local --import tsx src/main.ts",
         "build": "tsgo",
-        "docker-build": "turbo prune --scope=@tabletop/backend --docker --out-dir=/tmp/tabletop-backend-prune && cp ./Dockerfile.pruned /tmp/tabletop-backend-prune/Dockerfile && mkdir -p /tmp/tabletop-backend-prune/full/apps/backend && cp ./.env.prod /tmp/tabletop-backend-prune/full/apps/backend/.env.prod && docker build /tmp/tabletop-backend-prune -t backend --platform=linux/amd64"
+        "docker-build": "turbo prune --scope=@tabletop/backend --docker --out-dir=/tmp/tabletop-backend-prune && cp ./Dockerfile.pruned /tmp/tabletop-backend-prune/Dockerfile && cp ../../pnpm-lock.yaml /tmp/tabletop-backend-prune/pnpm-lock.yaml && cp ../../pnpm-workspace.yaml /tmp/tabletop-backend-prune/pnpm-workspace.yaml && mkdir -p /tmp/tabletop-backend-prune/full/apps/backend && cp ./.env.prod /tmp/tabletop-backend-prune/full/apps/backend/.env.prod && docker build /tmp/tabletop-backend-prune -t backend --platform=linux/amd64"
     },
     "dependencies": {
         "@fastify/auth": "^5.0.4",
@@ -27,10 +27,10 @@
         "@react-email/components": "^1.0.6",
         "@react-email/render": "^2.0.4",
         "typebox": "^1.0.79",
-        "@tabletop/backend-services": "*",
-        "@tabletop/common": "*",
-        "@tabletop/email": "*",
-        "@tabletop/games-config": "*",
+        "@tabletop/backend-services": "workspace:*",
+        "@tabletop/common": "workspace:*",
+        "@tabletop/email": "workspace:*",
+        "@tabletop/games-config": "workspace:*",
         "bcrypt": "^6.0.0",
         "discord-api-types": "^0.38.37",
         "discord-interactions": "^4.0.0",
@@ -46,8 +46,8 @@
         "typescript-retry-decorator": "^2.5.1"
     },
     "devDependencies": {
-        "@tabletop/vitest-config": "*",
-        "@tabletop/eslint-config": "*",
+        "@tabletop/vitest-config": "workspace:*",
+        "@tabletop/eslint-config": "workspace:*",
         "@types/bcrypt": "^6.0.0",
         "@types/node": "^25.0.9",
         "@typescript/native-preview": "*",

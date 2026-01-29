@@ -39,14 +39,22 @@ export class IndexedDbGameStore implements GameStore {
                         keyPath: 'gameId'
                     })
                 },
-                blocked(currentVersion, blockedVersion, event) {
+                blocked(
+                    currentVersion: number | null,
+                    blockedVersion: number | null,
+                    event: IDBVersionChangeEvent | null
+                ) {
                     console.log('Database upgrade blocked:', {
                         currentVersion,
                         blockedVersion,
                         event
                     })
                 },
-                blocking(currentVersion, blockedVersion, event) {
+                blocking(
+                    currentVersion: number | null,
+                    blockedVersion: number | null,
+                    event: IDBVersionChangeEvent | null
+                ) {
                     console.log('Database upgrade blocking:', {
                         currentVersion,
                         blockedVersion,

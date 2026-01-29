@@ -8,13 +8,18 @@
     },
     "scripts": {
         "clean": "rimraf esm",
-        "build": "tsc",
+        "build": "tsgo",
         "deploy": "node --enable-source-maps esm/cli.js tui",
         "start": "node --enable-source-maps esm/cli.js"
     },
     "dependencies": {
-        "@tabletop/games-config": "*",
+        "@tabletop/games-config": "workspace:*",
         "ink": "^6.6.0",
         "react": "^19.2.3"
+    },
+    "devDependencies": {
+        "@typescript/native-preview": "*",
+        "@types/node": "^24.3.1",
+        "typescript": "5.9.3"
     }
 }
