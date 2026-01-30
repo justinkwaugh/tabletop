@@ -4,7 +4,6 @@ import { Hydratable } from '../../util/hydration.js'
 import { type RandomFunction } from '../../util/prng.js'
 import { Prng } from './prng.js'
 import { assertExists } from '../../util/assertions.js'
-import { range } from 'src/util/range.js'
 
 export const DrawBag = <T extends Type.TSchema>(T: T) =>
     Type.Object({
