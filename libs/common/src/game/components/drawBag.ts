@@ -83,8 +83,8 @@ export abstract class HydratedDrawBag<T, U extends Type.TSchema> extends Hydrata
         } else {
             this.remaining -= count
 
-            // Remove count items
-            return structuredClone(this.items.splice(this.remaining, count))
+            // Remove count items, top first
+            return structuredClone(this.items.splice(this.remaining, count)).reverse()
         }
     }
 
