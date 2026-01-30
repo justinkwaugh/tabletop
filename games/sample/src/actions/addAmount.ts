@@ -69,10 +69,6 @@ export class HydratedAddAmount extends HydratableAction<typeof AddAmount> implem
     // Generally it is good to have a validation method to make sure the specific constraints of the action are met
     isValidAddAmount(state: HydratedSampleGameState): boolean {
         const playerState = state.getPlayerState(this.playerId)
-        if (!playerState) {
-            return false
-        }
-
         return (
             this.amount > 0 && playerState.amount >= this.amount && state.canAddToTotal(this.amount)
         )
@@ -83,9 +79,7 @@ export class HydratedAddAmount extends HydratableAction<typeof AddAmount> implem
     // for the given player in that state.
     static canDoAddAmount(state: HydratedSampleGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
-        if (!playerState) {
-            return false
-        }
+
         // In this example, any player can do the action if they have at least an amount of 1 and the state allows it
         return playerState.amount > 0 && state.canAddToTotal(1)
     }

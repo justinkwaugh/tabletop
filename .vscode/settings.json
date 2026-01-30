@@ -5,5 +5,8 @@
     },
     "svelte.plugin.svelte.defaultScriptLanguage": "ts",
     "svelte.enable-ts-plugin": true,
-    "typescript.preferences.importModuleSpecifierEnding": "js"
+    "typescript.preferences.importModuleSpecifierEnding": "js",
+    "[handlebars]": {
+        "editor.formatOnSave": false
+    }
 }
