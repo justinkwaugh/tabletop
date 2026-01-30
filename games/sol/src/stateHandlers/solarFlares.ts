@@ -31,14 +31,23 @@ type SolarFlaresActions =
     | HydratedActivate
     | HydratedActivateEffect
 
-export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresActions, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is SolarFlaresActions {
+export class SolarFlaresStateHandler implements MachineStateHandler<
+    SolarFlaresActions,
+    HydratedSolGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedSolGameState>
+    ): action is SolarFlaresActions {
         return (
             isSolarFlare(action) || isActivate(action) || isPass(action) || isActivateEffect(action)
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         const gameState = context.gameState
         const validActions = [ActionType.Pass, ActionType.Activate]
         if (HydratedActivateEffect.canActivateHeldEffect(gameState, playerId)) {
@@ -50,7 +59,10 @@ export class SolarFlaresStateHandler implements MachineStateHandler<SolarFlaresA
 
     enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: SolarFlaresActions, context: MachineContext<HydratedSolGameState>): MachineState {
+    onAction(
+        action: SolarFlaresActions,
+        context: MachineContext<HydratedSolGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {

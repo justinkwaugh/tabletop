@@ -175,7 +175,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         playerId: string,
         coords: OffsetCoordinates
     ): boolean {
-        return true
+        return state.instability > 0
     }
 
     static canActivateSundiverFoundry(
@@ -183,6 +183,9 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         playerId: string,
         coords: OffsetCoordinates
     ): boolean {
+        if (state.instability === 0) {
+            return false
+        }
         const awardCost = BASE_AWARD_PER_RING[coords.row]
         const numToBuild = state.activeEffect === EffectType.Duplicate ? 2 * awardCost : awardCost
         const playerState = state.getPlayerState(playerId)

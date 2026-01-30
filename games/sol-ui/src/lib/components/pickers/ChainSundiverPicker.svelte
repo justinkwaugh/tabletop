@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import Sundiver from '$lib/components/Sundiver.svelte'
     import { sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
     import { HydratedChain } from '@tabletop/sol'
