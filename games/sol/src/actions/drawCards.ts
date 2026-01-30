@@ -61,7 +61,13 @@ export class HydratedDrawCards extends HydratableAction<typeof DrawCards> implem
         if (state.cardsToDraw === undefined || state.cardsToDraw <= 0) {
             throw Error('No cards should be drawn')
         }
-        const cards = state.deck.drawItems(Math.min(state.cardsToDraw, state.deck.count()))
+        const prng = state.getPrng()
+        const randomFunction = (state.version ?? 1) > 1 ? prng.random : undefined
+
+        const cards = state.deck.drawItems(
+            Math.min(state.cardsToDraw, state.deck.count()),
+            randomFunction
+        )
         const playerState = state.getPlayerState(this.playerId)
         if (!playerState.drawnCards) {
             playerState.drawnCards = []

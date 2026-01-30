@@ -45,17 +45,22 @@ export abstract class HydratedDrawBag<T, U extends Type.TSchema> extends Hydrata
         return this.count() == 0
     }
 
-    draw(): T {
-        return this.drawItems()[0]
+    draw(random?: RandomFunction): T {
+        return this.drawItems(1, random)[0]
     }
 
-    drawItems(count: number = 1): T[] {
+    drawItems(count: number = 1, random?: RandomFunction): T[] {
         this.fixOldBags()
 
         if (count < 1 || count > this.count()) {
             throw Error('Trying to draw an invalid amount of items')
         }
+        if (random) {
+            this.shuffle(random)
+        }
+
         this.remaining -= count
+
         // Remove count items
         return structuredClone(this.items.splice(this.remaining, count))
     }

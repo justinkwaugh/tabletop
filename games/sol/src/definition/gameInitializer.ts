@@ -86,6 +86,7 @@ export class SolGameInitializer
         const board = this.initializeBoard(orderedPlayers, prng.random)
 
         const solState: SolGameState = Object.assign(state, {
+            version: 2,
             players: orderedPlayers,
             machineState: MachineState.StartOfTurn,
             turnManager: turnManager,

@@ -60,7 +60,8 @@ export const SolGameState = Type.Evaluate(
                     passageSundiverId: Type.Optional(Type.String()), // For Passage effect
                     passageGates: Type.Array(Type.Number()) // For Passage effect
                 })
-            )
+            ),
+            version: Type.Optional(Type.Number())
         })
     ])
 )
@@ -113,6 +114,7 @@ export class HydratedSolGameState
         passageSundiverId?: string
         passageGates: number[]
     }
+    declare version?: number
 
     constructor(data: SolGameState) {
         super(data, SolGameStateValidator)
