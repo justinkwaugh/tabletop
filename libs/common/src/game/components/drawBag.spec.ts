@@ -81,4 +81,26 @@ describe('DrawBag Tests', () => {
         expect(remainingItems.length).toBe(7)
         expect(bag.count()).toBe(0)
     })
+
+    it('draws all items randomly with prng provided', () => {
+        const items = range(0, 10).map((i) => ({ id: `item${i}` }))
+        const bagData: TestBag = {
+            items: items,
+            remaining: items.length
+        }
+        const bag = new HydratedTestBag(bagData)
+
+        const prngSeed = Math.floor(Math.random() * 1000000)
+        const bagPrng = new Prng({ seed: prngSeed, invocations: 0 })
+
+        const drawnIds: string[] = []
+        for (let i = 0; i < items.length; i++) {
+            drawnIds.push(bag.draw(bagPrng).id)
+        }
+
+        const expectedSet = new Set(items.map((i) => i.id))
+        const drawnSet = new Set(drawnIds)
+        expect(drawnSet).toEqual(expectedSet)
+        expect(bag.count()).toBe(0)
+    })
 })
