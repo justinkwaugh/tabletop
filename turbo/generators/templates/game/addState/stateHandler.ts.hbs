@@ -1,0 +1,44 @@
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { MachineState } from '../definitions/states.js'
+import { ActionType } from '../definitions/actions.js'
+import { Hydrated{{properCase game}}GameState } from '../model/gameState.js'
+import { Hydrated{{properCase action}}, is{{properCase action}} } from '../actions/{{camelCase action}}.js'
+
+type {{properCase state}}Action = Hydrated{{properCase action}}
+
+export class {{properCase state}}StateHandler implements MachineStateHandler<{{properCase state}}Action, Hydrated{{properCase game}}GameState> {
+
+    isValidAction(action: HydratedAction, context: MachineContext<Hydrated{{properCase game}}GameState>): action is {{properCase state}}Action {
+        // Types are not the only thing that has to be checked here
+        if (!action.playerId) return false
+
+        return action.type === ActionType.{{properCase action}}
+    }
+
+    validActionsForPlayer(playerId: string, context: MachineContext<Hydrated{{properCase game}}GameState>): ActionType[] {
+        const gameState = context.gameState
+
+        const validActions = []
+
+        if (Hydrated{{properCase action}}.can{{properCase action}}(gameState, playerId)) {
+            validActions.push(ActionType.{{properCase action}})
+        }
+
+        return validActions
+    }
+
+    enter(context: MachineContext<Hydrated{{properCase game}}GameState>) {
+
+    }
+
+    onAction(action: {{properCase state}}Action, context: MachineContext<Hydrated{{properCase game}}GameState>): MachineState {
+        switch (true) {
+            case is{{properCase action}}(action): {
+                return MachineState.{{properCase state}}
+            }
+            default: {
+                throw Error('Invalid action type')
+            }
+        }
+    }
+}

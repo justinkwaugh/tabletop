@@ -1,0 +1,77 @@
+import {
+    type GameInitializer,
+    BaseGameInitializer,
+    Prng,
+    type UninitializedGameState
+} from '@tabletop/common'
+import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
+import { Hydrated{{properCase game}}GameState, {{properCase game}}GameState } from '../model/gameState.js'
+import { Hydrated{{properCase game}}PlayerState, {{properCase game}}PlayerState } from '../model/playerState.js'
+
+import { MachineState } from './states.js'
+import { {{properCase game}}GameConfig } from './config.js'
+import { {{properCase game}}Colors } from './colors.js'
+
+// This class is responsible for initializing a new game, including setting up the initial game state and
+// player states
+export class {{properCase game}}GameInitializer
+    extends BaseGameInitializer<{{properCase game}}GameState, Hydrated{{properCase game}}GameState>
+    implements GameInitializer<{{properCase game}}GameState, Hydrated{{properCase game}}GameState>
+{
+    // When an exploration state is created, in order to avoid allowing the player to discover
+    // hidden information, this method can be used to modify the game state to hide such information.
+    // Shuffling the remaining cards in a deck would be a reasonable example.
+    initializeExplorationState(state: {{properCase game}}GameState): {{properCase game}}GameState {
+        return state
+    }
+
+    // Initialize the game state based on things like the number of players and the game config
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState
+    ): Hydrated{{properCase game}}GameState {
+        // Initialize a pseudo random number generator for the state
+        const prng = new Prng(state.prng)
+        const players = this.initializePlayers(game, prng)
+
+        // Every game state has a turn manager to track whose turn it is
+        const turnManager = HydratedTurnManager.generate(players, prng.random)
+
+        // Put players array in our randomly generated turn order
+        const orderedPlayers: {{properCase game}}PlayerState[] = []
+        for (const playerId of turnManager.turnOrder) {
+            const player = players.find((p) => p.playerId === playerId)
+            if (player) {
+                orderedPlayers.push(player)
+            }
+        }
+
+        const config = game.config as {{properCase game}}GameConfig
+
+        const {{camelCase game}}GameState: {{properCase game}}GameState = Object.assign(state, {
+            players: orderedPlayers,
+            machineState: MachineState.StartOfTurn,
+            turnManager: turnManager,
+        })
+
+        // I suppose the engine could actually do the hydration with the hydrator, but this is how it
+        // it is done currently.
+        return new Hydrated{{properCase game}}GameState({{camelCase game}}GameState)
+    }
+
+    // Initialize player states for all players in the game
+    private initializePlayers(game: Game, prng: Prng): {{properCase game}}PlayerState[] {
+        // Assign colors randomly to players
+        const colors = structuredClone({{properCase game}}Colors)
+        shuffle(colors, prng.random)
+
+        const players = game.players.map((player: Player, index: number) => {
+            return new Hydrated{{properCase game}}PlayerState({
+                playerId: player.id,
+                color: colors[index],
+            })
+        })
+
+        return players
+    }
+}

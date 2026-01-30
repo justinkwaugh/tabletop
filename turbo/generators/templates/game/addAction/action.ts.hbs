@@ -1,0 +1,55 @@
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { Hydrated{{properCase game}}GameState } from '../model/gameState.js'
+import { ActionType } from '../definitions/actions.js'
+
+export type {{properCase action}}Metadata = Type.Static<typeof {{properCase action}}Metadata>
+export const {{properCase action}}Metadata = Type.Object({
+})
+
+export type {{properCase action}} = Type.Static<typeof {{properCase action}}>
+export const {{properCase action}} = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']), // Omit playerId to redefine it
+        Type.Object({
+            type: Type.Literal(ActionType.{{properCase action}}), // This action is always this type
+            playerId: Type.String(), // Required now
+            metadata: Type.Optional({{properCase action}}Metadata) // Always optional, because it is an output
+        })
+    ])
+)
+
+export const {{properCase action}}Validator = Compile({{properCase action}})
+
+export function is{{properCase action}}(action?: GameAction): action is {{properCase action}} {
+    return action?.type === ActionType.{{properCase action}}
+}
+
+export class Hydrated{{properCase action}} extends HydratableAction<typeof {{properCase action}}> implements {{properCase action}} {
+    declare type: ActionType.{{properCase action}}
+    declare playerId: string
+    declare metadata?: {{properCase action}}Metadata
+
+    constructor(data: {{properCase action}}) {
+        super(data, {{properCase action}}Validator)
+    }
+
+    apply(state: Hydrated{{properCase game}}GameState, context?: MachineContext) {
+        if (!this.isValid{{properCase action}}(state)) {
+            throw Error('Invalid {{properCase action}} action')
+        }
+
+        this.metadata = {}
+    }
+
+    isValid{{properCase action}}(state: Hydrated{{properCase game}}GameState): boolean {
+        const playerState = state.getPlayerState(this.playerId)
+        return true
+    }
+
+    static can{{properCase action}}(state: Hydrated{{properCase game}}GameState, playerId: string): boolean {
+        const playerState = state.getPlayerState(playerId)
+        return true
+    }
+}

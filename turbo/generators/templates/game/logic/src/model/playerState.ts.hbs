@@ -1,0 +1,28 @@
+import { Hydratable, PlayerState } from '@tabletop/common'
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { Color } from '@tabletop/common'
+
+export type {{properCase game}}PlayerState = Type.Static<typeof {{properCase game}}PlayerState>
+export const {{properCase game}}PlayerState = Type.Evaluate(
+    Type.Intersect([
+        PlayerState,
+        Type.Object({
+
+        })
+    ])
+)
+
+export const {{properCase game}}PlayerStateValidator = Compile({{properCase game}}PlayerState)
+
+export class Hydrated{{properCase game}}PlayerState
+    extends Hydratable<typeof {{properCase game}}PlayerState>
+    implements {{properCase game}}PlayerState
+{
+    declare playerId: string
+    declare color: Color
+
+    constructor(data: {{properCase game}}PlayerState) {
+        super(data, {{properCase game}}PlayerStateValidator)
+    }
+}

@@ -1,0 +1,11 @@
+import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
+import { MachineState } from './states.js'
+import type { Hydrated{{properCase game}}GameState } from '../model/gameState.js'
+
+// The mapping of machine states to their handlers for the Sample game, used by the game engine
+export const {{properCase game}}StateHandlers: Record<
+    MachineState,
+    MachineStateHandler<HydratedAction, Hydrated{{properCase game}}GameState>
+> = {
+
+}
