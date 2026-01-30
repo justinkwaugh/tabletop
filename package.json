@@ -21,14 +21,14 @@
         "eslint": "^9.39.2",
         "prettier": "^3.8.0",
         "rimraf": "^6.1.2",
-        "turbo": "^2.6.0",
+        "turbo": "^2.8.0",
         "vitest": "^4.0.17"
     },
     "engines": {
         "node": ">=18"
     },
     "name": "tabletop",
-    "packageManager": "pnpm@9.15.5",
+    "packageManager": "pnpm@10.28.2",
     "workspaces": [
         "libs/*",
         "games/*",

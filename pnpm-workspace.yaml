@@ -4,3 +4,5 @@ packages:
   - "apps/*"
   - "config/*"
   - "tools/*"
+onlyBuiltDependencies:
+  - "camera-controls"
