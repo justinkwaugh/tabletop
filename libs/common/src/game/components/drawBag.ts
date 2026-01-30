@@ -2,6 +2,8 @@ import * as Type from 'typebox'
 import { shuffle } from '../../util/shuffle.js'
 import { Hydratable } from '../../util/hydration.js'
 import { type RandomFunction } from '../../util/prng.js'
+import { Prng } from './prng.js'
+import { assertExists } from '../../util/assertions.js'
 
 export const DrawBag = <T extends Type.TSchema>(T: T) =>
     Type.Object({
@@ -45,24 +47,45 @@ export abstract class HydratedDrawBag<T, U extends Type.TSchema> extends Hydrata
         return this.count() == 0
     }
 
-    draw(random?: RandomFunction): T {
-        return this.drawItems(1, random)[0]
+    draw(prng?: Prng): T {
+        return this.drawItems(1, prng)[0]
     }
 
-    drawItems(count: number = 1, random?: RandomFunction): T[] {
+    // Without a PRNG, draws from the "top" of the bag.  With a PRNG, draws random items.
+    drawItems(count: number = 1, prng?: Prng): T[] {
         this.fixOldBags()
 
         if (count < 1 || count > this.count()) {
             throw Error('Trying to draw an invalid amount of items')
         }
-        if (random) {
-            this.shuffle(random)
+
+        if (prng) {
+            // There are multiple ways to skin this cat. The simplest is to just shuffle and pop,
+            // however that does create an undo patch that contains a change for every card. Instead
+            // we just randomly choose an item and pop the last item, putting it in the chosen item's spot
+            // which results in only n + 1 changes for drawing n items.
+            const drawnItems: T[] = []
+            for (let i = 0; i < count; i++) {
+                // Choose a random item
+                const index = prng.randInt(this.remaining)
+                drawnItems.push(structuredClone(this.items[index]))
+                // Pop and move the last item into the removed spot
+                const lastItem = this.items.pop()
+                assertExists(lastItem, 'Last item should exist when drawing from draw bag')
+                this.remaining -= 1
+
+                // Only put the last item in the drawn spot if we didn't just pop it
+                if (this.remaining > 0) {
+                    this.items[index] = lastItem
+                }
+            }
+            return drawnItems
+        } else {
+            this.remaining -= count
+
+            // Remove count items
+            return structuredClone(this.items.splice(this.remaining, count))
         }
-
-        this.remaining -= count
-
-        // Remove count items
-        return structuredClone(this.items.splice(this.remaining, count))
     }
 
     // For reasons I don't remember, the original implementation never adjusted the items array

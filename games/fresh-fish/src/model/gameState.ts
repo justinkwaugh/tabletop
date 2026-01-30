@@ -34,7 +34,8 @@ export const FreshFishGameState = Type.Evaluate(
             finalStalls: Type.Array(StallTile),
             chosenTile: Type.Optional(Tile),
             currentAuction: Type.Optional(SimultaneousAuction),
-            boardSeed: Type.Optional(Type.Number())
+            boardSeed: Type.Optional(Type.Number()),
+            version: Type.Optional(Type.Number())
         })
     ])
 )
@@ -62,6 +63,7 @@ export class HydratedFreshFishGameState
     declare chosenTile?: Tile
     declare currentAuction?: HydratedSimultaneousAuction
     declare boardSeed?: number
+    declare version?: number
 
     constructor(data: FreshFishGameState) {
         super(data, FreshFishGameStateValidator)
@@ -72,6 +74,10 @@ export class HydratedFreshFishGameState
         if (data.currentAuction) {
             this.currentAuction = new HydratedSimultaneousAuction(data.currentAuction)
         }
+    }
+
+    getVersion(): number {
+        return this.version ?? 1
     }
 
     getAuctionGoodsType(): GoodsType | undefined {

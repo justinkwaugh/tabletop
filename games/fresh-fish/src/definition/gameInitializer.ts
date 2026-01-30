@@ -50,7 +50,8 @@ export class FreshFishGameInitializer
             tileBag: this.initializeTileBag(game, numMarketTiles, prng.random),
             board,
             finalStalls: finalStalls,
-            boardSeed: boardSeed
+            boardSeed: boardSeed,
+            version: 2
         })
 
         const initialState = new HydratedFreshFishGameState(freshFishState)

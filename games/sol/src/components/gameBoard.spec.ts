@@ -203,4 +203,10 @@ describe('Sol Game Board Tests', () => {
         expect(finalChoiceData.gates.length).toEqual(1)
         expect(finalChoiceData.gates[0]).toEqual(gate5)
     })
+
+    it<LocalTestContext>('dehydrates without graph', ({ board }) => {
+        const graph = board.graph // Make sure graph is created
+        const dehydrated = board.dehydrate()
+        expect((dehydrated as any).internalGraph).toBeUndefined()
+    })
 })

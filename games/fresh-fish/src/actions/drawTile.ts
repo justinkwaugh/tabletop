@@ -37,7 +37,9 @@ export class HydratedDrawTile extends HydratableAction<typeof DrawTile> implemen
     }
 
     apply(state: HydratedFreshFishGameState) {
-        const drawnTile = state.tileBag.draw()
+        const prng = state.getVersion() > 1 ? state.getPrng() : undefined
+        const drawnTile = state.tileBag.draw(prng)
         state.chosenTile = drawnTile
+        this.metadata = { chosenTile: drawnTile }
     }
 }
