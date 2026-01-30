@@ -14,6 +14,7 @@ import { Ring } from '../utils/solGraph.js'
 import { BONUS_AWARD_PER_RING } from '../utils/solConstants.js'
 import { EffectType } from '../components/effects.js'
 import { Activation } from '../model/activation.js'
+import { HydratedActivate } from './activate.js'
 
 export type ActivateBonusMetadata = Type.Static<typeof ActivateBonusMetadata>
 export const ActivateBonusMetadata = Type.Object({
@@ -131,6 +132,32 @@ export class HydratedActivateBonus
             return false
         }
 
+        if (state.activeEffect === EffectType.Pulse) {
+            const assetsAfterActivation = HydratedActivate.calculateAssetsAfterActivation({
+                state,
+                playerId,
+                station,
+                isBonus: true
+            })
+            const remainingStations = HydratedActivate.getRemainingStationsForPulse(
+                state,
+                playerId,
+                station.id
+            )
+            assertExists(remainingStations, 'No stations to activate for Pulse effect')
+
+            if (
+                !HydratedActivate.canAffordAllRemainingStations(
+                    state,
+                    playerId,
+                    remainingStations,
+                    assetsAfterActivation
+                )
+            ) {
+                return false
+            }
+        }
+
         switch (station.type) {
             case StationType.EnergyNode:
                 return this.canActivateEnergyNodeBonus(state, playerId)
@@ -142,6 +169,7 @@ export class HydratedActivateBonus
                 return this.canActivateTransmitTowerBonus(state, playerId, station)
                 break
         }
+        return false
     }
 
     static canActivateEnergyNodeBonus(state: HydratedSolGameState, playerId: string): boolean {

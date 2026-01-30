@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import MoveArrows from '$lib/images/movearrows.svelte'
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
@@ -205,7 +205,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
                         ?.currentStationId
                 ) {
                     result.message = 'ACTIVATE ANOTHER?'
-                    result.showSkip = true
+                    result.showSkip = gameSession.validActionTypes.includes(ActionType.Pass)
                 }
             } else {
                 result.message = 'CLAIM THE BONUS?'

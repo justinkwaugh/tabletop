@@ -254,6 +254,26 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             if (coords.row !== Ring.Outer && coords.row !== Ring.Inner) {
                 return false
             }
+
+            const assetsAfterActivation = this.calculateAssetsAfterActivation({
+                state,
+                playerId,
+                station,
+                isBonus: false
+            })
+            const remainingStations = this.getRemainingStationsForPulse(state, playerId, station.id)
+            assertExists(remainingStations, 'No stations to activate for Pulse effect')
+
+            if (
+                !this.canAffordAllRemainingStations(
+                    state,
+                    playerId,
+                    remainingStations,
+                    assetsAfterActivation
+                )
+            ) {
+                return false
+            }
         } else if (state.machineState === MachineState.SolarFlares) {
             if (station.playerId !== playerId || coords.row !== Ring.Outer) {
                 return false
@@ -274,6 +294,63 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         }
     }
 
+    static getRemainingStationsForPulse(
+        state: HydratedSolGameState,
+        playerId: string,
+        testId?: string
+    ): Station[] {
+        const allStations = [
+            ...state.board.stationsInRing(Ring.Outer),
+            ...state.board.stationsInRing(Ring.Inner)
+        ]
+
+        const activatedIds = [...(state.getActivationForPlayer(playerId)?.activatedIds ?? [])]
+        if (testId) {
+            activatedIds.push(testId)
+        }
+
+        return allStations.filter((station) => !activatedIds.includes(station.id))
+    }
+
+    static calculateAssetsAfterActivation({
+        state,
+        playerId,
+        station,
+        isBonus
+    }: {
+        state: HydratedSolGameState
+        playerId: string
+        station: Station
+        isBonus: boolean
+    }): { energyCubes: number; reserveSundivers: number } {
+        assertExists(station.coords, 'Station missing coordinates')
+
+        const playerState = state.getPlayerState(playerId)
+        let energyCubes = playerState.energyCubes
+        let reserveSundivers = playerState.reserveSundivers.length
+
+        const awardOrCost = isBonus
+            ? BONUS_AWARD_PER_RING[station.coords.row]
+            : BASE_AWARD_PER_RING[station.coords.row]
+        switch (station.type) {
+            case StationType.EnergyNode: {
+                energyCubes += awardOrCost
+                break
+            }
+            case StationType.SundiverFoundry: {
+                energyCubes -= awardOrCost
+                reserveSundivers -= awardOrCost
+                break
+            }
+            case StationType.TransmitTower: {
+                energyCubes -= awardOrCost
+                break
+            }
+        }
+
+        return { energyCubes, reserveSundivers }
+    }
+
     static isValidActivation(state: HydratedSolGameState, activate: Activate): boolean {
         return this.canActivateStationAt(state, activate.playerId, activate.coords)
     }
@@ -283,24 +360,15 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             return false
         }
 
-        const stations = [
-            ...state.board.stationsInRing(Ring.Outer),
-            ...state.board.stationsInRing(Ring.Inner)
-        ]
-
-        if (!this.canAffordAllStations(state, playerId, stations)) {
-            return false
-        }
-
-        return stations.every((station) =>
-            HydratedActivate.canActivateStationAt(state, playerId, station.coords!, true)
-        )
+        const stations = this.getRemainingStationsForPulse(state, playerId)
+        return this.canAffordAllRemainingStations(state, playerId, stations)
     }
 
-    static canAffordAllStations(
+    static canAffordAllRemainingStations(
         state: HydratedSolGameState,
         playerId: string,
-        stations: Station[]
+        stations: Station[],
+        assets?: { energyCubes: number; reserveSundivers: number }
     ): boolean {
         const energyGain = stations
             .filter((station) => station.type === StationType.EnergyNode)
@@ -314,7 +382,13 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             }, 0)
 
         const playerState = state.getPlayerState(playerId)
-        const playerEnergyTotal = playerState.energyCubes + energyGain
+
+        const availableAssets = assets ?? {
+            energyCubes: playerState.energyCubes,
+            reserveSundivers: playerState.reserveSundivers.length
+        }
+
+        const playerEnergyTotal = availableAssets.energyCubes + energyGain
         const energyCost = stations
             .filter(
                 (station) =>
@@ -337,7 +411,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 return sum + BASE_AWARD_PER_RING[station.coords.row]
             }, 0)
 
-        if (playerState.reserveSundivers.length < sundiverCost) {
+        if (availableAssets.reserveSundivers < sundiverCost) {
             return false
         }
 

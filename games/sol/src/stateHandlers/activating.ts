@@ -28,8 +28,14 @@ type ActivatingAction =
     | HydratedBlight
     | HydratedSacrifice
 
-export class ActivatingStateHandler implements MachineStateHandler<ActivatingAction, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is ActivatingAction {
+export class ActivatingStateHandler implements MachineStateHandler<
+    ActivatingAction,
+    HydratedSolGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedSolGameState>
+    ): action is ActivatingAction {
         if (!action.playerId) return false
         const gameState = context.gameState
 
@@ -43,11 +49,17 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         const gameState = context.gameState
 
         // Maybe need to check activate effect more?
-        const validActions = [ActionType.Pass]
+        const validActions = []
+        if (gameState.activeEffect !== EffectType.Pulse) {
+            validActions.push(ActionType.Pass)
+        }
 
         const turnPlayer = gameState.turnManager.currentTurn()?.playerId
         const myActivation = gameState.getActivationForPlayer(playerId)
@@ -80,7 +92,10 @@ export class ActivatingStateHandler implements MachineStateHandler<ActivatingAct
 
     enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: ActivatingAction, context: MachineContext<HydratedSolGameState>): MachineState {
+    onAction(
+        action: ActivatingAction,
+        context: MachineContext<HydratedSolGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {
