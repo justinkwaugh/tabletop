@@ -2,17 +2,14 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { MachineState } from '../definitions/states.js'
 import { ActionType } from '../definitions/actions.js'
 import { Hydrated{{properCase game}}GameState } from '../model/gameState.js'
-import { Hydrated{{properCase action}}, is{{properCase action}} } from '../actions/{{camelCase action}}.js'
 
-type {{properCase state}}Action = Hydrated{{properCase action}}
+type {{properCase state}}Action = HydratedAction
 
 export class {{properCase state}}StateHandler implements MachineStateHandler<{{properCase state}}Action, Hydrated{{properCase game}}GameState> {
 
     isValidAction(action: HydratedAction, context: MachineContext<Hydrated{{properCase game}}GameState>): action is {{properCase state}}Action {
-        // Types are not the only thing that has to be checked here
-        if (!action.playerId) return false
-
-        return action.type === ActionType.{{properCase action}}
+        // Leave this comment if you want the template to generate code for valid actions
+        return false
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext<Hydrated{{properCase game}}GameState>): ActionType[] {
@@ -20,9 +17,7 @@ export class {{properCase state}}StateHandler implements MachineStateHandler<{{p
 
         const validActions = []
 
-        if (Hydrated{{properCase action}}.can{{properCase action}}(gameState, playerId)) {
-            validActions.push(ActionType.{{properCase action}})
-        }
+        // Leave this comment if you want the template to generate code for valid actions
 
         return validActions
     }
@@ -33,9 +28,7 @@ export class {{properCase state}}StateHandler implements MachineStateHandler<{{p
 
     onAction(action: {{properCase state}}Action, context: MachineContext<Hydrated{{properCase game}}GameState>): MachineState {
         switch (true) {
-            case is{{properCase action}}(action): {
-                return MachineState.{{properCase state}}
-            }
+            // Leave this comment if you want the template to generate code for valid actions
             default: {
                 throw Error('Invalid action type')
             }

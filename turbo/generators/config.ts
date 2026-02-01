@@ -141,6 +141,197 @@ const getStateHandlerFileChoices = async (answers?: Record<string, unknown>): Pr
         return []
     }
 }
+
+const updateStateHandlerWithActions = (
+    plop: PlopTypes.NodePlopAPI,
+    file: string,
+    data: Record<string, unknown>
+): string => {
+    const renderString = (plop as { renderString?: (template: string, data: unknown) => string }).renderString
+    const render = (template: string, extra: Record<string, unknown>) =>
+        typeof renderString === 'function' ? renderString(template, extra) : template
+    const stateName = render('{{properCase state}}', data)
+    const actionList = Array.isArray(data.actions)
+        ? data.actions
+        : typeof data.action === 'string'
+          ? [data.action]
+          : []
+    const actions = actionList.filter((action) => typeof action === 'string' && action !== '__none__')
+    const newline = file.includes('\r\n') ? '\r\n' : '\n'
+
+    const actionAnchor = 'Leave this comment if you want the template to generate code for valid actions'
+
+    const updateMethodBlock = (
+        content: string,
+        methodName: string,
+        updater: (block: string) => string
+    ): string => {
+        const methodRegex = new RegExp(`${methodName}\\([^)]*\\)[^{]*\\{`, 'm')
+        const methodMatch = methodRegex.exec(content)
+        if (!methodMatch) return content
+
+        const braceStart = content.indexOf('{', methodMatch.index)
+        if (braceStart === -1) return content
+
+        let depth = 0
+        let braceEnd = -1
+        for (let i = braceStart; i < content.length; i += 1) {
+            const char = content[i]
+            if (char === '{') depth += 1
+            if (char === '}') {
+                depth -= 1
+                if (depth === 0) {
+                    braceEnd = i
+                    break
+                }
+            }
+        }
+
+        if (braceEnd === -1) return content
+
+        const block = content.slice(braceStart + 1, braceEnd)
+        const updatedBlock = updater(block)
+        return `${content.slice(0, braceStart + 1)}${updatedBlock}${content.slice(braceEnd)}`
+    }
+
+    const ensureImport = (content: string, actionName: string, actionFile: string): string => {
+        const importLine = `import { Hydrated${actionName}, is${actionName} } from '../actions/${actionFile}.js'`
+        if (content.includes(importLine)) return content
+
+        const actionImportRegex =
+            /import { [^}]*Hydrated[A-Za-z0-9_]+[^}]* } from '\.\/actions\/[^']+\.js'\s*\r?\n/g
+        let lastMatch: RegExpExecArray | null = null
+        let match: RegExpExecArray | null = null
+
+        while ((match = actionImportRegex.exec(content)) !== null) {
+            lastMatch = match
+        }
+
+        if (lastMatch) {
+            const insertPos = lastMatch.index + lastMatch[0].length
+            return `${content.slice(0, insertPos)}${importLine}${newline}${content.slice(insertPos)}`
+        }
+
+        const actionTypeImportRegex = /import { ActionType } from '\.\.\/definitions\/actions\.js'\s*\r?\n/
+        const actionTypeMatch = actionTypeImportRegex.exec(content)
+        if (actionTypeMatch) {
+            const insertPos = actionTypeMatch.index + actionTypeMatch[0].length
+            return `${content.slice(0, insertPos)}${importLine}${newline}${content.slice(insertPos)}`
+        }
+
+        return `${importLine}${newline}${content}`
+    }
+
+    const ensureUnionType = (content: string, stateTypeName: string, hydratedName: string): string => {
+        const fullTypeName = `${stateTypeName}Action`
+        const typeRegex = new RegExp(
+            `type\\s+${fullTypeName}\\s*=\\s*([^\\n;]+(?:\\n\\s*\\|\\s*[^\\n;]+)*)`,
+            'm'
+        )
+        const match = typeRegex.exec(content)
+        if (!match) return content
+
+        const existing = new Set<string>()
+        for (const typeMatch of match[1].matchAll(/Hydrated[A-Za-z0-9_]+/g)) {
+            existing.add(typeMatch[0])
+        }
+
+        if (existing.has('HydratedAction')) {
+            existing.delete('HydratedAction')
+        }
+
+        existing.add(hydratedName)
+
+        const types = Array.from(existing)
+        const replacement = `type ${fullTypeName} = ${types.join(' | ')}`
+        return content.replace(typeRegex, replacement)
+    }
+
+    const addIsValidCheck = (content: string, actionName: string): string =>
+        updateMethodBlock(content, 'isValidAction', (block) => {
+            if (!block.includes(actionAnchor)) return block
+            const actionCheck = `ActionType.${actionName}`
+            if (block.includes(actionCheck)) return block
+
+            const returnRegex = /return[\s\S]*?;\s*/g
+            let match: RegExpExecArray | null = null
+            let lastRelevant: RegExpExecArray | null = null
+
+            while ((match = returnRegex.exec(block)) !== null) {
+                if (match[0].includes('ActionType.') || match[0].includes('action.type')) {
+                    lastRelevant = match
+                }
+            }
+
+            if (!lastRelevant) {
+                const falseRegex = /return\s+false\s*;\s*/m
+                if (!falseRegex.test(block)) return block
+                return block.replace(falseRegex, `return action.type === ${actionCheck};${newline}`)
+            }
+
+            const original = lastRelevant[0]
+            const updated = original.replace(/;\s*$/, ` || action.type === ${actionCheck};`)
+            return `${block.slice(0, lastRelevant.index)}${updated}${block.slice(
+                lastRelevant.index + original.length
+            )}`
+        })
+
+    const addValidActionCheck = (content: string, actionName: string): string =>
+        updateMethodBlock(content, 'validActionsForPlayer', (block) => {
+            if (!block.includes(actionAnchor)) return block
+            const canCheck = `Hydrated${actionName}.can${actionName}`
+            if (block.includes(canCheck)) return block
+
+            const indentMatch = block.match(/^\s*const validActions/m)
+            const indent = indentMatch ? indentMatch[0].match(/^\s*/)?.[0] ?? '' : ''
+            const innerIndent = `${indent}    `
+            const insertBlock = [
+                `${indent}if (Hydrated${actionName}.can${actionName}(gameState, playerId)) {`,
+                `${innerIndent}validActions.push(ActionType.${actionName})`,
+                `${indent}}`
+            ].join(newline)
+
+            const anchorIndex = block.indexOf(actionAnchor)
+            const lineStart = block.lastIndexOf(newline, anchorIndex)
+            const insertPos = lineStart === -1 ? 0 : lineStart + newline.length
+            return `${block.slice(0, insertPos)}${insertBlock}${newline}${block.slice(insertPos)}`
+        })
+
+    const addSwitchCase = (content: string, actionName: string): string =>
+        updateMethodBlock(content, 'onAction', (block) => {
+            if (!block.includes(actionAnchor)) return block
+            const caseLabel = `case is${actionName}(action):`
+            if (block.includes(caseLabel)) return block
+
+            const anchorIndex = block.indexOf(actionAnchor)
+            const lineStart = block.lastIndexOf(newline, anchorIndex)
+            const insertPos = lineStart === -1 ? 0 : lineStart + newline.length
+            const indentMatch = block.slice(insertPos, anchorIndex).match(/^[ \t]*/)
+            const indent = indentMatch ? indentMatch[0] : ''
+
+            const caseBlock = [
+                `${indent}case is${actionName}(action): {`,
+                `${indent}    return MachineState.${stateName}`,
+                `${indent}}`
+            ].join(newline)
+
+            return `${block.slice(0, insertPos)}${caseBlock}${newline}${block.slice(insertPos)}`
+        })
+
+    let nextFile = file
+    for (const action of actions) {
+        if (typeof action !== 'string') continue
+        const actionName = render('{{properCase action}}', { ...data, action })
+        const actionFile = render('{{camelCase action}}', { ...data, action })
+        nextFile = ensureImport(nextFile, actionName, actionFile)
+        nextFile = ensureUnionType(nextFile, stateName, `Hydrated${actionName}`)
+        nextFile = addIsValidCheck(nextFile, actionName)
+        nextFile = addValidActionCheck(nextFile, actionName)
+        nextFile = addSwitchCase(nextFile, actionName)
+    }
+
+    return nextFile
+}
 export default function generator(plop: PlopTypes.NodePlopAPI): void {
     plop.setGenerator('create-game', {
         description: 'Add a new game',
@@ -290,7 +481,7 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 message: 'Choose an action for this state:',
                 choices: async (answers?: Record<string, unknown>) => {
                     const choices = await getActionChoices(answers)
-                    return [...choices, { name: '<New Action>', value: '__new__' }]
+                    return [{ name: '<No Action>', value: '__none__' }, ...choices, { name: '<New Action>', value: '__new__' }]
                 }
             },
             {
@@ -315,16 +506,16 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
         actions: (data) => {
             const answers = data as Record<string, unknown>
             const selectedAction = answers.action
-            const resolvedAction =
-                selectedAction === '__new__' ? (answers.newAction as string | undefined) : (selectedAction as string)
+            const resolvedAction = selectedAction === '__new__' ? (answers.newAction as string | undefined) : selectedAction
+            const hasAction = typeof resolvedAction === 'string' && resolvedAction !== '__none__'
 
-            if (resolvedAction) {
+            if (hasAction) {
                 answers.action = resolvedAction
             }
 
             const actions = []
 
-            if (selectedAction === '__new__' && resolvedAction) {
+            if (selectedAction === '__new__' && hasAction) {
                 actions.push(
                     {
                         type: 'add',
@@ -468,6 +659,15 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 }
             )
 
+            if (hasAction) {
+                actions.push({
+                    type: 'modify',
+                    path: 'games/{{kebabCase game}}/src/stateHandlers/{{camelCase state}}.ts',
+                    transform: (file, actionData) =>
+                        updateStateHandlerWithActions(plop, file, actionData as Record<string, unknown>)
+                })
+            }
+
             return actions
         }
     })
@@ -513,180 +713,7 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
             {
                 type: 'modify',
                 path: 'games/{{kebabCase game}}/src/stateHandlers/{{camelCase state}}.ts',
-                transform: (file, data) => {
-                    const renderString = (plop as { renderString?: (template: string, data: unknown) => string })
-                        .renderString
-                    const render = (template: string, extra: Record<string, unknown>) =>
-                        typeof renderString === 'function' ? renderString(template, extra) : template
-                    const stateName = render('{{properCase state}}', data)
-                    const actions = Array.isArray(data.actions) ? data.actions : []
-                    const newline = file.includes('\r\n') ? '\r\n' : '\n'
-
-                    const updateMethodBlock = (
-                        content: string,
-                        methodName: string,
-                        updater: (block: string) => string
-                    ): string => {
-                        const methodRegex = new RegExp(`${methodName}\\([^)]*\\)[^{]*\\{`, 'm')
-                        const methodMatch = methodRegex.exec(content)
-                        if (!methodMatch) return content
-
-                        const braceStart = content.indexOf('{', methodMatch.index)
-                        if (braceStart === -1) return content
-
-                        let depth = 0
-                        let braceEnd = -1
-                        for (let i = braceStart; i < content.length; i += 1) {
-                            const char = content[i]
-                            if (char === '{') depth += 1
-                            if (char === '}') {
-                                depth -= 1
-                                if (depth === 0) {
-                                    braceEnd = i
-                                    break
-                                }
-                            }
-                        }
-
-                        if (braceEnd === -1) return content
-
-                        const block = content.slice(braceStart + 1, braceEnd)
-                        const updatedBlock = updater(block)
-                        return `${content.slice(0, braceStart + 1)}${updatedBlock}${content.slice(braceEnd)}`
-                    }
-
-                    const ensureImport = (content: string, actionName: string, actionFile: string): string => {
-                        const importLine = `import { Hydrated${actionName}, is${actionName} } from '../actions/${actionFile}.js'`
-                        if (content.includes(importLine)) return content
-
-                        const actionImportRegex =
-                            /import { [^}]*Hydrated[A-Za-z0-9_]+[^}]* } from '\.\/actions\/[^']+\.js'\s*\r?\n/g
-                        let lastMatch: RegExpExecArray | null = null
-                        let match: RegExpExecArray | null = null
-
-                        while ((match = actionImportRegex.exec(content)) !== null) {
-                            lastMatch = match
-                        }
-
-                        if (lastMatch) {
-                            const insertPos = lastMatch.index + lastMatch[0].length
-                            return `${content.slice(0, insertPos)}${importLine}${newline}${content.slice(insertPos)}`
-                        }
-
-                        const actionTypeImportRegex = /import { ActionType } from '\.\.\/definitions\/actions\.js'\s*\r?\n/
-                        const actionTypeMatch = actionTypeImportRegex.exec(content)
-                        if (actionTypeMatch) {
-                            const insertPos = actionTypeMatch.index + actionTypeMatch[0].length
-                            return `${content.slice(0, insertPos)}${importLine}${newline}${content.slice(insertPos)}`
-                        }
-
-                        return `${importLine}${newline}${content}`
-                    }
-
-                    const ensureUnionType = (content: string, stateTypeName: string, hydratedName: string): string => {
-                        const fullTypeName = `${stateTypeName}Action`
-                        const typeRegex = new RegExp(
-                            `type\\s+${fullTypeName}\\s*=\\s*([^\\n;]+(?:\\n\\s*\\|\\s*[^\\n;]+)*)`,
-                            'm'
-                        )
-                        const match = typeRegex.exec(content)
-                        if (!match) return content
-
-                        const existing = new Set<string>()
-                        for (const typeMatch of match[1].matchAll(/Hydrated[A-Za-z0-9_]+/g)) {
-                            existing.add(typeMatch[0])
-                        }
-                        existing.add(hydratedName)
-
-                        const types = Array.from(existing)
-                        const replacement = `type ${fullTypeName} = ${types.join(' | ')}`
-                        return content.replace(typeRegex, replacement)
-                    }
-
-                    const addIsValidCheck = (content: string, actionName: string): string =>
-                        updateMethodBlock(content, 'isValidAction', (block) => {
-                            const actionCheck = `ActionType.${actionName}`
-                            if (block.includes(actionCheck)) return block
-
-                            const returnRegex = /return[\s\S]*?;\s*/g
-                            let match: RegExpExecArray | null = null
-                            let lastRelevant: RegExpExecArray | null = null
-
-                            while ((match = returnRegex.exec(block)) !== null) {
-                                if (match[0].includes('ActionType.') || match[0].includes('action.type')) {
-                                    lastRelevant = match
-                                }
-                            }
-
-                            if (!lastRelevant) return block
-
-                            const original = lastRelevant[0]
-                            const updated = original.replace(/;\s*$/, ` || action.type === ${actionCheck};`)
-                            return `${block.slice(0, lastRelevant.index)}${updated}${block.slice(
-                                lastRelevant.index + original.length
-                            )}`
-                        })
-
-                    const addValidActionCheck = (content: string, actionName: string): string =>
-                        updateMethodBlock(content, 'validActionsForPlayer', (block) => {
-                            const canCheck = `Hydrated${actionName}.can${actionName}`
-                            if (block.includes(canCheck)) return block
-
-                            const indentMatch = block.match(/^\s*const validActions/m)
-                            const indent = indentMatch ? indentMatch[0].match(/^\s*/)?.[0] ?? '' : ''
-                            const innerIndent = `${indent}    `
-                            const insertBlock = [
-                                `${indent}if (Hydrated${actionName}.can${actionName}(gameState, playerId)) {`,
-                                `${innerIndent}validActions.push(ActionType.${actionName})`,
-                                `${indent}}`
-                            ].join(newline)
-
-                            const returnIndex = block.lastIndexOf('return validActions')
-                            if (returnIndex !== -1) {
-                                const lineStart = block.lastIndexOf(newline, returnIndex)
-                                const insertPos = lineStart === -1 ? 0 : lineStart + newline.length
-                                return `${block.slice(0, insertPos)}${insertBlock}${newline}${block.slice(insertPos)}`
-                            }
-
-                            return `${block}${newline}${insertBlock}${newline}`
-                        })
-
-                    const addSwitchCase = (content: string, actionName: string): string =>
-                        updateMethodBlock(content, 'onAction', (block) => {
-                            const caseLabel = `case is${actionName}(action):`
-                            if (block.includes(caseLabel)) return block
-
-                            const defaultIndex = block.indexOf('default:')
-                            if (defaultIndex === -1) return block
-
-                            const lineStart = block.lastIndexOf(newline, defaultIndex)
-                            const insertPos = lineStart === -1 ? 0 : lineStart + newline.length
-                            const indentMatch = block.slice(insertPos, defaultIndex).match(/^[ \t]*/)
-                            const indent = indentMatch ? indentMatch[0] : ''
-
-                            const caseBlock = [
-                                `${indent}case is${actionName}(action): {`,
-                                `${indent}    return MachineState.${stateName}`,
-                                `${indent}}`
-                            ].join(newline)
-
-                            return `${block.slice(0, insertPos)}${caseBlock}${newline}${block.slice(insertPos)}`
-                        })
-
-                    let nextFile = file
-                    for (const action of actions) {
-                        if (typeof action !== 'string') continue
-                        const actionName = render('{{properCase action}}', { ...data, action })
-                        const actionFile = render('{{camelCase action}}', { ...data, action })
-                        nextFile = ensureImport(nextFile, actionName, actionFile)
-                        nextFile = ensureUnionType(nextFile, stateName, `Hydrated${actionName}`)
-                        nextFile = addIsValidCheck(nextFile, actionName)
-                        nextFile = addValidActionCheck(nextFile, actionName)
-                        nextFile = addSwitchCase(nextFile, actionName)
-                    }
-
-                    return nextFile
-                }
+                transform: (file, data) => updateStateHandlerWithActions(plop, file, data as Record<string, unknown>)
             }
         ]
     })
