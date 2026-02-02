@@ -1,114 +1,56 @@
 {
-  "frontend": {
-    "version": "14.8.0",
-    "priorVersions": [
-      "14.7.0",
-      "14.6.0",
-      "14.5.0",
-      "14.4.0",
-      "14.3.0"
+    "frontend": {
+        "version": "14.8.0",
+        "priorVersions": ["14.7.0", "14.6.0", "14.5.0", "14.4.0", "14.3.0"]
+    },
+    "games": [
+        {
+            "gameId": "bridges",
+            "packageId": "bridges-of-shangri-la",
+            "logicVersion": "3.0.0",
+            "uiVersion": "3.1.0",
+            "priorLogicVersions": ["2.0.0", "2.1.0", "2.0.0", "1.3.0", "1.2.0"],
+            "priorUiVersions": ["3.0.0", "2.0.0", "2.1.0", "2.0.0", "1.3.0"]
+        },
+        {
+            "gameId": "estates",
+            "packageId": "estates",
+            "logicVersion": "2.0.0",
+            "uiVersion": "2.1.0",
+            "priorLogicVersions": ["1.3.0", "1.2.0", "2.0.0", "1.2.0", "1.1.0"],
+            "priorUiVersions": ["2.0.0", "1.3.0", "1.2.0", "2.0.0", "1.2.0"]
+        },
+        {
+            "gameId": "freshfish",
+            "packageId": "fresh-fish",
+            "logicVersion": "3.0.0",
+            "uiVersion": "4.2.0",
+            "priorLogicVersions": ["2.1.0", "3.0.0", "2.1.0", "2.0.0", "1.5.0"],
+            "priorUiVersions": ["4.1.0", "4.0.0", "3.1.0", "4.0.0", "3.1.0"]
+        },
+        {
+            "gameId": "kaivai",
+            "packageId": "kaivai",
+            "logicVersion": "3.0.0",
+            "uiVersion": "3.1.4",
+            "priorLogicVersions": ["2.0.0", "1.3.0", "1.2.0", "1.1.0", "1.0.2"],
+            "priorUiVersions": ["3.1.3", "3.1.2", "3.1.1", "3.1.0", "3.0.0"]
+        },
+        {
+            "gameId": "sol",
+            "packageId": "sol",
+            "logicVersion": "5.4.1",
+            "uiVersion": "5.8.1",
+            "priorLogicVersions": ["5.4.0", "5.3.0", "5.2.0", "5.1.0", "5.0.0"],
+            "priorUiVersions": ["5.8.0", "5.7.0", "5.6.0", "5.5.0", "5.4.2"]
+        },
+        {
+            "gameId": "container",
+            "packageId": "container",
+            "logicVersion": "0.0.1",
+            "uiVersion": "0.0.1",
+            "priorLogicVersions": [],
+            "priorUiVersions": []
+        }
     ]
-  },
-  "games": [
-    {
-      "gameId": "bridges",
-      "packageId": "bridges-of-shangri-la",
-      "logicVersion": "3.0.0",
-      "uiVersion": "3.1.0",
-      "priorLogicVersions": [
-        "2.0.0",
-        "2.1.0",
-        "2.0.0",
-        "1.3.0",
-        "1.2.0"
-      ],
-      "priorUiVersions": [
-        "3.0.0",
-        "2.0.0",
-        "2.1.0",
-        "2.0.0",
-        "1.3.0"
-      ]
-    },
-    {
-      "gameId": "estates",
-      "packageId": "estates",
-      "logicVersion": "2.0.0",
-      "uiVersion": "2.1.0",
-      "priorLogicVersions": [
-        "1.3.0",
-        "1.2.0",
-        "2.0.0",
-        "1.2.0",
-        "1.1.0"
-      ],
-      "priorUiVersions": [
-        "2.0.0",
-        "1.3.0",
-        "1.2.0",
-        "2.0.0",
-        "1.2.0"
-      ]
-    },
-    {
-      "gameId": "freshfish",
-      "packageId": "fresh-fish",
-      "logicVersion": "3.0.0",
-      "uiVersion": "4.2.0",
-      "priorLogicVersions": [
-        "2.1.0",
-        "3.0.0",
-        "2.1.0",
-        "2.0.0",
-        "1.5.0"
-      ],
-      "priorUiVersions": [
-        "4.1.0",
-        "4.0.0",
-        "3.1.0",
-        "4.0.0",
-        "3.1.0"
-      ]
-    },
-    {
-      "gameId": "kaivai",
-      "packageId": "kaivai",
-      "logicVersion": "3.0.0",
-      "uiVersion": "3.1.4",
-      "priorLogicVersions": [
-        "2.0.0",
-        "1.3.0",
-        "1.2.0",
-        "1.1.0",
-        "1.0.2"
-      ],
-      "priorUiVersions": [
-        "3.1.3",
-        "3.1.2",
-        "3.1.1",
-        "3.1.0",
-        "3.0.0"
-      ]
-    },
-    {
-      "gameId": "sol",
-      "packageId": "sol",
-      "logicVersion": "5.4.1",
-      "uiVersion": "5.8.1",
-      "priorLogicVersions": [
-        "5.4.0",
-        "5.3.0",
-        "5.2.0",
-        "5.1.0",
-        "5.0.0"
-      ],
-      "priorUiVersions": [
-        "5.8.0",
-        "5.7.0",
-        "5.6.0",
-        "5.5.0",
-        "5.4.2"
-      ]
-    }
-  ]
 }

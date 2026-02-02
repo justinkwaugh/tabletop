@@ -4,6 +4,8 @@ export * from './definition/colors.js'
 export * from './definition/constants.js'
 export * from './definition/config.js'
 export * from './definition/gameDefinition.js'
+export * from './definition/info.js'
+export * from './definition/runtime.js'
 
 export * from './model/container.js'
 export * from './model/valueCard.js'

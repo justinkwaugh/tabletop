@@ -13,15 +13,15 @@
         "test": "vitest"
     },
     "dependencies": {
-        "@tabletop/common": "*",
+        "@tabletop/common": "workspace:*",
         "es-iterator-helpers": "^1.2.1",
         "typebox": "^1.0.53"
     },
     "devDependencies": {
         "@babel/core": "^7.25.2",
         "@babel/preset-env": "^7.25.3",
-        "@tabletop/eslint-config": "*",
-        "@tabletop/vitest-config": "*",
+        "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*",
         "@typescript/native-preview": "*",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3",
