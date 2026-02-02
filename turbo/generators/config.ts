@@ -53,6 +53,33 @@ const getGameChoices = async (): Promise<string[]> => {
         .sort((a, b) => a.localeCompare(b))
 }
 
+const getUiPackageNames = async (): Promise<string[]> => {
+    const gamesRoot = path.resolve(process.cwd(), 'games')
+    const entries = await readdir(gamesRoot, { withFileTypes: true })
+    return entries
+        .filter((entry) => entry.isDirectory() && entry.name.endsWith('-ui'))
+        .map((entry) => entry.name)
+}
+
+const getMissingUiGameChoices = async (): Promise<string[]> => {
+    const gamesRoot = path.resolve(process.cwd(), 'games')
+    const entries = await readdir(gamesRoot, { withFileTypes: true })
+    const dirNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+    const uiNames = new Set(dirNames.filter((name) => name.endsWith('-ui')))
+    const baseNames = dirNames.filter((name) => !name.endsWith('-ui'))
+
+    return baseNames.filter((name) => !uiNames.has(`${name}-ui`)).sort((a, b) => a.localeCompare(b))
+}
+
+const hasUiForGameName = (uiNames: string[], input: string): boolean => {
+    const normalizedInput = normalizeToken(input)
+    const normalizedWithUi = normalizeToken(`${input}ui`)
+    return uiNames.some((name) => {
+        const normalizedName = normalizeToken(name)
+        return normalizedName === normalizedInput || normalizedName === normalizedWithUi
+    })
+}
+
 const getActionChoices = async (answers?: Record<string, unknown>): Promise<string[]> => {
     const game = typeof answers?.game === 'string' ? answers.game : ''
     if (!game) return []
@@ -353,6 +380,55 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 templateFiles: `templates/game/logic/**/*.hbs`
             }
         ]
+    })
+
+    plop.setGenerator('create-game-ui', {
+        description: 'Add a new game UI',
+        prompts: [
+            {
+                type: 'list',
+                name: 'game',
+                message: 'Choose a game to create a UI for:',
+                choices: async () => {
+                    const choices = await getMissingUiGameChoices()
+                    return [...choices, { name: '<New Game>', value: '__new__' }]
+                }
+            },
+            {
+                type: 'input',
+                name: 'newGame',
+                message: "Game name (e.g., 'Go Fish'):",
+                when: (answers: Record<string, unknown>) => answers.game === '__new__',
+                validate: async (input: string) => {
+                    if (!input) {
+                        return 'Game name is required.'
+                    }
+
+                    const uiNames = await getUiPackageNames()
+                    if (hasUiForGameName(uiNames, input)) {
+                        return 'A UI for this game already exists.'
+                    }
+
+                    return true
+                }
+            }
+        ],
+        actions: (data) => {
+            const answers = data as Record<string, unknown>
+            if (answers.game === '__new__') {
+                answers.game = answers.newGame
+            }
+
+            return [
+                {
+                    type: 'addMany',
+                    destination: 'games/{{kebabCase game}}-ui',
+                    base: `templates/game/ui`,
+                    globOptions: { dot: true },
+                    templateFiles: `templates/game/ui/**/*`
+                }
+            ]
+        }
     })
 
     plop.setGenerator('add-action', {

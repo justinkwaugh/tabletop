@@ -14,14 +14,14 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
 
-    import type { ContainerGameSession } from '$lib/model/session.svelte'
-    import type { HydratedContainerGameState, ContainerGameState } from '@tabletop/container'
+    import type { {{properCase game}}GameSession } from '$lib/model/session.svelte'
+    import type { Hydrated{{properCase game}}GameState, {{properCase game}}GameState } from '@tabletop/{{kebabCase game}}'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
     let {
         gameSession
-    }: { gameSession: GameSession<ContainerGameState, HydratedContainerGameState> } = $props()
-    setGameSession(gameSession as ContainerGameSession)
+    }: { gameSession: GameSession<{{properCase game}}GameState, Hydrated{{properCase game}}GameState> } = $props()
+    setGameSession(gameSession as {{properCase game}}GameSession)
 </script>
 
 <!-- Full Height and Width with 8px padding-->

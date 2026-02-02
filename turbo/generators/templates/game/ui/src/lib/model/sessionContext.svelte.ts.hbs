@@ -1,0 +1,12 @@
+import { createGameSessionContext } from '@tabletop/frontend-components'
+import { {{properCase game}}GameSession } from './session.svelte.js'
+
+const [getContext, setContext] = createGameSessionContext<{{properCase game}}GameSession>()
+
+export function setGameSession(session: {{properCase game}}GameSession) {
+    setContext(session)
+}
+
+export function getGameSession(): {{properCase game}}GameSession {
+    return getContext()
+}
