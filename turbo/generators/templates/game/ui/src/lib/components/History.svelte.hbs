@@ -1,18 +1,16 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import type { {{properCase game}}GameSession } from '$lib/model/{{kebabCase game}}GameSession.svelte'
-    import type { GameAction } from '@tabletop/common'
     import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const timeAgo = new TimeAgo('en-US')
 
-    let gameSession = getGameSession() as {{properCase game}}GameSession
+    let gameSession = getGameSession()
 
     let reversedActions = $derived.by(() => {
         const reversed = gameSession.actions
@@ -54,8 +52,6 @@
                     in:fade=\{{ duration: 200, easing: quartIn }}
                     out:fade=\{{ duration: 50 }}
                     animate:flip=\{{ duration: 100 }}
-                    onmouseover={() => highlight(action)}
-                    onmouseleave={() => unhighlight()}
                 >
                     <div
                         class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"

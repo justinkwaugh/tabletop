@@ -1,10 +1,9 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
     import { ContainerPlayerState } from '@tabletop/container'
-    import type { ContainerGameSession } from '$lib/model/ContainerGameSession.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let gameSession = getGameSession() as ContainerGameSession
+    let gameSession = getGameSession()
     let { player, playerState }: { player: Player; playerState: ContainerPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))

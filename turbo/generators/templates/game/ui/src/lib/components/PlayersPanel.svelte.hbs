@@ -2,10 +2,9 @@
     import type { Player } from '@tabletop/common'
     import type { Hydrated{{properCase game}}PlayerState, {{properCase game}}PlayerState } from '@tabletop/{{kebabCase game}}'
     import PlayerState from '$lib/components/PlayerState.svelte'
-    import type { {{properCase game}}GameSession } from '$lib/model/{{properCase game}}GameSession.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let gameSession = getGameSession() as {{properCase game}}GameSession
+    let gameSession = getGameSession()
 
     type PlayerAndState = { player: Player; playerState: Hydrated{{properCase game}}PlayerState }
 

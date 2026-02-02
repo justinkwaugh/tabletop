@@ -2,10 +2,9 @@
     import type { Player } from '@tabletop/common'
     import type { HydratedContainerPlayerState, ContainerPlayerState } from '@tabletop/container'
     import PlayerState from '$lib/components/PlayerState.svelte'
-    import type { ContainerGameSession } from '$lib/model/ContainerGameSession.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let gameSession = getGameSession() as ContainerGameSession
+    let gameSession = getGameSession()
 
     type PlayerAndState = { player: Player; playerState: HydratedContainerPlayerState }
 

@@ -1,12 +1,8 @@
 <script lang="ts">
     import {
         ScalingWrapper,
-        HistoryControls,
-        GameChat,
         DefaultSideContent,
         DefaultTableLayout,
-        DefaultTabs,
-        CustomFont,
         GameSession
     } from '@tabletop/frontend-components'
 
