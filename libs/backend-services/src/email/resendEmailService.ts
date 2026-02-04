@@ -116,7 +116,11 @@ export class ResendEmailService implements EmailService {
         url: string
         toEmail: string
     }): Promise<void> {
-        assertExists(game.result, 'Game result is missing for game end email')
+        if (!game.result) {
+            console.log('Game result is missing for game end email')
+            return
+        }
+
         const emailHTML = await render(
             GameEnd({
                 result: game.result,

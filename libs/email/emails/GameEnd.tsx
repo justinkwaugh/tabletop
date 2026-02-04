@@ -21,12 +21,19 @@ interface GameEndProps {
 }
 
 export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndProps) => {
+    const formatNames = (names: string[]): string => {
+        if (names.length === 0) return 'Someone'
+        if (names.length === 1) return names[0]
+        if (names.length === 2) return `${names[0]} and ${names[1]}`
+        return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
+    }
+    const winnerNames = formatNames(winners)
     let previewText
     let resultLabel
     let resultColor
     if (result === GameResult.Draw) {
         previewText = `Your ${title} game ${gameName} has ended in a draw.`
-        resultLabel = 'Draw'
+        resultLabel = `${winnerNames} tied`
         resultColor = 'text-[#b45309]'
     } else if (result === GameResult.Abandoned) {
         previewText = `Your ${title} game ${gameName} was abandoned.`
@@ -34,7 +41,7 @@ export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndP
         resultColor = 'text-[#6b7280]'
     } else {
         previewText = `Your ${title} game ${gameName} has ended.`
-        resultLabel = 'Win'
+        resultLabel = `${winnerNames} won!`
         resultColor = 'text-[#15803d]'
     }
     return (
@@ -64,15 +71,6 @@ export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndP
                                 Result: {resultLabel}
                             </Text>
                         </Section>
-
-                        {result === GameResult.Win ? (
-                            <Section className="mb-[18px]">
-                                <Text className="text-[#0f172a] text-[15px] leading-[1.6] m-0">
-                                    Congratulations to:&nbsp;
-                                    <span className="font-semibold">{winners.join(', ')}</span>
-                                </Text>
-                            </Section>
-                        ) : null}
 
                         <Section className="text-center mb-[16px]">
                             <Link
