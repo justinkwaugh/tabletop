@@ -27,4 +27,17 @@ export interface EmailService {
         url: string
         toEmail: string
     }): Promise<void>
+    sendGameEndEmail({
+        winners,
+        game,
+        definition,
+        url,
+        toEmail
+    }: {
+        winners: User[]
+        game: Game
+        definition: GameDefinition
+        url: string
+        toEmail: string
+    }): Promise<void>
 }

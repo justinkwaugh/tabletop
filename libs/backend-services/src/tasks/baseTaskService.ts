@@ -84,4 +84,20 @@ export abstract class BaseTaskService implements TaskService {
             payload: { userId, gameId, notificationId, delay: inSeconds }
         })
     }
+
+    async sendGameEndEmail({
+        userId,
+        gameId,
+        toEmail
+    }: {
+        userId: string
+        gameId: string
+        toEmail: string
+    }) {
+        await this.createPushTask({
+            queue: 'game-end-email',
+            path: '/email/sendGameEndEmail',
+            payload: { userId, gameId, toEmail }
+        })
+    }
 }

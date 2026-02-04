@@ -23,22 +23,31 @@ export const EmailVerification = ({ token = '' }: EmailVerificationProps) => {
             <Head />
             <Preview>{previewText}</Preview>
             <Tailwind>
-                <Body className="bg-white my-0 mx-auto font-sans">
-                    <Container className="my-0 mx-auto p-[20px]">
-                        <Heading className="text-[#1d1c1d] my-[30px] mx-0 text-[36px] p-0">
-                            Confirm your email address
-                        </Heading>
-                        <Text>
-                            Your confirmation code is below - enter it in your open browser window
-                            and we'll help you get signed in.
-                        </Text>
-                        <Section className="bg-[#f5f4f5] mb-[30px] py-[40px] px-[10px] text-center">
-                            <Text className="text-3xl">{token}</Text>
+                <Body className="bg-[#f3f4f6] my-0 mx-auto font-sans">
+                    <Container className="my-[32px] mx-auto p-[24px] bg-white border border-[#e5e7eb]">
+                        <Section className="mb-[16px]">
+                            <Text className="text-[12px] uppercase tracking-[1.5px] text-[#6b7280] m-0">
+                                Email Verification
+                            </Text>
+                            <Heading className="text-[#0f172a] my-[8px] mx-0 text-[28px] p-0 leading-[1.2]">
+                                Confirm your email address
+                            </Heading>
+                            <Text className="text-[#475569] text-[15px] leading-[1.6] m-0">
+                                Enter this code in the verification screen to finish signing in.
+                            </Text>
                         </Section>
 
-                        <Text>
-                            If you didn't request this email, there's nothing to worry about, you
-                            can safely ignore it.
+                        <Section className="bg-[#f8fafc] border border-[#e2e8f0] py-[18px] text-center mb-[20px]">
+                            <Text className="text-[24px] tracking-[4px] font-semibold m-0 text-[#0f172a]">
+                                {token}
+                            </Text>
+                            <Text className="text-[12px] text-[#64748b] m-0 mt-[6px]">
+                                This code expires soon.
+                            </Text>
+                        </Section>
+
+                        <Text className="text-[#9ca3af] text-[12px] leading-[1.6] m-0">
+                            If you did not request this, you can safely ignore this email.
                         </Text>
                     </Container>
                 </Body>

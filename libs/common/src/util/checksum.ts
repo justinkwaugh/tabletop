@@ -1,5 +1,5 @@
 import fnv from 'fnv-plus'
-import { GameAction } from '../game/engine/gameAction'
+import { GameAction } from '../game/engine/gameAction.js'
 
 export function calculateActionChecksum(checksum: number, actions: GameAction[]): number {
     for (const action of actions) {
