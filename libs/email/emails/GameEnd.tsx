@@ -51,9 +51,6 @@ export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndP
                             <Heading className="text-[#0f172a] my-[8px] mx-0 text-[28px] p-0 leading-[1.2]">
                                 {title} has ended
                             </Heading>
-                            <Text className="text-[#475569] text-[15px] leading-[1.6] m-0">
-                                {previewText}
-                            </Text>
                         </Section>
 
                         <Section className="bg-[#f8fafc] border border-[#e2e8f0] px-[16px] py-[14px] mb-[20px]">
@@ -87,8 +84,8 @@ export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndP
                         </Section>
 
                         <Text className="text-[#64748b] text-[12px] leading-[1.6] m-0">
-                            If the button does not work, copy and paste this link into your
-                            browser: <span className="text-[#0f172a]">{url}</span>
+                            If the button does not work, copy and paste this link into your browser:{' '}
+                            <span className="text-[#0f172a]">{url}</span>
                         </Text>
                     </Container>
                 </Body>
@@ -99,7 +96,7 @@ export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndP
 
 GameEnd.PreviewProps = {
     result: GameResult.Win,
-    title: '4d chess',
+    title: 'Sol: Last Days of a Star',
     gameName: "Bob's Game of 4D Chess",
     winners: ['Alice', 'Bob'],
     url: '#',
