@@ -45,7 +45,7 @@
         "@types/bcrypt": "^5.0.2",
         "@types/glob-to-regexp": "^0.4.4",
         "@types/web-push": "^3.6.3",
-        "@typescript/native-preview": "*",
+        "@typescript/native-preview": "7.0.0-dev.20260203.1",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3"
     }

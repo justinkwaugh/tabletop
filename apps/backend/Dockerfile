@@ -18,7 +18,7 @@ COPY libs/backend-services/package.json /app/libs/backend-services/package.json
 COPY libs/email/package.json /app/libs/email/package.json
 COPY config/config-games/package.json /app/config/config-games/package.json
 
-RUN corepack enable && corepack prepare pnpm@9.15.5 --activate
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 RUN pnpm install --frozen-lockfile --prod
 
 COPY libs/common /app/libs/common
