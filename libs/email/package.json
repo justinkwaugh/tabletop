@@ -13,6 +13,7 @@
         "dev": "email dev -p 3001"
     },
     "dependencies": {
+        "@tabletop/common": "workspace:*",
         "@react-email/components": "1.0.6"
     },
     "devDependencies": {
