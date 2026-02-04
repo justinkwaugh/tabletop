@@ -34,10 +34,13 @@ export default async function (fastify: FastifyInstance) {
                 return
             }
 
+            const playersById = new Map(game.players.map((player) => [player.id, player]))
+            const winnerUserIds = game.winningPlayerIds
+                .map((playerId) => playersById.get(playerId)?.userId)
+                .filter((userId): userId is string => !!userId)
+
             const winners = await Promise.all(
-                game.winningPlayerIds.map(
-                    async (userId) => await fastify.userService.getUser(userId)
-                )
+                winnerUserIds.map(async (userId) => await fastify.userService.getUser(userId))
             )
             const validWinners = winners.filter((w) => w !== undefined)
 
