@@ -1,15 +1,22 @@
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { readFile } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { GameDefinition } from '@tabletop/common'
 import { SiteManifest } from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
+import { EnvService } from '../env/envService.js'
 
 const DEFAULT_CACHE_KEY = 'site-manifest'
+
 const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '.local-static'
+const DEFAULT_GAMES_ROOT = path.join(STATIC_ROOT, 'games')
+const LOCAL_WORKSPACE_GAMES_ROOT = path.join(process.cwd(), '../../games')
+const GAMES_ROOT =
+    process.env['GAME_LOGIC_ROOT'] ??
+    (EnvService.isLocal() ? LOCAL_WORKSPACE_GAMES_ROOT : DEFAULT_GAMES_ROOT)
+
 const MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
-const GAMES_ROOT = process.env['GAME_LOGIC_ROOT'] ?? path.join(STATIC_ROOT, 'games')
 
 type ManifestMismatchChanges = {
     frontend: boolean
@@ -150,11 +157,20 @@ export class LibraryService {
                     logicVersion,
                     'index.js'
                 )
+                const esmPath = path.join(this.logicRoot, packageId, 'esm', 'index.js')
                 const moduleName = `@tabletop/${packageId}`
                 let gameModule: unknown
 
                 try {
-                    gameModule = await import(pathToFileURL(logicPath).href)
+                    if (EnvService.isLocal()) {
+                        if (await this.pathExists(esmPath)) {
+                            gameModule = await import(pathToFileURL(esmPath).href)
+                        } else {
+                            gameModule = await import(pathToFileURL(logicPath).href)
+                        }
+                    } else {
+                        gameModule = await import(pathToFileURL(logicPath).href)
+                    }
                 } catch (error) {
                     if (!this.allowFallback) {
                         throw error
@@ -199,6 +215,15 @@ export class LibraryService {
         )
 
         return definitions
+    }
+
+    private async pathExists(filePath: string): Promise<boolean> {
+        try {
+            await access(filePath)
+            return true
+        } catch {
+            return false
+        }
     }
 
     private async loadManifest(): Promise<SiteManifest> {
