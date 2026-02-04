@@ -10,7 +10,7 @@ import {
 
 import { Resend } from 'resend'
 import { SecretsService } from '../secrets/secretsService'
-import { assertExists, Game, GameDefinition, User } from '@tabletop/common'
+import { Game, GameDefinition, User } from '@tabletop/common'
 import { AccountChangeType, EmailService } from './emailService.js'
 import { NullEmailService } from './nullEmailService.js'
 
