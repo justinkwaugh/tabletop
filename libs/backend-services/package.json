@@ -36,7 +36,7 @@
         "nanoid": "^5.1.6",
         "redis": "^5.10.0",
         "resend": "^4.0.2",
-        "typescript-retry-decorator": "2.5.1",
+        "typescript-retry-decorator": "2.5.4",
         "web-push": "^3.6.7"
     },
     "devDependencies": {

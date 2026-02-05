@@ -43,7 +43,7 @@
         "google-auth-library": "^9.11.0",
         "nanoid": "^5.1.6",
         "resend": "^6.8.0",
-        "typescript-retry-decorator": "2.5.1"
+        "typescript-retry-decorator": "2.5.4"
     },
     "devDependencies": {
         "@tabletop/vitest-config": "workspace:*",
