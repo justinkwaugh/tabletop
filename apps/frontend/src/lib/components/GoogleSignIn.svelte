@@ -40,6 +40,9 @@
 
         const buttonElement = document.getElementById('google-sign-in-button')
         if (buttonElement) {
+            const measuredWidth = Math.floor(buttonElement.getBoundingClientRect().width)
+            const targetWidth = measuredWidth > 0 ? measuredWidth : 334
+            buttonElement.innerHTML = ''
             google.accounts.id.renderButton(
                 buttonElement,
                 {
@@ -49,7 +52,7 @@
                     text: mode === 'login' ? 'signin_with' : 'signin',
                     shape: 'pill',
                     logo_alignment: 'left',
-                    width: mode === 'login' ? 334 : 100
+                    width: mode === 'login' ? targetWidth : 100
                 } // customization attributes
             )
         } else {
@@ -72,7 +75,7 @@
     })
 </script>
 
-<div>
+<div class="w-full">
     <div id="google-sign-in-button"><div><div></div></div></div>
     <script
         src="https://accounts.google.com/gsi/client"
@@ -85,7 +88,7 @@
 <style>
     #google-sign-in-button {
         height: 44px;
-        width: auto;
+        width: 100%;
     }
 
     #google-sign-in-button > div > div:first-child {
