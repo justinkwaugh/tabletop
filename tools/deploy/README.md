@@ -100,10 +100,13 @@ Environment overrides:
 - `TABLETOP_TASKS_SERVICE`
 - `TABLETOP_BACKEND_REGION`
 - `GCLOUD_PROJECT`
+- `CLOUDSDK_PYTHON` (optional override for Cloud SDK Python runtime)
+- `TABLETOP_GCS_ACCESS_TOKEN` (optional; used for directory-placeholder API calls)
 
 Notes:
 - `backend.image` is required for backend deploy in the TUI; it is used for the docker build/tag/push flow.
 - `backendAdmin` is required to invalidate the manifest cache after deploys; provide a cookie, token, or username/password.
+- When `CLOUDSDK_PYTHON` is unset, deploy commands automatically pick the first supported local Python (`python3.12`, `python3.11`, `python3.10`, then `python3`) and use it for `gcloud`/`gsutil`.
 
 ## Notes
 
@@ -113,3 +116,5 @@ Notes:
 - Backend image logs write to `/tmp/backend-image-*.log`.
 - Deploy logs write to `/tmp/*-deploy.log`.
 - Package versions are the source of truth; the manifest is synced from package.json on refresh/deploy.
+- GCS deploys create explicit placeholder objects for each destination directory path, including nested subdirectories under rsync sources (for non-HNS buckets / explicit-directory gcsfuse mounts).
+- Placeholder creation uses a direct Cloud Storage API call and defaults to `gcloud auth print-access-token` if `TABLETOP_GCS_ACCESS_TOKEN` is not provided.

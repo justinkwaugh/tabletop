@@ -20,6 +20,8 @@ import {
     deployGameLogicCommand,
     deployManifestCommand,
     deployGameUiCommand,
+    gcsDirectoryPlaceholderCommands,
+    gcsRsyncDirectoryPlaceholderCommands,
     tagBackendImageCommand,
     rollbackBackendCommand,
     runCommand
@@ -551,6 +553,36 @@ export default function App() {
         const destination = spec.args[spec.args.length - 1]
         return `${source} -> ${destination}`
     }
+    const directoryPlaceholderSpecs = (spec: CommandSpec): CommandSpec[] => {
+        if (spec.command !== 'gcloud') return []
+        if (spec.args[0] !== 'storage') return []
+        if (spec.args.length < 2) return []
+        const operation = spec.args[1]
+        if (operation !== 'rsync' && operation !== 'cp') return []
+        const source = spec.args[spec.args.length - 2]
+        const destination = spec.args[spec.args.length - 1]
+        if (!destination.startsWith('gs://')) return []
+        if (operation === 'rsync' && !source.startsWith('gs://')) {
+            return gcsRsyncDirectoryPlaceholderCommands(repoRoot, source, destination, {
+                labelPrefix: spec.label,
+                logPrefix: spec.logPath
+            })
+        }
+        return gcsDirectoryPlaceholderCommands(repoRoot, destination, {
+            treatDestinationAsObject: operation === 'cp',
+            labelPrefix: spec.label,
+            logPrefix: spec.logPath
+        })
+    }
+    const dedupeCommandSpecs = (specs: CommandSpec[]): CommandSpec[] => {
+        const seen = new Set<string>()
+        return specs.filter((spec) => {
+            const key = `${spec.command}\u0000${spec.args.join('\u0000')}`
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+        })
+    }
     const resolveBackendImage = () => {
         const configured = deployConfig.backend?.image
         if (configured) return configured
@@ -726,8 +758,10 @@ export default function App() {
             const buildSpec = buildFrontendCommand(repoRoot)
             if (!(await runTask(0, buildSpec))) return
             const spec = deployFrontendCommand(repoRoot, currentManifest, deployConfig)
+            const deployPlaceholderSpecs = directoryPlaceholderSpecs(spec)
             const upload = describeUpload(spec)
             const manifestSpec = deployManifestCommand(manifestPath, deployConfig)
+            const manifestPlaceholderSpecs = directoryPlaceholderSpecs(manifestSpec)
             const manifestUpload = describeUpload(manifestSpec)
             const invalidateStep: DeployStep = {
                 action: invalidateManifestCache,
@@ -741,7 +775,11 @@ export default function App() {
             ].filter(Boolean) as string[]
             setPendingDeploy({
                 spec,
-                steps: [{ spec, taskIndex: 1 }, { spec: manifestSpec, taskIndex: 2 }, invalidateStep],
+                steps: [
+                    { specs: [...deployPlaceholderSpecs, spec], taskIndex: 1 },
+                    { specs: [...manifestPlaceholderSpecs, manifestSpec], taskIndex: 2 },
+                    invalidateStep
+                ],
                 targetLabel: 'Frontend',
                 version: currentManifest.frontend.version,
                 remoteVersion: backendManifest?.frontend?.version ?? 'unknown',
@@ -816,6 +854,9 @@ export default function App() {
                     packageId,
                     deployConfig
                 )
+                const logicPlaceholderSpecs = directoryPlaceholderSpecs(deployLogicSpec)
+                const uiPlaceholderSpecs = directoryPlaceholderSpecs(deployUiSpec)
+                const manifestPlaceholderSpecs = directoryPlaceholderSpecs(deployManifestSpec)
                 const invalidateStep: DeployStep = {
                     action: invalidateManifestCache,
                     label: 'invalidate-manifest',
@@ -832,8 +873,16 @@ export default function App() {
                 setPendingDeploy({
                     spec: deployLogicSpec,
                     steps: [
-                        { specs: [deployLogicSpec, deployUiSpec], taskIndex: 4 },
-                        { spec: deployManifestSpec, taskIndex: 5 },
+                        {
+                            specs: dedupeCommandSpecs([
+                                ...logicPlaceholderSpecs,
+                                ...uiPlaceholderSpecs,
+                                deployLogicSpec,
+                                deployUiSpec
+                            ]),
+                            taskIndex: 4
+                        },
+                        { specs: [...manifestPlaceholderSpecs, deployManifestSpec], taskIndex: 5 },
                         invalidateStep
                     ],
                     targetLabel: `Game (${localEntry.gameId})`,
@@ -864,6 +913,8 @@ export default function App() {
                     packageId,
                     deployConfig
                 )
+                const uiPlaceholderSpecs = directoryPlaceholderSpecs(deployUiSpec)
+                const manifestPlaceholderSpecs = directoryPlaceholderSpecs(deployManifestSpec)
                 const invalidateStep: DeployStep = {
                     action: invalidateManifestCache,
                     label: 'invalidate-manifest',
@@ -878,8 +929,8 @@ export default function App() {
                 setPendingDeploy({
                     spec: deployUiSpec,
                     steps: [
-                        { spec: deployUiSpec, taskIndex: 2 },
-                        { spec: deployManifestSpec, taskIndex: 3 },
+                        { specs: [...uiPlaceholderSpecs, deployUiSpec], taskIndex: 2 },
+                        { specs: [...manifestPlaceholderSpecs, deployManifestSpec], taskIndex: 3 },
                         invalidateStep
                     ],
                     targetLabel: `Game (${localEntry.gameId})`,
@@ -956,7 +1007,11 @@ export default function App() {
                 deployGameUiCommand(repoRoot, syncedManifest, packageId, deployConfig)
             )
             const deploySpecs = [...deployLogicSpecs, ...deployUiSpecs]
+            const deployPlaceholderSpecs = dedupeCommandSpecs(
+                deploySpecs.flatMap((spec) => directoryPlaceholderSpecs(spec))
+            )
             const deployManifestSpec = deployManifestCommand(manifestPath, deployConfig)
+            const manifestPlaceholderSpecs = directoryPlaceholderSpecs(deployManifestSpec)
             const manifestUpload = describeUpload(deployManifestSpec)
             const invalidateStep: DeployStep = {
                 action: invalidateManifestCache,
@@ -971,8 +1026,8 @@ export default function App() {
             setPendingDeploy({
                 spec: deploySpecs[0],
                 steps: [
-                    { specs: deploySpecs, taskIndex: 4 },
-                    { spec: deployManifestSpec, taskIndex: 5 },
+                    { specs: [...deployPlaceholderSpecs, ...deploySpecs], taskIndex: 4 },
+                    { specs: [...manifestPlaceholderSpecs, deployManifestSpec], taskIndex: 5 },
                     invalidateStep
                 ],
                 targetLabel: 'All games',

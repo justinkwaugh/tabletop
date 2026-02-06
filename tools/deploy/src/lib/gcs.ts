@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { DeployConfig, SiteManifest } from './types.js'
+import { withCloudSdkPythonEnv } from './cloudSdkPython.js'
 
 export type GcsStatus = {
     frontendExists: boolean | null
@@ -19,6 +20,7 @@ const pathExists = (target: string) => {
 const gcsPathExists = (target: string): Promise<boolean> =>
     new Promise((resolve) => {
         const child = spawn('gcloud', ['storage', 'ls', target], {
+            env: withCloudSdkPythonEnv(process.env),
             stdio: ['ignore', 'pipe', 'pipe']
         })
         let hasOutput = false
