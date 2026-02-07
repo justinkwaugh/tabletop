@@ -139,11 +139,15 @@
                 }
             } else if (gameSession.chosenSource) {
                 if (gameSession.chosenNumDivers || gameSession.juggernautStationId) {
-                    if (isCenterCell) {
-                        return HydratedHurl.canHurl(gameSession.gameState, myPlayerState.playerId)
-                    } else if (gameSession.teleportChoice === true) {
+                    if (gameSession.teleportChoice === true) {
                         return !sameCoordinates(cell.coords, gameSession.chosenSource)
                     } else {
+                        if (
+                            isCenterCell &&
+                            !HydratedHurl.canHurl(gameSession.gameState, myPlayerState.playerId)
+                        ) {
+                            return false
+                        }
                         // console.log('catapultchoice', gameSession.catapultChoice)
                         return HydratedFly.isValidFlightDestination({
                             state: gameSession.gameState,
