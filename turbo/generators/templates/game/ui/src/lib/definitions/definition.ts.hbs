@@ -1,11 +1,11 @@
 import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
-import { ContainerInfo } from '@tabletop/container'
+import { {{properCase game}}Info } from '@tabletop/{{kebabCase game}}'
 import type { {{properCase game}}GameState, Hydrated{{properCase game}}GameState } from '@tabletop/{{kebabCase game}}'
 import coverImg from '$lib/images/cover.jpg'
 
 export const UiDefinition: GameUiDefinition<{{properCase game}}GameState, Hydrated{{properCase game}}GameState> = {
     info: {
-        ...ContainerInfo,
+        ...{{properCase game}}Info,
         thumbnailUrl: coverImg
     },
     runtime: async () => {

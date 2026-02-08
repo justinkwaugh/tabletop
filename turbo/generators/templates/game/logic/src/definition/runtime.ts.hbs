@@ -1,0 +1,17 @@
+import { DefaultStateLogger, type GameRuntime } from '@tabletop/common'
+import type { Hydrated{{properCase game}}GameState, {{properCase game}}GameState } from '../model/gameState.js'
+import { {{properCase game}}Hydrator } from './hydrator.js'
+import { {{properCase game}}GameInitializer } from './initializer.js'
+import { {{properCase game}}ApiActions } from './apiActions.js'
+import { {{properCase game}}StateHandlers } from './stateHandlers.js'
+import { {{properCase game}}Colors } from './colors.js'
+
+
+export const {{properCase game}}Runtime: GameRuntime<{{properCase game}}GameState, Hydrated{{properCase game}}GameState> = {
+    initializer: new {{properCase game}}GameInitializer(),
+    hydrator: new {{properCase game}}Hydrator(),
+    stateHandlers: {{properCase game}}StateHandlers,
+    apiActions: {{properCase game}}ApiActions,
+    playerColors: {{properCase game}}Colors,
+    stateLogger: new DefaultStateLogger() // This never really got used, but it could do some custom logging if desired
+}

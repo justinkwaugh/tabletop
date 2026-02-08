@@ -84,7 +84,7 @@ const getActionChoices = async (answers?: Record<string, unknown>): Promise<stri
     const game = typeof answers?.game === 'string' ? answers.game : ''
     if (!game) return []
 
-    const actionsPath = path.resolve(process.cwd(), 'games', game, 'src', 'definitions', 'actions.ts')
+    const actionsPath = path.resolve(process.cwd(), 'games', game, 'src', 'definition', 'actions.ts')
     const source = await readFile(actionsPath, 'utf8')
     return parseEnumMembers(source, 'ActionType')
 }
@@ -149,7 +149,7 @@ const getStateChoices = async (answers?: Record<string, unknown>): Promise<strin
     const game = typeof answers?.game === 'string' ? answers.game : ''
     if (!game) return []
 
-    const statesPath = path.resolve(process.cwd(), 'games', game, 'src', 'definitions', 'states.ts')
+    const statesPath = path.resolve(process.cwd(), 'games', game, 'src', 'definition', 'states.ts')
     const source = await readFile(statesPath, 'utf8')
     return parseEnumMembers(source, 'MachineState')
 }
@@ -239,7 +239,7 @@ const updateStateHandlerWithActions = (
             return `${content.slice(0, insertPos)}${importLine}${newline}${content.slice(insertPos)}`
         }
 
-        const actionTypeImportRegex = /import { ActionType } from '\.\.\/definitions\/actions\.js'\s*\r?\n/
+        const actionTypeImportRegex = /import { ActionType } from '\.\.\/definition\/actions\.js'\s*\r?\n/
         const actionTypeMatch = actionTypeImportRegex.exec(content)
         if (actionTypeMatch) {
             const insertPos = actionTypeMatch.index + actionTypeMatch[0].length
@@ -468,19 +468,19 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
             },
             {
                 type: 'append',
-                path: 'games/{{kebabCase game}}/src/definitions/actions.ts',
+                path: 'games/{{kebabCase game}}/src/definition/actions.ts',
                 pattern: /export enum ActionType \{[ \t]*\n/,
                 template: "    {{properCase action}} = '{{camelCase action}}',"
             },
             {
                 type: 'append',
-                path: 'games/{{kebabCase game}}/src/definitions/apiActions.ts',
+                path: 'games/{{kebabCase game}}/src/definition/apiActions.ts',
                 pattern: /import { ActionType } from '\.\/actions\.js'[ \t]*\n/,
                 template: "import { {{properCase action}} } from '../actions/{{camelCase action}}.js'"
             },
             {
                 type: 'append',
-                path: 'games/{{kebabCase game}}/src/definitions/apiActions.ts',
+                path: 'games/{{kebabCase game}}/src/definition/apiActions.ts',
                 pattern: /export const .*ApiActions = \{[ \t]*\n/,
                 template: '    [ActionType.{{properCase action}}]: {{properCase action}},'
             },
@@ -600,19 +600,19 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                     },
                     {
                         type: 'append',
-                        path: 'games/{{kebabCase game}}/src/definitions/actions.ts',
+                        path: 'games/{{kebabCase game}}/src/definition/actions.ts',
                         pattern: /export enum ActionType \{[ \t]*\n/,
                         template: "    {{properCase action}} = '{{camelCase action}}',"
                     },
                     {
                         type: 'append',
-                        path: 'games/{{kebabCase game}}/src/definitions/apiActions.ts',
+                        path: 'games/{{kebabCase game}}/src/definition/apiActions.ts',
                         pattern: /import { ActionType } from '\.\/actions\.js'[ \t]*\n/,
                         template: "import { {{properCase action}} } from '../actions/{{camelCase action}}.js'"
                     },
                     {
                         type: 'append',
-                        path: 'games/{{kebabCase game}}/src/definitions/apiActions.ts',
+                        path: 'games/{{kebabCase game}}/src/definition/apiActions.ts',
                         pattern: /export const .*ApiActions = \{[ \t]*\n/,
                         template: '    [ActionType.{{properCase action}}]: {{properCase action}},'
                     },
@@ -659,13 +659,13 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 },
                 {
                     type: 'append',
-                    path: 'games/{{kebabCase game}}/src/definitions/states.ts',
+                    path: 'games/{{kebabCase game}}/src/definition/states.ts',
                     pattern: /export enum MachineState \{[ \t]*\n/,
                     template: "    {{properCase state}} = '{{properCase state}}',"
                 },
                 {
                     type: 'modify',
-                    path: 'games/{{kebabCase game}}/src/definitions/stateHandlers.ts',
+                    path: 'games/{{kebabCase game}}/src/definition/stateHandlers.ts',
                     transform: (file, actionData) => {
                         const renderString = (plop as { renderString?: (template: string, data: unknown) => string })
                             .renderString

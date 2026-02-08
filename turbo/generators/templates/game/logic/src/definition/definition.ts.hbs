@@ -1,0 +1,9 @@
+import type { GameDefinition } from '@tabletop/common'
+import type { {{properCase game}}GameState, Hydrated{{properCase game}}GameState } from '../model/gameState.js'
+import { {{properCase game}}Info } from './info.js'
+import { {{properCase game}}Runtime } from './runtime.js'
+
+export const Definition = <GameDefinition<{{properCase game}}GameState, Hydrated{{properCase game}}GameState>>{
+    info: {{properCase game}}Info,
+    runtime: {{properCase game}}Runtime
+}
