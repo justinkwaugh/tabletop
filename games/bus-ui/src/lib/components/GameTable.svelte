@@ -14,14 +14,12 @@
     import type { HydratedBusGameState, BusGameState } from '@tabletop/bus'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
-    let {
-        gameSession
-    }: { gameSession: GameSession<BusGameState, HydratedBusGameState> } = $props()
+    let { gameSession }: { gameSession: GameSession<BusGameState, HydratedBusGameState> } = $props()
     setGameSession(gameSession as BusGameSession)
 </script>
 
 <!-- Full Height and Width with 8px padding-->
-<div style="--chat-height-offset: 0px;">
+<div class="bg-[#f0f1ec]" style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent>
@@ -29,7 +27,7 @@
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
-                   <History />
+                    <History />
                 {/snippet}
             </DefaultSideContent>
         {/snippet}
