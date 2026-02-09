@@ -1,11 +1,9 @@
 <script lang="ts">
-    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import DebugOverlay from './DebugOverlay.svelte'
     import boardImg from '$lib/images/bus_board.jpg'
-    let gameSession = getGameSession()
 </script>
 
-<div class="relative w-[1839px] h-[1300px] bg-black">
-    <div class="absolute top left w-[1839px] h-[1300px]">
-        <img src={boardImg} alt="game board" />
-    </div>
+<div class="relative h-[1300px] w-[1839px] bg-black">
+    <img src={boardImg} alt="game board" class="absolute inset-0 h-full w-full" />
+    <DebugOverlay />
 </div>
