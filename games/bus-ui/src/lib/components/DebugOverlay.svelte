@@ -10,66 +10,95 @@
     const RED_LINE_COLOR = '#ef2519'
     const ROUTE_STROKE_WIDTH = 12
     const ROUTE_OUTLINE_WIDTH = 3
-    const SHARED_EDGE_LANE_GAP = ROUTE_STROKE_WIDTH
+    const SHARED_EDGE_LANE_GAP = ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH
+    const NODE_JOIN_RADIUS = 18
+    const TERMINAL_JOIN_RADIUS = 24
+    const TERMINAL_ARROW_INSET = 2
+    const TERMINAL_ARROW_HEAD_LENGTH = 6
+    const TERMINAL_ARROW_HEAD_HALF_WIDTH = 3
+    const TERMINAL_ARROW_NECK_HALF_WIDTH = 1.25
+    const TERMINAL_ARROW_NECK_SETBACK = 1.8
+    const TERMINAL_ARROW_TAIL_LENGTH = 6
+    const TERMINAL_ARROW_TAIL_HALF_WIDTH = 0.9
 
     type RouteDefinition = {
         id: string
         color: string
         nodeIds: readonly BusNodeId[]
-        waypointNodeIds: readonly BusNodeId[]
+    }
+
+    type Vector = {
+        x: number
+        y: number
+    }
+
+    type SegmentBase = {
+        routeId: string
+        color: string
+        from: BusNodeId
+        to: BusNodeId
+        edge: string
+        routeOrder: number
     }
 
     type RenderSegment = {
         key: string
-        routeId: string
-        routeOrder: number
-        routeStep: number
-        color: string
         x1: number
         y1: number
         x2: number
         y2: number
     }
 
-    type OutlineSegment = {
+    type RenderConnector = {
         key: string
-        x1: number
-        y1: number
-        x2: number
-        y2: number
-        strokeWidth: number
+        d: string
+    }
+
+    type RenderArrow = {
+        key: string
+        d: string
+    }
+
+    type RouteRenderLayer = {
+        id: string
+        color: string
+        segments: RenderSegment[]
+        connectors: RenderConnector[]
+        terminalArrows: RenderArrow[]
+    }
+
+    type ContinuityConstraint = {
+        edgeA: string
+        edgeB: string
+        normalA: Vector
+        normalB: Vector
+        offsetA: number
+        offsetB: number
     }
 
     const routeDefinitions: readonly RouteDefinition[] = [
         {
             id: 'blue',
             color: BLUE_LINE_COLOR,
-            // Route: 36 -> 28 -> 24 -> 17 -> 5 (with valid intermediate hops)
-            nodeIds: ['N36', 'N28', 'N21', 'N22', 'N24', 'N17', 'N14', 'N09', 'N05'],
-            waypointNodeIds: ['N36', 'N28', 'N24', 'N17', 'N05']
+            // Southwest branch continues past N36 and terminates back at N22.
+            nodeIds: ['N05', 'N09', 'N14', 'N17', 'N24', 'N22', 'N21', 'N28', 'N36', 'N33', 'N22']
         },
         {
             id: 'yellow',
             color: YELLOW_LINE_COLOR,
             // Crosses blue line and shares the N22-N24 edge with blue.
-            nodeIds: ['N02', 'N08', 'N10', 'N15', 'N23', 'N20', 'N24', 'N22', 'N30', 'N24', 'N31', 'N34'],
-            waypointNodeIds: ['N02', 'N24', 'N34']
+            nodeIds: ['N02', 'N08', 'N10', 'N15', 'N23', 'N20', 'N24', 'N22', 'N30', 'N24', 'N31', 'N34']
         },
         {
             id: 'red',
             color: RED_LINE_COLOR,
             // Shares the same N22-N24 edge as blue and yellow.
-            nodeIds: ['N35', 'N22', 'N24', 'N17', 'N15', 'N23', 'N27'],
-            waypointNodeIds: ['N35', 'N24', 'N27']
+            nodeIds: ['N35', 'N22', 'N24', 'N17', 'N15', 'N23', 'N27']
         }
     ] as const
 
     function edgeKey(from: BusNodeId, to: BusNodeId): string {
         return from < to ? `${from}:${to}` : `${to}:${from}`
-    }
-
-    function nodeNumber(id: BusNodeId): number {
-        return Number(id.slice(1))
     }
 
     function hasGraphEdge(from: BusNodeId, to: BusNodeId): boolean {
@@ -126,23 +155,59 @@
         return (index - (laneCount - 1) / 2) * SHARED_EDGE_LANE_GAP
     }
 
+    function add(left: Vector, right: Vector): Vector {
+        return { x: left.x + right.x, y: left.y + right.y }
+    }
+
+    function subtract(left: Vector, right: Vector): Vector {
+        return { x: left.x - right.x, y: left.y - right.y }
+    }
+
+    function scale(vector: Vector, factor: number): Vector {
+        return { x: vector.x * factor, y: vector.y * factor }
+    }
+
+    function length(vector: Vector): number {
+        return Math.hypot(vector.x, vector.y)
+    }
+
+    function normalize(vector: Vector): Vector {
+        const value = length(vector)
+        if (value === 0) {
+            return { x: 0, y: 0 }
+        }
+
+        return { x: vector.x / value, y: vector.y / value }
+    }
+
+    function perpendicular(vector: Vector): Vector {
+        return { x: -vector.y, y: vector.x }
+    }
+
+    function pointOf(nodeId: BusNodeId): Vector {
+        const point = BUS_BOARD_NODE_POINTS[nodeId]
+        return { x: point.x, y: point.y }
+    }
+
+    function edgeEndpoints(edge: string): [BusNodeId, BusNodeId] {
+        return edge.split(':') as [BusNodeId, BusNodeId]
+    }
+
+    function edgeBaseNormal(edge: string): Vector {
+        const [fromId, toId] = edgeEndpoints(edge)
+        return perpendicular(normalize(subtract(pointOf(toId), pointOf(fromId))))
+    }
+
+    function cubicPath(from: Vector, controlA: Vector, controlB: Vector, to: Vector): string {
+        return `M ${from.x} ${from.y} C ${controlA.x} ${controlA.y} ${controlB.x} ${controlB.y} ${to.x} ${to.y}`
+    }
+
     const BLUE_PARALLEL_EDGE = ['N14', 'N17'] as const satisfies readonly [BusNodeId, BusNodeId]
     const YELLOW_PARALLEL_EDGE = ['N10', 'N15'] as const satisfies readonly [BusNodeId, BusNodeId]
 
-    const { outlineSegments, routeSegments }: {
-        outlineSegments: OutlineSegment[]
-        routeSegments: RenderSegment[]
+    const { routeRenderLayers }: {
+        routeRenderLayers: RouteRenderLayer[]
     } = (() => {
-        type SegmentBase = {
-            routeId: string
-            color: string
-            from: BusNodeId
-            to: BusNodeId
-            edge: string
-            routeOrder: number
-            routeStep: number
-        }
-
         const routeOrderById = new Map(routeDefinitions.map((route, index) => [route.id, index]))
         const edgeSegments = new Map<string, SegmentBase[]>()
 
@@ -157,8 +222,7 @@
                     from,
                     to,
                     edge,
-                    routeOrder: routeOrderById.get(route.id) ?? 0,
-                    routeStep: index
+                    routeOrder: routeOrderById.get(route.id) ?? 0
                 }
 
                 const existing = edgeSegments.get(edge)
@@ -170,64 +234,255 @@
             }
         }
 
-        const outlineSegments: OutlineSegment[] = []
-        const routeSegments: RenderSegment[] = []
+        const edgeLaneOffsets = new Map<string, Map<string, number>>()
+        const edgeBaseNormals = new Map<string, Vector>()
 
         for (const [edge, group] of edgeSegments) {
-            group.sort((a, b) => a.routeOrder - b.routeOrder)
+            group.sort((left, right) => left.routeOrder - right.routeOrder)
+            edgeBaseNormals.set(edge, edgeBaseNormal(edge))
 
-            const [canonicalFrom, canonicalTo] = edge.split(':') as [BusNodeId, BusNodeId]
-            const canonicalFromPoint = BUS_BOARD_NODE_POINTS[canonicalFrom]
-            const canonicalToPoint = BUS_BOARD_NODE_POINTS[canonicalTo]
-
-            const dx = canonicalToPoint.x - canonicalFromPoint.x
-            const dy = canonicalToPoint.y - canonicalFromPoint.y
-            const length = Math.hypot(dx, dy)
-            const normalX = length === 0 ? 0 : -dy / length
-            const normalY = length === 0 ? 0 : dx / length
-
-            const laneCount = group.length
-            const fillWidth = ROUTE_STROKE_WIDTH + (laneCount - 1) * SHARED_EDGE_LANE_GAP
-            outlineSegments.push({
-                key: `outline:${edge}`,
-                x1: canonicalFromPoint.x,
-                y1: canonicalFromPoint.y,
-                x2: canonicalToPoint.x,
-                y2: canonicalToPoint.y,
-                strokeWidth: fillWidth + ROUTE_OUTLINE_WIDTH * 2
-            })
-
+            const offsets = new Map<string, number>()
             for (let laneIndex = 0; laneIndex < group.length; laneIndex += 1) {
                 const segment = group[laneIndex]
-                const offset = laneOffset(laneIndex, group.length)
+                offsets.set(segment.routeId, laneOffset(laneIndex, group.length))
+            }
 
-                const fromPoint = BUS_BOARD_NODE_POINTS[segment.from]
-                const toPoint = BUS_BOARD_NODE_POINTS[segment.to]
+            edgeLaneOffsets.set(edge, offsets)
+        }
 
-                routeSegments.push({
-                    key: `${segment.routeId}:${segment.from}-${segment.to}:${segment.edge}`,
-                    routeId: segment.routeId,
-                    routeOrder: segment.routeOrder,
-                    routeStep: segment.routeStep,
-                    color: segment.color,
-                    x1: fromPoint.x + normalX * offset,
-                    y1: fromPoint.y + normalY * offset,
-                    x2: toPoint.x + normalX * offset,
-                    y2: toPoint.y + normalY * offset
+        function laneOffsetFor(edge: string, routeId: string): number {
+            return edgeLaneOffsets.get(edge)?.get(routeId) ?? 0
+        }
+
+        const continuityConstraints: ContinuityConstraint[] = []
+        for (const route of routeDefinitions) {
+            for (let index = 1; index < route.nodeIds.length - 1; index += 1) {
+                const previousNodeId = route.nodeIds[index - 1]
+                const nodeId = route.nodeIds[index]
+                const nextNodeId = route.nodeIds[index + 1]
+                const inEdge = edgeKey(previousNodeId, nodeId)
+                const outEdge = edgeKey(nodeId, nextNodeId)
+
+                const inNormal = edgeBaseNormals.get(inEdge)
+                const outNormal = edgeBaseNormals.get(outEdge)
+                if (!inNormal || !outNormal) {
+                    continue
+                }
+
+                continuityConstraints.push({
+                    edgeA: inEdge,
+                    edgeB: outEdge,
+                    normalA: inNormal,
+                    normalB: outNormal,
+                    offsetA: laneOffsetFor(inEdge, route.id),
+                    offsetB: laneOffsetFor(outEdge, route.id)
                 })
             }
         }
 
-        routeSegments.sort((left, right) => {
-            const orderDiff = left.routeOrder - right.routeOrder
-            if (orderDiff !== 0) {
-                return orderDiff
+        const edgeSigns = new Map<string, number>()
+        for (const edge of edgeSegments.keys()) {
+            edgeSigns.set(edge, 1)
+        }
+
+        function signFor(edge: string, overrideEdge?: string, overrideSign?: number): number {
+            if (edge === overrideEdge && overrideSign !== undefined) {
+                return overrideSign
             }
 
-            return left.routeStep - right.routeStep
-        })
+            return edgeSigns.get(edge) ?? 1
+        }
 
-        return { outlineSegments, routeSegments }
+        function continuityCost(overrideEdge?: string, overrideSign?: number): number {
+            let cost = 0
+
+            for (const constraint of continuityConstraints) {
+                const signA = signFor(constraint.edgeA, overrideEdge, overrideSign)
+                const signB = signFor(constraint.edgeB, overrideEdge, overrideSign)
+
+                const vectorA = scale(constraint.normalA, constraint.offsetA * signA)
+                const vectorB = scale(constraint.normalB, constraint.offsetB * signB)
+                const delta = subtract(vectorA, vectorB)
+                cost += delta.x * delta.x + delta.y * delta.y
+            }
+
+            return cost
+        }
+
+        for (let iteration = 0; iteration < 12; iteration += 1) {
+            let changed = false
+
+            for (const edge of edgeSigns.keys()) {
+                const positiveCost = continuityCost(edge, 1)
+                const negativeCost = continuityCost(edge, -1)
+                const nextSign = negativeCost < positiveCost ? -1 : 1
+
+                if ((edgeSigns.get(edge) ?? 1) !== nextSign) {
+                    edgeSigns.set(edge, nextSign)
+                    changed = true
+                }
+            }
+
+            if (!changed) {
+                break
+            }
+        }
+
+        const edgeNormals = new Map<string, Vector>()
+        for (const [edge, baseNormal] of edgeBaseNormals) {
+            edgeNormals.set(edge, scale(baseNormal, edgeSigns.get(edge) ?? 1))
+        }
+
+        function normalFor(edge: string): Vector {
+            return edgeNormals.get(edge) ?? { x: 0, y: 0 }
+        }
+
+        function anchorAtNode(nodeId: BusNodeId, otherId: BusNodeId, routeId: string): Vector {
+            const edge = edgeKey(nodeId, otherId)
+            return anchorAtNodeWithOffsetAndRadius(
+                nodeId,
+                otherId,
+                laneOffsetFor(edge, routeId),
+                NODE_JOIN_RADIUS
+            )
+        }
+
+        function anchorAtNodeWithOffset(nodeId: BusNodeId, otherId: BusNodeId, offset: number): Vector {
+            return anchorAtNodeWithOffsetAndRadius(nodeId, otherId, offset, NODE_JOIN_RADIUS)
+        }
+
+        function anchorAtNodeWithOffsetAndRadius(
+            nodeId: BusNodeId,
+            otherId: BusNodeId,
+            offset: number,
+            joinRadius: number
+        ): Vector {
+            const edge = edgeKey(nodeId, otherId)
+            const nodePoint = pointOf(nodeId)
+            const otherPoint = pointOf(otherId)
+            const outwardDirection = normalize(subtract(otherPoint, nodePoint))
+            const normal = normalFor(edge)
+
+            return add(add(nodePoint, scale(normal, offset)), scale(outwardDirection, joinRadius))
+        }
+
+        function terminalAnchorAtNode(nodeId: BusNodeId, otherId: BusNodeId, routeId: string): Vector {
+            const edge = edgeKey(nodeId, otherId)
+            return anchorAtNodeWithOffsetAndRadius(
+                nodeId,
+                otherId,
+                laneOffsetFor(edge, routeId),
+                TERMINAL_JOIN_RADIUS
+            )
+        }
+
+        function junctionCurvePath(
+            nodeId: BusNodeId,
+            previousNodeId: BusNodeId,
+            nextNodeId: BusNodeId,
+            routeId: string
+        ): string {
+            const startAnchor = anchorAtNode(nodeId, previousNodeId, routeId)
+            const endAnchor = anchorAtNode(nodeId, nextNodeId, routeId)
+            const segmentDistance = length(subtract(endAnchor, startAnchor))
+            const controlDistance = Math.max(
+                NODE_JOIN_RADIUS * 0.55,
+                Math.min(segmentDistance * 0.45, NODE_JOIN_RADIUS * 1.45)
+            )
+
+            const startTangent = normalize(subtract(pointOf(nodeId), pointOf(previousNodeId)))
+            const endTangent = normalize(subtract(pointOf(nextNodeId), pointOf(nodeId)))
+            const controlA = add(startAnchor, scale(startTangent, controlDistance))
+            const controlB = subtract(endAnchor, scale(endTangent, controlDistance))
+
+            return cubicPath(startAnchor, controlA, controlB, endAnchor)
+        }
+
+        function terminalArrowPath(terminal: Vector, towardInterior: Vector): string {
+            const outward = normalize(subtract(terminal, towardInterior))
+            const perpendicularOutward = perpendicular(outward)
+            const tip = subtract(terminal, scale(outward, TERMINAL_ARROW_INSET))
+            const headBaseCenter = subtract(tip, scale(outward, TERMINAL_ARROW_HEAD_LENGTH))
+            const neckCenter = subtract(headBaseCenter, scale(outward, TERMINAL_ARROW_NECK_SETBACK))
+            const tailCenter = subtract(neckCenter, scale(outward, TERMINAL_ARROW_TAIL_LENGTH))
+            const headLeft = add(headBaseCenter, scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH))
+            const headRight = subtract(headBaseCenter, scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH))
+            const neckLeft = add(neckCenter, scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH))
+            const neckRight = subtract(neckCenter, scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH))
+            const tailLeft = add(tailCenter, scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH))
+            const tailRight = subtract(
+                tailCenter,
+                scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH)
+            )
+
+            return `M ${tip.x} ${tip.y} L ${headLeft.x} ${headLeft.y} L ${neckLeft.x} ${neckLeft.y} L ${tailLeft.x} ${tailLeft.y} L ${tailRight.x} ${tailRight.y} L ${neckRight.x} ${neckRight.y} L ${headRight.x} ${headRight.y} Z`
+        }
+
+        const routeRenderLayers: RouteRenderLayer[] = routeDefinitions.map((route) => ({
+            id: route.id,
+            color: route.color,
+            segments: [],
+            connectors: [],
+            terminalArrows: []
+        }))
+        const layerById = new Map(routeRenderLayers.map((layer) => [layer.id, layer]))
+
+        for (const route of routeDefinitions) {
+            const layer = layerById.get(route.id)
+            if (!layer) {
+                continue
+            }
+
+            for (let index = 0; index < route.nodeIds.length - 1; index += 1) {
+                const fromId = route.nodeIds[index]
+                const toId = route.nodeIds[index + 1]
+                const isFirstSegment = index === 0
+                const isLastSegment = index === route.nodeIds.length - 2
+                const startAnchor = isFirstSegment
+                    ? terminalAnchorAtNode(fromId, toId, route.id)
+                    : anchorAtNode(fromId, toId, route.id)
+                const endAnchor = isLastSegment
+                    ? terminalAnchorAtNode(toId, fromId, route.id)
+                    : anchorAtNode(toId, fromId, route.id)
+
+                layer.segments.push({
+                    key: `${route.id}:segment:${fromId}-${toId}:${index}`,
+                    x1: startAnchor.x,
+                    y1: startAnchor.y,
+                    x2: endAnchor.x,
+                    y2: endAnchor.y
+                })
+
+                if (isFirstSegment) {
+                    layer.terminalArrows.push({
+                        key: `${route.id}:arrow:start:${fromId}`,
+                        d: terminalArrowPath(startAnchor, endAnchor)
+                    })
+                }
+
+                if (isLastSegment) {
+                    layer.terminalArrows.push({
+                        key: `${route.id}:arrow:end:${toId}`,
+                        d: terminalArrowPath(endAnchor, startAnchor)
+                    })
+                }
+            }
+
+            if (route.nodeIds.length >= 2) {
+                for (let index = 1; index < route.nodeIds.length - 1; index += 1) {
+                    const previousNodeId = route.nodeIds[index - 1]
+                    const nodeId = route.nodeIds[index]
+                    const nextNodeId = route.nodeIds[index + 1]
+
+                    layer.connectors.push({
+                        key: `${route.id}:junction:${previousNodeId}-${nodeId}-${nextNodeId}:${index}`,
+                        d: junctionCurvePath(nodeId, previousNodeId, nextNodeId, route.id)
+                    })
+                }
+            }
+        }
+
+        return { routeRenderLayers }
     })()
 
     ;(() => {
@@ -263,49 +518,58 @@
     viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
     aria-label="Bus preview line overlay"
 >
-    {#each outlineSegments as segment (segment.key)}
-        <line
-            x1={segment.x1}
-            y1={segment.y1}
-            x2={segment.x2}
-            y2={segment.y2}
-            stroke="#020617"
-            stroke-width={segment.strokeWidth}
-            stroke-linecap="round"
-            stroke-linejoin="round"
-        />
-    {/each}
+    {#each routeRenderLayers as layer (layer.id)}
+        {#each layer.segments as segment (`${segment.key}:outline`)}
+            <line
+                x1={segment.x1}
+                y1={segment.y1}
+                x2={segment.x2}
+                y2={segment.y2}
+                stroke="#020617"
+                stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            />
+        {/each}
 
-    {#each routeSegments as segment (segment.key)}
-        <line
-            x1={segment.x1}
-            y1={segment.y1}
-            x2={segment.x2}
-            y2={segment.y2}
-            stroke={segment.color}
-            stroke-width={ROUTE_STROKE_WIDTH}
-            stroke-linecap="round"
-            stroke-linejoin="round"
-        />
-    {/each}
+        {#each layer.connectors as connector (`${connector.key}:outline`)}
+            <path
+                d={connector.d}
+                stroke="#020617"
+                stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
+                stroke-linecap="butt"
+                stroke-linejoin="round"
+                fill="none"
+            />
+        {/each}
 
-    {#each routeDefinitions as route (route.id)}
-        {#each route.waypointNodeIds as nodeId (`${route.id}:${nodeId}`)}
-            {@const point = BUS_BOARD_NODE_POINTS[nodeId]}
-            <g>
-                <circle cx={point.x} cy={point.y} r="14" fill="#0f172a" fill-opacity="0.75" />
-                <circle cx={point.x} cy={point.y} r="10" fill="#f8fafc" fill-opacity="0.92" />
-                <text
-                    x={point.x}
-                    y={point.y + 4}
-                    text-anchor="middle"
-                    font-size="10"
-                    font-weight="800"
-                    fill="#0f172a"
-                >
-                    {nodeNumber(nodeId)}
-                </text>
-            </g>
+        {#each layer.segments as segment (`${segment.key}:fill`)}
+            <line
+                x1={segment.x1}
+                y1={segment.y1}
+                x2={segment.x2}
+                y2={segment.y2}
+                stroke={layer.color}
+                stroke-width={ROUTE_STROKE_WIDTH}
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            />
+        {/each}
+
+        {#each layer.connectors as connector (`${connector.key}:fill`)}
+            <path
+                d={connector.d}
+                stroke={layer.color}
+                stroke-width={ROUTE_STROKE_WIDTH}
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+            />
+        {/each}
+
+        {#each layer.terminalArrows as arrow (arrow.key)}
+            <path d={arrow.d} fill="#ffffff" />
         {/each}
     {/each}
+
 </svg>
