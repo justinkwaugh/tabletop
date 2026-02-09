@@ -5,15 +5,15 @@ export class BusGameColorizer extends DefaultColorizer {
     override getUiColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return '#539ad1'
+                return '#0c66b4'
             case Color.Red:
-                return '#e55649'
+                return '#ef2519'
             case Color.Yellow:
-                return '#f3c244'
+                return '#fba01c'
             case Color.Green:
-                return '#63b878'
+                return '#097858'
             case Color.Purple:
-                return '#804796'
+                return '#6e385c'
             case Color.Gray:
                 return '#888888'
             case Color.Black:
@@ -26,15 +26,15 @@ export class BusGameColorizer extends DefaultColorizer {
     override getBgColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return 'bg-[#539ad1]'
+                return 'bg-[#0c66b4]'
             case Color.Red:
-                return 'bg-[#e55649]'
+                return 'bg-[#ef2519]'
             case Color.Yellow:
-                return 'bg-[#f3c244]'
+                return 'bg-[#fba01c]'
             case Color.Green:
-                return 'bg-[#63b878]'
+                return 'bg-[#097858]'
             case Color.Purple:
-                return 'bg-[#804796]'
+                return 'bg-[#6e385c]'
             case Color.Gray:
                 return 'bg-[#aaaaaa]'
             case Color.Black:
@@ -47,15 +47,15 @@ export class BusGameColorizer extends DefaultColorizer {
     override getBorderColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return 'border-[#539ad1]'
+                return 'border-[#0c66b4]'
             case Color.Red:
-                return 'border-[#e55649]'
+                return 'border-[#ef2519]'
             case Color.Yellow:
-                return 'border-[#f3c244]'
+                return 'border-[#fba01c]'
             case Color.Green:
-                return 'border-[#63b878]'
+                return 'border-[#097858]'
             case Color.Purple:
-                return 'border-[#804796]'
+                return 'border-[#6e385c]'
             case Color.Gray:
                 return 'border-[#888888]'
             case Color.Black:

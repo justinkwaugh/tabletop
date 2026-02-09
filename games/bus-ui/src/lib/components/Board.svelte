@@ -26,27 +26,58 @@
     }
 </script>
 
-<div class="relative h-[1300px] w-[1839px] bg-black">
-    <img src={boardImg} alt="game board" class="absolute inset-0 h-full w-full" />
-    <DebugOverlay />
-    <svg
-        class="pointer-events-none absolute inset-0 h-full w-full"
-        viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
-        aria-label="Passenger overlay"
-    >
-        <defs>
-            <filter id="textshadow" x="-15%" y="-15%" width="130%" height="130%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="shadow"></feGaussianBlur>
-                <feOffset dx="2" dy="2"></feOffset>
-            </filter>
-        </defs>
-        {#each stationNodeIds as nodeId (nodeId)}
-            {@const point = BUS_BOARD_NODE_POINTS[nodeId]}
-            <Passenger x={point.x} y={point.y} count="5" />
-        {/each}
-        {#each randomPassengerNodeIds as nodeId (nodeId)}
-            {@const point = BUS_BOARD_NODE_POINTS[nodeId]}
-            <Passenger x={point.x} y={point.y} count="2" />
-        {/each}
-    </svg>
+<div class="board-shell">
+    <div class="board-surface relative h-[1300px] w-[1839px]">
+        <img src={boardImg} alt="game board" class="board-image absolute inset-0 h-full w-full" />
+        <DebugOverlay />
+        <svg
+            class="pointer-events-none absolute inset-0 h-full w-full"
+            viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
+            aria-label="Passenger overlay"
+        >
+            <defs>
+                <filter id="textshadow" x="-15%" y="-15%" width="130%" height="130%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="shadow"></feGaussianBlur>
+                    <feOffset dx="2" dy="2"></feOffset>
+                </filter>
+            </defs>
+            {#each stationNodeIds as nodeId (nodeId)}
+                {@const point = BUS_BOARD_NODE_POINTS[nodeId]}
+                <Passenger x={point.x} y={point.y} count="5" />
+            {/each}
+            {#each randomPassengerNodeIds as nodeId (nodeId)}
+                {@const point = BUS_BOARD_NODE_POINTS[nodeId]}
+                <Passenger x={point.x} y={point.y} count="2" />
+            {/each}
+        </svg>
+    </div>
 </div>
+
+<style>
+    .board-shell {
+        position: relative;
+        display: inline-flex;
+        padding: 10px;
+        border-radius: 20px;
+        background:
+            radial-gradient(980px 620px at 14% 10%, rgba(255, 255, 255, 0.4), transparent 64%),
+            repeating-linear-gradient(
+                -30deg,
+                rgba(126, 134, 148, 0.018) 0 2px,
+                rgba(255, 255, 255, 0.015) 2px 7px
+            ),
+            #eceae4;
+    }
+
+    .board-surface {
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow:
+            0 0 0 5px rgba(123, 131, 146, 0.24),
+            0 10px 22px rgba(17, 24, 39, 0.12);
+    }
+
+    .board-image {
+        filter: none;
+    }
+</style>
