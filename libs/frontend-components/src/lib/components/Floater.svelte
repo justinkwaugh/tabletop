@@ -6,6 +6,16 @@
     import { fade } from 'svelte/transition'
 
     const DEFAULT_OFFSET = 8
+    type PopoverPosition = {
+        x: number
+        y: number
+        strategy: 'absolute' | 'fixed'
+        middlewareData: {
+            hide?: {
+                referenceHidden?: boolean
+            }
+        }
+    }
 
     let {
         reference,
@@ -58,8 +68,13 @@
 
         return dom
             .computePosition(referenceElement, popover, { placement, middleware, strategy })
-            .then(({ x, y, middlewareData: { hide }, placement: pl, strategy }) => {
-                // console.log('to ', { x, y, pl, strategy })
+            .then((position: PopoverPosition) => {
+                const {
+                    x,
+                    y,
+                    middlewareData: { hide },
+                    strategy
+                } = position
                 if (popover) {
                     Object.assign(popover.style, {
                         position: strategy,

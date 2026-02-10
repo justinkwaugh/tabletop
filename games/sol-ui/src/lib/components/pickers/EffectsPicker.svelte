@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
-    import Floater from '$lib/utils/Floater.svelte'
+    import { Floater } from '@tabletop/frontend-components'
     import SuitMarker from '../SuitMarker.svelte'
     import { Effects, EffectType, Suit } from '@tabletop/sol'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'

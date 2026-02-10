@@ -6,7 +6,6 @@ import { ActionType } from '../definition/actions.js'
 import { Building, BuildingType } from '../components/building.js'
 import { nanoid } from 'nanoid'
 import { isSiteId } from '../utils/busGraph.js'
-import { MachineState } from 'src/index.js'
 
 export type PlaceBuildingMetadata = Type.Static<typeof PlaceBuildingMetadata>
 export const PlaceBuildingMetadata = Type.Object({

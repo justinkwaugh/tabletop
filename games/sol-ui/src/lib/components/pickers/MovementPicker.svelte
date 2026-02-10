@@ -6,7 +6,6 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import Foundry from '$lib/images/foundry.svelte'
     import Tower from '$lib/images/tower.svelte'
     import { range, type OffsetCoordinates } from '@tabletop/common'
-    import Floater from '$lib/utils/Floater.svelte'
     import SolPicker from './SolPicker.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
