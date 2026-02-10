@@ -62,6 +62,10 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
         return nextPlayer
     }
 
+    reverseTurnOrder(): void {
+        this.turnOrder.reverse()
+    }
+
     startNextTurn(actionIndex: number, predicate?: (playerId: string) => boolean): string {
         const lastPlayerId = this.lastPlayer()
         const nextPlayer = this.nextPlayer(lastPlayerId, predicate)

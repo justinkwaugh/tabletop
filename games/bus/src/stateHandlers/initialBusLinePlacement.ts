@@ -36,10 +36,13 @@ export class InitialBusLinePlacementStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedBusGameState>) {
         const gameState = context.gameState
-        if (context.gameState.initialLinesPlaced === 0) {
-            const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
-            gameState.activePlayerIds = [nextPlayerId]
+        let nextPlayerId: string
+        if (context.gameState.players.every((p) => p.busLine.length == 2)) {
+            nextPlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
+        } else {
+            nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
         }
+        gameState.activePlayerIds = [nextPlayerId]
     }
 
     onAction(
@@ -48,14 +51,17 @@ export class InitialBusLinePlacementStateHandler implements MachineStateHandler<
     ): MachineState {
         switch (true) {
             case isPlaceBusLine(action): {
-                if (context.gameState.initialLinesPlaced === 0) {
-                    context.gameState.initialLinesPlaced = 1
-                } else if (context.gameState.initialLinesPlaced === 1) {
+                if (context.gameState.players.every((p) => p.busLine.length == 2)) {
+                    // snake backwards
+                    context.gameState.turnManager.reverseTurnOrder()
+                    return MachineState.InitialBusLinePlacement
+                } else if (context.gameState.players.every((p) => p.busLine.length == 3)) {
+                    context.gameState.turnManager.reverseTurnOrder()
+                    return MachineState.InitialBusLinePlacement
+                } else {
                     context.gameState.turnManager.endTurn(context.gameState.actionCount)
-                    context.gameState.initialLinesPlaced = 0
+                    return MachineState.InitialBusLinePlacement
                 }
-
-                return MachineState.InitialBusLinePlacement
             }
             // Leave this comment if you want the template to generate code for valid actions
             default: {

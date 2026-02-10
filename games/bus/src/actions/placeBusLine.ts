@@ -49,6 +49,21 @@ function asBusLine(nodeIds: string[]): BusNodeId[] | undefined {
     return [...nodeIds]
 }
 
+function otherPlayerBusLines(state: HydratedBusGameState, playerId: string): BusNodeId[][] {
+    const otherLines: BusNodeId[][] = []
+    for (const playerState of state.players) {
+        if (playerState.playerId === playerId) {
+            continue
+        }
+
+        const line = asBusLine(playerState.busLine)
+        if (line) {
+            otherLines.push(line)
+        }
+    }
+    return otherLines
+}
+
 export class HydratedPlaceBusLine
     extends HydratableAction<typeof PlaceBusLine>
     implements PlaceBusLine
@@ -91,7 +106,11 @@ export class HydratedPlaceBusLine
             return false
         }
 
-        return isValidBusLineSegmentPlacement(currentBusLine, segment)
+        return isValidBusLineSegmentPlacement(
+            currentBusLine,
+            segment,
+            otherPlayerBusLines(state, this.playerId)
+        )
     }
 
     static canPlaceBusLine(state: HydratedBusGameState, playerId: string): boolean {
@@ -101,6 +120,6 @@ export class HydratedPlaceBusLine
             return false
         }
 
-        return validBusLineSegments(currentBusLine).length > 0
+        return validBusLineSegments(currentBusLine, otherPlayerBusLines(state, playerId)).length > 0
     }
 }

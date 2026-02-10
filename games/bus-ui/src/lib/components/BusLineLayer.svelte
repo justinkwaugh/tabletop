@@ -331,7 +331,7 @@
 </svg>
 
 <svg
-    class="absolute inset-0 z-[3] h-full w-full"
+    class="pointer-events-none absolute inset-0 z-[3] h-full w-full"
     viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
     aria-label="Bus line selection overlay"
 >
@@ -349,7 +349,7 @@
                         stroke="transparent"
                         stroke-width={START_HIT_STROKE_WIDTH}
                         stroke-linecap="round"
-                        class="cursor-pointer"
+                        class="cursor-pointer bus-line-hit-target"
                         role="button"
                         tabindex="0"
                         aria-label={`Place segment ${segment[0]} to ${segment[1]}`}
@@ -437,7 +437,7 @@
                             cy={sourcePoint.y}
                             r={TARGET_HIT_RADIUS}
                             fill="transparent"
-                            class="cursor-pointer"
+                            class="cursor-pointer bus-line-hit-target"
                             role="button"
                             tabindex="0"
                             aria-label={`Confirm source node ${sourceNodeId}`}
@@ -489,7 +489,7 @@
                             cy={point.y}
                             r={TARGET_HIT_RADIUS}
                             fill="transparent"
-                            class="cursor-pointer"
+                            class="cursor-pointer bus-line-hit-target"
                             role="button"
                             tabindex="0"
                             aria-label={`Choose target node ${targetNodeId}`}
@@ -504,3 +504,14 @@
         {/if}
     {/if}
 </svg>
+
+<style>
+    .bus-line-hit-target:focus {
+        outline: none;
+    }
+
+    .bus-line-hit-target:focus-visible {
+        outline: 2.5px solid #fff27a;
+        outline-offset: 2px;
+    }
+</style>

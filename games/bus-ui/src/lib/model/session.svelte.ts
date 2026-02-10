@@ -43,6 +43,19 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         return [...nodeIds]
     })
 
+    otherBusLineNodeIds: BusNodeId[][] = $derived.by(() => {
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) {
+            return []
+        }
+
+        return this.gameState.players
+            .filter((playerState) => playerState.playerId !== myPlayerId)
+            .map((playerState) =>
+                playerState.busLine.every(isBusNodeId) ? [...playerState.busLine] : []
+            )
+    })
+
     startingBusLineSegments: BusLineSegment[] = $derived.by(() => {
         if (!this.canPlaceBusLine || this.myBusLineNodeIds.length > 0) {
             return []
@@ -54,14 +67,14 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         if (!this.canPlaceBusLine || this.myBusLineNodeIds.length === 0) {
             return []
         }
-        return validBusLineExtensionSegments(this.myBusLineNodeIds)
+        return validBusLineExtensionSegments(this.myBusLineNodeIds, this.otherBusLineNodeIds)
     })
 
     extensionBusLineSegmentsByTargetNode = $derived.by(() => {
         if (!this.canPlaceBusLine || this.myBusLineNodeIds.length === 0) {
             return new Map<BusNodeId, BusLineSegment[]>()
         }
-        return extensionSegmentsByTargetNode(this.myBusLineNodeIds)
+        return extensionSegmentsByTargetNode(this.myBusLineNodeIds, this.otherBusLineNodeIds)
     })
 
     selectableBusLineTargetNodeIds: BusNodeId[] = $derived.by(() => {
