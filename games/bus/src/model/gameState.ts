@@ -12,6 +12,7 @@ import { MachineState } from '../definition/states.js'
 import { GameBoard, HydratedGameBoard } from '../components/board.js'
 import { Passenger } from '../components/passenger.js'
 import { BuildingType } from '../components/building.js'
+import { BuildingSites } from '../utils/busGraph.js'
 
 export type BusGameState = Type.Static<typeof BusGameState>
 export const BusGameState = Type.Evaluate(
@@ -22,7 +23,10 @@ export const BusGameState = Type.Evaluate(
             machineState: Type.Enum(MachineState), // Redefine with the specific machine states
             board: GameBoard,
             passengers: Type.Array(Passenger), // Supply
-            currentLocation: BuildingType
+            currentLocation: BuildingType,
+            currentBuildingPhase: Type.Number(),
+            initialBuildingsPlaced: Type.Number(),
+            initialLinesPlaced: Type.Number()
         })
     ])
 )
@@ -48,11 +52,25 @@ export class HydratedBusGameState
     declare board: HydratedGameBoard
     declare passengers: Passenger[]
     declare currentLocation: BuildingType
+    declare currentBuildingPhase: number
+    declare initialBuildingsPlaced: number
+    declare initialLinesPlaced: number
 
     constructor(data: BusGameState) {
         super(data, BusGameStateValidator)
 
         this.players = data.players.map((player) => new HydratedBusPlayerState(player))
         this.board = new HydratedGameBoard(data.board)
+    }
+
+    nextBuildingPhase() {
+        if (this.currentBuildingPhase === 4) {
+            return
+        }
+        this.currentBuildingPhase += 1
+    }
+
+    numSitesRemainingForCurrentPhase(): number {
+        return this.board.openSitesForPhase(this.currentBuildingPhase).length
     }
 }

@@ -1,35 +1,29 @@
 import {
-    busGraph,
-    BUS_BUILDING_SITES,
+    BuildingSites,
     BUS_BUILDING_SITE_IDS,
     BUS_BUILDING_SITE_IDS_BY_NODE,
     BUS_NODE_IDS,
     BUS_STATION_IDS,
+    BusGraph,
     type BusNodeId
 } from './busGraph.js'
 import { describe, expect, it } from 'vitest'
 
 describe('BusGraph', () => {
-    function hasEdge(from: BusNodeId, to: BusNodeId): boolean {
-        const fromNode = busGraph.nodeById(from)
-        if (!fromNode) {
-            return false
-        }
-
-        return busGraph.neighborsOf(fromNode).some((neighbor) => neighbor.id === to)
-    }
-
     it('contains exactly 36 nodes', () => {
+        const busGraph = new BusGraph()
         expect(busGraph.size).toBe(36)
     })
 
     it('marks both station intersections', () => {
+        const busGraph = new BusGraph()
         const stations = busGraph.stationNodes()
         expect(stations).toHaveLength(2)
         expect(stations.every((node) => node.isStation)).toBe(true)
     })
 
     it('is fully connected', () => {
+        const busGraph = new BusGraph()
         const nodes = Array.from(busGraph)
         const start = nodes[0]
         expect(start).toBeDefined()
@@ -55,6 +49,7 @@ describe('BusGraph', () => {
     })
 
     it('has bidirectional links', () => {
+        const busGraph = new BusGraph()
         for (const node of busGraph) {
             for (const neighbor of busGraph.neighborsOf(node)) {
                 expect(
@@ -68,7 +63,7 @@ describe('BusGraph', () => {
         expect(BUS_BUILDING_SITE_IDS).toHaveLength(47)
 
         const valueCounts = { 1: 0, 2: 0, 3: 0, 4: 0 }
-        for (const site of Object.values(BUS_BUILDING_SITES)) {
+        for (const site of Object.values(BuildingSites)) {
             valueCounts[site.value] += 1
         }
 
@@ -76,6 +71,7 @@ describe('BusGraph', () => {
     })
 
     it('attaches building site ids to nodes (stations none, others one or two)', () => {
+        const busGraph = new BusGraph()
         const stationSet = new Set<BusNodeId>(BUS_STATION_IDS)
 
         for (const nodeId of BUS_NODE_IDS) {

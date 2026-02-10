@@ -52,7 +52,7 @@ export type BuildingSite = {
     value: BuildingSiteValue
 }
 
-export const BUS_BUILDING_SITES = {
+export const BuildingSites = {
     B01: {
         id: 'B01',
         nodeId: 'N01',
@@ -290,9 +290,9 @@ export const BUS_BUILDING_SITES = {
     }
 } as const satisfies Record<string, BuildingSite>
 
-export type BuildingSiteId = keyof typeof BUS_BUILDING_SITES
+export type BuildingSiteId = keyof typeof BuildingSites
 
-export const BUS_BUILDING_SITE_IDS = Object.keys(BUS_BUILDING_SITES) as BuildingSiteId[]
+export const BUS_BUILDING_SITE_IDS = Object.keys(BuildingSites) as BuildingSiteId[]
 
 export const BUS_BUILDING_SITE_IDS_BY_NODE = (() => {
     const siteIdsByNode = Object.fromEntries(
@@ -300,7 +300,7 @@ export const BUS_BUILDING_SITE_IDS_BY_NODE = (() => {
     ) as Record<BusNodeId, BuildingSiteId[]>
 
     for (const siteId of BUS_BUILDING_SITE_IDS) {
-        const site = BUS_BUILDING_SITES[siteId]
+        const site = BuildingSites[siteId]
         siteIdsByNode[site.nodeId].push(siteId)
     }
 
@@ -309,58 +309,6 @@ export const BUS_BUILDING_SITE_IDS_BY_NODE = (() => {
     }
 
     return siteIdsByNode
-})()
-;(() => {
-    const expectedValueCounts: Record<BuildingSiteValue, number> = {
-        1: 12,
-        2: 11,
-        3: 9,
-        4: 15
-    }
-
-    const valueCounts: Record<BuildingSiteValue, number> = {
-        1: 0,
-        2: 0,
-        3: 0,
-        4: 0
-    }
-
-    for (const siteId of BUS_BUILDING_SITE_IDS) {
-        const site = BUS_BUILDING_SITES[siteId]
-
-        if (site.id !== siteId) {
-            throw new Error(`Site id mismatch: expected ${siteId}, found ${site.id}`)
-        }
-
-        valueCounts[site.value] += 1
-    }
-
-    for (const value of [1, 2, 3, 4] as const) {
-        if (valueCounts[value] !== expectedValueCounts[value]) {
-            throw new Error(
-                `Expected ${expectedValueCounts[value]} value-${value} sites, found ${valueCounts[value]}`
-            )
-        }
-    }
-
-    const stationIdSet = new Set<BusNodeId>(BUS_STATION_IDS)
-
-    for (const nodeId of BUS_NODE_IDS) {
-        const siteCount = BUS_BUILDING_SITE_IDS_BY_NODE[nodeId].length
-
-        if (stationIdSet.has(nodeId)) {
-            if (siteCount !== 0) {
-                throw new Error(`Station node ${nodeId} should not have building sites`)
-            }
-            continue
-        }
-
-        if (siteCount < 1 || siteCount > 2) {
-            throw new Error(
-                `Node ${nodeId} should have exactly one or two building sites, found ${siteCount}`
-            )
-        }
-    }
 })()
 
 export const BUS_EDGE_IDS = [
@@ -501,4 +449,6 @@ export class BusGraph extends BaseGraph<BusNode> {
     }
 }
 
-export const busGraph = new BusGraph()
+export function isSiteId(value: string): value is BuildingSiteId {
+    return BUS_BUILDING_SITE_IDS.includes(value as BuildingSiteId)
+}

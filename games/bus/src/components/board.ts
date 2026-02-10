@@ -2,8 +2,15 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Building } from './building.js'
 import { Passenger } from './passenger.js'
-import { Hydratable } from '@tabletop/common'
-import { BusGraph, BusNode, BusNodeId, BusStationId } from '@tabletop/bus'
+import { assert, Hydratable } from '@tabletop/common'
+import {
+    BuildingSite,
+    BuildingSites,
+    BusGraph,
+    BusNode,
+    BusNodeId,
+    BusStationId
+} from '../utils/busGraph.js'
 
 export type GameBoard = Type.Static<typeof GameBoard>
 export const GameBoard = Type.Object({
@@ -67,7 +74,24 @@ export class HydratedGameBoard
             }
             mapping[passenger.nodeId].push(passenger)
         }
-        console.log('Passengers by node:', mapping)
         return mapping
+    }
+
+    hasBuildingAt(siteId: string): boolean {
+        return !!this.buildings[siteId]
+    }
+
+    addBuilding(building: Building) {
+        assert(
+            !this.hasBuildingAt(building.site),
+            `There is already a building at site ${building.site}`
+        )
+        this.buildings[building.site] = building
+    }
+
+    openSitesForPhase(phase: number): BuildingSite[] {
+        return Object.values(BuildingSites).filter(
+            (site) => site.value == phase && !this.hasBuildingAt(site.id)
+        )
     }
 }

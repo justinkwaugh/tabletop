@@ -10,7 +10,7 @@ export const BusPlayerState = Type.Evaluate(
         Type.Object({
             actions: Type.Number(),
             sticks: Type.Number(),
-            busses: Type.Number(),
+            buses: Type.Number(),
             stones: Type.Number(),
             score: Type.Number()
         })
@@ -27,7 +27,7 @@ export class HydratedBusPlayerState
     declare color: Color
     declare actions: number
     declare sticks: number
-    declare busses: number
+    declare buses: number
     declare stones: number
     declare score: number
 

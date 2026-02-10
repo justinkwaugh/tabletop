@@ -65,11 +65,14 @@ export class BusGameInitializer
 
         const busGameState: BusGameState = Object.assign(state, {
             players: orderedPlayers,
-            machineState: MachineState.InitialPlacement,
+            machineState: MachineState.InitialBuildingPlacement,
             turnManager: turnManager,
             board: board,
             passengers,
-            currentLocation: BuildingType.House
+            currentLocation: BuildingType.House,
+            currentBuildingPhase: 1,
+            initialBuildingsPlaced: 0,
+            initialLinesPlaced: 0
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
@@ -89,7 +92,7 @@ export class BusGameInitializer
                 color: colors[index],
                 actions: 20,
                 sticks: 25,
-                busses: 0,
+                buses: 1,
                 stones: 0,
                 score: 0
             })

@@ -3,9 +3,14 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { Building, BuildingType } from '../components/building.js'
+import { nanoid } from 'nanoid'
+import { isSiteId } from '../utils/busGraph.js'
+import { MachineState } from 'src/index.js'
 
 export type PlaceBuildingMetadata = Type.Static<typeof PlaceBuildingMetadata>
 export const PlaceBuildingMetadata = Type.Object({
+    building: Building
 })
 
 export type PlaceBuilding = Type.Static<typeof PlaceBuilding>
@@ -15,7 +20,9 @@ export const PlaceBuilding = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.PlaceBuilding), // This action is always this type
             playerId: Type.String(), // Required now
-            metadata: Type.Optional(PlaceBuildingMetadata) // Always optional, because it is an output
+            metadata: Type.Optional(PlaceBuildingMetadata), // Always optional, because it is an output
+            siteId: Type.String(), // The ID of the building site where the player wants to place a building
+            buildingType: Type.Enum(BuildingType) // The type of building the player wants to place
         })
     ])
 )
@@ -26,10 +33,15 @@ export function isPlaceBuilding(action?: GameAction): action is PlaceBuilding {
     return action?.type === ActionType.PlaceBuilding
 }
 
-export class HydratedPlaceBuilding extends HydratableAction<typeof PlaceBuilding> implements PlaceBuilding {
+export class HydratedPlaceBuilding
+    extends HydratableAction<typeof PlaceBuilding>
+    implements PlaceBuilding
+{
     declare type: ActionType.PlaceBuilding
     declare playerId: string
     declare metadata?: PlaceBuildingMetadata
+    declare siteId: string
+    declare buildingType: BuildingType
 
     constructor(data: PlaceBuilding) {
         super(data, PlaceBuildingValidator)
@@ -40,16 +52,27 @@ export class HydratedPlaceBuilding extends HydratableAction<typeof PlaceBuilding
             throw Error('Invalid PlaceBuilding action')
         }
 
-        this.metadata = {}
+        const building: Building = {
+            id: nanoid(),
+            type: this.buildingType,
+            site: this.siteId
+        }
+
+        state.board.addBuilding(building)
+        if (state.numSitesRemainingForCurrentPhase() === 0) {
+            state.nextBuildingPhase()
+        }
+
+        this.metadata = {
+            building
+        }
     }
 
     isValidPlaceBuilding(state: HydratedBusGameState): boolean {
-        const playerState = state.getPlayerState(this.playerId)
-        return true
+        return isSiteId(this.siteId) && !state.board.hasBuildingAt(this.siteId)
     }
 
     static canPlaceBuilding(state: HydratedBusGameState, playerId: string): boolean {
-        const playerState = state.getPlayerState(playerId)
-        return true
+        return state.currentBuildingPhase < 4 || state.numSitesRemainingForCurrentPhase() > 0
     }
 }
