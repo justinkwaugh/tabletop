@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { busGraph, type BusNodeId } from '@tabletop/bus'
-    import { BUS_BOARD_NODE_POINTS } from '$lib/definitions/busBoardGraph.js'
+    import { busGraph, BUS_BUILDING_SITES, type BusNodeId } from '@tabletop/bus'
+    import { BUS_BOARD_NODE_POINTS, BUS_BUILDING_SITE_POINTS } from '$lib/definitions/busBoardGraph.js'
 
     const BOARD_WIDTH = 1839
     const BOARD_HEIGHT = 1300
@@ -8,6 +8,7 @@
     const BLUE_LINE_COLOR = '#0c66b4'
     const YELLOW_LINE_COLOR = '#fba01c'
     const RED_LINE_COLOR = '#ef2519'
+    const BUILDING_SITE_DEBUG_COLOR = '#22d3ee'
     const ROUTE_STROKE_WIDTH = 12
     const ROUTE_OUTLINE_WIDTH = 3
     const SHARED_EDGE_LANE_GAP = ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH
@@ -96,6 +97,13 @@
             nodeIds: ['N35', 'N22', 'N24', 'N17', 'N15', 'N23', 'N27']
         }
     ] as const
+
+    const buildingSites = Object.values(BUS_BUILDING_SITES)
+        .map((site) => ({
+            ...site,
+            point: BUS_BUILDING_SITE_POINTS[site.id]
+        }))
+        .sort((left, right) => left.id.localeCompare(right.id))
 
     function edgeKey(from: BusNodeId, to: BusNodeId): string {
         return from < to ? `${from}:${to}` : `${to}:${from}`
@@ -570,6 +578,37 @@
         {#each layer.terminalArrows as arrow (arrow.key)}
             <path d={arrow.d} fill="#ffffff" />
         {/each}
+    {/each}
+
+    {#each buildingSites as site (site.id)}
+        {@const nodePoint = BUS_BOARD_NODE_POINTS[site.nodeId]}
+        <line
+            x1={site.point.x}
+            y1={site.point.y}
+            x2={nodePoint.x}
+            y2={nodePoint.y}
+            stroke="#facc15"
+            stroke-width="1"
+            stroke-linecap="round"
+            opacity="0.95"
+        />
+        <circle
+            cx={site.point.x}
+            cy={site.point.y}
+            r="5"
+            fill="rgba(15, 23, 42, 0.75)"
+            stroke={BUILDING_SITE_DEBUG_COLOR}
+            stroke-width="1.2"
+        />
+        <text
+            x={site.point.x + 8}
+            y={site.point.y - 8}
+            fill={BUILDING_SITE_DEBUG_COLOR}
+            font-size="9"
+            font-weight="700"
+            text-anchor="start"
+            dominant-baseline="middle">{site.id}</text
+        >
     {/each}
 
 </svg>

@@ -1,6 +1,5 @@
 <script lang="ts">
     import { BUS_STATION_IDS, type BusNodeId } from '@tabletop/bus'
-    import DebugOverlay from './DebugOverlay.svelte'
     import Passenger from './Passenger.svelte'
     import { BUS_BOARD_NODE_POINTS } from '$lib/definitions/busBoardGraph.js'
     import boardImg from '$lib/images/bus_board.jpg'
@@ -29,7 +28,6 @@
 <div class="board-shell">
     <div class="board-surface relative h-[1300px] w-[1839px]">
         <img src={boardImg} alt="game board" class="board-image absolute inset-0 h-full w-full" />
-        <DebugOverlay />
         <svg
             class="pointer-events-none absolute inset-0 h-full w-full"
             viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}

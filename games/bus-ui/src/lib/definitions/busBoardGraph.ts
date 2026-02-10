@@ -1,4 +1,4 @@
-import type { BusNodeId } from '@tabletop/bus'
+import { BUS_BUILDING_SITE_IDS, type BusBuildingSiteId, type BusNodeId } from '@tabletop/bus'
 import type { Point } from '@tabletop/common'
 
 export const BUS_BOARD_NODE_POINTS: Record<BusNodeId, Point> = {
@@ -39,3 +39,67 @@ export const BUS_BOARD_NODE_POINTS: Record<BusNodeId, Point> = {
     N35: { x: 748, y: 1171 },
     N36: { x: 391, y: 1186 }
 }
+
+export const BUS_BUILDING_SITE_POINTS: Record<BusBuildingSiteId, Point> = {
+    B01: { x: 452, y: 175 },
+    B02: { x: 1042, y: 183 },
+    B03: { x: 201, y: 127 },
+    B04: { x: 1329, y: 149 },
+    B05: { x: 797, y: 136 },
+    B06: { x: 860, y: 133 },
+    B07: { x: 303, y: 289 },
+    B08: { x: 581, y: 281 },
+    B09: { x: 481, y: 359 },
+    B10: { x: 711, y: 275 },
+    B11: { x: 857, y: 393 },
+    B12: { x: 940, y: 347 },
+    B13: { x: 1270, y: 350 },
+    B14: { x: 194, y: 425 },
+    B15: { x: 549, y: 459 },
+    B16: { x: 729, y: 466 },
+    B17: { x: 883, y: 502 },
+    B18: { x: 1153, y: 523 },
+    B19: { x: 1189, y: 610 },
+    B20: { x: 1335, y: 611 },
+    B21: { x: 988, y: 537 },
+    B22: { x: 986, y: 643 },
+    B23: { x: 289, y: 602 },
+    B24: { x: 637, y: 607 },
+    B25: { x: 631, y: 741 },
+    B26: { x: 1006, y: 717 },
+    B27: { x: 1097, y: 812 },
+    B28: { x: 483, y: 709 },
+    B29: { x: 415, y: 772 },
+    B30: { x: 529, y: 892 },
+    B31: { x: 626, y: 853 },
+    B32: { x: 1288, y: 777 },
+    B33: { x: 893, y: 829 },
+    B34: { x: 735, y: 794 },
+    B35: { x: 225, y: 794 },
+    B36: { x: 1078, y: 983 },
+    B37: { x: 1219, y: 901 },
+    B38: { x: 164, y: 994 },
+    B39: { x: 751, y: 928 },
+    B40: { x: 838, y: 994 },
+    B41: { x: 951, y: 931 },
+    B42: { x: 205, y: 1141 },
+    B43: { x: 620, y: 1088 },
+    B44: { x: 567, y: 1171 },
+    B45: { x: 1156, y: 1166 },
+    B46: { x: 801, y: 1201 },
+    B47: { x: 435, y: 1123 },
+}
+
+;(() => {
+    const sitePointIds = Object.keys(BUS_BUILDING_SITE_POINTS) as BusBuildingSiteId[]
+    const canonicalSiteIdSet = new Set(BUS_BUILDING_SITE_IDS)
+
+    const missingSiteIds = BUS_BUILDING_SITE_IDS.filter((siteId) => !sitePointIds.includes(siteId))
+    const extraSiteIds = sitePointIds.filter((siteId) => !canonicalSiteIdSet.has(siteId))
+
+    if (missingSiteIds.length > 0 || extraSiteIds.length > 0) {
+        throw new Error(
+            `Building site point map mismatch; missing: ${missingSiteIds.join(', ') || 'none'}, extra: ${extraSiteIds.join(', ') || 'none'}`
+        )
+    }
+})()

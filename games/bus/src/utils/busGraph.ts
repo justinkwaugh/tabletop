@@ -43,6 +43,327 @@ export type BusNodeId = (typeof BUS_NODE_IDS)[number]
 
 export const BUS_STATION_IDS = ['N08', 'N28'] as const satisfies readonly BusNodeId[]
 
+export type BusBuildingSiteValue = 1 | 2 | 3 | 4
+
+type BusBuildingSiteDefinition = {
+    id: string
+    nodeId: BusNodeId
+    value: BusBuildingSiteValue
+}
+
+export const BUS_BUILDING_SITES = {
+    B01: {
+        id: 'B01',
+        nodeId: 'N01',
+        value: 4
+    },
+    B02: {
+        id: 'B02',
+        nodeId: 'N02',
+        value: 4
+    },
+    B03: {
+        id: 'B03',
+        nodeId: 'N03',
+        value: 4
+    },
+    B04: {
+        id: 'B04',
+        nodeId: 'N04',
+        value: 2
+    },
+    B05: {
+        id: 'B05',
+        nodeId: 'N05',
+        value: 3
+    },
+    B06: {
+        id: 'B06',
+        nodeId: 'N05',
+        value: 2
+    },
+    B07: {
+        id: 'B07',
+        nodeId: 'N06',
+        value: 4
+    },
+    B08: {
+        id: 'B08',
+        nodeId: 'N07',
+        value: 2
+    },
+    B09: {
+        id: 'B09',
+        nodeId: 'N07',
+        value: 3
+    },
+    B10: {
+        id: 'B10',
+        nodeId: 'N09',
+        value: 2
+    },
+    B11: {
+        id: 'B11',
+        nodeId: 'N10',
+        value: 1
+    },
+    B12: {
+        id: 'B12',
+        nodeId: 'N10',
+        value: 3
+    },
+    B13: {
+        id: 'B13',
+        nodeId: 'N11',
+        value: 4
+    },
+    B14: {
+        id: 'B14',
+        nodeId: 'N12',
+        value: 4
+    },
+    B15: {
+        id: 'B15',
+        nodeId: 'N13',
+        value: 2
+    },
+    B16: {
+        id: 'B16',
+        nodeId: 'N14',
+        value: 1
+    },
+    B17: {
+        id: 'B17',
+        nodeId: 'N14',
+        value: 1
+    },
+    B18: {
+        id: 'B18',
+        nodeId: 'N15',
+        value: 1
+    },
+    B19: {
+        id: 'B19',
+        nodeId: 'N15',
+        value: 3
+    },
+    B20: {
+        id: 'B20',
+        nodeId: 'N16',
+        value: 4
+    },
+    B21: {
+        id: 'B21',
+        nodeId: 'N17',
+        value: 1
+    },
+    B22: {
+        id: 'B22',
+        nodeId: 'N17',
+        value: 1
+    },
+    B23: {
+        id: 'B23',
+        nodeId: 'N18',
+        value: 2
+    },
+    B24: {
+        id: 'B24',
+        nodeId: 'N19',
+        value: 1
+    },
+    B25: {
+        id: 'B25',
+        nodeId: 'N19',
+        value: 1
+    },
+    B26: {
+        id: 'B26',
+        nodeId: 'N20',
+        value: 3
+    },
+    B27: {
+        id: 'B27',
+        nodeId: 'N20',
+        value: 2
+    },
+    B28: {
+        id: 'B28',
+        nodeId: 'N21',
+        value: 1
+    },
+    B29: {
+        id: 'B29',
+        nodeId: 'N21',
+        value: 3
+    },
+    B30: {
+        id: 'B30',
+        nodeId: 'N22',
+        value: 3
+    },
+    B31: {
+        id: 'B31',
+        nodeId: 'N22',
+        value: 1
+    },
+    B32: {
+        id: 'B32',
+        nodeId: 'N23',
+        value: 4
+    },
+    B33: {
+        id: 'B33',
+        nodeId: 'N24',
+        value: 1
+    },
+    B34: {
+        id: 'B34',
+        nodeId: 'N24',
+        value: 1
+    },
+    B35: {
+        id: 'B35',
+        nodeId: 'N25',
+        value: 4
+    },
+    B36: {
+        id: 'B36',
+        nodeId: 'N26',
+        value: 2
+    },
+    B37: {
+        id: 'B37',
+        nodeId: 'N27',
+        value: 4
+    },
+    B38: {
+        id: 'B38',
+        nodeId: 'N29',
+        value: 4
+    },
+    B39: {
+        id: 'B39',
+        nodeId: 'N30',
+        value: 3
+    },
+    B40: {
+        id: 'B40',
+        nodeId: 'N30',
+        value: 2
+    },
+    B41: {
+        id: 'B41',
+        nodeId: 'N31',
+        value: 4
+    },
+    B42: {
+        id: 'B42',
+        nodeId: 'N32',
+        value: 2
+    },
+    B43: {
+        id: 'B43',
+        nodeId: 'N33',
+        value: 3
+    },
+    B44: {
+        id: 'B44',
+        nodeId: 'N33',
+        value: 2
+    },
+    B45: {
+        id: 'B45',
+        nodeId: 'N34',
+        value: 4
+    },
+    B46: {
+        id: 'B46',
+        nodeId: 'N35',
+        value: 4
+    },
+    B47: {
+        id: 'B47',
+        nodeId: 'N36',
+        value: 4
+    },
+} as const satisfies Record<string, BusBuildingSiteDefinition>
+
+export type BusBuildingSiteId = keyof typeof BUS_BUILDING_SITES
+export type BusBuildingSite = (typeof BUS_BUILDING_SITES)[BusBuildingSiteId]
+
+export const BUS_BUILDING_SITE_IDS = Object.keys(BUS_BUILDING_SITES) as BusBuildingSiteId[]
+
+export const BUS_BUILDING_SITE_IDS_BY_NODE = (() => {
+    const siteIdsByNode = Object.fromEntries(
+        BUS_NODE_IDS.map((nodeId) => [nodeId, [] as BusBuildingSiteId[]])
+    ) as Record<BusNodeId, BusBuildingSiteId[]>
+
+    for (const siteId of BUS_BUILDING_SITE_IDS) {
+        const site = BUS_BUILDING_SITES[siteId]
+        siteIdsByNode[site.nodeId].push(siteId)
+    }
+
+    for (const nodeId of BUS_NODE_IDS) {
+        siteIdsByNode[nodeId].sort()
+    }
+
+    return siteIdsByNode
+})()
+
+;(() => {
+    const expectedValueCounts: Record<BusBuildingSiteValue, number> = {
+        1: 12,
+        2: 11,
+        3: 9,
+        4: 15
+    }
+
+    const valueCounts: Record<BusBuildingSiteValue, number> = {
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0
+    }
+
+    for (const siteId of BUS_BUILDING_SITE_IDS) {
+        const site = BUS_BUILDING_SITES[siteId]
+
+        if (site.id !== siteId) {
+            throw new Error(`Site id mismatch: expected ${siteId}, found ${site.id}`)
+        }
+
+        valueCounts[site.value] += 1
+    }
+
+    for (const value of [1, 2, 3, 4] as const) {
+        if (valueCounts[value] !== expectedValueCounts[value]) {
+            throw new Error(
+                `Expected ${expectedValueCounts[value]} value-${value} sites, found ${valueCounts[value]}`
+            )
+        }
+    }
+
+    const stationIdSet = new Set<BusNodeId>(BUS_STATION_IDS)
+
+    for (const nodeId of BUS_NODE_IDS) {
+        const siteCount = BUS_BUILDING_SITE_IDS_BY_NODE[nodeId].length
+
+        if (stationIdSet.has(nodeId)) {
+            if (siteCount !== 0) {
+                throw new Error(`Station node ${nodeId} should not have building sites`)
+            }
+            continue
+        }
+
+        if (siteCount < 1 || siteCount > 2) {
+            throw new Error(
+                `Node ${nodeId} should have exactly one or two building sites, found ${siteCount}`
+            )
+        }
+    }
+})()
+
 export const BUS_EDGE_IDS = [
     ['N22', 'N21'],
     ['N22', 'N24'],
@@ -120,6 +441,7 @@ export type BusNode = GraphNode & {
     id: BusNodeId
     isStation: boolean
     neighbors: BusNodeId[]
+    buildingSiteIds: BusBuildingSiteId[]
 }
 
 const stationIdSet = new Set<BusNodeId>(BUS_STATION_IDS)
@@ -136,7 +458,8 @@ export class BusGraph extends BaseGraph<BusNode> {
             this.setNode({
                 id,
                 isStation: stationIdSet.has(id),
-                neighbors: []
+                neighbors: [],
+                buildingSiteIds: [...BUS_BUILDING_SITE_IDS_BY_NODE[id]]
             })
         }
     }

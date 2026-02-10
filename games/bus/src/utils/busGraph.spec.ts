@@ -1,4 +1,12 @@
-import { busGraph, type BusNodeId } from './busGraph.js'
+import {
+    busGraph,
+    BUS_BUILDING_SITES,
+    BUS_BUILDING_SITE_IDS,
+    BUS_BUILDING_SITE_IDS_BY_NODE,
+    BUS_NODE_IDS,
+    BUS_STATION_IDS,
+    type BusNodeId
+} from './busGraph.js'
 import { describe, expect, it } from 'vitest'
 
 describe('BusGraph', () => {
@@ -75,5 +83,37 @@ describe('BusGraph', () => {
             .sort()
 
         expect(neighborIds).toEqual(['N21', 'N24', 'N28', 'N30', 'N33', 'N35'].sort())
+    })
+
+    it('has all 47 building sites with expected value distribution', () => {
+        expect(BUS_BUILDING_SITE_IDS).toHaveLength(47)
+
+        const valueCounts = { 1: 0, 2: 0, 3: 0, 4: 0 }
+        for (const site of Object.values(BUS_BUILDING_SITES)) {
+            valueCounts[site.value] += 1
+        }
+
+        expect(valueCounts).toEqual({ 1: 12, 2: 11, 3: 9, 4: 15 })
+    })
+
+    it('attaches building site ids to nodes (stations none, others one or two)', () => {
+        const stationSet = new Set(BUS_STATION_IDS)
+
+        for (const nodeId of BUS_NODE_IDS) {
+            const node = busGraph.nodeById(nodeId)
+            expect(node).toBeDefined()
+            if (!node) {
+                continue
+            }
+
+            expect(node.buildingSiteIds).toEqual(BUS_BUILDING_SITE_IDS_BY_NODE[nodeId])
+
+            if (stationSet.has(nodeId)) {
+                expect(node.buildingSiteIds).toHaveLength(0)
+            } else {
+                expect(node.buildingSiteIds.length).toBeGreaterThanOrEqual(1)
+                expect(node.buildingSiteIds.length).toBeLessThanOrEqual(2)
+            }
+        }
     })
 })
