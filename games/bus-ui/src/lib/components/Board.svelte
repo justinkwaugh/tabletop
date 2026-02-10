@@ -62,8 +62,9 @@
 <div class="board-shell">
     <div class="board-surface relative h-[1300px] w-[1839px]">
         <img src={boardImg} alt="game board" class="board-image absolute inset-0 h-full w-full" />
+        <BusLineLayer />
         <svg
-            class="absolute inset-0 h-full w-full"
+            class="absolute inset-0 z-[2] h-full w-full"
             viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
             aria-label="Passenger overlay"
         >
@@ -81,8 +82,6 @@
             >
                 <rect width="1" height="1" fill="transparent"></rect>
             </g>
-
-            <BusLineLayer />
 
             {#each placedBuildings as building (building.id)}
                 <PlacedBuilding siteId={building.site} buildingType={building.type} />

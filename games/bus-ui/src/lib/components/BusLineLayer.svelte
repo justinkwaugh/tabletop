@@ -1,55 +1,34 @@
 <script lang="ts">
-    import { isBusNodeId, type BusLineSegment, type BusNodeId } from '@tabletop/bus'
+    import { applyBusLineSegment, isBusNodeId, type BusLineSegment, type BusNodeId } from '@tabletop/bus'
     import { BUS_BOARD_NODE_POINTS } from '$lib/definitions/busBoardGraph.js'
     import {
         ROUTE_OUTLINE_WIDTH,
         ROUTE_STROKE_WIDTH,
         computeBusRouteRenderLayers,
-        type BusRouteDefinition
+        type BusRouteDefinition,
+        type RouteRenderLayer
     } from '$lib/definitions/busLineRender.js'
     import type { BusGameSession } from '$lib/model/session.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession() as BusGameSession
 
-    const PREVIEW_STROKE_WIDTH = ROUTE_STROKE_WIDTH
-    const PREVIEW_OUTLINE_WIDTH = ROUTE_OUTLINE_WIDTH
+    const BOARD_WIDTH = 1839
+    const BOARD_HEIGHT = 1300
+
     const START_HIT_STROKE_WIDTH = 34
     const TARGET_HIT_RADIUS = 28
     const TARGET_VISIBLE_RADIUS = 15
     const SOURCE_VISIBLE_RADIUS = 16
+    const NODE_HIGHLIGHT_OUTER_BORDER_WIDTH = 3
+    const TARGET_HALO_RADIUS = TARGET_VISIBLE_RADIUS + 7
+    const SOURCE_HALO_RADIUS = SOURCE_VISIBLE_RADIUS + 7
+    const TARGET_OUTER_RADIUS = TARGET_VISIBLE_RADIUS + NODE_HIGHLIGHT_OUTER_BORDER_WIDTH / 2
+    const SOURCE_OUTER_RADIUS = SOURCE_VISIBLE_RADIUS + NODE_HIGHLIGHT_OUTER_BORDER_WIDTH / 2
 
     let hoveredStartingSegmentKey = $state<string | undefined>()
     let hoveredTargetNodeId = $state<BusNodeId | undefined>()
     let hoveredSourceNodeId = $state<BusNodeId | undefined>()
-
-    const myLineColor = $derived.by(() => {
-        return gameSession.myPlayer
-            ? gameSession.colors.getPlayerUiColor(gameSession.myPlayer.id)
-            : '#0c66b4'
-    })
-
-    const routeDefinitions: BusRouteDefinition[] = $derived.by(() => {
-        const routes: BusRouteDefinition[] = []
-        for (const playerState of gameSession.gameState.players) {
-            const nodeIds = playerState.busLine
-            if (nodeIds.length < 2 || !nodeIds.every(isBusNodeId)) {
-                continue
-            }
-
-            routes.push({
-                id: playerState.playerId,
-                color: gameSession.colors.getPlayerUiColor(playerState.playerId),
-                nodeIds: [...nodeIds]
-            })
-        }
-
-        return routes
-    })
-
-    const routeRenderLayers = $derived.by(() => {
-        return computeBusRouteRenderLayers(routeDefinitions)
-    })
 
     const previewSegment: BusLineSegment | undefined = $derived.by(() => {
         if (!gameSession.canPlaceBusLine) {
@@ -83,16 +62,52 @@
         return gameSession.unambiguousSegmentForTargetNode(hoveredTargetNodeId)
     })
 
-    const previewPoints = $derived.by(() => {
+    const previewBusLineNodeIds: BusNodeId[] | undefined = $derived.by(() => {
         if (!previewSegment) {
             return undefined
         }
 
-        const [fromNodeId, toNodeId] = previewSegment
-        return {
-            from: BUS_BOARD_NODE_POINTS[fromNodeId],
-            to: BUS_BOARD_NODE_POINTS[toNodeId]
+        const previewLine = applyBusLineSegment(gameSession.myBusLineNodeIds, previewSegment)
+        if (!previewLine) {
+            return undefined
         }
+
+        return previewLine
+    })
+
+    function buildRouteDefinitions(myPreviewLineNodeIds?: BusNodeId[]): BusRouteDefinition[] {
+        const routes: BusRouteDefinition[] = []
+        const previewPlayerId = gameSession.myPlayer?.id
+
+        for (const playerState of gameSession.gameState.players) {
+            const playerId = playerState.playerId
+            const nodeIds: BusNodeId[] =
+                myPreviewLineNodeIds && previewPlayerId === playerId
+                    ? myPreviewLineNodeIds
+                    : playerState.busLine.every(isBusNodeId)
+                      ? [...playerState.busLine]
+                      : []
+
+            if (nodeIds.length < 2) {
+                continue
+            }
+
+            routes.push({
+                id: playerId,
+                color: gameSession.colors.getPlayerUiColor(playerId),
+                nodeIds
+            })
+        }
+
+        return routes
+    }
+
+    const routeDefinitions: BusRouteDefinition[] = $derived.by(() => {
+        return buildRouteDefinitions(previewBusLineNodeIds)
+    })
+
+    const routeRenderLayers = $derived.by(() => {
+        return computeBusRouteRenderLayers(routeDefinitions)
     })
 
     const canInteract = $derived.by(() => gameSession.canPlaceBusLine)
@@ -100,6 +115,55 @@
         () => canInteract && gameSession.myBusLineNodeIds.length === 0
     )
     const pendingTargetNodeId = $derived.by(() => gameSession.pendingBusLineTargetNodeId)
+    const ambiguousPreviewTargetNodeId = $derived.by(() => {
+        if (pendingTargetNodeId) {
+            return pendingTargetNodeId
+        }
+
+        if (
+            hoveredTargetNodeId &&
+            gameSession.isAmbiguousBusLineTargetNode(hoveredTargetNodeId)
+        ) {
+            return hoveredTargetNodeId
+        }
+
+        return undefined
+    })
+    const ambiguousPreviewLayers: RouteRenderLayer[] = $derived.by(() => {
+        const targetNodeId = ambiguousPreviewTargetNodeId
+        const myPlayerId = gameSession.myPlayer?.id
+        if (!targetNodeId || !myPlayerId) {
+            return []
+        }
+
+        // While confirming source for a chosen ambiguous target, show only the resolved single preview.
+        if (pendingTargetNodeId && hoveredSourceNodeId) {
+            return []
+        }
+
+        const segments = gameSession.segmentOptionsForTargetNode(targetNodeId)
+        if (segments.length <= 1) {
+            return []
+        }
+
+        const layers: RouteRenderLayer[] = []
+        for (const segment of segments) {
+            const previewLine = applyBusLineSegment(gameSession.myBusLineNodeIds, segment)
+            if (!previewLine) {
+                continue
+            }
+
+            const previewRoutes = buildRouteDefinitions(previewLine)
+            const myPreviewLayer = computeBusRouteRenderLayers(previewRoutes).find(
+                (layer) => layer.id === myPlayerId
+            )
+            if (myPreviewLayer) {
+                layers.push(myPreviewLayer)
+            }
+        }
+
+        return layers
+    })
 
     function startSegmentKey(segment: BusLineSegment): string {
         return `${segment[0]}:${segment[1]}`
@@ -149,190 +213,294 @@
     })
 </script>
 
-<g class="pointer-events-none" aria-hidden="true">
-    {#each routeRenderLayers as layer (layer.id)}
-        {#each layer.segments as segment (`${segment.key}:outline`)}
-            <line
-                x1={segment.x1}
-                y1={segment.y1}
-                x2={segment.x2}
-                y2={segment.y2}
-                stroke="#020617"
-                stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            />
-        {/each}
-
-        {#each layer.connectors as connector (`${connector.key}:outline`)}
-            <path
-                d={connector.d}
-                stroke="#020617"
-                stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                fill="none"
-            />
-        {/each}
-
-        {#each layer.segments as segment (`${segment.key}:fill`)}
-            <line
-                x1={segment.x1}
-                y1={segment.y1}
-                x2={segment.x2}
-                y2={segment.y2}
-                stroke={layer.color}
-                stroke-width={ROUTE_STROKE_WIDTH}
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            />
-        {/each}
-
-        {#each layer.connectors as connector (`${connector.key}:fill`)}
-            <path
-                d={connector.d}
-                stroke={layer.color}
-                stroke-width={ROUTE_STROKE_WIDTH}
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                fill="none"
-            />
-        {/each}
-
-        {#each layer.terminalArrows as arrow (arrow.key)}
-            <path d={arrow.d} fill="#ffffff" />
-        {/each}
-    {/each}
-
-    {#if previewPoints}
-        <line
-            x1={previewPoints.from.x}
-            y1={previewPoints.from.y}
-            x2={previewPoints.to.x}
-            y2={previewPoints.to.y}
-            stroke="#020617"
-            stroke-width={PREVIEW_STROKE_WIDTH + PREVIEW_OUTLINE_WIDTH * 2}
-            stroke-linecap="round"
-            opacity="0.95"
-        />
-        <line
-            x1={previewPoints.from.x}
-            y1={previewPoints.from.y}
-            x2={previewPoints.to.x}
-            y2={previewPoints.to.y}
-            stroke={myLineColor}
-            stroke-width={PREVIEW_STROKE_WIDTH}
-            stroke-linecap="round"
-            opacity="0.95"
-        />
-    {/if}
-</g>
-
-{#if canInteract}
-    {#if isStartingPlacement}
-        <g class="pointer-events-auto">
-            {#each gameSession.startingBusLineSegments as segment (startSegmentKey(segment))}
-                {@const fromPoint = BUS_BOARD_NODE_POINTS[segment[0]]}
-                {@const toPoint = BUS_BOARD_NODE_POINTS[segment[1]]}
+<svg
+    class="pointer-events-none absolute inset-0 z-[1] h-full w-full"
+    viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
+    aria-label="Bus lines"
+>
+    <g class="pointer-events-none" aria-hidden="true">
+        {#each routeRenderLayers as layer (layer.id)}
+            {#each layer.segments as segment (`${segment.key}:outline`)}
                 <line
-                    x1={fromPoint.x}
-                    y1={fromPoint.y}
-                    x2={toPoint.x}
-                    y2={toPoint.y}
-                    stroke="transparent"
-                    stroke-width={START_HIT_STROKE_WIDTH}
+                    x1={segment.x1}
+                    y1={segment.y1}
+                    x2={segment.x2}
+                    y2={segment.y2}
+                    stroke="#020617"
+                    stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
                     stroke-linecap="round"
-                    class="cursor-pointer"
-                    role="button"
-                    tabindex="0"
-                    aria-label={`Place segment ${segment[0]} to ${segment[1]}`}
-                    onmouseenter={() => (hoveredStartingSegmentKey = startSegmentKey(segment))}
-                    onmouseleave={() => (hoveredStartingSegmentKey = undefined)}
-                    onclick={() => chooseStartingSegment(segment)}
-                    onkeydown={(event) => onKeyboardActivate(event, () => chooseStartingSegment(segment))}
                 />
             {/each}
-        </g>
-    {:else}
-        <g class="pointer-events-auto">
-            {#if pendingTargetNodeId}
-                {@const pendingPoint = BUS_BOARD_NODE_POINTS[pendingTargetNodeId]}
-                <circle
-                    cx={pendingPoint.x}
-                    cy={pendingPoint.y}
-                    r={TARGET_VISIBLE_RADIUS + 6}
-                    fill="none"
-                    stroke="#fff27a"
-                    stroke-width="4"
-                    opacity="0.95"
-                    pointer-events="none"
-                />
-                <circle
-                    cx={pendingPoint.x}
-                    cy={pendingPoint.y}
-                    r={TARGET_VISIBLE_RADIUS}
-                    fill="rgba(251, 160, 28, 0.4)"
-                    stroke="#facc15"
-                    stroke-width="3"
-                    pointer-events="none"
-                />
 
-                {#each gameSession.pendingBusLineSourceNodeIds as sourceNodeId (sourceNodeId)}
-                    {@const sourcePoint = BUS_BOARD_NODE_POINTS[sourceNodeId]}
-                    <circle
-                        cx={sourcePoint.x}
-                        cy={sourcePoint.y}
-                        r={SOURCE_VISIBLE_RADIUS}
-                        fill={hoveredSourceNodeId === sourceNodeId ? 'rgba(12, 102, 180, 0.45)' : 'rgba(12, 102, 180, 0.28)'}
-                        stroke="#0c66b4"
-                        stroke-width={hoveredSourceNodeId === sourceNodeId ? 4 : 3}
-                        pointer-events="none"
+            {#each layer.connectors as connector (`${connector.key}:outline`)}
+                <path
+                    d={connector.d}
+                    stroke="#020617"
+                    stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    fill="none"
+                />
+            {/each}
+
+            {#each layer.segments as segment (`${segment.key}:fill`)}
+                <line
+                    x1={segment.x1}
+                    y1={segment.y1}
+                    x2={segment.x2}
+                    y2={segment.y2}
+                    stroke={layer.color}
+                    stroke-width={ROUTE_STROKE_WIDTH}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+            {/each}
+
+            {#each layer.connectors as connector (`${connector.key}:fill`)}
+                <path
+                    d={connector.d}
+                    stroke={layer.color}
+                    stroke-width={ROUTE_STROKE_WIDTH}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    fill="none"
+                />
+            {/each}
+
+            {#each layer.terminalArrows as arrow (arrow.key)}
+                <path d={arrow.d} fill="#ffffff" />
+            {/each}
+        {/each}
+
+        {#each ambiguousPreviewLayers as layer, previewIndex (`${layer.id}:${previewIndex}`)}
+            <g opacity="0.6">
+                {#each layer.segments as segment (`${segment.key}:ambiguous-outline`)}
+                    <line
+                        x1={segment.x1}
+                        y1={segment.y1}
+                        x2={segment.x2}
+                        y2={segment.y2}
+                        stroke="#020617"
+                        stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
                     />
-                    <circle
-                        cx={sourcePoint.x}
-                        cy={sourcePoint.y}
-                        r={TARGET_HIT_RADIUS}
-                        fill="transparent"
+                {/each}
+
+                {#each layer.connectors as connector (`${connector.key}:ambiguous-outline`)}
+                    <path
+                        d={connector.d}
+                        stroke="#020617"
+                        stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        fill="none"
+                    />
+                {/each}
+
+                {#each layer.segments as segment (`${segment.key}:ambiguous-fill`)}
+                    <line
+                        x1={segment.x1}
+                        y1={segment.y1}
+                        x2={segment.x2}
+                        y2={segment.y2}
+                        stroke={layer.color}
+                        stroke-width={ROUTE_STROKE_WIDTH}
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                {/each}
+
+                {#each layer.connectors as connector (`${connector.key}:ambiguous-fill`)}
+                    <path
+                        d={connector.d}
+                        stroke={layer.color}
+                        stroke-width={ROUTE_STROKE_WIDTH}
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        fill="none"
+                    />
+                {/each}
+
+                {#each layer.terminalArrows as arrow (arrow.key)}
+                    <path d={arrow.d} fill="#ffffff" />
+                {/each}
+            </g>
+        {/each}
+    </g>
+</svg>
+
+<svg
+    class="absolute inset-0 z-[3] h-full w-full"
+    viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
+    aria-label="Bus line selection overlay"
+>
+    {#if canInteract}
+        {#if isStartingPlacement}
+            <g class="pointer-events-auto">
+                {#each gameSession.startingBusLineSegments as segment (startSegmentKey(segment))}
+                    {@const fromPoint = BUS_BOARD_NODE_POINTS[segment[0]]}
+                    {@const toPoint = BUS_BOARD_NODE_POINTS[segment[1]]}
+                    <line
+                        x1={fromPoint.x}
+                        y1={fromPoint.y}
+                        x2={toPoint.x}
+                        y2={toPoint.y}
+                        stroke="transparent"
+                        stroke-width={START_HIT_STROKE_WIDTH}
+                        stroke-linecap="round"
                         class="cursor-pointer"
                         role="button"
                         tabindex="0"
-                        aria-label={`Confirm source node ${sourceNodeId}`}
-                        onmouseenter={() => (hoveredSourceNodeId = sourceNodeId)}
-                        onmouseleave={() => (hoveredSourceNodeId = undefined)}
-                        onclick={() => chooseSourceNode(sourceNodeId)}
-                        onkeydown={(event) => onKeyboardActivate(event, () => chooseSourceNode(sourceNodeId))}
+                        aria-label={`Place segment ${segment[0]} to ${segment[1]}`}
+                        onmouseenter={() => (hoveredStartingSegmentKey = startSegmentKey(segment))}
+                        onmouseleave={() => (hoveredStartingSegmentKey = undefined)}
+                        onclick={() => chooseStartingSegment(segment)}
+                        onkeydown={(event) => onKeyboardActivate(event, () => chooseStartingSegment(segment))}
                     />
                 {/each}
-            {:else}
-                {#each gameSession.selectableBusLineTargetNodeIds as targetNodeId (targetNodeId)}
-                    {@const point = BUS_BOARD_NODE_POINTS[targetNodeId]}
-                    {@const isAmbiguous = gameSession.isAmbiguousBusLineTargetNode(targetNodeId)}
-                    {@const isHovered = hoveredTargetNodeId === targetNodeId}
+            </g>
+        {:else}
+            <g class="pointer-events-auto">
+                {#if pendingTargetNodeId}
+                    {@const pendingPoint = BUS_BOARD_NODE_POINTS[pendingTargetNodeId]}
                     <circle
-                        cx={point.x}
-                        cy={point.y}
+                        cx={pendingPoint.x}
+                        cy={pendingPoint.y}
+                        r={TARGET_HALO_RADIUS + 1}
+                        fill="none"
+                        stroke="#fba01c"
+                        stroke-width="6"
+                        opacity="0.34"
+                        pointer-events="none"
+                        style="transition: opacity 120ms ease-out;"
+                    />
+                    <circle
+                        cx={pendingPoint.x}
+                        cy={pendingPoint.y}
+                        r={TARGET_OUTER_RADIUS}
+                        fill="none"
+                        stroke="#ffffff"
+                        stroke-width="4"
+                        opacity="0.95"
+                        pointer-events="none"
+                        style="transition: stroke 120ms ease-out, stroke-width 120ms ease-out;"
+                    />
+                    <circle
+                        cx={pendingPoint.x}
+                        cy={pendingPoint.y}
                         r={TARGET_VISIBLE_RADIUS}
-                        fill={isHovered ? 'rgba(255, 242, 122, 0.45)' : isAmbiguous ? 'rgba(251, 160, 28, 0.32)' : 'rgba(250, 204, 21, 0.24)'}
-                        stroke={isHovered ? '#fff27a' : isAmbiguous ? '#fba01c' : '#facc15'}
-                        stroke-width={isHovered ? 4 : 3}
+                        fill="#f9c95a"
+                        stroke="#f9c95a"
+                        stroke-width="3"
                         pointer-events="none"
+                        style="transition: fill 120ms ease-out, stroke 120ms ease-out;"
                     />
-                    <circle
-                        cx={point.x}
-                        cy={point.y}
-                        r={TARGET_HIT_RADIUS}
-                        fill="transparent"
-                        class="cursor-pointer"
-                        role="button"
-                        tabindex="0"
-                        aria-label={`Choose target node ${targetNodeId}`}
-                        onmouseenter={() => (hoveredTargetNodeId = targetNodeId)}
-                        onmouseleave={() => (hoveredTargetNodeId = undefined)}
-                        onclick={() => chooseTargetNode(targetNodeId)}
-                        onkeydown={(event) => onKeyboardActivate(event, () => chooseTargetNode(targetNodeId))}
-                    />
-                {/each}
-            {/if}
-        </g>
+
+                    {#each gameSession.pendingBusLineSourceNodeIds as sourceNodeId (sourceNodeId)}
+                        {@const sourcePoint = BUS_BOARD_NODE_POINTS[sourceNodeId]}
+                        {@const isSourceHovered = hoveredSourceNodeId === sourceNodeId}
+                        <circle
+                            cx={sourcePoint.x}
+                            cy={sourcePoint.y}
+                            r={SOURCE_HALO_RADIUS}
+                            fill="none"
+                            stroke="#0c66b4"
+                            stroke-width={isSourceHovered ? 6 : 5}
+                            opacity={isSourceHovered ? 0.32 : 0.22}
+                            pointer-events="none"
+                            style="transition: opacity 120ms ease-out, stroke-width 120ms ease-out;"
+                        />
+                        <circle
+                            cx={sourcePoint.x}
+                            cy={sourcePoint.y}
+                            r={SOURCE_OUTER_RADIUS}
+                            fill="none"
+                            stroke={isSourceHovered ? '#ffffff' : '#333'}
+                            stroke-width={isSourceHovered ? NODE_HIGHLIGHT_OUTER_BORDER_WIDTH + 1 : NODE_HIGHLIGHT_OUTER_BORDER_WIDTH}
+                            opacity="0.95"
+                            pointer-events="none"
+                            style="transition: stroke 120ms ease-out, stroke-width 120ms ease-out;"
+                        />
+                        <circle
+                            cx={sourcePoint.x}
+                            cy={sourcePoint.y}
+                            r={SOURCE_VISIBLE_RADIUS}
+                            fill={isSourceHovered ? '#5f9fd8' : '#3f86c6'}
+                            stroke={isSourceHovered ? '#5f9fd8' : '#3f86c6'}
+                            stroke-width="3"
+                            pointer-events="none"
+                            style="transition: fill 120ms ease-out, stroke 120ms ease-out;"
+                        />
+                        <circle
+                            cx={sourcePoint.x}
+                            cy={sourcePoint.y}
+                            r={TARGET_HIT_RADIUS}
+                            fill="transparent"
+                            class="cursor-pointer"
+                            role="button"
+                            tabindex="0"
+                            aria-label={`Confirm source node ${sourceNodeId}`}
+                            onmouseenter={() => (hoveredSourceNodeId = sourceNodeId)}
+                            onmouseleave={() => (hoveredSourceNodeId = undefined)}
+                            onclick={() => chooseSourceNode(sourceNodeId)}
+                            onkeydown={(event) => onKeyboardActivate(event, () => chooseSourceNode(sourceNodeId))}
+                        />
+                    {/each}
+                {:else}
+                    {#each gameSession.selectableBusLineTargetNodeIds as targetNodeId (targetNodeId)}
+                        {@const point = BUS_BOARD_NODE_POINTS[targetNodeId]}
+                        {@const isAmbiguous = gameSession.isAmbiguousBusLineTargetNode(targetNodeId)}
+                        {@const isHovered = hoveredTargetNodeId === targetNodeId}
+                        <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={TARGET_HALO_RADIUS}
+                            fill="none"
+                            stroke={isAmbiguous ? '#fba01c' : '#facc15'}
+                            stroke-width={isHovered ? 6 : 5}
+                            opacity={isHovered ? 0.3 : isAmbiguous ? 0.18 : 0.12}
+                            pointer-events="none"
+                            style="transition: opacity 120ms ease-out, stroke-width 120ms ease-out, stroke 120ms ease-out;"
+                        />
+                        <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={TARGET_OUTER_RADIUS}
+                            fill="none"
+                            stroke={isHovered ? '#ffffff' : '#333'}
+                            stroke-width={isHovered ? NODE_HIGHLIGHT_OUTER_BORDER_WIDTH + 1 : NODE_HIGHLIGHT_OUTER_BORDER_WIDTH}
+                            opacity="0.95"
+                            pointer-events="none"
+                            style="transition: stroke 120ms ease-out, stroke-width 120ms ease-out;"
+                        />
+                        <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={TARGET_VISIBLE_RADIUS}
+                            fill={isHovered ? '#fff27a' : isAmbiguous ? '#f9c95a' : '#f5ea6e'}
+                            stroke={isHovered ? '#fff27a' : isAmbiguous ? '#f9c95a' : '#f5ea6e'}
+                            stroke-width="3"
+                            pointer-events="none"
+                            style="transition: fill 120ms ease-out, stroke 120ms ease-out;"
+                        />
+                        <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={TARGET_HIT_RADIUS}
+                            fill="transparent"
+                            class="cursor-pointer"
+                            role="button"
+                            tabindex="0"
+                            aria-label={`Choose target node ${targetNodeId}`}
+                            onmouseenter={() => (hoveredTargetNodeId = targetNodeId)}
+                            onmouseleave={() => (hoveredTargetNodeId = undefined)}
+                            onclick={() => chooseTargetNode(targetNodeId)}
+                            onkeydown={(event) => onKeyboardActivate(event, () => chooseTargetNode(targetNodeId))}
+                        />
+                    {/each}
+                {/if}
+            </g>
+        {/if}
     {/if}
-{/if}
+</svg>
