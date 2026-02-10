@@ -2,15 +2,23 @@ import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
     BuildingType,
+    PlaceBusLine,
     PlaceBuilding,
+    extensionSegmentsByTargetNode,
+    isBusNodeId,
     type HydratedBusGameState,
     type BusGameState,
+    type BusLineSegment,
     type BuildingSiteId,
+    type BusNodeId,
+    validBusLineExtensionSegments,
+    validStartingBusLineSegments,
     MachineState
 } from '@tabletop/bus'
 
 export class BusGameSession extends GameSession<BusGameState, HydratedBusGameState> {
     chosenSite: BuildingSiteId | undefined = $state()
+    pendingBusLineTargetNodeId: BusNodeId | undefined = $state()
 
     isInitialBuildingPlacement = $derived(
         this.gameState.machineState === MachineState.InitialBuildingPlacement
@@ -19,7 +27,63 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         this.gameState.machineState === MachineState.InitialBusLinePlacement
     )
 
+    canPlaceBusLine = $derived.by(() => {
+        return (
+            this.isInitialBusLinePlacement &&
+            this.validActionTypes.includes(ActionType.PlaceBusLine) &&
+            !!this.myPlayerState
+        )
+    })
+
+    myBusLineNodeIds: BusNodeId[] = $derived.by(() => {
+        const nodeIds = this.myPlayerState?.busLine ?? []
+        if (!nodeIds.every(isBusNodeId)) {
+            return []
+        }
+        return [...nodeIds]
+    })
+
+    startingBusLineSegments: BusLineSegment[] = $derived.by(() => {
+        if (!this.canPlaceBusLine || this.myBusLineNodeIds.length > 0) {
+            return []
+        }
+        return validStartingBusLineSegments()
+    })
+
+    extensionBusLineSegments: BusLineSegment[] = $derived.by(() => {
+        if (!this.canPlaceBusLine || this.myBusLineNodeIds.length === 0) {
+            return []
+        }
+        return validBusLineExtensionSegments(this.myBusLineNodeIds)
+    })
+
+    extensionBusLineSegmentsByTargetNode = $derived.by(() => {
+        if (!this.canPlaceBusLine || this.myBusLineNodeIds.length === 0) {
+            return new Map<BusNodeId, BusLineSegment[]>()
+        }
+        return extensionSegmentsByTargetNode(this.myBusLineNodeIds)
+    })
+
+    selectableBusLineTargetNodeIds: BusNodeId[] = $derived.by(() => {
+        return [...this.extensionBusLineSegmentsByTargetNode.keys()]
+    })
+
+    pendingBusLineSourceNodeIds: BusNodeId[] = $derived.by(() => {
+        const targetNodeId = this.pendingBusLineTargetNodeId
+        if (!targetNodeId) {
+            return []
+        }
+
+        const segments = this.extensionBusLineSegmentsByTargetNode.get(targetNodeId) ?? []
+        return [...new Set(segments.map(([sourceNodeId]) => sourceNodeId))]
+    })
+
     back() {
+        if (this.pendingBusLineTargetNodeId) {
+            this.pendingBusLineTargetNodeId = undefined
+            return
+        }
+
         if (this.isInitialBuildingPlacement) {
             if (this.chosenSite) {
                 this.chosenSite = undefined
@@ -29,6 +93,7 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
 
     resetAction() {
         this.chosenSite = undefined
+        this.pendingBusLineTargetNodeId = undefined
     }
 
     override beforeNewState(): void {
@@ -46,5 +111,77 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         })
 
         await this.applyAction(action)
+    }
+
+    async placeBusLineSegment(segment: BusLineSegment) {
+        if (!this.validActionTypes.includes(ActionType.PlaceBusLine)) {
+            return
+        }
+
+        const [sourceNodeId, targetNodeId] = segment
+        const action = this.createPlayerAction(PlaceBusLine, {
+            segment: [sourceNodeId, targetNodeId]
+        })
+
+        await this.applyAction(action)
+    }
+
+    segmentOptionsForTargetNode(targetNodeId: BusNodeId): BusLineSegment[] {
+        return this.extensionBusLineSegmentsByTargetNode.get(targetNodeId) ?? []
+    }
+
+    isAmbiguousBusLineTargetNode(targetNodeId: BusNodeId): boolean {
+        return this.segmentOptionsForTargetNode(targetNodeId).length > 1
+    }
+
+    unambiguousSegmentForTargetNode(targetNodeId: BusNodeId): BusLineSegment | undefined {
+        const segments = this.segmentOptionsForTargetNode(targetNodeId)
+        return segments.length === 1 ? segments[0] : undefined
+    }
+
+    segmentForSourceAndTargetNode(
+        sourceNodeId: BusNodeId,
+        targetNodeId: BusNodeId
+    ): BusLineSegment | undefined {
+        return this.segmentOptionsForTargetNode(targetNodeId).find(
+            ([candidateSourceNodeId]) => candidateSourceNodeId === sourceNodeId
+        )
+    }
+
+    clearPendingBusLineTargetNode() {
+        this.pendingBusLineTargetNodeId = undefined
+    }
+
+    async chooseBusLineTargetNode(targetNodeId: BusNodeId) {
+        if (!this.canPlaceBusLine || this.myBusLineNodeIds.length === 0) {
+            return
+        }
+
+        const segments = this.segmentOptionsForTargetNode(targetNodeId)
+        if (segments.length === 0) {
+            return
+        }
+
+        if (segments.length === 1) {
+            await this.placeBusLineSegment(segments[0])
+            return
+        }
+
+        this.pendingBusLineTargetNodeId = targetNodeId
+    }
+
+    async confirmBusLineSourceNode(sourceNodeId: BusNodeId) {
+        const targetNodeId = this.pendingBusLineTargetNodeId
+        if (!targetNodeId) {
+            return
+        }
+
+        const segment = this.segmentForSourceAndTargetNode(sourceNodeId, targetNodeId)
+        if (!segment) {
+            return
+        }
+
+        this.pendingBusLineTargetNodeId = undefined
+        await this.placeBusLineSegment(segment)
     }
 }

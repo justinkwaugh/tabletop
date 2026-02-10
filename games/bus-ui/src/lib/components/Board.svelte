@@ -2,6 +2,7 @@
     import { isSiteId, type Building, type BuildingSiteId, type BusNodeId } from '@tabletop/bus'
     import BuildingTypePicker from './BuildingTypePicker.svelte'
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
+    import BusLineLayer from './BusLineLayer.svelte'
     import PlacedBuilding from './PlacedBuilding.svelte'
     import Passenger from './Passenger.svelte'
     import {
@@ -80,6 +81,8 @@
             >
                 <rect width="1" height="1" fill="transparent"></rect>
             </g>
+
+            <BusLineLayer />
 
             {#each placedBuildings as building (building.id)}
                 <PlacedBuilding siteId={building.site} buildingType={building.type} />

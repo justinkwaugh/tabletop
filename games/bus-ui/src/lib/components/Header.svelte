@@ -7,7 +7,9 @@
     const gameSession = getGameSession() as BusGameSession
 
     const currentTurnPlayerId = $derived.by(() => gameSession.gameState.turnManager.currentTurn()?.playerId)
-    const midAction = $derived.by(() => !!gameSession.chosenSite)
+    const midAction = $derived.by(
+        () => !!gameSession.chosenSite || !!gameSession.pendingBusLineTargetNodeId
+    )
 
     function back() {
         gameSession.back()

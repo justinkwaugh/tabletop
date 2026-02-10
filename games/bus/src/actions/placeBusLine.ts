@@ -3,6 +3,14 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import {
+    applyBusLineSegment,
+    isBusNodeId,
+    isValidBusLineSegmentPlacement,
+    validBusLineSegments,
+    type BusLineSegment
+} from '../utils/busLineRules.js'
+import type { BusNodeId } from '../utils/busGraph.js'
 
 export type PlaceBusLineMetadata = Type.Static<typeof PlaceBusLineMetadata>
 export const PlaceBusLineMetadata = Type.Object({})
@@ -15,7 +23,7 @@ export const PlaceBusLine = Type.Evaluate(
             type: Type.Literal(ActionType.PlaceBusLine), // This action is always this type
             playerId: Type.String(), // Required now
             metadata: Type.Optional(PlaceBusLineMetadata), // Always optional, because it is an output
-            segment: Type.Tuple([Type.String(), Type.String()]) // The two building sites that the player wants to connect with a bus line
+            segment: Type.Tuple([Type.String(), Type.String()]) // The two nodes to connect with a bus segment
         })
     ])
 )
@@ -24,6 +32,21 @@ export const PlaceBusLineValidator = Compile(PlaceBusLine)
 
 export function isPlaceBusLine(action?: GameAction): action is PlaceBusLine {
     return action?.type === ActionType.PlaceBusLine
+}
+
+function asBusLineSegment(segment: [string, string]): BusLineSegment | undefined {
+    const [fromNodeId, toNodeId] = segment
+    if (!isBusNodeId(fromNodeId) || !isBusNodeId(toNodeId)) {
+        return undefined
+    }
+    return [fromNodeId, toNodeId]
+}
+
+function asBusLine(nodeIds: string[]): BusNodeId[] | undefined {
+    if (!nodeIds.every(isBusNodeId)) {
+        return undefined
+    }
+    return [...nodeIds]
 }
 
 export class HydratedPlaceBusLine
@@ -44,16 +67,40 @@ export class HydratedPlaceBusLine
             throw Error('Invalid PlaceBusLine action')
         }
 
+        const playerState = state.getPlayerState(this.playerId)
+        const currentBusLine = asBusLine(playerState.busLine)
+        const segment = asBusLineSegment(this.segment)
+        if (!currentBusLine || !segment) {
+            throw Error('Invalid PlaceBusLine action')
+        }
+
+        const nextBusLine = applyBusLineSegment(currentBusLine, segment)
+        if (!nextBusLine) {
+            throw Error('Invalid PlaceBusLine action')
+        }
+
+        playerState.busLine = nextBusLine
         this.metadata = {}
     }
 
     isValidPlaceBusLine(state: HydratedBusGameState): boolean {
         const playerState = state.getPlayerState(this.playerId)
-        return true
+        const currentBusLine = asBusLine(playerState.busLine)
+        const segment = asBusLineSegment(this.segment)
+        if (!currentBusLine || !segment) {
+            return false
+        }
+
+        return isValidBusLineSegmentPlacement(currentBusLine, segment)
     }
 
     static canPlaceBusLine(state: HydratedBusGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
-        return true
+        const currentBusLine = asBusLine(playerState.busLine)
+        if (!currentBusLine) {
+            return false
+        }
+
+        return validBusLineSegments(currentBusLine).length > 0
     }
 }
