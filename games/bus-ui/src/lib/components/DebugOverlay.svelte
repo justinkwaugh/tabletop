@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { busGraph, BUS_BUILDING_SITES, type BusNodeId } from '@tabletop/bus'
+    import { BUS_EDGE_IDS, BuildingSites, type BusNodeId } from '@tabletop/bus'
     import { BUS_BOARD_NODE_POINTS, BUS_BUILDING_SITE_POINTS } from '$lib/definitions/busBoardGraph.js'
 
     const BOARD_WIDTH = 1839
@@ -101,7 +101,7 @@
         }
     ] as const
 
-    const buildingSites = Object.values(BUS_BUILDING_SITES)
+    const buildingSites = Object.values(BuildingSites)
         .map((site) => ({
             ...site,
             point: BUS_BUILDING_SITE_POINTS[site.id]
@@ -117,8 +117,9 @@
     }
 
     function hasGraphEdge(from: BusNodeId, to: BusNodeId): boolean {
-        const fromNode = busGraph.nodeById(from)
-        return fromNode?.neighbors.includes(to) ?? false
+        return BUS_EDGE_IDS.some(([edgeFrom, edgeTo]) => {
+            return (edgeFrom === from && edgeTo === to) || (edgeFrom === to && edgeTo === from)
+        })
     }
 
     function validateRoute(route: RouteDefinition) {

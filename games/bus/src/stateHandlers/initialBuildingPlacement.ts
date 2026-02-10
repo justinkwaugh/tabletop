@@ -15,7 +15,7 @@ export class InitialPlacementStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedBusGameState>
     ): action is InitialBuildingPlacementAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return false
+        return isPlaceBuilding(action)
     }
 
     validActionsForPlayer(
@@ -55,7 +55,6 @@ export class InitialPlacementStateHandler implements MachineStateHandler<
                     context.gameState.initialBuildingsPlaced = 0
                 }
 
-                
                 return MachineState.InitialBuildingPlacement
             }
             // Leave this comment if you want the template to generate code for valid actions

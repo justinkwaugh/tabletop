@@ -1,5 +1,8 @@
 import { GameSession } from '@tabletop/frontend-components'
 import {
+    ActionType,
+    BuildingType,
+    PlaceBuilding,
     type HydratedBusGameState,
     type BusGameState,
     type BuildingSiteId,
@@ -7,7 +10,7 @@ import {
 } from '@tabletop/bus'
 
 export class BusGameSession extends GameSession<BusGameState, HydratedBusGameState> {
-    chosenSite: string | undefined = $state()
+    chosenSite: BuildingSiteId | undefined = $state()
 
     isInitialBuildingPlacement = $derived(
         this.gameState.machineState === MachineState.InitialBuildingPlacement
@@ -27,5 +30,18 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
 
     override beforeNewState(): void {
         this.resetAction()
+    }
+
+    async placeBuilding(siteId: BuildingSiteId, buildingType: BuildingType) {
+        if (!this.validActionTypes.includes(ActionType.PlaceBuilding)) {
+            return
+        }
+
+        const action = this.createPlayerAction(PlaceBuilding, {
+            siteId,
+            buildingType
+        })
+
+        await this.applyAction(action)
     }
 }

@@ -4,13 +4,10 @@ import { Building } from './building.js'
 import { Passenger } from './passenger.js'
 import { assert, Hydratable } from '@tabletop/common'
 import {
-    BuildingSite,
     BuildingSites,
     BusGraph,
-    BusNode,
-    BusNodeId,
-    BusStationId
 } from '../utils/busGraph.js'
+import type { BuildingSite, BusNode, BusNodeId, BusStationId } from '../utils/busGraph.js'
 
 export type GameBoard = Type.Static<typeof GameBoard>
 export const GameBoard = Type.Object({

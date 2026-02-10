@@ -1,8 +1,19 @@
 <script lang="ts">
-    import { isSiteId, type BuildingSiteId, type BusNodeId } from '@tabletop/bus'
+    import {
+        BuildingType,
+        isSiteId,
+        type Building,
+        type BuildingSiteId,
+        type BusNodeId
+    } from '@tabletop/bus'
+    import BuildingTypePicker from './BuildingTypePicker.svelte'
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
+    import PlacedBuilding from './PlacedBuilding.svelte'
     import Passenger from './Passenger.svelte'
-    import { BUS_BOARD_NODE_POINTS } from '$lib/definitions/busBoardGraph.js'
+    import {
+        BUS_BOARD_NODE_POINTS,
+        BUS_BUILDING_SITE_POINTS
+    } from '$lib/definitions/busBoardGraph.js'
     import boardImg from '$lib/images/bus_board.jpg'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -23,10 +34,44 @@
             .filter((siteId) => isSiteId(siteId))
     })
 
-    let selectedBuildingSiteId = $state<BuildingSiteId | undefined>()
+    let placedBuildings: (Building & { site: BuildingSiteId })[] = $derived.by(() => {
+        return Object.values(gameSession.gameState.board.buildings).filter((building) =>
+            isSiteId(building.site)
+        ) as (Building & { site: BuildingSiteId })[]
+    })
+
+    let chosenBuildingSiteId = $derived.by(() => {
+        const chosenSite = gameSession.chosenSite
+        if (!chosenSite || !isSiteId(chosenSite)) {
+            return undefined
+        }
+        return chosenSite
+    })
+
+    let buildingTypePickerPoint = $derived.by(() => {
+        if (!chosenBuildingSiteId) {
+            return { x: 0, y: 0 }
+        }
+
+        return BUS_BUILDING_SITE_POINTS[chosenBuildingSiteId]
+    })
 
     function handleBuildingSiteChoose(siteId: BuildingSiteId) {
-        selectedBuildingSiteId = siteId
+        gameSession.chosenSite = siteId
+    }
+
+    function handleBuildingTypePickerClose() {
+        gameSession.chosenSite = undefined
+    }
+
+    async function handleBuildingTypeChoose(buildingType: BuildingType) {
+        const siteId = chosenBuildingSiteId
+        if (!siteId) {
+            return
+        }
+
+        gameSession.chosenSite = undefined
+        await gameSession.placeBuilding(siteId, buildingType)
     }
 </script>
 
@@ -46,10 +91,21 @@
                 </filter>
             </defs>
 
+            <g
+                id="bus-building-picker-ref"
+                style="transform:translate({buildingTypePickerPoint.x}px, {buildingTypePickerPoint.y}px);"
+            >
+                <rect width="1" height="1" fill="transparent"></rect>
+            </g>
+
+            {#each placedBuildings as building (building.id)}
+                <PlacedBuilding siteId={building.site} buildingType={building.type} />
+            {/each}
+
             {#each highlightedBuildingSiteIds as siteId (siteId)}
                 <BuildingSiteHighlight
                     {siteId}
-                    isSelected={siteId === selectedBuildingSiteId}
+                    isSelected={siteId === chosenBuildingSiteId}
                     onChoose={handleBuildingSiteChoose}
                 />
             {/each}
@@ -59,6 +115,13 @@
                 <Passenger x={point.x} y={point.y} count={passengers.length} />
             {/each}
         </svg>
+
+        {#if chosenBuildingSiteId}
+            <BuildingTypePicker
+                onClose={handleBuildingTypePickerClose}
+                onChoose={handleBuildingTypeChoose}
+            />
+        {/if}
     </div>
 </div>
 
