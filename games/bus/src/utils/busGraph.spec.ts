@@ -97,7 +97,7 @@ describe('BusGraph', () => {
     })
 
     it('attaches building site ids to nodes (stations none, others one or two)', () => {
-        const stationSet = new Set(BUS_STATION_IDS)
+        const stationSet = new Set<BusNodeId>(BUS_STATION_IDS)
 
         for (const nodeId of BUS_NODE_IDS) {
             const node = busGraph.nodeById(nodeId)
