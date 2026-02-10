@@ -9,6 +9,9 @@
     const YELLOW_LINE_COLOR = '#fba01c'
     const RED_LINE_COLOR = '#ef2519'
     const BUILDING_SITE_DEBUG_COLOR = '#22d3ee'
+    const NODE_DEBUG_BADGE_FILL = 'rgba(2, 6, 23, 0.9)'
+    const NODE_DEBUG_BADGE_STROKE = '#f8fafc'
+    const NODE_DEBUG_TEXT_COLOR = '#f8fafc'
     const ROUTE_STROKE_WIDTH = 12
     const ROUTE_OUTLINE_WIDTH = 3
     const SHARED_EDGE_LANE_GAP = ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH
@@ -104,6 +107,10 @@
             point: BUS_BUILDING_SITE_POINTS[site.id]
         }))
         .sort((left, right) => left.id.localeCompare(right.id))
+
+    const nodeDebugPoints = (Object.entries(BUS_BOARD_NODE_POINTS) as [BusNodeId, { x: number; y: number }][]).sort(
+        ([leftId], [rightId]) => leftId.localeCompare(rightId)
+    )
 
     function edgeKey(from: BusNodeId, to: BusNodeId): string {
         return from < to ? `${from}:${to}` : `${to}:${from}`
@@ -608,6 +615,26 @@
             font-weight="700"
             text-anchor="start"
             dominant-baseline="middle">{site.id}</text
+        >
+    {/each}
+
+    {#each nodeDebugPoints as [nodeId, point] (nodeId)}
+        <circle
+            cx={point.x}
+            cy={point.y}
+            r="16"
+            fill={NODE_DEBUG_BADGE_FILL}
+            stroke={NODE_DEBUG_BADGE_STROKE}
+            stroke-width="2"
+        />
+        <text
+            x={point.x}
+            y={point.y + 0.5}
+            fill={NODE_DEBUG_TEXT_COLOR}
+            font-size="12"
+            font-weight="800"
+            text-anchor="middle"
+            dominant-baseline="middle">{nodeId}</text
         >
     {/each}
 

@@ -3,9 +3,18 @@
     import Passenger from './Passenger.svelte'
     import { BUS_BOARD_NODE_POINTS } from '$lib/definitions/busBoardGraph.js'
     import boardImg from '$lib/images/bus_board.jpg'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+
+    const gameSession = getGameSession()
 
     const BOARD_WIDTH = 1839
     const BOARD_HEIGHT = 1300
+
+    // This is mildly more efficient than iterating by node and calculating passengers for each node.
+    let passengersByNodeId = $derived.by(() => {
+        return gameSession.gameState.board.passengersByNode()
+    })
+
     const stationNodeIds = BUS_STATION_IDS
     const stationNodeIdSet = new Set<BusNodeId>(stationNodeIds)
     const nonStationNodeIds = (Object.keys(BUS_BOARD_NODE_POINTS) as BusNodeId[]).filter(
@@ -35,17 +44,14 @@
         >
             <defs>
                 <filter id="textshadow" x="-15%" y="-15%" width="130%" height="130%">
-                    <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="shadow"></feGaussianBlur>
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="shadow"
+                    ></feGaussianBlur>
                     <feOffset dx="2" dy="2"></feOffset>
                 </filter>
             </defs>
-            {#each stationNodeIds as nodeId (nodeId)}
-                {@const point = BUS_BOARD_NODE_POINTS[nodeId]}
-                <Passenger x={point.x} y={point.y} count="5" />
-            {/each}
-            {#each randomPassengerNodeIds as nodeId (nodeId)}
-                {@const point = BUS_BOARD_NODE_POINTS[nodeId]}
-                <Passenger x={point.x} y={point.y} count="2" />
+            {#each Object.entries(passengersByNodeId) as [nodeId, passengers] (nodeId)}
+                {@const point = BUS_BOARD_NODE_POINTS[nodeId as BusNodeId]}
+                <Passenger x={point.x} y={point.y} count={passengers.length} />
             {/each}
         </svg>
     </div>

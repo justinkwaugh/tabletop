@@ -42,13 +42,14 @@ export const BUS_NODE_IDS = [
 export type BusNodeId = (typeof BUS_NODE_IDS)[number]
 
 export const BUS_STATION_IDS = ['N08', 'N28'] as const satisfies readonly BusNodeId[]
+export type BusStationId = (typeof BUS_STATION_IDS)[number]
 
-export type BusBuildingSiteValue = 1 | 2 | 3 | 4
+export type BuildingSiteValue = 1 | 2 | 3 | 4
 
-type BusBuildingSiteDefinition = {
+export type BuildingSite = {
     id: string
     nodeId: BusNodeId
-    value: BusBuildingSiteValue
+    value: BuildingSiteValue
 }
 
 export const BUS_BUILDING_SITES = {
@@ -286,18 +287,17 @@ export const BUS_BUILDING_SITES = {
         id: 'B47',
         nodeId: 'N36',
         value: 4
-    },
-} as const satisfies Record<string, BusBuildingSiteDefinition>
+    }
+} as const satisfies Record<string, BuildingSite>
 
-export type BusBuildingSiteId = keyof typeof BUS_BUILDING_SITES
-export type BusBuildingSite = (typeof BUS_BUILDING_SITES)[BusBuildingSiteId]
+export type BuildingSiteId = keyof typeof BUS_BUILDING_SITES
 
-export const BUS_BUILDING_SITE_IDS = Object.keys(BUS_BUILDING_SITES) as BusBuildingSiteId[]
+export const BUS_BUILDING_SITE_IDS = Object.keys(BUS_BUILDING_SITES) as BuildingSiteId[]
 
 export const BUS_BUILDING_SITE_IDS_BY_NODE = (() => {
     const siteIdsByNode = Object.fromEntries(
-        BUS_NODE_IDS.map((nodeId) => [nodeId, [] as BusBuildingSiteId[]])
-    ) as Record<BusNodeId, BusBuildingSiteId[]>
+        BUS_NODE_IDS.map((nodeId) => [nodeId, [] as BuildingSiteId[]])
+    ) as Record<BusNodeId, BuildingSiteId[]>
 
     for (const siteId of BUS_BUILDING_SITE_IDS) {
         const site = BUS_BUILDING_SITES[siteId]
@@ -310,16 +310,15 @@ export const BUS_BUILDING_SITE_IDS_BY_NODE = (() => {
 
     return siteIdsByNode
 })()
-
 ;(() => {
-    const expectedValueCounts: Record<BusBuildingSiteValue, number> = {
+    const expectedValueCounts: Record<BuildingSiteValue, number> = {
         1: 12,
         2: 11,
         3: 9,
         4: 15
     }
 
-    const valueCounts: Record<BusBuildingSiteValue, number> = {
+    const valueCounts: Record<BuildingSiteValue, number> = {
         1: 0,
         2: 0,
         3: 0,
@@ -441,7 +440,7 @@ export type BusNode = GraphNode & {
     id: BusNodeId
     isStation: boolean
     neighbors: BusNodeId[]
-    buildingSiteIds: BusBuildingSiteId[]
+    buildingSiteIds: BuildingSiteId[]
 }
 
 const stationIdSet = new Set<BusNodeId>(BUS_STATION_IDS)

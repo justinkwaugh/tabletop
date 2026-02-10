@@ -9,8 +9,10 @@ import { HydratedBusGameState, BusGameState } from '../model/gameState.js'
 import { HydratedBusPlayerState, BusPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
-import { BusGameConfig } from './config.js'
 import { BusColors } from './colors.js'
+import { Passenger } from '../components/passenger.js'
+import { HydratedGameBoard } from '../components/board.js'
+import { BuildingType } from '../components/building.js'
 
 // This class is responsible for initializing a new game, including setting up the initial game state and
 // player states
@@ -43,12 +45,31 @@ export class BusGameInitializer
             }
         }
 
-        const config = game.config as BusGameConfig
+        const passengers: Passenger[] = []
+        for (let i = 0; i < 15; i++) {
+            passengers.push({
+                id: prng.randId()
+            })
+        }
+
+        const initialBoardPassengers = passengers.splice(0, 4)
+        initialBoardPassengers[0].nodeId = 'N14'
+        initialBoardPassengers[1].nodeId = 'N17'
+        initialBoardPassengers[2].nodeId = 'N19'
+        initialBoardPassengers[3].nodeId = 'N24'
+
+        const board = new HydratedGameBoard({
+            buildings: {},
+            passengers: initialBoardPassengers
+        })
 
         const busGameState: BusGameState = Object.assign(state, {
             players: orderedPlayers,
             machineState: MachineState.InitialPlacement,
-            turnManager: turnManager
+            turnManager: turnManager,
+            board: board,
+            passengers,
+            currentLocation: BuildingType.House
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
@@ -65,7 +86,12 @@ export class BusGameInitializer
         const players = game.players.map((player: Player, index: number) => {
             return new HydratedBusPlayerState({
                 playerId: player.id,
-                color: colors[index]
+                color: colors[index],
+                actions: 20,
+                sticks: 25,
+                busses: 0,
+                stones: 0,
+                score: 0
             })
         })
 

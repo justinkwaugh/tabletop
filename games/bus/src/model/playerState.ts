@@ -8,7 +8,11 @@ export const BusPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,
         Type.Object({
-
+            actions: Type.Number(),
+            sticks: Type.Number(),
+            busses: Type.Number(),
+            stones: Type.Number(),
+            score: Type.Number()
         })
     ])
 )
@@ -21,6 +25,11 @@ export class HydratedBusPlayerState
 {
     declare playerId: string
     declare color: Color
+    declare actions: number
+    declare sticks: number
+    declare busses: number
+    declare stones: number
+    declare score: number
 
     constructor(data: BusPlayerState) {
         super(data, BusPlayerStateValidator)

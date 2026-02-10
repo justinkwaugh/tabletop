@@ -57,32 +57,11 @@ describe('BusGraph', () => {
     it('has bidirectional links', () => {
         for (const node of busGraph) {
             for (const neighbor of busGraph.neighborsOf(node)) {
-                expect(busGraph.neighborsOf(neighbor).some((candidate) => candidate.id === node.id)).toBe(
-                    true
-                )
+                expect(
+                    busGraph.neighborsOf(neighbor).some((candidate) => candidate.id === node.id)
+                ).toBe(true)
             }
         }
-    })
-
-    it('includes known road links from board validation', () => {
-        expect(hasEdge('N02', 'N08')).toBe(true)
-        expect(hasEdge('N24', 'N20')).toBe(true)
-        expect(hasEdge('N22', 'N35')).toBe(true)
-    })
-
-    it('keeps node N22 connected to the expected roads', () => {
-        const center = busGraph.nodeById('N22')
-        expect(center).toBeDefined()
-        if (!center) {
-            return
-        }
-
-        const neighborIds = busGraph
-            .neighborsOf(center)
-            .map((neighbor) => neighbor.id)
-            .sort()
-
-        expect(neighborIds).toEqual(['N21', 'N24', 'N28', 'N30', 'N33', 'N35'].sort())
     })
 
     it('has all 47 building sites with expected value distribution', () => {

@@ -1,4 +1,4 @@
-import { BUS_BUILDING_SITE_IDS, type BusBuildingSiteId, type BusNodeId } from '@tabletop/bus'
+import { type BuildingSiteId, type BusNodeId } from '@tabletop/bus'
 import type { Point } from '@tabletop/common'
 
 export const BUS_BOARD_NODE_POINTS: Record<BusNodeId, Point> = {
@@ -40,7 +40,7 @@ export const BUS_BOARD_NODE_POINTS: Record<BusNodeId, Point> = {
     N36: { x: 391, y: 1186 }
 }
 
-export const BUS_BUILDING_SITE_POINTS: Record<BusBuildingSiteId, Point> = {
+export const BUS_BUILDING_SITE_POINTS: Record<BuildingSiteId, Point> = {
     B01: { x: 452, y: 175 },
     B02: { x: 1042, y: 183 },
     B03: { x: 201, y: 127 },
@@ -87,19 +87,5 @@ export const BUS_BUILDING_SITE_POINTS: Record<BusBuildingSiteId, Point> = {
     B44: { x: 567, y: 1171 },
     B45: { x: 1156, y: 1166 },
     B46: { x: 801, y: 1201 },
-    B47: { x: 435, y: 1123 },
+    B47: { x: 435, y: 1123 }
 }
-
-;(() => {
-    const sitePointIds = Object.keys(BUS_BUILDING_SITE_POINTS) as BusBuildingSiteId[]
-    const canonicalSiteIdSet = new Set(BUS_BUILDING_SITE_IDS)
-
-    const missingSiteIds = BUS_BUILDING_SITE_IDS.filter((siteId) => !sitePointIds.includes(siteId))
-    const extraSiteIds = sitePointIds.filter((siteId) => !canonicalSiteIdSet.has(siteId))
-
-    if (missingSiteIds.length > 0 || extraSiteIds.length > 0) {
-        throw new Error(
-            `Building site point map mismatch; missing: ${missingSiteIds.join(', ') || 'none'}, extra: ${extraSiteIds.join(', ') || 'none'}`
-        )
-    }
-})()

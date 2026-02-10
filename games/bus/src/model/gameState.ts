@@ -9,6 +9,9 @@ import { BusPlayerState, HydratedBusPlayerState } from './playerState.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
+import { GameBoard, HydratedGameBoard } from '../components/board.js'
+import { Passenger } from '../components/passenger.js'
+import { BuildingType } from '../components/building.js'
 
 export type BusGameState = Type.Static<typeof BusGameState>
 export const BusGameState = Type.Evaluate(
@@ -16,7 +19,10 @@ export const BusGameState = Type.Evaluate(
         Type.Omit(GameState, ['players', 'machineState']),
         Type.Object({
             players: Type.Array(BusPlayerState), // Redefine with the specific player state type
-            machineState: Type.Enum(MachineState) // Redefine with the specific machine states
+            machineState: Type.Enum(MachineState), // Redefine with the specific machine states
+            board: GameBoard,
+            passengers: Type.Array(Passenger), // Supply
+            currentLocation: BuildingType
         })
     ])
 )
@@ -39,10 +45,14 @@ export class HydratedBusGameState
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
+    declare board: HydratedGameBoard
+    declare passengers: Passenger[]
+    declare currentLocation: BuildingType
 
     constructor(data: BusGameState) {
         super(data, BusGameStateValidator)
 
         this.players = data.players.map((player) => new HydratedBusPlayerState(player))
+        this.board = new HydratedGameBoard(data.board)
     }
 }
