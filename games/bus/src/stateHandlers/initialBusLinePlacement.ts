@@ -1,21 +1,21 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedPlaceBuilding, isPlaceBuilding } from '../actions/placeBuilding.js'
+import { HydratedPlaceBusLine, isPlaceBusLine } from '../actions/placeBusLine.js'
 import { HydratedBusGameState } from '../model/gameState.js'
 
-type InitialBuildingPlacementAction = HydratedPlaceBuilding
+type InitialBusLinePlacementAction = HydratedPlaceBusLine
 
-export class InitialPlacementStateHandler implements MachineStateHandler<
-    InitialBuildingPlacementAction,
+export class InitialBusLinePlacementStateHandler implements MachineStateHandler<
+    InitialBusLinePlacementAction,
     HydratedBusGameState
 > {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedBusGameState>
-    ): action is InitialBuildingPlacementAction {
+    ): action is InitialBusLinePlacementAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return isPlaceBuilding(action)
+        return isPlaceBusLine(action)
     }
 
     validActionsForPlayer(
@@ -26,8 +26,8 @@ export class InitialPlacementStateHandler implements MachineStateHandler<
 
         const validActions = []
 
-        if (HydratedPlaceBuilding.canPlaceBuilding(gameState, playerId)) {
-            validActions.push(ActionType.PlaceBuilding)
+        if (HydratedPlaceBusLine.canPlaceBusLine(gameState, playerId)) {
+            validActions.push(ActionType.PlaceBusLine)
         }
         // Leave this comment if you want the template to generate code for valid actions
 
@@ -36,34 +36,26 @@ export class InitialPlacementStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedBusGameState>) {
         const gameState = context.gameState
-
-        if (context.gameState.initialBuildingsPlaced === 0) {
+        if (context.gameState.initialLinesPlaced === 0) {
             const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
             gameState.activePlayerIds = [nextPlayerId]
         }
     }
 
     onAction(
-        action: InitialBuildingPlacementAction,
+        action: InitialBusLinePlacementAction,
         context: MachineContext<HydratedBusGameState>
     ): MachineState {
         switch (true) {
-            case isPlaceBuilding(action): {
-                if (context.gameState.initialBuildingsPlaced === 0) {
-                    context.gameState.initialBuildingsPlaced = 1
-                } else if (context.gameState.initialBuildingsPlaced === 1) {
+            case isPlaceBusLine(action): {
+                if (context.gameState.initialLinesPlaced === 0) {
+                    context.gameState.initialLinesPlaced = 1
+                } else if (context.gameState.initialLinesPlaced === 1) {
                     context.gameState.turnManager.endTurn(context.gameState.actionCount)
-                    context.gameState.initialBuildingsPlaced = 0
-
-                    if (
-                        Object.keys(context.gameState.board.buildings).length ===
-                        context.gameState.players.length * 2
-                    ) {
-                        return MachineState.InitialBusLinePlacement
-                    }
+                    context.gameState.initialLinesPlaced = 0
                 }
 
-                return MachineState.InitialBuildingPlacement
+                return MachineState.InitialBusLinePlacement
             }
             // Leave this comment if you want the template to generate code for valid actions
             default: {

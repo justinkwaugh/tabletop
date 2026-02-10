@@ -1,10 +1,5 @@
 <script lang="ts">
-    import {
-        isSiteId,
-        type Building,
-        type BuildingSiteId,
-        type BusNodeId
-    } from '@tabletop/bus'
+    import { isSiteId, type Building, type BuildingSiteId, type BusNodeId } from '@tabletop/bus'
     import BuildingTypePicker from './BuildingTypePicker.svelte'
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
     import PlacedBuilding from './PlacedBuilding.svelte'
@@ -27,6 +22,9 @@
     })
 
     let highlightedBuildingSiteIds: BuildingSiteId[] = $derived.by(() => {
+        if (!gameSession.isInitialBuildingPlacement) {
+            return []
+        }
         return gameSession.gameState.board
             .openSitesForPhase(gameSession.gameState.currentBuildingPhase)
             .map((site) => site.id)

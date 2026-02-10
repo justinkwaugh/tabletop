@@ -15,6 +15,9 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
     isInitialBuildingPlacement = $derived(
         this.gameState.machineState === MachineState.InitialBuildingPlacement
     )
+    isInitialBusLinePlacement = $derived(
+        this.gameState.machineState === MachineState.InitialBusLinePlacement
+    )
 
     back() {
         if (this.isInitialBuildingPlacement) {

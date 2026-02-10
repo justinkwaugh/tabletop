@@ -2,6 +2,9 @@ import type { PlopTypes } from '@turbo/gen'
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+const templatesRoot = path.resolve(process.cwd(), 'turbo', 'generators', 'templates')
+const templatePath = (...segments: string[]): string => path.join(templatesRoot, ...segments)
+
 const parseEnumMembers = (source: string, enumName: string): string[] => {
     const enumMatch = source.match(new RegExp(`export\\s+enum\\s+${enumName}\\s*\\{([\\s\\S]*?)\\}`, 'm'))
     if (!enumMatch) return []
@@ -375,9 +378,9 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
             {
                 type: 'addMany',
                 destination: 'games/{{kebabCase game}}',
-                base: `templates/game/logic`,
+                base: templatePath('game', 'logic'),
                 globOptions: { dot: true },
-                templateFiles: `templates/game/logic/**/*.hbs`
+                templateFiles: templatePath('game', 'logic', '**', '*.hbs')
             }
         ]
     })
@@ -423,9 +426,9 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 {
                     type: 'addMany',
                     destination: 'games/{{kebabCase game}}-ui',
-                    base: `templates/game/ui`,
+                    base: templatePath('game', 'ui'),
                     globOptions: { dot: true },
-                    templateFiles: `templates/game/ui/**/*`
+                    templateFiles: templatePath('game', 'ui', '**', '*')
                 }
             ]
         }
@@ -464,7 +467,7 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
             {
                 type: 'add',
                 path: 'games/{{kebabCase game}}/src/actions/{{camelCase action}}.ts',
-                templateFile: `templates/game/addAction/action.ts.hbs`
+                templateFile: templatePath('game', 'addAction', 'action.ts.hbs')
             },
             {
                 type: 'append',
@@ -596,7 +599,7 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                     {
                         type: 'add',
                         path: 'games/{{kebabCase game}}/src/actions/{{camelCase action}}.ts',
-                        templateFile: `templates/game/addAction/action.ts.hbs`
+                        templateFile: templatePath('game', 'addAction', 'action.ts.hbs')
                     },
                     {
                         type: 'append',
@@ -655,7 +658,7 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 {
                     type: 'add',
                     path: 'games/{{kebabCase game}}/src/stateHandlers/{{camelCase state}}.ts',
-                    templateFile: `templates/game/addState/stateHandler.ts.hbs`
+                    templateFile: templatePath('game', 'addState', 'stateHandler.ts.hbs')
                 },
                 {
                     type: 'append',

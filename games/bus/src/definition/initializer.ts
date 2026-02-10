@@ -94,7 +94,8 @@ export class BusGameInitializer
                 sticks: 25,
                 buses: 1,
                 stones: 0,
-                score: 0
+                score: 0,
+                busLine: []
             })
         })
 
