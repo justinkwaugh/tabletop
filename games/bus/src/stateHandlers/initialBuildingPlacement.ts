@@ -51,7 +51,8 @@ export class InitialPlacementStateHandler implements MachineStateHandler<
             case isPlaceBuilding(action): {
                 if (context.gameState.initialBuildingsPlaced === 0) {
                     context.gameState.initialBuildingsPlaced = 1
-                } else {
+                } else if (context.gameState.initialBuildingsPlaced === 1) {
+                    context.gameState.turnManager.endTurn(context.gameState.actionCount)
                     context.gameState.initialBuildingsPlaced = 0
                 }
 

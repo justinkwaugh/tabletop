@@ -1,6 +1,5 @@
 <script lang="ts">
     import {
-        BuildingType,
         isSiteId,
         type Building,
         type BuildingSiteId,
@@ -59,20 +58,6 @@
     function handleBuildingSiteChoose(siteId: BuildingSiteId) {
         gameSession.chosenSite = siteId
     }
-
-    function handleBuildingTypePickerClose() {
-        gameSession.chosenSite = undefined
-    }
-
-    async function handleBuildingTypeChoose(buildingType: BuildingType) {
-        const siteId = chosenBuildingSiteId
-        if (!siteId) {
-            return
-        }
-
-        gameSession.chosenSite = undefined
-        await gameSession.placeBuilding(siteId, buildingType)
-    }
 </script>
 
 <div class="board-shell">
@@ -117,10 +102,7 @@
         </svg>
 
         {#if chosenBuildingSiteId}
-            <BuildingTypePicker
-                onClose={handleBuildingTypePickerClose}
-                onChoose={handleBuildingTypeChoose}
-            />
+            <BuildingTypePicker />
         {/if}
     </div>
 </div>

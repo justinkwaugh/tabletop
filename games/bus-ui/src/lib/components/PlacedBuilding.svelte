@@ -13,7 +13,7 @@
         buildingType: BuildingType
     } = $props()
 
-    const BUILDING_ICON_SIZE = 48
+    const BUILDING_ICON_SIZE = 50
 
     const point = $derived(BUS_BUILDING_SITE_POINTS[siteId])
     const iconX = $derived(point.x - BUILDING_ICON_SIZE / 2)

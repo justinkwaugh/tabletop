@@ -9,6 +9,7 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
+    import Header from '$lib/components/Header.svelte'
 
     import type { BusGameSession } from '$lib/model/session.svelte'
     import type { HydratedBusGameState, BusGameState } from '@tabletop/bus'
@@ -34,11 +35,7 @@
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
-                {#if gameSession.gameState.result}
-                    <!-- <GameEndPanel /> -->
-                {:else}
-                    <!-- <InformationPanel /> -->
-                {/if}
+                <Header />
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
