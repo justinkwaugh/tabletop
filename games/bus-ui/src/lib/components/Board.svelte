@@ -4,7 +4,6 @@
         ActionType,
         BUS_STATION_IDS,
         WorkerActionType,
-        isBusNodeId,
         isSiteId,
         type Building,
         type BuildingSiteId,
@@ -15,7 +14,6 @@
     import BuildingTypePicker from './BuildingTypePicker.svelte'
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
     import BusLineLayer from './BusLineLayer.svelte'
-    import NodeSelectionHighlight from './NodeSelectionHighlight.svelte'
     import PlacedBuilding from './PlacedBuilding.svelte'
     import Passenger from './Passenger.svelte'
     import StationSelectionHighlight from './StationSelectionHighlight.svelte'
@@ -41,6 +39,10 @@
     const ACTION_CYLINDER_X_OFFSET = 0
     const ACTION_CYLINDER_Y_OFFSET = -3
     const SITE_PASSENGER_HEIGHT = 44
+    const NODE_PASSENGER_HEIGHT = 74
+    const VROOM_SOURCE_HOVER_PASSENGER_HEIGHT = 80
+    const NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY = 0.5
+    const VROOM_PASSENGER_HIT_RADIUS = 34
 
     type ActionWorkerPlacement = {
         key: string
@@ -135,6 +137,7 @@
     let chosenVroomSourceNodeId: BusNodeId | undefined = $derived.by(() => {
         return gameSession.chosenVroomSourceNodeId
     })
+    let hoveredVroomSourceNodeId: BusNodeId | undefined = $state()
 
     let highlightedVroomSourceNodeIds: BusNodeId[] = $derived.by(() => {
         if (chosenVroomSourceNodeId) {
@@ -148,6 +151,14 @@
             return []
         }
         return gameSession.vroomDestinationSiteIds
+    })
+
+    const isChoosingVroomSourcePassenger = $derived.by(() => {
+        return gameSession.canVroom && highlightedVroomSourceNodeIds.length > 0
+    })
+
+    const shouldMaskUnselectedVroomPassengers = $derived.by(() => {
+        return isChoosingVroomSourcePassenger || !!chosenVroomSourceNodeId
     })
 
     let actionWorkerPlacements: ActionWorkerPlacement[] = $derived.by(() => {
@@ -474,29 +485,61 @@
                 />
             {/each}
 
-            {#each highlightedVroomSourceNodeIds as nodeId (nodeId)}
-                <NodeSelectionHighlight
-                    {nodeId}
-                    onChoose={handleVroomSourceNodeChoose}
-                />
-            {/each}
-
-            {#if chosenVroomSourceNodeId && isBusNodeId(chosenVroomSourceNodeId)}
-                <NodeSelectionHighlight
-                    nodeId={chosenVroomSourceNodeId}
-                    isSelected={true}
-                    onChoose={handleVroomSourceNodeChoose}
-                />
-            {/if}
-
             {#each Object.entries(passengersByNodeId) as [nodeId, passengers] (nodeId)}
-                {@const point = BUS_BOARD_NODE_POINTS[nodeId as BusNodeId]}
-                <Passenger x={point.x} y={point.y} count={passengers.length} />
+                {@const typedNodeId = nodeId as BusNodeId}
+                {@const point = BUS_BOARD_NODE_POINTS[typedNodeId]}
+                {@const isChosenVroomSource = chosenVroomSourceNodeId === typedNodeId}
+                {@const isSelectableVroomSource = highlightedVroomSourceNodeIds.includes(typedNodeId)}
+                {@const isHoveredSelectableVroomSource =
+                    isSelectableVroomSource &&
+                    !isChosenVroomSource &&
+                    hoveredVroomSourceNodeId === typedNodeId}
+                {@const shouldMaskForVroom =
+                    shouldMaskUnselectedVroomPassengers &&
+                    !(isSelectableVroomSource || isChosenVroomSource)}
+                <Passenger
+                    x={point.x}
+                    y={point.y}
+                    height={isHoveredSelectableVroomSource
+                        ? VROOM_SOURCE_HOVER_PASSENGER_HEIGHT
+                        : NODE_PASSENGER_HEIGHT}
+                    count={passengers.length}
+                    maskOpacity={shouldMaskForVroom
+                        ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY
+                        : 0}
+                />
+                {#if isChoosingVroomSourcePassenger && (isSelectableVroomSource || isChosenVroomSource)}
+                    <circle
+                        cx={point.x}
+                        cy={point.y}
+                        r={VROOM_PASSENGER_HIT_RADIUS}
+                        fill="transparent"
+                        class="cursor-pointer"
+                        onmouseenter={() => (hoveredVroomSourceNodeId = typedNodeId)}
+                        onmouseleave={() => {
+                            if (hoveredVroomSourceNodeId === typedNodeId) {
+                                hoveredVroomSourceNodeId = undefined
+                            }
+                        }}
+                        onclick={() => handleVroomSourceNodeChoose(typedNodeId)}
+                    ></circle>
+                {/if}
             {/each}
 
             {#each passengersAtSite as passenger (passenger.id)}
                 {@const point = BUS_BUILDING_SITE_POINTS[passenger.siteId]}
-                <Passenger x={point.x} y={point.y} height={SITE_PASSENGER_HEIGHT} />
+                {@const isChosenVroomSourceSitePassenger =
+                    !!chosenVroomSourceNodeId && highlightedVroomSourceNodeIds.includes(chosenVroomSourceNodeId)}
+                {@const shouldMaskForVroom =
+                    shouldMaskUnselectedVroomPassengers && !isChosenVroomSourceSitePassenger}
+                <Passenger
+                    x={point.x}
+                    y={point.y}
+                    height={SITE_PASSENGER_HEIGHT}
+                    maskOpacity={shouldMaskForVroom
+                        ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY
+                        : 0}
+                />
             {/each}
         </svg>
 

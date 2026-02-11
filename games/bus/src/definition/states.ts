@@ -1,8 +1,9 @@
 // The list of all possible state machine states
 
 export enum MachineState {
-
-    Vrooming = 'Vrooming',    TimeMachine = 'TimeMachine',
+    SettingFirstPlayer = 'SettingFirstPlayer',
+    Vrooming = 'Vrooming',
+    TimeMachine = 'TimeMachine',
     AddingBuildings = 'AddingBuildings',
     AddingPassengers = 'AddingPassengers',
     IncreaseBuses = 'IncreaseBuses',

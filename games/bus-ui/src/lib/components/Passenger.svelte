@@ -2,6 +2,8 @@
     const MEEPLE_VIEWBOX_WIDTH = 42.25
     const MEEPLE_VIEWBOX_HEIGHT = 79.02
     const MEEPLE_ASPECT_RATIO = MEEPLE_VIEWBOX_WIDTH / MEEPLE_VIEWBOX_HEIGHT
+    const MEEPLE_PATH_D =
+        'M19.35,66.79l-2.48,7.33c-.55,1.63-1.4,4.69-3.81,4.78-3.96.16-7.87.12-11.84.01-.86-2.09-.68-4.38-.11-6.44l1.53-5.55,1.45-5.52,1.25-4.92c.61-2.4,2.25-5.39.18-7.68-1.92-2.13-4.68-4-5.44-7.13-.54-2.24,1.63-4.54,2.89-6.26l3.66-4.99c1.96-2.67,5.17-4.43,7.54-7.07-1.55-2.28-3.28-4.41-4.44-6.66-2.49-4.84-.32-10.18,3.57-13.61,4.52-3.99,8.95-3.62,14.14-1.62,3.68,1.41,5.57,5.7,6.09,8.82,1.3,7.92-4.79,11.56-5.04,12.4-.46,1.55,5.78,5.15,9.1,9.64,1.78,2.4,6.07,8.58,4.18,11.38-1.6,2.36-4.11,4.13-6.09,6.5,0,2.71,1.08,5.95,1.81,8.73l3.34,12.86c.6,2.31,1.47,4.87.22,7.14l-13.24.09-3.88-8.11-2.55-5.86c-.63-.39-1.79,1.01-2.03,1.75Z'
 
     let {
         x,
@@ -10,7 +12,10 @@
         count,
         fill = '#f46b0b',
         stroke = '#333',
-        strokeWidth = 4
+        strokeWidth = 4,
+        outerStroke,
+        outerStrokeWidth,
+        maskOpacity = 0
     }: {
         x: number
         y: number
@@ -19,12 +24,16 @@
         fill?: string
         stroke?: string
         strokeWidth?: number
+        outerStroke?: string
+        outerStrokeWidth?: number
+        maskOpacity?: number
     } = $props()
 
     const width = $derived(height * MEEPLE_ASPECT_RATIO)
     const scale = $derived(height / MEEPLE_VIEWBOX_HEIGHT)
     const translateX = $derived(x - width / 2)
     const translateY = $derived(y - height / 2)
+    const effectiveOuterStrokeWidth = $derived(outerStrokeWidth ?? strokeWidth + 2.2)
 </script>
 
 <g
@@ -32,13 +41,23 @@
     transform={`translate(${translateX} ${translateY}) scale(${scale})`}
     aria-hidden="true"
 >
+    {#if outerStroke}
+        <path
+            fill="none"
+            stroke={outerStroke}
+            stroke-width={effectiveOuterStrokeWidth}
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            d={MEEPLE_PATH_D}
+        ></path>
+    {/if}
     <path
         {fill}
         {stroke}
         stroke-width={strokeWidth}
         stroke-linejoin="round"
         stroke-linecap="round"
-        d="M19.35,66.79l-2.48,7.33c-.55,1.63-1.4,4.69-3.81,4.78-3.96.16-7.87.12-11.84.01-.86-2.09-.68-4.38-.11-6.44l1.53-5.55,1.45-5.52,1.25-4.92c.61-2.4,2.25-5.39.18-7.68-1.92-2.13-4.68-4-5.44-7.13-.54-2.24,1.63-4.54,2.89-6.26l3.66-4.99c1.96-2.67,5.17-4.43,7.54-7.07-1.55-2.28-3.28-4.41-4.44-6.66-2.49-4.84-.32-10.18,3.57-13.61,4.52-3.99,8.95-3.62,14.14-1.62,3.68,1.41,5.57,5.7,6.09,8.82,1.3,7.92-4.79,11.56-5.04,12.4-.46,1.55,5.78,5.15,9.1,9.64,1.78,2.4,6.07,8.58,4.18,11.38-1.6,2.36-4.11,4.13-6.09,6.5,0,2.71,1.08,5.95,1.81,8.73l3.34,12.86c.6,2.31,1.47,4.87.22,7.14l-13.24.09-3.88-8.11-2.55-5.86c-.63-.39-1.79,1.01-2.03,1.75Z"
+        d={MEEPLE_PATH_D}
     ></path>
     {#if count !== undefined}
         <text
@@ -68,5 +87,8 @@
             stroke="#FFFFFF"
             fill="white">{count}</text
         >
+    {/if}
+    {#if maskOpacity > 0}
+        <path fill="#000000" opacity={maskOpacity} d={MEEPLE_PATH_D}></path>
     {/if}
 </g>

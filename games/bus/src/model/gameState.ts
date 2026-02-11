@@ -32,6 +32,7 @@ export const BusGameState = Type.Evaluate(
             buildingAction: Type.Array(Type.String()), // Slots for building action
             clockAction: Type.Optional(Type.String()), // Slot for clock action
             vroomAction: Type.Array(Type.String()), // Slots for vroom action
+            vroomTurnsTaken: Type.Optional(Type.Number()), // Number of vroom turns taken in the current round
             startingPlayerAction: Type.Optional(Type.String()), // Slot for starting player action
             passedPlayers: Type.Array(Type.String()), // Players who have passed
             roundStartMaxBusValue: Type.Number(), // Max bus value at the start of the round
@@ -70,6 +71,7 @@ export class HydratedBusGameState
     declare buildingAction: string[]
     declare clockAction?: string
     declare vroomAction: string[]
+    declare vroomTurnsTaken?: number
     declare startingPlayerAction?: string
     declare passedPlayers: string[]
     declare roundStartMaxBusValue: number

@@ -3,9 +3,10 @@ import { Compile } from 'typebox/compile'
 import { assert, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { BuildingSites, type BusNodeId, type BuildingSiteId, isSiteId } from '../utils/busGraph.js'
+import { BuildingSites, isSiteId } from '../utils/busGraph.js'
 import { isBusNodeId } from '../utils/busLineRules.js'
 import { Passenger } from '../components/passenger.js'
+import { MachineState } from '../definition/states.js'
 
 export type VroomMetadata = Type.Static<typeof VroomMetadata>
 export const VroomMetadata = Type.Object({
@@ -100,6 +101,13 @@ export class HydratedVroom extends HydratableAction<typeof Vroom> implements Vro
 
     static canVroom(state: HydratedBusGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
+        if (
+            state.machineState === MachineState.Vrooming &&
+            state.actionsTaken >= playerState.buses
+        ) {
+            return false
+        }
+
         const busLine = playerState.busLine
         return busLine.some((nodeId) =>
             state.board

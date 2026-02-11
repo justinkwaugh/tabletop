@@ -66,6 +66,13 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
         this.turnOrder.reverse()
     }
 
+    newFirstPlayer(playerId: string) {
+        // Rotate the turn order so that the new first player is at the front
+        while (this.turnOrder[0] !== playerId) {
+            this.turnOrder.push(this.turnOrder.shift()!)
+        }
+    }
+
     startNextTurn(actionIndex: number, predicate?: (playerId: string) => boolean): string {
         const lastPlayerId = this.lastPlayer()
         const nextPlayer = this.nextPlayer(lastPlayerId, predicate)
