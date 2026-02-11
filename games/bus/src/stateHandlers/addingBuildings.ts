@@ -6,23 +6,23 @@ import {
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedAddPassengers, isAddPassengers } from '../actions/addPassengers.js'
+import { HydratedPlaceBuilding, isPlaceBuilding } from '../actions/placeBuilding.js'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { HydratedPass, isPass, Pass, PassReason } from '../actions/pass.js'
 import { getNextActionState } from '../utils/nextActionState.js'
 
-type AddingPassengersAction = HydratedAddPassengers | HydratedPass
+type AddingBuildingsAction = HydratedPlaceBuilding | HydratedPass
 
-export class AddingPassengersStateHandler implements MachineStateHandler<
-    AddingPassengersAction,
+export class AddingBuildingsStateHandler implements MachineStateHandler<
+    AddingBuildingsAction,
     HydratedBusGameState
 > {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedBusGameState>
-    ): action is AddingPassengersAction {
+    ): action is AddingBuildingsAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return isAddPassengers(action) || isPass(action)
+        return isPlaceBuilding(action) || isPass(action)
     }
 
     validActionsForPlayer(
@@ -33,8 +33,8 @@ export class AddingPassengersStateHandler implements MachineStateHandler<
 
         const validActions = []
 
-        if (HydratedAddPassengers.canAddPassengers(gameState, playerId)) {
-            validActions.push(ActionType.AddPassengers)
+        if (HydratedPlaceBuilding.canPlaceBuilding(gameState, playerId)) {
+            validActions.push(ActionType.PlaceBuilding)
         } else {
             validActions.push(ActionType.Pass)
         }
@@ -44,46 +44,46 @@ export class AddingPassengersStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedBusGameState>) {
-        const activePlayerId = context.gameState.passengersAction.at(0)
-        assert(activePlayerId, 'No active player for passengers')
+        const activePlayerId = context.gameState.buildingAction.at(-1)
+        assert(activePlayerId, 'No active player for adding buildings')
 
         if (!context.gameState.actionsTaken) {
-            console.log('Starting passengers turn for player', activePlayerId)
+            console.log('Starting add buildings turn for player', activePlayerId)
             context.gameState.turnManager.startTurn(activePlayerId, context.gameState.actionCount)
             context.gameState.activePlayerIds = [activePlayerId]
         }
 
-        const numAllowedActions = context.gameState.numAllowedActions()
-        console.log('calculated num actions for passengers', numAllowedActions)
+        const numActions = context.gameState.numAllowedActions()
+        console.log('calculated num actions for add buildings:', numActions)
         if (
-            numAllowedActions === 0 ||
-            !HydratedAddPassengers.canAddPassengers(context.gameState, activePlayerId)
+            numActions === 0 ||
+            !HydratedPlaceBuilding.canPlaceBuilding(context.gameState, activePlayerId)
         ) {
             context.addSystemAction(Pass, {
                 playerId: activePlayerId,
-                reason: PassReason.CannotAddPassenger
+                reason: PassReason.CannotAddBuildings
             })
         }
     }
 
     onAction(
-        action: AddingPassengersAction,
+        action: AddingBuildingsAction,
         context: MachineContext<HydratedBusGameState>
     ): MachineState {
         const state = context.gameState
         switch (true) {
-            case isAddPassengers(action): {
-                const numAllowedActions = state.numAllowedActions()
-                state.actionsTaken += action.numPassengers
+            case isPlaceBuilding(action): {
+                const numActions = context.gameState.numAllowedActions()
+                state.actionsTaken += 1
 
                 if (
-                    state.actionsTaken === numAllowedActions ||
-                    !HydratedAddPassengers.canAddPassengers(context.gameState, action.playerId)
+                    state.actionsTaken === numActions ||
+                    !HydratedPlaceBuilding.canPlaceBuilding(context.gameState, action.playerId)
                 ) {
                     return this.nextPlayerOrState(state)
                 }
 
-                return MachineState.AddingPassengers
+                return MachineState.AddingBuildings
             }
             case isPass(action): {
                 return this.nextPlayerOrState(state)
@@ -96,16 +96,14 @@ export class AddingPassengersStateHandler implements MachineStateHandler<
     }
 
     nextPlayerOrState(state: HydratedBusGameState): MachineState {
-        state.passengerTurnsTaken = (state.passengerTurnsTaken ?? 0) + 1
-        state.passengersAction.shift()
+        state.buildingAction.pop()
         state.turnManager.endTurn(state.actionCount)
         state.actionsTaken = 0
 
-        if (state.passengersAction.length === 0) {
-            state.passengerTurnsTaken = 0
+        if (state.buildingAction.length === 0) {
             return getNextActionState(state)
         }
 
-        return MachineState.AddingPassengers
+        return MachineState.AddingBuildings
     }
 }

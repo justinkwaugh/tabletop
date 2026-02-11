@@ -2,17 +2,21 @@
     import type { Point } from '@tabletop/common'
     import {
         ActionType,
+        BUS_STATION_IDS,
         WorkerActionType,
         isSiteId,
         type Building,
         type BuildingSiteId,
-        type BusNodeId
+        type BusNodeId,
+        type BusStationId
     } from '@tabletop/bus'
+    import AddPassengersPicker from './AddPassengersPicker.svelte'
     import BuildingTypePicker from './BuildingTypePicker.svelte'
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
     import BusLineLayer from './BusLineLayer.svelte'
     import PlacedBuilding from './PlacedBuilding.svelte'
     import Passenger from './Passenger.svelte'
+    import StationSelectionHighlight from './StationSelectionHighlight.svelte'
     import WorkerCylinder from './WorkerCylinder.svelte'
     import {
         BUS_BOARD_NODE_POINTS,
@@ -53,7 +57,7 @@
     })
 
     let highlightedBuildingSiteIds: BuildingSiteId[] = $derived.by(() => {
-        if (!gameSession.isInitialBuildingPlacement) {
+        if (!gameSession.isInitialBuildingPlacement && !gameSession.isAddingBuildings) {
             return []
         }
         return gameSession.gameState.board
@@ -82,6 +86,28 @@
         }
 
         return BUS_BUILDING_SITE_POINTS[chosenBuildingSiteId]
+    })
+
+    let highlightedPassengerStationIds: BusStationId[] = $derived.by(() => {
+        if (
+            !gameSession.isMyTurn ||
+            !gameSession.validActionTypes.includes(ActionType.AddPassengers)
+        ) {
+            return []
+        }
+        return [...BUS_STATION_IDS]
+    })
+
+    let chosenPassengerStationId: BusStationId | undefined = $derived.by(() => {
+        return gameSession.chosenPassengerStationId
+    })
+
+    let addPassengersPickerPoint = $derived.by(() => {
+        if (!chosenPassengerStationId) {
+            return { x: 0, y: 0 }
+        }
+
+        return BUS_BOARD_NODE_POINTS[chosenPassengerStationId]
     })
 
     let actionWorkerPlacements: ActionWorkerPlacement[] = $derived.by(() => {
@@ -203,6 +229,10 @@
         gameSession.chosenSite = siteId
     }
 
+    function handlePassengerStationChoose(stationId: BusStationId) {
+        gameSession.chosenPassengerStationId = stationId
+    }
+
     function handleActionSpotChoose(actionType: WorkerActionType) {
         void gameSession.chooseWorkerAction(actionType)
     }
@@ -320,6 +350,12 @@
             >
                 <rect width="1" height="1" fill="transparent"></rect>
             </g>
+            <g
+                id="bus-add-passengers-picker-ref"
+                style="transform:translate({addPassengersPickerPoint.x}px, {addPassengersPickerPoint.y}px);"
+            >
+                <rect width="1" height="1" fill="transparent"></rect>
+            </g>
 
             {#each placedBuildings as building (building.id)}
                 <PlacedBuilding siteId={building.site} buildingType={building.type} />
@@ -375,6 +411,14 @@
                 />
             {/each}
 
+            {#each highlightedPassengerStationIds as stationId (stationId)}
+                <StationSelectionHighlight
+                    {stationId}
+                    isSelected={stationId === chosenPassengerStationId}
+                    onChoose={handlePassengerStationChoose}
+                />
+            {/each}
+
             {#each Object.entries(passengersByNodeId) as [nodeId, passengers] (nodeId)}
                 {@const point = BUS_BOARD_NODE_POINTS[nodeId as BusNodeId]}
                 <Passenger x={point.x} y={point.y} count={passengers.length} />
@@ -383,6 +427,9 @@
 
         {#if chosenBuildingSiteId}
             <BuildingTypePicker />
+        {/if}
+        {#if chosenPassengerStationId}
+            <AddPassengersPicker />
         {/if}
     </div>
 </div>

@@ -53,7 +53,7 @@ export class LineExpansionStateHandler implements MachineStateHandler<
             context.gameState.activePlayerIds = [activePlayerId]
         }
 
-        const numActions = this.calculateNumActions(context.gameState)
+        const numActions = context.gameState.numAllowedActions()
         console.log('calculated num actions for line expansion:', numActions)
         if (
             numActions === 0 ||
@@ -73,7 +73,7 @@ export class LineExpansionStateHandler implements MachineStateHandler<
         const state = context.gameState
         switch (true) {
             case isPlaceBusLine(action): {
-                const numActions = this.calculateNumActions(context.gameState)
+                const numActions = context.gameState.numAllowedActions()
                 state.actionsTaken += 1
 
                 if (
@@ -105,10 +105,5 @@ export class LineExpansionStateHandler implements MachineStateHandler<
         }
 
         return MachineState.LineExpansion
-    }
-
-    calculateNumActions(state: HydratedBusGameState): number {
-        const maxBusValue = state.maxBusValue()
-        return maxBusValue - (state.lineExpansionAction.length - 1)
     }
 }

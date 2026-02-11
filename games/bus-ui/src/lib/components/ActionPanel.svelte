@@ -25,17 +25,23 @@
             return 'Which end to extend?'
         }
 
+        if (gameSession.chosenPassengerStationId) {
+            return 'Choose number of passengers'
+        }
+
         switch (gameSession.gameState.machineState) {
             case MachineState.ChoosingActions:
                 return 'Place an action token'
             case MachineState.InitialBuildingPlacement:
+            case MachineState.AddingBuildings:
                 return 'Place a building'
             case MachineState.InitialBusLinePlacement:
                 return 'Place a bus line segment'
             case MachineState.LineExpansion:
                 return 'Extend your bus line'
             case MachineState.AddingPassengers:
-                return 'Add passengers'
+                return 'Choose a station'
+
             default:
                 return 'Unknown state'
         }

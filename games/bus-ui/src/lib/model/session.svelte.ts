@@ -1,5 +1,6 @@
 import { GameSession } from '@tabletop/frontend-components'
 import {
+    AddPassengers,
     ActionType,
     BuildingType,
     ChooseWorkerAction,
@@ -14,6 +15,7 @@ import {
     type BusLineSegment,
     type BuildingSiteId,
     type BusNodeId,
+    type BusStationId,
     validBusLineExtensionSegments,
     validStartingBusLineSegments,
     MachineState
@@ -21,6 +23,7 @@ import {
 
 export class BusGameSession extends GameSession<BusGameState, HydratedBusGameState> {
     chosenSite: BuildingSiteId | undefined = $state()
+    chosenPassengerStationId: BusStationId | undefined = $state()
     pendingBusLineTargetNodeId: BusNodeId | undefined = $state()
 
     isInitialBuildingPlacement = $derived(
@@ -30,6 +33,8 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         this.gameState.machineState === MachineState.InitialBusLinePlacement
     )
     isLineExpansion = $derived(this.gameState.machineState === MachineState.LineExpansion)
+    isAddingBuildings = $derived(this.gameState.machineState === MachineState.AddingBuildings)
+    isAddingPassengers = $derived(this.gameState.machineState === MachineState.AddingPassengers)
 
     canPlaceBusLine = $derived.by(() => {
         return (
@@ -101,6 +106,11 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
             return
         }
 
+        if (this.chosenPassengerStationId) {
+            this.chosenPassengerStationId = undefined
+            return
+        }
+
         if (this.isInitialBuildingPlacement) {
             if (this.chosenSite) {
                 this.chosenSite = undefined
@@ -110,6 +120,7 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
 
     resetAction() {
         this.chosenSite = undefined
+        this.chosenPassengerStationId = undefined
         this.pendingBusLineTargetNodeId = undefined
     }
 
@@ -125,6 +136,19 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         const action = this.createPlayerAction(PlaceBuilding, {
             siteId,
             buildingType
+        })
+
+        await this.applyAction(action)
+    }
+
+    async addPassengers(stationId: BusStationId, numPassengers: number) {
+        if (!this.validActionTypes.includes(ActionType.AddPassengers)) {
+            return
+        }
+
+        const action = this.createPlayerAction(AddPassengers, {
+            stationId,
+            numPassengers
         })
 
         await this.applyAction(action)

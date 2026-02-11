@@ -10,7 +10,10 @@
         () => gameSession.gameState.turnManager.currentTurn()?.playerId
     )
     const midAction = $derived.by(
-        () => !!gameSession.chosenSite || !!gameSession.pendingBusLineTargetNodeId
+        () =>
+            !!gameSession.chosenSite ||
+            !!gameSession.chosenPassengerStationId ||
+            !!gameSession.pendingBusLineTargetNodeId
     )
 
     function back() {

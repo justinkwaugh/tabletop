@@ -96,4 +96,16 @@ export class HydratedBusGameState
     maxBusValue() {
         return Math.max(...this.players.map((player) => player.buses))
     }
+
+    numAllowedActions(): number {
+        const maxBusValue = this.maxBusValue()
+        if (this.machineState === MachineState.LineExpansion) {
+            return maxBusValue - (this.lineExpansionAction.length - 1)
+        } else if (this.machineState === MachineState.AddingPassengers) {
+            return maxBusValue - (this.passengerTurnsTaken ?? 0)
+        } else if (this.machineState === MachineState.AddingBuildings) {
+            return maxBusValue - (this.buildingAction.length - 1)
+        }
+        return 0
+    }
 }

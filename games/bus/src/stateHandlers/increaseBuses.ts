@@ -71,10 +71,10 @@ export class IncreaseBusesStateHandler implements MachineStateHandler<
     ): MachineState {
         switch (true) {
             case isAddBus(action): {
-                return this.nextPlayerOrState(context.gameState)
+                return this.nextState(context.gameState)
             }
             case isPass(action): {
-                return this.nextPlayerOrState(context.gameState)
+                return this.nextState(context.gameState)
             }
             // Leave this comment if you want the template to generate code for valid actions
             default: {
@@ -83,7 +83,7 @@ export class IncreaseBusesStateHandler implements MachineStateHandler<
         }
     }
 
-    nextPlayerOrState(state: HydratedBusGameState): MachineState {
+    nextState(state: HydratedBusGameState): MachineState {
         state.busAction = undefined
         state.turnManager.endTurn(state.actionCount)
         return getNextActionState(state)
