@@ -4,6 +4,7 @@
         ActionType,
         BUS_STATION_IDS,
         WorkerActionType,
+        isBusNodeId,
         isSiteId,
         type Building,
         type BuildingSiteId,
@@ -14,6 +15,7 @@
     import BuildingTypePicker from './BuildingTypePicker.svelte'
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
     import BusLineLayer from './BusLineLayer.svelte'
+    import NodeSelectionHighlight from './NodeSelectionHighlight.svelte'
     import PlacedBuilding from './PlacedBuilding.svelte'
     import Passenger from './Passenger.svelte'
     import StationSelectionHighlight from './StationSelectionHighlight.svelte'
@@ -38,6 +40,7 @@
     const BOARD_HEIGHT = 1300
     const ACTION_CYLINDER_X_OFFSET = 0
     const ACTION_CYLINDER_Y_OFFSET = -3
+    const SITE_PASSENGER_HEIGHT = 44
 
     type ActionWorkerPlacement = {
         key: string
@@ -51,9 +54,28 @@
         point: Point
     }
 
+    type SitePassengerPlacement = {
+        id: string
+        siteId: BuildingSiteId
+    }
+
     // This is mildly more efficient than iterating by node and calculating passengers for each node.
     let passengersByNodeId = $derived.by(() => {
         return gameSession.gameState.board.passengersByNode()
+    })
+
+    let passengersAtSite: SitePassengerPlacement[] = $derived.by(() => {
+        const placements: SitePassengerPlacement[] = []
+        for (const passenger of gameSession.gameState.board.passengers) {
+            if (!passenger.siteId || !isSiteId(passenger.siteId)) {
+                continue
+            }
+            placements.push({
+                id: passenger.id,
+                siteId: passenger.siteId
+            })
+        }
+        return placements
     })
 
     let highlightedBuildingSiteIds: BuildingSiteId[] = $derived.by(() => {
@@ -108,6 +130,24 @@
         }
 
         return BUS_BOARD_NODE_POINTS[chosenPassengerStationId]
+    })
+
+    let chosenVroomSourceNodeId: BusNodeId | undefined = $derived.by(() => {
+        return gameSession.chosenVroomSourceNodeId
+    })
+
+    let highlightedVroomSourceNodeIds: BusNodeId[] = $derived.by(() => {
+        if (chosenVroomSourceNodeId) {
+            return []
+        }
+        return gameSession.deliverableVroomSourceNodeIds
+    })
+
+    let highlightedVroomDestinationSiteIds: BuildingSiteId[] = $derived.by(() => {
+        if (!chosenVroomSourceNodeId) {
+            return []
+        }
+        return gameSession.vroomDestinationSiteIds
     })
 
     let actionWorkerPlacements: ActionWorkerPlacement[] = $derived.by(() => {
@@ -231,6 +271,14 @@
 
     function handlePassengerStationChoose(stationId: BusStationId) {
         gameSession.chosenPassengerStationId = stationId
+    }
+
+    function handleVroomSourceNodeChoose(nodeId: BusNodeId) {
+        gameSession.chooseVroomSourceNode(nodeId)
+    }
+
+    function handleVroomDestinationSiteChoose(siteId: BuildingSiteId) {
+        void gameSession.chooseVroomDestinationSite(siteId)
     }
 
     function handleActionSpotChoose(actionType: WorkerActionType) {
@@ -411,6 +459,13 @@
                 />
             {/each}
 
+            {#each highlightedVroomDestinationSiteIds as siteId (siteId)}
+                <BuildingSiteHighlight
+                    {siteId}
+                    onChoose={handleVroomDestinationSiteChoose}
+                />
+            {/each}
+
             {#each highlightedPassengerStationIds as stationId (stationId)}
                 <StationSelectionHighlight
                     {stationId}
@@ -419,9 +474,29 @@
                 />
             {/each}
 
+            {#each highlightedVroomSourceNodeIds as nodeId (nodeId)}
+                <NodeSelectionHighlight
+                    {nodeId}
+                    onChoose={handleVroomSourceNodeChoose}
+                />
+            {/each}
+
+            {#if chosenVroomSourceNodeId && isBusNodeId(chosenVroomSourceNodeId)}
+                <NodeSelectionHighlight
+                    nodeId={chosenVroomSourceNodeId}
+                    isSelected={true}
+                    onChoose={handleVroomSourceNodeChoose}
+                />
+            {/if}
+
             {#each Object.entries(passengersByNodeId) as [nodeId, passengers] (nodeId)}
                 {@const point = BUS_BOARD_NODE_POINTS[nodeId as BusNodeId]}
                 <Passenger x={point.x} y={point.y} count={passengers.length} />
+            {/each}
+
+            {#each passengersAtSite as passenger (passenger.id)}
+                {@const point = BUS_BUILDING_SITE_POINTS[passenger.siteId]}
+                <Passenger x={point.x} y={point.y} height={SITE_PASSENGER_HEIGHT} />
             {/each}
         </svg>
 

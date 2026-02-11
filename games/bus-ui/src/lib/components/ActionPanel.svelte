@@ -29,6 +29,10 @@
             return 'Choose number of passengers'
         }
 
+        if (gameSession.chosenVroomSourceNodeId) {
+            return 'Choose destination site'
+        }
+
         switch (gameSession.gameState.machineState) {
             case MachineState.ChoosingActions:
                 return 'Place an action token'
@@ -44,7 +48,7 @@
             case MachineState.TimeMachine:
                 return 'Take a time stone'
             case MachineState.Vrooming:
-                return 'Deliver a passenger'
+                return 'Choose a passenger'
             default:
                 return 'Unknown state'
         }

@@ -13,6 +13,7 @@
         () =>
             !!gameSession.chosenSite ||
             !!gameSession.chosenPassengerStationId ||
+            !!gameSession.chosenVroomSourceNodeId ||
             !!gameSession.pendingBusLineTargetNodeId
     )
 

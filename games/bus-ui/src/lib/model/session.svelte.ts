@@ -2,14 +2,18 @@ import { GameSession } from '@tabletop/frontend-components'
 import {
     AddPassengers,
     ActionType,
+    BuildingSites,
     BuildingType,
     ChooseWorkerAction,
+    HydratedVroom,
     Pass,
     PlaceBusLine,
     PlaceBuilding,
+    Vroom,
     WorkerActionType,
     extensionSegmentsByTargetNode,
     isBusNodeId,
+    isSiteId,
     type HydratedBusGameState,
     type BusGameState,
     type BusLineSegment,
@@ -24,6 +28,7 @@ import {
 export class BusGameSession extends GameSession<BusGameState, HydratedBusGameState> {
     chosenSite: BuildingSiteId | undefined = $state()
     chosenPassengerStationId: BusStationId | undefined = $state()
+    chosenVroomSourceNodeId: BusNodeId | undefined = $state()
     pendingBusLineTargetNodeId: BusNodeId | undefined = $state()
 
     isInitialBuildingPlacement = $derived(
@@ -35,6 +40,15 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
     isLineExpansion = $derived(this.gameState.machineState === MachineState.LineExpansion)
     isAddingBuildings = $derived(this.gameState.machineState === MachineState.AddingBuildings)
     isAddingPassengers = $derived(this.gameState.machineState === MachineState.AddingPassengers)
+    isVrooming = $derived(this.gameState.machineState === MachineState.Vrooming)
+
+    canVroom = $derived.by(() => {
+        return (
+            this.isVrooming &&
+            this.validActionTypes.includes(ActionType.Vroom) &&
+            !!this.myPlayer?.id
+        )
+    })
 
     canPlaceBusLine = $derived.by(() => {
         return (
@@ -100,9 +114,80 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         return [...new Set(segments.map(([sourceNodeId]) => sourceNodeId))]
     })
 
+    deliverableVroomSourceNodeIds: BusNodeId[] = $derived.by(() => {
+        if (!this.canVroom) {
+            return []
+        }
+
+        const playerId = this.myPlayer?.id
+        if (!playerId) {
+            return []
+        }
+
+        const deliverableNodeIds = new Set<BusNodeId>()
+        for (const passenger of this.gameState.board.passengers) {
+            if (
+                passenger.nodeId &&
+                isBusNodeId(passenger.nodeId) &&
+                HydratedVroom.canDeliverPassenger(this.gameState, playerId, passenger)
+            ) {
+                deliverableNodeIds.add(passenger.nodeId)
+            }
+        }
+
+        return [...deliverableNodeIds]
+    })
+
+    vroomDestinationSiteIds: BuildingSiteId[] = $derived.by(() => {
+        if (!this.canVroom) {
+            return []
+        }
+
+        const sourceNodeId = this.chosenVroomSourceNodeId
+        if (!sourceNodeId) {
+            return []
+        }
+
+        const playerBusLineNodeIdSet = new Set(this.myBusLineNodeIds)
+        if (!playerBusLineNodeIdSet.has(sourceNodeId)) {
+            return []
+        }
+
+        if (this.gameState.board.passengersAtNode(sourceNodeId).length === 0) {
+            return []
+        }
+
+        const destinationSiteIds: BuildingSiteId[] = []
+        for (const [siteId, building] of Object.entries(this.gameState.board.buildings)) {
+            if (!isSiteId(siteId)) {
+                continue
+            }
+            if (building.type !== this.gameState.currentLocation) {
+                continue
+            }
+            if (this.gameState.board.passengerAtSite(siteId)) {
+                continue
+            }
+
+            const destinationNodeId = BuildingSites[siteId].nodeId
+            if (!playerBusLineNodeIdSet.has(destinationNodeId)) {
+                continue
+            }
+
+            destinationSiteIds.push(siteId)
+        }
+
+        return destinationSiteIds
+    })
+
     back() {
         if (this.pendingBusLineTargetNodeId) {
             this.pendingBusLineTargetNodeId = undefined
+            return
+        }
+
+        if (this.chosenVroomSourceNodeId) {
+            this.chosenVroomSourceNodeId = undefined
             return
         }
 
@@ -121,6 +206,7 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
     resetAction() {
         this.chosenSite = undefined
         this.chosenPassengerStationId = undefined
+        this.chosenVroomSourceNodeId = undefined
         this.pendingBusLineTargetNodeId = undefined
     }
 
@@ -149,6 +235,19 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         const action = this.createPlayerAction(AddPassengers, {
             stationId,
             numPassengers
+        })
+
+        await this.applyAction(action)
+    }
+
+    async vroom(sourceNode: BusNodeId, destinationSite: BuildingSiteId) {
+        if (!this.validActionTypes.includes(ActionType.Vroom)) {
+            return
+        }
+
+        const action = this.createPlayerAction(Vroom, {
+            sourceNode,
+            destinationSite
         })
 
         await this.applyAction(action)
@@ -183,6 +282,34 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
 
         const action = this.createPlayerAction(Pass, {})
         await this.applyAction(action)
+    }
+
+    chooseVroomSourceNode(sourceNodeId: BusNodeId) {
+        if (!this.canVroom) {
+            return
+        }
+        if (!this.deliverableVroomSourceNodeIds.includes(sourceNodeId)) {
+            return
+        }
+
+        this.chosenVroomSourceNodeId = sourceNodeId
+    }
+
+    async chooseVroomDestinationSite(destinationSiteId: BuildingSiteId) {
+        if (!this.canVroom) {
+            return
+        }
+
+        const sourceNodeId = this.chosenVroomSourceNodeId
+        if (!sourceNodeId) {
+            return
+        }
+        if (!this.vroomDestinationSiteIds.includes(destinationSiteId)) {
+            return
+        }
+
+        this.chosenVroomSourceNodeId = undefined
+        await this.vroom(sourceNodeId, destinationSiteId)
     }
 
     segmentOptionsForTargetNode(targetNodeId: BusNodeId): BusLineSegment[] {

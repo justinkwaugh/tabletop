@@ -2,11 +2,8 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Building } from './building.js'
 import { Passenger } from './passenger.js'
-import { assert, Hydratable } from '@tabletop/common'
-import {
-    BuildingSites,
-    BusGraph,
-} from '../utils/busGraph.js'
+import { assert, assertExists, Hydratable } from '@tabletop/common'
+import { BuildingSites, BusGraph } from '../utils/busGraph.js'
 import type { BuildingSite, BusNode, BusNodeId, BusStationId } from '../utils/busGraph.js'
 
 export type GameBoard = Type.Static<typeof GameBoard>
@@ -56,8 +53,8 @@ export class HydratedGameBoard
         )
     }
 
-    passengerAtSite(buildingId: string): Passenger | undefined {
-        return this.passengers.find((passenger) => passenger.nodeId === buildingId)
+    passengerAtSite(siteId: string): Passenger | undefined {
+        return this.passengers.find((passenger) => passenger.siteId === siteId)
     }
 
     passengersByNode(): Record<BusNodeId, Passenger[]> {
@@ -90,5 +87,12 @@ export class HydratedGameBoard
         return Object.values(BuildingSites).filter(
             (site) => site.value == phase && !this.hasBuildingAt(site.id)
         )
+    }
+
+    buildingsForNode(nodeId: BusNodeId): Building[] {
+        const node = this.graph.nodeById(nodeId)
+        assertExists(node, `Node with id ${nodeId} does not exist on the graph`)
+        const siteIds = node.buildingSiteIds
+        return siteIds.map((siteId) => this.buildings[siteId]).filter(Boolean)
     }
 }

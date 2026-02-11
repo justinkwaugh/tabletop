@@ -14,6 +14,10 @@
     } = $props()
 
     const BUILDING_ICON_SIZE = 50
+    const BUILDING_ICON_BORDER_COLOR = '#333'
+    const BUILDING_ICON_BORDER_WIDTH = 2
+    const BUILDING_ICON_BORDER_RADIUS =
+        BUILDING_ICON_SIZE / 2 - BUILDING_ICON_BORDER_WIDTH / 2
 
     const point = $derived(BUS_BUILDING_SITE_POINTS[siteId])
     const iconX = $derived(point.x - BUILDING_ICON_SIZE / 2)
@@ -48,3 +52,14 @@
         aria-hidden="true"
     />
 {/if}
+
+<circle
+    cx={point.x}
+    cy={point.y}
+    r={BUILDING_ICON_BORDER_RADIUS}
+    fill="none"
+    stroke={BUILDING_ICON_BORDER_COLOR}
+    stroke-width={BUILDING_ICON_BORDER_WIDTH}
+    class="pointer-events-none"
+    aria-hidden="true"
+></circle>
