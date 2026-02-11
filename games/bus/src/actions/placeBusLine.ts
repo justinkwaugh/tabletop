@@ -7,7 +7,6 @@ import {
     applyBusLineSegment,
     isBusNodeId,
     isValidBusLineSegmentPlacement,
-    validBusLineSegments,
     type BusLineSegment
 } from '../utils/busLineRules.js'
 import type { BusNodeId } from '../utils/busGraph.js'
@@ -95,6 +94,7 @@ export class HydratedPlaceBusLine
         }
 
         playerState.busLine = nextBusLine
+        playerState.sticks -= 1
         this.metadata = {}
     }
 
@@ -115,11 +115,6 @@ export class HydratedPlaceBusLine
 
     static canPlaceBusLine(state: HydratedBusGameState, playerId: string): boolean {
         const playerState = state.getPlayerState(playerId)
-        const currentBusLine = asBusLine(playerState.busLine)
-        if (!currentBusLine) {
-            return false
-        }
-
-        return validBusLineSegments(currentBusLine, otherPlayerBusLines(state, playerId)).length > 0
+        return playerState.sticks > 0
     }
 }

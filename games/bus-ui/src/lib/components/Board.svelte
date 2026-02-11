@@ -95,7 +95,12 @@
             BUS_EXPANSION_ACTION_SPOT_POINTS,
             true
         )
-        pushSinglePlacement(placements, WorkerActionType.Buses, state.busAction, BUS_BUSES_ACTION_SPOT_POINT)
+        pushSinglePlacement(
+            placements,
+            WorkerActionType.Buses,
+            state.busAction,
+            BUS_BUSES_ACTION_SPOT_POINT
+        )
         pushQueuePlacements(
             placements,
             WorkerActionType.Passengers,
@@ -109,8 +114,18 @@
             BUS_BUILDINGS_ACTION_SPOT_POINTS,
             true
         )
-        pushSinglePlacement(placements, WorkerActionType.Clock, state.clockAction, BUS_CLOCK_ACTION_SPOT_POINT)
-        pushQueuePlacements(placements, WorkerActionType.Vroom, state.vroomAction, BUS_VROOM_ACTION_SPOT_POINTS)
+        pushSinglePlacement(
+            placements,
+            WorkerActionType.Clock,
+            state.clockAction,
+            BUS_CLOCK_ACTION_SPOT_POINT
+        )
+        pushQueuePlacements(
+            placements,
+            WorkerActionType.Vroom,
+            state.vroomAction,
+            BUS_VROOM_ACTION_SPOT_POINTS
+        )
         pushSinglePlacement(
             placements,
             WorkerActionType.StartingPlayer,
@@ -122,7 +137,10 @@
     })
 
     let availableActionSpotHighlights: ActionSpotHighlight[] = $derived.by(() => {
-        if (!gameSession.isMyTurn || !gameSession.validActionTypes.includes(ActionType.ChooseWorkerAction)) {
+        if (
+            !gameSession.isMyTurn ||
+            !gameSession.validActionTypes.includes(ActionType.ChooseWorkerAction)
+        ) {
             return []
         }
 
@@ -155,7 +173,12 @@
             state.buildingAction.length,
             true
         )
-        pushAvailableSingleSpot(highlights, WorkerActionType.Clock, BUS_CLOCK_ACTION_SPOT_POINT, !state.clockAction)
+        pushAvailableSingleSpot(
+            highlights,
+            WorkerActionType.Clock,
+            BUS_CLOCK_ACTION_SPOT_POINT,
+            !state.clockAction
+        )
         pushAvailableQueueSpot(
             highlights,
             WorkerActionType.Vroom,
@@ -252,7 +275,9 @@
             return
         }
 
-        const pointIndex = reversePhysicalRow ? points.length - 1 - nextSelectionIndex : nextSelectionIndex
+        const pointIndex = reversePhysicalRow
+            ? points.length - 1 - nextSelectionIndex
+            : nextSelectionIndex
         const point = points[pointIndex]
         if (!point) {
             return
@@ -319,7 +344,7 @@
                         stroke-width="5.6"
                         opacity="0.9"
                         pointer-events="none"
-                    />
+                    ></circle>
                     <circle
                         class="action-spot-sweep"
                         cx={highlight.point.x}
@@ -330,7 +355,7 @@
                         stroke-width="5.6"
                         stroke-linecap="round"
                         pointer-events="none"
-                    />
+                    ></circle>
                     <circle
                         cx={highlight.point.x}
                         cy={highlight.point.y}
@@ -338,7 +363,7 @@
                         fill="transparent"
                         class="cursor-pointer"
                         onclick={() => handleActionSpotChoose(highlight.actionType)}
-                    />
+                    ></circle>
                 </g>
             {/each}
 

@@ -3,6 +3,7 @@ import {
     ActionType,
     BuildingType,
     ChooseWorkerAction,
+    Pass,
     PlaceBusLine,
     PlaceBuilding,
     WorkerActionType,
@@ -28,10 +29,11 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
     isInitialBusLinePlacement = $derived(
         this.gameState.machineState === MachineState.InitialBusLinePlacement
     )
+    isLineExpansion = $derived(this.gameState.machineState === MachineState.LineExpansion)
 
     canPlaceBusLine = $derived.by(() => {
         return (
-            this.isInitialBusLinePlacement &&
+            (this.isInitialBusLinePlacement || this.isLineExpansion) &&
             this.validActionTypes.includes(ActionType.PlaceBusLine) &&
             !!this.myPlayerState
         )
@@ -147,6 +149,15 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         }
 
         const action = this.createPlayerAction(ChooseWorkerAction, { actionType })
+        await this.applyAction(action)
+    }
+
+    async pass() {
+        if (!this.validActionTypes.includes(ActionType.Pass)) {
+            return
+        }
+
+        const action = this.createPlayerAction(Pass, {})
         await this.applyAction(action)
     }
 

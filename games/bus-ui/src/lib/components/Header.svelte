@@ -6,7 +6,9 @@
 
     const gameSession = getGameSession() as BusGameSession
 
-    const currentTurnPlayerId = $derived.by(() => gameSession.gameState.turnManager.currentTurn()?.playerId)
+    const currentTurnPlayerId = $derived.by(
+        () => gameSession.gameState.turnManager.currentTurn()?.playerId
+    )
     const midAction = $derived.by(
         () => !!gameSession.chosenSite || !!gameSession.pendingBusLineTargetNodeId
     )
@@ -30,7 +32,11 @@
         {:else if gameSession.gameState.result}
             <div in:fade={{ duration: 200 }} out:fade={{ duration: 120 }}>END OF GAME</div>
         {:else if !gameSession.isMyTurn}
-            <div in:fade={{ duration: 200 }} out:fade={{ duration: 120 }} class="inline-flex gap-x-1">
+            <div
+                in:fade={{ duration: 200 }}
+                out:fade={{ duration: 120 }}
+                class="inline-flex gap-x-1"
+            >
                 <PlayerName
                     playerId={currentTurnPlayerId}
                     capitalization="uppercase"

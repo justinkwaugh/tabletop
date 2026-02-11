@@ -12,7 +12,6 @@ import { MachineState } from '../definition/states.js'
 import { GameBoard, HydratedGameBoard } from '../components/board.js'
 import { Passenger } from '../components/passenger.js'
 import { BuildingType } from '../components/building.js'
-import { BuildingSites } from '../utils/busGraph.js'
 
 export type BusGameState = Type.Static<typeof BusGameState>
 export const BusGameState = Type.Evaluate(
@@ -26,14 +25,16 @@ export const BusGameState = Type.Evaluate(
             currentLocation: BuildingType,
             currentBuildingPhase: Type.Number(),
             initialBuildingsPlaced: Type.Number(),
-            lineExpansionAction: Type.Array(Type.String()),
-            busAction: Type.Optional(Type.String()),
-            passengersAction: Type.Array(Type.String()),
-            buildingAction: Type.Array(Type.String()),
-            clockAction: Type.Optional(Type.String()),
-            vroomAction: Type.Array(Type.String()),
-            startingPlayerAction: Type.Optional(Type.String()),
-            passedPlayers: Type.Array(Type.String())
+            lineExpansionAction: Type.Array(Type.String()), // Slots for line expansion
+            busAction: Type.Optional(Type.String()), // Slot for bus action
+            passengersAction: Type.Array(Type.String()), // Slots for passenger action
+            buildingAction: Type.Array(Type.String()), // Slots for building action
+            clockAction: Type.Optional(Type.String()), // Slot for clock action
+            vroomAction: Type.Array(Type.String()), // Slots for vroom action
+            startingPlayerAction: Type.Optional(Type.String()), // Slot for starting player action
+            passedPlayers: Type.Array(Type.String()), // Players who have passed
+            roundStartMaxBusValue: Type.Number(), // Max bus value at the start of the round
+            actionsTaken: Type.Number() // Number of actions taken
         })
     ])
 )
@@ -69,6 +70,8 @@ export class HydratedBusGameState
     declare vroomAction: string[]
     declare startingPlayerAction?: string
     declare passedPlayers: string[]
+    declare roundStartMaxBusValue: number
+    declare actionsTaken: number
 
     constructor(data: BusGameState) {
         super(data, BusGameStateValidator)
@@ -86,5 +89,9 @@ export class HydratedBusGameState
 
     numSitesRemainingForCurrentPhase(): number {
         return this.board.openSitesForPhase(this.currentBuildingPhase).length
+    }
+
+    maxBusValue() {
+        return Math.max(...this.players.map((player) => player.buses))
     }
 }

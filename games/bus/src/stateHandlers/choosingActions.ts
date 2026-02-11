@@ -43,9 +43,15 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
         const gameState = context.gameState
         let activePlayerId: string
         if (gameState.players.every((p) => p.numActionsChosen === 0)) {
+            gameState.roundStartMaxBusValue = gameState.maxBusValue()
             activePlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
         } else {
-            activePlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
+            activePlayerId = gameState.turnManager.startNextTurn(
+                gameState.actionCount,
+                (playerId: string) => {
+                    return !gameState.passedPlayers.includes(playerId)
+                }
+            )
         }
         gameState.activePlayerIds = [activePlayerId]
     }
@@ -62,6 +68,11 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
             }
             case isPass(action): {
                 gameState.turnManager.endTurn(gameState.actionCount)
+                if (gameState.players.every((p) => gameState.passedPlayers.includes(p.playerId))) {
+                    if (gameState.lineExpansionAction.length > 0) {
+                        return MachineState.LineExpansion
+                    }
+                }
                 return MachineState.ChoosingActions
             }
             // Leave this comment if you want the template to generate code for valid actions

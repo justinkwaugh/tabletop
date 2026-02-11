@@ -79,7 +79,9 @@ export class BusGameInitializer
             clockAction: undefined,
             vroomAction: [],
             startingPlayerAction: undefined,
-            passedPlayers: []
+            passedPlayers: [],
+            roundStartMaxBusValue: 0,
+            actionsTaken: 0
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
