@@ -28,6 +28,7 @@ export const BusGameState = Type.Evaluate(
             lineExpansionAction: Type.Array(Type.String()), // Slots for line expansion
             busAction: Type.Optional(Type.String()), // Slot for bus action
             passengersAction: Type.Array(Type.String()), // Slots for passenger action
+            passengerTurnsTaken: Type.Optional(Type.Number()), // Number of passenger turns taken in the current round
             buildingAction: Type.Array(Type.String()), // Slots for building action
             clockAction: Type.Optional(Type.String()), // Slot for clock action
             vroomAction: Type.Array(Type.String()), // Slots for vroom action
@@ -65,6 +66,7 @@ export class HydratedBusGameState
     declare lineExpansionAction: string[]
     declare busAction?: string
     declare passengersAction: string[]
+    declare passengerTurnsTaken?: number
     declare buildingAction: string[]
     declare clockAction?: string
     declare vroomAction: string[]

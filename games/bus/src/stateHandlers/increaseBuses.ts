@@ -9,6 +9,7 @@ import { ActionType } from '../definition/actions.js'
 import { AddBus, HydratedAddBus, isAddBus } from '../actions/addBus.js'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { HydratedPass, isPass, Pass, PassReason } from '../actions/pass.js'
+import { getNextActionState } from '../utils/nextActionState.js'
 
 type IncreaseBusesAction = HydratedAddBus | HydratedPass
 
@@ -85,6 +86,6 @@ export class IncreaseBusesStateHandler implements MachineStateHandler<
     nextPlayerOrState(state: HydratedBusGameState): MachineState {
         state.busAction = undefined
         state.turnManager.endTurn(state.actionCount)
-        throw new Error('Not implemented: handle pass action for increase buses')
+        return getNextActionState(state)
     }
 }

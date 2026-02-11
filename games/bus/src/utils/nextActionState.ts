@@ -1,7 +1,7 @@
 import { HydratedBusGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 
-const ActionOrder = [MachineState.LineExpansion, MachineState.IncreaseBuses]
+const ActionOrder = [MachineState.LineExpansion, MachineState.IncreaseBuses, MachineState.AddingPassengers]
 
 export function getNextActionState(state: HydratedBusGameState): MachineState {
     let nextActionIndex = ActionOrder.findIndex((s) => s === state.machineState) + 1
@@ -19,6 +19,12 @@ export function getNextActionState(state: HydratedBusGameState): MachineState {
                     return MachineState.IncreaseBuses
                 }
                 break
+            }
+            case MachineState.AddingPassengers: {
+                if (state.passengersAction) {
+                    return MachineState.AddingPassengers
+                }
+                break   
             }
         }
 

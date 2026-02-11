@@ -5,6 +5,7 @@ import { HydratedPlaceBusLine, isPlaceBusLine } from '../actions/placeBusLine.js
 import { HydratedChooseWorkerAction, isChooseWorkerAction } from '../actions/chooseWorkerAction.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedAddBus, isAddBus } from '../actions/addBus.js'
+import { HydratedAddPassengers, isAddPassengers } from '../actions/addPassengers.js'
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Sample game.  Used by the game engine
@@ -22,6 +23,9 @@ export class BusHydrator implements GameHydrator<BusGameState, HydratedBusGameSt
             }
             case isAddBus(data): {
                 return new HydratedAddBus(data)
+            }
+            case isAddPassengers(data): {
+                return new HydratedAddPassengers(data)
             }
             case isPass(data): {
                 return new HydratedPass(data)

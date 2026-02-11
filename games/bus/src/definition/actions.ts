@@ -1,6 +1,7 @@
 // Defines the entire set of action types
 
 export enum ActionType {
+    AddPassengers = 'addPassengers',
     AddBus = 'addBus',
     Pass = 'pass',
     ChooseWorkerAction = 'chooseWorkerAction',

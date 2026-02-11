@@ -34,6 +34,8 @@
                 return 'Place a bus line segment'
             case MachineState.LineExpansion:
                 return 'Extend your bus line'
+            case MachineState.AddingPassengers:
+                return 'Add passengers'
             default:
                 return 'Unknown state'
         }
