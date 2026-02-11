@@ -89,3 +89,49 @@ export const BUS_BUILDING_SITE_POINTS: Record<BuildingSiteId, Point> = {
     B46: { x: 801, y: 1201 },
     B47: { x: 435, y: 1123 }
 }
+
+export const BUS_EXPANSION_ACTION_SPOT_POINTS: Point[] = [
+    // Ordered left-to-right on the board legend as F, E, D, C, B, A.
+    { x: 1488.5, y: 209 },
+    { x: 1527.5, y: 209 },
+    { x: 1566.5, y: 209 },
+    { x: 1604.5, y: 209 },
+    { x: 1643.5, y: 209 },
+    { x: 1681.5, y: 209 }
+]
+
+export const BUS_BUSES_ACTION_SPOT_POINT: Point = { x: 1771, y: 297 }
+
+export const BUS_PASSENGERS_ACTION_SPOT_POINTS: Point[] = [
+    // Ordered left-to-right on the board legend as A, B, C, D, E, F.
+    { x: 1488.5, y: 578 },
+    { x: 1527.5, y: 578 },
+    { x: 1565.5, y: 578 },
+    { x: 1604.5, y: 578 },
+    { x: 1643.5, y: 578 },
+    { x: 1682.5, y: 578 }
+]
+
+export const BUS_BUILDINGS_ACTION_SPOT_POINTS: Point[] = [
+    // Ordered left-to-right on the board legend as F, E, D, C, B, A.
+    { x: 1489, y: 705 },
+    { x: 1528, y: 705 },
+    { x: 1566, y: 705 },
+    { x: 1606, y: 705 },
+    { x: 1644, y: 705 },
+    { x: 1682, y: 705 }
+]
+
+export const BUS_CLOCK_ACTION_SPOT_POINT: Point = { x: 1773, y: 793 }
+
+export const BUS_VROOM_ACTION_SPOT_POINTS: Point[] = [
+    // Ordered left-to-right on the board legend as A, B, C, D, E, F.
+    { x: 1490.75, y: 1145.75 },
+    { x: 1530.75, y: 1145.75 },
+    { x: 1568.75, y: 1145.75 },
+    { x: 1606.75, y: 1145.75 },
+    { x: 1646.75, y: 1145.75 },
+    { x: 1683.75, y: 1145.75 }
+]
+
+export const BUS_STARTING_PLAYER_ACTION_SPOT_POINT: Point = { x: 1772, y: 1232.25 }

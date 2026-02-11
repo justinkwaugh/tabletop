@@ -7,6 +7,7 @@ export * from './definition/definition.js'
 export * from './definition/info.js'
 export * from './definition/runtime.js'
 export * from './definition/states.js'
+export * from './definition/workerActions.js'
 
 export * from './model/gameState.js'
 export * from './model/playerState.js'
