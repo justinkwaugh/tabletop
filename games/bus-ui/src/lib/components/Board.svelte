@@ -38,6 +38,13 @@
     const BOARD_HEIGHT = 1300
     const ACTION_CYLINDER_X_OFFSET = 0
     const ACTION_CYLINDER_Y_OFFSET = -3
+    const ACTION_SPOT_HIGHLIGHT_RADIUS = 13.3
+    const ACTION_VALUE_CYLINDER_TEXT_Y_OFFSET = 8
+    const HIGHLIGHT_ACTION_VALUE_CIRCLE_RADIUS = 15.5
+    const HIGHLIGHT_ACTION_VALUE_CIRCLE_STROKE_WIDTH = 1.6
+    const HIGHLIGHT_ACTION_VALUE_TEXT_Y_OFFSET = 1.5
+    const CYLINDER_ACTION_VALUE_FONT_SIZE = 20
+    const HIGHLIGHT_ACTION_VALUE_FONT_SIZE = 18
     const SITE_PASSENGER_HEIGHT = 44
     const NODE_PASSENGER_HEIGHT = 74
     const VROOM_SOURCE_HOVER_PASSENGER_HEIGHT = 80
@@ -46,14 +53,25 @@
 
     type ActionWorkerPlacement = {
         key: string
+        actionType: WorkerActionType
         playerId: string
         point: Point
+        selectionIndex?: number
     }
 
     type ActionSpotHighlight = {
         key: string
         actionType: WorkerActionType
         point: Point
+        selectionIndex?: number
+    }
+
+    type ActionValueBadge = {
+        key: string
+        point: Point
+        value?: number
+        playerId?: string
+        showText?: boolean
     }
 
     type SitePassengerPlacement = {
@@ -182,7 +200,9 @@
             placements,
             WorkerActionType.Passengers,
             state.passengersAction,
-            BUS_PASSENGERS_ACTION_SPOT_POINTS
+            BUS_PASSENGERS_ACTION_SPOT_POINTS,
+            false,
+            state.passengerTurnsTaken ?? 0
         )
         pushQueuePlacements(
             placements,
@@ -201,7 +221,9 @@
             placements,
             WorkerActionType.Vroom,
             state.vroomAction,
-            BUS_VROOM_ACTION_SPOT_POINTS
+            BUS_VROOM_ACTION_SPOT_POINTS,
+            false,
+            state.vroomTurnsTaken ?? 0
         )
         pushSinglePlacement(
             placements,
@@ -211,6 +233,116 @@
         )
 
         return placements
+    })
+
+    const actionValueBadges: ActionValueBadge[] = $derived.by(() => {
+        const state = gameSession.gameState
+        const currentMaxBusValue = state.players.reduce((max, playerState) => {
+            return Math.max(max, playerState.buses)
+        }, 0)
+        const busesActionPlayerState = state.players.find(
+            (playerState) => playerState.playerId === state.busAction
+        )
+        const busesActionIncreasesMax =
+            busesActionPlayerState !== undefined &&
+            busesActionPlayerState.buses + 1 > currentMaxBusValue
+
+        const projectedPassengerAndBuildingBase =
+            state.roundStartMaxBusValue + (busesActionIncreasesMax ? 1 : 0)
+
+        const playerBusValues = new Map<string, number>(
+            state.players.map((playerState) => [playerState.playerId, playerState.buses])
+        )
+        const myPlayerId = gameSession.myPlayer?.id
+
+        const resolveActionValue = (
+            actionType: WorkerActionType,
+            selectionIndex: number,
+            playerId?: string
+        ): number | undefined => {
+            switch (actionType) {
+                case WorkerActionType.Expansion:
+                    return Math.max(0, state.roundStartMaxBusValue - selectionIndex)
+                case WorkerActionType.Passengers:
+                case WorkerActionType.Buildings:
+                    return Math.max(0, projectedPassengerAndBuildingBase - selectionIndex)
+                case WorkerActionType.Vroom: {
+                    const effectivePlayerId = playerId ?? myPlayerId
+                    if (!effectivePlayerId) {
+                        return undefined
+                    }
+                    const baseBusValue = playerBusValues.get(effectivePlayerId) ?? 0
+                    const playerGetsBusBonus = state.busAction === effectivePlayerId
+                    return Math.max(0, baseBusValue + (playerGetsBusBonus ? 1 : 0) - selectionIndex)
+                }
+                default:
+                    return undefined
+            }
+        }
+
+        const badges: ActionValueBadge[] = []
+        for (const placement of actionWorkerPlacements) {
+            if (placement.selectionIndex === undefined) {
+                continue
+            }
+
+            const value = resolveActionValue(
+                placement.actionType,
+                placement.selectionIndex,
+                placement.playerId
+            )
+            if (value === undefined) {
+                continue
+            }
+
+            badges.push({
+                key: `${placement.key}:value`,
+                point: {
+                    x: placement.point.x + ACTION_CYLINDER_X_OFFSET,
+                    y:
+                        placement.point.y +
+                        ACTION_CYLINDER_Y_OFFSET +
+                        ACTION_VALUE_CYLINDER_TEXT_Y_OFFSET
+                },
+                value,
+                playerId: placement.playerId
+            })
+        }
+
+        for (const highlight of availableActionSpotHighlights) {
+            if (highlight.selectionIndex === undefined) {
+                continue
+            }
+
+            if (highlight.actionType === WorkerActionType.Vroom) {
+                badges.push({
+                    key: `highlight:${highlight.key}:value`,
+                    point: {
+                        x: highlight.point.x,
+                        y: highlight.point.y
+                    },
+                    showText: false
+                })
+                continue
+            }
+
+            const value = resolveActionValue(highlight.actionType, highlight.selectionIndex)
+            if (value === undefined) {
+                continue
+            }
+
+            badges.push({
+                key: `highlight:${highlight.key}:value`,
+                point: {
+                    x: highlight.point.x,
+                    y: highlight.point.y
+                },
+                value,
+                showText: true
+            })
+        }
+
+        return badges
     })
 
     let availableActionSpotHighlights: ActionSpotHighlight[] = $derived.by(() => {
@@ -275,6 +407,15 @@
     const actionHighlightColor = $derived.by(() => {
         return gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id)
     })
+    const highlightValueCircleColor = $derived.by(() => {
+        return gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id)
+    })
+    const highlightValueCircleFillColor = $derived.by(() => {
+        return mixHex(highlightValueCircleColor, '#ffffff', 0.24)
+    })
+    const highlightValueTextColor = $derived.by(() => {
+        return actionValueTextColor(gameSession.myPlayer?.id)
+    })
 
     function handleBuildingSiteChoose(siteId: BuildingSiteId) {
         gameSession.chosenSite = siteId
@@ -308,6 +449,7 @@
 
         placements.push({
             key: `${actionType}:${playerId}`,
+            actionType,
             playerId,
             point
         })
@@ -318,22 +460,97 @@
         actionType: WorkerActionType,
         playerIds: string[],
         points: Point[],
-        reversePhysicalRow = false
+        reversePhysicalRow = false,
+        skipSelectionCount = 0
     ) {
-        const max = Math.min(playerIds.length, points.length)
+        const normalizedSkipSelectionCount = Math.max(0, skipSelectionCount)
+
+        if (normalizedSkipSelectionCount >= points.length) {
+            return
+        }
+
+        const availablePointCount = points.length - normalizedSkipSelectionCount
+        const max = Math.min(playerIds.length, availablePointCount)
         for (let selectionIndex = 0; selectionIndex < max; selectionIndex += 1) {
             const playerId = playerIds[selectionIndex]
+            const absoluteSelectionIndex = selectionIndex + normalizedSkipSelectionCount
             const point = reversePhysicalRow
-                ? points[points.length - 1 - selectionIndex]
-                : points[selectionIndex]
+                ? points[points.length - 1 - absoluteSelectionIndex]
+                : points[absoluteSelectionIndex]
 
             placements.push({
-                // selectionIndex matches A(0),B(1),...,F(5) regardless of row direction.
-                key: `${actionType}:${selectionIndex}:${playerId}`,
+                // absoluteSelectionIndex matches A(0),B(1),...,F(5) regardless of row direction.
+                key: `${actionType}:${absoluteSelectionIndex}:${playerId}`,
+                actionType,
                 playerId,
-                point
+                point,
+                selectionIndex: absoluteSelectionIndex
             })
         }
+    }
+
+    function clamp255(value: number): number {
+        return Math.max(0, Math.min(255, Math.round(value)))
+    }
+
+    function parseHexColor(input: string): [number, number, number] | undefined {
+        const normalized = input.trim()
+        const shortMatch = normalized.match(/^#([0-9a-fA-F]{3})$/)
+        if (shortMatch) {
+            const [r, g, b] = shortMatch[1].split('').map((channel) => {
+                return parseInt(channel + channel, 16)
+            })
+            return [r, g, b]
+        }
+
+        const longMatch = normalized.match(/^#([0-9a-fA-F]{6})$/)
+        if (!longMatch) {
+            return undefined
+        }
+
+        const hex = longMatch[1]
+        return [
+            parseInt(hex.slice(0, 2), 16),
+            parseInt(hex.slice(2, 4), 16),
+            parseInt(hex.slice(4, 6), 16)
+        ]
+    }
+
+    function mixHex(a: string, b: string, t: number): string {
+        const parsedA = parseHexColor(a)
+        const parsedB = parseHexColor(b)
+        if (!parsedA || !parsedB) {
+            return a
+        }
+
+        const blend = (from: number, to: number): number => clamp255(from + (to - from) * t)
+        return (
+            '#' +
+            [blend(parsedA[0], parsedB[0]), blend(parsedA[1], parsedB[1]), blend(parsedA[2], parsedB[2])]
+                .map((channel) => channel.toString(16).padStart(2, '0'))
+                .join('')
+        )
+    }
+
+    function actionValueTextColor(playerId?: string): string {
+        if (!playerId) {
+            return '#333'
+        }
+
+        const textColorClass = gameSession.colors.getPlayerTextColor(playerId)
+        if (textColorClass.includes('text-black')) {
+            return '#111'
+        }
+        if (textColorClass.includes('text-white')) {
+            return '#ffffff'
+        }
+
+        const arbitraryMatch = textColorClass.match(/text-\[(#[0-9a-fA-F]{3,8})\]/)
+        if (arbitraryMatch) {
+            return arbitraryMatch[1]
+        }
+
+        return '#ffffff'
     }
 
     function pushAvailableSingleSpot(
@@ -376,7 +593,8 @@
             // Selection index is A(0), B(1), ... regardless of physical direction.
             key: `${actionType}:${nextSelectionIndex}:available`,
             actionType,
-            point
+            point,
+            selectionIndex: nextSelectionIndex
         })
     }
 </script>
@@ -396,11 +614,6 @@
                     ></feGaussianBlur>
                     <feOffset dx="2" dy="2"></feOffset>
                 </filter>
-                <linearGradient id="action-spot-sweep-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#ffffff" stop-opacity="1"></stop>
-                    <stop offset="42%" stop-color="#ffffff" stop-opacity="0.5"></stop>
-                    <stop offset="100%" stop-color={actionHighlightColor} stop-opacity="1"></stop>
-                </linearGradient>
             </defs>
 
             <g
@@ -428,27 +641,48 @@
                 />
             {/each}
 
+            {#each actionValueBadges as badge (badge.key)}
+                <g class="pointer-events-none" aria-hidden="true">
+                    {#if !badge.playerId}
+                        <circle
+                            cx={badge.point.x}
+                            cy={badge.point.y}
+                            r={HIGHLIGHT_ACTION_VALUE_CIRCLE_RADIUS}
+                            fill={highlightValueCircleFillColor}
+                            stroke={highlightValueCircleColor}
+                            stroke-width={HIGHLIGHT_ACTION_VALUE_CIRCLE_STROKE_WIDTH}
+                        ></circle>
+                    {/if}
+                    {#if badge.showText !== false && badge.value !== undefined}
+                        <text
+                            x={badge.point.x}
+                            y={badge.point.y +
+                                (badge.playerId ? 0 : HIGHLIGHT_ACTION_VALUE_TEXT_Y_OFFSET)}
+                            text-anchor="middle"
+                            dominant-baseline="middle"
+                            font-size={badge.playerId
+                                ? CYLINDER_ACTION_VALUE_FONT_SIZE
+                                : HIGHLIGHT_ACTION_VALUE_FONT_SIZE}
+                            font-weight="700"
+                            fill={badge.playerId
+                                ? actionValueTextColor(badge.playerId)
+                                : highlightValueTextColor}>{badge.value}</text
+                        >
+                    {/if}
+                </g>
+            {/each}
+
             {#each availableActionSpotHighlights as highlight (highlight.key)}
                 <g class="action-spot-highlight">
                     <circle
+                        class="action-spot-ring"
                         cx={highlight.point.x}
                         cy={highlight.point.y}
-                        r="16.2"
+                        r={ACTION_SPOT_HIGHLIGHT_RADIUS}
                         fill="none"
                         stroke={actionHighlightColor}
                         stroke-width="5.6"
                         opacity="0.9"
-                        pointer-events="none"
-                    ></circle>
-                    <circle
-                        class="action-spot-sweep"
-                        cx={highlight.point.x}
-                        cy={highlight.point.y}
-                        r="16.2"
-                        fill="none"
-                        stroke="url(#action-spot-sweep-gradient)"
-                        stroke-width="5.6"
-                        stroke-linecap="round"
                         pointer-events="none"
                     ></circle>
                     <circle
@@ -471,10 +705,7 @@
             {/each}
 
             {#each highlightedVroomDestinationSiteIds as siteId (siteId)}
-                <BuildingSiteHighlight
-                    {siteId}
-                    onChoose={handleVroomDestinationSiteChoose}
-                />
+                <BuildingSiteHighlight {siteId} onChoose={handleVroomDestinationSiteChoose} />
             {/each}
 
             {#each highlightedPassengerStationIds as stationId (stationId)}
@@ -489,7 +720,8 @@
                 {@const typedNodeId = nodeId as BusNodeId}
                 {@const point = BUS_BOARD_NODE_POINTS[typedNodeId]}
                 {@const isChosenVroomSource = chosenVroomSourceNodeId === typedNodeId}
-                {@const isSelectableVroomSource = highlightedVroomSourceNodeIds.includes(typedNodeId)}
+                {@const isSelectableVroomSource =
+                    highlightedVroomSourceNodeIds.includes(typedNodeId)}
                 {@const isHoveredSelectableVroomSource =
                     isSelectableVroomSource &&
                     !isChosenVroomSource &&
@@ -504,9 +736,7 @@
                         ? VROOM_SOURCE_HOVER_PASSENGER_HEIGHT
                         : NODE_PASSENGER_HEIGHT}
                     count={passengers.length}
-                    maskOpacity={shouldMaskForVroom
-                        ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY
-                        : 0}
+                    maskOpacity={shouldMaskForVroom ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY : 0}
                 />
                 {#if isChoosingVroomSourcePassenger && (isSelectableVroomSource || isChosenVroomSource)}
                     <circle
@@ -529,16 +759,15 @@
             {#each passengersAtSite as passenger (passenger.id)}
                 {@const point = BUS_BUILDING_SITE_POINTS[passenger.siteId]}
                 {@const isChosenVroomSourceSitePassenger =
-                    !!chosenVroomSourceNodeId && highlightedVroomSourceNodeIds.includes(chosenVroomSourceNodeId)}
+                    !!chosenVroomSourceNodeId &&
+                    highlightedVroomSourceNodeIds.includes(chosenVroomSourceNodeId)}
                 {@const shouldMaskForVroom =
                     shouldMaskUnselectedVroomPassengers && !isChosenVroomSourceSitePassenger}
                 <Passenger
                     x={point.x}
                     y={point.y}
                     height={SITE_PASSENGER_HEIGHT}
-                    maskOpacity={shouldMaskForVroom
-                        ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY
-                        : 0}
+                    maskOpacity={shouldMaskForVroom ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY : 0}
                 />
             {/each}
         </svg>
@@ -580,26 +809,13 @@
         filter: none;
     }
 
-    .action-spot-sweep {
-        opacity: 0.96;
-        stroke-dasharray: 27 79;
+    .action-spot-ring {
         transform-origin: center;
         transform-box: fill-box;
-        animation: action-spot-spin 2800ms linear infinite;
+        transition: transform 120ms ease-out;
     }
 
-    @keyframes action-spot-spin {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .action-spot-sweep {
-            animation: none;
-        }
+    .action-spot-highlight:hover .action-spot-ring {
+        transform: scale(1.08);
     }
 </style>
