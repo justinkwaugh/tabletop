@@ -2,8 +2,10 @@ import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
     BuildingType,
+    ChooseWorkerAction,
     PlaceBusLine,
     PlaceBuilding,
+    WorkerActionType,
     extensionSegmentsByTargetNode,
     isBusNodeId,
     type HydratedBusGameState,
@@ -136,6 +138,15 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
             segment: [sourceNodeId, targetNodeId]
         })
 
+        await this.applyAction(action)
+    }
+
+    async chooseWorkerAction(actionType: WorkerActionType) {
+        if (!this.validActionTypes.includes(ActionType.ChooseWorkerAction)) {
+            return
+        }
+
+        const action = this.createPlayerAction(ChooseWorkerAction, { actionType })
         await this.applyAction(action)
     }
 

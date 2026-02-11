@@ -2,6 +2,7 @@ import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/co
 import { HydratedBusGameState, BusGameState } from '../model/gameState.js'
 import { HydratedPlaceBuilding, isPlaceBuilding } from '../actions/placeBuilding.js'
 import { HydratedPlaceBusLine, isPlaceBusLine } from '../actions/placeBusLine.js'
+import { HydratedChooseWorkerAction, isChooseWorkerAction } from '../actions/chooseWorkerAction.js'
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Sample game.  Used by the game engine
@@ -13,6 +14,9 @@ export class BusHydrator implements GameHydrator<BusGameState, HydratedBusGameSt
             }
             case isPlaceBusLine(data): {
                 return new HydratedPlaceBusLine(data)
+            }
+            case isChooseWorkerAction(data): {
+                return new HydratedChooseWorkerAction(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

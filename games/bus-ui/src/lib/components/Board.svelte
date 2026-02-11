@@ -43,6 +43,7 @@
 
     type ActionSpotHighlight = {
         key: string
+        actionType: WorkerActionType
         point: Point
     }
 
@@ -179,6 +180,10 @@
         gameSession.chosenSite = siteId
     }
 
+    function handleActionSpotChoose(actionType: WorkerActionType) {
+        void gameSession.chooseWorkerAction(actionType)
+    }
+
     function pushSinglePlacement(
         placements: ActionWorkerPlacement[],
         actionType: WorkerActionType,
@@ -231,6 +236,7 @@
 
         highlights.push({
             key: `${actionType}:available`,
+            actionType,
             point
         })
     }
@@ -255,6 +261,7 @@
         highlights.push({
             // Selection index is A(0), B(1), ... regardless of physical direction.
             key: `${actionType}:${nextSelectionIndex}:available`,
+            actionType,
             point
         })
     }
@@ -330,6 +337,7 @@
                         r="21.5"
                         fill="transparent"
                         class="cursor-pointer"
+                        onclick={() => handleActionSpotChoose(highlight.actionType)}
                     />
                 </g>
             {/each}
