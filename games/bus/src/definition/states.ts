@@ -2,5 +2,6 @@
 
 export enum MachineState {
 
+    ChoosingActions = 'ChoosingActions',
     InitialBusLinePlacement = 'InitialBusLinePlacement',    InitialBuildingPlacement = 'InitialBuildingPlacement'
 }

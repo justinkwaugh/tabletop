@@ -26,7 +26,14 @@ export const BusGameState = Type.Evaluate(
             currentLocation: BuildingType,
             currentBuildingPhase: Type.Number(),
             initialBuildingsPlaced: Type.Number(),
-            initialLinesPlaced: Type.Number()
+            lineExpansionAction: Type.Array(Type.String()),
+            busAction: Type.Optional(Type.String()),
+            passengersAction: Type.Array(Type.String()),
+            buildingAction: Type.Array(Type.String()),
+            clockAction: Type.Optional(Type.String()),
+            vroomAction: Type.Array(Type.String()),
+            startingPlayerAction: Type.Optional(Type.String()),
+            passedPlayers: Type.Array(Type.String())
         })
     ])
 )
@@ -54,7 +61,14 @@ export class HydratedBusGameState
     declare currentLocation: BuildingType
     declare currentBuildingPhase: number
     declare initialBuildingsPlaced: number
-    declare initialLinesPlaced: number
+    declare lineExpansionAction: string[]
+    declare busAction?: string
+    declare passengersAction: string[]
+    declare buildingAction: string[]
+    declare clockAction?: string
+    declare vroomAction: string[]
+    declare startingPlayerAction?: string
+    declare passedPlayers: string[]
 
     constructor(data: BusGameState) {
         super(data, BusGameStateValidator)

@@ -13,7 +13,8 @@ export const BusPlayerState = Type.Evaluate(
             buses: Type.Number(),
             stones: Type.Number(),
             score: Type.Number(),
-            busLine: Type.Array(Type.String())
+            busLine: Type.Array(Type.String()),
+            numActionsChosen: Type.Number()
         })
     ])
 )
@@ -32,6 +33,7 @@ export class HydratedBusPlayerState
     declare stones: number
     declare score: number
     declare busLine: string[]
+    declare numActionsChosen: number
 
     constructor(data: BusPlayerState) {
         super(data, BusPlayerStateValidator)

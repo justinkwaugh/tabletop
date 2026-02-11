@@ -72,7 +72,14 @@ export class BusGameInitializer
             currentLocation: BuildingType.House,
             currentBuildingPhase: 1,
             initialBuildingsPlaced: 0,
-            initialLinesPlaced: 0
+            lineExpansionAction: [],
+            busAction: undefined,
+            passengersAction: [],
+            buildingAction: [],
+            clockAction: undefined,
+            vroomAction: [],
+            startingPlayerAction: undefined,
+            passedPlayers: []
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
@@ -95,7 +102,8 @@ export class BusGameInitializer
                 buses: 1,
                 stones: 0,
                 score: 0,
-                busLine: []
+                busLine: [],
+                numActionsChosen: 0
             })
         })
 

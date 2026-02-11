@@ -56,8 +56,9 @@ export class InitialBusLinePlacementStateHandler implements MachineStateHandler<
                     context.gameState.turnManager.reverseTurnOrder()
                     return MachineState.InitialBusLinePlacement
                 } else if (context.gameState.players.every((p) => p.busLine.length == 3)) {
+                    context.gameState.turnManager.endTurn(context.gameState.actionCount)
                     context.gameState.turnManager.reverseTurnOrder()
-                    return MachineState.InitialBusLinePlacement
+                    return MachineState.ChoosingActions
                 } else {
                     context.gameState.turnManager.endTurn(context.gameState.actionCount)
                     return MachineState.InitialBusLinePlacement
