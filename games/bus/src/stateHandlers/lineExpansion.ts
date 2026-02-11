@@ -9,6 +9,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceBusLine, isPlaceBusLine } from '../actions/placeBusLine.js'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { isPass, Pass, PassReason } from '../actions/pass.js'
+import { getNextActionState } from '../utils/nextActionState.js'
 
 type LineExpansionAction = HydratedPlaceBusLine
 
@@ -21,7 +22,7 @@ export class LineExpansionStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedBusGameState>
     ): action is LineExpansionAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return isPlaceBusLine(action)
+        return isPlaceBusLine(action) || isPass(action)
     }
 
     validActionsForPlayer(
@@ -60,9 +61,7 @@ export class LineExpansionStateHandler implements MachineStateHandler<
         ) {
             context.addSystemAction(Pass, {
                 playerId: activePlayerId,
-                metadata: {
-                    reason: PassReason.CannotExpandLine
-                }
+                reason: PassReason.CannotExpandLine
             })
         }
     }
@@ -101,7 +100,7 @@ export class LineExpansionStateHandler implements MachineStateHandler<
         state.turnManager.endTurn(state.actionCount)
 
         if (state.lineExpansionAction.length === 0) {
-            throw Error('Not implemented: transition to next state')
+            return getNextActionState(state)
         }
 
         return MachineState.LineExpansion

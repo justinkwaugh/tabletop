@@ -4,6 +4,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedChooseWorkerAction, isChooseWorkerAction } from '../actions/chooseWorkerAction.js'
 import { HydratedBusGameState } from '../model/gameState.js'
+import { getNextActionState } from '../utils/nextActionState.js'
 
 type ChoosingActionsAction = HydratedChooseWorkerAction | HydratedPass
 
@@ -69,9 +70,7 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
             case isPass(action): {
                 gameState.turnManager.endTurn(gameState.actionCount)
                 if (gameState.players.every((p) => gameState.passedPlayers.includes(p.playerId))) {
-                    if (gameState.lineExpansionAction.length > 0) {
-                        return MachineState.LineExpansion
-                    }
+                    return getNextActionState(gameState)
                 }
                 return MachineState.ChoosingActions
             }

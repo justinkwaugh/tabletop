@@ -3,10 +3,12 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { MachineState } from '../definition/states.js'
 
 export enum PassReason {
     DoneActions = 'DoneActions',
     CannotExpandLine = 'CannotExpandLine',
+    CannotAddBus = 'CannotAddBus',
     CannotAddPassenger = 'CannotAddPassenger',
     CannotAddBuildings = 'CannotAddBuildings',
     DeclinedClock = 'DeclinedClock',
@@ -62,7 +64,10 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
 
     isValidPass(state: HydratedBusGameState): boolean {
         const playerState = state.getPlayerState(this.playerId)
-        return playerState.numActionsChosen >= 2 && !state.passedPlayers.includes(this.playerId)
+        if (state.machineState === MachineState.ChoosingActions) {
+            return playerState.numActionsChosen >= 2 && !state.passedPlayers.includes(this.playerId)
+        }
+        return true
     }
 
     static canPass(state: HydratedBusGameState, playerId: string): boolean {

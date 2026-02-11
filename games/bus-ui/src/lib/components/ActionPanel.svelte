@@ -35,7 +35,7 @@
             case MachineState.LineExpansion:
                 return 'Extend your bus line'
             default:
-                return 'Place an action token'
+                return 'Unknown state'
         }
     })
 
