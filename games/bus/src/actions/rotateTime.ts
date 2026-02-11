@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { ActionSource, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { BuildingType } from 'src/components/building.js'
+import { BuildingType } from '../components/building.js'
 
 export type RotateTimeMetadata = Type.Static<typeof RotateTimeMetadata>
 export const RotateTimeMetadata = Type.Object({})

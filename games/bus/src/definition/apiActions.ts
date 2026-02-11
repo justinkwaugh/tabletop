@@ -1,5 +1,6 @@
 import { ActionType } from './actions.js'
 
+import { Vroom } from '../actions/vroom.js'
 import { RotateTime } from '../actions/rotateTime.js'
 import { StopTime } from '../actions/stopTime.js'
 import { AddPassengers } from '../actions/addPassengers.js'
@@ -13,6 +14,7 @@ import { PlaceBuilding } from '../actions/placeBuilding.js'
 // This is used by the backend to auto generate endpoints for every action with schema validation
 export const BusApiActions = {
 
+    [ActionType.Vroom]: Vroom,
     [ActionType.RotateTime]: RotateTime,
     [ActionType.StopTime]: StopTime,
     [ActionType.AddPassengers]: AddPassengers,

@@ -2,6 +2,7 @@ import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import type { HydratedBusGameState } from '../model/gameState.js'
 
+import { VroomingStateHandler } from '../stateHandlers/vrooming.js'
 import { TimeMachineStateHandler } from '../stateHandlers/timeMachine.js'
 import { AddingBuildingsStateHandler } from '../stateHandlers/addingBuildings.js'
 import { AddingPassengersStateHandler } from '../stateHandlers/addingPassengers.js'
@@ -22,5 +23,6 @@ export const BusStateHandlers: Record<
     [MachineState.IncreaseBuses]: new IncreaseBusesStateHandler(),
     [MachineState.AddingPassengers]: new AddingPassengersStateHandler(),
     [MachineState.AddingBuildings]: new AddingBuildingsStateHandler(),
-    [MachineState.TimeMachine]: new TimeMachineStateHandler()
+    [MachineState.TimeMachine]: new TimeMachineStateHandler(),
+    [MachineState.Vrooming]: new VroomingStateHandler()
 }

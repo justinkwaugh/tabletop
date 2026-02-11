@@ -10,9 +10,9 @@ import { HydratedStopTime, isStopTime } from '../actions/stopTime.js'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { getNextActionState } from '../utils/nextActionState.js'
-import { isRotateTime, RotateTime } from 'src/actions/rotateTime.js'
+import { HydratedRotateTime, isRotateTime, RotateTime } from '../actions/rotateTime.js'
 
-type TimeMachineAction = HydratedStopTime | HydratedPass
+type TimeMachineAction = HydratedStopTime | HydratedPass | HydratedRotateTime
 
 export class TimeMachineStateHandler implements MachineStateHandler<
     TimeMachineAction,
@@ -23,7 +23,7 @@ export class TimeMachineStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedBusGameState>
     ): action is TimeMachineAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return isStopTime(action) || isPass(action)
+        return isStopTime(action) || isPass(action) || isRotateTime(action)
     }
 
     validActionsForPlayer(

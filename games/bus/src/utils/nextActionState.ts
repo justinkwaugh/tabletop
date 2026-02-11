@@ -6,7 +6,8 @@ const ActionOrder = [
     MachineState.IncreaseBuses,
     MachineState.AddingPassengers,
     MachineState.AddingBuildings,
-    MachineState.TimeMachine
+    MachineState.TimeMachine,
+    MachineState.Vrooming
 ]
 
 export function getNextActionState(state: HydratedBusGameState): MachineState {
@@ -40,6 +41,12 @@ export function getNextActionState(state: HydratedBusGameState): MachineState {
             }
             case MachineState.TimeMachine: {
                 return MachineState.TimeMachine
+            }
+            case MachineState.Vrooming: {
+                if (state.vroomAction.length > 0) {
+                    return MachineState.Vrooming
+                }
+                break
             }
         }
 

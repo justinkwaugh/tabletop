@@ -41,7 +41,10 @@
                 return 'Extend your bus line'
             case MachineState.AddingPassengers:
                 return 'Choose a station'
-
+            case MachineState.TimeMachine:
+                return 'Take a time stone'
+            case MachineState.Vrooming:
+                return 'Deliver a passenger'
             default:
                 return 'Unknown state'
         }

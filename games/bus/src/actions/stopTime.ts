@@ -39,7 +39,8 @@ export class HydratedStopTime extends HydratableAction<typeof StopTime> implemen
             throw Error('Invalid StopTime action')
         }
 
-        // This does nothing, which is the point
+        const playerState = state.getPlayerState(this.playerId)
+        playerState.stones += 1
 
         this.metadata = {}
     }
