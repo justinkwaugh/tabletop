@@ -7,10 +7,14 @@
 
     let {
         siteId,
-        buildingType
+        buildingType,
+        scale = 1,
+        opacity = 1
     }: {
         siteId: BuildingSiteId
         buildingType: BuildingType
+        scale?: number
+        opacity?: number
     } = $props()
 
     const BUILDING_ICON_SIZE = 50
@@ -24,42 +28,47 @@
     const iconY = $derived(point.y - BUILDING_ICON_SIZE / 2)
 </script>
 
-{#if buildingType === BuildingType.House}
-    <HouseIcon
-        x={iconX}
-        y={iconY}
-        width={BUILDING_ICON_SIZE}
-        height={BUILDING_ICON_SIZE}
-        class="pointer-events-none"
-        aria-hidden="true"
-    />
-{:else if buildingType === BuildingType.Office}
-    <OfficeIcon
-        x={iconX}
-        y={iconY}
-        width={BUILDING_ICON_SIZE}
-        height={BUILDING_ICON_SIZE}
-        class="pointer-events-none"
-        aria-hidden="true"
-    />
-{:else}
-    <PubIcon
-        x={iconX}
-        y={iconY}
-        width={BUILDING_ICON_SIZE}
-        height={BUILDING_ICON_SIZE}
-        class="pointer-events-none"
-        aria-hidden="true"
-    />
-{/if}
+<g
+    transform={`translate(${point.x} ${point.y}) scale(${scale}) translate(${-point.x} ${-point.y})`}
+    opacity={opacity}
+>
+    {#if buildingType === BuildingType.House}
+        <HouseIcon
+            x={iconX}
+            y={iconY}
+            width={BUILDING_ICON_SIZE}
+            height={BUILDING_ICON_SIZE}
+            class="pointer-events-none"
+            aria-hidden="true"
+        />
+    {:else if buildingType === BuildingType.Office}
+        <OfficeIcon
+            x={iconX}
+            y={iconY}
+            width={BUILDING_ICON_SIZE}
+            height={BUILDING_ICON_SIZE}
+            class="pointer-events-none"
+            aria-hidden="true"
+        />
+    {:else}
+        <PubIcon
+            x={iconX}
+            y={iconY}
+            width={BUILDING_ICON_SIZE}
+            height={BUILDING_ICON_SIZE}
+            class="pointer-events-none"
+            aria-hidden="true"
+        />
+    {/if}
 
-<circle
-    cx={point.x}
-    cy={point.y}
-    r={BUILDING_ICON_BORDER_RADIUS}
-    fill="none"
-    stroke={BUILDING_ICON_BORDER_COLOR}
-    stroke-width={BUILDING_ICON_BORDER_WIDTH}
-    class="pointer-events-none"
-    aria-hidden="true"
-></circle>
+    <circle
+        cx={point.x}
+        cy={point.y}
+        r={BUILDING_ICON_BORDER_RADIUS}
+        fill="none"
+        stroke={BUILDING_ICON_BORDER_COLOR}
+        stroke-width={BUILDING_ICON_BORDER_WIDTH}
+        class="pointer-events-none"
+        aria-hidden="true"
+    ></circle>
+</g>

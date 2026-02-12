@@ -77,10 +77,18 @@
         if (!gameSession.isInitialBuildingPlacement && !gameSession.isAddingBuildings) {
             return []
         }
-        return gameSession.gameState.board
+
+        const pendingBuildingSiteId = gameSession.pendingBuildingSiteId
+        const openSiteIds = gameSession.gameState.board
             .openSitesForPhase(gameSession.gameState.currentBuildingPhase)
             .map((site) => site.id)
-            .filter((siteId) => isSiteId(siteId))
+            .filter((siteId): siteId is BuildingSiteId => isSiteId(siteId))
+
+        if (!pendingBuildingSiteId) {
+            return openSiteIds
+        }
+
+        return openSiteIds.filter((siteId) => siteId !== pendingBuildingSiteId)
     })
 
     const chosenBuildingSiteId = $derived.by(() => {

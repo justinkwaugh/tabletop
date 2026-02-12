@@ -27,6 +27,7 @@ import {
 } from '@tabletop/bus'
 export class BusGameSession extends GameSession<BusGameState, HydratedBusGameState> {
     chosenSite: BuildingSiteId | undefined = $state()
+    pendingBuildingSiteId: BuildingSiteId | undefined = $state()
     chosenPassengerStationId: BusStationId | undefined = $state()
     chosenVroomSourceNodeId: BusNodeId | undefined = $state()
     pendingBusLineTargetNodeId: BusNodeId | undefined = $state()
@@ -203,6 +204,7 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
 
     resetAction() {
         this.chosenSite = undefined
+        this.pendingBuildingSiteId = undefined
         this.chosenPassengerStationId = undefined
         this.chosenVroomSourceNodeId = undefined
         this.pendingBusLineTargetNodeId = undefined
@@ -217,12 +219,22 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
             return
         }
 
+        // Clear selection immediately so site highlight/picker do not occlude add animation.
+        this.chosenSite = undefined
+        this.pendingBuildingSiteId = siteId
+        const priorActionCount = this.actions.length
+
         const action = this.createPlayerAction(PlaceBuilding, {
             siteId,
             buildingType
         })
 
         await this.applyAction(action)
+
+        // If the action was not accepted/applied, clear pending immediately.
+        if (this.actions.length === priorActionCount) {
+            this.pendingBuildingSiteId = undefined
+        }
     }
 
     async addPassengers(stationId: BusStationId, numPassengers: number) {

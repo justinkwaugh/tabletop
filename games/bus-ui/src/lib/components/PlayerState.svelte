@@ -38,8 +38,8 @@
                                     x={14}
                                     y={16}
                                     color={playerUiColor}
-                                    width={18}
-                                    height={28}
+                                    width={19}
+                                    height={25}
                                 />
                             </svg>
                             <span class="text-[1rem] leading-none font-normal"
