@@ -14,6 +14,10 @@
         { type: BuildingType.Office, label: 'Office' },
         { type: BuildingType.Pub, label: 'Pub' }
     ]
+    const PICKER_ICON_SIZE = 32
+    const PICKER_ICON_BORDER_COLOR = '#333'
+    const PICKER_ICON_BORDER_WIDTH = 1
+    const PICKER_ICON_BORDER_RADIUS = PICKER_ICON_SIZE / 2 - PICKER_ICON_BORDER_WIDTH / 2
 
     let floater: Floater
     let optionChosen = $state(false)
@@ -55,13 +59,31 @@
                 aria-label={`Choose ${option.label}`}
                 onclick={() => choose(option.type)}
             >
-                {#if option.type === BuildingType.House}
-                    <HouseIcon width={32} height={32} />
-                {:else if option.type === BuildingType.Office}
-                    <OfficeIcon width={32} height={32} />
-                {:else}
-                    <PubIcon width={32} height={32} />
-                {/if}
+                <span class="relative block h-[32px] w-[32px]">
+                    {#if option.type === BuildingType.House}
+                        <HouseIcon width={PICKER_ICON_SIZE} height={PICKER_ICON_SIZE} />
+                    {:else if option.type === BuildingType.Office}
+                        <OfficeIcon width={PICKER_ICON_SIZE} height={PICKER_ICON_SIZE} />
+                    {:else}
+                        <PubIcon width={PICKER_ICON_SIZE} height={PICKER_ICON_SIZE} />
+                    {/if}
+                    <svg
+                        class="pointer-events-none absolute inset-0"
+                        width={PICKER_ICON_SIZE}
+                        height={PICKER_ICON_SIZE}
+                        viewBox={`0 0 ${PICKER_ICON_SIZE} ${PICKER_ICON_SIZE}`}
+                        aria-hidden="true"
+                    >
+                        <circle
+                            cx={PICKER_ICON_SIZE / 2}
+                            cy={PICKER_ICON_SIZE / 2}
+                            r={PICKER_ICON_BORDER_RADIUS}
+                            fill="none"
+                            stroke={PICKER_ICON_BORDER_COLOR}
+                            stroke-width={PICKER_ICON_BORDER_WIDTH}
+                        ></circle>
+                    </svg>
+                </span>
             </button>
         {/each}
     </div>

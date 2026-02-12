@@ -51,11 +51,15 @@ export class TimeMachineStateHandler implements MachineStateHandler<
     ): MachineState {
         const state = context.gameState
         switch (true) {
-            case isStopTime(action):
-            case isPass(action): {
+            case isStopTime(action): {
                 state.clockAction = undefined
                 state.turnManager.endTurn(state.actionCount)
                 return getNextActionState(state)
+            }
+            case isPass(action): {
+                state.clockAction = undefined
+                state.turnManager.endTurn(state.actionCount)
+                return MachineState.TimeMachine
             }
             case isRotateTime(action): {
                 return getNextActionState(state)

@@ -9,6 +9,7 @@ import {
     Pass,
     PlaceBusLine,
     PlaceBuilding,
+    StopTime,
     Vroom,
     WorkerActionType,
     extensionSegmentsByTargetNode,
@@ -281,6 +282,15 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         }
 
         const action = this.createPlayerAction(Pass, {})
+        await this.applyAction(action)
+    }
+
+    async stopTime() {
+        if (!this.validActionTypes.includes(ActionType.StopTime)) {
+            return
+        }
+
+        const action = this.createPlayerAction(StopTime, {})
         await this.applyAction(action)
     }
 

@@ -45,6 +45,9 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
         let activePlayerId: string
         if (gameState.players.every((p) => p.numActionsChosen === 0)) {
             gameState.roundStartMaxBusValue = gameState.maxBusValue()
+            for (const passenger of gameState.board.passengers) {
+                passenger.siteId = undefined
+            }
             activePlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
         } else {
             activePlayerId = gameState.turnManager.startNextTurn(

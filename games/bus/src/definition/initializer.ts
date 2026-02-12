@@ -69,19 +69,23 @@ export class BusGameInitializer
             turnManager: turnManager,
             board: board,
             passengers,
+            stones: 5,
             currentLocation: BuildingType.House,
             currentBuildingPhase: 1,
             initialBuildingsPlaced: 0,
             lineExpansionAction: [],
             busAction: undefined,
             passengersAction: [],
+            passengerTurnsTaken: 0,
             buildingAction: [],
             clockAction: undefined,
             vroomAction: [],
+            vroomTurnsTaken: 0,
             startingPlayerAction: undefined,
             passedPlayers: [],
             roundStartMaxBusValue: 0,
-            actionsTaken: 0
+            actionsTaken: 0,
+            scoreOrder: [...turnManager.turnOrder]
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it

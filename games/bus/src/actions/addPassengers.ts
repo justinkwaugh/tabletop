@@ -4,7 +4,8 @@ import { assert, GameAction, HydratableAction, MachineContext } from '@tabletop/
 import { HydratedBusGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Passenger } from '../components/passenger.js'
-import { BUS_STATION_IDS, BusStationId } from '../utils/busGraph.js'
+import { BUS_STATION_IDS } from '../utils/busGraph.js'
+import type { BusStationId } from '../utils/busGraph.js'
 
 export type AddPassengersMetadata = Type.Static<typeof AddPassengersMetadata>
 export const AddPassengersMetadata = Type.Object({

@@ -22,21 +22,23 @@ export const BusGameState = Type.Evaluate(
             machineState: Type.Enum(MachineState), // Redefine with the specific machine states
             board: GameBoard,
             passengers: Type.Array(Passenger), // Supply
+            stones: Type.Number(), // Number of time stones
             currentLocation: BuildingType,
             currentBuildingPhase: Type.Number(),
             initialBuildingsPlaced: Type.Number(),
             lineExpansionAction: Type.Array(Type.String()), // Slots for line expansion
             busAction: Type.Optional(Type.String()), // Slot for bus action
             passengersAction: Type.Array(Type.String()), // Slots for passenger action
-            passengerTurnsTaken: Type.Optional(Type.Number()), // Number of passenger turns taken in the current round
+            passengerTurnsTaken: Type.Number(), // Number of passenger turns taken in the current round
             buildingAction: Type.Array(Type.String()), // Slots for building action
             clockAction: Type.Optional(Type.String()), // Slot for clock action
             vroomAction: Type.Array(Type.String()), // Slots for vroom action
-            vroomTurnsTaken: Type.Optional(Type.Number()), // Number of vroom turns taken in the current round
+            vroomTurnsTaken: Type.Number(), // Number of vroom turns taken in the current round
             startingPlayerAction: Type.Optional(Type.String()), // Slot for starting player action
             passedPlayers: Type.Array(Type.String()), // Players who have passed
             roundStartMaxBusValue: Type.Number(), // Max bus value at the start of the round
-            actionsTaken: Type.Number() // Number of actions taken
+            actionsTaken: Type.Number(), // Number of actions taken
+            scoreOrder: Type.Array(Type.String()) // Order of players for scoring
         })
     ])
 )
@@ -61,21 +63,23 @@ export class HydratedBusGameState
     declare winningPlayerIds: string[]
     declare board: HydratedGameBoard
     declare passengers: Passenger[]
+    declare stones: number
     declare currentLocation: BuildingType
     declare currentBuildingPhase: number
     declare initialBuildingsPlaced: number
     declare lineExpansionAction: string[]
     declare busAction?: string
     declare passengersAction: string[]
-    declare passengerTurnsTaken?: number
+    declare passengerTurnsTaken: number
     declare buildingAction: string[]
     declare clockAction?: string
     declare vroomAction: string[]
-    declare vroomTurnsTaken?: number
+    declare vroomTurnsTaken: number
     declare startingPlayerAction?: string
     declare passedPlayers: string[]
     declare roundStartMaxBusValue: number
     declare actionsTaken: number
+    declare scoreOrder: string[]
 
     constructor(data: BusGameState) {
         super(data, BusGameStateValidator)
@@ -104,10 +108,15 @@ export class HydratedBusGameState
         if (this.machineState === MachineState.LineExpansion) {
             return maxBusValue - (this.lineExpansionAction.length - 1)
         } else if (this.machineState === MachineState.AddingPassengers) {
-            return maxBusValue - (this.passengerTurnsTaken ?? 0)
+            return maxBusValue - this.passengerTurnsTaken
         } else if (this.machineState === MachineState.AddingBuildings) {
             return maxBusValue - (this.buildingAction.length - 1)
         }
         return 0
+    }
+
+    playerScored(playerId: string): void {
+        this.scoreOrder = this.scoreOrder.filter((id) => id !== playerId)
+        this.scoreOrder.push(playerId)
     }
 }

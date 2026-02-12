@@ -41,6 +41,7 @@ export class HydratedStopTime extends HydratableAction<typeof StopTime> implemen
 
         const playerState = state.getPlayerState(this.playerId)
         playerState.stones += 1
+        state.stones -= 1
 
         this.metadata = {}
     }

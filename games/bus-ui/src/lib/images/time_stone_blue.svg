@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56">
+  <defs>
+    <radialGradient id="blue_base" cx="36%" cy="30%" r="68%">
+      <stop offset="0%" stop-color="#7bc9ff"/>
+      <stop offset="42%" stop-color="#2f78c3"/>
+      <stop offset="100%" stop-color="#123f75"/>
+    </radialGradient>
+    <radialGradient id="blue_core" cx="34%" cy="28%" r="54%">
+      <stop offset="0%" stop-color="#bce9ff" stop-opacity=".95"/>
+      <stop offset="68%" stop-color="#4ea3df" stop-opacity=".34"/>
+      <stop offset="100%" stop-color="#4ea3df" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="blue_gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".78"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blue_shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#00142a" flood-opacity=".48"/>
+    </filter>
+  </defs>
+  <g filter="url(#blue_shadow)">
+    <circle cx="28" cy="28" r="24.2" fill="url(#blue_base)" stroke="#0a2f58" stroke-width="1.6"/>
+    <circle cx="28" cy="28" r="17.8" fill="url(#blue_core)"/>
+    <path d="M13.1 33.2C17.6 29 21.8 28.1 26.1 24.8C30.2 21.6 33 17 36.2 13.7" fill="none" stroke="#8ed6ff" stroke-opacity=".78" stroke-width="2.25" stroke-linecap="round"/>
+    <path d="M20.8 43C25.8 40.7 28.4 36.2 33 33.1C36.8 30.6 41.5 30.3 44 26.1" fill="none" stroke="#9fdfff" stroke-opacity=".45" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M14.5 20.1C17.4 21.7 20.2 21.8 22.8 24.1" fill="none" stroke="#c8edff" stroke-opacity=".5" stroke-width="1.25" stroke-linecap="round"/>
+    <ellipse cx="20.8" cy="18.7" rx="11.2" ry="7.3" fill="url(#blue_gloss)" opacity=".8"/>
+    <ellipse cx="36.9" cy="36.8" rx="6.5" ry="4.4" fill="#9fd8ff" opacity=".2"/>
+  </g>
+</svg>

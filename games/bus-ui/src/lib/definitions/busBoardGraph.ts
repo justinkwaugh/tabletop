@@ -123,6 +123,16 @@ export const BUS_BUILDINGS_ACTION_SPOT_POINTS: Point[] = [
 ]
 
 export const BUS_CLOCK_ACTION_SPOT_POINT: Point = { x: 1773, y: 793 }
+export const BUS_CLOCK_CENTER_POINT: Point = { x: 1506, y: 895 }
+export const BUS_TIME_STONE_BLUE_POINTS: Point[] = [
+    { x: 1688, y: 867 },
+    { x: 1798, y: 955 },
+    { x: 1662, y: 991 }
+]
+export const BUS_TIME_STONE_GREEN_POINTS: Point[] = [
+    { x: 1764, y: 883 },
+    { x: 1739, y: 1008 }
+]
 
 export const BUS_VROOM_ACTION_SPOT_POINTS: Point[] = [
     // Ordered left-to-right on the board legend as A, B, C, D, E, F.
@@ -135,3 +145,28 @@ export const BUS_VROOM_ACTION_SPOT_POINTS: Point[] = [
 ]
 
 export const BUS_STARTING_PLAYER_ACTION_SPOT_POINT: Point = { x: 1772, y: 1232.25 }
+
+export const BUS_SCORE_TRACK_POINTS: Point[] = [
+    // Index by score value: 0 (bottom) through 20 (top).
+    { x: 61, y: 1235 },
+    { x: 59, y: 1178 },
+    { x: 59, y: 1119 },
+    { x: 58, y: 1060 },
+    { x: 58, y: 1001 },
+    { x: 57, y: 943 },
+    { x: 58, y: 883 },
+    { x: 58, y: 824 },
+    { x: 58, y: 765 },
+    { x: 59, y: 706 },
+    { x: 59, y: 647 },
+    { x: 59, y: 589 },
+    { x: 59, y: 530 },
+    { x: 59, y: 471 },
+    { x: 59, y: 412 },
+    { x: 59, y: 353 },
+    { x: 59, y: 295 },
+    { x: 59, y: 236 },
+    { x: 61, y: 178 },
+    { x: 61, y: 119 },
+    { x: 62, y: 62 }
+]

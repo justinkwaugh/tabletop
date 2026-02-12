@@ -59,6 +59,11 @@ export class HydratedVroom extends HydratableAction<typeof Vroom> implements Vro
         passengerToDeliver.nodeId = buildingSite.nodeId
         passengerToDeliver.siteId = this.destinationSite
 
+        const playerState = state.getPlayerState(this.playerId)
+        playerState.score += 1
+
+        state.playerScored(this.playerId)
+
         this.metadata = {
             passengerId: passengerToDeliver.id
         }
