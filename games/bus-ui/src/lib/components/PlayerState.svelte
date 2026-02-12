@@ -15,24 +15,36 @@
 
 <div class="relative pb-[22px]">
     <div
-        class="relative z-[1] min-h-[100px] rounded-t-[1.2rem] rounded-b-[0.45rem] {bgColor} shadow-[inset_0_0_0_1px_rgba(9,13,22,0.26)] py-[3px] px-4 text-right {textColor} font-normal flex flex-col {isTurn
+        class="relative z-[1] min-h-[100px] rounded-t-[1.2rem] rounded-b-[0.45rem] {bgColor} shadow-[inset_0_0_0_1px_rgba(9,13,22,0.26)] py-[3px] px-3 text-right {textColor} font-normal flex flex-col {isTurn
             ? 'border-2 border-white animate-pulse'
             : ''}"
     >
-        <div class="ml-auto mt-auto mb-[5px] flex items-start gap-x-1 text-[rgba(245,248,252,0.95)]">
-            <div class="w-[186px] shrink-0">
+        <div
+            class="ml-auto mt-auto mb-[5px] flex items-start gap-x-1 text-[rgba(245,248,252,0.95)]"
+        >
+            <div class="w-[250px] shrink-0">
                 <div
-                    class="h-[44px] w-[186px] rounded-[0.58rem] bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] p-[2px] relative overflow-hidden"
+                    class="h-[44px] w-[245px] rounded-[0.58rem] bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] p-[2px] relative overflow-hidden"
                 >
-                    <div class="absolute inset-[1.5px] rounded-[0.48rem] border border-white/28"></div>
+                    <div
+                        class="absolute inset-[1.5px] rounded-[0.48rem] border border-white/28"
+                    ></div>
                     <div class="grid h-full grid-cols-3 gap-[2px]">
                         <div
                             class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
                         >
-                            <svg width="23" height="27" viewBox="0 0 22 24" aria-hidden="true">
-                                <WorkerCylinder x={11} y={12} color={playerUiColor} width={12} height={20} />
+                            <svg width="27" height="30" viewBox="0 0 28 32" aria-hidden="true">
+                                <WorkerCylinder
+                                    x={14}
+                                    y={16}
+                                    color={playerUiColor}
+                                    width={18}
+                                    height={28}
+                                />
                             </svg>
-                            <span class="text-[1rem] leading-none font-normal">{playerState.actions}</span>
+                            <span class="text-[1rem] leading-none font-normal"
+                                >{playerState.actions}</span
+                            >
                         </div>
 
                         <div
@@ -58,7 +70,9 @@
                                     stroke-linecap="round"
                                 ></line>
                             </svg>
-                            <span class="text-[1rem] leading-none font-normal">{playerState.sticks}</span>
+                            <span class="text-[1rem] leading-none font-normal"
+                                >{playerState.sticks}</span
+                            >
                         </div>
 
                         <div
@@ -71,8 +85,16 @@
                                 aria-hidden="true"
                                 class="shrink-0 select-none"
                             >
-                                <circle cx="12" cy="13" r="7.2" fill={playerUiColor} opacity="0.14"></circle>
-                                <circle cx="12" cy="13" r="7.2" fill="none" stroke={playerUiColor} stroke-width="1.8"></circle>
+                                <circle cx="12" cy="13" r="7.2" fill={playerUiColor} opacity="0.14"
+                                ></circle>
+                                <circle
+                                    cx="12"
+                                    cy="13"
+                                    r="7.2"
+                                    fill="none"
+                                    stroke={playerUiColor}
+                                    stroke-width="1.8"
+                                ></circle>
                                 <rect
                                     x="10.1"
                                     y="2.1"
@@ -101,19 +123,25 @@
                                 ></path>
                                 <circle cx="12" cy="13" r="1.2" fill={playerUiColor}></circle>
                             </svg>
-                            <span class="text-[1rem] leading-none font-normal">{playerState.stones}</span>
+                            <span class="text-[1rem] leading-none font-normal"
+                                >{playerState.stones}</span
+                            >
                         </div>
                     </div>
                 </div>
-
-                <h1 class={isTurn
-                    ? 'mt-[2px] me-1 pr-[2px] text-right text-xl font-normal'
-                    : 'mt-[2px] me-1 pr-[2px] text-right text-lg font-normal'}>
-                    {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
+                <div
+                    class="w-[242px] me-1 rounded-lg border border-[1px] border-white/50 mt-[4px] h-[1px]"
+                ></div>
+                <h1 class="uppercase me-1 pr-1 text-right text-lg font-semibold tracking-[0.06em]">
+                    {player.name}
                 </h1>
 
                 {#if gameSession.showDebug}
-                    <div class="mt-[1px] pr-[2px] text-right text-[10px] leading-[1] text-[rgba(245,248,252,0.72)]">id: {player.id}</div>
+                    <div
+                        class="mt-[1px] pr-[2px] text-right text-[10px] leading-[1] text-[rgba(245,248,252,0.72)]"
+                    >
+                        id: {player.id}
+                    </div>
                 {/if}
             </div>
 
@@ -127,9 +155,15 @@
                 <div
                     class="absolute top-[4px] bottom-[3px] right-[4px] w-[16px] rounded-[0.25rem] bg-[rgba(5,9,16,0.58)]"
                 ></div>
-                <div class="absolute left-1/2 top-[4px] bottom-[3px] w-[1px] -translate-x-1/2 bg-white/30"></div>
-                <div class="absolute left-[18px] top-1/2 h-[8px] w-[1.5px] -translate-y-1/2 rounded-full bg-white/56"></div>
-                <div class="absolute right-[18px] top-1/2 h-[8px] w-[1.5px] -translate-y-1/2 rounded-full bg-white/56"></div>
+                <div
+                    class="absolute left-1/2 top-[4px] bottom-[3px] w-[1px] -translate-x-1/2 bg-white/30"
+                ></div>
+                <div
+                    class="absolute left-[18px] top-1/2 h-[8px] w-[1.5px] -translate-y-1/2 rounded-full bg-white/56"
+                ></div>
+                <div
+                    class="absolute right-[18px] top-1/2 h-[8px] w-[1.5px] -translate-y-1/2 rounded-full bg-white/56"
+                ></div>
             </div>
         </div>
     </div>
@@ -140,7 +174,7 @@
         aria-hidden="true"
     ></div>
     <div
-        class="absolute bottom-0 left-3/4 z-0 h-[22px] w-[44px] translate-x-[calc(-50%+22px)] rounded-b-[22px] {bgColor} shadow-[inset_0_0_0_1px_rgba(9,13,22,0.26)] {isTurn
+        class="absolute bottom-0 left-2/3 z-0 h-[22px] w-[44px] translate-x-[calc(-50%+22px)] rounded-b-[22px] {bgColor} shadow-[inset_0_0_0_1px_rgba(9,13,22,0.26)] {isTurn
             ? 'border-2 border-white animate-pulse'
             : ''}"
         aria-hidden="true"

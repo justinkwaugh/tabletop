@@ -3,7 +3,10 @@
         ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
-        GameSession
+        GameSession,
+        GameChat,
+        HistoryControls,
+        DefaultTabs
     } from '@tabletop/frontend-components'
 
     import History from '$lib/components/History.svelte'
@@ -23,15 +26,33 @@
 <!-- Full Height and Width with 8px padding-->
 <div class="bg-[#f0f1ec]" style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
+        {#snippet mobileControlsContent()}
+            <HistoryControls enabledColor="text-[#333333]" disabledColor="text-[#cccccc]" />
+        {/snippet}
         {#snippet sideContent()}
-            <DefaultSideContent>
+            <div class="max-sm:hidden">
+                <HistoryControls enabledColor="text-[#333333]" disabledColor="text-[#cccccc]" />
+            </div>
+            <DefaultTabs
+                playersTitle="Drivers"
+                activeTabClass="py-1 px-3 bg-[#333333] border-2 border-transparent rounded-lg text-gray-200 "
+                inactiveTabClass="text-[#333333] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#333333]"
+            >
                 {#snippet playersPanel()}
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
                     <History />
                 {/snippet}
-            </DefaultSideContent>
+                {#snippet chat()}
+                    <GameChat
+                        timeColor="text-[#8d794d]"
+                        bgColor="bg-[#302408]"
+                        inputBgColor="bg-[#634a11]"
+                        inputBorderColor="border-[#302408]"
+                    />
+                {/snippet}
+            </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->

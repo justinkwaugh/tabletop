@@ -24,21 +24,21 @@
 </script>
 
 <div
-    class="rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
+    class="rounded-lg border border-gray-500 text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
 >
     <div class="overflow-auto h-full w-full">
-        <Timeline class="ms-2 dark:border-[#ad9c80]">
+        <Timeline class="ms-2 dark:border-gray-500">
             {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
                 <div
-                    class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
+                    class="absolute w-3 h-3 bg-gray-800 rounded-full mt-1.5 -start-1.5 border dark:border-gray-500 dark:bg-black"
                 ></div>
                 <TimelineItem
-                    timeClass="dark:text-[#ad9c80]"
+                    timeClass="dark:text-gray-400"
                     title=""
                     class="timeline-item text-left mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
-                    <p class="mt-1 text-left text-sm text-base font-normal text-[#ad9c80">
+                    <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                         The game has ended.
                     </p>
                 </TimelineItem>
@@ -54,10 +54,10 @@
                     animate:flip={{ duration: 100 }}
                 >
                     <div
-                        class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
+                        class="absolute w-3 h-3 bg-gray-800 rounded-full mt-1.5 -start-1.5 border dark:border-gray-500 dark:bg-black"
                     ></div>
                     <TimelineItem
-                        timeClass="dark:text-[#ad9c80]"
+                        timeClass="dark:text-gray-500"
                         title=""
                         class="timeline-item text-left mb-5"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
@@ -72,10 +72,10 @@
                 </div>
             {/each}
             <div
-                class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
+                class="absolute w-3 h-3 bg-gray-800 rounded-full mt-1.5 -start-1.5 border dark:border-gray-500 dark:bg-black"
             ></div>
             <TimelineItem
-                timeClass="dark:text-[#ad9c80]"
+                timeClass="dark:text-gray-500"
                 title=""
                 class="timeline-item text-left mb-5"
                 date={timeAgo.format(gameSession.game.createdAt)}
