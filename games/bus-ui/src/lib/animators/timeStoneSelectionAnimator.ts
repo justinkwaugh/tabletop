@@ -24,7 +24,6 @@ type AnimatedTimeStoneState = {
 type TimeStoneSelectionAnimatorCallbacks = {
     onStart: (stone: AnimatedTimeStoneState) => void
     onUpdate: (state: Pick<AnimatedTimeStoneState, 'scale' | 'yOffset' | 'opacity'>) => void
-    onComplete: () => void
 }
 
 const PRESS_SCALE = 0.93
@@ -127,8 +126,5 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
             startAt + PRESS_DURATION + PRESS_PAUSE_DURATION
         )
 
-        animationContext.afterAnimations(() => {
-            this.callbacks.onComplete()
-        })
     }
 }

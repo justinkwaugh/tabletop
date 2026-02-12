@@ -20,7 +20,6 @@ type PassengerPose = {
 type AddPassengersPlacementAnimatorCallbacks = {
     onStart: (args: { nodeId: BusNodeId; count: number; pose: PassengerPose }) => void
     onUpdate: (pose: PassengerPose) => void
-    onComplete: () => void
 }
 
 const FINAL_HEIGHT = 74
@@ -108,8 +107,5 @@ export class AddPassengersPlacementAnimator extends StateAnimator<
             startAt + popDuration
         )
 
-        animationContext.afterAnimations(() => {
-            this.callbacks.onComplete()
-        })
     }
 }

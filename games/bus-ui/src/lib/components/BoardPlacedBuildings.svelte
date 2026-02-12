@@ -13,7 +13,10 @@
               buildingType: BuildingType
               scale: number
           }
-        | undefined = $state()
+        | undefined = $derived.by(() => {
+              gameSession.gameState
+              return undefined
+          })
 
     const buildingPlacementAnimator = new BuildingPlacementAnimator(gameSession, {
         onStart: ({ siteId, buildingType, scale }) => {
@@ -24,9 +27,6 @@
                 return
             }
             animatedBuilding = { ...animatedBuilding, scale }
-        },
-        onComplete: () => {
-            animatedBuilding = undefined
         }
     })
 

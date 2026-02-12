@@ -36,12 +36,30 @@
     }
 
     let hoveredVroomSourceNodeId: BusNodeId | undefined = $state()
-    let animatedPassengerPose: PassengerPose | undefined = $state()
-    let animatedPassengerSourceNodeId: BusNodeId | undefined = $state()
-    let animatedPassengerDestinationSiteId: BuildingSiteId | undefined = $state()
-    let animatedAddedPassengersPose: PassengerPose | undefined = $state()
-    let animatedAddedPassengersNodeId: BusNodeId | undefined = $state()
-    let animatedAddedPassengersCount: number | undefined = $state()
+    let animatedPassengerPose: PassengerPose | undefined = $derived.by(() => {
+        gameSession.gameState
+        return undefined
+    })
+    let animatedPassengerSourceNodeId: BusNodeId | undefined = $derived.by(() => {
+        gameSession.gameState
+        return undefined
+    })
+    let animatedPassengerDestinationSiteId: BuildingSiteId | undefined = $derived.by(() => {
+        gameSession.gameState
+        return undefined
+    })
+    let animatedAddedPassengersPose: PassengerPose | undefined = $derived.by(() => {
+        gameSession.gameState
+        return undefined
+    })
+    let animatedAddedPassengersNodeId: BusNodeId | undefined = $derived.by(() => {
+        gameSession.gameState
+        return undefined
+    })
+    let animatedAddedPassengersCount: number | undefined = $derived.by(() => {
+        gameSession.gameState
+        return undefined
+    })
 
     const passengerDeliveryAnimator = new PassengerDeliveryAnimator(gameSession, {
         onStart: ({ sourceNodeId, destinationSiteId, pose }) => {
@@ -51,11 +69,6 @@
         },
         onUpdate: (pose) => {
             animatedPassengerPose = { ...pose }
-        },
-        onComplete: () => {
-            animatedPassengerPose = undefined
-            animatedPassengerSourceNodeId = undefined
-            animatedPassengerDestinationSiteId = undefined
         }
     })
 
@@ -67,11 +80,6 @@
         },
         onUpdate: (pose) => {
             animatedAddedPassengersPose = { ...pose }
-        },
-        onComplete: () => {
-            animatedAddedPassengersPose = undefined
-            animatedAddedPassengersNodeId = undefined
-            animatedAddedPassengersCount = undefined
         }
     })
 

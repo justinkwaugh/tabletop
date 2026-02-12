@@ -18,7 +18,6 @@ type AnimatedBusPieceState = {
 type BusPiecePlacementAnimatorCallbacks = {
     onStart: (state: AnimatedBusPieceState) => void
     onUpdate: (state: Pick<AnimatedBusPieceState, 'scale' | 'opacity'>) => void
-    onComplete: () => void
 }
 
 function busesTableColumnKeyForColor(
@@ -141,8 +140,5 @@ export class BusPiecePlacementAnimator extends StateAnimator<
             startAt + popDuration
         )
 
-        animationContext.afterAnimations(() => {
-            this.callbacks.onComplete()
-        })
     }
 }

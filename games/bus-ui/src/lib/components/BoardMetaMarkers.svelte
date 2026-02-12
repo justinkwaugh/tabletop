@@ -46,7 +46,10 @@
         opacity: number
     }
 
-    let animatedBusPiece: AnimatedBusPiece | undefined = $state()
+    let animatedBusPiece: AnimatedBusPiece | undefined = $derived.by(() => {
+        gameSession.gameState
+        return undefined
+    })
 
     const scoreMarkerAnimator = new ScoreMarkerAnimator(gameSession)
 
@@ -59,9 +62,6 @@
                 return
             }
             animatedBusPiece = { ...animatedBusPiece, scale, opacity }
-        },
-        onComplete: () => {
-            animatedBusPiece = undefined
         }
     })
 

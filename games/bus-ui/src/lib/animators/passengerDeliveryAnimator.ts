@@ -30,7 +30,6 @@ type PassengerDeliveryAnimatorCallbacks = {
         pose: PassengerPose
     }) => void
     onUpdate: (pose: PassengerPose) => void
-    onComplete: () => void
 }
 
 const NODE_PASSENGER_HEIGHT = 74
@@ -143,9 +142,6 @@ export class PassengerDeliveryAnimator extends StateAnimator<
             startAt + nodeTravelDuration
         )
 
-        animationContext.afterAnimations(() => {
-            this.callbacks.onComplete()
-        })
     }
 
     private pathBetweenNodes(

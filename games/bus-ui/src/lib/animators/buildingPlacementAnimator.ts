@@ -14,7 +14,6 @@ import type { BusGameSession } from '$lib/model/session.svelte.js'
 type BuildingPlacementAnimatorCallbacks = {
     onStart: (args: { siteId: BuildingSiteId; buildingType: BuildingType; scale: number }) => void
     onUpdate: (scale: number) => void
-    onComplete: () => void
 }
 
 const INITIAL_SCALE = 0.2
@@ -81,8 +80,5 @@ export class BuildingPlacementAnimator extends StateAnimator<
             startAt + popDuration
         )
 
-        animationContext.afterAnimations(() => {
-            this.callbacks.onComplete()
-        })
     }
 }

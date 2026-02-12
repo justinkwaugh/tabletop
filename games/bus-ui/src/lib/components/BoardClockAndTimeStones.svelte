@@ -106,7 +106,10 @@
               yOffset: number
               opacity: number
           }
-        | undefined = $state()
+        | undefined = $derived.by(() => {
+              gameSession.gameState
+              return undefined
+          })
 
     const timeStoneSelectionAnimator = new TimeStoneSelectionAnimator(
         gameSession,
@@ -126,9 +129,6 @@
                     yOffset,
                     opacity
                 }
-            },
-            onComplete: () => {
-                animatedTimeStone = undefined
             }
         }
     )

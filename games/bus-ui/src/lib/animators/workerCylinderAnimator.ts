@@ -37,10 +37,8 @@ type WorkerCylinderAnimatorCallbacks = {
     onPlacementUpdate: (
         state: Pick<AnimatedWorkerCylinderState, 'key' | 'scale' | 'opacity'>
     ) => void
-    onPlacementComplete: (key: string) => void
     onRemovalStart: (state: AnimatedWorkerCylinderState) => void
     onRemovalUpdate: (state: Pick<AnimatedWorkerCylinderState, 'key' | 'scale' | 'opacity'>) => void
-    onRemovalComplete: (key: string) => void
 }
 
 export function buildActionWorkerPlacements(state: HydratedBusGameState): ActionWorkerPlacement[] {
@@ -180,9 +178,6 @@ export class WorkerCylinderAnimator extends StateAnimator<
                 0.12
             )
 
-            animationContext.afterAnimations(() => {
-                this.callbacks.onRemovalComplete(removedPlacement.key)
-            })
         }
 
         if (!isChooseWorkerAction(action)) {
@@ -266,8 +261,5 @@ export class WorkerCylinderAnimator extends StateAnimator<
             popDuration
         )
 
-        animationContext.afterAnimations(() => {
-            this.callbacks.onPlacementComplete(newPlacement.key)
-        })
     }
 }

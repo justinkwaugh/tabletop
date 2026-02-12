@@ -50,10 +50,16 @@
         opacity: number
     }
 
-    let animatedWorkerCylinder: AnimatedWorkerCylinder | undefined = $state()
+    let animatedWorkerCylinder: AnimatedWorkerCylinder | undefined = $derived.by(() => {
+        gameSession.gameState
+        return undefined
+    })
     let animatedRemovedWorkerCylinders: (AnimatedWorkerCylinder & {
         key: string
-    })[] = $state([])
+    })[] = $derived.by(() => {
+        gameSession.gameState
+        return []
+    })
 
     const workerCylinderAnimator = new WorkerCylinderAnimator(gameSession, {
         onPlacementStart: ({ x, y, color, scale, opacity }) => {
@@ -68,9 +74,6 @@
                 scale,
                 opacity
             }
-        },
-        onPlacementComplete: () => {
-            animatedWorkerCylinder = undefined
         },
         onRemovalStart: ({ key, x, y, color, scale, opacity }) => {
             animatedRemovedWorkerCylinders = [
@@ -88,18 +91,6 @@
                       }
                     : item
             )
-        },
-        onRemovalComplete: (key) => {
-            const remove = () => {
-                animatedRemovedWorkerCylinders = animatedRemovedWorkerCylinders.filter(
-                    (item) => item.key !== key
-                )
-            }
-            if (typeof requestAnimationFrame === 'function') {
-                requestAnimationFrame(remove)
-                return
-            }
-            setTimeout(remove, 0)
         }
     })
 
