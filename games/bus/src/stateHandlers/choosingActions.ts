@@ -48,6 +48,7 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
             for (const passenger of gameState.board.passengers) {
                 passenger.siteId = undefined
             }
+            gameState.passedPlayers = []
             activePlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
         } else {
             activePlayerId = gameState.turnManager.startNextTurn(
@@ -73,6 +74,7 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
             case isPass(action): {
                 gameState.turnManager.endTurn(gameState.actionCount)
                 if (gameState.players.every((p) => gameState.passedPlayers.includes(p.playerId))) {
+                    gameState.passedPlayers = []
                     return getNextActionState(gameState)
                 }
                 return MachineState.ChoosingActions

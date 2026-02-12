@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Point } from '@tabletop/common'
+    import { Color, type Point } from '@tabletop/common'
     import {
         ActionType,
         BUS_STATION_IDS,
@@ -15,6 +15,7 @@
     import AddPassengersPicker from './AddPassengersPicker.svelte'
     import BuildingTypePicker from './BuildingTypePicker.svelte'
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
+    import BusPieceIcon from '$lib/images/BusPieceIcon.svelte'
     import BusLineLayer from './BusLineLayer.svelte'
     import PlacedBuilding from './PlacedBuilding.svelte'
     import Passenger from './Passenger.svelte'
@@ -26,6 +27,7 @@
         BUS_EXPANSION_ACTION_SPOT_POINTS,
         BUS_BUSES_ACTION_SPOT_POINT,
         BUS_PASSENGERS_ACTION_SPOT_POINTS,
+        BUS_PASSENGER_SUPPLY_TEXT_POINT,
         BUS_BUILDINGS_ACTION_SPOT_POINTS,
         BUS_CLOCK_ACTION_SPOT_POINT,
         BUS_CLOCK_CENTER_POINT,
@@ -33,6 +35,7 @@
         BUS_TIME_STONE_GREEN_POINTS,
         BUS_VROOM_ACTION_SPOT_POINTS,
         BUS_STARTING_PLAYER_ACTION_SPOT_POINT,
+        BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR,
         BUS_SCORE_TRACK_POINTS
     } from '$lib/definitions/busBoardGraph.js'
     import arrowImg from '$lib/images/arrow.svg'
@@ -88,11 +91,14 @@
     const TIME_STONE_MASK_RADIUS = TIME_STONE_HALF_SIZE - 1.5
     const TIME_STONE_HIT_RADIUS = TIME_STONE_HALF_SIZE
     const SCORE_MARKER_RADIUS = 17
-    const SCORE_MARKER_STACK_OFFSET_Y = 4.5
+    const SCORE_MARKER_STACK_OFFSET_Y = 5
     const SCORE_MARKER_STROKE = '#1f2a3d'
     const SCORE_MARKER_STROKE_WIDTH = 1.4
     const SCORE_MARKER_TEXT_SIZE = 13
     const SCORE_MARKER_TEXT_Y_OFFSET = 0.8
+    const BUS_TABLE_PIECE_WIDTH = 58
+    const BUS_TABLE_PIECE_HEIGHT = 31
+    const PASSENGER_SUPPLY_FONT_SIZE = 26
 
     type ActionWorkerPlacement = {
         key: string
@@ -115,6 +121,7 @@
         value?: number
         playerId?: string
         showText?: boolean
+        showCenterDot?: boolean
     }
 
     type ActionSlotMarker = {
@@ -135,6 +142,12 @@
         score: number
         textColor: string
         fillColor: string
+    }
+
+    type BusesTablePiece = {
+        key: string
+        point: Point
+        color: string
     }
 
     type TimeStoneKey = 'bottom-left' | 'bottom' | 'right' | 'top-right' | 'top-left'
@@ -357,6 +370,40 @@
         }
     })
 
+    const busesTablePieces: BusesTablePiece[] = $derived.by(() => {
+        const pieces: BusesTablePiece[] = []
+        const state = gameSession.gameState
+
+        for (const playerState of state.players) {
+            const columnKey = busesTableColumnKeyForColor(playerState.color)
+            if (!columnKey) {
+                continue
+            }
+
+            const slots = BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR[columnKey]
+            if (!slots?.length) {
+                continue
+            }
+
+            const pieceCount = Math.max(0, Math.min(Math.round(playerState.buses), slots.length))
+            const color = gameSession.colors.getPlayerUiColor(playerState.playerId)
+            for (let i = 0; i < pieceCount; i += 1) {
+                const point = slots[i]
+                if (!point) {
+                    continue
+                }
+
+                pieces.push({
+                    key: `buses:${playerState.playerId}:${i}`,
+                    point,
+                    color
+                })
+            }
+        }
+
+        return pieces
+    })
+
     let actionWorkerPlacements: ActionWorkerPlacement[] = $derived.by(() => {
         const placements: ActionWorkerPlacement[] = []
         const state = gameSession.gameState
@@ -510,7 +557,7 @@
                     }
                     const baseBusValue = playerBusValues.get(effectivePlayerId) ?? 0
                     const playerGetsBusBonus = state.busAction === effectivePlayerId
-                    return Math.max(0, baseBusValue + (playerGetsBusBonus ? 1 : 0) - selectionIndex)
+                    return Math.max(0, baseBusValue + (playerGetsBusBonus ? 1 : 0))
                 }
                 default:
                     return undefined
@@ -548,6 +595,21 @@
 
         for (const highlight of availableActionSpotHighlights) {
             if (highlight.selectionIndex === undefined) {
+                if (
+                    highlight.actionType === WorkerActionType.Buses ||
+                    highlight.actionType === WorkerActionType.Clock ||
+                    highlight.actionType === WorkerActionType.StartingPlayer
+                ) {
+                    badges.push({
+                        key: `highlight:${highlight.key}:single`,
+                        point: {
+                            x: highlight.point.x,
+                            y: highlight.point.y
+                        },
+                        showText: false,
+                        showCenterDot: true
+                    })
+                }
                 continue
             }
 
@@ -709,6 +771,25 @@
             playerId,
             point
         })
+    }
+
+    function busesTableColumnKeyForColor(
+        color: Color | undefined
+    ): keyof typeof BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR | undefined {
+        switch (color) {
+            case Color.Purple:
+                return 'purple'
+            case Color.Blue:
+                return 'blue'
+            case Color.Green:
+                return 'green'
+            case Color.Yellow:
+                return 'yellow'
+            case Color.Red:
+                return 'red'
+            default:
+                return undefined
+        }
     }
 
     function pushQueuePlacements(
@@ -1108,6 +1189,34 @@
                 </g>
             {/each}
 
+            {#each busesTablePieces as piece (piece.key)}
+                <BusPieceIcon
+                    x={piece.point.x - BUS_TABLE_PIECE_WIDTH / 2}
+                    y={piece.point.y - BUS_TABLE_PIECE_HEIGHT / 2}
+                    width={BUS_TABLE_PIECE_WIDTH}
+                    height={BUS_TABLE_PIECE_HEIGHT}
+                    color={piece.color}
+                    class="pointer-events-none"
+                />
+            {/each}
+
+            <g class="pointer-events-none" aria-hidden="true">
+                <text
+                    x={BUS_PASSENGER_SUPPLY_TEXT_POINT.x}
+                    y={BUS_PASSENGER_SUPPLY_TEXT_POINT.y}
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size={PASSENGER_SUPPLY_FONT_SIZE}
+                    font-weight="700"
+                    fill="#333333"
+                    stroke="#f4efe3"
+                    stroke-width="3"
+                    paint-order="stroke fill"
+                >
+                    {gameSession.gameState.passengers.length}
+                </text>
+            </g>
+
             {#each actionWorkerPlacements as placement (placement.key)}
                 <WorkerCylinder
                     x={placement.point.x + ACTION_CYLINDER_X_OFFSET}
@@ -1165,6 +1274,16 @@
                                 ? actionValueTextColor(badge.playerId)
                                 : highlightValueTextColor}>{badge.value}</text
                         >
+                    {/if}
+                    {#if badge.showCenterDot}
+                        <circle
+                            cx={badge.point.x}
+                            cy={badge.point.y}
+                            r="3.2"
+                            fill={badge.playerId
+                                ? actionValueTextColor(badge.playerId)
+                                : highlightValueTextColor}
+                        ></circle>
                     {/if}
                 </g>
             {/each}

@@ -112,6 +112,8 @@ export const BUS_PASSENGERS_ACTION_SPOT_POINTS: Point[] = [
     { x: 1682.5, y: 578 }
 ]
 
+export const BUS_PASSENGER_SUPPLY_TEXT_POINT: Point = { x: 1771, y: 613 }
+
 export const BUS_BUILDINGS_ACTION_SPOT_POINTS: Point[] = [
     // Ordered left-to-right on the board legend as F, E, D, C, B, A.
     { x: 1489, y: 705 },
@@ -146,11 +148,50 @@ export const BUS_VROOM_ACTION_SPOT_POINTS: Point[] = [
 
 export const BUS_STARTING_PLAYER_ACTION_SPOT_POINT: Point = { x: 1772, y: 1232.25 }
 
+export const BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR = {
+    // Ordered bottom-to-top for each color column.
+    purple: [
+        { x: 1496.5, y: 456 },
+        { x: 1496.5, y: 429 },
+        { x: 1496.5, y: 402 },
+        { x: 1496.5, y: 374.5 },
+        { x: 1496.5, y: 347 }
+    ],
+    blue: [
+        { x: 1564, y: 456 },
+        { x: 1564, y: 429 },
+        { x: 1564, y: 402 },
+        { x: 1564, y: 375 },
+        { x: 1564, y: 347 }
+    ],
+    green: [
+        { x: 1631, y: 456 },
+        { x: 1631, y: 429 },
+        { x: 1631, y: 402 },
+        { x: 1631, y: 374.5 },
+        { x: 1631, y: 347 }
+    ],
+    yellow: [
+        { x: 1699, y: 457 },
+        { x: 1699, y: 429 },
+        { x: 1699, y: 402 },
+        { x: 1699, y: 374.5 },
+        { x: 1699, y: 347 }
+    ],
+    red: [
+        { x: 1764, y: 457 },
+        { x: 1764, y: 429.5 },
+        { x: 1764, y: 402.5 },
+        { x: 1764, y: 375 },
+        { x: 1764, y: 347.5 }
+    ]
+} as const satisfies Record<'purple' | 'blue' | 'green' | 'yellow' | 'red', Point[]>
+
 export const BUS_SCORE_TRACK_POINTS: Point[] = [
     // Index by score value: 0 (bottom) through 20 (top).
-    { x: 61, y: 1235 },
-    { x: 59, y: 1178 },
-    { x: 59, y: 1119 },
+    { x: 62, y: 1236 },
+    { x: 60, y: 1178 },
+    { x: 60, y: 1119 },
     { x: 58, y: 1060 },
     { x: 58, y: 1001 },
     { x: 57, y: 943 },
