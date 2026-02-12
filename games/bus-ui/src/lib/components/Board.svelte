@@ -3,7 +3,6 @@
     import {
         ActionType,
         BUS_STATION_IDS,
-        BuildingType,
         MachineState,
         WorkerActionType,
         isSiteId,
@@ -21,6 +20,12 @@
     import Passenger from './Passenger.svelte'
     import StationSelectionHighlight from './StationSelectionHighlight.svelte'
     import WorkerCylinder from './WorkerCylinder.svelte'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import {
+        buildClockHandTransform,
+        ClockHandAnimator,
+        clockHandRotationDegreesForLocation
+    } from '$lib/animators/clockHandAnimator.js'
     import {
         BUS_BOARD_NODE_POINTS,
         BUS_BUILDING_SITE_POINTS,
@@ -81,6 +86,12 @@
         BUS_CLOCK_CENTER_POINT.y + CLOCK_HAND_OFFSET_Y - CLOCK_HAND_PIVOT_Y * CLOCK_HAND_SCALE
     const CLOCK_HAND_CENTER_X = BUS_CLOCK_CENTER_POINT.x + CLOCK_HAND_OFFSET_X
     const CLOCK_HAND_CENTER_Y = BUS_CLOCK_CENTER_POINT.y + CLOCK_HAND_OFFSET_Y
+    const CLOCK_HAND_GEOMETRY = {
+        originX: CLOCK_HAND_ORIGIN_X,
+        originY: CLOCK_HAND_ORIGIN_Y,
+        pivotX: CLOCK_HAND_PIVOT_X * CLOCK_HAND_SCALE,
+        pivotY: CLOCK_HAND_PIVOT_Y * CLOCK_HAND_SCALE
+    }
     const CLOCK_RIVET_RADIUS = 10.5
     const CLOCK_RIVET_OUTER_RADIUS = CLOCK_RIVET_RADIUS + 1.4
     const TIME_STONE_SIZE = 52
@@ -99,6 +110,7 @@
     const BUS_TABLE_PIECE_WIDTH = 58
     const BUS_TABLE_PIECE_HEIGHT = 31
     const PASSENGER_SUPPLY_FONT_SIZE = 26
+    const clockHandAnimator = new ClockHandAnimator(gameSession, CLOCK_HAND_GEOMETRY)
 
     type ActionWorkerPlacement = {
         key: string
@@ -358,16 +370,7 @@
     })
 
     const clockHandRotationDegrees = $derived.by(() => {
-        switch (gameSession.gameState.currentLocation) {
-            case BuildingType.House:
-                return 0
-            case BuildingType.Office:
-                return 120
-            case BuildingType.Pub:
-                return 240
-            default:
-                return 0
-        }
+        return clockHandRotationDegreesForLocation(gameSession.gameState.currentLocation)
     })
 
     const busesTablePieces: BusesTablePiece[] = $derived.by(() => {
@@ -1120,8 +1123,9 @@
             {/each}
 
             <g
+                {@attach attachAnimator(clockHandAnimator)}
                 class="pointer-events-none"
-                transform={`translate(${CLOCK_HAND_ORIGIN_X} ${CLOCK_HAND_ORIGIN_Y}) rotate(${clockHandRotationDegrees} ${CLOCK_HAND_PIVOT_X * CLOCK_HAND_SCALE} ${CLOCK_HAND_PIVOT_Y * CLOCK_HAND_SCALE})`}
+                transform={buildClockHandTransform(CLOCK_HAND_GEOMETRY, clockHandRotationDegrees)}
                 aria-hidden="true"
             >
                 <image

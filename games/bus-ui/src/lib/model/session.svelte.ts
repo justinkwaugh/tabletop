@@ -25,13 +25,11 @@ import {
     validStartingBusLineSegments,
     MachineState
 } from '@tabletop/bus'
-
 export class BusGameSession extends GameSession<BusGameState, HydratedBusGameState> {
     chosenSite: BuildingSiteId | undefined = $state()
     chosenPassengerStationId: BusStationId | undefined = $state()
     chosenVroomSourceNodeId: BusNodeId | undefined = $state()
     pendingBusLineTargetNodeId: BusNodeId | undefined = $state()
-
     isInitialBuildingPlacement = $derived(
         this.gameState.machineState === MachineState.InitialBuildingPlacement
     )
@@ -42,7 +40,6 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
     isAddingBuildings = $derived(this.gameState.machineState === MachineState.AddingBuildings)
     isAddingPassengers = $derived(this.gameState.machineState === MachineState.AddingPassengers)
     isVrooming = $derived(this.gameState.machineState === MachineState.Vrooming)
-
     canVroom = $derived.by(() => {
         return (
             this.isVrooming &&
@@ -380,4 +377,5 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         this.pendingBusLineTargetNodeId = undefined
         await this.placeBusLineSegment(segment)
     }
+
 }
