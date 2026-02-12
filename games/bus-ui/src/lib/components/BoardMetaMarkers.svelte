@@ -1,13 +1,16 @@
 <script lang="ts">
-    import { flip } from 'svelte/animate'
-    import { cubicOut } from 'svelte/easing'
     import { Color, type Point } from '@tabletop/common'
     import { BusPiecePlacementAnimator } from '$lib/animators/busPiecePlacementAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import {
+        ScoreMarkerAnimator,
+        animateScoreMarker,
+        buildScoreMarkerPlacements,
+        type ScoreMarkerPlacement
+    } from '$lib/animators/scoreMarkerAnimator.js'
+    import {
         BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR,
-        BUS_PASSENGER_SUPPLY_TEXT_POINT,
-        BUS_SCORE_TRACK_POINTS
+        BUS_PASSENGER_SUPPLY_TEXT_POINT
     } from '$lib/definitions/busBoardGraph.js'
     import BusPieceIcon from '$lib/images/BusPieceIcon.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -15,7 +18,6 @@
     const gameSession = getGameSession()
 
     const SCORE_MARKER_RADIUS = 17
-    const SCORE_MARKER_STACK_OFFSET_Y = 5
     const SCORE_MARKER_STROKE = '#1f2a3d'
     const SCORE_MARKER_STROKE_WIDTH = 1.4
     const SCORE_MARKER_TEXT_SIZE = 13
@@ -27,13 +29,7 @@
     const BUS_TABLE_PIECE_SHADOW_RY = BUS_TABLE_PIECE_HEIGHT * 0.17
     const PASSENGER_SUPPLY_FONT_SIZE = 26
 
-    type ScoreMarker = {
-        key: string
-        point: Point
-        score: number
-        textColor: string
-        fillColor: string
-    }
+    type ScoreMarker = ScoreMarkerPlacement & { textColor: string; fillColor: string }
 
     type BusesTablePiece = {
         key: string
@@ -52,6 +48,8 @@
 
     let animatedBusPiece: AnimatedBusPiece | undefined = $state()
 
+    const scoreMarkerAnimator = new ScoreMarkerAnimator(gameSession)
+
     const busPiecePlacementAnimator = new BusPiecePlacementAnimator(gameSession, {
         onStart: ({ key, x, y, color, scale, opacity }) => {
             animatedBusPiece = { key, x, y, color, scale, opacity }
@@ -69,39 +67,11 @@
 
     const scoreMarkers: ScoreMarker[] = $derived.by(() => {
         const state = gameSession.gameState
-        const playerById = new Map(state.players.map((player) => [player.playerId, player]))
-        const markers: ScoreMarker[] = []
-        const stackOffsetsByScore = new Map<number, number>()
-
-        for (const playerId of state.scoreOrder) {
-            const player = playerById.get(playerId)
-            if (!player) {
-                continue
-            }
-
-            const score = Math.max(0, Math.round(player.score))
-            const scoreIndex = Math.min(score, BUS_SCORE_TRACK_POINTS.length - 1)
-            const scorePoint = BUS_SCORE_TRACK_POINTS[scoreIndex]
-            if (!scorePoint) {
-                continue
-            }
-
-            const stackIndex = stackOffsetsByScore.get(score) ?? 0
-            stackOffsetsByScore.set(score, stackIndex + 1)
-
-            markers.push({
-                key: `score:${playerId}`,
-                point: {
-                    x: scorePoint.x,
-                    y: scorePoint.y - stackIndex * SCORE_MARKER_STACK_OFFSET_Y
-                },
-                score,
-                textColor: playerTextColor(playerId),
-                fillColor: gameSession.colors.getPlayerUiColor(playerId)
-            })
-        }
-
-        return markers
+        return buildScoreMarkerPlacements(state).map((marker) => ({
+            ...marker,
+            textColor: playerTextColor(marker.playerId),
+            fillColor: gameSession.colors.getPlayerUiColor(marker.playerId)
+        }))
     })
 
     const busesTablePieces: BusesTablePiece[] = $derived.by(() => {
@@ -178,7 +148,7 @@
 {#each scoreMarkers as marker (marker.key)}
     <g
         class="score-marker pointer-events-none"
-        animate:flip={{ duration: 360, easing: cubicOut }}
+        use:animateScoreMarker={{ animator: scoreMarkerAnimator, markerKey: marker.key }}
         transform={`translate(${marker.point.x} ${marker.point.y})`}
         aria-hidden="true"
     >
@@ -202,6 +172,7 @@
     </g>
 {/each}
 
+<g class="pointer-events-none" {@attach attachAnimator(scoreMarkerAnimator)}></g>
 <g class="pointer-events-none" {@attach attachAnimator(busPiecePlacementAnimator)}></g>
 
 {#each busesTablePieces as piece (piece.key)}

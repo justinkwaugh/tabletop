@@ -77,25 +77,36 @@ export class AddPassengersPlacementAnimator extends StateAnimator<
             pose: { ...pose }
         })
 
-        animationContext.actionTimeline.to(pose, {
-            y: point.y,
-            height: OVERSHOOT_HEIGHT,
-            duration: 0.18,
-            ease: 'back.out(2.2)',
-            onUpdate: () => {
-                this.callbacks.onUpdate({ ...pose })
-            }
-        })
+        const startAt = 0
+        const popDuration = 0.18
 
-        animationContext.actionTimeline.to(pose, {
-            y: point.y,
-            height: FINAL_HEIGHT,
-            duration: 0.16,
-            ease: 'power2.out',
-            onUpdate: () => {
-                this.callbacks.onUpdate({ ...pose })
-            }
-        })
+        animationContext.actionTimeline.to(
+            pose,
+            {
+                y: point.y,
+                height: OVERSHOOT_HEIGHT,
+                duration: popDuration,
+                ease: 'back.out(2.2)',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({ ...pose })
+                }
+            },
+            startAt
+        )
+
+        animationContext.actionTimeline.to(
+            pose,
+            {
+                y: point.y,
+                height: FINAL_HEIGHT,
+                duration: 0.16,
+                ease: 'power2.out',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({ ...pose })
+                }
+            },
+            startAt + popDuration
+        )
 
         animationContext.afterAnimations(() => {
             this.callbacks.onComplete()

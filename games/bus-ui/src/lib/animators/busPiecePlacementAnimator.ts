@@ -105,30 +105,41 @@ export class BusPiecePlacementAnimator extends StateAnimator<
             opacity: transient.opacity
         })
 
-        animationContext.actionTimeline.to(transient, {
-            scale: 1.16,
-            opacity: 1,
-            duration: 0.18,
-            ease: 'back.out(2.2)',
-            onUpdate: () => {
-                this.callbacks.onUpdate({
-                    scale: transient.scale,
-                    opacity: transient.opacity
-                })
-            }
-        })
+        const startAt = 0
+        const popDuration = 0.18
 
-        animationContext.actionTimeline.to(transient, {
-            scale: 1,
-            duration: 0.14,
-            ease: 'power2.out',
-            onUpdate: () => {
-                this.callbacks.onUpdate({
-                    scale: transient.scale,
-                    opacity: transient.opacity
-                })
-            }
-        })
+        animationContext.actionTimeline.to(
+            transient,
+            {
+                scale: 1.16,
+                opacity: 1,
+                duration: popDuration,
+                ease: 'back.out(2.2)',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({
+                        scale: transient.scale,
+                        opacity: transient.opacity
+                    })
+                }
+            },
+            startAt
+        )
+
+        animationContext.actionTimeline.to(
+            transient,
+            {
+                scale: 1,
+                duration: 0.14,
+                ease: 'power2.out',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({
+                        scale: transient.scale,
+                        opacity: transient.opacity
+                    })
+                }
+            },
+            startAt + popDuration
+        )
 
         animationContext.afterAnimations(() => {
             this.callbacks.onComplete()

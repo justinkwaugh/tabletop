@@ -1,11 +1,6 @@
 <script lang="ts">
-    import { onMount } from 'svelte'
     import { ActionType, WorkerActionType } from '@tabletop/bus'
-    import {
-        WorkerCylinderPlacementAnimator,
-        buildActionWorkerPlacements as buildActionWorkerPlacementsForState
-    } from '$lib/animators/workerCylinderPlacementAnimator.js'
-    import { WorkerCylinderRemovalAnimator } from '$lib/animators/workerCylinderRemovalAnimator.js'
+    import { WorkerCylinderAnimator } from '$lib/animators/workerCylinderAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import WorkerCylinder from './WorkerCylinder.svelte'
     import {
@@ -59,16 +54,12 @@
     let animatedRemovedWorkerCylinders: (AnimatedWorkerCylinder & {
         key: string
     })[] = $state([])
-    let hiddenRemovedPlacementKeys: string[] = $state([])
 
-    const workerCylinderPlacementAnimator = new WorkerCylinderPlacementAnimator(gameSession, {
-        onStart: ({ key, x, y, color, scale, opacity }) => {
-            hiddenRemovedPlacementKeys = hiddenRemovedPlacementKeys.filter(
-                (hiddenKey) => hiddenKey !== key
-            )
+    const workerCylinderAnimator = new WorkerCylinderAnimator(gameSession, {
+        onPlacementStart: ({ x, y, color, scale, opacity }) => {
             animatedWorkerCylinder = { x, y, color, scale, opacity }
         },
-        onUpdate: ({ scale, opacity }) => {
+        onPlacementUpdate: ({ scale, opacity }) => {
             if (!animatedWorkerCylinder) {
                 return
             }
@@ -78,22 +69,16 @@
                 opacity
             }
         },
-        onComplete: () => {
+        onPlacementComplete: () => {
             animatedWorkerCylinder = undefined
-        }
-    })
-
-    const workerCylinderRemovalAnimator = new WorkerCylinderRemovalAnimator(gameSession, {
-        onStart: ({ key, x, y, color, scale, opacity }) => {
+        },
+        onRemovalStart: ({ key, x, y, color, scale, opacity }) => {
             animatedRemovedWorkerCylinders = [
                 ...animatedRemovedWorkerCylinders,
                 { key, x, y, color, scale, opacity }
             ]
-            if (!hiddenRemovedPlacementKeys.includes(key)) {
-                hiddenRemovedPlacementKeys = [...hiddenRemovedPlacementKeys, key]
-            }
         },
-        onUpdate: ({ key, scale, opacity }) => {
+        onRemovalUpdate: ({ key, scale, opacity }) => {
             animatedRemovedWorkerCylinders = animatedRemovedWorkerCylinders.map((item) =>
                 item.key === key
                     ? {
@@ -104,33 +89,22 @@
                     : item
             )
         },
-        onComplete: (key) => {
-            animatedRemovedWorkerCylinders = animatedRemovedWorkerCylinders.filter((item) => item.key !== key)
+        onRemovalComplete: (key) => {
+            const remove = () => {
+                animatedRemovedWorkerCylinders = animatedRemovedWorkerCylinders.filter(
+                    (item) => item.key !== key
+                )
+            }
+            if (typeof requestAnimationFrame === 'function') {
+                requestAnimationFrame(remove)
+                return
+            }
+            setTimeout(remove, 0)
         }
     })
 
-    onMount(() => {
-        const onGameStateChange = ({ to }: { to: any }) => {
-            if (hiddenRemovedPlacementKeys.length === 0) {
-                return
-            }
-
-            const visiblePlacementKeys = new Set(
-                buildActionWorkerPlacementsForState(to).map((placement) => placement.key)
-            )
-            const nextHiddenKeys = hiddenRemovedPlacementKeys.filter(
-                (key) => !visiblePlacementKeys.has(key)
-            )
-
-            if (nextHiddenKeys.length !== hiddenRemovedPlacementKeys.length) {
-                hiddenRemovedPlacementKeys = nextHiddenKeys
-            }
-        }
-
-        gameSession.addGameStateChangeListener(onGameStateChange)
-        return () => {
-            gameSession.removeGameStateChangeListener(onGameStateChange)
-        }
+    const animatedRemovedPlacementKeys = $derived.by(() => {
+        return new Set(animatedRemovedWorkerCylinders.map((item) => item.key))
     })
 
     const actionWorkerPlacements: ActionWorkerPlacement[] = $derived.by(() => {
@@ -469,11 +443,10 @@
     }
 </script>
 
-<g class="pointer-events-none" {@attach attachAnimator(workerCylinderPlacementAnimator)}></g>
-<g class="pointer-events-none" {@attach attachAnimator(workerCylinderRemovalAnimator)}></g>
+<g class="pointer-events-none" {@attach attachAnimator(workerCylinderAnimator)}></g>
 
 {#each actionWorkerPlacements as placement (placement.key)}
-    {#if !hiddenRemovedPlacementKeys.includes(placement.key)}
+    {#if !animatedRemovedPlacementKeys.has(placement.key)}
         <WorkerCylinder
             x={placement.point.x + ACTION_CYLINDER_X_OFFSET}
             y={placement.point.y + ACTION_CYLINDER_Y_OFFSET}

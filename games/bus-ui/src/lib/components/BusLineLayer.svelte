@@ -30,36 +30,76 @@
     let hoveredTargetNodeId = $state<BusNodeId | undefined>()
     let hoveredSourceNodeId = $state<BusNodeId | undefined>()
 
+    const canInteract = $derived.by(() => !gameSession.isViewingHistory && gameSession.canPlaceBusLine)
+    const isStartingPlacement = $derived.by(
+        () => canInteract && gameSession.myBusLineNodeIds.length === 0
+    )
+    const pendingTargetNodeId = $derived.by(() => gameSession.pendingBusLineTargetNodeId)
+
+    const effectiveHoveredStartingSegmentKey = $derived.by(() => {
+        if (!canInteract || !isStartingPlacement || !hoveredStartingSegmentKey) {
+            return undefined
+        }
+
+        return gameSession.startingBusLineSegments.some(
+            (segment) => startSegmentKey(segment) === hoveredStartingSegmentKey
+        )
+            ? hoveredStartingSegmentKey
+            : undefined
+    })
+
+    const effectiveHoveredTargetNodeId = $derived.by(() => {
+        if (!canInteract || pendingTargetNodeId || !hoveredTargetNodeId) {
+            return undefined
+        }
+
+        return gameSession.selectableBusLineTargetNodeIds.includes(hoveredTargetNodeId)
+            ? hoveredTargetNodeId
+            : undefined
+    })
+
+    const effectiveHoveredSourceNodeId = $derived.by(() => {
+        if (!canInteract || !pendingTargetNodeId || !hoveredSourceNodeId) {
+            return undefined
+        }
+
+        return gameSession.pendingBusLineSourceNodeIds.includes(hoveredSourceNodeId)
+            ? hoveredSourceNodeId
+            : undefined
+    })
+
     const previewSegment: BusLineSegment | undefined = $derived.by(() => {
-        if (gameSession.isViewingHistory || !gameSession.canPlaceBusLine) {
+        if (!canInteract) {
             return undefined
         }
 
         const lineNodeIds = gameSession.myBusLineNodeIds
         if (lineNodeIds.length === 0) {
-            if (!hoveredStartingSegmentKey) {
+            if (!effectiveHoveredStartingSegmentKey) {
                 return undefined
             }
 
             return gameSession.startingBusLineSegments.find(
-                (segment) => startSegmentKey(segment) === hoveredStartingSegmentKey
+                (segment) => startSegmentKey(segment) === effectiveHoveredStartingSegmentKey
             )
         }
 
-        const pendingTargetNodeId = gameSession.pendingBusLineTargetNodeId
         if (pendingTargetNodeId) {
-            if (!hoveredSourceNodeId) {
+            if (!effectiveHoveredSourceNodeId) {
                 return undefined
             }
 
-            return gameSession.segmentForSourceAndTargetNode(hoveredSourceNodeId, pendingTargetNodeId)
+            return gameSession.segmentForSourceAndTargetNode(
+                effectiveHoveredSourceNodeId,
+                pendingTargetNodeId
+            )
         }
 
-        if (!hoveredTargetNodeId) {
+        if (!effectiveHoveredTargetNodeId) {
             return undefined
         }
 
-        return gameSession.unambiguousSegmentForTargetNode(hoveredTargetNodeId)
+        return gameSession.unambiguousSegmentForTargetNode(effectiveHoveredTargetNodeId)
     })
 
     const previewBusLineNodeIds: BusNodeId[] | undefined = $derived.by(() => {
@@ -110,21 +150,16 @@
         return computeBusRouteRenderLayers(routeDefinitions)
     })
 
-    const canInteract = $derived.by(() => !gameSession.isViewingHistory && gameSession.canPlaceBusLine)
-    const isStartingPlacement = $derived.by(
-        () => canInteract && gameSession.myBusLineNodeIds.length === 0
-    )
-    const pendingTargetNodeId = $derived.by(() => gameSession.pendingBusLineTargetNodeId)
     const ambiguousPreviewTargetNodeId = $derived.by(() => {
         if (pendingTargetNodeId) {
             return pendingTargetNodeId
         }
 
         if (
-            hoveredTargetNodeId &&
-            gameSession.isAmbiguousBusLineTargetNode(hoveredTargetNodeId)
+            effectiveHoveredTargetNodeId &&
+            gameSession.isAmbiguousBusLineTargetNode(effectiveHoveredTargetNodeId)
         ) {
-            return hoveredTargetNodeId
+            return effectiveHoveredTargetNodeId
         }
 
         return undefined
@@ -137,7 +172,7 @@
         }
 
         // While confirming source for a chosen ambiguous target, show only the resolved single preview.
-        if (pendingTargetNodeId && hoveredSourceNodeId) {
+        if (pendingTargetNodeId && effectiveHoveredSourceNodeId) {
             return []
         }
 
@@ -199,18 +234,6 @@
         await gameSession.confirmBusLineSourceNode(sourceNodeId)
         hoveredSourceNodeId = undefined
     }
-
-    $effect(() => {
-        if (!canInteract) {
-            clearHoverState()
-        }
-    })
-
-    $effect(() => {
-        if (!pendingTargetNodeId) {
-            hoveredSourceNodeId = undefined
-        }
-    })
 </script>
 
 <svg
@@ -399,7 +422,7 @@
 
                     {#each gameSession.pendingBusLineSourceNodeIds as sourceNodeId (sourceNodeId)}
                         {@const sourcePoint = BUS_BOARD_NODE_POINTS[sourceNodeId]}
-                        {@const isSourceHovered = hoveredSourceNodeId === sourceNodeId}
+                        {@const isSourceHovered = effectiveHoveredSourceNodeId === sourceNodeId}
                         <circle
                             cx={sourcePoint.x}
                             cy={sourcePoint.y}
@@ -451,7 +474,7 @@
                     {#each gameSession.selectableBusLineTargetNodeIds as targetNodeId (targetNodeId)}
                         {@const point = BUS_BOARD_NODE_POINTS[targetNodeId]}
                         {@const isAmbiguous = gameSession.isAmbiguousBusLineTargetNode(targetNodeId)}
-                        {@const isHovered = hoveredTargetNodeId === targetNodeId}
+                        {@const isHovered = effectiveHoveredTargetNodeId === targetNodeId}
                         <circle
                             cx={point.x}
                             cy={point.y}

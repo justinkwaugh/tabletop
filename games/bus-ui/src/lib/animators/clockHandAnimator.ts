@@ -160,14 +160,18 @@ export class ClockHandAnimator extends StateAnimator<BusGameState, HydratedBusGa
         const targetAngle = fromAngle + delta
 
         this.setRotation(fromAngle)
-        animationContext.actionTimeline.to(rotation, {
-            angle: targetAngle,
-            duration: 0.42,
-            ease: 'power2.inOut',
-            onUpdate: () => {
-                this.setRotation(rotation.angle)
-            }
-        })
+        animationContext.actionTimeline.to(
+            rotation,
+            {
+                angle: targetAngle,
+                duration: 0.42,
+                ease: 'power2.inOut',
+                onUpdate: () => {
+                    this.setRotation(rotation.angle)
+                }
+            },
+            0
+        )
 
         animationContext.afterAnimations(() => {
             this.setRotation(toAngle)

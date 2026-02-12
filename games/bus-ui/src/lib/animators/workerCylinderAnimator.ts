@@ -32,10 +32,15 @@ type AnimatedWorkerCylinderState = {
     opacity: number
 }
 
-type WorkerCylinderPlacementAnimatorCallbacks = {
-    onStart: (state: AnimatedWorkerCylinderState) => void
-    onUpdate: (state: Pick<AnimatedWorkerCylinderState, 'scale' | 'opacity'>) => void
-    onComplete: () => void
+type WorkerCylinderAnimatorCallbacks = {
+    onPlacementStart: (state: AnimatedWorkerCylinderState) => void
+    onPlacementUpdate: (
+        state: Pick<AnimatedWorkerCylinderState, 'key' | 'scale' | 'opacity'>
+    ) => void
+    onPlacementComplete: (key: string) => void
+    onRemovalStart: (state: AnimatedWorkerCylinderState) => void
+    onRemovalUpdate: (state: Pick<AnimatedWorkerCylinderState, 'key' | 'scale' | 'opacity'>) => void
+    onRemovalComplete: (key: string) => void
 }
 
 export function buildActionWorkerPlacements(state: HydratedBusGameState): ActionWorkerPlacement[] {
@@ -93,14 +98,14 @@ export function buildActionWorkerPlacements(state: HydratedBusGameState): Action
     return placements
 }
 
-export class WorkerCylinderPlacementAnimator extends StateAnimator<
+export class WorkerCylinderAnimator extends StateAnimator<
     BusGameState,
     HydratedBusGameState,
     BusGameSession
 > {
     constructor(
         gameSession: BusGameSession,
-        private callbacks: WorkerCylinderPlacementAnimatorCallbacks
+        private callbacks: WorkerCylinderAnimatorCallbacks
     ) {
         super(gameSession)
     }
@@ -116,12 +121,74 @@ export class WorkerCylinderPlacementAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
-        if (!from || !action || !isChooseWorkerAction(action)) {
+        if (!from || !action) {
             return
         }
 
         const fromPlacements = buildActionWorkerPlacements(from)
         const toPlacements = buildActionWorkerPlacements(to)
+        const toPlacementKeys = new Set(toPlacements.map((placement) => placement.key))
+
+        for (const removedPlacement of fromPlacements.filter((placement) => !toPlacementKeys.has(placement.key))) {
+            const transient = {
+                key: removedPlacement.key,
+                scale: 1,
+                opacity: 1
+            }
+
+            this.callbacks.onRemovalStart({
+                key: removedPlacement.key,
+                x: removedPlacement.point.x,
+                y: removedPlacement.point.y,
+                color: this.gameSession.colors.getPlayerUiColor(removedPlacement.playerId),
+                scale: transient.scale,
+                opacity: transient.opacity
+            })
+
+            animationContext.actionTimeline.to(
+                transient,
+                {
+                    scale: 1.16,
+                    duration: 0.12,
+                    ease: 'power1.out',
+                    onUpdate: () => {
+                        this.callbacks.onRemovalUpdate({
+                            key: transient.key,
+                            scale: transient.scale,
+                            opacity: transient.opacity
+                        })
+                    }
+                },
+                0
+            )
+
+            animationContext.actionTimeline.to(
+                transient,
+                {
+                    scale: 0.2,
+                    opacity: 0,
+                    duration: 0.2,
+                    ease: 'power2.in',
+                    onUpdate: () => {
+                        this.callbacks.onRemovalUpdate({
+                            key: transient.key,
+                            scale: transient.scale,
+                            opacity: transient.opacity
+                        })
+                    }
+                },
+                0.12
+            )
+
+            animationContext.afterAnimations(() => {
+                this.callbacks.onRemovalComplete(removedPlacement.key)
+            })
+        }
+
+        if (!isChooseWorkerAction(action)) {
+            return
+        }
+
         const fromPlacementKeys = new Set(fromPlacements.map((placement) => placement.key))
 
         let newPlacement = toPlacements.find(
@@ -148,11 +215,12 @@ export class WorkerCylinderPlacementAnimator extends StateAnimator<
         }
 
         const transient = {
+            key: newPlacement.key,
             scale: 0.2,
             opacity: 0.9
         }
 
-        this.callbacks.onStart({
+        this.callbacks.onPlacementStart({
             key: newPlacement.key,
             x: newPlacement.point.x,
             y: newPlacement.point.y,
@@ -161,7 +229,6 @@ export class WorkerCylinderPlacementAnimator extends StateAnimator<
             opacity: transient.opacity
         })
 
-        const startAt = 0
         const popDuration = 0.18
 
         animationContext.actionTimeline.to(
@@ -172,13 +239,14 @@ export class WorkerCylinderPlacementAnimator extends StateAnimator<
                 duration: popDuration,
                 ease: 'back.out(2.2)',
                 onUpdate: () => {
-                    this.callbacks.onUpdate({
+                    this.callbacks.onPlacementUpdate({
+                        key: transient.key,
                         scale: transient.scale,
                         opacity: transient.opacity
                     })
                 }
             },
-            startAt
+            0
         )
 
         animationContext.actionTimeline.to(
@@ -188,17 +256,18 @@ export class WorkerCylinderPlacementAnimator extends StateAnimator<
                 duration: 0.14,
                 ease: 'power2.out',
                 onUpdate: () => {
-                    this.callbacks.onUpdate({
+                    this.callbacks.onPlacementUpdate({
+                        key: transient.key,
                         scale: transient.scale,
                         opacity: transient.opacity
                     })
                 }
             },
-            startAt + popDuration
+            popDuration
         )
 
         animationContext.afterAnimations(() => {
-            this.callbacks.onComplete()
+            this.callbacks.onPlacementComplete(newPlacement.key)
         })
     }
 }
