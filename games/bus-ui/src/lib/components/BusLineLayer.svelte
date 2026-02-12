@@ -8,6 +8,8 @@
         type BusRouteDefinition,
         type RouteRenderLayer
     } from '$lib/definitions/busLineRender.js'
+    import { BusLinePlacementRenderAnimator } from '$lib/animators/busLinePlacementRenderAnimator.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import type { BusGameSession } from '$lib/model/session.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -29,6 +31,12 @@
     let hoveredStartingSegmentKey = $state<string | undefined>()
     let hoveredTargetNodeId = $state<BusNodeId | undefined>()
     let hoveredSourceNodeId = $state<BusNodeId | undefined>()
+    let animatedBusLineOverrides: Map<string, BusNodeId[]> | undefined = $derived.by(() => {
+        // Writable derived override: can be assigned pre-state-change by animator,
+        // then automatically resets when gameState reactively updates.
+        gameSession.gameState
+        return undefined
+    })
 
     const canInteract = $derived.by(() => !gameSession.isViewingHistory && gameSession.canPlaceBusLine)
     const isStartingPlacement = $derived.by(
@@ -115,18 +123,28 @@
         return previewLine
     })
 
-    function buildRouteDefinitions(myPreviewLineNodeIds?: BusNodeId[]): BusRouteDefinition[] {
+    const busLinePlacementRenderAnimator = new BusLinePlacementRenderAnimator(gameSession, {
+        onStart: (overrides) => {
+            animatedBusLineOverrides = overrides
+        }
+    })
+
+    function buildRouteDefinitions(
+        myPreviewLineNodeIds?: BusNodeId[],
+        playerLineOverrides?: ReadonlyMap<string, BusNodeId[]>
+    ): BusRouteDefinition[] {
         const routes: BusRouteDefinition[] = []
         const previewPlayerId = gameSession.myPlayer?.id
 
         for (const playerState of gameSession.gameState.players) {
             const playerId = playerState.playerId
             const nodeIds: BusNodeId[] =
-                myPreviewLineNodeIds && previewPlayerId === playerId
+                playerLineOverrides?.get(playerId) ??
+                (myPreviewLineNodeIds && previewPlayerId === playerId
                     ? myPreviewLineNodeIds
                     : playerState.busLine.every(isBusNodeId)
                       ? [...playerState.busLine]
-                      : []
+                      : [])
 
             if (nodeIds.length < 2) {
                 continue
@@ -143,6 +161,9 @@
     }
 
     const routeDefinitions: BusRouteDefinition[] = $derived.by(() => {
+        if (animatedBusLineOverrides) {
+            return buildRouteDefinitions(undefined, animatedBusLineOverrides)
+        }
         return buildRouteDefinitions(previewBusLineNodeIds)
     })
 
@@ -241,6 +262,7 @@
     viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
     aria-label="Bus lines"
 >
+    <g class="pointer-events-none" {@attach attachAnimator(busLinePlacementRenderAnimator)}></g>
     <g class="pointer-events-none" aria-hidden="true">
         {#each routeRenderLayers as layer (layer.id)}
             {#each layer.segments as segment (`${segment.key}:outline`)}
