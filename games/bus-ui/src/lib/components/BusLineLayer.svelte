@@ -31,7 +31,7 @@
     let hoveredSourceNodeId = $state<BusNodeId | undefined>()
 
     const previewSegment: BusLineSegment | undefined = $derived.by(() => {
-        if (!gameSession.canPlaceBusLine) {
+        if (gameSession.isViewingHistory || !gameSession.canPlaceBusLine) {
             return undefined
         }
 
@@ -110,7 +110,7 @@
         return computeBusRouteRenderLayers(routeDefinitions)
     })
 
-    const canInteract = $derived.by(() => gameSession.canPlaceBusLine)
+    const canInteract = $derived.by(() => !gameSession.isViewingHistory && gameSession.canPlaceBusLine)
     const isStartingPlacement = $derived.by(
         () => canInteract && gameSession.myBusLineNodeIds.length === 0
     )

@@ -6,6 +6,7 @@
         ClockHandAnimator,
         clockHandRotationDegreesForLocation
     } from '$lib/animators/clockHandAnimator.js'
+    import { TimeStoneSelectionAnimator } from '$lib/animators/timeStoneSelectionAnimator.js'
     import {
         BUS_CLOCK_CENTER_POINT,
         BUS_TIME_STONE_BLUE_POINTS,
@@ -96,6 +97,41 @@
     ]
 
     const clockHandAnimator = new ClockHandAnimator(gameSession, CLOCK_HAND_GEOMETRY)
+    let animatedTimeStone:
+        | {
+              key: TimeStoneKey
+              point: { x: number; y: number }
+              spriteHref: string
+              scale: number
+              yOffset: number
+              opacity: number
+          }
+        | undefined = $state()
+
+    const timeStoneSelectionAnimator = new TimeStoneSelectionAnimator(
+        gameSession,
+        TIME_STONE_RENDER_ORDER,
+        TIME_STONE_CLICK_PRIORITY,
+        {
+            onStart: (stone) => {
+                animatedTimeStone = { ...stone }
+            },
+            onUpdate: ({ scale, yOffset, opacity }) => {
+                if (!animatedTimeStone) {
+                    return
+                }
+                animatedTimeStone = {
+                    ...animatedTimeStone,
+                    scale,
+                    yOffset,
+                    opacity
+                }
+            },
+            onComplete: () => {
+                animatedTimeStone = undefined
+            }
+        }
+    )
 
     const visibleTimeStones: TimeStoneRender[] = $derived.by(() => {
         const stoneCount = Math.max(
@@ -107,6 +143,7 @@
 
     const canStopTimeFromStone = $derived.by(() => {
         return (
+            !gameSession.isViewingHistory &&
             gameSession.isMyTurn &&
             gameSession.gameState.machineState === MachineState.TimeMachine &&
             gameSession.validActionTypes.includes(ActionType.StopTime) &&
@@ -216,42 +253,64 @@
 {#each visibleTimeStones as stone (stone.key)}
     {@const isSelectable = canStopTimeFromStone && selectableTimeStoneKey === stone.key}
     {@const shouldMask = canStopTimeFromStone && !isSelectable}
-    <image
-        class="pointer-events-none"
-        href={stone.spriteHref}
-        x={stone.point.x - TIME_STONE_HALF_SIZE}
-        y={stone.point.y - TIME_STONE_HALF_SIZE}
-        width={TIME_STONE_SIZE}
-        height={TIME_STONE_SIZE}
-        aria-hidden="true"
-    ></image>
-    {#if shouldMask}
-        <circle
+    {@const isAnimatedStone = animatedTimeStone?.key === stone.key}
+    {#if !isAnimatedStone}
+        <image
             class="pointer-events-none"
-            cx={stone.point.x}
-            cy={stone.point.y}
-            r={TIME_STONE_MASK_RADIUS}
-            fill="#000000"
-            opacity={TIME_STONE_MASK_OPACITY}
+            href={stone.spriteHref}
+            x={stone.point.x - TIME_STONE_HALF_SIZE}
+            y={stone.point.y - TIME_STONE_HALF_SIZE}
+            width={TIME_STONE_SIZE}
+            height={TIME_STONE_SIZE}
             aria-hidden="true"
-        ></circle>
-    {/if}
-    {#if isSelectable}
-        <circle
-            class="time-stone-hit cursor-pointer"
-            cx={stone.point.x}
-            cy={stone.point.y}
-            r={TIME_STONE_HIT_RADIUS}
-            fill="transparent"
-            role="button"
-            tabindex="0"
-            aria-label="Stop time"
-            onkeydown={(event) =>
-                handleActivateFromKeyboard(event, () => handleTimeStoneChoose(stone.key))}
-            onclick={() => handleTimeStoneChoose(stone.key)}
-        ></circle>
+        ></image>
+        {#if shouldMask}
+            <circle
+                class="pointer-events-none"
+                cx={stone.point.x}
+                cy={stone.point.y}
+                r={TIME_STONE_MASK_RADIUS}
+                fill="#000000"
+                opacity={TIME_STONE_MASK_OPACITY}
+                aria-hidden="true"
+            ></circle>
+        {/if}
+        {#if isSelectable}
+            <circle
+                class="time-stone-hit cursor-pointer"
+                cx={stone.point.x}
+                cy={stone.point.y}
+                r={TIME_STONE_HIT_RADIUS}
+                fill="transparent"
+                role="button"
+                tabindex="0"
+                aria-label="Stop time"
+                onkeydown={(event) =>
+                    handleActivateFromKeyboard(event, () => handleTimeStoneChoose(stone.key))}
+                onclick={() => handleTimeStoneChoose(stone.key)}
+            ></circle>
+        {/if}
     {/if}
 {/each}
+
+{#if animatedTimeStone}
+    <g
+        class="pointer-events-none"
+        transform={`translate(${animatedTimeStone.point.x} ${animatedTimeStone.point.y + animatedTimeStone.yOffset}) scale(${animatedTimeStone.scale})`}
+        aria-hidden="true"
+    >
+        <image
+            href={animatedTimeStone.spriteHref}
+            x={-TIME_STONE_HALF_SIZE}
+            y={-TIME_STONE_HALF_SIZE}
+            width={TIME_STONE_SIZE}
+            height={TIME_STONE_SIZE}
+            opacity={animatedTimeStone.opacity}
+        ></image>
+    </g>
+{/if}
+
+<g class="pointer-events-none" {@attach attachAnimator(timeStoneSelectionAnimator)}></g>
 
 <g
     {@attach attachAnimator(clockHandAnimator)}

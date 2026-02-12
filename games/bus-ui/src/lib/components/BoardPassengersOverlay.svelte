@@ -74,6 +74,10 @@
     })
 
     const highlightedBuildingSiteIds: BuildingSiteId[] = $derived.by(() => {
+        if (gameSession.isViewingHistory) {
+            return []
+        }
+
         if (!gameSession.isInitialBuildingPlacement && !gameSession.isAddingBuildings) {
             return []
         }
@@ -101,6 +105,7 @@
 
     const highlightedPassengerStationIds: BusStationId[] = $derived.by(() => {
         if (
+            gameSession.isViewingHistory ||
             !gameSession.isMyTurn ||
             !gameSession.validActionTypes.includes(ActionType.AddPassengers)
         ) {
@@ -118,6 +123,9 @@
     })
 
     const highlightedVroomSourceNodeIds: BusNodeId[] = $derived.by(() => {
+        if (gameSession.isViewingHistory) {
+            return []
+        }
         if (chosenVroomSourceNodeId) {
             return []
         }
@@ -125,6 +133,9 @@
     })
 
     const highlightedVroomDestinationSiteIds: BuildingSiteId[] = $derived.by(() => {
+        if (gameSession.isViewingHistory) {
+            return []
+        }
         if (!chosenVroomSourceNodeId) {
             return []
         }
@@ -132,11 +143,15 @@
     })
 
     const isChoosingVroomSourcePassenger = $derived.by(() => {
-        return gameSession.canVroom && highlightedVroomSourceNodeIds.length > 0
+        return (
+            !gameSession.isViewingHistory &&
+            gameSession.canVroom &&
+            highlightedVroomSourceNodeIds.length > 0
+        )
     })
 
     const shouldMaskUnselectedVroomPassengers = $derived.by(() => {
-        return isChoosingVroomSourcePassenger || !!chosenVroomSourceNodeId
+        return !gameSession.isViewingHistory && (isChoosingVroomSourcePassenger || !!chosenVroomSourceNodeId)
     })
 
     function handleBuildingSiteChoose(siteId: BuildingSiteId) {

@@ -46,7 +46,7 @@
             case MachineState.AddingPassengers:
                 return 'Choose a train station...'
             case MachineState.TimeMachine:
-                return 'Take a time stone'
+                return 'Use a time stone'
             case MachineState.Vrooming:
                 return 'Choose a passenger to deliver...'
             default:

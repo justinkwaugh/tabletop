@@ -85,10 +85,10 @@
             <BoardPassengersOverlay />
         </svg>
 
-        {#if chosenBuildingSiteId}
+        {#if chosenBuildingSiteId && !gameSession.isViewingHistory}
             <BuildingTypePicker />
         {/if}
-        {#if chosenPassengerStationId}
+        {#if chosenPassengerStationId && !gameSession.isViewingHistory}
             <AddPassengersPicker />
         {/if}
     </div>

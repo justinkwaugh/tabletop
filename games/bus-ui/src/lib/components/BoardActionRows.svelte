@@ -129,6 +129,7 @@
 
     const availableActionSpotHighlights: ActionSpotHighlight[] = $derived.by(() => {
         if (
+            gameSession.isViewingHistory ||
             !gameSession.isMyTurn ||
             !gameSession.validActionTypes.includes(ActionType.ChooseWorkerAction)
         ) {
