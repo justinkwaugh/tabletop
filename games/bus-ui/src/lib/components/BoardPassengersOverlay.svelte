@@ -10,6 +10,8 @@
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
     import Passenger from './Passenger.svelte'
     import StationSelectionHighlight from './StationSelectionHighlight.svelte'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import { PassengerDeliveryAnimator } from '$lib/animators/passengerDeliveryAnimator.js'
     import { BUS_BOARD_NODE_POINTS, BUS_BUILDING_SITE_POINTS } from '$lib/definitions/busBoardGraph.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -26,7 +28,32 @@
         siteId: BuildingSiteId
     }
 
+    type PassengerPose = {
+        x: number
+        y: number
+        height: number
+    }
+
     let hoveredVroomSourceNodeId: BusNodeId | undefined = $state()
+    let animatedPassengerPose: PassengerPose | undefined = $state()
+    let animatedPassengerSourceNodeId: BusNodeId | undefined = $state()
+    let animatedPassengerDestinationSiteId: BuildingSiteId | undefined = $state()
+
+    const passengerDeliveryAnimator = new PassengerDeliveryAnimator(gameSession, {
+        onStart: ({ sourceNodeId, destinationSiteId, pose }) => {
+            animatedPassengerSourceNodeId = sourceNodeId
+            animatedPassengerDestinationSiteId = destinationSiteId
+            animatedPassengerPose = { ...pose }
+        },
+        onUpdate: (pose) => {
+            animatedPassengerPose = { ...pose }
+        },
+        onComplete: () => {
+            animatedPassengerPose = undefined
+            animatedPassengerSourceNodeId = undefined
+            animatedPassengerDestinationSiteId = undefined
+        }
+    })
 
     const passengersByNodeId = $derived.by(() => {
         return gameSession.gameState.board.passengersByNode()
@@ -149,6 +176,8 @@
     />
 {/each}
 
+<g class="pointer-events-none" {@attach attachAnimator(passengerDeliveryAnimator)}></g>
+
 {#each Object.entries(passengersByNodeId) as [nodeId, passengers] (nodeId)}
     {@const typedNodeId = nodeId as BusNodeId}
     {@const point = BUS_BOARD_NODE_POINTS[typedNodeId]}
@@ -158,16 +187,24 @@
         isSelectableVroomSource &&
         !isChosenVroomSource &&
         hoveredVroomSourceNodeId === typedNodeId}
+    {@const animatedPassengerCount =
+        animatedPassengerPose && animatedPassengerSourceNodeId === typedNodeId
+            ? Math.max(0, passengers.length - 1)
+            : passengers.length}
     {@const shouldMaskForVroom =
         shouldMaskUnselectedVroomPassengers &&
         !(isSelectableVroomSource || isChosenVroomSource)}
-    <Passenger
-        x={point.x}
-        y={point.y}
-        height={isHoveredSelectableVroomSource ? VROOM_SOURCE_HOVER_PASSENGER_HEIGHT : NODE_PASSENGER_HEIGHT}
-        count={passengers.length}
-        maskOpacity={shouldMaskForVroom ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY : 0}
-    />
+    {#if animatedPassengerCount > 0}
+        <Passenger
+            x={point.x}
+            y={point.y}
+            height={isHoveredSelectableVroomSource
+                ? VROOM_SOURCE_HOVER_PASSENGER_HEIGHT
+                : NODE_PASSENGER_HEIGHT}
+            count={animatedPassengerCount}
+            maskOpacity={shouldMaskForVroom ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY : 0}
+        />
+    {/if}
     {#if isChoosingVroomSourcePassenger && (isSelectableVroomSource || isChosenVroomSource)}
         <circle
             cx={point.x}
@@ -193,10 +230,15 @@
 
 {#each passengersAtSite as passenger (passenger.id)}
     {@const point = BUS_BUILDING_SITE_POINTS[passenger.siteId]}
-    <Passenger
-        x={point.x}
-        y={point.y}
-        height={SITE_PASSENGER_HEIGHT}
-        maskOpacity={shouldMaskUnselectedVroomPassengers ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY : 0}
-    />
+    {#if !(animatedPassengerPose && passenger.siteId === animatedPassengerDestinationSiteId)}
+        <Passenger x={point.x} y={point.y} height={SITE_PASSENGER_HEIGHT} />
+    {/if}
 {/each}
+
+{#if animatedPassengerPose}
+    <Passenger
+        x={animatedPassengerPose.x}
+        y={animatedPassengerPose.y}
+        height={animatedPassengerPose.height}
+    />
+{/if}
