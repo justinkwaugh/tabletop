@@ -3,6 +3,7 @@ import type { GameAction } from '@tabletop/common'
 import {
     BuildingType,
     isRotateTime,
+    isStopTime,
     type BusGameState,
     type HydratedBusGameState
 } from '@tabletop/bus'
@@ -52,7 +53,96 @@ export class ClockHandAnimator extends StateAnimator<BusGameState, HydratedBusGa
         action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
-        if (!this.element || !from || !action || !isRotateTime(action)) {
+        if (!this.element || !from || !action) {
+            return
+        }
+
+        if (isStopTime(action)) {
+            const fromAngle = clockHandRotationDegreesForLocation(from.currentLocation)
+            const halfwayAngle = fromAngle + 60
+            const wiggleDelta = 7
+            const rotation = { angle: fromAngle }
+            const startAt = 0
+            const toHalfDuration = 0.24
+            const wiggleOneDuration = 0.07
+            const wiggleTwoDuration = 0.08
+            const wiggleThreeDuration = 0.06
+            const returnDuration = 0.22
+
+            this.setRotation(fromAngle)
+
+            animationContext.actionTimeline.to(
+                rotation,
+                {
+                    angle: halfwayAngle,
+                    duration: toHalfDuration,
+                    ease: 'power2.out',
+                    onUpdate: () => {
+                        this.setRotation(rotation.angle)
+                    }
+                },
+                startAt
+            )
+
+            animationContext.actionTimeline.to(
+                rotation,
+                {
+                    angle: halfwayAngle + wiggleDelta,
+                    duration: wiggleOneDuration,
+                    ease: 'power1.inOut',
+                    onUpdate: () => {
+                        this.setRotation(rotation.angle)
+                    }
+                },
+                startAt + toHalfDuration
+            )
+
+            animationContext.actionTimeline.to(
+                rotation,
+                {
+                    angle: halfwayAngle - wiggleDelta * 0.85,
+                    duration: wiggleTwoDuration,
+                    ease: 'power1.inOut',
+                    onUpdate: () => {
+                        this.setRotation(rotation.angle)
+                    }
+                },
+                startAt + toHalfDuration + wiggleOneDuration
+            )
+
+            animationContext.actionTimeline.to(
+                rotation,
+                {
+                    angle: halfwayAngle + wiggleDelta * 0.35,
+                    duration: wiggleThreeDuration,
+                    ease: 'power1.inOut',
+                    onUpdate: () => {
+                        this.setRotation(rotation.angle)
+                    }
+                },
+                startAt + toHalfDuration + wiggleOneDuration + wiggleTwoDuration
+            )
+
+            animationContext.actionTimeline.to(
+                rotation,
+                {
+                    angle: fromAngle,
+                    duration: returnDuration,
+                    ease: 'power2.inOut',
+                    onUpdate: () => {
+                        this.setRotation(rotation.angle)
+                    }
+                },
+                startAt + toHalfDuration + wiggleOneDuration + wiggleTwoDuration + wiggleThreeDuration
+            )
+
+            animationContext.afterAnimations(() => {
+                this.setRotation(fromAngle)
+            })
+            return
+        }
+
+        if (!isRotateTime(action)) {
             return
         }
 

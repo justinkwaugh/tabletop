@@ -24,6 +24,7 @@ import { StateAnimator } from './stateAnimator.js'
 import type { BusGameSession } from '$lib/model/session.svelte.js'
 
 type AnimatedWorkerCylinderState = {
+    key: string
     x: number
     y: number
     color: string
@@ -37,7 +38,7 @@ type WorkerCylinderPlacementAnimatorCallbacks = {
     onComplete: () => void
 }
 
-function buildActionWorkerPlacements(state: HydratedBusGameState): ActionWorkerPlacement[] {
+export function buildActionWorkerPlacements(state: HydratedBusGameState): ActionWorkerPlacement[] {
     const placements: ActionWorkerPlacement[] = []
 
     pushQueuePlacements(
@@ -152,6 +153,7 @@ export class WorkerCylinderPlacementAnimator extends StateAnimator<
         }
 
         this.callbacks.onStart({
+            key: newPlacement.key,
             x: newPlacement.point.x,
             y: newPlacement.point.y,
             color: this.gameSession.colors.getPlayerUiColor(action.playerId),
@@ -159,30 +161,41 @@ export class WorkerCylinderPlacementAnimator extends StateAnimator<
             opacity: transient.opacity
         })
 
-        animationContext.actionTimeline.to(transient, {
-            scale: 1.16,
-            opacity: 1,
-            duration: 0.18,
-            ease: 'back.out(2.2)',
-            onUpdate: () => {
-                this.callbacks.onUpdate({
-                    scale: transient.scale,
-                    opacity: transient.opacity
-                })
-            }
-        })
+        const startAt = 0
+        const popDuration = 0.18
 
-        animationContext.actionTimeline.to(transient, {
-            scale: 1,
-            duration: 0.14,
-            ease: 'power2.out',
-            onUpdate: () => {
-                this.callbacks.onUpdate({
-                    scale: transient.scale,
-                    opacity: transient.opacity
-                })
-            }
-        })
+        animationContext.actionTimeline.to(
+            transient,
+            {
+                scale: 1.16,
+                opacity: 1,
+                duration: popDuration,
+                ease: 'back.out(2.2)',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({
+                        scale: transient.scale,
+                        opacity: transient.opacity
+                    })
+                }
+            },
+            startAt
+        )
+
+        animationContext.actionTimeline.to(
+            transient,
+            {
+                scale: 1,
+                duration: 0.14,
+                ease: 'power2.out',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({
+                        scale: transient.scale,
+                        opacity: transient.opacity
+                    })
+                }
+            },
+            startAt + popDuration
+        )
 
         animationContext.afterAnimations(() => {
             this.callbacks.onComplete()

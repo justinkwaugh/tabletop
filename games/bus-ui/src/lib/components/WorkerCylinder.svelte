@@ -22,17 +22,18 @@
     const topY = $derived(-height / 2 + topRy)
     const bottomY = $derived(height / 2 - topRy)
     const bodyHeight = $derived(bottomY - topY)
-    const stroke = $derived(color)
+    const stroke = $derived(mixHex(color, '#000000', 0.24))
     const topColor = $derived(mixHex(color, '#ffffff', 0.24))
     const topInnerInset = $derived(Math.max(1.8, width * 0.08))
     const topInnerRx = $derived(Math.max(1, rx - topInnerInset))
     const topInnerRy = $derived(Math.max(1, topRy - topInnerInset * 0.45))
     const baseCoverRx = $derived(rx + 0.8)
     const baseCoverRy = $derived(topRy + 0.35)
-    const rimStrokeWidth = 1.6
+    const rimStrokeWidth = 1.1
     const sideAndBottomOutlinePath = $derived(
-        `M ${-rx} ${topY} L ${-rx} ${bottomY} A ${rx} ${topRy} 0 0 1 ${rx} ${bottomY} L ${rx} ${topY}`
+        `M ${-rx} ${topY} L ${-rx} ${bottomY} A ${rx} ${topRy} 0 0 0 ${rx} ${bottomY} L ${rx} ${topY}`
     )
+    const topOutlinePath = $derived(`M ${-rx} ${topY} A ${rx} ${topRy} 0 0 0 ${rx} ${topY}`)
 
     function clamp255(value: number): number {
         return Math.max(0, Math.min(255, Math.round(value)))
@@ -88,6 +89,7 @@
         fill={color}
     />
     <path d={sideAndBottomOutlinePath} fill="none" stroke={stroke} stroke-width={rimStrokeWidth} />
-    <ellipse cx="0" cy={topY} rx={rx} ry={topRy} fill={color} stroke={stroke} stroke-width={rimStrokeWidth} />
+    <ellipse cx="0" cy={topY} rx={rx} ry={topRy} fill={color} />
+    <path d={topOutlinePath} fill="none" stroke={stroke} stroke-width={rimStrokeWidth} />
     <ellipse cx="0" cy={topY} rx={topInnerRx} ry={topInnerRy} fill={topColor} />
 </g>

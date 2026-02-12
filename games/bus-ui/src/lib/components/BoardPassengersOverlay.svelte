@@ -10,6 +10,7 @@
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
     import Passenger from './Passenger.svelte'
     import StationSelectionHighlight from './StationSelectionHighlight.svelte'
+    import { AddPassengersPlacementAnimator } from '$lib/animators/addPassengersPlacementAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { PassengerDeliveryAnimator } from '$lib/animators/passengerDeliveryAnimator.js'
     import { BUS_BOARD_NODE_POINTS, BUS_BUILDING_SITE_POINTS } from '$lib/definitions/busBoardGraph.js'
@@ -38,6 +39,9 @@
     let animatedPassengerPose: PassengerPose | undefined = $state()
     let animatedPassengerSourceNodeId: BusNodeId | undefined = $state()
     let animatedPassengerDestinationSiteId: BuildingSiteId | undefined = $state()
+    let animatedAddedPassengersPose: PassengerPose | undefined = $state()
+    let animatedAddedPassengersNodeId: BusNodeId | undefined = $state()
+    let animatedAddedPassengersCount: number | undefined = $state()
 
     const passengerDeliveryAnimator = new PassengerDeliveryAnimator(gameSession, {
         onStart: ({ sourceNodeId, destinationSiteId, pose }) => {
@@ -52,6 +56,22 @@
             animatedPassengerPose = undefined
             animatedPassengerSourceNodeId = undefined
             animatedPassengerDestinationSiteId = undefined
+        }
+    })
+
+    const addPassengersPlacementAnimator = new AddPassengersPlacementAnimator(gameSession, {
+        onStart: ({ nodeId, count, pose }) => {
+            animatedAddedPassengersNodeId = nodeId
+            animatedAddedPassengersCount = count
+            animatedAddedPassengersPose = { ...pose }
+        },
+        onUpdate: (pose) => {
+            animatedAddedPassengersPose = { ...pose }
+        },
+        onComplete: () => {
+            animatedAddedPassengersPose = undefined
+            animatedAddedPassengersNodeId = undefined
+            animatedAddedPassengersCount = undefined
         }
     })
 
@@ -200,6 +220,7 @@
 {/each}
 
 <g class="pointer-events-none" {@attach attachAnimator(passengerDeliveryAnimator)}></g>
+<g class="pointer-events-none" {@attach attachAnimator(addPassengersPlacementAnimator)}></g>
 
 {#each Object.entries(passengersByNodeId) as [nodeId, passengers] (nodeId)}
     {@const typedNodeId = nodeId as BusNodeId}
@@ -210,10 +231,14 @@
         isSelectableVroomSource &&
         !isChosenVroomSource &&
         hoveredVroomSourceNodeId === typedNodeId}
-    {@const animatedPassengerCount =
+    {@const deliveryAdjustedPassengerCount =
         animatedPassengerPose && animatedPassengerSourceNodeId === typedNodeId
             ? Math.max(0, passengers.length - 1)
             : passengers.length}
+    {@const animatedPassengerCount =
+        animatedAddedPassengersPose && animatedAddedPassengersNodeId === typedNodeId
+            ? 0
+            : deliveryAdjustedPassengerCount}
     {@const shouldMaskForVroom =
         shouldMaskUnselectedVroomPassengers &&
         !(isSelectableVroomSource || isChosenVroomSource)}
@@ -263,6 +288,15 @@
         x={animatedPassengerPose.x}
         y={animatedPassengerPose.y}
         height={animatedPassengerPose.height}
+    />
+{/if}
+
+{#if animatedAddedPassengersPose && animatedAddedPassengersNodeId && animatedAddedPassengersCount}
+    <Passenger
+        x={animatedAddedPassengersPose.x}
+        y={animatedAddedPassengersPose.y}
+        height={animatedAddedPassengersPose.height}
+        count={animatedAddedPassengersCount}
     />
 {/if}
 

@@ -89,7 +89,11 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
             ...transient
         })
 
-        animationContext.actionTimeline.to(transient, {
+        const startAt = 0
+
+        animationContext.actionTimeline.to(
+            transient,
+            {
             scale: PRESS_SCALE,
             yOffset: PRESS_Y_OFFSET,
             duration: PRESS_DURATION,
@@ -101,23 +105,27 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
                     opacity: transient.opacity
                 })
             }
-        })
+            },
+            startAt
+        )
 
-        animationContext.actionTimeline.to({}, { duration: PRESS_PAUSE_DURATION })
-
-        animationContext.actionTimeline.to(transient, {
-            scale: 0,
-            opacity: 0,
-            duration: SHRINK_DURATION,
-            ease: 'power2.in',
-            onUpdate: () => {
-                this.callbacks.onUpdate({
-                    scale: transient.scale,
-                    yOffset: transient.yOffset,
-                    opacity: transient.opacity
-                })
-            }
-        })
+        animationContext.actionTimeline.to(
+            transient,
+            {
+                scale: 0,
+                opacity: 0,
+                duration: SHRINK_DURATION,
+                ease: 'power2.in',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({
+                        scale: transient.scale,
+                        yOffset: transient.yOffset,
+                        opacity: transient.opacity
+                    })
+                }
+            },
+            startAt + PRESS_DURATION + PRESS_PAUSE_DURATION
+        )
 
         animationContext.afterAnimations(() => {
             this.callbacks.onComplete()

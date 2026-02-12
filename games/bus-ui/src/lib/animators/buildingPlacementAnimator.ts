@@ -52,23 +52,34 @@ export class BuildingPlacementAnimator extends StateAnimator<
             scale: INITIAL_SCALE
         })
 
-        animationContext.actionTimeline.to(scaleState, {
-            scale: POP_OVERSHOOT_SCALE,
-            duration: 0.18,
-            ease: 'back.out(2.2)',
-            onUpdate: () => {
-                this.callbacks.onUpdate(scaleState.scale)
-            }
-        })
+        const startAt = 0
+        const popDuration = 0.18
 
-        animationContext.actionTimeline.to(scaleState, {
-            scale: 1,
-            duration: 0.14,
-            ease: 'power2.out',
-            onUpdate: () => {
-                this.callbacks.onUpdate(scaleState.scale)
-            }
-        })
+        animationContext.actionTimeline.to(
+            scaleState,
+            {
+                scale: POP_OVERSHOOT_SCALE,
+                duration: popDuration,
+                ease: 'back.out(2.2)',
+                onUpdate: () => {
+                    this.callbacks.onUpdate(scaleState.scale)
+                }
+            },
+            startAt
+        )
+
+        animationContext.actionTimeline.to(
+            scaleState,
+            {
+                scale: 1,
+                duration: 0.14,
+                ease: 'power2.out',
+                onUpdate: () => {
+                    this.callbacks.onUpdate(scaleState.scale)
+                }
+            },
+            startAt + popDuration
+        )
 
         animationContext.afterAnimations(() => {
             this.callbacks.onComplete()

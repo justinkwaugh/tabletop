@@ -105,33 +105,43 @@ export class PassengerDeliveryAnimator extends StateAnimator<
             pose: { ...pose }
         })
 
+        const startAt = 0
+        let nodeTravelDuration = 0
         const nodeWaypoints = nodePoints.slice(1)
         if (nodeWaypoints.length > 0) {
-            const nodeTravelDuration = nodeWaypoints.length * NODE_TRAVEL_DURATION_PER_HOP
-            animationContext.actionTimeline.to(pose, {
-                motionPath: {
-                    path: nodeWaypoints,
-                    curviness: 1
+            nodeTravelDuration = nodeWaypoints.length * NODE_TRAVEL_DURATION_PER_HOP
+            animationContext.actionTimeline.to(
+                pose,
+                {
+                    motionPath: {
+                        path: nodeWaypoints,
+                        curviness: 1
+                    },
+                    height: NODE_PASSENGER_HEIGHT,
+                    duration: nodeTravelDuration,
+                    ease: 'power2.inOut',
+                    onUpdate: () => {
+                        this.callbacks.onUpdate({ ...pose })
+                    }
                 },
-                height: NODE_PASSENGER_HEIGHT,
-                duration: nodeTravelDuration,
+                startAt
+            )
+        }
+
+        animationContext.actionTimeline.to(
+            pose,
+            {
+                x: destinationSitePoint.x,
+                y: destinationSitePoint.y,
+                height: SITE_PASSENGER_HEIGHT,
+                duration: FINAL_HOP_DURATION,
                 ease: 'power2.inOut',
                 onUpdate: () => {
                     this.callbacks.onUpdate({ ...pose })
                 }
-            })
-        }
-
-        animationContext.actionTimeline.to(pose, {
-            x: destinationSitePoint.x,
-            y: destinationSitePoint.y,
-            height: SITE_PASSENGER_HEIGHT,
-            duration: FINAL_HOP_DURATION,
-            ease: 'power2.inOut',
-            onUpdate: () => {
-                this.callbacks.onUpdate({ ...pose })
-            }
-        })
+            },
+            startAt + nodeTravelDuration
+        )
 
         animationContext.afterAnimations(() => {
             this.callbacks.onComplete()

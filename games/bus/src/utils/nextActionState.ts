@@ -29,7 +29,7 @@ export function getNextActionState(state: HydratedBusGameState): MachineState {
                 break
             }
             case MachineState.AddingPassengers: {
-                if (state.passengersAction) {
+                if (state.passengersAction.length > 0) {
                     return MachineState.AddingPassengers
                 }
                 break

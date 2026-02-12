@@ -1,5 +1,9 @@
 <script lang="ts">
+    import { flip } from 'svelte/animate'
+    import { cubicOut } from 'svelte/easing'
     import { Color, type Point } from '@tabletop/common'
+    import { BusPiecePlacementAnimator } from '$lib/animators/busPiecePlacementAnimator.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import {
         BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR,
         BUS_PASSENGER_SUPPLY_TEXT_POINT,
@@ -36,6 +40,32 @@
         point: Point
         color: string
     }
+
+    type AnimatedBusPiece = {
+        key: string
+        x: number
+        y: number
+        color: string
+        scale: number
+        opacity: number
+    }
+
+    let animatedBusPiece: AnimatedBusPiece | undefined = $state()
+
+    const busPiecePlacementAnimator = new BusPiecePlacementAnimator(gameSession, {
+        onStart: ({ key, x, y, color, scale, opacity }) => {
+            animatedBusPiece = { key, x, y, color, scale, opacity }
+        },
+        onUpdate: ({ scale, opacity }) => {
+            if (!animatedBusPiece) {
+                return
+            }
+            animatedBusPiece = { ...animatedBusPiece, scale, opacity }
+        },
+        onComplete: () => {
+            animatedBusPiece = undefined
+        }
+    })
 
     const scoreMarkers: ScoreMarker[] = $derived.by(() => {
         const state = gameSession.gameState
@@ -148,7 +178,8 @@
 {#each scoreMarkers as marker (marker.key)}
     <g
         class="score-marker pointer-events-none"
-        style="transform: translate({marker.point.x}px, {marker.point.y}px);"
+        animate:flip={{ duration: 360, easing: cubicOut }}
+        transform={`translate(${marker.point.x} ${marker.point.y})`}
         aria-hidden="true"
     >
         <circle
@@ -171,24 +202,53 @@
     </g>
 {/each}
 
+<g class="pointer-events-none" {@attach attachAnimator(busPiecePlacementAnimator)}></g>
+
 {#each busesTablePieces as piece (piece.key)}
-    <ellipse
-        cx={piece.point.x}
-        cy={piece.point.y + BUS_TABLE_PIECE_SHADOW_OFFSET_Y}
-        rx={BUS_TABLE_PIECE_SHADOW_RX}
-        ry={BUS_TABLE_PIECE_SHADOW_RY}
-        class="bus-piece-shadow pointer-events-none"
-        aria-hidden="true"
-    ></ellipse>
-    <BusPieceIcon
-        x={piece.point.x - BUS_TABLE_PIECE_WIDTH / 2}
-        y={piece.point.y - BUS_TABLE_PIECE_HEIGHT / 2}
-        width={BUS_TABLE_PIECE_WIDTH}
-        height={BUS_TABLE_PIECE_HEIGHT}
-        color={piece.color}
-        class="pointer-events-none"
-    />
+    {#if !animatedBusPiece || animatedBusPiece.key !== piece.key}
+        <ellipse
+            cx={piece.point.x}
+            cy={piece.point.y + BUS_TABLE_PIECE_SHADOW_OFFSET_Y}
+            rx={BUS_TABLE_PIECE_SHADOW_RX}
+            ry={BUS_TABLE_PIECE_SHADOW_RY}
+            class="bus-piece-shadow pointer-events-none"
+            aria-hidden="true"
+        ></ellipse>
+        <BusPieceIcon
+            x={piece.point.x - BUS_TABLE_PIECE_WIDTH / 2}
+            y={piece.point.y - BUS_TABLE_PIECE_HEIGHT / 2}
+            width={BUS_TABLE_PIECE_WIDTH}
+            height={BUS_TABLE_PIECE_HEIGHT}
+            color={piece.color}
+            class="pointer-events-none"
+        />
+    {/if}
 {/each}
+
+{#if animatedBusPiece}
+    <g
+        class="pointer-events-none"
+        transform={`translate(${animatedBusPiece.x} ${animatedBusPiece.y}) scale(${animatedBusPiece.scale})`}
+        opacity={animatedBusPiece.opacity}
+        aria-hidden="true"
+    >
+        <ellipse
+            cx="0"
+            cy={BUS_TABLE_PIECE_SHADOW_OFFSET_Y}
+            rx={BUS_TABLE_PIECE_SHADOW_RX}
+            ry={BUS_TABLE_PIECE_SHADOW_RY}
+            class="bus-piece-shadow"
+        ></ellipse>
+        <BusPieceIcon
+            x={-BUS_TABLE_PIECE_WIDTH / 2}
+            y={-BUS_TABLE_PIECE_HEIGHT / 2}
+            width={BUS_TABLE_PIECE_WIDTH}
+            height={BUS_TABLE_PIECE_HEIGHT}
+            color={animatedBusPiece.color}
+            class="pointer-events-none"
+        />
+    </g>
+{/if}
 
 <g class="pointer-events-none" aria-hidden="true">
     <text
@@ -208,11 +268,6 @@
 </g>
 
 <style>
-    .score-marker {
-        transition: transform 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
-        will-change: transform;
-    }
-
     .bus-piece-shadow {
         fill: rgba(8, 12, 20, 0.42);
         opacity: 0.7;

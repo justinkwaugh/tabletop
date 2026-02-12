@@ -1,6 +1,11 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
     import { ActionType, WorkerActionType } from '@tabletop/bus'
-    import { WorkerCylinderPlacementAnimator } from '$lib/animators/workerCylinderPlacementAnimator.js'
+    import {
+        WorkerCylinderPlacementAnimator,
+        buildActionWorkerPlacements as buildActionWorkerPlacementsForState
+    } from '$lib/animators/workerCylinderPlacementAnimator.js'
+    import { WorkerCylinderRemovalAnimator } from '$lib/animators/workerCylinderRemovalAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import WorkerCylinder from './WorkerCylinder.svelte'
     import {
@@ -51,9 +56,16 @@
     }
 
     let animatedWorkerCylinder: AnimatedWorkerCylinder | undefined = $state()
+    let animatedRemovedWorkerCylinders: (AnimatedWorkerCylinder & {
+        key: string
+    })[] = $state([])
+    let hiddenRemovedPlacementKeys: string[] = $state([])
 
     const workerCylinderPlacementAnimator = new WorkerCylinderPlacementAnimator(gameSession, {
-        onStart: ({ x, y, color, scale, opacity }) => {
+        onStart: ({ key, x, y, color, scale, opacity }) => {
+            hiddenRemovedPlacementKeys = hiddenRemovedPlacementKeys.filter(
+                (hiddenKey) => hiddenKey !== key
+            )
             animatedWorkerCylinder = { x, y, color, scale, opacity }
         },
         onUpdate: ({ scale, opacity }) => {
@@ -68,6 +80,56 @@
         },
         onComplete: () => {
             animatedWorkerCylinder = undefined
+        }
+    })
+
+    const workerCylinderRemovalAnimator = new WorkerCylinderRemovalAnimator(gameSession, {
+        onStart: ({ key, x, y, color, scale, opacity }) => {
+            animatedRemovedWorkerCylinders = [
+                ...animatedRemovedWorkerCylinders,
+                { key, x, y, color, scale, opacity }
+            ]
+            if (!hiddenRemovedPlacementKeys.includes(key)) {
+                hiddenRemovedPlacementKeys = [...hiddenRemovedPlacementKeys, key]
+            }
+        },
+        onUpdate: ({ key, scale, opacity }) => {
+            animatedRemovedWorkerCylinders = animatedRemovedWorkerCylinders.map((item) =>
+                item.key === key
+                    ? {
+                          ...item,
+                          scale,
+                          opacity
+                      }
+                    : item
+            )
+        },
+        onComplete: (key) => {
+            animatedRemovedWorkerCylinders = animatedRemovedWorkerCylinders.filter((item) => item.key !== key)
+        }
+    })
+
+    onMount(() => {
+        const onGameStateChange = ({ to }: { to: any }) => {
+            if (hiddenRemovedPlacementKeys.length === 0) {
+                return
+            }
+
+            const visiblePlacementKeys = new Set(
+                buildActionWorkerPlacementsForState(to).map((placement) => placement.key)
+            )
+            const nextHiddenKeys = hiddenRemovedPlacementKeys.filter(
+                (key) => !visiblePlacementKeys.has(key)
+            )
+
+            if (nextHiddenKeys.length !== hiddenRemovedPlacementKeys.length) {
+                hiddenRemovedPlacementKeys = nextHiddenKeys
+            }
+        }
+
+        gameSession.addGameStateChangeListener(onGameStateChange)
+        return () => {
+            gameSession.removeGameStateChangeListener(onGameStateChange)
         }
     })
 
@@ -408,24 +470,17 @@
 </script>
 
 <g class="pointer-events-none" {@attach attachAnimator(workerCylinderPlacementAnimator)}></g>
+<g class="pointer-events-none" {@attach attachAnimator(workerCylinderRemovalAnimator)}></g>
 
 {#each actionWorkerPlacements as placement (placement.key)}
-    <WorkerCylinder
-        x={placement.point.x + ACTION_CYLINDER_X_OFFSET}
-        y={placement.point.y + ACTION_CYLINDER_Y_OFFSET}
-        color={gameSession.colors.getPlayerUiColor(placement.playerId)}
-    />
+    {#if !hiddenRemovedPlacementKeys.includes(placement.key)}
+        <WorkerCylinder
+            x={placement.point.x + ACTION_CYLINDER_X_OFFSET}
+            y={placement.point.y + ACTION_CYLINDER_Y_OFFSET}
+            color={gameSession.colors.getPlayerUiColor(placement.playerId)}
+        />
+    {/if}
 {/each}
-
-{#if animatedWorkerCylinder}
-    <WorkerCylinder
-        x={animatedWorkerCylinder.x + ACTION_CYLINDER_X_OFFSET}
-        y={animatedWorkerCylinder.y + ACTION_CYLINDER_Y_OFFSET}
-        color={animatedWorkerCylinder.color}
-        scale={animatedWorkerCylinder.scale}
-        opacity={animatedWorkerCylinder.opacity}
-    />
-{/if}
 
 {#each defaultActionSlotMarkers as marker (marker.key)}
     <g class="pointer-events-none" aria-hidden="true">
@@ -514,6 +569,26 @@
             onclick={() => handleActionSpotChoose(highlight.actionType)}
         ></circle>
     </g>
+{/each}
+
+{#if animatedWorkerCylinder}
+    <WorkerCylinder
+        x={animatedWorkerCylinder.x + ACTION_CYLINDER_X_OFFSET}
+        y={animatedWorkerCylinder.y + ACTION_CYLINDER_Y_OFFSET}
+        color={animatedWorkerCylinder.color}
+        scale={animatedWorkerCylinder.scale}
+        opacity={animatedWorkerCylinder.opacity}
+    />
+{/if}
+
+{#each animatedRemovedWorkerCylinders as removedCylinder (removedCylinder.key)}
+    <WorkerCylinder
+        x={removedCylinder.x + ACTION_CYLINDER_X_OFFSET}
+        y={removedCylinder.y + ACTION_CYLINDER_Y_OFFSET}
+        color={removedCylinder.color}
+        scale={removedCylinder.scale}
+        opacity={removedCylinder.opacity}
+    />
 {/each}
 
 <style>
