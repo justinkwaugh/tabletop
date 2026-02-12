@@ -7,13 +7,15 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { aggregateActions } from '$lib/utils/actionAggregator.js'
 
     const timeAgo = new TimeAgo('en-US')
 
     let gameSession = getGameSession()
 
     let reversedActions = $derived.by(() => {
-        const reversed = gameSession.actions
+        const aggregated = Array.from(aggregateActions(gameSession.actions))
+        const reversed = aggregated
             .toReversed()
             .toSorted(
                 (a, b) =>
