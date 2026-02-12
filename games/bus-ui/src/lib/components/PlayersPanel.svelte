@@ -1,6 +1,8 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
     import type { HydratedBusPlayerState, BusPlayerState } from '@tabletop/bus'
+    import { flip } from 'svelte/animate'
+    import { cubicOut } from 'svelte/easing'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -42,6 +44,8 @@
 
 <div class="rounded-lg space-y-2 text-center grow-0 shrink-0">
     {#each playersAndStates as playerAndState (playerAndState.player.id)}
-        <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+        <div animate:flip={{ duration: 320, easing: cubicOut }}>
+            <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+        </div>
     {/each}
 </div>

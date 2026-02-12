@@ -33,54 +33,9 @@
                         <div
                             class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
                         >
-                            <svg width="27" height="30" viewBox="0 0 28 32" aria-hidden="true">
-                                <WorkerCylinder
-                                    x={14}
-                                    y={16}
-                                    color={playerUiColor}
-                                    width={19}
-                                    height={25}
-                                />
-                            </svg>
-                            <span class="text-[1rem] leading-none font-normal"
-                                >{playerState.actions}</span
-                            >
-                        </div>
-
-                        <div
-                            class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
-                        >
-                            <svg width="23" height="27" viewBox="0 0 20 24" aria-hidden="true">
-                                <line
-                                    x1="4"
-                                    y1="19"
-                                    x2="16"
-                                    y2="5"
-                                    stroke={playerUiColor}
-                                    stroke-width="4.9"
-                                    stroke-linecap="round"
-                                ></line>
-                                <line
-                                    x1="4.6"
-                                    y1="18.3"
-                                    x2="15.2"
-                                    y2="5.9"
-                                    stroke="rgba(255,255,255,0.3)"
-                                    stroke-width="1.35"
-                                    stroke-linecap="round"
-                                ></line>
-                            </svg>
-                            <span class="text-[1rem] leading-none font-normal"
-                                >{playerState.sticks}</span
-                            >
-                        </div>
-
-                        <div
-                            class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
-                        >
                             <svg
-                                width="23"
-                                height="23"
+                                width="28"
+                                height="28"
                                 viewBox="0 0 24 24"
                                 aria-hidden="true"
                                 class="shrink-0 select-none"
@@ -127,12 +82,59 @@
                                 >{playerState.stones}</span
                             >
                         </div>
+
+                        <div
+                            class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
+                        >
+                            <svg width="23" height="27" viewBox="0 0 20 24" aria-hidden="true">
+                                <line
+                                    x1="4"
+                                    y1="19"
+                                    x2="16"
+                                    y2="5"
+                                    stroke={playerUiColor}
+                                    stroke-width="4.9"
+                                    stroke-linecap="round"
+                                ></line>
+                                <line
+                                    x1="4.6"
+                                    y1="18.3"
+                                    x2="15.2"
+                                    y2="5.9"
+                                    stroke="rgba(255,255,255,0.3)"
+                                    stroke-width="1.35"
+                                    stroke-linecap="round"
+                                ></line>
+                            </svg>
+                            <span class="text-[1rem] leading-none font-normal"
+                                >{playerState.sticks}</span
+                            >
+                        </div>
+
+                        <div
+                            class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
+                        >
+                            <svg width="27" height="30" viewBox="0 0 28 32" aria-hidden="true">
+                                <WorkerCylinder
+                                    x={14}
+                                    y={16}
+                                    color={playerUiColor}
+                                    width={19}
+                                    height={25}
+                                />
+                            </svg>
+                            <span class="text-[1rem] leading-none font-normal"
+                                >{playerState.actions}</span
+                            >
+                        </div>
                     </div>
                 </div>
                 <div
                     class="w-[242px] me-1 rounded-lg border border-[1px] border-white/50 mt-[4px] h-[1px]"
                 ></div>
-                <h1 class="uppercase me-1 pr-1 text-right text-lg font-semibold tracking-[0.06em]">
+                <h1
+                    class="uppercase me-1 ml-auto max-w-[242px] truncate pr-1 text-right text-lg font-semibold tracking-[0.06em]"
+                >
                     {player.name}
                 </h1>
 

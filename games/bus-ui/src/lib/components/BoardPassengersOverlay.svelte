@@ -219,7 +219,7 @@
             cy={point.y}
             r={VROOM_PASSENGER_HIT_RADIUS}
             fill="transparent"
-            class="cursor-pointer"
+            class="cursor-pointer passenger-source-hit-target"
             role="button"
             tabindex="0"
             aria-label={`Choose passenger at ${typedNodeId}`}
@@ -250,3 +250,14 @@
         height={animatedPassengerPose.height}
     />
 {/if}
+
+<style>
+    .passenger-source-hit-target:focus {
+        outline: none;
+    }
+
+    .passenger-source-hit-target:focus-visible {
+        outline: 2.5px solid #fff27a;
+        outline-offset: 2px;
+    }
+</style>

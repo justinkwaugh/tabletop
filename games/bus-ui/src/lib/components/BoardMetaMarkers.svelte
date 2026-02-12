@@ -18,6 +18,9 @@
     const SCORE_MARKER_TEXT_Y_OFFSET = 0.8
     const BUS_TABLE_PIECE_WIDTH = 58
     const BUS_TABLE_PIECE_HEIGHT = 31
+    const BUS_TABLE_PIECE_SHADOW_OFFSET_Y = 8
+    const BUS_TABLE_PIECE_SHADOW_RX = BUS_TABLE_PIECE_WIDTH * 0.36
+    const BUS_TABLE_PIECE_SHADOW_RY = BUS_TABLE_PIECE_HEIGHT * 0.17
     const PASSENGER_SUPPLY_FONT_SIZE = 26
 
     type ScoreMarker = {
@@ -143,18 +146,22 @@
 </script>
 
 {#each scoreMarkers as marker (marker.key)}
-    <g class="pointer-events-none" aria-hidden="true">
+    <g
+        class="score-marker pointer-events-none"
+        style="transform: translate({marker.point.x}px, {marker.point.y}px);"
+        aria-hidden="true"
+    >
         <circle
-            cx={marker.point.x}
-            cy={marker.point.y}
+            cx="0"
+            cy="0"
             r={SCORE_MARKER_RADIUS}
             fill={marker.fillColor}
             stroke={SCORE_MARKER_STROKE}
             stroke-width={SCORE_MARKER_STROKE_WIDTH}
         ></circle>
         <text
-            x={marker.point.x}
-            y={marker.point.y + SCORE_MARKER_TEXT_Y_OFFSET}
+            x="0"
+            y={SCORE_MARKER_TEXT_Y_OFFSET}
             text-anchor="middle"
             dominant-baseline="middle"
             font-size={SCORE_MARKER_TEXT_SIZE}
@@ -165,6 +172,14 @@
 {/each}
 
 {#each busesTablePieces as piece (piece.key)}
+    <ellipse
+        cx={piece.point.x}
+        cy={piece.point.y + BUS_TABLE_PIECE_SHADOW_OFFSET_Y}
+        rx={BUS_TABLE_PIECE_SHADOW_RX}
+        ry={BUS_TABLE_PIECE_SHADOW_RY}
+        class="bus-piece-shadow pointer-events-none"
+        aria-hidden="true"
+    ></ellipse>
     <BusPieceIcon
         x={piece.point.x - BUS_TABLE_PIECE_WIDTH / 2}
         y={piece.point.y - BUS_TABLE_PIECE_HEIGHT / 2}
@@ -191,3 +206,16 @@
         {gameSession.gameState.passengers.length}
     </text>
 </g>
+
+<style>
+    .score-marker {
+        transition: transform 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
+        will-change: transform;
+    }
+
+    .bus-piece-shadow {
+        fill: rgba(8, 12, 20, 0.42);
+        opacity: 0.7;
+        filter: blur(1.6px);
+    }
+</style>

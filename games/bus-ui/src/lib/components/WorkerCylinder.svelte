@@ -4,13 +4,17 @@
         y,
         color = '#0c66b4',
         width = 32,
-        height = 40
+        height = 40,
+        scale = 1,
+        opacity = 1
     }: {
         x: number
         y: number
         color?: string
         width?: number
         height?: number
+        scale?: number
+        opacity?: number
     } = $props()
 
     const rx = $derived(width / 2)
@@ -69,7 +73,12 @@
     }
 </script>
 
-<g transform={`translate(${x} ${y})`} class="pointer-events-none select-none" aria-hidden="true">
+<g
+    transform={`translate(${x} ${y}) scale(${scale})`}
+    opacity={opacity}
+    class="pointer-events-none select-none"
+    aria-hidden="true"
+>
     <ellipse cx="0" cy={bottomY} rx={baseCoverRx} ry={baseCoverRy} fill={color} />
     <rect
         x={-rx}

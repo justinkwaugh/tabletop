@@ -22,33 +22,33 @@
         }
 
         if (gameSession.pendingBusLineTargetNodeId) {
-            return 'Which end to extend?'
+            return 'Choose an end to extend...'
         }
 
         if (gameSession.chosenPassengerStationId) {
-            return 'Choose number of passengers'
+            return 'Choose the number of passengers...'
         }
 
         if (gameSession.chosenVroomSourceNodeId) {
-            return 'Choose destination site'
+            return 'Choose the destination...'
         }
 
         switch (gameSession.gameState.machineState) {
             case MachineState.ChoosingActions:
-                return 'Place an action token'
+                return 'Place an action token...'
             case MachineState.InitialBuildingPlacement:
             case MachineState.AddingBuildings:
-                return 'Place a building'
+                return 'Place a building...'
             case MachineState.InitialBusLinePlacement:
-                return 'Place a bus line segment'
+                return 'Place a bus line segment...'
             case MachineState.LineExpansion:
-                return 'Extend your bus line'
+                return 'Extend your bus line...'
             case MachineState.AddingPassengers:
-                return 'Choose a station'
+                return 'Choose a train station...'
             case MachineState.TimeMachine:
                 return 'Take a time stone'
             case MachineState.Vrooming:
-                return 'Choose a passenger'
+                return 'Choose a passenger to deliver...'
             default:
                 return 'Unknown state'
         }

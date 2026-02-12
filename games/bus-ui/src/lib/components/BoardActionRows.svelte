@@ -1,5 +1,7 @@
 <script lang="ts">
     import { ActionType, WorkerActionType } from '@tabletop/bus'
+    import { WorkerCylinderPlacementAnimator } from '$lib/animators/workerCylinderPlacementAnimator.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import WorkerCylinder from './WorkerCylinder.svelte'
     import {
         mixHex,
@@ -39,6 +41,35 @@
     const HIGHLIGHT_ACTION_VALUE_TEXT_Y_OFFSET = 1.5
     const CYLINDER_ACTION_VALUE_FONT_SIZE = 20
     const HIGHLIGHT_ACTION_VALUE_FONT_SIZE = 18
+
+    type AnimatedWorkerCylinder = {
+        x: number
+        y: number
+        color: string
+        scale: number
+        opacity: number
+    }
+
+    let animatedWorkerCylinder: AnimatedWorkerCylinder | undefined = $state()
+
+    const workerCylinderPlacementAnimator = new WorkerCylinderPlacementAnimator(gameSession, {
+        onStart: ({ x, y, color, scale, opacity }) => {
+            animatedWorkerCylinder = { x, y, color, scale, opacity }
+        },
+        onUpdate: ({ scale, opacity }) => {
+            if (!animatedWorkerCylinder) {
+                return
+            }
+            animatedWorkerCylinder = {
+                ...animatedWorkerCylinder,
+                scale,
+                opacity
+            }
+        },
+        onComplete: () => {
+            animatedWorkerCylinder = undefined
+        }
+    })
 
     const actionWorkerPlacements: ActionWorkerPlacement[] = $derived.by(() => {
         const placements: ActionWorkerPlacement[] = []
@@ -375,6 +406,8 @@
     }
 </script>
 
+<g class="pointer-events-none" {@attach attachAnimator(workerCylinderPlacementAnimator)}></g>
+
 {#each actionWorkerPlacements as placement (placement.key)}
     <WorkerCylinder
         x={placement.point.x + ACTION_CYLINDER_X_OFFSET}
@@ -382,6 +415,16 @@
         color={gameSession.colors.getPlayerUiColor(placement.playerId)}
     />
 {/each}
+
+{#if animatedWorkerCylinder}
+    <WorkerCylinder
+        x={animatedWorkerCylinder.x + ACTION_CYLINDER_X_OFFSET}
+        y={animatedWorkerCylinder.y + ACTION_CYLINDER_Y_OFFSET}
+        color={animatedWorkerCylinder.color}
+        scale={animatedWorkerCylinder.scale}
+        opacity={animatedWorkerCylinder.opacity}
+    />
+{/if}
 
 {#each defaultActionSlotMarkers as marker (marker.key)}
     <g class="pointer-events-none" aria-hidden="true">
@@ -461,7 +504,7 @@
             cy={highlight.point.y}
             r="21.5"
             fill="transparent"
-            class="cursor-pointer"
+            class="cursor-pointer action-spot-hit-target"
             role="button"
             tabindex="0"
             aria-label={`Choose ${highlight.actionType} action`}
@@ -473,6 +516,15 @@
 {/each}
 
 <style>
+    .action-spot-hit-target:focus {
+        outline: none;
+    }
+
+    .action-spot-hit-target:focus-visible {
+        outline: 2.5px solid #fff27a;
+        outline-offset: 2px;
+    }
+
     .action-spot-ring {
         transform-origin: center;
         transform-box: fill-box;
