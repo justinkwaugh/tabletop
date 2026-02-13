@@ -287,6 +287,8 @@
             projectedPassengerAndBuildingBase,
             state.maxBusValue()
         )
+        const phase4AvailableSiteCap =
+            state.currentBuildingPhase === 4 ? state.board.openSitesForPhase(4).length : Number.POSITIVE_INFINITY
 
         const playerBusValues = new Map<string, number>(
             state.players.map((playerState) => [playerState.playerId, playerState.buses])
@@ -346,6 +348,47 @@
             return values
         })()
 
+        const computeBuildingValuesBySelectionIndex = (
+            buildingAction: string[]
+        ): Map<number, number> => {
+            const values = new Map<number, number>()
+            let remainingSites = phase4AvailableSiteCap
+
+            // Buildings execute left-to-right on the board row (F -> A), which corresponds to
+            // descending selection indices (5 -> 0) because index 0 is the A slot.
+            for (
+                let selectionIndex = buildingAction.length - 1;
+                selectionIndex >= 0;
+                selectionIndex -= 1
+            ) {
+                const playerId = buildingAction[selectionIndex]
+                if (!playerId) {
+                    continue
+                }
+
+                const baseValue = Math.max(0, effectivePassengerAndBuildingBase - selectionIndex)
+                const value = Math.min(baseValue, remainingSites)
+
+                values.set(selectionIndex, value)
+                remainingSites = Math.max(0, remainingSites - value)
+            }
+
+            return values
+        }
+
+        const buildingValuesBySelectionIndex = computeBuildingValuesBySelectionIndex(state.buildingAction)
+
+        const projectedBuildingHighlightValueBySelectionIndex = (() => {
+            const values = new Map<number, number>()
+            const nextSelectionIndex = state.buildingAction.length
+            if (!myPlayerId || nextSelectionIndex >= BUS_BUILDINGS_ACTION_SPOT_POINTS.length) {
+                return values
+            }
+
+            const projectedBuildingAction = [...state.buildingAction, myPlayerId]
+            return computeBuildingValuesBySelectionIndex(projectedBuildingAction)
+        })()
+
         const resolveActionValue = (
             actionType: WorkerActionType,
             selectionIndex: number,
@@ -368,8 +411,15 @@
                     )
                     return Math.max(0, passengerBase - selectionIndex)
                 }
-                case WorkerActionType.Buildings:
-                    return Math.max(0, effectivePassengerAndBuildingBase - selectionIndex)
+                case WorkerActionType.Buildings: {
+                    if (playerId) {
+                        return buildingValuesBySelectionIndex.get(selectionIndex) ?? 0
+                    }
+                    if (selectionIndex === state.buildingAction.length) {
+                        return projectedBuildingHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
+                    }
+                    return buildingValuesBySelectionIndex.get(selectionIndex) ?? 0
+                }
                 case WorkerActionType.Vroom: {
                     const effectivePlayerId = playerId ?? myPlayerId
                     if (!effectivePlayerId) {

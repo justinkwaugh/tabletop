@@ -2,6 +2,8 @@ import type { AnimationContext } from '@tabletop/frontend-components'
 import type { GameAction } from '@tabletop/common'
 import {
     isBusNodeId,
+    isVroom,
+    MachineState,
     isSiteId,
     type BuildingSiteId,
     type BusGameState,
@@ -49,7 +51,7 @@ export class PassengerReturnAnimator extends StateAnimator<
     override async onGameStateChange({
         to,
         from,
-        action: _action,
+        action,
         animationContext
     }: {
         to: HydratedBusGameState
@@ -98,6 +100,68 @@ export class PassengerReturnAnimator extends StateAnimator<
                     height: SITE_PASSENGER_HEIGHT
                 }
             })
+        }
+
+        // A Vroom action can be followed by an automatic round transition to ChoosingActions that
+        // clears all site occupants before the persisted "to" snapshot. In that case the delivered
+        // passenger may never appear with siteId in `from`, so synthesize its return from the
+        // destination site to avoid a visual jump.
+        if (
+            to.machineState === MachineState.ChoosingActions &&
+            action &&
+            isVroom(action) &&
+            isSiteId(action.destinationSite)
+        ) {
+            const destinationSiteId = action.destinationSite
+            let deliveredPassengerId = action.metadata?.passengerId
+
+            if (!deliveredPassengerId) {
+                const movedFromSourceNode = from.board.passengers.filter((fromPassenger) => {
+                    if (fromPassenger.siteId || fromPassenger.nodeId !== action.sourceNode) {
+                        return false
+                    }
+                    const toPassenger = toPassengersById.get(fromPassenger.id)
+                    return (
+                        !!toPassenger &&
+                        !toPassenger.siteId &&
+                        !!toPassenger.nodeId &&
+                        isBusNodeId(toPassenger.nodeId) &&
+                        toPassenger.nodeId !== fromPassenger.nodeId
+                    )
+                })
+
+                if (movedFromSourceNode.length === 1) {
+                    deliveredPassengerId = movedFromSourceNode[0]?.id
+                }
+            }
+
+            if (
+                deliveredPassengerId &&
+                !returningPassengers.some((passenger) => passenger.id === deliveredPassengerId)
+            ) {
+                const toPassenger = toPassengersById.get(deliveredPassengerId)
+                if (
+                    toPassenger &&
+                    !toPassenger.siteId &&
+                    toPassenger.nodeId &&
+                    isBusNodeId(toPassenger.nodeId)
+                ) {
+                    const sourcePoint = BUS_BUILDING_SITE_POINTS[destinationSiteId]
+                    const destinationPoint = BUS_BOARD_NODE_POINTS[toPassenger.nodeId]
+                    if (sourcePoint && destinationPoint) {
+                        returningPassengers.push({
+                            id: deliveredPassengerId,
+                            sourceSiteId: destinationSiteId,
+                            destinationNodeId: toPassenger.nodeId,
+                            pose: {
+                                x: sourcePoint.x,
+                                y: sourcePoint.y,
+                                height: SITE_PASSENGER_HEIGHT
+                            }
+                        })
+                    }
+                }
+            }
         }
 
         if (returningPassengers.length === 0) {
