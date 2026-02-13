@@ -161,7 +161,7 @@
     })
 
     const highlightedBuildingSiteIds: BuildingSiteId[] = $derived.by(() => {
-        if (gameSession.isViewingHistory) {
+        if (gameSession.isViewingHistory || !gameSession.isMyTurn) {
             return []
         }
 
@@ -210,7 +210,7 @@
     })
 
     const highlightedVroomSourceNodeIds: BusNodeId[] = $derived.by(() => {
-        if (gameSession.isViewingHistory) {
+        if (gameSession.isViewingHistory || !gameSession.isMyTurn) {
             return []
         }
         if (chosenVroomSourceNodeId) {
@@ -220,7 +220,7 @@
     })
 
     const highlightedVroomDestinationSiteIds: BuildingSiteId[] = $derived.by(() => {
-        if (gameSession.isViewingHistory) {
+        if (gameSession.isViewingHistory || !gameSession.isMyTurn) {
             return []
         }
         if (!chosenVroomSourceNodeId) {

@@ -79,7 +79,8 @@
         const state = gameSession.gameState
 
         for (const playerState of state.players) {
-            const columnKey = busesTableColumnKeyForColor(playerState.color)
+            const playerColor = gameSession.colors.getPlayerColor(playerState.playerId)
+            const columnKey = busesTableColumnKeyForColor(playerColor)
             if (!columnKey) {
                 continue
             }

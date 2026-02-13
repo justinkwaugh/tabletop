@@ -40,7 +40,9 @@
         return undefined
     })
 
-    const canInteract = $derived.by(() => !gameSession.isViewingHistory && gameSession.canPlaceBusLine)
+    const canInteract = $derived.by(
+        () => !gameSession.isViewingHistory && gameSession.isMyTurn && gameSession.canPlaceBusLine
+    )
     const isStartingPlacement = $derived.by(
         () => canInteract && gameSession.myBusLineNodeIds.length === 0
     )

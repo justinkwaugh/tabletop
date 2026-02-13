@@ -74,7 +74,8 @@ export class BusPiecePlacementAnimator extends StateAnimator<
             return
         }
 
-        const columnKey = busesTableColumnKeyForColor(toPlayer.color)
+        const playerColor = this.gameSession.colors.getPlayerColor(action.playerId)
+        const columnKey = busesTableColumnKeyForColor(playerColor)
         if (!columnKey) {
             return
         }
