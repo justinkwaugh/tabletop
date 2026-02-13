@@ -20,8 +20,14 @@
     let {
         action,
         justify = 'start',
-        history = true
-    }: { action: GameAction; justify?: 'start' | 'center' | 'end'; history?: boolean } = $props()
+        history = true,
+        fullWidth = true
+    }: {
+        action: GameAction
+        justify?: 'start' | 'center' | 'end'
+        history?: boolean
+        fullWidth?: boolean
+    } = $props()
 
     const justifyClasses: Record<'start' | 'center' | 'end', string> = {
         start: 'justify-start',
@@ -70,7 +76,9 @@
     }
 </script>
 
-<span class={`inline-flex w-full items-center ${justifyClass} ${casingClass} ${leftGapClass}`}>
+<span
+    class={`inline-flex ${fullWidth ? 'w-full' : ''} items-center ${justifyClass} ${casingClass} ${leftGapClass}`}
+>
     {#if isAggregatedBusAction(action)}
         {#if action.aggregatedType === ActionType.PlaceBusLine}
             expanded their bus line by {action.count} {pluralizeSegments(action.count)}
@@ -89,7 +97,9 @@
     {:else if isPlaceBuilding(action)}
         placed a {action.buildingType.toLowerCase()} at {action.siteId}
     {:else if isPlaceBusLine(action)}
-        placed a line segment from {formatNode(action.segment[0])} to {formatNode(action.segment[1])}
+        placed a line segment from {formatNode(action.segment[0])} to {formatNode(
+            action.segment[1]
+        )}
     {:else if isAddBus(action)}
         added a bus
         {#if action.metadata?.newBusAmount !== undefined}
@@ -103,9 +113,9 @@
     {:else if isSetFirstPlayer(action)}
         became the starting player
     {:else if isStopTime(action)}
-        took a time stone
+        stopped time from passing
     {:else if isRotateTime(action)}
-        rotated time to the next location
+        Time passed, on to the next location...
     {:else if isPass(action)}
         passed
         {#if action.reason}
