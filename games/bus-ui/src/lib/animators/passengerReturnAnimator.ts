@@ -168,12 +168,16 @@ export class PassengerReturnAnimator extends StateAnimator<
             return
         }
 
-        this.callbacks.onStart(
-            returningPassengers.map((passenger) => ({
-                ...passenger,
-                pose: { ...passenger.pose }
-            }))
-        )
+        const startingPassengers = returningPassengers.map((passenger) => ({
+            ...passenger,
+            pose: { ...passenger.pose }
+        }))
+
+        // Start rendering return transients when the final timeline begins, not while action
+        // timeline animations (like delivery) are still playing.
+        animationContext.finalTimeline.call(() => {
+            this.callbacks.onStart(startingPassengers)
+        }, undefined, 0)
 
         for (const passenger of returningPassengers) {
             const destinationPoint = BUS_BOARD_NODE_POINTS[passenger.destinationNodeId]
