@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
-    import { BusPlayerState } from '@tabletop/bus'
+    import { BusPlayerState, MachineState } from '@tabletop/bus'
     import WorkerCylinder from '$lib/components/WorkerCylinder.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -12,12 +12,17 @@
     }: { player: Player; playerState: BusPlayerState; showInfo?: boolean } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
+    let isOutOfActionsInChoosingActions = $derived.by(
+        () =>
+            gameSession.gameState.machineState === MachineState.ChoosingActions &&
+            playerState.actions <= 0
+    )
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
     let textColor = $derived(gameSession.colors.getPlayerTextColor(playerState.playerId))
     let playerUiColor = $derived(gameSession.colors.getPlayerUiColor(playerState.playerId))
 </script>
 
-<div class="relative pb-[22px]">
+<div class={`relative pb-[22px] ${isOutOfActionsInChoosingActions ? 'opacity-60' : ''}`}>
     <div
         class="relative z-[1] min-h-[100px] rounded-t-[1.2rem] rounded-b-[0.45rem] {bgColor} shadow-[inset_0_0_0_1px_rgba(9,13,22,0.26)] py-[3px] px-3 text-right {textColor} font-normal flex flex-col {isTurn
             ? 'border-2 border-white animate-pulse'

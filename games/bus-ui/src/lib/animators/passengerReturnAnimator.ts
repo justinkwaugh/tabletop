@@ -117,7 +117,7 @@ export class PassengerReturnAnimator extends StateAnimator<
                 continue
             }
 
-            animationContext.actionTimeline.to(
+            animationContext.finalTimeline.to(
                 passenger.pose,
                 {
                     x: destinationPoint.x,
@@ -134,4 +134,3 @@ export class PassengerReturnAnimator extends StateAnimator<
         }
     }
 }
-

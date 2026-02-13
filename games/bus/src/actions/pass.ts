@@ -55,7 +55,6 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
         }
         const playerState = state.getPlayerState(this.playerId)
         state.passedPlayers.push(this.playerId)
-        playerState.numActionsChosen = 0
 
         this.metadata = {
             reason: this.reason

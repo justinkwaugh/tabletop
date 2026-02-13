@@ -48,14 +48,18 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
     enter(context: MachineContext<HydratedBusGameState>) {
         const gameState = context.gameState
         let activePlayerId: string
+        console.log('entering state')
         if (gameState.players.every((p) => p.numActionsChosen === 0)) {
             gameState.roundStartMaxBusValue = gameState.maxBusValue()
             for (const passenger of gameState.board.passengers) {
                 passenger.siteId = undefined
             }
+            console.log('checking passed')
             gameState.passedPlayers = gameState.players
                 .filter((p) => p.actions === 0)
                 .map((p) => p.playerId)
+
+            console.log('passed players:', gameState.passedPlayers)
 
             const nextPlayer = gameState.turnManager.turnOrder.find(
                 (playerId) => !gameState.passedPlayers.includes(playerId)
@@ -103,7 +107,11 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
 
     nextState(gameState: HydratedBusGameState): MachineState {
         if (gameState.players.every((p) => gameState.passedPlayers.includes(p.playerId))) {
+            console.log('All players passed, moving to next round')
             gameState.passedPlayers = []
+            for (const player of gameState.players) {
+                player.numActionsChosen = 0
+            }
             return getNextActionState(gameState)
         }
         return MachineState.ChoosingActions

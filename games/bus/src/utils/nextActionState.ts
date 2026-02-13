@@ -60,5 +60,14 @@ export function getNextActionState(state: HydratedBusGameState): MachineState {
         nextActionIndex += 1
     }
 
+    if (state.board.openSitesForPhase(4).length === 0) {
+        return MachineState.EndOfGame
+    }
+
+    const playersWithoutActions = state.players.filter((p) => p.actions === 0)
+    if (playersWithoutActions.length >= 2) {
+        return MachineState.EndOfGame
+    }
+
     return MachineState.ChoosingActions
 }
