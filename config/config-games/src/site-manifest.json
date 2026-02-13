@@ -14,7 +14,7 @@
       "gameId": "bridges",
       "packageId": "bridges-of-shangri-la",
       "logicVersion": "3.0.1",
-      "uiVersion": "3.1.1",
+      "uiVersion": "3.1.2",
       "priorLogicVersions": [
         "3.0.0",
         "2.0.0",
@@ -23,11 +23,11 @@
         "1.3.0"
       ],
       "priorUiVersions": [
+        "3.1.1",
         "3.1.0",
         "3.0.0",
         "2.0.0",
-        "2.1.0",
-        "2.0.0"
+        "2.1.0"
       ]
     },
     {
