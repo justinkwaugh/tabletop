@@ -11,6 +11,7 @@
     import Passenger from './Passenger.svelte'
     import StationSelectionHighlight from './StationSelectionHighlight.svelte'
     import { AddPassengersPlacementAnimator } from '$lib/animators/addPassengersPlacementAnimator.js'
+    import { PassengerReturnAnimator } from '$lib/animators/passengerReturnAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { PassengerDeliveryAnimator } from '$lib/animators/passengerDeliveryAnimator.js'
     import { BUS_BOARD_NODE_POINTS, BUS_BUILDING_SITE_POINTS } from '$lib/definitions/busBoardGraph.js'
@@ -30,6 +31,15 @@
     }
 
     type PassengerPose = {
+        x: number
+        y: number
+        height: number
+    }
+
+    type ReturningPassengerPose = {
+        id: string
+        sourceSiteId: BuildingSiteId
+        destinationNodeId: BusNodeId
         x: number
         y: number
         height: number
@@ -60,6 +70,12 @@
         gameSession.gameState
         return undefined
     })
+    let animatedReturningPassengers: Map<string, ReturningPassengerPose> | undefined = $derived.by(
+        () => {
+            gameSession.gameState
+            return undefined
+        }
+    )
 
     const passengerDeliveryAnimator = new PassengerDeliveryAnimator(gameSession, {
         onStart: ({ sourceNodeId, destinationSiteId, pose }) => {
@@ -83,6 +99,38 @@
         }
     })
 
+    const passengerReturnAnimator = new PassengerReturnAnimator(gameSession, {
+        onStart: (passengers) => {
+            const next = new Map<string, ReturningPassengerPose>()
+            for (const passenger of passengers) {
+                next.set(passenger.id, {
+                    id: passenger.id,
+                    sourceSiteId: passenger.sourceSiteId,
+                    destinationNodeId: passenger.destinationNodeId,
+                    x: passenger.pose.x,
+                    y: passenger.pose.y,
+                    height: passenger.pose.height
+                })
+            }
+            animatedReturningPassengers = next
+        },
+        onUpdate: (passengerId, pose) => {
+            const existing = animatedReturningPassengers?.get(passengerId)
+            if (!existing || !animatedReturningPassengers) {
+                return
+            }
+
+            const next = new Map(animatedReturningPassengers)
+            next.set(passengerId, {
+                ...existing,
+                x: pose.x,
+                y: pose.y,
+                height: pose.height
+            })
+            animatedReturningPassengers = next
+        }
+    })
+
     const passengersByNodeId = $derived.by(() => {
         return gameSession.gameState.board.passengersByNode()
     })
@@ -99,6 +147,14 @@
             })
         }
         return placements
+    })
+
+    const animatedReturningPassengerIds = $derived.by(() => {
+        return new Set(animatedReturningPassengers?.keys() ?? [])
+    })
+
+    const animatedReturningPassengerList = $derived.by(() => {
+        return animatedReturningPassengers ? [...animatedReturningPassengers.values()] : []
     })
 
     const highlightedBuildingSiteIds: BuildingSiteId[] = $derived.by(() => {
@@ -229,6 +285,7 @@
 
 <g class="pointer-events-none" {@attach attachAnimator(passengerDeliveryAnimator)}></g>
 <g class="pointer-events-none" {@attach attachAnimator(addPassengersPlacementAnimator)}></g>
+<g class="pointer-events-none" {@attach attachAnimator(passengerReturnAnimator)}></g>
 
 {#each Object.entries(passengersByNodeId) as [nodeId, passengers] (nodeId)}
     {@const typedNodeId = nodeId as BusNodeId}
@@ -286,7 +343,7 @@
 
 {#each passengersAtSite as passenger (passenger.id)}
     {@const point = BUS_BUILDING_SITE_POINTS[passenger.siteId]}
-    {#if !(animatedPassengerPose && passenger.siteId === animatedPassengerDestinationSiteId)}
+    {#if !(animatedPassengerPose && passenger.siteId === animatedPassengerDestinationSiteId) && !animatedReturningPassengerIds.has(passenger.id)}
         <Passenger x={point.x} y={point.y} height={SITE_PASSENGER_HEIGHT} />
     {/if}
 {/each}
@@ -307,6 +364,10 @@
         count={animatedAddedPassengersCount}
     />
 {/if}
+
+{#each animatedReturningPassengerList as passenger (passenger.id)}
+    <Passenger x={passenger.x} y={passenger.y} height={passenger.height} />
+{/each}
 
 <style>
     .passenger-source-hit-target:focus {
