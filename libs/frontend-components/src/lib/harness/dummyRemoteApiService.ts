@@ -22,11 +22,11 @@ export class DummyRemoteApiService implements RemoteApiService {
     }
 
     get versionChange(): VersionChange | undefined {
-        return this.fail('versionChange')
+        return
     }
 
     set versionChange(_value: VersionChange | undefined) {
-        this.fail('versionChange')
+        return
     }
 
     async getSelf(): Promise<User | undefined> {
@@ -81,10 +81,7 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('updateUser')
     }
 
-    async updateUserPreferences(
-        _userId: string,
-        _preferences: UserPreferences
-    ): Promise<User> {
+    async updateUserPreferences(_userId: string, _preferences: UserPreferences): Promise<User> {
         return this.fail('updateUserPreferences')
     }
 
@@ -138,11 +135,7 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('createGame')
     }
 
-    async forkGame(
-        _game: Partial<Game>,
-        _actionIndex: number,
-        _name: string
-    ): Promise<Game> {
+    async forkGame(_game: Partial<Game>, _actionIndex: number, _name: string): Promise<Game> {
         return this.fail('forkGame')
     }
 
@@ -213,10 +206,7 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getGameChatBookmark')
     }
 
-    async setGameChatBookmark(
-        _lastReadTimestamp: Date,
-        _gameId: string
-    ): Promise<void> {
+    async setGameChatBookmark(_lastReadTimestamp: Date, _gameId: string): Promise<void> {
         return this.fail('setGameChatBookmark')
     }
 

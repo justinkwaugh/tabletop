@@ -5,6 +5,7 @@ import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynam
 import { BridgesGameColorizer } from './gameColorizer.js'
 import Table from '../components/Table.svelte'
 import { BridgesGameSession } from '../model/BridgesGameSession.svelte.js'
+import '../../app.css'
 
 export const BridgesUiRuntime: GameUIRuntime<BridgesGameState, HydratedBridgesGameState> = {
     ...BridgesRuntime,

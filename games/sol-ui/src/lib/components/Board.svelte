@@ -33,7 +33,7 @@
     import ActiveEffects from './ActiveEffects.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getGameSession() as SolGameSession
+    let gameSession = getGameSession()
     const boardImage = gameSession.numPlayers === 5 ? boardImg5p : boardImg
 
     const gates = $derived.by(() => {

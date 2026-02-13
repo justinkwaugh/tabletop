@@ -1,0 +1,213 @@
+import { type BuildingSiteId, type BusNodeId } from '@tabletop/bus'
+import type { Point } from '@tabletop/common'
+
+export const BUS_BOARD_NODE_POINTS: Record<BusNodeId, Point> = {
+    N01: { x: 487, y: 119 },
+    N02: { x: 1083, y: 123 },
+    N03: { x: 239, y: 161 },
+    N04: { x: 1287, y: 182 },
+    N05: { x: 832, y: 190 },
+    N06: { x: 369, y: 286 },
+    N07: { x: 539, y: 323 },
+    N08: { x: 1098, y: 338 },
+    N09: { x: 716, y: 343 },
+    N10: { x: 913, y: 404 },
+    N11: { x: 1325, y: 412 },
+    N12: { x: 247, y: 424 },
+    N13: { x: 480, y: 501 },
+    N14: { x: 805, y: 511 },
+    N15: { x: 1106, y: 564 },
+    N16: { x: 1287, y: 571 },
+    N17: { x: 949, y: 589 },
+    N18: { x: 344, y: 600 },
+    N19: { x: 632, y: 674 },
+    N20: { x: 1043, y: 758 },
+    N21: { x: 471, y: 767 },
+    N22: { x: 618, y: 913 },
+    N23: { x: 1229, y: 776 },
+    N24: { x: 821, y: 794 },
+    N25: { x: 278, y: 795 },
+    N26: { x: 1064, y: 927 },
+    N27: { x: 1280, y: 951 },
+    N28: { x: 377, y: 980 },
+    N29: { x: 217, y: 993 },
+    N30: { x: 782, y: 993 },
+    N31: { x: 933, y: 994 },
+    N32: { x: 244, y: 1101 },
+    N33: { x: 559, y: 1114 },
+    N34: { x: 1114, y: 1129 },
+    N35: { x: 748, y: 1171 },
+    N36: { x: 391, y: 1186 }
+}
+
+export const BUS_BUILDING_SITE_POINTS: Record<BuildingSiteId, Point> = {
+    B01: { x: 452, y: 175 },
+    B02: { x: 1042, y: 183 },
+    B03: { x: 201, y: 127 },
+    B04: { x: 1329, y: 149 },
+    B05: { x: 797, y: 136 },
+    B06: { x: 860, y: 133 },
+    B07: { x: 303, y: 289 },
+    B08: { x: 581, y: 281 },
+    B09: { x: 481, y: 359 },
+    B10: { x: 711, y: 275 },
+    B11: { x: 857, y: 393 },
+    B12: { x: 940, y: 347 },
+    B13: { x: 1270, y: 350 },
+    B14: { x: 194, y: 425 },
+    B15: { x: 549, y: 459 },
+    B16: { x: 729, y: 466 },
+    B17: { x: 883, y: 502 },
+    B18: { x: 1153, y: 523 },
+    B19: { x: 1189, y: 610 },
+    B20: { x: 1335, y: 611 },
+    B21: { x: 988, y: 537 },
+    B22: { x: 986, y: 643 },
+    B23: { x: 289, y: 602 },
+    B24: { x: 637, y: 607 },
+    B25: { x: 631, y: 741 },
+    B26: { x: 1006, y: 717 },
+    B27: { x: 1097, y: 812 },
+    B28: { x: 483, y: 709 },
+    B29: { x: 415, y: 772 },
+    B30: { x: 529, y: 892 },
+    B31: { x: 626, y: 853 },
+    B32: { x: 1288, y: 777 },
+    B33: { x: 893, y: 829 },
+    B34: { x: 735, y: 794 },
+    B35: { x: 225, y: 794 },
+    B36: { x: 1078, y: 983 },
+    B37: { x: 1219, y: 901 },
+    B38: { x: 164, y: 994 },
+    B39: { x: 751, y: 928 },
+    B40: { x: 838, y: 994 },
+    B41: { x: 951, y: 931 },
+    B42: { x: 205, y: 1141 },
+    B43: { x: 620, y: 1088 },
+    B44: { x: 567, y: 1171 },
+    B45: { x: 1156, y: 1166 },
+    B46: { x: 801, y: 1201 },
+    B47: { x: 435, y: 1123 }
+}
+
+export const BUS_EXPANSION_ACTION_SPOT_POINTS: Point[] = [
+    // Ordered left-to-right on the board legend as F, E, D, C, B, A.
+    { x: 1488.5, y: 209 },
+    { x: 1527.5, y: 209 },
+    { x: 1566.5, y: 209 },
+    { x: 1604.5, y: 209 },
+    { x: 1643.5, y: 209 },
+    { x: 1681.5, y: 209 }
+]
+
+export const BUS_BUSES_ACTION_SPOT_POINT: Point = { x: 1771, y: 297 }
+
+export const BUS_PASSENGERS_ACTION_SPOT_POINTS: Point[] = [
+    // Ordered left-to-right on the board legend as A, B, C, D, E, F.
+    { x: 1488.5, y: 578 },
+    { x: 1527.5, y: 578 },
+    { x: 1565.5, y: 578 },
+    { x: 1604.5, y: 578 },
+    { x: 1643.5, y: 578 },
+    { x: 1682.5, y: 578 }
+]
+
+export const BUS_PASSENGER_SUPPLY_TEXT_POINT: Point = { x: 1771, y: 613 }
+
+export const BUS_BUILDINGS_ACTION_SPOT_POINTS: Point[] = [
+    // Ordered left-to-right on the board legend as F, E, D, C, B, A.
+    { x: 1489, y: 705 },
+    { x: 1528, y: 705 },
+    { x: 1566, y: 705 },
+    { x: 1606, y: 705 },
+    { x: 1644, y: 705 },
+    { x: 1682, y: 705 }
+]
+
+export const BUS_CLOCK_ACTION_SPOT_POINT: Point = { x: 1773, y: 793 }
+export const BUS_CLOCK_CENTER_POINT: Point = { x: 1506, y: 895 }
+export const BUS_TIME_STONE_BLUE_POINTS: Point[] = [
+    { x: 1688, y: 867 },
+    { x: 1798, y: 955 },
+    { x: 1662, y: 991 }
+]
+export const BUS_TIME_STONE_GREEN_POINTS: Point[] = [
+    { x: 1764, y: 883 },
+    { x: 1739, y: 1008 }
+]
+
+export const BUS_VROOM_ACTION_SPOT_POINTS: Point[] = [
+    // Ordered left-to-right on the board legend as A, B, C, D, E, F.
+    { x: 1490.75, y: 1145.75 },
+    { x: 1530.75, y: 1145.75 },
+    { x: 1568.75, y: 1145.75 },
+    { x: 1606.75, y: 1145.75 },
+    { x: 1646.75, y: 1145.75 },
+    { x: 1683.75, y: 1145.75 }
+]
+
+export const BUS_STARTING_PLAYER_ACTION_SPOT_POINT: Point = { x: 1772, y: 1232.25 }
+
+export const BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR = {
+    // Ordered bottom-to-top for each color column.
+    purple: [
+        { x: 1496.5, y: 456 },
+        { x: 1496.5, y: 429 },
+        { x: 1496.5, y: 402 },
+        { x: 1496.5, y: 374.5 },
+        { x: 1496.5, y: 347 }
+    ],
+    blue: [
+        { x: 1564, y: 456 },
+        { x: 1564, y: 429 },
+        { x: 1564, y: 402 },
+        { x: 1564, y: 375 },
+        { x: 1564, y: 347 }
+    ],
+    green: [
+        { x: 1631, y: 456 },
+        { x: 1631, y: 429 },
+        { x: 1631, y: 402 },
+        { x: 1631, y: 374.5 },
+        { x: 1631, y: 347 }
+    ],
+    yellow: [
+        { x: 1699, y: 457 },
+        { x: 1699, y: 429 },
+        { x: 1699, y: 402 },
+        { x: 1699, y: 374.5 },
+        { x: 1699, y: 347 }
+    ],
+    red: [
+        { x: 1764, y: 457 },
+        { x: 1764, y: 429.5 },
+        { x: 1764, y: 402.5 },
+        { x: 1764, y: 375 },
+        { x: 1764, y: 347.5 }
+    ]
+} as const satisfies Record<'purple' | 'blue' | 'green' | 'yellow' | 'red', Point[]>
+
+export const BUS_SCORE_TRACK_POINTS: Point[] = [
+    // Index by score value: 0 (bottom) through 20 (top).
+    { x: 62, y: 1236 },
+    { x: 60, y: 1178 },
+    { x: 60, y: 1119 },
+    { x: 58, y: 1060 },
+    { x: 58, y: 1001 },
+    { x: 57, y: 943 },
+    { x: 58, y: 883 },
+    { x: 58, y: 824 },
+    { x: 58, y: 765 },
+    { x: 59, y: 706 },
+    { x: 59, y: 647 },
+    { x: 59, y: 589 },
+    { x: 59, y: 530 },
+    { x: 59, y: 471 },
+    { x: 59, y: 412 },
+    { x: 59, y: 353 },
+    { x: 59, y: 295 },
+    { x: 59, y: 236 },
+    { x: 61, y: 178 },
+    { x: 61, y: 119 },
+    { x: 62, y: 62 }
+]

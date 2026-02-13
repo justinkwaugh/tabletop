@@ -30,7 +30,6 @@
 @source "../node_modules/flowbite-svelte/dist";
 @source "../node_modules/flowbite-svelte-icons/dist";
 @source "../../../games/fresh-fish-ui/src/**/*.{html,js,svelte,ts}";
-@source "../../../games/bridges-of-shangri-la-ui/src/**/*.{html,js,svelte,ts}";
 @source "../../../games/kaivai-ui/src/**/*.{html,js,svelte,ts}";
 @source "../../../games/estates-ui/src/**/*.{html,js,svelte,ts}";
 @source "../../../games/sol-ui/src/**/*.{html,js,svelte,ts}";

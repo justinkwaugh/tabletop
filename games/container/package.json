@@ -1,0 +1,30 @@
+{
+    "name": "@tabletop/container",
+    "version": "0.0.1",
+    "type": "module",
+    "exports": {
+        "import": "./esm/index.js",
+        "types": "./src/index.ts"
+    },
+    "private": true,
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsgo",
+        "test": "vitest"
+    },
+    "dependencies": {
+        "@tabletop/common": "workspace:*",
+        "es-iterator-helpers": "^1.2.1",
+        "typebox": "^1.0.53"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.25.2",
+        "@babel/preset-env": "^7.25.3",
+        "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*",
+        "@typescript/native-preview": "*",
+        "rimraf": "^6.1.0",
+        "typescript": "5.9.3",
+        "vitest": "^4.0.12"
+    }
+}

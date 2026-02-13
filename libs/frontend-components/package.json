@@ -52,6 +52,7 @@
     },
     "dependencies": {
         "ably": "^2.17.0",
+        "@floating-ui/dom": "^1.7.4",
         "@joeattardi/emoji-button": "github:justinkwaugh/picmo#emoji-button",
         "@sveltejs/package": "^2.5.7",
         "@tabletop/common": "workspace:*",

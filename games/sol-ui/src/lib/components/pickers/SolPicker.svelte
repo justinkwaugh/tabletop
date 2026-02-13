@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Snippet } from 'svelte'
-    import Floater from '$lib/utils/Floater.svelte'
+    import { Floater } from '@tabletop/frontend-components'
 
     let {
         placement = 'top',

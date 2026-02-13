@@ -8,7 +8,7 @@ import {
 import { {{properCase game}}PlayerState, Hydrated{{properCase game}}PlayerState } from './playerState.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { MachineState } from '../definitions/states.js'
+import { MachineState } from '../definition/states.js'
 
 export type {{properCase game}}GameState = Type.Static<typeof {{properCase game}}GameState>
 export const {{properCase game}}GameState = Type.Evaluate(

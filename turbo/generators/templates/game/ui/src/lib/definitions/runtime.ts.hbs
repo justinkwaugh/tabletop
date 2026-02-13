@@ -1,0 +1,18 @@
+import type { GameUIRuntime } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import type { Hydrated{{properCase game}}GameState, {{properCase game}}GameState } from '@tabletop/{{kebabCase game}}'
+import { {{properCase game}}Runtime } from '@tabletop/{{kebabCase game}}'
+import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
+import { {{properCase game}}GameColorizer } from './colorizer.js'
+import GameTable from '../components/GameTable.svelte'
+import { {{properCase game}}GameSession } from '$lib/model/session.svelte.js'
+
+export const {{properCase game}}UiRuntime: GameUIRuntime<{{properCase game}}GameState, Hydrated{{properCase game}}GameState> = {
+    ...{{properCase game}}Runtime,
+    gameUI: {
+        component: GameTable,
+        load: async () => GameTable,
+        mount: mountDynamicComponent
+    },
+    sessionClass: {{properCase game}}GameSession,
+    colorizer: new {{properCase game}}GameColorizer()
+}

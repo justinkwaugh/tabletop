@@ -10,7 +10,8 @@
     "private": true,
     "scripts": {
         "clean": "rimraf esm",
-        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo"
+        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts"
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",
@@ -24,6 +25,7 @@
         "@tabletop/vitest-config": "workspace:*",
         "@typescript/native-preview": "*",
         "rimraf": "^6.1.0",
+        "rollup": "4.55.2",
         "typescript": "5.9.3"
     }
 }
