@@ -15,13 +15,57 @@
         gameSession.isViewingHistory ? 'Viewing history' : 'Waiting for turn'
     )
 
+    const lineExpansionProgressSuffix = $derived.by(() => {
+        const totalActions = Math.max(0, gameSession.gameState.numAllowedActions())
+        if (totalActions <= 0) {
+            return ''
+        }
+
+        const playerSticksAtTurnStart =
+            (gameSession.myPlayerState?.sticks ?? 0) + gameSession.gameState.actionsTaken
+        const constrainedTotal = Math.min(totalActions, playerSticksAtTurnStart)
+        if (constrainedTotal <= 0) {
+            return ''
+        }
+
+        const actionNumber = Math.min(constrainedTotal, gameSession.gameState.actionsTaken + 1)
+        return ` (${actionNumber} of ${constrainedTotal})`
+    })
+
+    const buildingProgressSuffix = $derived.by(() => {
+        const totalActions = Math.max(0, gameSession.gameState.numAllowedActions())
+        if (totalActions <= 0) {
+            return ''
+        }
+
+        const actionNumber = Math.min(totalActions, gameSession.gameState.actionsTaken + 1)
+        return ` (${actionNumber} of ${totalActions})`
+    })
+
+    const vroomProgressSuffix = $derived.by(() => {
+        const playerId = gameSession.myPlayer?.id
+        if (!playerId) {
+            return ''
+        }
+
+        const baseBusValue = gameSession.myPlayerState?.buses ?? 0
+        const playerGetsBusBonus = gameSession.gameState.busAction === playerId
+        const totalActions = Math.max(0, baseBusValue + (playerGetsBusBonus ? 1 : 0))
+        if (totalActions <= 0) {
+            return ''
+        }
+
+        const actionNumber = Math.min(totalActions, gameSession.gameState.actionsTaken + 1)
+        return ` (${actionNumber} of ${totalActions})`
+    })
+
     const message = $derived.by(() => {
         if (gameSession.gameState.result) {
             return 'Game over'
         }
 
         if (gameSession.pendingBusLineTargetNodeId) {
-            return 'Choose an end to extend...'
+            return `Choose an end to extend...${lineExpansionProgressSuffix}`
         }
 
         if (gameSession.chosenPassengerStationId) {
@@ -29,7 +73,7 @@
         }
 
         if (gameSession.chosenVroomSourceNodeId) {
-            return 'Choose the destination...'
+            return `Choose the destination...${vroomProgressSuffix}`
         }
 
         switch (gameSession.gameState.machineState) {
@@ -37,17 +81,17 @@
                 return 'Place an action token...'
             case MachineState.InitialBuildingPlacement:
             case MachineState.AddingBuildings:
-                return 'Place a building...'
+                return `Place a building...${gameSession.gameState.machineState === MachineState.AddingBuildings ? buildingProgressSuffix : ''}`
             case MachineState.InitialBusLinePlacement:
                 return 'Place a bus line segment...'
             case MachineState.LineExpansion:
-                return 'Extend your bus line...'
+                return `Extend your bus line...${lineExpansionProgressSuffix}`
             case MachineState.AddingPassengers:
                 return 'Choose a train station...'
             case MachineState.TimeMachine:
                 return 'Use a time stone'
             case MachineState.Vrooming:
-                return 'Choose a passenger to deliver...'
+                return `Choose a passenger to deliver...${vroomProgressSuffix}`
             default:
                 return 'Unknown state'
         }
