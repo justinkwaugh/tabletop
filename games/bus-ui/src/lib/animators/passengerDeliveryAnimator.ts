@@ -30,6 +30,7 @@ type PassengerDeliveryAnimatorCallbacks = {
         pose: PassengerPose
     }) => void
     onUpdate: (pose: PassengerPose) => void
+    onComplete: () => void
 }
 
 const NODE_PASSENGER_HEIGHT = 74
@@ -137,6 +138,9 @@ export class PassengerDeliveryAnimator extends StateAnimator<
                 ease: 'power2.inOut',
                 onUpdate: () => {
                     this.callbacks.onUpdate({ ...pose })
+                },
+                onComplete: () => {
+                    this.callbacks.onComplete()
                 }
             },
             startAt + nodeTravelDuration

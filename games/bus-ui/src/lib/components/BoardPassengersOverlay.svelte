@@ -85,6 +85,9 @@
         },
         onUpdate: (pose) => {
             animatedPassengerPose = { ...pose }
+        },
+        onComplete: () => {
+            animatedPassengerPose = undefined
         }
     })
 
@@ -297,7 +300,7 @@
         !isChosenVroomSource &&
         hoveredVroomSourceNodeId === typedNodeId}
     {@const deliveryAdjustedPassengerCount =
-        animatedPassengerPose && animatedPassengerSourceNodeId === typedNodeId
+        animatedPassengerSourceNodeId === typedNodeId
             ? Math.max(0, passengers.length - 1)
             : passengers.length}
     {@const animatedPassengerCount =
