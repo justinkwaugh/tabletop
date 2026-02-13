@@ -118,6 +118,10 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
                 continue
             }
 
+            if (state.activeEffect === EffectType.Teleport) {
+                return true
+            }
+
             // This still needs work because of effects like catapult
             if (
                 state.board.pathToDestination({
@@ -139,9 +143,6 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
             return
         }
 
-        if (hurl.teleport) {
-            return
-        }
         return HydratedFly.isValidFlight(state, hurl)
     }
 }

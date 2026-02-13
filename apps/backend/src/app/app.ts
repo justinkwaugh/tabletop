@@ -208,7 +208,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         }
 
         const isHtmlAsset = (pathName: string) =>
-            pathName.endsWith('.html') || pathName.endsWith('.html.br') || pathName.endsWith('.html.gz')
+            pathName.endsWith('.html') ||
+            pathName.endsWith('.html.br') ||
+            pathName.endsWith('.html.gz')
 
         const isServiceWorkerAsset = (pathName: string) =>
             pathName.endsWith('service-worker.js') ||
@@ -347,6 +349,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             if (request.url.startsWith(API_PREFIX) || request.url.startsWith(TASKS_PREFIX)) {
                 await reply.code(404).send({ message: 'Not Found' })
             } else if (frontendStaticReady) {
+                console.log('Serving index.html for unknown frontend path:', request.url)
                 setNoCacheHeaders(reply)
                 await reply.sendFile('index.html', { cacheControl: false })
             } else {

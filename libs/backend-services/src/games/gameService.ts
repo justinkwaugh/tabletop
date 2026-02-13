@@ -900,6 +900,10 @@ export class GameService {
             }
         }
 
+        if (!game.result && updatedGame.result) {
+            await this.sendGameEndEmail(updatedGame)
+        }
+
         return {
             processedActions: storedActions,
             updatedGame,
@@ -1224,6 +1228,23 @@ export class GameService {
             topics: [...userTopics],
             channels: [NotificationDistributionMethod.Topical]
         })
+    }
+
+    private async sendGameEndEmail(game: Game): Promise<void> {
+        const userIds = game.players.map((p) => p.userId).filter((id): id is string => !!id)
+
+        for (const userId of userIds) {
+            // I'm not sure why we send the email through the task, when
+            // it could just get it on the other end.
+            const user = await this.userService.getUser(userId)
+            if (user && user.email) {
+                await this.taskService.sendGameEndEmail({
+                    userId: user.id,
+                    gameId: game.id,
+                    toEmail: user.email
+                })
+            }
+        }
     }
 
     private async notifyGlobal(

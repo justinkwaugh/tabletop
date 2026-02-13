@@ -16,9 +16,12 @@ import {
     deployFrontendCommand,
     deployGameLogicCommand,
     deployGameUiCommand,
+    gcsDirectoryPlaceholderCommands,
+    gcsRsyncDirectoryPlaceholderCommands,
     rollbackBackendCommand,
     runCommand
 } from './lib/commands.js'
+import type { CommandSpec } from './lib/commands.js'
 import { getDeployConfigPath, getManifestPath, getRepoRoot } from './lib/paths.js'
 import { syncManifestFromPackages } from './lib/versions.js'
 
@@ -53,12 +56,44 @@ Environment:
   TABLETOP_BACKEND_ADMIN_PASSWORD Backend admin password
   TABLETOP_BACKEND_ADMIN_TOKEN  Backend admin auth token
   TABLETOP_BACKEND_ADMIN_COOKIE Backend admin session cookie
+  CLOUDSDK_PYTHON               Python runtime for Cloud SDK commands
+  TABLETOP_GCS_ACCESS_TOKEN     Access token used for GCS placeholder creation
 `
 
 const runAndReport = async (spec: { label: string; logPath: string }, action: () => Promise<void>) => {
     console.log(`${spec.label}: running (log: ${spec.logPath})`)
     await action()
-    console.log(`${spec.label}: complete`) 
+    console.log(`${spec.label}: complete`)
+}
+
+const directoryPlaceholderSpecs = (spec: CommandSpec): CommandSpec[] => {
+    if (spec.command !== 'gcloud') return []
+    if (spec.args[0] !== 'storage') return []
+    if (spec.args.length < 2) return []
+    const operation = spec.args[1]
+    if (operation !== 'rsync' && operation !== 'cp') return []
+    const source = spec.args[spec.args.length - 2]
+    const destination = spec.args[spec.args.length - 1]
+    if (!destination.startsWith('gs://')) return []
+    if (operation === 'rsync' && !source.startsWith('gs://')) {
+        return gcsRsyncDirectoryPlaceholderCommands(repoRoot, source, destination, {
+            labelPrefix: spec.label,
+            logPrefix: spec.logPath
+        })
+    }
+    return gcsDirectoryPlaceholderCommands(repoRoot, destination, {
+        treatDestinationAsObject: operation === 'cp',
+        labelPrefix: spec.label,
+        logPrefix: spec.logPath
+    })
+}
+
+const runDeployWithDirectoryPlaceholders = async (spec: CommandSpec) => {
+    const placeholderSpecs = directoryPlaceholderSpecs(spec)
+    for (const placeholder of placeholderSpecs) {
+        await runAndReport(placeholder, () => runCommand(placeholder))
+    }
+    await runAndReport(spec, () => runCommand(spec))
 }
 
 const loadSyncedManifest = async () => {
@@ -125,7 +160,7 @@ const main = async () => {
         await runAndReport(bundleSpec, () => runCommand(bundleSpec))
         const manifest = await loadSyncedManifest()
         const spec = deployGameUiCommand(repoRoot, manifest, gameId, deployConfig)
-        await runAndReport(spec, () => runCommand(spec))
+        await runDeployWithDirectoryPlaceholders(spec)
         return
     }
 
@@ -146,7 +181,7 @@ const main = async () => {
         await runAndReport(bundleSpec, () => runCommand(bundleSpec))
         const manifest = await loadSyncedManifest()
         const spec = deployGameLogicCommand(repoRoot, manifest, gameId, deployConfig)
-        await runAndReport(spec, () => runCommand(spec))
+        await runDeployWithDirectoryPlaceholders(spec)
         return
     }
 
@@ -159,7 +194,7 @@ const main = async () => {
     if (command === 'deploy-frontend') {
         const manifest = await loadSyncedManifest()
         const spec = deployFrontendCommand(repoRoot, manifest, deployConfig)
-        await runAndReport(spec, () => runCommand(spec))
+        await runDeployWithDirectoryPlaceholders(spec)
         return
     }
 

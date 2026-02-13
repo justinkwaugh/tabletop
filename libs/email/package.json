@@ -13,11 +13,12 @@
         "dev": "email dev -p 3001"
     },
     "dependencies": {
+        "@tabletop/common": "workspace:*",
         "@react-email/components": "1.0.6"
     },
     "devDependencies": {
         "@react-email/preview-server": "^5.2.5",
-        "@typescript/native-preview": "*",
+        "@typescript/native-preview": "7.0.0-dev.20260203.1",
         "react": "^19.2.3",
         "react-dom": "^19.2.3",
         "react-email": "5.2.5",

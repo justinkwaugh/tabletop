@@ -3,6 +3,11 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 import { DeployConfig, SiteManifest } from './types.js'
+import {
+    ensureCloudSdkPython,
+    isCloudSdkCommand,
+    withCloudSdkPythonEnv
+} from './cloudSdkPython.js'
 
 export type CommandSpec = {
     label: string
@@ -18,6 +23,12 @@ type RunCommandOptions = {
     onSpawn?: (child: ChildProcess) => void
 }
 
+type GcsDirectoryPlaceholderOptions = {
+    treatDestinationAsObject?: boolean
+    labelPrefix?: string
+    logPrefix?: string
+}
+
 const ensureDir = (dirPath: string) => {
     fs.mkdirSync(dirPath, { recursive: true })
 }
@@ -25,11 +36,14 @@ const ensureDir = (dirPath: string) => {
 export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Promise<void> => {
     ensureDir(path.dirname(spec.logPath))
     const logStream = fs.createWriteStream(spec.logPath, { flags: 'w' })
+    const env = isCloudSdkCommand(spec.command)
+        ? withCloudSdkPythonEnv(process.env)
+        : process.env
 
     return new Promise((resolve, reject) => {
         const child = spawn(spec.command, spec.args, {
             cwd: spec.cwd,
-            env: process.env,
+            env,
             stdio: ['ignore', 'pipe', 'pipe']
         })
         options?.onSpawn?.(child)
@@ -117,6 +131,145 @@ export const pushBackendImageCommand = (repoRoot: string, image: string): Comman
     cwd: repoRoot,
     logPath: '/tmp/backend-image-push.log'
 })
+
+const gcsUrlPattern = /^gs:\/\/([^/]+)(?:\/(.*))?$/
+
+const parseGcsUrl = (url: string) => {
+    const match = gcsUrlPattern.exec(url.trim())
+    if (!match) {
+        throw new Error(`Expected gs:// URL, received "${url}"`)
+    }
+    const bucket = match[1]
+    const rawPath = match[2] ?? ''
+    return {
+        bucket,
+        pathSegments: rawPath.split('/').filter((segment) => segment.length > 0)
+    }
+}
+
+const gcsDirectoryUrlsForDestination = (
+    destination: string,
+    options?: { treatAsObject?: boolean }
+): string[] => {
+    const { bucket, pathSegments } = parseGcsUrl(destination)
+    const directorySegments = options?.treatAsObject ? pathSegments.slice(0, -1) : pathSegments
+    const directories: string[] = []
+    for (let depth = 1; depth <= directorySegments.length; depth += 1) {
+        const directoryPath = directorySegments.slice(0, depth).join('/')
+        directories.push(`gs://${bucket}/${directoryPath}/`)
+    }
+    return directories
+}
+
+const uniqueValues = (values: string[]): string[] => {
+    const seen = new Set<string>()
+    const result: string[] = []
+    for (const value of values) {
+        if (seen.has(value)) continue
+        seen.add(value)
+        result.push(value)
+    }
+    return result
+}
+
+const listLocalDirectories = (sourceDir: string): string[] => {
+    try {
+        const stat = fs.statSync(sourceDir)
+        if (!stat.isDirectory()) return []
+    } catch {
+        return []
+    }
+
+    const directories = ['']
+    const queue = ['']
+
+    while (queue.length > 0) {
+        const relativeDir = queue.shift() as string
+        const absoluteDir =
+            relativeDir.length > 0 ? path.join(sourceDir, relativeDir) : sourceDir
+        let entries: fs.Dirent[]
+        try {
+            entries = fs.readdirSync(absoluteDir, { withFileTypes: true })
+        } catch {
+            continue
+        }
+        for (const entry of entries) {
+            if (!entry.isDirectory()) continue
+            const childRelative =
+                relativeDir.length > 0 ? path.join(relativeDir, entry.name) : entry.name
+            directories.push(childRelative)
+            queue.push(childRelative)
+        }
+    }
+
+    return directories
+}
+
+const splitPathSegments = (value: string): string[] =>
+    value.split(path.sep).filter((segment) => segment.length > 0)
+
+const gcsDirectoryUrlsForRsyncDestination = (
+    sourceDir: string,
+    destination: string
+): string[] => {
+    const { bucket, pathSegments } = parseGcsUrl(destination)
+    const destinationDirectories = gcsDirectoryUrlsForDestination(destination)
+    const sourceDirectories = listLocalDirectories(sourceDir)
+    const mappedDirectories = sourceDirectories.map((relativeDir) => {
+        const relativeSegments = splitPathSegments(relativeDir)
+        const destinationPath = [...pathSegments, ...relativeSegments].join('/')
+        return `gs://${bucket}/${destinationPath}/`
+    })
+    return uniqueValues([...destinationDirectories, ...mappedDirectories])
+}
+
+const normalizeLogPrefix = (value: string): string =>
+    value.endsWith('.log') ? value.slice(0, -'.log'.length) : value
+
+export const gcsDirectoryPlaceholderCommands = (
+    repoRoot: string,
+    destination: string,
+    options?: GcsDirectoryPlaceholderOptions
+): CommandSpec[] => {
+    const directories = gcsDirectoryUrlsForDestination(destination, {
+        treatAsObject: options?.treatDestinationAsObject
+    })
+    const logPrefix = normalizeLogPrefix(options?.logPrefix ?? '/tmp/gcs-placeholder')
+    const labelPrefix = options?.labelPrefix ?? 'deploy'
+
+    ensureCloudSdkPython()
+
+    return directories.map((directoryUrl, index) => ({
+        label: `${labelPrefix}:placeholder:${index + 1}`,
+        command: 'node',
+        args: ['tools/deploy/scripts/create-gcs-placeholder.mjs', directoryUrl],
+        cwd: repoRoot,
+        logPath: `${logPrefix}.placeholder-${index + 1}.log`,
+        requiresDeploy: true
+    }))
+}
+
+export const gcsRsyncDirectoryPlaceholderCommands = (
+    repoRoot: string,
+    sourceDir: string,
+    destination: string,
+    options?: GcsDirectoryPlaceholderOptions
+): CommandSpec[] => {
+    const directories = gcsDirectoryUrlsForRsyncDestination(sourceDir, destination)
+    const logPrefix = normalizeLogPrefix(options?.logPrefix ?? '/tmp/gcs-placeholder')
+    const labelPrefix = options?.labelPrefix ?? 'deploy'
+
+    ensureCloudSdkPython()
+
+    return directories.map((directoryUrl, index) => ({
+        label: `${labelPrefix}:placeholder:${index + 1}`,
+        command: 'node',
+        args: ['tools/deploy/scripts/create-gcs-placeholder.mjs', directoryUrl],
+        cwd: repoRoot,
+        logPath: `${logPrefix}.placeholder-${index + 1}.log`,
+        requiresDeploy: true
+    }))
+}
 
 export const deployGameUiCommand = (
     repoRoot: string,

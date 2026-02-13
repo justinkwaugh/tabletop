@@ -22,6 +22,7 @@ export interface TaskService {
         changeType: AccountChangeType
         timestamp: Date
     }): Promise<void>
+
     sendGameInvitationEmail({
         userId,
         gameId,
@@ -33,6 +34,7 @@ export interface TaskService {
         token: string
         toEmail: string
     }): Promise<void>
+
     sendTurnNotification({
         userId,
         gameId,
@@ -43,5 +45,15 @@ export interface TaskService {
         gameId: string
         notificationId: string
         inSeconds?: number
+    }): Promise<void>
+
+    sendGameEndEmail({
+        userId,
+        gameId,
+        toEmail
+    }: {
+        userId: string
+        gameId: string
+        toEmail: string
     }): Promise<void>
 }

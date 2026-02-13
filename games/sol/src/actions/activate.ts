@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
+    assert,
     assertExists,
     GameAction,
     HydratableAction,
@@ -65,6 +66,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         }
 
         const playerState = state.getPlayerState(this.playerId)
+        const turnPlayerId = state.turnManager.currentTurn()?.playerId
+        assertExists(turnPlayerId, 'No current turn player')
 
         const cell = state.board.cellAt(this.coords)
         const station = cell.station
@@ -119,7 +122,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
             }
         }
 
-        if (state.activeEffect === EffectType.Synchronize) {
+        if (state.activeEffect === EffectType.Synchronize && this.playerId === turnPlayerId) {
             playerState.momentum += 1
             this.metadata.momentumAdded += 1
         }

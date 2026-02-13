@@ -36,7 +36,7 @@
         "nanoid": "^5.1.6",
         "redis": "^5.10.0",
         "resend": "^4.0.2",
-        "typescript-retry-decorator": "2.5.1",
+        "typescript-retry-decorator": "2.5.4",
         "web-push": "^3.6.7"
     },
     "devDependencies": {
@@ -45,7 +45,7 @@
         "@types/bcrypt": "^5.0.2",
         "@types/glob-to-regexp": "^0.4.4",
         "@types/web-push": "^3.6.3",
-        "@typescript/native-preview": "*",
+        "@typescript/native-preview": "7.0.0-dev.20260203.1",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3"
     }

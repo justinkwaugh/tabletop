@@ -4,7 +4,8 @@ import {
     EmailVerification,
     PasswordReset,
     AccountChangeNotification,
-    GameInvitation
+    GameInvitation,
+    GameEnd
 } from '@tabletop/email'
 
 import { Resend } from 'resend'
@@ -95,6 +96,44 @@ export class ResendEmailService implements EmailService {
             from: 'noreply@boardtogether.games',
             to: toEmail,
             subject: `Join ${owner.username}'s game of ${definition.info.metadata.name}`,
+            html: emailHTML,
+            headers: {
+                'X-Entity-Ref-ID': nanoid()
+            }
+        })
+    }
+
+    async sendGameEndEmail({
+        winners,
+        game,
+        definition,
+        url,
+        toEmail
+    }: {
+        winners: User[]
+        game: Game
+        definition: GameDefinition
+        url: string
+        toEmail: string
+    }): Promise<void> {
+        if (!game.result) {
+            console.log('Game result is missing for game end email')
+            return
+        }
+
+        const emailHTML = await render(
+            GameEnd({
+                result: game.result,
+                winners: winners.map((w) => w.username || 'A Player'),
+                gameName: game.name,
+                title: definition.info.metadata.name,
+                url
+            })
+        )
+        await this.resend.emails.send({
+            from: 'noreply@boardtogether.games',
+            to: toEmail,
+            subject: `Your game of ${definition.info.metadata.name} ${game.name} has ended`,
             html: emailHTML,
             headers: {
                 'X-Entity-Ref-ID': nanoid()

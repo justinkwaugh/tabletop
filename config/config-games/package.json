@@ -12,7 +12,7 @@
         "build": "tsgo"
     },
     "devDependencies": {
-        "@typescript/native-preview": "*",
+        "@typescript/native-preview": "7.0.0-dev.20260203.1",
         "typescript": "5.9.3"
     }
 }

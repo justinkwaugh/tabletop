@@ -10,8 +10,7 @@ RUN apt-get update && apt-get install -y make gcc g++ python3 curl
 
 COPY json/ /app/
 COPY pnpm-workspace.yaml /app/pnpm-workspace.yaml
-
-RUN corepack enable && corepack prepare pnpm@9.15.5 --activate
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 RUN pnpm install --frozen-lockfile
 
 COPY full/ /app/
@@ -25,9 +24,9 @@ RUN pnpm turbo run build --no-cache --no-daemon \
     --filter=@tabletop/games-config \
     --filter=@tabletop/backend
 
-RUN pnpm prune --prod --yes
+RUN pnpm deploy --legacy --filter=@tabletop/backend --prod /app/deploy
 
-RUN if [ -f /app/apps/backend/.env.prod ]; then cp /app/apps/backend/.env.prod /app/apps/backend/.env; fi
+RUN if [ -f /app/apps/backend/.env.prod ]; then cp /app/apps/backend/.env.prod /app/deploy/.env; fi
 
 # Runtime stage (distroless).
 FROM gcr.io/distroless/nodejs22-debian12
@@ -35,9 +34,9 @@ FROM gcr.io/distroless/nodejs22-debian12
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 
-WORKDIR /app/apps/backend
+WORKDIR /app
 
-COPY --from=builder --chown=nonroot:nonroot /app /app
+COPY --from=builder --chown=nonroot:nonroot /app/deploy /app
 
 USER nonroot
 
