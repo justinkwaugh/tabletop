@@ -536,6 +536,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/rollup-config':
+        specifier: workspace:*
+        version: link:../../config/config-rollup
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -545,6 +548,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.2
+      rollup:
+        specifier: 4.55.2
+        version: 4.55.2
       typescript:
         specifier: 5.9.3
         version: 5.9.3
