@@ -19,6 +19,7 @@
     const BOARD_HEIGHT = 1300
 
     const START_HIT_STROKE_WIDTH = 34
+    const EXTENSION_HIT_STROKE_WIDTH = 34
     const TARGET_HIT_RADIUS = 28
     const TARGET_VISIBLE_RADIUS = 15
     const SOURCE_VISIBLE_RADIUS = 16
@@ -29,6 +30,7 @@
     const SOURCE_OUTER_RADIUS = SOURCE_VISIBLE_RADIUS + NODE_HIGHLIGHT_OUTER_BORDER_WIDTH / 2
 
     let hoveredStartingSegmentKey = $state<string | undefined>()
+    let hoveredExtensionSegmentKey = $state<string | undefined>()
     let hoveredTargetNodeId = $state<BusNodeId | undefined>()
     let hoveredSourceNodeId = $state<BusNodeId | undefined>()
     let animatedBusLineOverrides: Map<string, BusNodeId[]> | undefined = $derived.by(() => {
@@ -66,6 +68,16 @@
             : undefined
     })
 
+    const effectiveHoveredExtensionSegment: BusLineSegment | undefined = $derived.by(() => {
+        if (!canInteract || isStartingPlacement || !hoveredExtensionSegmentKey) {
+            return undefined
+        }
+
+        return gameSession.extensionBusLineSegments.find(
+            (segment) => segmentKey(segment) === hoveredExtensionSegmentKey
+        )
+    })
+
     const effectiveHoveredSourceNodeId = $derived.by(() => {
         if (!canInteract || !pendingTargetNodeId || !hoveredSourceNodeId) {
             return undefined
@@ -90,6 +102,10 @@
             return gameSession.startingBusLineSegments.find(
                 (segment) => startSegmentKey(segment) === effectiveHoveredStartingSegmentKey
             )
+        }
+
+        if (effectiveHoveredExtensionSegment) {
+            return effectiveHoveredExtensionSegment
         }
 
         if (pendingTargetNodeId) {
@@ -172,6 +188,10 @@
     })
 
     const ambiguousPreviewTargetNodeId = $derived.by(() => {
+        if (effectiveHoveredExtensionSegment) {
+            return undefined
+        }
+
         if (pendingTargetNodeId) {
             return pendingTargetNodeId
         }
@@ -222,11 +242,16 @@
     })
 
     function startSegmentKey(segment: BusLineSegment): string {
+        return segmentKey(segment)
+    }
+
+    function segmentKey(segment: BusLineSegment): string {
         return `${segment[0]}:${segment[1]}`
     }
 
     function clearHoverState() {
         hoveredStartingSegmentKey = undefined
+        hoveredExtensionSegmentKey = undefined
         hoveredTargetNodeId = undefined
         hoveredSourceNodeId = undefined
     }
@@ -254,6 +279,11 @@
     async function chooseSourceNode(sourceNodeId: BusNodeId) {
         await gameSession.confirmBusLineSourceNode(sourceNodeId)
         hoveredSourceNodeId = undefined
+    }
+
+    async function chooseExtensionSegment(segment: BusLineSegment) {
+        await gameSession.placeBusLineSegment(segment)
+        clearHoverState()
     }
 </script>
 
@@ -407,6 +437,33 @@
             </g>
         {:else}
             <g class="pointer-events-auto">
+                {#each gameSession.extensionBusLineSegments as segment, segmentIndex (`${segmentKey(segment)}:${segmentIndex}`)}
+                    {@const fromPoint = BUS_BOARD_NODE_POINTS[segment[0]]}
+                    {@const toPoint = BUS_BOARD_NODE_POINTS[segment[1]]}
+                    <line
+                        x1={fromPoint.x}
+                        y1={fromPoint.y}
+                        x2={toPoint.x}
+                        y2={toPoint.y}
+                        stroke="transparent"
+                        stroke-width={EXTENSION_HIT_STROKE_WIDTH}
+                        stroke-linecap="round"
+                        class="cursor-pointer bus-line-hit-target"
+                        role="button"
+                        tabindex="0"
+                        aria-label={`Place segment ${segment[0]} to ${segment[1]}`}
+                        onmouseenter={() => (hoveredExtensionSegmentKey = segmentKey(segment))}
+                        onmouseleave={() => {
+                            if (hoveredExtensionSegmentKey === segmentKey(segment)) {
+                                hoveredExtensionSegmentKey = undefined
+                            }
+                        }}
+                        onclick={() => chooseExtensionSegment(segment)}
+                        onkeydown={(event) =>
+                            onKeyboardActivate(event, () => chooseExtensionSegment(segment))}
+                    />
+                {/each}
+
                 {#if pendingTargetNodeId}
                     {@const pendingPoint = BUS_BOARD_NODE_POINTS[pendingTargetNodeId]}
                     <circle
