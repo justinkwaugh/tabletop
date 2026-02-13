@@ -54,6 +54,9 @@ export class TimeMachineStateHandler implements MachineStateHandler<
             case isStopTime(action): {
                 state.clockAction = undefined
                 state.turnManager.endTurn(state.actionCount)
+                if (state.stones === 0) {
+                    return MachineState.EndOfGame
+                }
                 return getNextActionState(state)
             }
             case isPass(action): {

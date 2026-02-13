@@ -10,10 +10,11 @@
     let optionChosen = $state(false)
 
     const passengerOptions = $derived.by(() => {
-        const maxPassengers = Math.max(
+        const maxPassengersByActions = Math.max(
             0,
             gameSession.gameState.numAllowedActions() - gameSession.gameState.actionsTaken
         )
+        const maxPassengers = Math.min(maxPassengersByActions, gameSession.gameState.passengers.length)
         return Array.from({ length: maxPassengers }, (_, index) => index + 1)
     })
 

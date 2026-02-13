@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    assertExists,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
@@ -48,8 +53,17 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
             for (const passenger of gameState.board.passengers) {
                 passenger.siteId = undefined
             }
-            gameState.passedPlayers = []
-            activePlayerId = gameState.turnManager.restartTurnOrder(gameState.actionCount)
+            gameState.passedPlayers = gameState.players
+                .filter((p) => p.actions === 0)
+                .map((p) => p.playerId)
+
+            const nextPlayer = gameState.turnManager.turnOrder.find(
+                (playerId) => !gameState.passedPlayers.includes(playerId)
+            )
+            assertExists(nextPlayer, 'No valid next player found')
+            gameState.turnManager.startTurn(nextPlayer, gameState.actionCount)
+
+            activePlayerId = nextPlayer
         } else {
             activePlayerId = gameState.turnManager.startNextTurn(
                 gameState.actionCount,
@@ -69,20 +83,29 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
         switch (true) {
             case isChooseWorkerAction(action): {
                 gameState.turnManager.endTurn(gameState.actionCount)
-                return MachineState.ChoosingActions
+                const playerState = gameState.getPlayerState(action.playerId)
+                if (playerState.actions === 0) {
+                    gameState.passedPlayers.push(action.playerId)
+                }
+
+                return this.nextState(gameState)
             }
             case isPass(action): {
                 gameState.turnManager.endTurn(gameState.actionCount)
-                if (gameState.players.every((p) => gameState.passedPlayers.includes(p.playerId))) {
-                    gameState.passedPlayers = []
-                    return getNextActionState(gameState)
-                }
-                return MachineState.ChoosingActions
+                return this.nextState(gameState)
             }
             // Leave this comment if you want the template to generate code for valid actions
             default: {
                 throw Error('Invalid action type')
             }
         }
+    }
+
+    nextState(gameState: HydratedBusGameState): MachineState {
+        if (gameState.players.every((p) => gameState.passedPlayers.includes(p.playerId))) {
+            gameState.passedPlayers = []
+            return getNextActionState(gameState)
+        }
+        return MachineState.ChoosingActions
     }
 }

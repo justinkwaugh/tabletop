@@ -23,7 +23,8 @@ import {
     type BusStationId,
     validBusLineExtensionSegments,
     validStartingBusLineSegments,
-    MachineState
+    MachineState,
+    PassReason
 } from '@tabletop/bus'
 export class BusGameSession extends GameSession<BusGameState, HydratedBusGameState> {
     chosenSite: BuildingSiteId | undefined = $state()
@@ -285,12 +286,12 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         await this.applyAction(action)
     }
 
-    async pass() {
+    async pass(reason?: PassReason) {
         if (!this.validActionTypes.includes(ActionType.Pass)) {
             return
         }
 
-        const action = this.createPlayerAction(Pass, {})
+        const action = this.createPlayerAction(Pass, { reason })
         await this.applyAction(action)
     }
 
@@ -389,5 +390,4 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         this.pendingBusLineTargetNodeId = undefined
         await this.placeBusLineSegment(segment)
     }
-
 }

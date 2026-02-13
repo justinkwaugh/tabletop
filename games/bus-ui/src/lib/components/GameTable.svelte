@@ -14,6 +14,7 @@
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import GameEndPanel from '$lib/components/GameEndPanel.svelte'
 
     import type { BusGameSession } from '$lib/model/session.svelte'
     import type { HydratedBusGameState, BusGameState } from '@tabletop/bus'
@@ -58,7 +59,11 @@
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
                 <Header />
-                <ActionPanel />
+                {#if gameSession.gameState.result}
+                    <GameEndPanel />
+                {:else}
+                    <ActionPanel />
+                {/if}
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->

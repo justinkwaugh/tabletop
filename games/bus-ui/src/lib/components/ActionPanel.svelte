@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ActionType, MachineState } from '@tabletop/bus'
+    import { ActionType, MachineState, PassReason } from '@tabletop/bus'
     import LastActionDescription from './LastActionDescription.svelte'
     import type { BusGameSession } from '$lib/model/session.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -8,7 +8,9 @@
     const canPass = $derived.by(
         () => gameSession.isMyTurn && gameSession.validActionTypes.includes(ActionType.Pass)
     )
-    const showLastActionDescription = $derived.by(() => gameSession.isViewingHistory || !gameSession.isMyTurn)
+    const showLastActionDescription = $derived.by(
+        () => gameSession.isViewingHistory || !gameSession.isMyTurn
+    )
     const lastActionFallbackText = $derived.by(() =>
         gameSession.isViewingHistory ? 'Viewing history' : 'Waiting for turn'
     )
@@ -52,7 +54,13 @@
     })
 
     async function pass() {
-        await gameSession.pass()
+        let reason
+        if (gameSession.gameState.machineState === MachineState.ChoosingActions) {
+            reason = PassReason.DoneActions
+        } else if (gameSession.gameState.machineState === MachineState.TimeMachine) {
+            reason = PassReason.DeclinedClock
+        }
+        await gameSession.pass(reason)
     }
 </script>
 

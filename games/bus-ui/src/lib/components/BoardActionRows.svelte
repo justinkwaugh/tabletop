@@ -15,7 +15,7 @@
         type ActionSpotHighlight,
         type ActionValueBadge,
         type ActionWorkerPlacement
-    } from './boardActionRowsUtils.js'
+    } from '$lib/utils/boardActionRowsUtils.js'
     import {
         BUS_BUILDINGS_ACTION_SPOT_POINTS,
         BUS_BUSES_ACTION_SPOT_POINT,
@@ -291,7 +291,60 @@
         const playerBusValues = new Map<string, number>(
             state.players.map((playerState) => [playerState.playerId, playerState.buses])
         )
+        const playerStickValues = new Map<string, number>(
+            state.players.map((playerState) => [playerState.playerId, playerState.sticks])
+        )
         const myPlayerId = gameSession.myPlayer?.id
+
+        const expansionValuesBySelectionIndex = (() => {
+            const values = new Map<number, number>()
+            const remainingSticksByPlayer = new Map<string, number>(playerStickValues)
+
+            // Expansion executes left-to-right on the board row (F -> A), which corresponds to
+            // descending selection indices (5 -> 0) because index 0 is the A slot.
+            for (let selectionIndex = state.lineExpansionAction.length - 1; selectionIndex >= 0; selectionIndex -= 1) {
+                const playerId = state.lineExpansionAction[selectionIndex]
+                if (!playerId) {
+                    continue
+                }
+
+                const baseValue = Math.max(0, state.roundStartMaxBusValue - selectionIndex)
+                const remainingSticks = Math.max(0, remainingSticksByPlayer.get(playerId) ?? 0)
+                const value = Math.min(baseValue, remainingSticks)
+
+                values.set(selectionIndex, value)
+                remainingSticksByPlayer.set(playerId, Math.max(0, remainingSticks - value))
+            }
+
+            return values
+        })()
+
+        const projectedExpansionHighlightValueBySelectionIndex = (() => {
+            const values = new Map<number, number>()
+            const nextSelectionIndex = state.lineExpansionAction.length
+            if (!myPlayerId || nextSelectionIndex >= BUS_EXPANSION_ACTION_SPOT_POINTS.length) {
+                return values
+            }
+
+            const projectedLineExpansionAction = [...state.lineExpansionAction, myPlayerId]
+            const remainingSticksByPlayer = new Map<string, number>(playerStickValues)
+
+            for (let selectionIndex = projectedLineExpansionAction.length - 1; selectionIndex >= 0; selectionIndex -= 1) {
+                const playerId = projectedLineExpansionAction[selectionIndex]
+                if (!playerId) {
+                    continue
+                }
+
+                const baseValue = Math.max(0, state.roundStartMaxBusValue - selectionIndex)
+                const remainingSticks = Math.max(0, remainingSticksByPlayer.get(playerId) ?? 0)
+                const value = Math.min(baseValue, remainingSticks)
+
+                values.set(selectionIndex, value)
+                remainingSticksByPlayer.set(playerId, Math.max(0, remainingSticks - value))
+            }
+
+            return values
+        })()
 
         const resolveActionValue = (
             actionType: WorkerActionType,
@@ -299,9 +352,22 @@
             playerId?: string
         ): number | undefined => {
             switch (actionType) {
-                case WorkerActionType.Expansion:
-                    return Math.max(0, state.roundStartMaxBusValue - selectionIndex)
-                case WorkerActionType.Passengers:
+                case WorkerActionType.Expansion: {
+                    if (playerId) {
+                        return expansionValuesBySelectionIndex.get(selectionIndex) ?? 0
+                    }
+                    if (selectionIndex === state.lineExpansionAction.length) {
+                        return projectedExpansionHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
+                    }
+                    return expansionValuesBySelectionIndex.get(selectionIndex) ?? 0
+                }
+                case WorkerActionType.Passengers: {
+                    const passengerBase = Math.min(
+                        effectivePassengerAndBuildingBase,
+                        state.passengers.length
+                    )
+                    return Math.max(0, passengerBase - selectionIndex)
+                }
                 case WorkerActionType.Buildings:
                     return Math.max(0, effectivePassengerAndBuildingBase - selectionIndex)
                 case WorkerActionType.Vroom: {

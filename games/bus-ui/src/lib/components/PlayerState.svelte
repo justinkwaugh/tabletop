@@ -5,7 +5,11 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
-    let { player, playerState }: { player: Player; playerState: BusPlayerState } = $props()
+    let {
+        player,
+        playerState,
+        showInfo = true
+    }: { player: Player; playerState: BusPlayerState; showInfo?: boolean } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
@@ -30,103 +34,115 @@
                         class="absolute inset-[1.5px] rounded-[0.48rem] border border-white/28"
                     ></div>
                     <div class="grid h-full grid-cols-3 gap-[2px]">
-                        <div
-                            class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
-                        >
-                            <svg
-                                width="28"
-                                height="28"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                                class="shrink-0 select-none"
+                        {#if showInfo}
+                            <div
+                                class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
                             >
-                                <circle cx="12" cy="13" r="7.2" fill={playerUiColor} opacity="0.14"
-                                ></circle>
-                                <circle
-                                    cx="12"
-                                    cy="13"
-                                    r="7.2"
-                                    fill="none"
-                                    stroke={playerUiColor}
-                                    stroke-width="1.8"
-                                ></circle>
-                                <rect
-                                    x="10.1"
-                                    y="2.1"
-                                    width="3.8"
-                                    height="2.4"
-                                    rx="0.6"
-                                    fill={playerUiColor}
-                                ></rect>
-                                <path
-                                    d="M14.9 5.2L16.8 3.9"
-                                    stroke={playerUiColor}
-                                    stroke-width="1.5"
-                                    stroke-linecap="round"
-                                ></path>
-                                <path
-                                    d="M12 13L12 9.2"
-                                    stroke={playerUiColor}
-                                    stroke-width="1.8"
-                                    stroke-linecap="round"
-                                ></path>
-                                <path
-                                    d="M12 13L14.9 14.6"
-                                    stroke={playerUiColor}
-                                    stroke-width="1.8"
-                                    stroke-linecap="round"
-                                ></path>
-                                <circle cx="12" cy="13" r="1.2" fill={playerUiColor}></circle>
-                            </svg>
-                            <span class="text-[1rem] leading-none font-normal"
-                                >{playerState.stones}</span
-                            >
-                        </div>
+                                <svg
+                                    width="28"
+                                    height="28"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                    class="shrink-0 select-none"
+                                >
+                                    <circle cx="12" cy="13" r="7.2" fill={playerUiColor} opacity="0.14"
+                                    ></circle>
+                                    <circle
+                                        cx="12"
+                                        cy="13"
+                                        r="7.2"
+                                        fill="none"
+                                        stroke={playerUiColor}
+                                        stroke-width="1.8"
+                                    ></circle>
+                                    <rect
+                                        x="10.1"
+                                        y="2.1"
+                                        width="3.8"
+                                        height="2.4"
+                                        rx="0.6"
+                                        fill={playerUiColor}
+                                    ></rect>
+                                    <path
+                                        d="M14.9 5.2L16.8 3.9"
+                                        stroke={playerUiColor}
+                                        stroke-width="1.5"
+                                        stroke-linecap="round"
+                                    ></path>
+                                    <path
+                                        d="M12 13L12 9.2"
+                                        stroke={playerUiColor}
+                                        stroke-width="1.8"
+                                        stroke-linecap="round"
+                                    ></path>
+                                    <path
+                                        d="M12 13L14.9 14.6"
+                                        stroke={playerUiColor}
+                                        stroke-width="1.8"
+                                        stroke-linecap="round"
+                                    ></path>
+                                    <circle cx="12" cy="13" r="1.2" fill={playerUiColor}></circle>
+                                </svg>
+                                <span class="text-[1rem] leading-none font-normal"
+                                    >{playerState.stones}</span
+                                >
+                            </div>
 
-                        <div
-                            class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
-                        >
-                            <svg width="23" height="27" viewBox="0 0 20 24" aria-hidden="true">
-                                <line
-                                    x1="4"
-                                    y1="19"
-                                    x2="16"
-                                    y2="5"
-                                    stroke={playerUiColor}
-                                    stroke-width="4.9"
-                                    stroke-linecap="round"
-                                ></line>
-                                <line
-                                    x1="4.6"
-                                    y1="18.3"
-                                    x2="15.2"
-                                    y2="5.9"
-                                    stroke="rgba(255,255,255,0.3)"
-                                    stroke-width="1.35"
-                                    stroke-linecap="round"
-                                ></line>
-                            </svg>
-                            <span class="text-[1rem] leading-none font-normal"
-                                >{playerState.sticks}</span
+                            <div
+                                class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
                             >
-                        </div>
+                                <svg width="23" height="27" viewBox="0 0 20 24" aria-hidden="true">
+                                    <line
+                                        x1="4"
+                                        y1="19"
+                                        x2="16"
+                                        y2="5"
+                                        stroke={playerUiColor}
+                                        stroke-width="4.9"
+                                        stroke-linecap="round"
+                                    ></line>
+                                    <line
+                                        x1="4.6"
+                                        y1="18.3"
+                                        x2="15.2"
+                                        y2="5.9"
+                                        stroke="rgba(255,255,255,0.3)"
+                                        stroke-width="1.35"
+                                        stroke-linecap="round"
+                                    ></line>
+                                </svg>
+                                <span class="text-[1rem] leading-none font-normal"
+                                    >{playerState.sticks}</span
+                                >
+                            </div>
 
-                        <div
-                            class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
-                        >
-                            <svg width="27" height="30" viewBox="0 0 28 32" aria-hidden="true">
-                                <WorkerCylinder
-                                    x={14}
-                                    y={16}
-                                    color={playerUiColor}
-                                    width={19}
-                                    height={25}
-                                />
-                            </svg>
-                            <span class="text-[1rem] leading-none font-normal"
-                                >{playerState.actions}</span
+                            <div
+                                class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center gap-0.5 px-0.5"
                             >
-                        </div>
+                                <svg width="27" height="30" viewBox="0 0 28 32" aria-hidden="true">
+                                    <WorkerCylinder
+                                        x={14}
+                                        y={16}
+                                        color={playerUiColor}
+                                        width={19}
+                                        height={25}
+                                    />
+                                </svg>
+                                <span class="text-[1rem] leading-none font-normal"
+                                    >{playerState.actions}</span
+                                >
+                            </div>
+                        {:else}
+                            <div
+                                class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                            ></div>
+                            <div
+                                class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                            ></div>
+                            <div
+                                class="h-full rounded-[0.34rem] border border-white/22 bg-[rgba(12,17,27,0.44)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                            ></div>
+                        {/if}
                     </div>
                 </div>
                 <div

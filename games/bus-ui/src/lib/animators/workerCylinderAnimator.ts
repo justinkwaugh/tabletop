@@ -19,7 +19,7 @@ import {
     pushQueuePlacements,
     pushSinglePlacement,
     type ActionWorkerPlacement
-} from '$lib/components/boardActionRowsUtils.js'
+} from '$lib/utils/boardActionRowsUtils.js'
 import { StateAnimator } from './stateAnimator.js'
 import type { BusGameSession } from '$lib/model/session.svelte.js'
 
