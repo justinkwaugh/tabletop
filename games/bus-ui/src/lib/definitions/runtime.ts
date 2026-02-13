@@ -5,6 +5,7 @@ import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynam
 import { BusGameColorizer } from './colorizer.js'
 import GameTable from '../components/GameTable.svelte'
 import { BusGameSession } from '$lib/model/session.svelte.js'
+import '../../app.css'
 
 export const BusUiRuntime: GameUIRuntime<BusGameState, HydratedBusGameState> = {
     ...BusRuntime,
