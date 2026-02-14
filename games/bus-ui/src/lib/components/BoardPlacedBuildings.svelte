@@ -1,32 +1,27 @@
 <script lang="ts">
     import { isSiteId, type Building, type BuildingSiteId, type BuildingType } from '@tabletop/bus'
-    import { BuildingPlacementAnimator } from '$lib/animators/buildingPlacementAnimator.js'
+    import {
+        animatePlacedBuilding,
+        BuildingPlacementAnimator
+    } from '$lib/animators/buildingPlacementAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import { BUS_BUILDING_SITE_POINTS } from '$lib/definitions/busBoardGraph.js'
     import PlacedBuilding from './PlacedBuilding.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
 
-    let animatedBuilding:
-        | {
-              siteId: BuildingSiteId
-              buildingType: BuildingType
-              scale: number
-          }
-        | undefined = $derived.by(() => {
-              gameSession.gameState
-              return undefined
-          })
+    let animatedAddedBuildings: {
+        siteId: BuildingSiteId
+        buildingType: BuildingType
+    }[] = $derived.by(() => {
+        gameSession.gameState
+        return []
+    })
 
     const buildingPlacementAnimator = new BuildingPlacementAnimator(gameSession, {
-        onStart: ({ siteId, buildingType, scale }) => {
-            animatedBuilding = { siteId, buildingType, scale }
-        },
-        onUpdate: (scale) => {
-            if (!animatedBuilding) {
-                return
-            }
-            animatedBuilding = { ...animatedBuilding, scale }
+        onPlacementStart: ({ siteId, buildingType }) => {
+            animatedAddedBuildings = [...animatedAddedBuildings, { siteId, buildingType }]
         }
     })
 
@@ -40,13 +35,26 @@
 <g class="pointer-events-none" {@attach attachAnimator(buildingPlacementAnimator)}></g>
 
 {#each placedBuildings as building (building.id)}
-    <PlacedBuilding siteId={building.site} buildingType={building.type} />
+    {#if !animatedAddedBuildings.some((animatedBuilding) => animatedBuilding.siteId === building.site)}
+        {@const point = BUS_BUILDING_SITE_POINTS[building.site]}
+        <g
+            transform={`translate(${point.x} ${point.y})`}
+            use:animatePlacedBuilding={{ animator: buildingPlacementAnimator, siteId: building.site }}
+        >
+            <PlacedBuilding buildingType={building.type} />
+        </g>
+    {/if}
 {/each}
 
-{#if animatedBuilding}
-    <PlacedBuilding
-        siteId={animatedBuilding.siteId}
-        buildingType={animatedBuilding.buildingType}
-        scale={animatedBuilding.scale}
-    />
-{/if}
+{#each animatedAddedBuildings as animatedBuilding (`animated:${animatedBuilding.siteId}`)}
+    {@const point = BUS_BUILDING_SITE_POINTS[animatedBuilding.siteId]}
+    <g
+        transform={`translate(${point.x} ${point.y})`}
+        use:animatePlacedBuilding={{
+            animator: buildingPlacementAnimator,
+            siteId: animatedBuilding.siteId
+        }}
+    >
+        <PlacedBuilding buildingType={animatedBuilding.buildingType} />
+    </g>
+{/each}

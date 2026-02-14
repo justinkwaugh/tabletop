@@ -34,6 +34,40 @@ export function buildClockHandTransform(geometry: ClockHandGeometry, angle: numb
     return `translate(${geometry.originX} ${geometry.originY}) rotate(${angle} ${geometry.pivotX} ${geometry.pivotY})`
 }
 
+const LOCATION_CYCLE: BuildingType[] = [BuildingType.House, BuildingType.Office, BuildingType.Pub]
+const STEP_DEGREES = 120
+
+function clockHandStepDelta(from: BuildingType, to: BuildingType): number {
+    if (from === to) {
+        return 0
+    }
+
+    const fromIndex = LOCATION_CYCLE.indexOf(from)
+    const toIndex = LOCATION_CYCLE.indexOf(to)
+    if (fromIndex < 0 || toIndex < 0) {
+        return 0
+    }
+
+    const clockwiseIndex = (fromIndex + 1) % LOCATION_CYCLE.length
+    if (LOCATION_CYCLE[clockwiseIndex] === to) {
+        return STEP_DEGREES
+    }
+
+    const counterClockwiseIndex = (fromIndex - 1 + LOCATION_CYCLE.length) % LOCATION_CYCLE.length
+    if (LOCATION_CYCLE[counterClockwiseIndex] === to) {
+        return -STEP_DEGREES
+    }
+
+    // Should not occur in Bus (clock always moves one space), but keep deterministic fallback.
+    const clockwiseDistance = (toIndex - fromIndex + LOCATION_CYCLE.length) % LOCATION_CYCLE.length
+    const counterClockwiseDistance =
+        (fromIndex - toIndex + LOCATION_CYCLE.length) % LOCATION_CYCLE.length
+
+    return clockwiseDistance <= counterClockwiseDistance
+        ? clockwiseDistance * STEP_DEGREES
+        : -counterClockwiseDistance * STEP_DEGREES
+}
+
 export class ClockHandAnimator extends StateAnimator<BusGameState, HydratedBusGameState, BusGameSession> {
     constructor(
         gameSession: BusGameSession,
@@ -53,11 +87,11 @@ export class ClockHandAnimator extends StateAnimator<BusGameState, HydratedBusGa
         action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
-        if (!this.element || !from || !action) {
+        if (!this.element || !from) {
             return
         }
 
-        if (isStopTime(action)) {
+        if (action && isStopTime(action)) {
             const fromAngle = clockHandRotationDegreesForLocation(from.currentLocation)
             const halfwayAngle = fromAngle + 60
             const wiggleDelta = 7
@@ -142,29 +176,31 @@ export class ClockHandAnimator extends StateAnimator<BusGameState, HydratedBusGa
             return
         }
 
-        if (!isRotateTime(action)) {
+        if (action && !isRotateTime(action)) {
+            return
+        }
+
+        if (from.currentLocation === to.currentLocation) {
             return
         }
 
         const fromAngle = clockHandRotationDegreesForLocation(from.currentLocation)
-        const toAngle = clockHandRotationDegreesForLocation(to.currentLocation)
-        let delta = (toAngle - fromAngle + 360) % 360
-        if (delta === 0 && from.currentLocation !== to.currentLocation) {
-            delta = 360
-        }
+        const delta = clockHandStepDelta(from.currentLocation, to.currentLocation)
         if (delta === 0) {
             return
         }
 
         const rotation = { angle: fromAngle }
         const targetAngle = fromAngle + delta
+        const toAngle = clockHandRotationDegreesForLocation(to.currentLocation)
+        const duration = action ? 0.42 : 0.18
 
         this.setRotation(fromAngle)
         animationContext.actionTimeline.to(
             rotation,
             {
                 angle: targetAngle,
-                duration: 0.42,
+                duration,
                 ease: 'power2.inOut',
                 onUpdate: () => {
                     this.setRotation(rotation.angle)

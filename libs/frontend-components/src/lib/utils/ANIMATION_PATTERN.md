@@ -138,6 +138,32 @@ Use when a layer must show to-state values before reactive state update.
 - do not eagerly clear it in same cycle
 - allow state reactivity to naturally supersede it
 
+## Pattern D: Aggregate Glyph Animator (One Icon, Count/Value Changes)
+
+Use when the UI intentionally renders many logical units as one persistent visual
+element (for example: a single passenger icon with a numeric count).
+
+Goal:
+
+- animate the same persistent glyph instead of spawning/removing transient per-unit visuals
+- update displayed aggregate value before motion so `0 -> N` and `N -> 0` stay smooth
+
+How it works:
+
+1. Register the persistent glyph element by key/node id via `use:` action.
+2. On state change, compute aggregate delta (`fromCount -> toCount`).
+3. Write a pre-reactivity override for display count/value (Pattern C).
+4. `await tick()` if needed so `0 -> N` mounts before tween.
+5. Tween the registered element directly (pop in / pop update / pop out).
+6. Let normal reactive state supersede override on state update.
+
+Heuristics:
+
+- Prefer this pattern over transients when the user perceives one aggregate glyph.
+- Keep a single visual owner for a concept; avoid rendering static + transient versions
+  of the same thing at once.
+- Use transients only when topology truly changes (no persistent target element exists).
+
 ## Element Registration (`use:` action)
 
 For keyed SVG/HTML nodes:
@@ -176,6 +202,28 @@ Prefer local-origin wrappers:
 
 Only rebuild full transform strings when unavoidable.
 
+### Nested SVG Pop/Scale Pattern (Important)
+
+For pieces composed of nested SVG components (icon components inside wrappers), scale origin can drift to a corner if geometry is not normalized.
+
+Use this structure:
+
+1. outer wrapper: world placement (`translate(worldX worldY)`) and animation attachment
+2. inner payload wrapper: `translate(-width/2, -height/2)` so visual content is centered around outer `(0,0)`
+3. icon content rendered in positive local space (`x=0..width`, `y=0..height`)
+
+Animate the **outer wrapper** with standard scale tweening:
+
+- `gsap.set(node, { transformOrigin: 'center center' })`
+- tween `scale` on that same node
+
+Do not mix coordinate systems on the same animated node (for example, alternating between `attr.transform` and GSAP scale on nested wrappers) unless absolutely necessary.
+
+If scaling appears to originate from upper-left, the usual root cause is:
+
+- wrong animated layer (animating payload instead of world wrapper), or
+- payload not centered around `(0,0)` before animation.
+
 ## Anti-Patterns
 
 - implicit timeline cursor placement
@@ -195,3 +243,4 @@ Only rebuild full transform strings when unavoidable.
 - [ ] Has explicit `action`-absent fallback behavior (<= 200ms)
 - [ ] No focus/interaction regressions
 - [ ] If transient exists, it is for presence only
+- [ ] For SVG pop/scale: animated wrapper is world-positioned and payload is locally centered

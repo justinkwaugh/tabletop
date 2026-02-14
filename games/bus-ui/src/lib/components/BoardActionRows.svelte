@@ -1,6 +1,9 @@
 <script lang="ts">
     import { ActionType, WorkerActionType } from '@tabletop/bus'
-    import { WorkerCylinderAnimator } from '$lib/animators/workerCylinderAnimator.js'
+    import {
+        buildActionWorkerPlacements,
+        WorkerCylinderAnimator
+    } from '$lib/animators/workerCylinderAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import WorkerCylinder from './WorkerCylinder.svelte'
     import {
@@ -8,8 +11,6 @@
         pushAvailableQueueSpot,
         pushAvailableSingleSpot,
         pushDefaultQueueSlotMarkers,
-        pushQueuePlacements,
-        pushSinglePlacement,
         textColorFromTailwindClass,
         type ActionSlotMarker,
         type ActionSpotHighlight,
@@ -50,9 +51,11 @@
         opacity: number
     }
 
-    let animatedWorkerCylinder: AnimatedWorkerCylinder | undefined = $derived.by(() => {
+    let animatedAddedWorkerCylinders: (AnimatedWorkerCylinder & {
+        key: string
+    })[] = $derived.by(() => {
         gameSession.gameState
-        return undefined
+        return []
     })
     let animatedRemovedWorkerCylinders: (AnimatedWorkerCylinder & {
         key: string
@@ -62,18 +65,22 @@
     })
 
     const workerCylinderAnimator = new WorkerCylinderAnimator(gameSession, {
-        onPlacementStart: ({ x, y, color, scale, opacity }) => {
-            animatedWorkerCylinder = { x, y, color, scale, opacity }
+        onPlacementStart: ({ key, x, y, color, scale, opacity }) => {
+            animatedAddedWorkerCylinders = [
+                ...animatedAddedWorkerCylinders,
+                { key, x, y, color, scale, opacity }
+            ]
         },
-        onPlacementUpdate: ({ scale, opacity }) => {
-            if (!animatedWorkerCylinder) {
-                return
-            }
-            animatedWorkerCylinder = {
-                ...animatedWorkerCylinder,
-                scale,
-                opacity
-            }
+        onPlacementUpdate: ({ key, scale, opacity }) => {
+            animatedAddedWorkerCylinders = animatedAddedWorkerCylinders.map((item) =>
+                item.key === key
+                    ? {
+                          ...item,
+                          scale,
+                          opacity
+                      }
+                    : item
+            )
         },
         onRemovalStart: ({ key, x, y, color, scale, opacity }) => {
             animatedRemovedWorkerCylinders = [
@@ -98,60 +105,12 @@
         return new Set(animatedRemovedWorkerCylinders.map((item) => item.key))
     })
 
+    const animatedAddedPlacementKeys = $derived.by(() => {
+        return new Set(animatedAddedWorkerCylinders.map((item) => item.key))
+    })
+
     const actionWorkerPlacements: ActionWorkerPlacement[] = $derived.by(() => {
-        const placements: ActionWorkerPlacement[] = []
-        const state = gameSession.gameState
-
-        pushQueuePlacements(
-            placements,
-            WorkerActionType.Expansion,
-            state.lineExpansionAction,
-            BUS_EXPANSION_ACTION_SPOT_POINTS,
-            true
-        )
-        pushSinglePlacement(
-            placements,
-            WorkerActionType.Buses,
-            state.busAction,
-            BUS_BUSES_ACTION_SPOT_POINT
-        )
-        pushQueuePlacements(
-            placements,
-            WorkerActionType.Passengers,
-            state.passengersAction,
-            BUS_PASSENGERS_ACTION_SPOT_POINTS,
-            false,
-            state.passengerTurnsTaken ?? 0
-        )
-        pushQueuePlacements(
-            placements,
-            WorkerActionType.Buildings,
-            state.buildingAction,
-            BUS_BUILDINGS_ACTION_SPOT_POINTS,
-            true
-        )
-        pushSinglePlacement(
-            placements,
-            WorkerActionType.Clock,
-            state.clockAction,
-            BUS_CLOCK_ACTION_SPOT_POINT
-        )
-        pushQueuePlacements(
-            placements,
-            WorkerActionType.Vroom,
-            state.vroomAction,
-            BUS_VROOM_ACTION_SPOT_POINTS,
-            false,
-            state.vroomTurnsTaken ?? 0
-        )
-        pushSinglePlacement(
-            placements,
-            WorkerActionType.StartingPlayer,
-            state.startingPlayerAction,
-            BUS_STARTING_PLAYER_ACTION_SPOT_POINT
-        )
-
-        return placements
+        return buildActionWorkerPlacements(gameSession.gameState)
     })
 
     const availableActionSpotHighlights: ActionSpotHighlight[] = $derived.by(() => {
@@ -553,7 +512,7 @@
 <g class="pointer-events-none" {@attach attachAnimator(workerCylinderAnimator)}></g>
 
 {#each actionWorkerPlacements as placement (placement.key)}
-    {#if !animatedRemovedPlacementKeys.has(placement.key)}
+    {#if !animatedRemovedPlacementKeys.has(placement.key) && !animatedAddedPlacementKeys.has(placement.key)}
         <WorkerCylinder
             x={placement.point.x + ACTION_CYLINDER_X_OFFSET}
             y={placement.point.y + ACTION_CYLINDER_Y_OFFSET}
@@ -651,15 +610,15 @@
     </g>
 {/each}
 
-{#if animatedWorkerCylinder}
+{#each animatedAddedWorkerCylinders as addedCylinder (addedCylinder.key)}
     <WorkerCylinder
-        x={animatedWorkerCylinder.x + ACTION_CYLINDER_X_OFFSET}
-        y={animatedWorkerCylinder.y + ACTION_CYLINDER_Y_OFFSET}
-        color={animatedWorkerCylinder.color}
-        scale={animatedWorkerCylinder.scale}
-        opacity={animatedWorkerCylinder.opacity}
+        x={addedCylinder.x + ACTION_CYLINDER_X_OFFSET}
+        y={addedCylinder.y + ACTION_CYLINDER_Y_OFFSET}
+        color={addedCylinder.color}
+        scale={addedCylinder.scale}
+        opacity={addedCylinder.opacity}
     />
-{/if}
+{/each}
 
 {#each animatedRemovedWorkerCylinders as removedCylinder (removedCylinder.key)}
     <WorkerCylinder

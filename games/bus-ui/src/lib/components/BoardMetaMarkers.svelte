@@ -1,6 +1,8 @@
 <script lang="ts">
-    import { Color, type Point } from '@tabletop/common'
-    import { BusPiecePlacementAnimator } from '$lib/animators/busPiecePlacementAnimator.js'
+    import {
+        buildBusesTablePiecePlacements,
+        BusPiecePlacementAnimator
+    } from '$lib/animators/busPiecePlacementAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import {
         ScoreMarkerAnimator,
@@ -8,10 +10,7 @@
         buildScoreMarkerPlacements,
         type ScoreMarkerPlacement
     } from '$lib/animators/scoreMarkerAnimator.js'
-    import {
-        BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR,
-        BUS_PASSENGER_SUPPLY_TEXT_POINT
-    } from '$lib/definitions/busBoardGraph.js'
+    import { BUS_PASSENGER_SUPPLY_TEXT_POINT } from '$lib/definitions/busBoardGraph.js'
     import BusPieceIcon from '$lib/images/BusPieceIcon.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -31,12 +30,6 @@
 
     type ScoreMarker = ScoreMarkerPlacement & { textColor: string; fillColor: string }
 
-    type BusesTablePiece = {
-        key: string
-        point: Point
-        color: string
-    }
-
     type AnimatedBusPiece = {
         key: string
         x: number
@@ -46,22 +39,52 @@
         opacity: number
     }
 
-    let animatedBusPiece: AnimatedBusPiece | undefined = $derived.by(() => {
+    let animatedAddedBusPieces: AnimatedBusPiece[] = $derived.by(() => {
         gameSession.gameState
-        return undefined
+        return []
+    })
+
+    let animatedRemovedBusPieces: AnimatedBusPiece[] = $derived.by(() => {
+        gameSession.gameState
+        return []
     })
 
     const scoreMarkerAnimator = new ScoreMarkerAnimator(gameSession)
 
     const busPiecePlacementAnimator = new BusPiecePlacementAnimator(gameSession, {
-        onStart: ({ key, x, y, color, scale, opacity }) => {
-            animatedBusPiece = { key, x, y, color, scale, opacity }
+        onPlacementStart: ({ key, x, y, color, scale, opacity }) => {
+            animatedAddedBusPieces = [
+                ...animatedAddedBusPieces,
+                { key, x, y, color, scale, opacity }
+            ]
         },
-        onUpdate: ({ scale, opacity }) => {
-            if (!animatedBusPiece) {
-                return
-            }
-            animatedBusPiece = { ...animatedBusPiece, scale, opacity }
+        onPlacementUpdate: ({ key, scale, opacity }) => {
+            animatedAddedBusPieces = animatedAddedBusPieces.map((piece) =>
+                piece.key === key
+                    ? {
+                          ...piece,
+                          scale,
+                          opacity
+                      }
+                    : piece
+            )
+        },
+        onRemovalStart: ({ key, x, y, color, scale, opacity }) => {
+            animatedRemovedBusPieces = [
+                ...animatedRemovedBusPieces,
+                { key, x, y, color, scale, opacity }
+            ]
+        },
+        onRemovalUpdate: ({ key, scale, opacity }) => {
+            animatedRemovedBusPieces = animatedRemovedBusPieces.map((piece) =>
+                piece.key === key
+                    ? {
+                          ...piece,
+                          scale,
+                          opacity
+                      }
+                    : piece
+            )
         }
     })
 
@@ -74,59 +97,21 @@
         }))
     })
 
-    const busesTablePieces: BusesTablePiece[] = $derived.by(() => {
-        const pieces: BusesTablePiece[] = []
-        const state = gameSession.gameState
-
-        for (const playerState of state.players) {
-            const playerColor = gameSession.colors.getPlayerColor(playerState.playerId)
-            const columnKey = busesTableColumnKeyForColor(playerColor)
-            if (!columnKey) {
-                continue
-            }
-
-            const slots = BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR[columnKey]
-            if (!slots?.length) {
-                continue
-            }
-
-            const pieceCount = Math.max(0, Math.min(Math.round(playerState.buses), slots.length))
-            const color = gameSession.colors.getPlayerUiColor(playerState.playerId)
-            for (let i = 0; i < pieceCount; i += 1) {
-                const point = slots[i]
-                if (!point) {
-                    continue
-                }
-
-                pieces.push({
-                    key: `buses:${playerState.playerId}:${i}`,
-                    point,
-                    color
-                })
-            }
-        }
-
-        return pieces
+    const busesTablePieces = $derived.by(() => {
+        return buildBusesTablePiecePlacements(
+            gameSession.gameState,
+            (playerId) => gameSession.colors.getPlayerColor(playerId),
+            (playerId) => gameSession.colors.getPlayerUiColor(playerId)
+        )
     })
 
-    function busesTableColumnKeyForColor(
-        color: Color | undefined
-    ): keyof typeof BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR | undefined {
-        switch (color) {
-            case Color.Purple:
-                return 'purple'
-            case Color.Blue:
-                return 'blue'
-            case Color.Green:
-                return 'green'
-            case Color.Yellow:
-                return 'yellow'
-            case Color.Red:
-                return 'red'
-            default:
-                return undefined
-        }
-    }
+    const animatedAddedBusPieceKeys = $derived.by(() => {
+        return new Set(animatedAddedBusPieces.map((piece) => piece.key))
+    })
+
+    const animatedRemovedBusPieceKeys = $derived.by(() => {
+        return new Set(animatedRemovedBusPieces.map((piece) => piece.key))
+    })
 
     function playerTextColor(playerId: string): string {
         const textColorClass = gameSession.colors.getPlayerTextColor(playerId)
@@ -177,7 +162,7 @@
 <g class="pointer-events-none" {@attach attachAnimator(busPiecePlacementAnimator)}></g>
 
 {#each busesTablePieces as piece (piece.key)}
-    {#if !animatedBusPiece || animatedBusPiece.key !== piece.key}
+    {#if !animatedAddedBusPieceKeys.has(piece.key) && !animatedRemovedBusPieceKeys.has(piece.key)}
         <ellipse
             cx={piece.point.x}
             cy={piece.point.y + BUS_TABLE_PIECE_SHADOW_OFFSET_Y}
@@ -197,7 +182,7 @@
     {/if}
 {/each}
 
-{#if animatedBusPiece}
+{#each animatedAddedBusPieces as animatedBusPiece (animatedBusPiece.key)}
     <g
         class="pointer-events-none"
         transform={`translate(${animatedBusPiece.x} ${animatedBusPiece.y}) scale(${animatedBusPiece.scale})`}
@@ -220,7 +205,32 @@
             class="pointer-events-none"
         />
     </g>
-{/if}
+{/each}
+
+{#each animatedRemovedBusPieces as animatedBusPiece (animatedBusPiece.key)}
+    <g
+        class="pointer-events-none"
+        transform={`translate(${animatedBusPiece.x} ${animatedBusPiece.y}) scale(${animatedBusPiece.scale})`}
+        opacity={animatedBusPiece.opacity}
+        aria-hidden="true"
+    >
+        <ellipse
+            cx="0"
+            cy={BUS_TABLE_PIECE_SHADOW_OFFSET_Y}
+            rx={BUS_TABLE_PIECE_SHADOW_RX}
+            ry={BUS_TABLE_PIECE_SHADOW_RY}
+            class="bus-piece-shadow"
+        ></ellipse>
+        <BusPieceIcon
+            x={-BUS_TABLE_PIECE_WIDTH / 2}
+            y={-BUS_TABLE_PIECE_HEIGHT / 2}
+            width={BUS_TABLE_PIECE_WIDTH}
+            height={BUS_TABLE_PIECE_HEIGHT}
+            color={animatedBusPiece.color}
+            class="pointer-events-none"
+        />
+    </g>
+{/each}
 
 <g class="pointer-events-none" aria-hidden="true">
     <text

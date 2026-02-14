@@ -31,6 +31,9 @@ const PRESS_Y_OFFSET = 2.2
 const PRESS_DURATION = 0.1
 const PRESS_PAUSE_DURATION = 0.1
 const SHRINK_DURATION = 0.28
+const FALLBACK_PRESS_DURATION = 0.05
+const FALLBACK_PRESS_PAUSE_DURATION = 0
+const FALLBACK_SHRINK_DURATION = 0.12
 
 export class TimeStoneSelectionAnimator extends StateAnimator<
     BusGameState,
@@ -47,6 +50,7 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
     }
 
     override async onGameStateChange({
+        to,
         from,
         action,
         animationContext
@@ -56,7 +60,7 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
-        if (!from || !action || !isStopTime(action)) {
+        if (!from) {
             return
         }
 
@@ -67,7 +71,17 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
         }
 
         const visibleKeys = new Set(visibleFromStones.map((stone) => stone.key))
-        const selectedKey = this.clickPriority.find((key) => visibleKeys.has(key))
+        const selectedKey = (() => {
+            if (action && isStopTime(action)) {
+                return this.clickPriority.find((key) => visibleKeys.has(key))
+            }
+
+            const visibleToCount = Math.max(0, Math.min(to.stones, this.renderOrder.length))
+            const visibleToKeys = new Set(this.renderOrder.slice(0, visibleToCount).map((stone) => stone.key))
+            return this.clickPriority.find(
+                (key) => visibleKeys.has(key) && !visibleToKeys.has(key)
+            )
+        })()
         if (!selectedKey) {
             return
         }
@@ -83,6 +97,10 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
             opacity: 1
         }
 
+        const pressDuration = action ? PRESS_DURATION : FALLBACK_PRESS_DURATION
+        const pressPauseDuration = action ? PRESS_PAUSE_DURATION : FALLBACK_PRESS_PAUSE_DURATION
+        const shrinkDuration = action ? SHRINK_DURATION : FALLBACK_SHRINK_DURATION
+
         this.callbacks.onStart({
             ...selectedStone,
             ...transient
@@ -93,17 +111,17 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
         animationContext.actionTimeline.to(
             transient,
             {
-            scale: PRESS_SCALE,
-            yOffset: PRESS_Y_OFFSET,
-            duration: PRESS_DURATION,
-            ease: 'power2.out',
-            onUpdate: () => {
-                this.callbacks.onUpdate({
-                    scale: transient.scale,
-                    yOffset: transient.yOffset,
-                    opacity: transient.opacity
-                })
-            }
+                scale: PRESS_SCALE,
+                yOffset: PRESS_Y_OFFSET,
+                duration: pressDuration,
+                ease: 'power2.out',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({
+                        scale: transient.scale,
+                        yOffset: transient.yOffset,
+                        opacity: transient.opacity
+                    })
+                }
             },
             startAt
         )
@@ -113,7 +131,7 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
             {
                 scale: 0,
                 opacity: 0,
-                duration: SHRINK_DURATION,
+                duration: shrinkDuration,
                 ease: 'power2.in',
                 onUpdate: () => {
                     this.callbacks.onUpdate({
@@ -123,8 +141,7 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
                     })
                 }
             },
-            startAt + PRESS_DURATION + PRESS_PAUSE_DURATION
+            startAt + pressDuration + pressPauseDuration
         )
-
     }
 }

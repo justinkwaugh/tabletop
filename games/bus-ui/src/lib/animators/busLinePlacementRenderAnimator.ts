@@ -2,7 +2,6 @@ import type { AnimationContext } from '@tabletop/frontend-components'
 import type { GameAction } from '@tabletop/common'
 import {
     isBusNodeId,
-    isPlaceBusLine,
     type BusGameState,
     type BusNodeId,
     type HydratedBusGameState
@@ -29,7 +28,6 @@ export class BusLinePlacementRenderAnimator extends StateAnimator<
     override async onGameStateChange({
         to,
         from,
-        action,
         animationContext: _animationContext
     }: {
         to: HydratedBusGameState
@@ -37,7 +35,20 @@ export class BusLinePlacementRenderAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
-        if (!from || !action || !isPlaceBusLine(action)) {
+        if (!from) {
+            return
+        }
+
+        const fromPlayerLineById = new Map(from.players.map((playerState) => [playerState.playerId, playerState.busLine]))
+        const lineChanged = to.players.some((playerState) => {
+            const fromLine = fromPlayerLineById.get(playerState.playerId)
+            if (!fromLine || fromLine.length !== playerState.busLine.length) {
+                return true
+            }
+
+            return playerState.busLine.some((nodeId, index) => nodeId !== fromLine[index])
+        })
+        if (!lineChanged) {
             return
         }
 

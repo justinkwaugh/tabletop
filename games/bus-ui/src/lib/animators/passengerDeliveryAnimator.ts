@@ -5,6 +5,7 @@ import { MotionPathPlugin } from 'gsap/dist/MotionPathPlugin'
 import {
     BuildingSites,
     isBusNodeId,
+    isSiteId,
     isVroom,
     type BuildingSiteId,
     type BusGameState,
@@ -37,6 +38,7 @@ const NODE_PASSENGER_HEIGHT = 74
 const SITE_PASSENGER_HEIGHT = 44
 const NODE_TRAVEL_DURATION_PER_HOP = 0.34
 const FINAL_HOP_DURATION = 0.34
+const FALLBACK_DELIVERY_DURATION = 0.18
 
 export class PassengerDeliveryAnimator extends StateAnimator<
     BusGameState,
@@ -61,41 +63,124 @@ export class PassengerDeliveryAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
-        if (!from || !action || !isVroom(action)) {
+        if (!from) {
             return
         }
 
-        const sourceNodeId = action.sourceNode as BusNodeId
-        const destinationSiteId = action.destinationSite as BuildingSiteId
-        const destinationNodeId = BuildingSites[destinationSiteId]?.nodeId
-        if (!destinationNodeId) {
+        if (action && isVroom(action)) {
+            const sourceNodeId = action.sourceNode as BusNodeId
+            const destinationSiteId = action.destinationSite as BuildingSiteId
+            const destinationNodeId = BuildingSites[destinationSiteId]?.nodeId
+            if (!destinationNodeId) {
+                return
+            }
+
+            const destinationSitePoint = BUS_BUILDING_SITE_POINTS[destinationSiteId]
+            if (!destinationSitePoint) {
+                return
+            }
+
+            const busLine = from.getPlayerState(action.playerId).busLine.filter(isBusNodeId)
+            const nodePath = this.pathBetweenNodes(busLine, sourceNodeId, destinationNodeId)
+            if (nodePath.length === 0) {
+                return
+            }
+
+            const nodePoints = nodePath.map((nodeId) => BUS_BOARD_NODE_POINTS[nodeId]).filter(Boolean)
+            if (nodePoints.length === 0) {
+                return
+            }
+
+            const firstPoint = nodePoints[0]
+            if (!firstPoint) {
+                return
+            }
+
+            const pose: PassengerPose = {
+                x: firstPoint.x,
+                y: firstPoint.y,
+                height: NODE_PASSENGER_HEIGHT
+            }
+
+            this.callbacks.onStart({
+                sourceNodeId,
+                destinationSiteId,
+                pose: { ...pose }
+            })
+
+            const startAt = 0
+            let nodeTravelDuration = 0
+            const nodeWaypoints = nodePoints.slice(1)
+            if (nodeWaypoints.length > 0) {
+                nodeTravelDuration = nodeWaypoints.length * NODE_TRAVEL_DURATION_PER_HOP
+                animationContext.actionTimeline.to(
+                    pose,
+                    {
+                        motionPath: {
+                            path: nodeWaypoints,
+                            curviness: 1
+                        },
+                        height: NODE_PASSENGER_HEIGHT,
+                        duration: nodeTravelDuration,
+                        ease: 'power2.inOut',
+                        onUpdate: () => {
+                            this.callbacks.onUpdate({ ...pose })
+                        }
+                    },
+                    startAt
+                )
+            }
+
+            animationContext.actionTimeline.to(
+                pose,
+                {
+                    x: destinationSitePoint.x,
+                    y: destinationSitePoint.y,
+                    height: SITE_PASSENGER_HEIGHT,
+                    duration: FINAL_HOP_DURATION,
+                    ease: 'power2.inOut',
+                    onUpdate: () => {
+                        this.callbacks.onUpdate({ ...pose })
+                    },
+                    onComplete: () => {
+                        this.callbacks.onComplete()
+                    }
+                },
+                startAt + nodeTravelDuration
+            )
             return
         }
 
+        const toPassengerById = new Map(to.board.passengers.map((passenger) => [passenger.id, passenger]))
+        const fallbackDelivery = from.board.passengers.find((fromPassenger) => {
+            if (fromPassenger.siteId || !fromPassenger.nodeId || !isBusNodeId(fromPassenger.nodeId)) {
+                return false
+            }
+
+            const toPassenger = toPassengerById.get(fromPassenger.id)
+            return !!toPassenger && !!toPassenger.siteId && isSiteId(toPassenger.siteId)
+        })
+
+        if (!fallbackDelivery || !fallbackDelivery.nodeId || !isBusNodeId(fallbackDelivery.nodeId)) {
+            return
+        }
+
+        const toPassenger = toPassengerById.get(fallbackDelivery.id)
+        if (!toPassenger?.siteId || !isSiteId(toPassenger.siteId)) {
+            return
+        }
+
+        const sourceNodeId = fallbackDelivery.nodeId
+        const destinationSiteId = toPassenger.siteId
+        const sourcePoint = BUS_BOARD_NODE_POINTS[sourceNodeId]
         const destinationSitePoint = BUS_BUILDING_SITE_POINTS[destinationSiteId]
-        if (!destinationSitePoint) {
-            return
-        }
-
-        const busLine = from.getPlayerState(action.playerId).busLine.filter(isBusNodeId)
-        const nodePath = this.pathBetweenNodes(busLine, sourceNodeId, destinationNodeId)
-        if (nodePath.length === 0) {
-            return
-        }
-
-        const nodePoints = nodePath.map((nodeId) => BUS_BOARD_NODE_POINTS[nodeId]).filter(Boolean)
-        if (nodePoints.length === 0) {
-            return
-        }
-
-        const firstPoint = nodePoints[0]
-        if (!firstPoint) {
+        if (!sourcePoint || !destinationSitePoint) {
             return
         }
 
         const pose: PassengerPose = {
-            x: firstPoint.x,
-            y: firstPoint.y,
+            x: sourcePoint.x,
+            y: sourcePoint.y,
             height: NODE_PASSENGER_HEIGHT
         }
 
@@ -105,36 +190,13 @@ export class PassengerDeliveryAnimator extends StateAnimator<
             pose: { ...pose }
         })
 
-        const startAt = 0
-        let nodeTravelDuration = 0
-        const nodeWaypoints = nodePoints.slice(1)
-        if (nodeWaypoints.length > 0) {
-            nodeTravelDuration = nodeWaypoints.length * NODE_TRAVEL_DURATION_PER_HOP
-            animationContext.actionTimeline.to(
-                pose,
-                {
-                    motionPath: {
-                        path: nodeWaypoints,
-                        curviness: 1
-                    },
-                    height: NODE_PASSENGER_HEIGHT,
-                    duration: nodeTravelDuration,
-                    ease: 'power2.inOut',
-                    onUpdate: () => {
-                        this.callbacks.onUpdate({ ...pose })
-                    }
-                },
-                startAt
-            )
-        }
-
         animationContext.actionTimeline.to(
             pose,
             {
                 x: destinationSitePoint.x,
                 y: destinationSitePoint.y,
                 height: SITE_PASSENGER_HEIGHT,
-                duration: FINAL_HOP_DURATION,
+                duration: FALLBACK_DELIVERY_DURATION,
                 ease: 'power2.inOut',
                 onUpdate: () => {
                     this.callbacks.onUpdate({ ...pose })
@@ -143,9 +205,8 @@ export class PassengerDeliveryAnimator extends StateAnimator<
                     this.callbacks.onComplete()
                 }
             },
-            startAt + nodeTravelDuration
+            0
         )
-
     }
 
     private pathBetweenNodes(

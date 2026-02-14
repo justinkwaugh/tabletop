@@ -10,7 +10,10 @@
     import BuildingSiteHighlight from './BuildingSiteHighlight.svelte'
     import Passenger from './Passenger.svelte'
     import StationSelectionHighlight from './StationSelectionHighlight.svelte'
-    import { AddPassengersPlacementAnimator } from '$lib/animators/addPassengersPlacementAnimator.js'
+    import {
+        AddPassengersPlacementAnimator,
+        animateStationPassenger
+    } from '$lib/animators/addPassengersPlacementAnimator.js'
     import { PassengerReturnAnimator } from '$lib/animators/passengerReturnAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { PassengerDeliveryAnimator } from '$lib/animators/passengerDeliveryAnimator.js'
@@ -58,15 +61,7 @@
         gameSession.gameState
         return undefined
     })
-    let animatedAddedPassengersPose: PassengerPose | undefined = $derived.by(() => {
-        gameSession.gameState
-        return undefined
-    })
-    let animatedAddedPassengersNodeId: BusNodeId | undefined = $derived.by(() => {
-        gameSession.gameState
-        return undefined
-    })
-    let animatedAddedPassengersCount: number | undefined = $derived.by(() => {
+    let stationPassengerCountOverrides: Map<BusNodeId, number> | undefined = $derived.by(() => {
         gameSession.gameState
         return undefined
     })
@@ -92,13 +87,10 @@
     })
 
     const addPassengersPlacementAnimator = new AddPassengersPlacementAnimator(gameSession, {
-        onStart: ({ nodeId, count, pose }) => {
-            animatedAddedPassengersNodeId = nodeId
-            animatedAddedPassengersCount = count
-            animatedAddedPassengersPose = { ...pose }
-        },
-        onUpdate: (pose) => {
-            animatedAddedPassengersPose = { ...pose }
+        onPrepareCount: ({ nodeId, count }) => {
+            const next = new Map(stationPassengerCountOverrides ?? [])
+            next.set(nodeId, count)
+            stationPassengerCountOverrides = next
         }
     })
 
@@ -303,23 +295,26 @@
         animatedPassengerSourceNodeId === typedNodeId
             ? Math.max(0, passengers.length - 1)
             : passengers.length}
-    {@const animatedPassengerCount =
-        animatedAddedPassengersPose && animatedAddedPassengersNodeId === typedNodeId
-            ? 0
-            : deliveryAdjustedPassengerCount}
+    {@const overridePassengerCount = stationPassengerCountOverrides?.get(typedNodeId)}
+    {@const displayPassengerCount = overridePassengerCount ?? deliveryAdjustedPassengerCount}
     {@const shouldMaskForVroom =
         shouldMaskUnselectedVroomPassengers &&
         !(isSelectableVroomSource || isChosenVroomSource)}
-    {#if animatedPassengerCount > 0}
-        <Passenger
-            x={point.x}
-            y={point.y}
-            height={isHoveredSelectableVroomSource
-                ? VROOM_SOURCE_HOVER_PASSENGER_HEIGHT
-                : NODE_PASSENGER_HEIGHT}
-            count={animatedPassengerCount}
-            maskOpacity={shouldMaskForVroom ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY : 0}
-        />
+    {#if displayPassengerCount > 0}
+        <g
+            transform={`translate(${point.x} ${point.y})`}
+            use:animateStationPassenger={{ animator: addPassengersPlacementAnimator, nodeId: typedNodeId }}
+        >
+            <Passenger
+                x={0}
+                y={0}
+                height={isHoveredSelectableVroomSource
+                    ? VROOM_SOURCE_HOVER_PASSENGER_HEIGHT
+                    : NODE_PASSENGER_HEIGHT}
+                count={displayPassengerCount}
+                maskOpacity={shouldMaskForVroom ? NON_SELECTED_VROOM_PASSENGER_MASK_OPACITY : 0}
+            />
+        </g>
     {/if}
     {#if isChoosingVroomSourcePassenger && (isSelectableVroomSource || isChosenVroomSource)}
         <circle
@@ -356,15 +351,6 @@
         x={animatedPassengerPose.x}
         y={animatedPassengerPose.y}
         height={animatedPassengerPose.height}
-    />
-{/if}
-
-{#if animatedAddedPassengersPose && animatedAddedPassengersNodeId && animatedAddedPassengersCount}
-    <Passenger
-        x={animatedAddedPassengersPose.x}
-        y={animatedAddedPassengersPose.y}
-        height={animatedAddedPassengersPose.height}
-        count={animatedAddedPassengersCount}
     />
 {/if}
 

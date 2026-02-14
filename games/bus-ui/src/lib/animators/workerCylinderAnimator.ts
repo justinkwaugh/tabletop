@@ -119,9 +119,15 @@ export class WorkerCylinderAnimator extends StateAnimator<
         action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
-        if (!from || !action) {
+        if (!from) {
             return
         }
+
+        const hasChooseWorkerAction = !!action && isChooseWorkerAction(action)
+        const removalPopDuration = hasChooseWorkerAction ? 0.12 : 0.08
+        const removalShrinkDuration = hasChooseWorkerAction ? 0.2 : 0.12
+        const placementPopDuration = hasChooseWorkerAction ? 0.18 : 0.1
+        const placementSettleDuration = hasChooseWorkerAction ? 0.14 : 0.08
 
         const fromPlacements = buildActionWorkerPlacements(from)
         const toPlacements = buildActionWorkerPlacements(to)
@@ -147,7 +153,7 @@ export class WorkerCylinderAnimator extends StateAnimator<
                 transient,
                 {
                     scale: 1.16,
-                    duration: 0.12,
+                    duration: removalPopDuration,
                     ease: 'power1.out',
                     onUpdate: () => {
                         this.callbacks.onRemovalUpdate({
@@ -165,7 +171,7 @@ export class WorkerCylinderAnimator extends StateAnimator<
                 {
                     scale: 0.2,
                     opacity: 0,
-                    duration: 0.2,
+                    duration: removalShrinkDuration,
                     ease: 'power2.in',
                     onUpdate: () => {
                         this.callbacks.onRemovalUpdate({
@@ -175,91 +181,91 @@ export class WorkerCylinderAnimator extends StateAnimator<
                         })
                     }
                 },
-                0.12
+                removalPopDuration
             )
 
-        }
-
-        if (!isChooseWorkerAction(action)) {
-            return
         }
 
         const fromPlacementKeys = new Set(fromPlacements.map((placement) => placement.key))
+        const addedPlacements = (() => {
+            if (hasChooseWorkerAction && action) {
+                let newPlacement = toPlacements.find(
+                    (placement) =>
+                        placement.actionType === action.actionType &&
+                        placement.playerId === action.playerId &&
+                        !fromPlacementKeys.has(placement.key)
+                )
 
-        let newPlacement = toPlacements.find(
-            (placement) =>
-                placement.actionType === action.actionType &&
-                placement.playerId === action.playerId &&
-                !fromPlacementKeys.has(placement.key)
-        )
+                if (!newPlacement) {
+                    const fromCount = fromPlacements.filter(
+                        (placement) =>
+                            placement.actionType === action.actionType &&
+                            placement.playerId === action.playerId
+                    ).length
+                    const toMatches = toPlacements.filter(
+                        (placement) =>
+                            placement.actionType === action.actionType &&
+                            placement.playerId === action.playerId
+                    )
+                    newPlacement = toMatches[fromCount]
+                }
 
-        if (!newPlacement) {
-            const fromCount = fromPlacements.filter(
-                (placement) =>
-                    placement.actionType === action.actionType && placement.playerId === action.playerId
-            ).length
-            const toMatches = toPlacements.filter(
-                (placement) =>
-                    placement.actionType === action.actionType && placement.playerId === action.playerId
+                return newPlacement ? [newPlacement] : []
+            }
+
+            return toPlacements.filter((placement) => !fromPlacementKeys.has(placement.key))
+        })()
+
+        for (const addedPlacement of addedPlacements) {
+            const transient = {
+                key: addedPlacement.key,
+                scale: 0.2,
+                opacity: 0.9
+            }
+
+            this.callbacks.onPlacementStart({
+                key: addedPlacement.key,
+                x: addedPlacement.point.x,
+                y: addedPlacement.point.y,
+                color: this.gameSession.colors.getPlayerUiColor(addedPlacement.playerId),
+                scale: transient.scale,
+                opacity: transient.opacity
+            })
+
+            animationContext.actionTimeline.to(
+                transient,
+                {
+                    scale: 1.16,
+                    opacity: 1,
+                    duration: placementPopDuration,
+                    ease: 'back.out(2.2)',
+                    onUpdate: () => {
+                        this.callbacks.onPlacementUpdate({
+                            key: transient.key,
+                            scale: transient.scale,
+                            opacity: transient.opacity
+                        })
+                    }
+                },
+                0
             )
-            newPlacement = toMatches[fromCount]
+
+            animationContext.actionTimeline.to(
+                transient,
+                {
+                    scale: 1,
+                    duration: placementSettleDuration,
+                    ease: 'power2.out',
+                    onUpdate: () => {
+                        this.callbacks.onPlacementUpdate({
+                            key: transient.key,
+                            scale: transient.scale,
+                            opacity: transient.opacity
+                        })
+                    }
+                },
+                placementPopDuration
+            )
         }
-
-        if (!newPlacement) {
-            return
-        }
-
-        const transient = {
-            key: newPlacement.key,
-            scale: 0.2,
-            opacity: 0.9
-        }
-
-        this.callbacks.onPlacementStart({
-            key: newPlacement.key,
-            x: newPlacement.point.x,
-            y: newPlacement.point.y,
-            color: this.gameSession.colors.getPlayerUiColor(action.playerId),
-            scale: transient.scale,
-            opacity: transient.opacity
-        })
-
-        const popDuration = 0.18
-
-        animationContext.actionTimeline.to(
-            transient,
-            {
-                scale: 1.16,
-                opacity: 1,
-                duration: popDuration,
-                ease: 'back.out(2.2)',
-                onUpdate: () => {
-                    this.callbacks.onPlacementUpdate({
-                        key: transient.key,
-                        scale: transient.scale,
-                        opacity: transient.opacity
-                    })
-                }
-            },
-            0
-        )
-
-        animationContext.actionTimeline.to(
-            transient,
-            {
-                scale: 1,
-                duration: 0.14,
-                ease: 'power2.out',
-                onUpdate: () => {
-                    this.callbacks.onPlacementUpdate({
-                        key: transient.key,
-                        scale: transient.scale,
-                        opacity: transient.opacity
-                    })
-                }
-            },
-            popDuration
-        )
-
     }
 }

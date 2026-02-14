@@ -34,6 +34,7 @@ export class AnimationContext {
             return
         }
 
+        // Sequencing contract: finalTimeline always starts after actionTimeline finishes.
         this.masterTimeline.add(this.actionTimeline, 0)
         this.masterTimeline.add(this.finalTimeline, this.actionTimeline.duration())
 

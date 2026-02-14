@@ -1,6 +1,6 @@
 import type { Point } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import { gsap } from 'gsap'
 import type { BusGameState, HydratedBusGameState } from '@tabletop/bus'
 import { BUS_SCORE_TRACK_POINTS } from '$lib/definitions/busBoardGraph.js'
 import { StateAnimator } from './stateAnimator.js'
@@ -68,15 +68,19 @@ export class ScoreMarkerAnimator extends StateAnimator<
     override async onGameStateChange({
         to,
         from,
+        action,
         animationContext
     }: {
         to: HydratedBusGameState
         from?: HydratedBusGameState
+        action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
         if (!from) {
             return
         }
+
+        const moveDuration = action ? 0.42 : 0.18
 
         const fromByKey = new Map(
             buildScoreMarkerPlacements(from).map((marker) => [marker.key, marker] as const)
@@ -112,7 +116,7 @@ export class ScoreMarkerAnimator extends StateAnimator<
                     attr: {
                         transform: `translate(${toMarker.point.x} ${toMarker.point.y})`
                     },
-                    duration: 0.42,
+                    duration: moveDuration,
                     ease: 'power2.inOut'
                 },
                 0
@@ -132,11 +136,30 @@ export class ScoreMarkerAnimator extends StateAnimator<
 export function animateScoreMarker(
     node: HTMLElement | SVGElement,
     params: { animator: ScoreMarkerAnimator; markerKey: string }
-): { destroy: () => void } {
-    params.animator.setScoreMarker(params.markerKey, node)
+): {
+    update: (next: { animator: ScoreMarkerAnimator; markerKey: string }) => void
+    destroy: () => void
+} {
+    let currentAnimator = params.animator
+    let currentMarkerKey = params.markerKey
+    currentAnimator.setScoreMarker(currentMarkerKey, node)
+
     return {
+        update(next) {
+            if (
+                next.animator === currentAnimator &&
+                next.markerKey === currentMarkerKey
+            ) {
+                return
+            }
+
+            currentAnimator.setScoreMarker(currentMarkerKey, undefined)
+            currentAnimator = next.animator
+            currentMarkerKey = next.markerKey
+            currentAnimator.setScoreMarker(currentMarkerKey, node)
+        },
         destroy() {
-            params.animator.setScoreMarker(params.markerKey, undefined)
+            currentAnimator.setScoreMarker(currentMarkerKey, undefined)
         }
     }
 }

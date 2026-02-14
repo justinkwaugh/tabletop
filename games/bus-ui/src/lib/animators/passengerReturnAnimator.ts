@@ -35,6 +35,7 @@ type PassengerReturnAnimatorCallbacks = {
 const SITE_PASSENGER_HEIGHT = 44
 const NODE_PASSENGER_HEIGHT = 74
 const RETURN_DURATION = 0.42
+const FALLBACK_RETURN_DURATION = 0.18
 
 export class PassengerReturnAnimator extends StateAnimator<
     BusGameState,
@@ -168,6 +169,8 @@ export class PassengerReturnAnimator extends StateAnimator<
             return
         }
 
+        const returnDuration = action ? RETURN_DURATION : FALLBACK_RETURN_DURATION
+
         const startingPassengers = returningPassengers.map((passenger) => ({
             ...passenger,
             pose: { ...passenger.pose }
@@ -191,7 +194,7 @@ export class PassengerReturnAnimator extends StateAnimator<
                     x: destinationPoint.x,
                     y: destinationPoint.y,
                     height: NODE_PASSENGER_HEIGHT,
-                    duration: RETURN_DURATION,
+                    duration: returnDuration,
                     ease: 'power2.inOut',
                     onUpdate: () => {
                         this.callbacks.onUpdate(passenger.id, { ...passenger.pose })
