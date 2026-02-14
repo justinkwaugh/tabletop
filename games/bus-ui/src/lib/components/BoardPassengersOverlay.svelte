@@ -130,6 +130,23 @@
         return gameSession.gameState.board.passengersByNode()
     })
 
+    const nodePassengerEntries = $derived.by(() => {
+        const keys = new Set<BusNodeId>()
+
+        for (const nodeId of Object.keys(passengersByNodeId)) {
+            keys.add(nodeId as BusNodeId)
+        }
+
+        for (const nodeId of stationPassengerCountOverrides?.keys() ?? []) {
+            keys.add(nodeId)
+        }
+
+        return [...keys].map((nodeId) => ({
+            nodeId,
+            passengers: passengersByNodeId[nodeId] ?? []
+        }))
+    })
+
     const passengersAtSite: SitePassengerPlacement[] = $derived.by(() => {
         const placements: SitePassengerPlacement[] = []
         for (const passenger of gameSession.gameState.board.passengers) {
@@ -282,8 +299,8 @@
 <g class="pointer-events-none" {@attach attachAnimator(addPassengersPlacementAnimator)}></g>
 <g class="pointer-events-none" {@attach attachAnimator(passengerReturnAnimator)}></g>
 
-{#each Object.entries(passengersByNodeId) as [nodeId, passengers] (nodeId)}
-    {@const typedNodeId = nodeId as BusNodeId}
+{#each nodePassengerEntries as entry (entry.nodeId)}
+    {@const typedNodeId = entry.nodeId}
     {@const point = BUS_BOARD_NODE_POINTS[typedNodeId]}
     {@const isChosenVroomSource = chosenVroomSourceNodeId === typedNodeId}
     {@const isSelectableVroomSource = highlightedVroomSourceNodeIds.includes(typedNodeId)}
@@ -293,8 +310,8 @@
         hoveredVroomSourceNodeId === typedNodeId}
     {@const deliveryAdjustedPassengerCount =
         animatedPassengerSourceNodeId === typedNodeId
-            ? Math.max(0, passengers.length - 1)
-            : passengers.length}
+            ? Math.max(0, entry.passengers.length - 1)
+            : entry.passengers.length}
     {@const overridePassengerCount = stationPassengerCountOverrides?.get(typedNodeId)}
     {@const displayPassengerCount = overridePassengerCount ?? deliveryAdjustedPassengerCount}
     {@const shouldMaskForVroom =
