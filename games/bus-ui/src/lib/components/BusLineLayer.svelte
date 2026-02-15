@@ -12,6 +12,7 @@
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import type { BusGameSession } from '$lib/model/session.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { onMount } from 'svelte'
 
     const gameSession = getGameSession() as BusGameSession
 
@@ -33,6 +34,7 @@
     let hoveredExtensionSegmentKey = $state<string | undefined>()
     let hoveredTargetNodeId = $state<BusNodeId | undefined>()
     let hoveredSourceNodeId = $state<BusNodeId | undefined>()
+    let hoverPreviewEnabled = $state(false)
     let animatedBusLineOverrides: Map<string, BusNodeId[]> | undefined = $derived.by(() => {
         // Writable derived override: can be assigned pre-state-change by animator,
         // then automatically resets when gameState reactively updates.
@@ -251,6 +253,35 @@
         return `${segment[0]}:${segment[1]}`
     }
 
+    function shouldHandleHover(event: PointerEvent): boolean {
+        return hoverPreviewEnabled && event.pointerType === 'mouse'
+    }
+
+    onMount(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+            hoverPreviewEnabled = false
+            return
+        }
+
+        const mediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)')
+        const applyHoverCapability = () => {
+            hoverPreviewEnabled = mediaQuery.matches
+            if (!hoverPreviewEnabled) {
+                clearHoverState()
+            }
+        }
+
+        applyHoverCapability()
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', applyHoverCapability)
+            return () => mediaQuery.removeEventListener('change', applyHoverCapability)
+        }
+
+        mediaQuery.addListener(applyHoverCapability)
+        return () => mediaQuery.removeListener(applyHoverCapability)
+    })
+
     function clearHoverState() {
         hoveredStartingSegmentKey = undefined
         hoveredExtensionSegmentKey = undefined
@@ -430,8 +461,16 @@
                         role="button"
                         tabindex="0"
                         aria-label={`Place segment ${segment[0]} to ${segment[1]}`}
-                        onmouseenter={() => (hoveredStartingSegmentKey = startSegmentKey(segment))}
-                        onmouseleave={() => (hoveredStartingSegmentKey = undefined)}
+                        onpointerenter={(event) => {
+                            if (shouldHandleHover(event)) {
+                                hoveredStartingSegmentKey = startSegmentKey(segment)
+                            }
+                        }}
+                        onpointerleave={(event) => {
+                            if (shouldHandleHover(event)) {
+                                hoveredStartingSegmentKey = undefined
+                            }
+                        }}
                         onclick={() => chooseStartingSegment(segment)}
                         onkeydown={(event) => onKeyboardActivate(event, () => chooseStartingSegment(segment))}
                     />
@@ -454,9 +493,16 @@
                         role="button"
                         tabindex="0"
                         aria-label={`Place segment ${segment[0]} to ${segment[1]}`}
-                        onmouseenter={() => (hoveredExtensionSegmentKey = segmentKey(segment))}
-                        onmouseleave={() => {
-                            if (hoveredExtensionSegmentKey === segmentKey(segment)) {
+                        onpointerenter={(event) => {
+                            if (shouldHandleHover(event)) {
+                                hoveredExtensionSegmentKey = segmentKey(segment)
+                            }
+                        }}
+                        onpointerleave={(event) => {
+                            if (
+                                shouldHandleHover(event) &&
+                                hoveredExtensionSegmentKey === segmentKey(segment)
+                            ) {
                                 hoveredExtensionSegmentKey = undefined
                             }
                         }}
@@ -545,8 +591,16 @@
                             role="button"
                             tabindex="0"
                             aria-label={`Confirm source node ${sourceNodeId}`}
-                            onmouseenter={() => (hoveredSourceNodeId = sourceNodeId)}
-                            onmouseleave={() => (hoveredSourceNodeId = undefined)}
+                            onpointerenter={(event) => {
+                                if (shouldHandleHover(event)) {
+                                    hoveredSourceNodeId = sourceNodeId
+                                }
+                            }}
+                            onpointerleave={(event) => {
+                                if (shouldHandleHover(event)) {
+                                    hoveredSourceNodeId = undefined
+                                }
+                            }}
                             onclick={() => chooseSourceNode(sourceNodeId)}
                             onkeydown={(event) => onKeyboardActivate(event, () => chooseSourceNode(sourceNodeId))}
                         />
@@ -597,8 +651,16 @@
                             role="button"
                             tabindex="0"
                             aria-label={`Choose target node ${targetNodeId}`}
-                            onmouseenter={() => (hoveredTargetNodeId = targetNodeId)}
-                            onmouseleave={() => (hoveredTargetNodeId = undefined)}
+                            onpointerenter={(event) => {
+                                if (shouldHandleHover(event)) {
+                                    hoveredTargetNodeId = targetNodeId
+                                }
+                            }}
+                            onpointerleave={(event) => {
+                                if (shouldHandleHover(event)) {
+                                    hoveredTargetNodeId = undefined
+                                }
+                            }}
                             onclick={() => chooseTargetNode(targetNodeId)}
                             onkeydown={(event) => onKeyboardActivate(event, () => chooseTargetNode(targetNodeId))}
                         />

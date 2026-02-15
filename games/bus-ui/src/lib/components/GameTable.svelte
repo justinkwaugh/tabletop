@@ -28,7 +28,11 @@
 <div class="bg-[#f0f1ec]" style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
-            <HistoryControls enabledColor="text-[#333333]" disabledColor="text-[#cccccc]" />
+            <HistoryControls
+                enabledColor="text-[#333333]"
+                disabledColor="text-[#cccccc]"
+                borderClass="border-gray-700 border-b-2"
+            />
         {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
@@ -47,10 +51,11 @@
                 {/snippet}
                 {#snippet chat()}
                     <GameChat
-                        timeColor="text-[#8d794d]"
-                        bgColor="bg-[#302408]"
-                        inputBgColor="bg-[#634a11]"
-                        inputBorderColor="border-[#302408]"
+                        timeColor="text-gray-500"
+                        bgColor="bg-black"
+                        inputBgColor="bg-black"
+                        inputBorderColor="border-gray-500"
+                        borderColor="border-gray-500"
                     />
                 {/snippet}
             </DefaultTabs>

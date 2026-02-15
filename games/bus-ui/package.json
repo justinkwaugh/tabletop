@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/bus-ui",
-    "version": "2.3.1",
+    "version": "2.6.0",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
