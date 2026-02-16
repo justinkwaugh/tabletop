@@ -35,7 +35,7 @@
 
         return {
             labelX: (minX + maxX) / 2,
-            labelY: (minY + maxY) / 2,
+            labelY: (minY + maxY) / 2
         }
     }
 
@@ -66,6 +66,73 @@
         return a < b ? `${a}|${b}` : `${b}|${a}`
     }
 
+    function closestPointOnSegment(
+        px: number,
+        py: number,
+        ax: number,
+        ay: number,
+        bx: number,
+        by: number
+    ): { x: number; y: number; dist2: number } {
+        const abx = bx - ax
+        const aby = by - ay
+        const apx = px - ax
+        const apy = py - ay
+        const abLen2 = abx * abx + aby * aby
+
+        if (abLen2 === 0) {
+            const dx = px - ax
+            const dy = py - ay
+            return { x: ax, y: ay, dist2: dx * dx + dy * dy }
+        }
+
+        const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / abLen2))
+        const x = ax + abx * t
+        const y = ay + aby * t
+        const dx = px - x
+        const dy = py - y
+        return { x, y, dist2: dx * dx + dy * dy }
+    }
+
+    function findClosestPointOnPath(
+        path: string,
+        targetX: number,
+        targetY: number
+    ): { x: number; y: number } | undefined {
+        const rings = parsePathRings(path)
+        let best: { x: number; y: number; dist2: number } | undefined
+
+        for (const ring of rings) {
+            if (ring.length < 2) continue
+            for (let i = 0; i < ring.length - 1; i++) {
+                const [ax, ay] = ring[i]
+                const [bx, by] = ring[i + 1]
+                const candidate = closestPointOnSegment(targetX, targetY, ax, ay, bx, by)
+                if (!best || candidate.dist2 < best.dist2) {
+                    best = candidate
+                }
+            }
+        }
+
+        if (!best) return undefined
+        return { x: best.x, y: best.y }
+    }
+
+    function findSouthwestPoint(path: string): { x: number; y: number } | undefined {
+        const rings = parsePathRings(path)
+        let best: { x: number; y: number } | undefined
+
+        for (const ring of rings) {
+            for (const [x, y] of ring) {
+                if (!best || y > best.y || (y === best.y && x < best.x)) {
+                    best = { x, y }
+                }
+            }
+        }
+
+        return best
+    }
+
     function computeAreaColorMap(areas: DebugArea[]): Map<string, string> {
         const boundaryPointOwners = new Map<string, Set<string>>()
         const sharedPointCountByPair = new Map<string, number>()
@@ -77,7 +144,8 @@
 
             for (const ring of rings) {
                 const isClosed =
-                    ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+                    ring[0][0] === ring[ring.length - 1][0] &&
+                    ring[0][1] === ring[ring.length - 1][1]
                 const segmentCount = isClosed ? ring.length - 1 : ring.length
 
                 for (let i = 0; i < segmentCount; i++) {
@@ -138,9 +206,13 @@
 
         for (const id of sortedIds) {
             const neighborColors = new Set(
-                [...(adjacency.get(id) ?? [])].map((neighborId) => areaColors.get(neighborId)).filter(Boolean)
+                [...(adjacency.get(id) ?? [])]
+                    .map((neighborId) => areaColors.get(neighborId))
+                    .filter(Boolean)
             )
-            const color = DEBUG_PALETTE.find((candidate) => !neighborColors.has(candidate)) ?? DEBUG_PALETTE[0]
+            const color =
+                DEBUG_PALETTE.find((candidate) => !neighborColors.has(candidate)) ??
+                DEBUG_PALETTE[0]
             areaColors.set(id, color)
         }
 
@@ -160,23 +232,66 @@
     const DEBUG_LEFTMOST_AREAS: DebugArea[] = LEFTMOST_ISLAND_AREAS.map((area) => ({
         ...area,
         label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path),
+        ...getPathLabelPosition(area.path)
     }))
 
     const DEBUG_BORNEO_AREAS: DebugArea[] = TOP_CENTER_ISLAND_AREAS_SMOOTHED.map((area) => ({
         ...area,
         label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path),
+        ...getPathLabelPosition(area.path)
     }))
 
     const DEBUG_MAP_AREAS: DebugArea[] = [...DEBUG_LEFTMOST_AREAS, ...DEBUG_BORNEO_AREAS]
     const DEBUG_AREA_COLORS: Map<string, string> = computeAreaColorMap(DEBUG_MAP_AREAS)
-    const DEBUG_A23_PATH: string | undefined = DEBUG_LEFTMOST_AREAS.find((area) => area.id === 'A23')?.path
+    const DEBUG_A23_PATH: string | undefined = DEBUG_LEFTMOST_AREAS.find(
+        (area) => area.id === 'A23'
+    )?.path
+    const DEBUG_A25_PATH: string | undefined = DEBUG_LEFTMOST_AREAS.find(
+        (area) => area.id === 'A25'
+    )?.path
+    const DEBUG_PROVIDED_A23_SPLIT_PATH_SVG =
+        'M867,1001.98c-18.96,8.38-38.54,15.51-55.99,27.01-8.26,5.44-17.93,4.55-27.03,5.86-14.04,2.02-33.49,5.9-46.78,10.76'
+    const DEBUG_PROVIDED_A23_SPLIT_SCALE = 0.645
+    const DEBUG_PROVIDED_A23_SPLIT_ANCHOR_X = 611
+    const DEBUG_PROVIDED_A23_SPLIT_ANCHOR_Y = 751
+    const DEBUG_PROVIDED_A23_SPLIT_SOURCE_RIGHT_X = 867
+    const DEBUG_PROVIDED_A23_SPLIT_SOURCE_RIGHT_Y = 1001.98
+    const DEBUG_PROVIDED_A23_SPLIT_TRANSLATE_X =
+        DEBUG_PROVIDED_A23_SPLIT_ANCHOR_X -
+        DEBUG_PROVIDED_A23_SPLIT_SCALE * DEBUG_PROVIDED_A23_SPLIT_SOURCE_RIGHT_X
+    const DEBUG_PROVIDED_A23_SPLIT_TRANSLATE_Y =
+        DEBUG_PROVIDED_A23_SPLIT_ANCHOR_Y -
+        DEBUG_PROVIDED_A23_SPLIT_SCALE * DEBUG_PROVIDED_A23_SPLIT_SOURCE_RIGHT_Y
+    const DEBUG_PROVIDED_A23_SPLIT_PATH_TRANSFORM = `translate(${DEBUG_PROVIDED_A23_SPLIT_TRANSLATE_X} ${DEBUG_PROVIDED_A23_SPLIT_TRANSLATE_Y}) scale(${DEBUG_PROVIDED_A23_SPLIT_SCALE})`
+    const DEBUG_PROVIDED_A23_SPLIT_SOURCE_LEFT_X = 737.2
+    const DEBUG_PROVIDED_A23_SPLIT_SOURCE_LEFT_Y = 1045.61
+    const DEBUG_PROVIDED_A23_SPLIT_LEFT_X =
+        DEBUG_PROVIDED_A23_SPLIT_TRANSLATE_X +
+        DEBUG_PROVIDED_A23_SPLIT_SCALE * DEBUG_PROVIDED_A23_SPLIT_SOURCE_LEFT_X
+    const DEBUG_PROVIDED_A23_SPLIT_LEFT_Y =
+        DEBUG_PROVIDED_A23_SPLIT_TRANSLATE_Y +
+        DEBUG_PROVIDED_A23_SPLIT_SCALE * DEBUG_PROVIDED_A23_SPLIT_SOURCE_LEFT_Y
+    const DEBUG_A23_INTERSECTION_POINT =
+        DEBUG_A23_PATH &&
+        findClosestPointOnPath(
+            DEBUG_A23_PATH,
+            DEBUG_PROVIDED_A23_SPLIT_LEFT_X,
+            DEBUG_PROVIDED_A23_SPLIT_LEFT_Y
+        )
+    const DEBUG_A25_SW_POINT = DEBUG_A25_PATH && findSouthwestPoint(DEBUG_A25_PATH)
+    const DEBUG_A23_AT_A25_SW_POINT =
+        DEBUG_A23_PATH &&
+        DEBUG_A25_SW_POINT &&
+        findClosestPointOnPath(DEBUG_A23_PATH, DEBUG_A25_SW_POINT.x, DEBUG_A25_SW_POINT.y)
 </script>
 
 <div class="board-shell">
     <div class="board-surface relative h-[1280px] w-[2646px]">
-        <img src={boardImg} alt="Indonesia game board" class="board-image absolute inset-0 h-full w-full" />
+        <img
+            src={boardImg}
+            alt="Indonesia game board"
+            class="board-image absolute inset-0 h-full w-full"
+        />
         <svg
             class="absolute inset-0 z-[2] h-full w-full"
             viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
@@ -195,7 +310,7 @@
                             stroke-linejoin="round"
                             stroke-linecap="round"
                             opacity="0.95"
-                        />
+                        ></path>
                         <text
                             x={area.labelX}
                             y={area.labelY}
@@ -216,11 +331,41 @@
                             d={DEBUG_A23_PATH}
                             fill="none"
                             stroke="#ffea00"
-                            stroke-width="6"
+                            stroke-width="2"
                             stroke-linejoin="round"
                             stroke-linecap="round"
                             opacity="1"
-                        />
+                        ></path>
+                    {/if}
+                    <path
+                        d={DEBUG_PROVIDED_A23_SPLIT_PATH_SVG}
+                        transform={DEBUG_PROVIDED_A23_SPLIT_PATH_TRANSFORM}
+                        fill="none"
+                        stroke="#ff0000"
+                        stroke-width="2"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="1"
+                    ></path>
+                    {#if DEBUG_A23_INTERSECTION_POINT}
+                        <circle
+                            cx={DEBUG_A23_INTERSECTION_POINT.x}
+                            cy={DEBUG_A23_INTERSECTION_POINT.y}
+                            r="2"
+                            fill="#22c55e"
+                            stroke="#14532d"
+                            stroke-width="1"
+                        ></circle>
+                    {/if}
+                    {#if DEBUG_A23_AT_A25_SW_POINT}
+                        <circle
+                            cx={DEBUG_A23_AT_A25_SW_POINT.x}
+                            cy={DEBUG_A23_AT_A25_SW_POINT.y}
+                            r="2"
+                            fill="#22c55e"
+                            stroke="#14532d"
+                            stroke-width="1"
+                        ></circle>
                     {/if}
                 </g>
             {/if}
