@@ -1,6 +1,7 @@
 <script lang="ts">
     import boardImg from '$lib/images/indo_map_sm.jpg'
-    import { LEFTMOST_ISLAND_AREAS, TOP_CENTER_ISLAND_AREAS } from '$lib/definitions/boardGeometry.js'
+    import { LEFTMOST_ISLAND_AREAS } from '$lib/definitions/boardGeometry.js'
+    import { TOP_CENTER_ISLAND_AREAS_SMOOTHED } from '$lib/definitions/boardGeometrySmoothed.js'
 
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
@@ -162,14 +163,15 @@
         ...getPathLabelPosition(area.path),
     }))
 
-    const DEBUG_BORNEO_AREAS: DebugArea[] = TOP_CENTER_ISLAND_AREAS.map((area) => ({
+    const DEBUG_BORNEO_AREAS: DebugArea[] = TOP_CENTER_ISLAND_AREAS_SMOOTHED.map((area) => ({
         ...area,
         label: getCompactAreaLabel(area.id),
         ...getPathLabelPosition(area.path),
     }))
 
     const DEBUG_MAP_AREAS: DebugArea[] = [...DEBUG_LEFTMOST_AREAS, ...DEBUG_BORNEO_AREAS]
-    const DEBUG_AREA_COLORS = computeAreaColorMap(DEBUG_MAP_AREAS)
+    const DEBUG_AREA_COLORS: Map<string, string> = computeAreaColorMap(DEBUG_MAP_AREAS)
+    const DEBUG_A23_PATH: string | undefined = DEBUG_LEFTMOST_AREAS.find((area) => area.id === 'A23')?.path
 </script>
 
 <div class="board-shell">
@@ -209,6 +211,17 @@
                             {area.label}
                         </text>
                     {/each}
+                    {#if DEBUG_A23_PATH}
+                        <path
+                            d={DEBUG_A23_PATH}
+                            fill="none"
+                            stroke="#ffea00"
+                            stroke-width="6"
+                            stroke-linejoin="round"
+                            stroke-linecap="round"
+                            opacity="1"
+                        />
+                    {/if}
                 </g>
             {/if}
         </svg>
