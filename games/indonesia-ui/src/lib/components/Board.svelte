@@ -246,6 +246,9 @@
     const DEBUG_A23_PATH: string | undefined = DEBUG_LEFTMOST_AREAS.find(
         (area) => area.id === 'A23'
     )?.path
+    const DEBUG_A35_PATH: string | undefined = DEBUG_LEFTMOST_AREAS.find(
+        (area) => area.id === 'A35'
+    )?.path
     const DEBUG_A25_PATH: string | undefined = DEBUG_LEFTMOST_AREAS.find(
         (area) => area.id === 'A25'
     )?.path
@@ -326,12 +329,12 @@
                             {area.label}
                         </text>
                     {/each}
-                    {#if DEBUG_A23_PATH}
+                    {#if DEBUG_A35_PATH}
                         <path
-                            d={DEBUG_A23_PATH}
+                            d={DEBUG_A35_PATH}
                             fill="none"
                             stroke="#ffea00"
-                            stroke-width="2"
+                            stroke-width="4"
                             stroke-linejoin="round"
                             stroke-linecap="round"
                             opacity="1"
