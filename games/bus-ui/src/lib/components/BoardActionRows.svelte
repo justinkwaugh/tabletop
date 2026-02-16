@@ -255,6 +255,8 @@
         const playerStickValues = new Map<string, number>(
             state.players.map((playerState) => [playerState.playerId, playerState.sticks])
         )
+        const lineExpansionBaseValue =
+            state.roundStartMaxBusValue + (state.players.length === 5 ? 1 : 0)
         const myPlayerId = gameSession.myPlayer?.id
 
         const expansionValuesBySelectionIndex = (() => {
@@ -269,7 +271,7 @@
                     continue
                 }
 
-                const baseValue = Math.max(0, state.roundStartMaxBusValue - selectionIndex)
+                const baseValue = Math.max(0, lineExpansionBaseValue - selectionIndex)
                 const remainingSticks = Math.max(0, remainingSticksByPlayer.get(playerId) ?? 0)
                 const value = Math.min(baseValue, remainingSticks)
 
@@ -296,7 +298,7 @@
                     continue
                 }
 
-                const baseValue = Math.max(0, state.roundStartMaxBusValue - selectionIndex)
+                const baseValue = Math.max(0, lineExpansionBaseValue - selectionIndex)
                 const remainingSticks = Math.max(0, remainingSticksByPlayer.get(playerId) ?? 0)
                 const value = Math.min(baseValue, remainingSticks)
 
