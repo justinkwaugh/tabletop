@@ -1,6 +1,6 @@
 <script lang="ts">
     import boardImg from '$lib/images/indo_map_sm.jpg'
-    import { LEFTMOST_ISLAND_AREAS } from '$lib/definitions/boardGeometry.js'
+    import { LEFTMOST_ISLAND_AREAS, SOUTHLEFT_ISLAND_AREAS } from '$lib/definitions/boardGeometry.js'
     import { TOP_CENTER_ISLAND_AREAS_SMOOTHED } from '$lib/definitions/boardGeometrySmoothed.js'
 
     const BOARD_WIDTH = 2646
@@ -168,13 +168,23 @@
         ...getPathLabelPosition(area.path)
     }))
 
+    const DEBUG_SOUTHLEFT_AREAS: DebugArea[] = SOUTHLEFT_ISLAND_AREAS.map((area) => ({
+        ...area,
+        label: getCompactAreaLabel(area.id),
+        ...getPathLabelPosition(area.path)
+    }))
+
     const DEBUG_BORNEO_AREAS: DebugArea[] = TOP_CENTER_ISLAND_AREAS_SMOOTHED.map((area) => ({
         ...area,
         label: getCompactAreaLabel(area.id),
         ...getPathLabelPosition(area.path)
     }))
 
-    const DEBUG_MAP_AREAS: DebugArea[] = [...DEBUG_LEFTMOST_AREAS, ...DEBUG_BORNEO_AREAS]
+    const DEBUG_MAP_AREAS: DebugArea[] = [
+        ...DEBUG_LEFTMOST_AREAS,
+        ...DEBUG_SOUTHLEFT_AREAS,
+        ...DEBUG_BORNEO_AREAS
+    ]
     const DEBUG_AREA_COLORS: Map<string, string> = computeAreaColorMap(DEBUG_MAP_AREAS)
 </script>
 
