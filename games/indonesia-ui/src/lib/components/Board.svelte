@@ -159,7 +159,7 @@
         // If geometry noise causes over-connected adjacency, greedy coloring can collapse
         // to too few colors. Keep debug legibility by falling back to palette cycling.
         const distinctColorCount = new Set(areaColors.values()).size
-        if (distinctColorCount < 4) {
+        if (distinctColorCount <= 4) {
             areaColors.clear()
             for (const [index, id] of sortedIds.entries()) {
                 areaColors.set(id, DEBUG_PALETTE[index % DEBUG_PALETTE.length])
