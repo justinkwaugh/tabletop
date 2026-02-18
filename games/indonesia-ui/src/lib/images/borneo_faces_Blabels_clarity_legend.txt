@@ -1,0 +1,28 @@
+Resolved B areas (post-merge chain)
+  B01: R12
+  B02: R03
+  B03: R06
+  B04: R11
+  B05: R17
+  B06: R19
+  B07: R05
+  B08: R14
+  B09: R04
+  B10: R02
+  B11: R10
+  B13: R15
+  B14: R16,R18,R20
+  B16: R09
+  B17: R13
+  B18: R07
+  B19: R01,R23
+  B20: R08
+
+Unresolved / merged-out labels
+  B12: merged_into_B14
+  B15: merged_into_B12
+
+Applied notes
+  merged B15 into B12
+  merged B12 into B14
+  added offshore R23 to B19

@@ -120,3 +120,46 @@
     - `y' = 389.98676940 + 0.91202500*y`
   - Updated `A05`, `A09`, `A27`, `D13` from those transformed SVG paths.
   - Synced `games/indonesia-ui/scripts/tune-westgroup.mjs` `BASE_PATHS` to those same transformed paths so identity transform is a no-op.
+
+## Geometry Cleanup Notes (2026-02-18)
+
+- Removed temporary tuning/smoothed artifacts:
+  - deleted `games/indonesia-ui/src/lib/definitions/boardGeometrySmoothed.ts`
+  - deleted `games/indonesia-ui/scripts/tune-eastgroups.mjs`
+  - deleted `games/indonesia-ui/scripts/tune-westgroup.mjs`
+  - `Board.svelte` now uses `TOP_CENTER_ISLAND_AREAS` directly from `boardGeometry.ts`.
+- Reduced Borneo stair-step density with topology-preserving coverage simplification:
+  - target set: `TOP_CENTER_ISLAND_AREAS` (`B01..B20`) in `boardGeometry.ts`
+  - method: Shapely `coverage_simplify(tolerance=1.6)` on polygonized `M/L/Z` paths
+  - shared borders remain exact (simplified as a coverage, not per-area independently)
+  - spot metric: `B07` point count `269 -> 79`
+  - full B set point total `4020 -> 1416`
+
+## Borneo Face-Derivation Notes (2026-02-18)
+
+- Preferred strategy (keeps original curved SVG geometry; no rasterization, no polygonize-from-pixels):
+  - Start from `games/indonesia-ui/src/lib/images/borneo.svg` path segments (`Line/CubicBezier/QuadraticBezier`).
+  - Split each segment at **exact vector intersections** (`segment.intersect`), then add path-endpoint-to-segment snaps only for near-miss joins (`<=1.2px`) to close trace gaps.
+  - Build a half-edge planar graph from split curve pieces and extract faces by left-turn face-walk.
+  - Transform extracted faces into board-space using fitted affine from svg->board.
+  - Dedupe duplicate extracted faces by polygon IoU threshold (`~0.985`) before area matching.
+  - Match extracted faces to legacy B-area IDs using labeled polygonized geometry bounding boxes (bbox IoU + centroid distance cost), then apply explicit merge overrides (e.g. offshore face merges).
+- Debug artifacts for iterative visual validation:
+  - `games/indonesia-ui/src/lib/images/borneo_split_network_on_map.svg`
+  - `games/indonesia-ui/src/lib/images/borneo_faces_dedup_candidates_on_map.svg`
+  - `games/indonesia-ui/src/lib/images/borneo_faces_bboxmatch_assignment_on_map.svg`
+- Re-extraction after user improved SVG intersections:
+  - source: updated `games/indonesia-ui/src/lib/images/borneo.svg` (`segments=382`).
+  - fast near-intersection pass (in addition to exact intersects + endpoint snaps):
+    - endpoint snaps: `33`
+    - near segment intersections added: `3`
+    - extracted: `raw_faces=27`, `valid_faces=27`, `reps=23`.
+  - Raw mapping (no manual merge overrides) now assigns all `B01..B20` with high IoU:
+    - output overlay: `games/indonesia-ui/src/lib/images/borneo_faces_raw20_Blabels_on_map.svg`
+    - report: `games/indonesia-ui/src/lib/images/borneo_faces_raw20_report.txt`
+    - mapped B count: `20`, extra offshore reps: `3` (`Z01..Z03`).
+  - Applied final merge request and wrote into `boardGeometry.ts`:
+    - `Z01 -> B14`
+    - `Z02 -> B18`
+    - `Z03 -> B19`
+  - `TOP_CENTER_ISLAND_AREAS` now has canonical ids `B01..B20` (removed prior drift to `B21`).

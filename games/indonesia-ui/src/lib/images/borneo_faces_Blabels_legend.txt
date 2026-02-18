@@ -1,0 +1,23 @@
+Resolved B labels -> representative parts
+  B01: R10
+  B02: R03
+  B03: R05
+  B04: R09
+  B05: R13
+  B06: R14
+  B07: R04
+  B08: R11
+  B10: R02
+  B11: R08
+  B12: R16
+  B13: R12
+  B14: R15
+  B16: R07
+  B18: R17
+  B19: R01,R18
+  B20: R06
+
+Unresolved labels
+  B09: offshore_moved_to_B19
+  B15: missing_face;merged_intent_B12
+  B17: unassigned
