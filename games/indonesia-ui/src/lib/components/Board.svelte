@@ -1,6 +1,7 @@
 <script lang="ts">
     import boardImg from '$lib/images/indo_map_sm.jpg'
     import {
+        EAST_ISLAND_AREAS,
         EASTCENTRAL_ISLAND_AREAS,
         LEFTMOST_ISLAND_AREAS,
         NORTHEAST_ISLAND_AREAS,
@@ -204,13 +205,20 @@
         ...getPathLabelPosition(area.path)
     }))
 
+    const DEBUG_EAST_AREAS: DebugArea[] = EAST_ISLAND_AREAS.map((area) => ({
+        ...area,
+        label: getCompactAreaLabel(area.id),
+        ...getPathLabelPosition(area.path)
+    }))
+
     const DEBUG_MAP_AREAS: DebugArea[] = [
         ...DEBUG_LEFTMOST_AREAS,
         ...DEBUG_SOUTHLEFT_AREAS,
         ...DEBUG_BORNEO_AREAS,
         ...DEBUG_EASTCENTRAL_AREAS,
         ...DEBUG_SOUTHCHAIN_AREAS,
-        ...DEBUG_NORTHEAST_AREAS
+        ...DEBUG_NORTHEAST_AREAS,
+        ...DEBUG_EAST_AREAS
     ]
     const DEBUG_AREA_COLORS: Map<string, string> = computeAreaColorMap(DEBUG_MAP_AREAS)
 </script>
