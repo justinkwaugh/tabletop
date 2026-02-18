@@ -71,3 +71,21 @@
   - Merged `F03`, `F05`, and `F06` into `F03` by concatenating their exact SVG-derived paths.
   - Merged `F07` and `F08` into `F07` by concatenating their exact SVG-derived paths.
   - East area set now exports 5 ids: `F01`, `F02`, `F03`, `F04`, `F07`.
+
+## East Group Boundary Notes (2026-02-18)
+
+- File touched: `games/indonesia-ui/src/lib/definitions/boardGeometry.ts`.
+- Source asset: `games/indonesia-ui/src/lib/images/eastgroups.svg`.
+- `eastgroups.svg` contains 5 closed path regions (`<path class="d" ... Z/>`).
+- Used the same east transform already documented for `east.svg`:
+  - `x' = 2064.85019 + 1.00051299*x`
+  - `y' = 507.42964 + 1.00288529*y`
+- Added these ids to `EAST_ISLAND_AREAS`:
+  - Upper group paths: `F08`, `F09`
+  - Lower group paths: `C37`, `C38`, `C39`
+- Path assignment used vertical grouping because the source has 5 total regions:
+  - top-left -> `F08`
+  - top-right -> `F09`
+  - bottom-left -> `C37`
+  - bottom-middle -> `C38`
+  - bottom-right -> `C39`
