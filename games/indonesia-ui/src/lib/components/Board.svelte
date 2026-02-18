@@ -3,6 +3,7 @@
     import {
         EASTCENTRAL_ISLAND_AREAS,
         LEFTMOST_ISLAND_AREAS,
+        NORTHEAST_ISLAND_AREAS,
         SOUTHCHAIN_ISLAND_AREAS,
         SOUTHLEFT_ISLAND_AREAS
     } from '$lib/definitions/boardGeometry.js'
@@ -197,12 +198,19 @@
         ...getPathLabelPosition(area.path)
     }))
 
+    const DEBUG_NORTHEAST_AREAS: DebugArea[] = NORTHEAST_ISLAND_AREAS.map((area) => ({
+        ...area,
+        label: getCompactAreaLabel(area.id),
+        ...getPathLabelPosition(area.path)
+    }))
+
     const DEBUG_MAP_AREAS: DebugArea[] = [
         ...DEBUG_LEFTMOST_AREAS,
         ...DEBUG_SOUTHLEFT_AREAS,
         ...DEBUG_BORNEO_AREAS,
         ...DEBUG_EASTCENTRAL_AREAS,
-        ...DEBUG_SOUTHCHAIN_AREAS
+        ...DEBUG_SOUTHCHAIN_AREAS,
+        ...DEBUG_NORTHEAST_AREAS
     ]
     const DEBUG_AREA_COLORS: Map<string, string> = computeAreaColorMap(DEBUG_MAP_AREAS)
 </script>
