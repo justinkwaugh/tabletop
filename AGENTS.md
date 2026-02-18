@@ -89,3 +89,11 @@
   - bottom-left -> `C37`
   - bottom-middle -> `C38`
   - bottom-right -> `C39`
+- Follow-up correction (user review):
+  - Initial eastgroups placement was too far east.
+  - Reprojected eastgroups with moderated horizontal transform while preserving SVG path geometry:
+    - `x' = 1820.0 + 1.1*x`
+    - `y' = 507.42964 + 1.00288529*y`
+  - Updated only `F08`, `F09`, `C37`, `C38`, `C39` paths in `EAST_ISLAND_AREAS`.
+  - Added tuning utility: `games/indonesia-ui/scripts/tune-eastgroups.mjs`
+    (`npm run tune:eastgroups -- ...`) for non-compounding `dx/dy/sx/sy` iteration.
