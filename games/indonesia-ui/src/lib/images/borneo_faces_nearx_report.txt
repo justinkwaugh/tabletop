@@ -1,9 +1,0 @@
-SNAP_ENDPOINT_TO_SEG 1.2
-SNAP_NODE_CLUSTER 1.2
-NEAR_INTERSECTION_TOL 1.0
-AREA_MIN 20.0
-DUP_IOU 0.99
-endpoint_snaps 31
-near_intersections_added 10
-raw_faces 24 valid_faces 22 candidates 21 reps 18
-\nPer-B assignment quality (bbox_iou, cost):\n  B01: R10 iou=0.9876 cost=0.0202 area=7186.12\n  B02: R03 iou=0.9917 cost=0.0210 area=20699.81\n  B03: R05 iou=0.9951 cost=0.0154 area=14169.71\n  B04: R09 iou=0.9683 cost=0.0461 area=8889.49\n  B05: R13 iou=0.9767 cost=0.0356 area=4184.24\n  B06: R14 iou=0.9671 cost=0.0415 area=2788.16\n  B07: R04 iou=0.9799 cost=0.0507 area=16486.59\n  B08: R11 iou=0.9554 cost=0.0562 area=5232.29\n  B09: R18 iou=0.0000 cost=1.3921 area=107.48\n  B10: R02 iou=0.9853 cost=0.0300 area=22045.87\n  B11: R08 iou=0.9776 cost=0.0455 area=9541.86\n  B12: R16 iou=0.0000 cost=1.1270 area=565.59\n  B13: R12 iou=0.9707 cost=0.0434 area=4815.74\n  B14: R15 iou=0.7760 cost=0.2487 area=2371.18\n  B15: unassigned\n  B16: R07 iou=0.9751 cost=0.0370 area=10683.22\n  B17: unassigned\n  B18: R17 iou=0.0211 cost=1.0985 area=146.23\n  B19: R01 iou=0.9861 cost=0.0299 area=23336.19\n  B20: R06 iou=0.9772 cost=0.0339 area=11036.83\n\nUnresolved labels after merges:\n  B09: offshore_moved_to_B19\n  B12: merged_into_B14\n  B15: unassigned\n  B17: unassigned\n

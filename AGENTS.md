@@ -163,3 +163,35 @@
     - `Z02 -> B18`
     - `Z03 -> B19`
   - `TOP_CENTER_ISLAND_AREAS` now has canonical ids `B01..B20` (removed prior drift to `B21`).
+
+## Leftmost A-Island Rebuild Notes (2026-02-18)
+
+- File touched: `games/indonesia-ui/src/lib/definitions/boardGeometry.ts`.
+- Source asset: `games/indonesia-ui/src/lib/images/leftmost.svg`.
+- User constraint applied: preserve these ids exactly (no remap):
+  - `A05`, `A09`, `A26`.
+- Rebuild strategy reused from Borneo curved-face pipeline:
+  - exact segment intersections + endpoint-to-segment snaps (`<=1.2px`) + near-intersection splits (`<=1.0px`);
+  - half-edge left-turn face extraction from split `Line/CubicBezier/QuadraticBezier` pieces;
+  - assign extracted faces to existing A ids via centroid+bbox Hungarian matching;
+  - write assigned curved paths directly to `LEFTMOST_ISLAND_AREAS` (no raster polygonization).
+- Fitted `leftmost.svg -> board` transform from current non-excluded A geometry:
+  - `sx=0.6213481953818331`
+  - `sy=0.6184308572123266`
+  - `theta=0.0019375411642092001`
+  - `tx=624.6990214285714`
+  - `ty=819.7210642857142`
+- Extraction stats:
+  - `segments=409`
+  - `raw_faces=46`
+  - `kept_faces=36`
+  - `required_ids=31`
+  - `assigned_ids=31`
+  - `extra_faces=5` (left unassigned)
+- Validation checks after write:
+  - `LEFTMOST_ISLAND_AREAS` still contains `34` ids (`A01..A34`);
+  - all A paths contain closed `M...Z` subpaths;
+  - `A05`, `A09`, `A26` text paths unchanged byte-for-byte.
+- Debug artifacts:
+  - `games/indonesia-ui/src/lib/images/leftmost_faces_overlay.svg`
+  - `games/indonesia-ui/src/lib/images/leftmost_faces_report.txt`
