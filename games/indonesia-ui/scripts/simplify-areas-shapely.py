@@ -8,7 +8,6 @@ SVG contours is not lossless.
 Usage:
   /tmp/shapely-env/bin/python3 games/indonesia-ui/scripts/simplify-areas-shapely.py \
       --file games/indonesia-ui/src/lib/definitions/boardGeometry.ts \
-      --file games/indonesia-ui/src/lib/definitions/boardGeometrySmoothed.ts \
       --write
 """
 

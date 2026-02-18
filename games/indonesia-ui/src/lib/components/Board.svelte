@@ -5,10 +5,10 @@
         EASTCENTRAL_ISLAND_AREAS,
         LEFTMOST_ISLAND_AREAS,
         NORTHEAST_ISLAND_AREAS,
+        TOP_CENTER_ISLAND_AREAS,
         SOUTHCHAIN_ISLAND_AREAS,
         SOUTHLEFT_ISLAND_AREAS
     } from '$lib/definitions/boardGeometry.js'
-    import { TOP_CENTER_ISLAND_AREAS_SMOOTHED } from '$lib/definitions/boardGeometrySmoothed.js'
 
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
@@ -181,7 +181,7 @@
         ...getPathLabelPosition(area.path)
     }))
 
-    const DEBUG_BORNEO_AREAS: DebugArea[] = TOP_CENTER_ISLAND_AREAS_SMOOTHED.map((area) => ({
+    const DEBUG_BORNEO_AREAS: DebugArea[] = TOP_CENTER_ISLAND_AREAS.map((area) => ({
         ...area,
         label: getCompactAreaLabel(area.id),
         ...getPathLabelPosition(area.path)
