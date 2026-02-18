@@ -17,8 +17,8 @@ const adjacencyByNode = (() => {
     return neighborsByNode
 })()
 
-export function isBusNodeId(value: string): value is BusNodeId {
-    return nodeIdSet.has(value as BusNodeId)
+export function isBusNodeId(value?: string): value is BusNodeId {
+    return value !== undefined && nodeIdSet.has(value as BusNodeId)
 }
 
 export function busLineEdgeKey(left: BusNodeId, right: BusNodeId): string {
