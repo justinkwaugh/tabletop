@@ -7,6 +7,7 @@ import {
     isBusNodeId,
     isSiteId,
     isVroom,
+    type Vroom,
     type BuildingSiteId,
     type BusGameState,
     type BusNodeId,
@@ -24,21 +25,67 @@ type PassengerPose = {
     height: number
 }
 
+type BoardPoint = {
+    x: number
+    y: number
+}
+
+type PassengerDelivery = {
+    id: string
+    sourceNodeId: BusNodeId
+    destinationSiteId: BuildingSiteId
+}
+
+type StagedSettlementDelivery = PassengerDelivery & {
+    destinationSitePoint: BoardPoint
+    pose: PassengerPose
+}
+
 type PassengerDeliveryAnimatorCallbacks = {
-    onStart: (args: {
-        sourceNodeId: BusNodeId
-        destinationSiteId: BuildingSiteId
-        pose: PassengerPose
-    }) => void
-    onUpdate: (pose: PassengerPose) => void
-    onComplete: () => void
+    onStart: (passengers: Array<PassengerDelivery & { pose: PassengerPose }>) => void
+    onUpdate: (passengerId: string, pose: PassengerPose) => void
+    onComplete: (passengerId: string) => void
 }
 
 const NODE_PASSENGER_HEIGHT = 74
 const SITE_PASSENGER_HEIGHT = 44
 const NODE_TRAVEL_DURATION_PER_HOP = 0.34
 const FINAL_HOP_DURATION = 0.34
+const SETTLEMENT_DELIVERY_DURATION = 0.32
 const FALLBACK_DELIVERY_DURATION = 0.18
+
+type PassengerLike = {
+    id: string
+    nodeId?: string
+    siteId?: string
+}
+
+export function findNodeToSitePassengerDeliveries(
+    fromPassengers: readonly PassengerLike[],
+    toPassengers: readonly PassengerLike[]
+): PassengerDelivery[] {
+    const toPassengerById = new Map(toPassengers.map((passenger) => [passenger.id, passenger] as const))
+    const deliveries: PassengerDelivery[] = []
+
+    for (const fromPassenger of fromPassengers) {
+        if (!fromPassenger.nodeId || !isBusNodeId(fromPassenger.nodeId) || fromPassenger.siteId) {
+            continue
+        }
+
+        const toPassenger = toPassengerById.get(fromPassenger.id)
+        if (!toPassenger?.siteId || !isSiteId(toPassenger.siteId)) {
+            continue
+        }
+
+        deliveries.push({
+            id: fromPassenger.id,
+            sourceNodeId: fromPassenger.nodeId,
+            destinationSiteId: toPassenger.siteId
+        })
+    }
+
+    return deliveries
+}
 
 export class PassengerDeliveryAnimator extends StateAnimator<
     BusGameState,
@@ -67,145 +114,30 @@ export class PassengerDeliveryAnimator extends StateAnimator<
             return
         }
 
-        if (action && isVroom(action)) {
-            const sourceNodeId = action.sourceNode as BusNodeId
-            const destinationSiteId = action.destinationSite as BuildingSiteId
-            const destinationNodeId = BuildingSites[destinationSiteId]?.nodeId
-            if (!destinationNodeId) {
-                return
-            }
-
-            const destinationSitePoint = BUS_BUILDING_SITE_POINTS[destinationSiteId]
-            if (!destinationSitePoint) {
-                return
-            }
-
-            const busLine = from.getPlayerState(action.playerId).busLine.filter(isBusNodeId)
-            const nodePath = this.pathBetweenNodes(busLine, sourceNodeId, destinationNodeId)
-            if (nodePath.length === 0) {
-                return
-            }
-
-            const nodePoints = nodePath.map((nodeId) => BUS_BOARD_NODE_POINTS[nodeId]).filter(Boolean)
-            if (nodePoints.length === 0) {
-                return
-            }
-
-            const firstPoint = nodePoints[0]
-            if (!firstPoint) {
-                return
-            }
-
-            const pose: PassengerPose = {
-                x: firstPoint.x,
-                y: firstPoint.y,
-                height: NODE_PASSENGER_HEIGHT
-            }
-
-            this.callbacks.onStart({
-                sourceNodeId,
-                destinationSiteId,
-                pose: { ...pose }
-            })
-
-            const startAt = 0
-            let nodeTravelDuration = 0
-            const nodeWaypoints = nodePoints.slice(1)
-            if (nodeWaypoints.length > 0) {
-                nodeTravelDuration = nodeWaypoints.length * NODE_TRAVEL_DURATION_PER_HOP
-                animationContext.actionTimeline.to(
-                    pose,
-                    {
-                        motionPath: {
-                            path: nodeWaypoints,
-                            curviness: 1
-                        },
-                        height: NODE_PASSENGER_HEIGHT,
-                        duration: nodeTravelDuration,
-                        ease: 'power2.inOut',
-                        onUpdate: () => {
-                            this.callbacks.onUpdate({ ...pose })
-                        }
-                    },
-                    startAt
-                )
-            }
-
-            animationContext.actionTimeline.to(
-                pose,
-                {
-                    x: destinationSitePoint.x,
-                    y: destinationSitePoint.y,
-                    height: SITE_PASSENGER_HEIGHT,
-                    duration: FINAL_HOP_DURATION,
-                    ease: 'power2.inOut',
-                    onUpdate: () => {
-                        this.callbacks.onUpdate({ ...pose })
-                    },
-                    onComplete: () => {
-                        this.callbacks.onComplete()
-                    }
-                },
-                startAt + nodeTravelDuration
+        const settlementDeliveriesById = new Map(
+            findNodeToSitePassengerDeliveries(from.board.passengers, to.board.passengers).map(
+                (delivery) => [delivery.id, delivery] as const
             )
-            return
-        }
+        )
 
-        const toPassengerById = new Map(to.board.passengers.map((passenger) => [passenger.id, passenger]))
-        const fallbackDelivery = from.board.passengers.find((fromPassenger) => {
-            if (fromPassenger.siteId || !fromPassenger.nodeId || !isBusNodeId(fromPassenger.nodeId)) {
-                return false
+        if (action && isVroom(action)) {
+            const vroomDelivery = this.vroomDeliveryFromAction(action, from, settlementDeliveriesById)
+            if (
+                vroomDelivery &&
+                this.animateVroomDelivery(vroomDelivery, from, action, animationContext)
+            ) {
+                settlementDeliveriesById.delete(vroomDelivery.id)
             }
+        }
 
-            const toPassenger = toPassengerById.get(fromPassenger.id)
-            return !!toPassenger && !!toPassenger.siteId && isSiteId(toPassenger.siteId)
-        })
-
-        if (!fallbackDelivery || !fallbackDelivery.nodeId || !isBusNodeId(fallbackDelivery.nodeId)) {
+        if (settlementDeliveriesById.size === 0) {
             return
         }
 
-        const toPassenger = toPassengerById.get(fallbackDelivery.id)
-        if (!toPassenger?.siteId || !isSiteId(toPassenger.siteId)) {
-            return
-        }
-
-        const sourceNodeId = fallbackDelivery.nodeId
-        const destinationSiteId = toPassenger.siteId
-        const sourcePoint = BUS_BOARD_NODE_POINTS[sourceNodeId]
-        const destinationSitePoint = BUS_BUILDING_SITE_POINTS[destinationSiteId]
-        if (!sourcePoint || !destinationSitePoint) {
-            return
-        }
-
-        const pose: PassengerPose = {
-            x: sourcePoint.x,
-            y: sourcePoint.y,
-            height: NODE_PASSENGER_HEIGHT
-        }
-
-        this.callbacks.onStart({
-            sourceNodeId,
-            destinationSiteId,
-            pose: { ...pose }
-        })
-
-        animationContext.actionTimeline.to(
-            pose,
-            {
-                x: destinationSitePoint.x,
-                y: destinationSitePoint.y,
-                height: SITE_PASSENGER_HEIGHT,
-                duration: FALLBACK_DELIVERY_DURATION,
-                ease: 'power2.inOut',
-                onUpdate: () => {
-                    this.callbacks.onUpdate({ ...pose })
-                },
-                onComplete: () => {
-                    this.callbacks.onComplete()
-                }
-            },
-            0
+        this.animateSettlementDeliveries(
+            [...settlementDeliveriesById.values()],
+            !!action,
+            animationContext
         )
     }
 
@@ -283,5 +215,179 @@ export class PassengerDeliveryAnimator extends StateAnimator<
 
         path.reverse()
         return path
+    }
+
+    private vroomDeliveryFromAction(
+        action: Vroom,
+        from: HydratedBusGameState,
+        settlementDeliveriesById: Map<string, PassengerDelivery>
+    ): PassengerDelivery | undefined {
+        if (!isBusNodeId(action.sourceNode) || !isSiteId(action.destinationSite)) {
+            return undefined
+        }
+
+        const sourceNodeId = action.sourceNode
+        const destinationSiteId = action.destinationSite
+
+        const metadataPassengerId = action.metadata?.passengerId
+        if (metadataPassengerId) {
+            return (
+                settlementDeliveriesById.get(metadataPassengerId) ?? {
+                    id: metadataPassengerId,
+                    sourceNodeId,
+                    destinationSiteId
+                }
+            )
+        }
+
+        const sourcePassenger = from.board.passengersAtNode(sourceNodeId).at(0)
+        if (sourcePassenger?.id) {
+            return (
+                settlementDeliveriesById.get(sourcePassenger.id) ?? {
+                    id: sourcePassenger.id,
+                    sourceNodeId,
+                    destinationSiteId
+                }
+            )
+        }
+
+        return [...settlementDeliveriesById.values()].find(
+            (delivery) =>
+                delivery.sourceNodeId === sourceNodeId &&
+                delivery.destinationSiteId === destinationSiteId
+        )
+    }
+
+    private animateVroomDelivery(
+        delivery: PassengerDelivery,
+        from: HydratedBusGameState,
+        action: Vroom,
+        animationContext: AnimationContext
+    ): boolean {
+        const sourcePoint = BUS_BOARD_NODE_POINTS[delivery.sourceNodeId]
+        const destinationSitePoint = BUS_BUILDING_SITE_POINTS[delivery.destinationSiteId]
+        if (!sourcePoint || !destinationSitePoint) {
+            return false
+        }
+
+        const destinationNodeId = BuildingSites[delivery.destinationSiteId]?.nodeId
+        const busLine = from.getPlayerState(action.playerId).busLine.filter(isBusNodeId)
+        const nodePath = destinationNodeId
+            ? this.pathBetweenNodes(busLine, delivery.sourceNodeId, destinationNodeId)
+            : []
+        const nodePoints = nodePath
+            .map((nodeId) => BUS_BOARD_NODE_POINTS[nodeId])
+            .filter((point): point is BoardPoint => !!point)
+        const firstPoint = nodePoints[0] ?? sourcePoint
+
+        const pose: PassengerPose = {
+            x: firstPoint.x,
+            y: firstPoint.y,
+            height: NODE_PASSENGER_HEIGHT
+        }
+
+        this.callbacks.onStart([{ ...delivery, pose: { ...pose } }])
+
+        const startAt = 0
+        let nodeTravelDuration = 0
+        const nodeWaypoints = nodePoints.slice(1)
+
+        if (nodeWaypoints.length > 0) {
+            nodeTravelDuration = nodeWaypoints.length * NODE_TRAVEL_DURATION_PER_HOP
+            animationContext.actionTimeline.to(
+                pose,
+                {
+                    motionPath: {
+                        path: nodeWaypoints,
+                        curviness: 1
+                    },
+                    height: NODE_PASSENGER_HEIGHT,
+                    duration: nodeTravelDuration,
+                    ease: 'power2.inOut',
+                    onUpdate: () => {
+                        this.callbacks.onUpdate(delivery.id, { ...pose })
+                    }
+                },
+                startAt
+            )
+        }
+
+        animationContext.actionTimeline.to(
+            pose,
+            {
+                x: destinationSitePoint.x,
+                y: destinationSitePoint.y,
+                height: SITE_PASSENGER_HEIGHT,
+                duration: FINAL_HOP_DURATION,
+                ease: 'power2.inOut',
+                onUpdate: () => {
+                    this.callbacks.onUpdate(delivery.id, { ...pose })
+                },
+                onComplete: () => {
+                    this.callbacks.onComplete(delivery.id)
+                }
+            },
+            startAt + nodeTravelDuration
+        )
+
+        return true
+    }
+
+    private animateSettlementDeliveries(
+        deliveries: PassengerDelivery[],
+        hasAction: boolean,
+        animationContext: AnimationContext
+    ): void {
+        const stagedDeliveries: StagedSettlementDelivery[] = deliveries
+            .map((delivery) => {
+                const sourcePoint = BUS_BOARD_NODE_POINTS[delivery.sourceNodeId]
+                const destinationSitePoint = BUS_BUILDING_SITE_POINTS[delivery.destinationSiteId]
+                if (!sourcePoint || !destinationSitePoint) {
+                    return undefined
+                }
+                return {
+                    ...delivery,
+                    destinationSitePoint,
+                    pose: {
+                        x: sourcePoint.x,
+                        y: sourcePoint.y,
+                        height: NODE_PASSENGER_HEIGHT
+                    }
+                }
+            })
+            .filter((delivery): delivery is StagedSettlementDelivery => !!delivery)
+
+        if (stagedDeliveries.length === 0) {
+            return
+        }
+
+        const startPassengers = stagedDeliveries.map((delivery) => ({
+            id: delivery.id,
+            sourceNodeId: delivery.sourceNodeId,
+            destinationSiteId: delivery.destinationSiteId,
+            pose: { ...delivery.pose }
+        }))
+
+        animationContext.finalTimeline.call(() => {
+            this.callbacks.onStart(startPassengers)
+        }, undefined, 0)
+
+        const duration = hasAction ? SETTLEMENT_DELIVERY_DURATION : FALLBACK_DELIVERY_DURATION
+        for (const delivery of stagedDeliveries) {
+            animationContext.finalTimeline.to(
+                delivery.pose,
+                {
+                    x: delivery.destinationSitePoint.x,
+                    y: delivery.destinationSitePoint.y,
+                    height: SITE_PASSENGER_HEIGHT,
+                    duration,
+                    ease: 'power2.inOut',
+                    onUpdate: () => {
+                        this.callbacks.onUpdate(delivery.id, { ...delivery.pose })
+                    }
+                },
+                0
+            )
+        }
     }
 }

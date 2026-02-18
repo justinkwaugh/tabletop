@@ -33,7 +33,10 @@
         siteId: BuildingSiteId
     }
 
-    type PassengerPose = {
+    type DeliveringPassengerPose = {
+        id: string
+        sourceNodeId: BusNodeId
+        destinationSiteId: BuildingSiteId
         x: number
         y: number
         height: number
@@ -49,18 +52,12 @@
     }
 
     let hoveredVroomSourceNodeId: BusNodeId | undefined = $state()
-    let animatedPassengerPose: PassengerPose | undefined = $derived.by(() => {
-        gameSession.gameState
-        return undefined
-    })
-    let animatedPassengerSourceNodeId: BusNodeId | undefined = $derived.by(() => {
-        gameSession.gameState
-        return undefined
-    })
-    let animatedPassengerDestinationSiteId: BuildingSiteId | undefined = $derived.by(() => {
-        gameSession.gameState
-        return undefined
-    })
+    let animatedDeliveringPassengers: Map<string, DeliveringPassengerPose> | undefined = $derived.by(
+        () => {
+            gameSession.gameState
+            return undefined
+        }
+    )
     let stationPassengerCountOverrides: Map<BusNodeId, number> | undefined = $derived.by(() => {
         gameSession.gameState
         return undefined
@@ -72,58 +69,28 @@
         }
     )
 
-    const passengerDeliveryAnimator = new PassengerDeliveryAnimator(gameSession, {
-        onStart: ({ sourceNodeId, destinationSiteId, pose }) => {
-            animatedPassengerSourceNodeId = sourceNodeId
-            animatedPassengerDestinationSiteId = destinationSiteId
-            animatedPassengerPose = { ...pose }
-        },
-        onUpdate: (pose) => {
-            animatedPassengerPose = { ...pose }
-        },
-        onComplete: () => {
-            animatedPassengerPose = undefined
-        }
+    const animatedDeliveringPassengerIds = $derived.by(() => {
+        return new Set(animatedDeliveringPassengers?.keys() ?? [])
     })
 
-    const addPassengersPlacementAnimator = new AddPassengersPlacementAnimator(gameSession, {
-        onPrepareCount: ({ nodeId, count }) => {
-            const next = new Map(stationPassengerCountOverrides ?? [])
-            next.set(nodeId, count)
-            stationPassengerCountOverrides = next
-        }
+    const animatedDeliveringPassengerList = $derived.by(() => {
+        return animatedDeliveringPassengers ? [...animatedDeliveringPassengers.values()] : []
     })
 
-    const passengerReturnAnimator = new PassengerReturnAnimator(gameSession, {
-        onStart: (passengers) => {
-            const next = new Map<string, ReturningPassengerPose>()
-            for (const passenger of passengers) {
-                next.set(passenger.id, {
-                    id: passenger.id,
-                    sourceSiteId: passenger.sourceSiteId,
-                    destinationNodeId: passenger.destinationNodeId,
-                    x: passenger.pose.x,
-                    y: passenger.pose.y,
-                    height: passenger.pose.height
-                })
-            }
-            animatedReturningPassengers = next
-        },
-        onUpdate: (passengerId, pose) => {
-            const existing = animatedReturningPassengers?.get(passengerId)
-            if (!existing || !animatedReturningPassengers) {
-                return
-            }
-
-            const next = new Map(animatedReturningPassengers)
-            next.set(passengerId, {
-                ...existing,
-                x: pose.x,
-                y: pose.y,
-                height: pose.height
-            })
-            animatedReturningPassengers = next
+    const animatedDeliveringPassengerSourceCountByNodeId = $derived.by(() => {
+        const counts = new Map<BusNodeId, number>()
+        for (const passenger of animatedDeliveringPassengers?.values() ?? []) {
+            counts.set(passenger.sourceNodeId, (counts.get(passenger.sourceNodeId) ?? 0) + 1)
         }
+        return counts
+    })
+
+    const animatedReturningPassengerIds = $derived.by(() => {
+        return new Set(animatedReturningPassengers?.keys() ?? [])
+    })
+
+    const animatedReturningPassengerList = $derived.by(() => {
+        return animatedReturningPassengers ? [...animatedReturningPassengers.values()] : []
     })
 
     const passengersByNodeId = $derived.by(() => {
@@ -159,14 +126,6 @@
             })
         }
         return placements
-    })
-
-    const animatedReturningPassengerIds = $derived.by(() => {
-        return new Set(animatedReturningPassengers?.keys() ?? [])
-    })
-
-    const animatedReturningPassengerList = $derived.by(() => {
-        return animatedReturningPassengers ? [...animatedReturningPassengers.values()] : []
     })
 
     const highlightedBuildingSiteIds: BuildingSiteId[] = $derived.by(() => {
@@ -250,6 +209,87 @@
         return !gameSession.isViewingHistory && (isChoosingVroomSourcePassenger || !!chosenVroomSourceNodeId)
     })
 
+    const passengerDeliveryAnimator = new PassengerDeliveryAnimator(gameSession, {
+        onStart: (passengers) => {
+            const next = new Map(animatedDeliveringPassengers ?? [])
+            for (const passenger of passengers) {
+                next.set(passenger.id, {
+                    id: passenger.id,
+                    sourceNodeId: passenger.sourceNodeId,
+                    destinationSiteId: passenger.destinationSiteId,
+                    x: passenger.pose.x,
+                    y: passenger.pose.y,
+                    height: passenger.pose.height
+                })
+            }
+            animatedDeliveringPassengers = next
+        },
+        onUpdate: (passengerId, pose) => {
+            const existing = animatedDeliveringPassengers?.get(passengerId)
+            if (!existing || !animatedDeliveringPassengers) {
+                return
+            }
+
+            const next = new Map(animatedDeliveringPassengers)
+            next.set(passengerId, {
+                ...existing,
+                x: pose.x,
+                y: pose.y,
+                height: pose.height
+            })
+            animatedDeliveringPassengers = next
+        },
+        onComplete: (passengerId) => {
+            if (!animatedDeliveringPassengers) {
+                return
+            }
+
+            const next = new Map(animatedDeliveringPassengers)
+            next.delete(passengerId)
+            animatedDeliveringPassengers = next.size > 0 ? next : undefined
+        }
+    })
+
+    const addPassengersPlacementAnimator = new AddPassengersPlacementAnimator(gameSession, {
+        onPrepareCount: ({ nodeId, count }) => {
+            const next = new Map(stationPassengerCountOverrides ?? [])
+            next.set(nodeId, count)
+            stationPassengerCountOverrides = next
+        }
+    })
+
+    const passengerReturnAnimator = new PassengerReturnAnimator(gameSession, {
+        onStart: (passengers) => {
+            const next = new Map<string, ReturningPassengerPose>()
+            for (const passenger of passengers) {
+                next.set(passenger.id, {
+                    id: passenger.id,
+                    sourceSiteId: passenger.sourceSiteId,
+                    destinationNodeId: passenger.destinationNodeId,
+                    x: passenger.pose.x,
+                    y: passenger.pose.y,
+                    height: passenger.pose.height
+                })
+            }
+            animatedReturningPassengers = next
+        },
+        onUpdate: (passengerId, pose) => {
+            const existing = animatedReturningPassengers?.get(passengerId)
+            if (!existing || !animatedReturningPassengers) {
+                return
+            }
+
+            const next = new Map(animatedReturningPassengers)
+            next.set(passengerId, {
+                ...existing,
+                x: pose.x,
+                y: pose.y,
+                height: pose.height
+            })
+            animatedReturningPassengers = next
+        }
+    })
+
     function handleBuildingSiteChoose(siteId: BuildingSiteId) {
         gameSession.chosenSite = siteId
     }
@@ -308,10 +348,10 @@
         isSelectableVroomSource &&
         !isChosenVroomSource &&
         hoveredVroomSourceNodeId === typedNodeId}
+    {@const animatedDeliverySourceCount =
+        animatedDeliveringPassengerSourceCountByNodeId.get(typedNodeId) ?? 0}
     {@const deliveryAdjustedPassengerCount =
-        animatedPassengerSourceNodeId === typedNodeId
-            ? Math.max(0, entry.passengers.length - 1)
-            : entry.passengers.length}
+        Math.max(0, entry.passengers.length - animatedDeliverySourceCount)}
     {@const overridePassengerCount = stationPassengerCountOverrides?.get(typedNodeId)}
     {@const displayPassengerCount = overridePassengerCount ?? deliveryAdjustedPassengerCount}
     {@const shouldMaskForVroom =
@@ -358,18 +398,14 @@
 
 {#each passengersAtSite as passenger (passenger.id)}
     {@const point = BUS_BUILDING_SITE_POINTS[passenger.siteId]}
-    {#if !(animatedPassengerPose && passenger.siteId === animatedPassengerDestinationSiteId) && !animatedReturningPassengerIds.has(passenger.id)}
+    {#if !animatedDeliveringPassengerIds.has(passenger.id) && !animatedReturningPassengerIds.has(passenger.id)}
         <Passenger x={point.x} y={point.y} height={SITE_PASSENGER_HEIGHT} />
     {/if}
 {/each}
 
-{#if animatedPassengerPose}
-    <Passenger
-        x={animatedPassengerPose.x}
-        y={animatedPassengerPose.y}
-        height={animatedPassengerPose.height}
-    />
-{/if}
+{#each animatedDeliveringPassengerList as passenger (passenger.id)}
+    <Passenger x={passenger.x} y={passenger.y} height={passenger.height} />
+{/each}
 
 {#each animatedReturningPassengerList as passenger (passenger.id)}
     <Passenger x={passenger.x} y={passenger.y} height={passenger.height} />
