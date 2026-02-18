@@ -97,3 +97,26 @@
   - Updated only `F08`, `F09`, `C37`, `C38`, `C39` paths in `EAST_ISLAND_AREAS`.
   - Added tuning utility: `games/indonesia-ui/scripts/tune-eastgroups.mjs`
     (`npm run tune:eastgroups -- ...`) for non-compounding `dx/dy/sx/sy` iteration.
+
+## West Group Boundary Notes (2026-02-18)
+
+- File touched: `games/indonesia-ui/src/lib/definitions/boardGeometry.ts`.
+- Source asset: `games/indonesia-ui/src/lib/images/westgroup.svg`.
+- `westgroup.svg` has 4 closed paths; mapped as:
+  - west-top -> `A05` (replace)
+  - west-bottom -> `A09` (replace)
+  - third-west -> `A27` (replace)
+  - lower-right Sulawesi group -> `D13` (new)
+- Alignment method:
+  - Solved affine from source path bbox centers to existing area centers (`A05`, `A09`, `A27`):
+    - `x' = 1.1303837221*x + 0.1027917365*y + 134.33880688`
+    - `y' = -0.0317215147*x + 1.2717379443*y + 327.48466469`
+  - Applied transform directly to SVG vector commands (`M/C/S/Z`) with no raster-derived borders.
+- Added tuning utility: `games/indonesia-ui/scripts/tune-westgroup.mjs`
+  (`npm run tune:westgroup -- ...`) for non-compounding `dx/dy/sx/sy` iteration.
+- Follow-up correction (user review):
+  - Replaced westgroup geometry using an axis-aligned transform only (no rotation/shear) from `westgroup.svg`:
+    - `x' = 183.71714688 + 0.99108695*x`
+    - `y' = 389.98676940 + 0.91202500*y`
+  - Updated `A05`, `A09`, `A27`, `D13` from those transformed SVG paths.
+  - Synced `games/indonesia-ui/scripts/tune-westgroup.mjs` `BASE_PATHS` to those same transformed paths so identity transform is a no-op.
