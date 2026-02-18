@@ -10,6 +10,7 @@ import { HydratedVroom, isVroom } from '../actions/vroom.js'
 import { HydratedBusGameState } from '../model/gameState.js'
 import { HydratedPass, isPass, Pass, PassReason } from '../actions/pass.js'
 import { getNextActionState } from '../utils/nextActionState.js'
+import { isBusNodeId } from '../utils/busLineRules.js'
 
 type VroomingAction = HydratedVroom | HydratedPass
 
@@ -45,6 +46,21 @@ export class VroomingStateHandler implements MachineStateHandler<
     enter(context: MachineContext<HydratedBusGameState>) {
         const activePlayerId = context.gameState.vroomAction.at(0)
         assert(activePlayerId, 'No active player for vroom')
+
+        // Should be ok to always do this.. it will only take effect once.
+        for (const passenger of context.gameState.board.passengers) {
+            if (isBusNodeId(passenger.nodeId) && !passenger.siteId) {
+                const buildingsForNode = context.gameState.board.buildingsForNode(passenger.nodeId)
+                const openBuildingOfType = buildingsForNode.find(
+                    (building) =>
+                        building.type === context.gameState.currentLocation &&
+                        !context.gameState.board.passengerAtSite(building.site)
+                )
+                if (openBuildingOfType) {
+                    passenger.siteId = openBuildingOfType.site
+                }
+            }
+        }
 
         if (!context.gameState.actionsTaken) {
             console.log('Starting vroom turn for player', activePlayerId)
