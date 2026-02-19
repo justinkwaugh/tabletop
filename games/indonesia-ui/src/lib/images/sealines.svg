@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="b" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2646 1280">
+  <defs>
+    <style>
+      .ap {
+        stroke: #ff2d00;
+      }
+
+      .ap, .aq {
+        opacity: .95;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 3px;
+      }
+
+      .ap, .aq, .ar, .as, .at, .au {
+        isolation: isolate;
+      }
+
+      .ap, .aq, .ar, .av {
+        fill: none;
+      }
+
+      .aq {
+        stroke: #ffea00;
+      }
+
+      .ar {
+        stroke: #000;
+        stroke-width: .9px;
+      }
+
+      .ar, .at, .au {
+        font-family: ArialMT, Arial;
+        font-size: 9px;
+      }
+
+      .at {
+        fill: #00f0ff;
+      }
+
+      .av {
+        stroke: #ffd000;
+        stroke-width: 2px;
+      }
+
+      .aw {
+        letter-spacing: -.07em;
+      }
+
+      .au {
+        fill: #ffe800;
+      }
+    </style>
+  </defs>
+  <g id="c" data-name="Layer 1">
+    <image class="as" width="2646" height="1280" xlink:href="../indo_map_sm.jpg"/>
+    <path class="av" d="M63,68h2518v1145H63V68Z"/>
+    <path id="d" data-name="SEA LINE 01" class="ap" d="M63,398.41c62.28-14.69,136.05-28.96,200.09-31.91"/>
+    <text class="au" transform="translate(162.32 377.58)"><tspan x="0" y="0">P01</tspan></text>
+    <text class="ar" transform="translate(162.32 377.58)"><tspan x="0" y="0">P01</tspan></text>
+    <path id="e" data-name="SEA LINE 02" class="ap" d="M225.04,179.3c24.4-30.48,59.43-67.52,84.13-97.9"/>
+    <text class="au" transform="translate(267.98 128.76)"><tspan x="0" y="0">P02</tspan></text>
+    <text class="ar" transform="translate(267.98 128.76)"><tspan x="0" y="0">P02</tspan></text>
+    <path id="f" data-name="SEA LINE 03" class="ap" d="M504.51,764.62c-130.32,115.89-284.67,219.85-441.51,294.12"/>
+    <text class="au" transform="translate(293.53 926.53)"><tspan x="0" y="0">P03</tspan></text>
+    <text class="ar" transform="translate(293.53 926.53)"><tspan x="0" y="0">P03</tspan></text>
+    <text class="au" transform="translate(452.03 175.91)"><tspan x="0" y="0">P04</tspan></text>
+    <text class="ar" transform="translate(452.03 175.91)"><tspan x="0" y="0">P04</tspan></text>
+    <path id="g" data-name="SEA LINE 05" class="ap" d="M594.1,276.78c-33.6,37.58-71.5,75.63-105.63,113.74"/>
+    <text class="au" transform="translate(540.23 332.89)"><tspan x="0" y="0">P05</tspan></text>
+    <text class="ar" transform="translate(540.23 332.89)"><tspan x="0" y="0">P05</tspan></text>
+    <text class="au" transform="translate(681.82 349.6)"><tspan x="0" y="0">P06</tspan></text>
+    <text class="ar" transform="translate(681.82 349.6)"><tspan x="0" y="0">P06</tspan></text>
+    <path id="h" data-name="SEA LINE 07" class="ap" d="M747.78,517.34c-45.08,20.96-96.9,44.7-142.04,64.11"/>
+    <text class="au" transform="translate(678.98 547.78)"><tspan x="0" y="0">P07</tspan></text>
+    <text class="ar" transform="translate(678.98 547.78)"><tspan x="0" y="0">P07</tspan></text>
+    <path id="i" data-name="SEA LINE 08" class="ap" d="M686.04,778.38c20.74.76,44.77-.14,66.28.36"/>
+    <text class="au" transform="translate(721.17 778.51)"><tspan x="0" y="0">P08</tspan></text>
+    <text class="ar" transform="translate(721.17 778.51)"><tspan x="0" y="0">P08</tspan></text>
+    <text class="au" transform="translate(741.9 485.9)"><tspan x="0" y="0">P09</tspan></text>
+    <text class="ar" transform="translate(741.9 485.9)"><tspan x="0" y="0">P09</tspan></text>
+    <path id="j" data-name="SEA LINE 10" class="ap" d="M675.91,1213c50.38-77.93,97.59-161.58,137.98-244.44"/>
+    <text class="au" transform="translate(747.77 1092.57)"><tspan x="0" y="0">P10</tspan></text>
+    <text class="ar" transform="translate(747.77 1092.57)"><tspan x="0" y="0">P10</tspan></text>
+    <path id="k" data-name="SEA LINE 11" class="ap" d="M752.66,776.93c5.05-85.37,11.62-173.61-4.41-258.2l-.36-1.92c-5.29-45.65-8.22-29.79-12.93-61.35l-1.08-3.37c-29.33-88.78-53.94-116.23-136.74-173.7l-4.03-2.61c-38.78-30.67-78.35-55.39-120.86-85.96-42.74-29.09-89.12-64.28-141.53-93.26-13.77-7.61-27.22-19.97-37.03-28.57"/>
+    <text class="au" transform="translate(758.12 647.62)"><tspan x="0" y="0">P</tspan><tspan class="aw" x="6" y="0">1</tspan><tspan x="10.34" y="0">1</tspan></text>
+    <text class="ar" transform="translate(758.12 647.62)"><tspan x="0" y="0">P</tspan><tspan class="aw" x="6" y="0">1</tspan><tspan x="10.34" y="0">1</tspan></text>
+    <path id="l" data-name="SEA LINE 12" class="ap" d="M735.24,454.25c37.67-7.47,81.88-23.15,119.04-30.8"/>
+    <text class="au" transform="translate(791.64 438.65)"><tspan x="0" y="0">P12</tspan></text>
+    <text class="ar" transform="translate(791.64 438.65)"><tspan x="0" y="0">P12</tspan></text>
+    <path id="m" data-name="SEA LINE 13" class="ap" d="M753.63,778.73c57.4,4,115.78,6.86,172.6,16.42"/>
+    <text class="au" transform="translate(840.14 784.85)"><tspan x="0" y="0">P13</tspan></text>
+    <text class="ar" transform="translate(840.14 784.85)"><tspan x="0" y="0">P13</tspan></text>
+    <path id="n" data-name="SEA LINE 14" class="ap" d="M926.04,796.01c.19,38.57-5.1,77.49-8.62,111.92"/>
+    <text class="au" transform="translate(922.59 848.75)"><tspan x="0" y="0">P14</tspan></text>
+    <text class="ar" transform="translate(922.59 848.75)"><tspan x="0" y="0">P14</tspan></text>
+    <path id="o" data-name="SEA LINE 15" class="ap" d="M926.11,795.34c44.12,5.02,86.36,12.84,131.87,20.47"/>
+    <text class="au" transform="translate(992.07 804.29)"><tspan x="0" y="0">P15</tspan></text>
+    <text class="ar" transform="translate(992.07 804.29)"><tspan x="0" y="0">P15</tspan></text>
+    <path id="p" data-name="SEA LINE 16" class="ap" d="M1057.98,815.81c.66-36.39,6.81-82.45,4.62-118.72"/>
+    <text class="au" transform="translate(1060.21 757.99)"><tspan x="0" y="0">P16</tspan></text>
+    <text class="ar" transform="translate(1060.21 757.99)"><tspan x="0" y="0">P16</tspan></text>
+    <path id="q" data-name="SEA LINE 17" class="ap" d="M1057.98,815.81c28.76,5.58,53.55,9.25,81.2,15.06,22.95,4.83,45.41,9.19,68.98,13.69"/>
+    <text class="au" transform="translate(1132.94 829.57)"><tspan x="0" y="0">P17</tspan></text>
+    <text class="ar" transform="translate(1132.94 829.57)"><tspan x="0" y="0">P17</tspan></text>
+    <path id="r" data-name="SEA LINE 18" class="ap" d="M1151.59,1213c17.29-63.75,33.18-135.63,45.17-199.98"/>
+    <text class="au" transform="translate(1175.86 1111.55)"><tspan x="0" y="0">P18</tspan></text>
+    <text class="ar" transform="translate(1175.86 1111.55)"><tspan x="0" y="0">P18</tspan></text>
+    <path id="s" data-name="SEA LINE 19" class="ap" d="M1208.16,844.56c2.44,47.74-2.45,112.46-7.74,144.73"/>
+    <text class="au" transform="translate(1207.26 916.2)"><tspan x="0" y="0">P19</tspan></text>
+    <text class="ar" transform="translate(1207.26 916.2)"><tspan x="0" y="0">P19</tspan></text>
+    <path id="t" data-name="SEA LINE 20" class="ap" d="M1239.71,153.53c-16.54-25.22-37.65-60.45-53.97-85.53"/>
+    <text class="au" transform="translate(1211.71 109.87)"><tspan x="0" y="0">P20</tspan></text>
+    <text class="ar" transform="translate(1211.71 109.87)"><tspan x="0" y="0">P20</tspan></text>
+    <path id="u" data-name="SEA LINE 21" class="ap" d="M1331.86,869.2c-41.45-7.48-82.15-16.62-123.7-24.64"/>
+    <text class="au" transform="translate(1270.13 856.74)"><tspan x="0" y="0">P21</tspan></text>
+    <text class="ar" transform="translate(1270.13 856.74)"><tspan x="0" y="0">P21</tspan></text>
+    <path id="v" data-name="SEA LINE 22" class="ap" d="M1341.52,773.8c5.45-69.42,5.72-141.82-29.79-214.37"/>
+    <text class="au" transform="translate(1341.25 666.61)"><tspan x="0" y="0">P22</tspan></text>
+    <text class="ar" transform="translate(1341.25 666.61)"><tspan x="0" y="0">P22</tspan></text>
+    <path id="w" data-name="SEA LINE 23" class="ap" d="M1331.86,869.2c3.99-30.92,6.71-64.38,9.66-95.4"/>
+    <text class="au" transform="translate(1337.51 820.38)"><tspan x="0" y="0">P23</tspan></text>
+    <text class="ar" transform="translate(1337.51 820.38)"><tspan x="0" y="0">P23</tspan></text>
+    <path id="x" data-name="SEA LINE 24" class="ap" d="M1331.86,869.2c38.8,10.21,82.4,13.82,121.35,23.38"/>
+    <text class="au" transform="translate(1392.07 880.65)"><tspan x="0" y="0">P24</tspan></text>
+    <text class="ar" transform="translate(1392.07 880.65)"><tspan x="0" y="0">P24</tspan></text>
+    <path id="y" data-name="SEA LINE 25" class="ap" d="M1341.52,773.8c36.18-2.26,76.06-4.43,112.02-5.09"/>
+    <text class="au" transform="translate(1397.3 770.51)"><tspan x="0" y="0">P25</tspan></text>
+    <text class="ar" transform="translate(1397.3 770.51)"><tspan x="0" y="0">P25</tspan></text>
+    <path id="z" data-name="SEA LINE 26" class="ap" d="M1453.21,892.58c-6.74,68.49-37.96,142.38,35.24,157.02,38.2,7.64,74.05,21.7,85.09,36.57,33.88,45.59,32.25,85.85,46.21,126.83"/>
+    <text class="au" transform="translate(1509.31 1057.13)"><tspan x="0" y="0">P26</tspan></text>
+    <text class="ar" transform="translate(1509.31 1057.13)"><tspan x="0" y="0">P26</tspan></text>
+    <path id="aa" data-name="SEA LINE 27" class="ap" d="M1883.7,893.72c-141.62,14.01-288.92,12.65-430.49-1.14"/>
+    <text class="au" transform="translate(1667.59 903.73)"><tspan x="0" y="0">P27</tspan></text>
+    <text class="ar" transform="translate(1667.59 903.73)"><tspan x="0" y="0">P27</tspan></text>
+    <path id="ab" data-name="SEA LINE 28" class="ap" d="M1865.7,367.66c-22.24,25.29-41.85,46.43-59.13,68.75-32.47,41.93-65.96,81.58-93.18,126.3-25.97,43.3-39.07,95.75-45.43,145.38"/>
+    <text class="au" transform="translate(1738.76 522.71)"><tspan x="0" y="0">P28</tspan></text>
+    <text class="ar" transform="translate(1738.76 522.71)"><tspan x="0" y="0">P28</tspan></text>
+    <path id="ac" data-name="SEA LINE 29" class="ap" d="M1865.7,367.66c-26.35-15.11-58.04-34.89-88.87-40.65-72.19-9.8-88.27,34.86-76.98,107.78"/>
+    <text class="au" transform="translate(1741.96 326.4)"><tspan x="0" y="0">P29</tspan></text>
+    <text class="ar" transform="translate(1741.96 326.4)"><tspan x="0" y="0">P29</tspan></text>
+    <path id="ad" data-name="SEA LINE 30" class="ap" d="M1721.66,716.91c75.5,19.94,149.71,94.69,162.04,177.81"/>
+    <text class="au" transform="translate(1828.66 783.2)"><tspan x="0" y="0">P30</tspan></text>
+    <text class="ar" transform="translate(1828.66 783.2)"><tspan x="0" y="0">P30</tspan></text>
+    <path id="ae" data-name="SEA LINE 31" class="ap" d="M1721.66,716.91c60.6-61.1,184.82-98.05,267.08-106.57"/>
+    <text class="au" transform="translate(1847.84 642.62)"><tspan x="0" y="0">P31</tspan></text>
+    <text class="ar" transform="translate(1847.84 642.62)"><tspan x="0" y="0">P31</tspan></text>
+    <path id="af" data-name="SEA LINE 32" class="ap" d="M1922.23,1213c-7.23-105.23-15.94-215.75-38.53-319.28"/>
+    <text class="au" transform="translate(1907.92 1051.66)"><tspan x="0" y="0">P32</tspan></text>
+    <text class="ar" transform="translate(1907.92 1051.66)"><tspan x="0" y="0">P32</tspan></text>
+    <path id="ag" data-name="SEA LINE 33" class="ap" d="M1865.7,367.66c37.13-38.47,68.59-78.13,104.63-115.24,56.9-60.64,117.94-123.81,174.79-184.42"/>
+    <text class="au" transform="translate(2001.59 218.23)"><tspan x="0" y="0">P33</tspan></text>
+    <text class="ar" transform="translate(2001.59 218.23)"><tspan x="0" y="0">P33</tspan></text>
+    <path id="ah" data-name="SEA LINE 34" class="ap" d="M2070.42,1213c-7.46-104.59-26.9-224.63,10.29-324.33,14.93-40.01,49.19-82.85,94.72-126.28"/>
+    <text class="au" transform="translate(2061.18 967.83)"><tspan x="0" y="0">P34</tspan></text>
+    <text class="ar" transform="translate(2061.18 967.83)"><tspan x="0" y="0">P34</tspan></text>
+    <path id="ai" data-name="SEA LINE 35" class="ap" d="M1988.74,610.34c15.72,21.7,48.66,27.07,71.87,34.88,49.98,16.81,83.44,70.17,114.82,117.18"/>
+    <text class="au" transform="translate(2094.94 664.21)"><tspan x="0" y="0">P35</tspan></text>
+    <text class="ar" transform="translate(2094.94 664.21)"><tspan x="0" y="0">P35</tspan></text>
+    <path id="aj" data-name="SEA LINE 36" class="ap" d="M2580.99,517.04c-110.11-19.47-226.2-35.69-336.95-47.75-3.25-.35-71.72-6.86-136.11-8.34-42.83-.98-62.9,3.79-84.2,19.9-37.57,28.41-46.31,86.7-34.99,129.49"/>
+    <text class="au" transform="translate(2229.04 466.44)"><tspan x="0" y="0">P36</tspan></text>
+    <text class="ar" transform="translate(2229.04 466.44)"><tspan x="0" y="0">P36</tspan></text>
+    <text class="at" transform="translate(301.34 74.14)"><tspan x="0" y="0">P37</tspan></text>
+    <text class="ar" transform="translate(301.34 74.14)"><tspan x="0" y="0">P37</tspan></text>
+    <path id="ak" data-name="SEA LINE 38" class="aq" d="M610.3,852.96c8.8,11.03,22.19,29.01,35.7,45.74"/>
+    <text class="at" transform="translate(625.89 874.68)"><tspan x="0" y="0">P38</tspan></text>
+    <text class="ar" transform="translate(625.89 874.68)"><tspan x="0" y="0">P38</tspan></text>
+    <path id="al" data-name="SEA LINE 39" class="aq" d="M1162.83,993.89c9.17,1,10.53,1.11,15.17,2.08"/>
+    <text class="at" transform="translate(1172 994.89)"><tspan x="0" y="0">P39</tspan></text>
+    <text class="ar" transform="translate(1172 994.89)"><tspan x="0" y="0">P39</tspan></text>
+    <path id="am" data-name="SEA LINE 40" class="aq" d="M1603.46,705.34c20.77,0,46.05,1.8,64.5,2.75"/>
+    <text class="at" transform="translate(1634.98 704.98)"><tspan x="0" y="0">P40</tspan></text>
+    <text class="ar" transform="translate(1634.98 704.98)"><tspan x="0" y="0">P40</tspan></text>
+    <path id="an" data-name="SEA LINE 41" class="aq" d="M1667.96,708.09c16.98,1.95,31.29,3.72,53.7,8.82"/>
+    <text class="at" transform="translate(1697.7 711.81)"><tspan x="0" y="0">P41</tspan></text>
+    <text class="ar" transform="translate(1697.7 711.81)"><tspan x="0" y="0">P41</tspan></text>
+    <path id="ao" data-name="SEA LINE 42" class="aq" d="M2175.44,762.39c13.8-11.49,20.27-17.96,27.12-24.22"/>
+    <text class="at" transform="translate(2188.54 750.9)"><tspan x="0" y="0">P42</tspan></text>
+    <text class="ar" transform="translate(2188.54 750.9)"><tspan x="0" y="0">P42</tspan></text>
+  </g>
+</svg>

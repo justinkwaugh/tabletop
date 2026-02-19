@@ -336,3 +336,136 @@
   - Usage: `npm run tune:northeast -- --sx <...> --sy <...> --dx <...> --dy <...> [--ox <...> --oy <...>] [--apply]`
   - Output preview (no apply): `games/indonesia-ui/src/lib/images/northeast_tuned_preview.svg`
   - Output snippet (no apply): `games/indonesia-ui/src/lib/images/northeast_tuned_paths.txt`
+
+## Sea Area Extraction Plan (2026-02-19)
+
+- User objective:
+  - define sea regions as closed vector faces bounded by:
+    - board inner frame edge,
+    - thick light-blue sea-divider lines,
+    - coastal edges from existing land areas.
+  - no stair-step raster-style boundaries in final output; use smooth line/curve paths.
+- Inputs confirmed:
+  - board image: `games/indonesia-ui/src/lib/images/indo_map_sm.jpg` (`2646x1280`).
+  - blue-line appearance reference: `games/indonesia-ui/src/lib/images/sealines.png` (`232x124`).
+- Current status:
+  - repository has no existing sea-area geometry block yet.
+  - first extraction pass started; `cv2` is currently missing in the temp python env (`/tmp/east-extract-env`), so next run must install/use OpenCV in a temp env before edge/line fitting.
+- Planned implementation steps:
+  1. sample color/width from `sealines.png` to derive robust sea-line mask thresholds for `indo_map_sm.jpg`.
+  2. detect the board inner frame rectangle (the single inner black border) and fit it as one rectangular vector path.
+  3. detect sea-divider strokes and vectorize as smooth centerline paths:
+     - skeletonize mask,
+     - preserve junction graph,
+     - fit each branch with cubic Bezier/poly-B-spline simplification (not quantized stair-steps).
+  4. derive coastline edge network from `boardGeometry.ts` land polygons (outer coastal edges only; exclude internal land borders).
+  5. combine networks (frame + sea dividers + coastline edges), split at intersections, and run half-edge face extraction to produce closed sea faces.
+  6. export debug overlays:
+     - extracted frame + sea-lines overlay on map,
+     - numbered sea-face overlay for review/merge instructions.
+  7. after review, write final `Sxx` sea areas to geometry definitions and render in board debug layer.
+- Validation checklist for acceptance:
+  - each sea area path is closed (`... Z`) and non-self-intersecting.
+  - neighboring sea areas share the exact same border segment references (no gaps/overlaps).
+  - board-edge-connected sea areas use exact frame segments.
+  - boundaries visually align to printed blue dividers and coastlines at multiple spot checks.
+
+### Sea Line Progress (2026-02-19, continued)
+
+- Added extraction utility:
+  - `games/indonesia-ui/scripts/extract-sea-lines.py`
+  - purpose: detect inner board frame + light-blue sea divider centerlines and export smooth vector candidates.
+- Runtime dependencies used in temp env:
+  - `opencv-python-headless`, `scikit-image`, `scipy` (already present), `numpy`.
+- Detection details:
+  - board inner frame currently detected at:
+    - `x_left=30.0`, `y_top=30.0`, `x_right=2616.0`, `y_bottom=1250.0`
+  - blue divider mask threshold in HSV (from `sealines.png` profile, widened for board variance):
+    - `H:[82..106], S:[22..100], V:[118..224]`
+  - mask cleanup:
+    - open 3x3, close 3x3
+    - connected components filtered by min area.
+- Outputs generated:
+  - granular branch extraction (default):
+    - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved.svg`
+    - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_paths.txt`
+    - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_debug.png`
+    - includes `BOARD_EDGE` + `27` `SEA_LINE_xx` curve paths (cubic-smoothed centerline branches).
+  - major-only variant (longer branches):
+    - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_major.svg`
+    - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_major_paths.txt`
+    - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_major_debug.png`
+    - includes `BOARD_EDGE` + `19` `SEA_LINE_xx` paths.
+- Notes for next step:
+  - Use these as candidate sea-divider path networks.
+  - Proceed to combine with coastlines from land geometry and perform face extraction for sea areas (`Sxx`) with labeled overlay for user-driven merge/cleanup.
+
+### Sea Line Progress (2026-02-19, v3 corrections)
+
+- User review identified:
+  - board edge should be the innermost thin rectangular frame with right-angle corners.
+  - missing/under-extended segments in the v2 network.
+- Applied corrected v3 network outputs (vector paths only, no rasterized final geometry):
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v3_paths.txt`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v3_labeled.svg`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v3_labeled.png`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v3_labeled_dark.png`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v3_labeled_report.txt`
+- v3 adjustments made:
+  - board edge forced to strict inner rectangle:
+    - `M 63 68 L 2581 68 L 2581 1213 L 63 1213 Z`
+  - `SEA_LINE_04` extended to top board edge (beyond `SEA_LINE_02` junction).
+  - `SEA_LINE_30` extended through the `P31`/`P28` region to the `D09/D10` coastal junction.
+  - `SEA_LINE_34` extended beyond `SEA_LINE_35` junction to `F05` coastline.
+  - added missing connectors:
+    - `SEA_LINE_37` between `A34` and `C01`
+    - `SEA_LINE_38` between `C17` and `C21`
+- v3 labeled set currently contains `38` sea paths (`P01..P38` in report order).
+
+### Sea Line Progress (2026-02-19, pure re-extraction after v3 rejection)
+
+- User explicitly rejected synthetic/manual segment augmentation.
+- Reworked `games/indonesia-ui/scripts/extract-sea-lines.py` to stay extraction-only:
+  - replaced branch walker with full skeleton-graph edge tracing:
+    - traces all maximal chains between key nodes (`deg != 2`) and residual loops/components;
+    - keeps short detected segments (no synthetic extension).
+  - added stable path-length helper and reduced over-smoothing to avoid path bloat artifacts.
+  - added labeled export outputs directly from one run:
+    - `--out-labeled-svg`, `--out-labeled-png`, `--out-labeled-dark-png`, `--out-report`, `--out-mask`.
+  - added tunable morphology params:
+    - `--morph-kernel`, `--open-iters`, `--close-iters`.
+- Local runtime env used for this pass:
+  - `/tmp/seaenv` venv with `opencv-python-headless`, `scipy`, `scikit-image`.
+- New pure outputs generated:
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v4_*`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v4b_*`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v4c_*`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v5_*`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v5b_*`
+- Current best pure-labeled set for review:
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v5_labeled.png`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v5_labeled_dark.png`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v5_labeled_report.txt`
+  - board frame remains `M 63 68 L 2581 68 L 2581 1213 L 63 1213 Z`.
+- Key extraction result notes (pure, no hand-drawn extensions):
+  - recovered short top continuation near prior `P04/P02` junction (`P03` in v5).
+  - recovered short connector near `C17/C21` vicinity (`P22` in v5).
+  - recovered extension toward `F05` coastline (`P43` in v5).
+  - still no confidently connected extracted segment at the user-mentioned `A34/C01` location from current blue-mask evidence.
+
+### Sea Line Merge Set (2026-02-19, v6)
+
+- Built merged set as requested: baseline pre-last-6 (`v2`) + six appended segments from latest (`v5`), with no synthetic geometry.
+- Outputs:
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v6_paths.txt`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v6_labeled.svg`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v6_labeled.png`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v6_labeled_dark.png`
+  - `games/indonesia-ui/src/lib/images/sea_lines_boardedge_curved_v6_labeled_report.txt`
+- Appended source mapping:
+  - `v5 P03 -> v6 P37`
+  - `v5 P07 -> v6 P38`
+  - `v5 P22 -> v6 P39`
+  - `v5 P32 -> v6 P40`
+  - `v5 P34 -> v6 P41`
+  - `v5 P43 -> v6 P42`
