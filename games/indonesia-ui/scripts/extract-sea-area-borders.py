@@ -17,6 +17,11 @@ from svgpathtools import Arc, CubicBezier, Line, QuadraticBezier, parse_path
 
 AREA_RE = re.compile(r"\{\s*id:\s*'([^']+)'\s*,\s*path:\s*'([^']+)'\s*\}")
 SEA_NAME_RE = re.compile(r"SEA LINE\s*(\d+)")
+AREA_ENTRY_RE = re.compile(r"\{\s*id:\s*'([^']+)'\s*,\s*path:\s*([^}]+?)\s*\}", re.S)
+CONST_PATH_RE = re.compile(
+    r"const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:`([^`]*)`|'([^']*)'|\"([^\"]*)\")\s*;",
+    re.S,
+)
 
 
 @dataclass(frozen=True)
@@ -193,6 +198,33 @@ def parse_land(board_geometry_path: Path):
         raise RuntimeError("No area polygons parsed from boardGeometry.ts")
     land_union = unary_union([a.polygon for a in area_polys])
     return area_paths, area_polys, land_union
+
+
+def parse_all_area_paths(board_geometry_path: Path) -> dict[str, str]:
+    text = board_geometry_path.read_text()
+    const_paths: dict[str, str] = {}
+    for m in CONST_PATH_RE.finditer(text):
+        name = m.group(1)
+        value = m.group(2) if m.group(2) is not None else (m.group(3) if m.group(3) is not None else m.group(4))
+        if value is not None:
+            const_paths[name] = value
+
+    out: dict[str, str] = {}
+    for m in AREA_ENTRY_RE.finditer(text):
+        aid = m.group(1)
+        expr = m.group(2).strip()
+        d: str | None = None
+        if expr.startswith("'") and expr.endswith("'"):
+            d = expr[1:-1]
+        elif expr.startswith("`") and expr.endswith("`"):
+            d = expr[1:-1]
+        else:
+            ident = expr.rstrip(",")
+            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", ident):
+                d = const_paths.get(ident)
+        if d:
+            out[aid] = d
+    return out
 
 
 def parse_sea_svg(sea_svg_path: Path):
@@ -680,7 +712,7 @@ def main() -> None:
     args = parser.parse_args()
 
     area_paths, area_polys, land_union = parse_land(Path(args.board_geometry))
-    area_path_by_id = {aid: d for aid, d in area_paths}
+    area_path_by_id = parse_all_area_paths(Path(args.board_geometry))
     board_poly, board_d, sea_paths = parse_sea_svg(Path(args.sea_svg))
 
     # Coastline source segments (from board geometry area curves/lines)

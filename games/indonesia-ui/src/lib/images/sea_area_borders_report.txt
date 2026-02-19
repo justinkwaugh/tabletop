@@ -16,6 +16,7 @@ S01: face_area=308310.36 edges=13
   sea_paths=P28, P31, P33, P36, P41
   board_edges=RIGHT, TOP
   coast_areas=none
+  manual_cutouts=E01, E02, E03, E10, E04, E05, E06
 S02: face_area=245657.84 edges=162
   sea_paths=P20, P22, P25, P29, P33
   board_edges=TOP
@@ -42,7 +43,7 @@ S07: face_area=130747.35 edges=8
   sea_paths=P30, P31, P32, P34, P35
   board_edges=BOTTOM
   coast_areas=none
-  manual_cutouts=C18
+  manual_cutouts=E08, E09, E07, E11, C18
 S08: face_area=120863.29 edges=6
   sea_paths=P26, P27, P32
   board_edges=BOTTOM
