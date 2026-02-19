@@ -71,6 +71,13 @@
   - Merged `F03`, `F05`, and `F06` into `F03` by concatenating their exact SVG-derived paths.
   - Merged `F07` and `F08` into `F07` by concatenating their exact SVG-derived paths.
   - East area set now exports 5 ids: `F01`, `F02`, `F03`, `F04`, `F07`.
+- Follow-up correction (user review, 2026-02-19):
+  - Re-extracted `F01..F06` from `east.svg` using curved segment face extraction (segment intersections + endpoint/near snapping; no raster borders).
+  - Updated only `F01..F06` paths in `EAST_ISLAND_AREAS` in `boardGeometry.ts`; retained other east ids unchanged.
+  - Validation outputs written:
+    - `games/indonesia-ui/src/lib/images/east_faces_f01_f06_overlay.svg`
+    - `games/indonesia-ui/src/lib/images/east_faces_f01_f06_report.txt`
+  - `F01..F06` are single closed paths (`... Z`) after rewrite.
 
 ## East Group Boundary Notes (2026-02-18)
 
