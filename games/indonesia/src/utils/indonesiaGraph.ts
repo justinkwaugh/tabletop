@@ -9,7 +9,7 @@ export class IndonesiaGraph extends BaseGraph<IndonesiaNode> {
 
     private initializeNodes() {
         for (const node of INDONESIA_NODES) {
-            this.setNode({ ...node })
+            this.setNode({ ...node, neighbors: [...node.neighbors] })
         }
     }
 
@@ -17,7 +17,9 @@ export class IndonesiaGraph extends BaseGraph<IndonesiaNode> {
         return this.node(id)
     }
 
-    public override neighborsOf(_node: IndonesiaNode, _direction?: Direction): IndonesiaNode[] {
-        return []
+    public override neighborsOf(node: IndonesiaNode, _direction?: Direction): IndonesiaNode[] {
+        return node.neighbors
+            .map((neighborId) => this.node(neighborId))
+            .filter((neighbor): neighbor is IndonesiaNode => neighbor !== undefined)
     }
 }

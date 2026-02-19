@@ -25,6 +25,16 @@
         labelY: number
     }
 
+    type DebugConnection = {
+        id: string
+        fromId: string
+        toId: string
+        x1: number
+        y1: number
+        x2: number
+        y2: number
+    }
+
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
 
     function getPathLabelPosition(path: string): { labelX: number; labelY: number } {
@@ -62,114 +72,55 @@
         return left.localeCompare(right, undefined, { numeric: true })
     }
 
-    function parsePathRings(path: string): Array<Array<[number, number]>> {
-        const subpaths = path.match(/M[^M]*?Z/g) ?? []
-        return subpaths
-            .map((subpath) => {
-                const values = subpath.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? []
-                const points: Array<[number, number]> = []
-                for (let i = 0; i < values.length - 1; i += 2) {
-                    points.push([values[i], values[i + 1]])
-                }
-                return points
-            })
-            .filter((ring) => ring.length > 1)
-    }
-
     function pairKey(a: string, b: string): string {
         return a < b ? `${a}|${b}` : `${b}|${a}`
     }
 
-    function computeAreaColorMap(areas: DebugArea[]): Map<string, string> {
-        const boundaryPointOwners = new Map<string, Set<string>>()
-        const sharedPointCountByPair = new Map<string, number>()
-        const adjacency = new Map<string, Set<string>>()
+    function getPaletteColor(index: number): string {
+        if (index < DEBUG_PALETTE.length) {
+            return DEBUG_PALETTE[index]
+        }
+        const hue = (index * 137.508) % 360
+        return `hsl(${hue} 62% 54%)`
+    }
 
-        for (const area of areas) {
-            adjacency.set(area.id, new Set())
-            const rings = parsePathRings(area.path)
-
-            for (const ring of rings) {
-                const isClosed =
-                    ring[0][0] === ring[ring.length - 1][0] &&
-                    ring[0][1] === ring[ring.length - 1][1]
-                const segmentCount = isClosed ? ring.length - 1 : ring.length
-
-                for (let i = 0; i < segmentCount; i++) {
-                    const [x1, y1] = ring[i]
-                    const [x2, y2] = ring[(i + 1) % ring.length]
-                    const dx = x2 - x1
-                    const dy = y2 - y1
-                    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy))))
-
-                    for (let step = 0; step <= steps; step++) {
-                        const t = step / steps
-                        const x = Math.round(x1 + dx * t)
-                        const y = Math.round(y1 + dy * t)
-                        const pointKey = `${x},${y}`
-                        const owners = boundaryPointOwners.get(pointKey) ?? new Set<string>()
-                        owners.add(area.id)
-                        boundaryPointOwners.set(pointKey, owners)
-                    }
-                }
-            }
+    function computeAreaColorMap(
+        areas: DebugArea[],
+        adjacency: Map<string, Set<string>>
+    ): Map<string, string> {
+        const areaIdSet = new Set(areas.map((area) => area.id))
+        const filteredAdjacency = new Map<string, Set<string>>()
+        for (const id of areaIdSet) {
+            const neighbors = adjacency.get(id) ?? new Set<string>()
+            filteredAdjacency.set(
+                id,
+                new Set([...neighbors].filter((neighborId) => areaIdSet.has(neighborId)))
+            )
         }
 
-        for (const owners of boundaryPointOwners.values()) {
-            if (owners.size < 2) continue
-            const ids = [...owners]
-            for (let i = 0; i < ids.length; i++) {
-                for (let j = i + 1; j < ids.length; j++) {
-                    const key = pairKey(ids[i], ids[j])
-                    sharedPointCountByPair.set(key, (sharedPointCountByPair.get(key) ?? 0) + 1)
-                }
-            }
-        }
-
-        for (const [key, sharedCount] of sharedPointCountByPair.entries()) {
-            // Ignore corner-only touching; require a short shared border run.
-            if (sharedCount < 6) continue
-            const [idA, idB] = key.split('|')
-            adjacency.get(idA)?.add(idB)
-            adjacency.get(idB)?.add(idA)
-        }
-
-        const sortedIds = [...adjacency.keys()].sort((a, b) => {
+        const sortedIds = [...filteredAdjacency.keys()].sort((a, b) => {
             const degreeDiff = (adjacency.get(b)?.size ?? 0) - (adjacency.get(a)?.size ?? 0)
             if (degreeDiff !== 0) return degreeDiff
-            return a.localeCompare(b)
+            return compareAreaIds(a, b)
         })
 
         const areaColors = new Map<string, string>()
-        const hasAdjacency = sortedIds.some((id) => (adjacency.get(id)?.size ?? 0) > 0)
-
-        if (!hasAdjacency) {
-            // Fallback so debug remains readable if geometry does not share exact sampled borders.
-            for (const [index, id] of sortedIds.entries()) {
-                areaColors.set(id, DEBUG_PALETTE[index % DEBUG_PALETTE.length])
-            }
-            return areaColors
-        }
-
         for (const id of sortedIds) {
             const neighborColors = new Set(
-                [...(adjacency.get(id) ?? [])]
+                [...(filteredAdjacency.get(id) ?? [])]
                     .map((neighborId) => areaColors.get(neighborId))
                     .filter(Boolean)
             )
-            const color =
-                DEBUG_PALETTE.find((candidate) => !neighborColors.has(candidate)) ??
-                DEBUG_PALETTE[0]
-            areaColors.set(id, color)
-        }
-
-        // If geometry noise causes over-connected adjacency, greedy coloring can collapse
-        // to too few colors. Keep debug legibility by falling back to palette cycling.
-        const distinctColorCount = new Set(areaColors.values()).size
-        if (distinctColorCount <= 4) {
-            areaColors.clear()
-            for (const [index, id] of sortedIds.entries()) {
-                areaColors.set(id, DEBUG_PALETTE[index % DEBUG_PALETTE.length])
+            let colorIndex = 0
+            for (; colorIndex < 256; colorIndex++) {
+                const candidate = getPaletteColor(colorIndex)
+                if (!neighborColors.has(candidate)) {
+                    areaColors.set(id, candidate)
+                    break
+                }
+            }
+            if (!areaColors.has(id)) {
+                areaColors.set(id, getPaletteColor(0))
             }
         }
 
@@ -221,8 +172,61 @@
         return mappedAreas
     })
 
+    const DEBUG_AREAS_BY_ID: Map<string, DebugArea> = $derived.by(
+        () => new Map(DEBUG_MAP_AREAS.map((area) => [area.id, area]))
+    )
+
+    const BOARD_ADJACENCY: Map<string, Set<string>> = $derived.by(() => {
+        const adjacency = new Map<string, Set<string>>()
+        for (const node of gameSession.gameState.board) {
+            const neighbors = adjacency.get(node.id) ?? new Set<string>()
+            for (const neighborId of node.neighbors) {
+                neighbors.add(neighborId)
+                const reverseNeighbors = adjacency.get(neighborId) ?? new Set<string>()
+                reverseNeighbors.add(node.id)
+                adjacency.set(neighborId, reverseNeighbors)
+            }
+            adjacency.set(node.id, neighbors)
+        }
+        return adjacency
+    })
+
+    const DEBUG_CONNECTIONS: DebugConnection[] = $derived.by(() => {
+        const connections: DebugConnection[] = []
+        const seenEdgeIds = new Set<string>()
+
+        for (const node of gameSession.gameState.board) {
+            for (const neighborId of node.neighbors) {
+                const edgeId = pairKey(node.id, neighborId)
+                if (seenEdgeIds.has(edgeId)) {
+                    continue
+                }
+                seenEdgeIds.add(edgeId)
+
+                const from = DEBUG_AREAS_BY_ID.get(node.id)
+                const to = DEBUG_AREAS_BY_ID.get(neighborId)
+                if (!from || !to) {
+                    continue
+                }
+
+                connections.push({
+                    id: edgeId,
+                    fromId: node.id,
+                    toId: neighborId,
+                    x1: from.labelX,
+                    y1: from.labelY,
+                    x2: to.labelX,
+                    y2: to.labelY
+                })
+            }
+        }
+
+        connections.sort((left, right) => left.id.localeCompare(right.id))
+        return connections
+    })
+
     const DEBUG_AREA_COLORS: Map<string, string> = $derived.by(() =>
-        computeAreaColorMap(DEBUG_MAP_AREAS)
+        computeAreaColorMap(DEBUG_MAP_AREAS, BOARD_ADJACENCY)
     )
 </script>
 
@@ -253,6 +257,20 @@
                             stroke-linecap="round"
                             opacity="0.95"
                         ></path>
+                    {/each}
+                    {#each DEBUG_CONNECTIONS as connection (connection.id)}
+                        <line
+                            x1={connection.x1}
+                            y1={connection.y1}
+                            x2={connection.x2}
+                            y2={connection.y2}
+                            stroke="#374151"
+                            stroke-width="2.4"
+                            stroke-linecap="round"
+                            opacity="0.85"
+                        ></line>
+                    {/each}
+                    {#each DEBUG_MAP_AREAS as area (area.id)}
                         <text
                             x={area.labelX}
                             y={area.labelY}
