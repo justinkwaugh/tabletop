@@ -10,4 +10,7 @@ export * from './definition/states.js'
 
 export * from './model/gameState.js'
 export * from './model/playerState.js'
+export * from './components/board.js'
+export * from './utils/indonesiaGraph.js'
+export * from './utils/indonesiaNodes.js'
 export * from './actions/pass.js'

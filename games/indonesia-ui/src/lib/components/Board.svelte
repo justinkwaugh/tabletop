@@ -9,6 +9,9 @@
         SOUTHCHAIN_ISLAND_AREAS,
         SOUTHLEFT_ISLAND_AREAS
     } from '$lib/definitions/boardGeometry.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte'
+
+    const gameSession = getGameSession()
 
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
@@ -53,6 +56,10 @@
         const match = id.match(/(\d+)$/)
         const suffix = match?.[1]?.padStart(2, '0') ?? '??'
         return `B${suffix}`
+    }
+
+    function compareAreaIds(left: string, right: string): number {
+        return left.localeCompare(right, undefined, { numeric: true })
     }
 
     function parsePathRings(path: string): Array<Array<[number, number]>> {
@@ -169,58 +176,54 @@
         return areaColors
     }
 
-    const DEBUG_LEFTMOST_AREAS: DebugArea[] = LEFTMOST_ISLAND_AREAS.map((area) => ({
-        ...area,
-        label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path)
-    }))
-
-    const DEBUG_SOUTHLEFT_AREAS: DebugArea[] = SOUTHLEFT_ISLAND_AREAS.map((area) => ({
-        ...area,
-        label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path)
-    }))
-
-    const DEBUG_BORNEO_AREAS: DebugArea[] = TOP_CENTER_ISLAND_AREAS.map((area) => ({
-        ...area,
-        label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path)
-    }))
-
-    const DEBUG_EASTCENTRAL_AREAS: DebugArea[] = EASTCENTRAL_ISLAND_AREAS.map((area) => ({
-        ...area,
-        label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path)
-    }))
-
-    const DEBUG_SOUTHCHAIN_AREAS: DebugArea[] = SOUTHCHAIN_ISLAND_AREAS.map((area) => ({
-        ...area,
-        label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path)
-    }))
-
-    const DEBUG_NORTHEAST_AREAS: DebugArea[] = NORTHEAST_ISLAND_AREAS.map((area) => ({
-        ...area,
-        label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path)
-    }))
-
-    const DEBUG_EAST_AREAS: DebugArea[] = EAST_ISLAND_AREAS.map((area) => ({
-        ...area,
-        label: getCompactAreaLabel(area.id),
-        ...getPathLabelPosition(area.path)
-    }))
-
-    const DEBUG_MAP_AREAS: DebugArea[] = [
-        ...DEBUG_LEFTMOST_AREAS,
-        ...DEBUG_SOUTHLEFT_AREAS,
-        ...DEBUG_BORNEO_AREAS,
-        ...DEBUG_EASTCENTRAL_AREAS,
-        ...DEBUG_SOUTHCHAIN_AREAS,
-        ...DEBUG_NORTHEAST_AREAS,
-        ...DEBUG_EAST_AREAS
+    const BOARD_GEOMETRY_AREAS = [
+        ...LEFTMOST_ISLAND_AREAS,
+        ...SOUTHLEFT_ISLAND_AREAS,
+        ...TOP_CENTER_ISLAND_AREAS,
+        ...EASTCENTRAL_ISLAND_AREAS,
+        ...SOUTHCHAIN_ISLAND_AREAS,
+        ...NORTHEAST_ISLAND_AREAS,
+        ...EAST_ISLAND_AREAS
     ]
-    const DEBUG_AREA_COLORS: Map<string, string> = computeAreaColorMap(DEBUG_MAP_AREAS)
+    const BOARD_GEOMETRY_LOOKUP = new Map(
+        BOARD_GEOMETRY_AREAS.map((area) => [area.id, area.path])
+    )
+
+    const BOARD_NODE_IDS: string[] = $derived.by(() => {
+        const ids = Array.from(gameSession.gameState.board, (node) => node.id)
+        ids.sort(compareAreaIds)
+        return ids
+    })
+
+    const DEBUG_MAP_AREAS: DebugArea[] = $derived.by(() => {
+        const mappedAreas: DebugArea[] = []
+        const seenIds = new Set<string>()
+
+        for (const id of BOARD_NODE_IDS) {
+            if (seenIds.has(id)) {
+                continue
+            }
+            seenIds.add(id)
+
+            const path = BOARD_GEOMETRY_LOOKUP.get(id)
+            if (!path) {
+                continue
+            }
+
+            mappedAreas.push({
+                id,
+                path,
+                label: getCompactAreaLabel(id),
+                ...getPathLabelPosition(path)
+            })
+        }
+
+        return mappedAreas
+    })
+
+    const DEBUG_AREA_COLORS: Map<string, string> = $derived.by(() =>
+        computeAreaColorMap(DEBUG_MAP_AREAS)
+    )
 </script>
 
 <div class="board-shell">

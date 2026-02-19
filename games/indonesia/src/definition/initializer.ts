@@ -7,9 +7,9 @@ import {
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
 import { HydratedIndonesiaGameState, IndonesiaGameState } from '../model/gameState.js'
 import { HydratedIndonesiaPlayerState, IndonesiaPlayerState } from '../model/playerState.js'
+import { HydratedIndonesiaBoard } from '../components/board.js'
 
 import { MachineState } from './states.js'
-import { IndonesiaGameConfig } from './config.js'
 import { IndonesiaColors } from './colors.js'
 
 // This class is responsible for initializing a new game, including setting up the initial game state and
@@ -43,12 +43,13 @@ export class IndonesiaGameInitializer
             }
         }
 
-        const config = game.config as IndonesiaGameConfig
+        const board = new HydratedIndonesiaBoard({})
 
         const indonesiaGameState: IndonesiaGameState = Object.assign(state, {
             players: orderedPlayers,
             machineState: MachineState.EndOfGame,
-            turnManager: turnManager
+            turnManager: turnManager,
+            board: board
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
