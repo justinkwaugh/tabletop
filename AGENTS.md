@@ -238,3 +238,30 @@
     - `mode=faces>=ids`
     - `reused_ids=none`
   - `C13` and `C14` are now distinct faces from svg-derived borders.
+
+## Southchain C-Island Rebuild Notes (2026-02-19)
+
+- File touched: `games/indonesia-ui/src/lib/definitions/boardGeometry.ts`.
+- Source asset: `games/indonesia-ui/src/lib/images/southchain.svg`.
+- Scope mapped: `SOUTHCHAIN_ISLAND_AREAS` (`C21..C30`).
+- Rebuild strategy reused from curved-face pipeline:
+  - exact segment intersections + endpoint-to-segment snaps (`<=1.2px`) + near-intersection splits (`<=1.0px`);
+  - half-edge left-turn face extraction from split `Line/CubicBezier` pieces;
+  - id matching via centroid+bbox Hungarian assignment to existing `C21..C30`.
+- Fitted `southchain.svg -> board` transform:
+  - `sx=0.6240090841190586`
+  - `sy=0.6177109230037416`
+  - `theta=-0.0003893034194068072`
+  - `tx=1172.9789753676425`
+  - `ty=947.6164872710327`
+- Extraction stats:
+  - `segments=290`
+  - `raw_faces=33`
+  - `kept_faces=20`
+  - `required_ids=10`
+  - `reused_ids=none`
+  - `extra_attached=8` (small closed offshore faces attached to nearest matching ids, no synthetic edges).
+- Output now uses curved SVG-derived paths (`C/Q/L` commands) instead of quantized stair-step-only paths.
+- Debug artifacts:
+  - `games/indonesia-ui/src/lib/images/southchain_faces_overlay.svg`
+  - `games/indonesia-ui/src/lib/images/southchain_faces_report.txt`
