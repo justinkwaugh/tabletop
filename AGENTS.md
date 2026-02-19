@@ -265,3 +265,24 @@
 - Debug artifacts:
   - `games/indonesia-ui/src/lib/images/southchain_faces_overlay.svg`
   - `games/indonesia-ui/src/lib/images/southchain_faces_report.txt`
+
+## Eastcentral D-Island Rebuild Notes (2026-02-19)
+
+- File touched: `games/indonesia-ui/src/lib/definitions/boardGeometry.ts`.
+- Source asset: `games/indonesia-ui/src/lib/images/eastcentral.svg`.
+- Fitted transform used for this pass:
+  - `sx=0.6271517614144182`
+  - `sy=0.6248094853512414`
+  - `theta=-0.00282582638234442`
+  - `tx=1406.073564569347`
+  - `ty=380.0671752979634`
+- Initial extraction produced only `11` unique valid faces in-region for `D01..D12` and incorrectly overwrote `D13`.
+- User clarification:
+  - `D13` is a separate ellipsoid-group area and should be preserved/restored.
+- Safety fixes applied:
+  - Restored `D13` path byte-for-byte from `HEAD`.
+  - Reverted self-intersecting replacements (`D04`, `D07`, `D08`) back to `HEAD` after validation flagged ring self-intersections that caused large red overlays.
+- Current state:
+  - `D01`, `D02`, `D03`, `D05`, `D06`, `D09`, `D10`, `D11`, `D12` are svg-derived curved paths from `eastcentral.svg`.
+  - `D04`, `D07`, `D08`, `D13` are restored from `HEAD`.
+  - Geometry validation for all `D01..D13` paths now passes (`bad_count=0`).
