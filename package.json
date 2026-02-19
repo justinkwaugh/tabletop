@@ -14,7 +14,8 @@
         "watch:backend": "turbo watch dev --filter=@tabletop/backend",
         "start:backend": "turbo run start --filter=@tabletop/backend",
         "update-games": "turbo update-games",
-        "deploy:tui": "node tools/deploy/esm/cli.js tui"
+        "deploy:tui": "node tools/deploy/esm/cli.js tui",
+        "tune:northeast": "pnpm --filter @tabletop/indonesia-ui run tune:northeast"
     },
     "devDependencies": {
         "@turbo/gen": "^2.8.0",

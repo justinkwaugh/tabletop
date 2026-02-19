@@ -1,0 +1,41 @@
+northeast bbox-match labeling report
+
+source_svg: games/indonesia-ui/src/lib/images/northeast.svg
+raw_paths: 18
+segments: 216
+raw_faces: 35
+kept_faces: 20
+dropped_composite_faces: 1 (F16)
+E_ids: 11 (E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11)
+Z_ids: 9 (Z01, Z02, Z03, Z04, Z05, Z06, Z07, Z08, Z09)
+
+base_transform:
+  sx=1.01896411 sy=1.01924599 theta=8.38e-05 tx=29.4342058 ty=70.523274 ox=1686.0 oy=250.0
+fitted_affine_on_base_board:
+  X = 1.03199263*x + -0.01745831*y + -55.34054332
+  Y = -0.03124650*x + 0.97216239*y + 77.11075554
+
+E assignments (no forced Z->E merge map in this debug run):
+  ambiguity_rule: among {E10,E02,E03,Z06,Z08}, keep the two smallest as Z06/Z08
+  E01 <- face#09 area=765.92 center=(1959.15,348.87) bbox=(1944.30,328.24,1975.86,367.60) iou=0.7565
+  E02 <- face#05 area=1573.88 center=(1952.37,418.33) bbox=(1922.71,391.67,1977.45,445.15) iou=0.8690
+  E03 <- face#00 area=2872.44 center=(1927.63,473.21) bbox=(1896.68,431.95,1983.40,546.95) iou=0.8017
+  E04 <- face#10 area=660.08 center=(1894.67,528.04) bbox=(1879.77,508.26,1916.87,545.79) iou=0.6729
+  E05 <- face#08 area=878.02 center=(1907.96,587.91) bbox=(1886.30,570.99,1935.10,601.81) iou=0.6689
+  E06 <- face#11 area=387.05 center=(1795.58,607.63) bbox=(1770.17,602.22,1830.45,614.55) iou=0.1294
+  E07 <- face#02 area=2439.99 center=(2022.42,679.34) bbox=(1978.22,657.30,2072.69,700.93) iou=0.8959
+  E08 <- face#01 area=2746.60 center=(1840.36,700.89) bbox=(1800.30,678.21,1879.39,727.66) iou=0.6172
+  E09 <- face#04 area=1920.45 center=(1954.35,680.10) bbox=(1913.78,657.07,1990.88,708.60) iou=0.7883
+  E10 <- face#03 area=1973.21 center=(1913.00,401.19) bbox=(1889.23,359.45,1933.84,434.47) iou=0.7291
+  E11 <- face#06 area=1318.40 center=(2073.57,697.96) bbox=(2044.04,672.26,2099.49,719.88) iou=0.8085
+
+Remaining Z faces:
+  Z01 -> face#07 area=910.21 center=(1729.99,607.80) bbox=(1705.61,596.79,1763.13,619.30)
+  Z02 -> face#12 area=221.17 center=(1937.02,711.18) bbox=(1923.71,703.02,1950.61,719.91)
+  Z03 -> face#13 area=145.61 center=(1802.01,628.01) bbox=(1797.38,615.11,1806.60,641.33)
+  Z04 -> face#14 area=124.47 center=(1872.02,513.47) bbox=(1866.29,504.58,1877.38,522.67)
+  Z05 -> face#15 area=95.54 center=(1964.12,706.67) bbox=(1955.57,703.43,1974.36,710.13)
+  Z06 -> face#16 area=46.13 center=(1872.18,531.78) bbox=(1867.95,525.72,1876.86,535.99)
+  Z07 -> face#17 area=38.45 center=(1885.97,443.21) bbox=(1882.17,438.72,1889.13,448.12)
+  Z08 -> face#18 area=37.49 center=(1887.79,467.87) bbox=(1884.40,463.57,1890.66,472.41)
+  Z09 -> face#19 area=21.73 center=(1886.88,451.80) bbox=(1884.93,448.12,1889.05,455.86)

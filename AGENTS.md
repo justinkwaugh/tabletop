@@ -279,10 +279,53 @@
 - Initial extraction produced only `11` unique valid faces in-region for `D01..D12` and incorrectly overwrote `D13`.
 - User clarification:
   - `D13` is a separate ellipsoid-group area and should be preserved/restored.
-- Safety fixes applied:
-  - Restored `D13` path byte-for-byte from `HEAD`.
-  - Reverted self-intersecting replacements (`D04`, `D07`, `D08`) back to `HEAD` after validation flagged ring self-intersections that caused large red overlays.
+- Follow-up re-extraction (after user request for `D04`, `D07`, `D08`) using improved node clustering:
+  - `raw_faces=14`
+  - `kept_faces=13`
+  - `required_ids=13`
+  - `reused_ids=none`
 - Current state:
-  - `D01`, `D02`, `D03`, `D05`, `D06`, `D09`, `D10`, `D11`, `D12` are svg-derived curved paths from `eastcentral.svg`.
-  - `D04`, `D07`, `D08`, `D13` are restored from `HEAD`.
-  - Geometry validation for all `D01..D13` paths now passes (`bad_count=0`).
+  - `D01..D12` are svg-derived curved paths from `eastcentral.svg` (including `D04`, `D07`, `D08`).
+  - `D13` is restored/preserved from `HEAD` (ellipsoid-group area, not replaced by extracted face).
+  - All `D01..D13` paths are closed (`... Z`).
+
+## Northeast E/Z Face Labeling Notes (2026-02-19)
+
+- Source asset used: `games/indonesia-ui/src/lib/images/northeast.svg`.
+- Goal of this pass: label extracted vector faces as existing `E01..E11` (bbox-matched), and label remaining unmatched/offshore faces as `Z01+` for manual merge decisions.
+- Output artifacts:
+  - `games/indonesia-ui/src/lib/images/northeast_faces_bboxmatch_overlay.svg`
+  - `games/indonesia-ui/src/lib/images/northeast_faces_bboxmatch_report.txt`
+- Extraction/matching approach:
+  - exact segment intersections + endpoint-to-segment snapping + near-intersection splitting;
+  - half-edge left-turn face extraction from split segments;
+  - base svg->board transform from prior NE recovery plus fitted affine correction from candidate-face centers to current E-area centers;
+  - bbox/centroid Hungarian assignment for `E01..E11`, with remaining faces labeled `Z01+`.
+- Follow-up user-directed labeling corrections applied in report/overlay generation:
+  - merge relabels:
+    - `Z01`, `Z03` -> `E06`
+    - `Z02`, `Z05` -> `E09`
+    - `Z04`, `Z07` -> `E04`
+  - ambiguity set (`E10`,`E02`,`E03`,`Z06`,`Z08`) resolved with size heuristic:
+    - keep two smallest faces as `Z06` and `Z08`
+    - assign remaining three to `E02`,`E03`,`E10` by nearest target centroids.
+  - current unresolved offshore labels after merge relabels: `Z06`, `Z08`.
+- Follow-up extraction correction (same session):
+  - Raised northeast face node-cluster tolerance to `1.2` and removed one composite container face (`F16`) that was covering child offshores.
+  - Top ambiguous cluster now resolves as 3 large faces (`E02`,`E03`,`E10`) + 3 tiny offshores (`Z07`,`Z08`,`Z09`).
+  - Applied merge into production geometry: `Z07`, `Z08`, `Z09` merged into `E03` by adding those three closed SVG-derived subpaths to `E03` (`E04_MERGED_PATH`) in `boardGeometry.ts`.
+- Finalization pass:
+  - Replaced the entire `NORTHEAST_ISLAND_AREAS` block with face-extracted curved paths from `northeast_faces_bboxmatch_overlay.svg`.
+  - Final merged mapping written to `boardGeometry.ts`:
+    - `E01=F09`, `E02=F05`, `E03=F00+F17+F18+F19`, `E04=F10+F14+F16`,
+    - `E05=F08`, `E06=F07+F11+F13`, `E07=F02`, `E08=F01`,
+    - `E09=F04+F12+F15`, `E10=F03`, `E11=F06`.
+- Alignment correction after user review:
+  - Removed the extra fitted affine from northeast face placement; kept only the base northeast svg->board transform.
+  - Rewrote `NORTHEAST_ISLAND_AREAS` again from the base-transform extraction output.
+  - Debug overlay for this pass: `games/indonesia-ui/src/lib/images/northeast_faces_base_overlay.svg`.
+- Added tuning utility for iterative manual alignment:
+  - `games/indonesia-ui/scripts/tune-northeast.mjs`
+  - Usage: `npm run tune:northeast -- --sx <...> --sy <...> --dx <...> --dy <...> [--ox <...> --oy <...>] [--apply]`
+  - Output preview (no apply): `games/indonesia-ui/src/lib/images/northeast_tuned_preview.svg`
+  - Output snippet (no apply): `games/indonesia-ui/src/lib/images/northeast_tuned_paths.txt`
