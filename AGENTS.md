@@ -469,3 +469,53 @@
   - `v5 P32 -> v6 P40`
   - `v5 P34 -> v6 P41`
   - `v5 P43 -> v6 P42`
+
+### Sea Area Border Extraction (2026-02-19, curve-only output)
+
+- Normalized editable source filename:
+  - `games/indonesia-ui/src/lib/images/sea_lines.svg` (renamed from `sealines.svg`).
+- Added extractor:
+  - `games/indonesia-ui/scripts/extract-sea-area-borders.py`
+- Constraint enforced in outputs:
+  - overlay renders only source sea-line curves (`Pxx`) + board-edge path + text labels (`Sxx`).
+  - no filled polygonized sea paths are written to output files.
+- Current outputs:
+  - `games/indonesia-ui/src/lib/images/sea_area_borders_report.txt`
+  - `games/indonesia-ui/src/lib/images/sea_area_borders_labels.svg`
+- Updated extraction strategy (after coastal-closure correction request):
+  - switched from zone-to-boundary overlap assignment to planar **curve-graph face-walk**:
+    - graph edges are split source curves from `sea_lines.svg` + coastline segments from `boardGeometry.ts`;
+    - faces are traversed on half-edges (`left-face` walk), so output loops are closed and use source curve segments;
+    - sea faces are filtered by representative-point tests (`inside board`, `outside land union`).
+  - current default tuning:
+    - `--node-snap 2.4`
+    - `--attach-tol 2.0`
+  - current extraction count:
+    - `candidate_sea_faces=17` (not yet 20).
+- New output file:
+  - `games/indonesia-ui/src/lib/images/sea_areas_curved_paths.txt` (closed `Sxx` curved paths).
+
+### Sea Areas Targeted P24 Split (2026-02-19)
+
+- User-provided correction:
+  - divider `P24` should split the combined south-right residual:
+    - from intersection (`P23`,`P21`) to intersection (`P27`,`P26`).
+- Verified topology:
+  - `P24` endpoints are exactly on those two junctions in `sea_lines.svg`.
+- Added targeted diagnostics/outputs in `extract-sea-area-borders.py`:
+  - `games/indonesia-ui/src/lib/images/sea_area_face_debug.txt`
+    - includes `[P24 LOOPS ANY CLASS]` section to inspect loops containing `P24` even when representative point falls on land.
+  - `games/indonesia-ui/src/lib/images/sea_area_p24_candidates.txt`
+    - classifies two `P24`-based candidate loops:
+      - `S17_DSIDE` (suggested cutout: `D13`)
+      - `MISSING_C21C22` (suggested cutouts: `C23`, `C24`, `C26`)
+  - `games/indonesia-ui/src/lib/images/sea_areas_p24_split_paths.txt`
+    - exports candidate split paths as:
+      - `S17= ...` (with reversed `D13` cutout path appended)
+      - `S18= ...` (with reversed `C23/C24/C26` cutout paths appended)
+  - `games/indonesia-ui/src/lib/images/sea_area_targeted_p24_overlay.svg`
+    - fills known-good sea areas (excluding `S09`/`S17`) and overlays the two `P24` split candidates for review.
+- Extraction behavior:
+  - uses planar polygonization internally only to compute candidate face centroids/adjacency.
+  - final zone ranking is by clipped sea geometry area (`zone - land_union`) so tiny land-only fragments are deprioritized.
+  - defaults: `target=20`, `snap_tol=3.0`, `min_zone_area=75`, `min_piece_area=10`.
