@@ -1,4 +1,5 @@
 import type { GraphNode } from '@tabletop/common'
+import { INDONESIA_REGION_BY_AREA_ID, type IndonesiaRegionId } from './regions.js'
 
 export const INDONESIA_NODE_IDS = [
     'A01',
@@ -123,17 +124,18 @@ export type IndonesiaNodeId = (typeof INDONESIA_NODE_IDS)[number]
 export type IndonesiaNode = GraphNode & {
     id: IndonesiaNodeId
     neighbors: IndonesiaNodeId[]
+    region: IndonesiaRegionId | null
 }
 
-export const INDONESIA_NODES: IndonesiaNode[] = [
+const INDONESIA_NODES_BASE: Array<Omit<IndonesiaNode, 'region'>> = [
     { id: 'A01', neighbors: ['A03', 'A04'] },
     { id: 'A02', neighbors: ['A03', 'A05'] },
     { id: 'A03', neighbors: ['A01', 'A02', 'A04', 'A08'] },
     { id: 'A04', neighbors: ['A01', 'A03', 'A07'] },
-    { id: 'A05', neighbors: ['A02', 'A06'] },
+    { id: 'A05', neighbors: ['A02', 'A06', 'A08'] },
     { id: 'A06', neighbors: ['A05', 'A09'] },
     { id: 'A07', neighbors: ['A04', 'A08', 'A10'] },
-    { id: 'A08', neighbors: ['A03', 'A07', 'A10', 'A11', 'A12'] },
+    { id: 'A08', neighbors: ['A03', 'A05', 'A07', 'A10', 'A11', 'A12'] },
     { id: 'A09', neighbors: ['A06', 'A13'] },
     { id: 'A10', neighbors: ['A07', 'A08', 'A12', 'A16'] },
     { id: 'A11', neighbors: ['A08', 'A12', 'A13', 'A15'] },
@@ -242,3 +244,9 @@ export const INDONESIA_NODES: IndonesiaNode[] = [
     { id: 'F06', neighbors: ['F03'] },
     { id: 'F07', neighbors: ['F03'] },
 ]
+
+export const INDONESIA_NODES: IndonesiaNode[] = INDONESIA_NODES_BASE.map((node) => ({
+    ...node,
+    neighbors: [...node.neighbors],
+    region: INDONESIA_REGION_BY_AREA_ID[node.id] ?? null
+}))
