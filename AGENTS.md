@@ -195,3 +195,46 @@
 - Debug artifacts:
   - `games/indonesia-ui/src/lib/images/leftmost_faces_overlay.svg`
   - `games/indonesia-ui/src/lib/images/leftmost_faces_report.txt`
+
+## Southleft C-Island Rebuild Notes (2026-02-18)
+
+- File touched: `games/indonesia-ui/src/lib/definitions/boardGeometry.ts`.
+- Source asset: `games/indonesia-ui/src/lib/images/southleft.svg`.
+- Scope mapped: `SOUTHLEFT_ISLAND_AREAS` (`C01..C17`) only.
+  - `C18..C20` remain in `EASTCENTRAL_ISLAND_AREAS`.
+  - `C21..C30` remain in `SOUTHCHAIN_ISLAND_AREAS`.
+- Rebuild strategy reused from curved-face pipeline:
+  - exact segment intersections + endpoint-to-segment snaps (`<=1.2px`) + near-intersection splits (`<=1.0px`);
+  - half-edge left-turn face extraction from split `Line/CubicBezier` pieces;
+  - id matching via centroid+bbox assignment.
+- Fitted `southleft.svg -> board` transform:
+  - `sx=0.6220171465483866`
+  - `sy=0.6193728426065913`
+  - `theta=0.00017424542064194132`
+  - `tx=641.5100030742444`
+  - `ty=840.2366926131396`
+- Extraction stats:
+  - `segments=183`
+  - `raw_faces=17`
+  - `kept_faces=16`
+  - required ids in block: `17`
+- Mapping outcome:
+  - Since traced linework yields `16` faces for `17` ids, one id was reused without synthetic borders:
+    - `C14` reuses the same extracted face as `C13`.
+  - No extra small faces were attached.
+- 10-point transformed-edge spot check (source->nearest rebuilt edge):
+  - mean distance `~0.241px`, max `~1.368px`.
+- Debug artifacts:
+  - `games/indonesia-ui/src/lib/images/southleft_faces_overlay.svg`
+  - `games/indonesia-ui/src/lib/images/southleft_faces_report.txt`
+
+- Follow-up correction after user updated `southleft.svg`:
+  - Updated source hash: `3756c18fa89189c135d792f47efdb6564bfd1e2f4ea7ebea38c99fa66e431ba1`.
+  - New extraction stats:
+    - `raw_faces=18`
+    - `kept_faces=17`
+    - `required_ids=17`
+  - Mapping now has **no reused ids**:
+    - `mode=faces>=ids`
+    - `reused_ids=none`
+  - `C13` and `C14` are now distinct faces from svg-derived borders.
