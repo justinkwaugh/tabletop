@@ -20,7 +20,7 @@
 
     type BoardNodeView = {
         id: string
-        neighbors: string[]
+        landNeighbors: string[]
         region: string | null
     }
 
@@ -49,6 +49,23 @@
 
     function pairKey(a: string, b: string): string {
         return a < b ? `${a}|${b}` : `${b}|${a}`
+    }
+
+    function extractLandNeighbors(neighbors: unknown): string[] {
+        if (Array.isArray(neighbors)) {
+            return neighbors.filter((neighborId): neighborId is string => typeof neighborId === 'string')
+        }
+
+        if (neighbors && typeof neighbors === 'object') {
+            const landNeighbors = (neighbors as Record<string, unknown>).Land
+            if (Array.isArray(landNeighbors)) {
+                return landNeighbors.filter(
+                    (neighborId): neighborId is string => typeof neighborId === 'string'
+                )
+            }
+        }
+
+        return []
     }
 
     function getPaletteColor(index: number): string {
@@ -97,7 +114,7 @@
     const BOARD_NODES: BoardNodeView[] = $derived.by(() => {
         const nodes = Array.from(gameSession.gameState.board, (node) => ({
             id: node.id,
-            neighbors: [...node.neighbors],
+            landNeighbors: extractLandNeighbors(node.neighbors),
             region: node.region
         }))
         nodes.sort((left, right) => compareAreaIds(left.id, right.id))
@@ -155,7 +172,7 @@
         const adjacency = new Map<string, Set<string>>()
         for (const node of BOARD_NODES) {
             const neighbors = adjacency.get(node.id) ?? new Set<string>()
-            for (const neighborId of node.neighbors) {
+            for (const neighborId of node.landNeighbors) {
                 neighbors.add(neighborId)
                 const reverseNeighbors = adjacency.get(neighborId) ?? new Set<string>()
                 reverseNeighbors.add(node.id)
@@ -175,7 +192,7 @@
         const seenEdgeIds = new Set<string>()
 
         for (const node of BOARD_NODES) {
-            for (const neighborId of node.neighbors) {
+            for (const neighborId of node.landNeighbors) {
                 const edgeId = pairKey(node.id, neighborId)
                 if (seenEdgeIds.has(edgeId)) {
                     continue

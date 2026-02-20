@@ -117,17 +117,50 @@ export const INDONESIA_NODE_IDS = [
     'F05',
     'F06',
     'F07',
+    'S01',
+    'S02',
+    'S03',
+    'S04',
+    'S05',
+    'S06',
+    'S07',
+    'S08',
+    'S09',
+    'S10',
+    'S11',
+    'S12',
+    'S13',
+    'S14',
+    'S15',
+    'S16',
+    'S17',
+    'S18',
+    'S19',
+    'S20',
+    'S21',
 ] as const
 
 export type IndonesiaNodeId = (typeof INDONESIA_NODE_IDS)[number]
 
+export enum IndonesiaNeighborDirection {
+    Land = 'Land',
+    Sea = 'Sea'
+}
+
+export type IndonesiaDirectedNeighbors = Record<IndonesiaNeighborDirection, IndonesiaNodeId[]>
+
 export type IndonesiaNode = GraphNode & {
     id: IndonesiaNodeId
-    neighbors: IndonesiaNodeId[]
+    neighbors: IndonesiaDirectedNeighbors
     region: IndonesiaRegionId | null
 }
 
-const INDONESIA_NODES_BASE: Array<Omit<IndonesiaNode, 'region'>> = [
+type IndonesiaNodeBase = {
+    id: IndonesiaNodeId
+    neighbors: IndonesiaNodeId[]
+}
+
+const INDONESIA_LAND_NODES_BASE: IndonesiaNodeBase[] = [
     { id: 'A01', neighbors: ['A03', 'A04'] },
     { id: 'A02', neighbors: ['A03', 'A05'] },
     { id: 'A03', neighbors: ['A01', 'A02', 'A04', 'A08'] },
@@ -245,8 +278,40 @@ const INDONESIA_NODES_BASE: Array<Omit<IndonesiaNode, 'region'>> = [
     { id: 'F07', neighbors: ['F03'] },
 ]
 
+const INDONESIA_SEA_NODES_BASE: IndonesiaNodeBase[] = [
+    { id: 'S01', neighbors: [] },
+    { id: 'S02', neighbors: [] },
+    { id: 'S03', neighbors: [] },
+    { id: 'S04', neighbors: [] },
+    { id: 'S05', neighbors: [] },
+    { id: 'S06', neighbors: [] },
+    { id: 'S07', neighbors: [] },
+    { id: 'S08', neighbors: [] },
+    { id: 'S09', neighbors: [] },
+    { id: 'S10', neighbors: [] },
+    { id: 'S11', neighbors: [] },
+    { id: 'S12', neighbors: [] },
+    { id: 'S13', neighbors: [] },
+    { id: 'S14', neighbors: [] },
+    { id: 'S15', neighbors: [] },
+    { id: 'S16', neighbors: [] },
+    { id: 'S17', neighbors: [] },
+    { id: 'S18', neighbors: [] },
+    { id: 'S19', neighbors: [] },
+    { id: 'S20', neighbors: [] },
+    { id: 'S21', neighbors: [] },
+]
+
+const INDONESIA_NODES_BASE: IndonesiaNodeBase[] = [
+    ...INDONESIA_LAND_NODES_BASE,
+    ...INDONESIA_SEA_NODES_BASE
+]
+
 export const INDONESIA_NODES: IndonesiaNode[] = INDONESIA_NODES_BASE.map((node) => ({
-    ...node,
-    neighbors: [...node.neighbors],
+    id: node.id,
+    neighbors: {
+        [IndonesiaNeighborDirection.Land]: [...node.neighbors],
+        [IndonesiaNeighborDirection.Sea]: []
+    },
     region: INDONESIA_REGION_BY_AREA_ID[node.id] ?? null
 }))
