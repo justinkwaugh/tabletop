@@ -15,12 +15,17 @@
 
     let { width, height }: { width: number; height: number } = $props()
 
-    type OverlayMode = 'adjacency' | 'region' | 'sea'
-    let colorMode: OverlayMode = $state('adjacency')
+    type OverlayMode = 'none' | 'land' | 'coastal' | 'region' | 'sea'
+    let colorMode: OverlayMode = $state('none')
+    let hoveredSeaId: string | null = $state(null)
+
+    type BoardNodeAreaType = 'Land' | 'Sea'
 
     type BoardNodeView = {
         id: string
+        type: BoardNodeAreaType
         landNeighbors: string[]
+        seaNeighbors: string[]
         region: string | null
     }
 
@@ -51,21 +56,44 @@
         return a < b ? `${a}|${b}` : `${b}|${a}`
     }
 
-    function extractLandNeighbors(neighbors: unknown): string[] {
+    function extractDirectionalNeighbors(neighbors: unknown, direction: 'Land' | 'Sea'): string[] {
         if (Array.isArray(neighbors)) {
-            return neighbors.filter((neighborId): neighborId is string => typeof neighborId === 'string')
+            if (direction === 'Land') {
+                return neighbors.filter(
+                    (neighborId): neighborId is string => typeof neighborId === 'string'
+                )
+            }
+            return []
         }
 
         if (neighbors && typeof neighbors === 'object') {
-            const landNeighbors = (neighbors as Record<string, unknown>).Land
-            if (Array.isArray(landNeighbors)) {
-                return landNeighbors.filter(
+            const directionalNeighbors = (neighbors as Record<string, unknown>)[direction]
+            if (Array.isArray(directionalNeighbors)) {
+                return directionalNeighbors.filter(
                     (neighborId): neighborId is string => typeof neighborId === 'string'
                 )
             }
         }
 
         return []
+    }
+
+    function extractLandNeighbors(neighbors: unknown): string[] {
+        return extractDirectionalNeighbors(neighbors, 'Land')
+    }
+
+    function extractSeaNeighbors(neighbors: unknown): string[] {
+        return extractDirectionalNeighbors(neighbors, 'Sea')
+    }
+
+    function extractNodeAreaType(nodeId: string, nodeType: unknown): BoardNodeAreaType {
+        if (nodeType === 'Sea') {
+            return 'Sea'
+        }
+        if (nodeType === 'Land') {
+            return 'Land'
+        }
+        return nodeId.startsWith('S') ? 'Sea' : 'Land'
     }
 
     function getPaletteColor(index: number): string {
@@ -114,7 +142,14 @@
     const BOARD_NODES: BoardNodeView[] = $derived.by(() => {
         const nodes = Array.from(gameSession.gameState.board, (node) => ({
             id: node.id,
+            type: extractNodeAreaType(
+                node.id,
+                (node as {
+                    type?: unknown
+                }).type
+            ),
             landNeighbors: extractLandNeighbors(node.neighbors),
+            seaNeighbors: extractSeaNeighbors(node.neighbors),
             region: node.region
         }))
         nodes.sort((left, right) => compareAreaIds(left.id, right.id))
@@ -160,12 +195,42 @@
         return areas
     })
 
-    const DISPLAY_AREAS: DebugArea[] = $derived.by(() =>
-        colorMode === 'sea' ? SEA_DEBUG_MAP_AREAS : LAND_DEBUG_MAP_AREAS
+    const COASTAL_LAND_AREA_IDS: Set<string> = $derived.by(() => {
+        const coastalAreaIds = new Set<string>()
+        for (const node of BOARD_NODES) {
+            if (node.type !== 'Sea') {
+                continue
+            }
+            for (const landNeighborId of node.landNeighbors) {
+                coastalAreaIds.add(landNeighborId)
+            }
+        }
+        return coastalAreaIds
+    })
+
+    const COASTAL_LAND_DEBUG_AREAS: DebugArea[] = $derived.by(() =>
+        LAND_DEBUG_MAP_AREAS.filter((area) => COASTAL_LAND_AREA_IDS.has(area.id))
     )
+
+    const DISPLAY_AREAS: DebugArea[] = $derived.by(() => {
+        if (colorMode === 'none') {
+            return []
+        }
+        if (colorMode === 'sea') {
+            return SEA_DEBUG_MAP_AREAS
+        }
+        if (colorMode === 'coastal') {
+            return COASTAL_LAND_DEBUG_AREAS
+        }
+        return LAND_DEBUG_MAP_AREAS
+    })
 
     const LAND_DEBUG_AREAS_BY_ID: Map<string, DebugArea> = $derived.by(
         () => new Map(LAND_DEBUG_MAP_AREAS.map((area) => [area.id, area]))
+    )
+
+    const BOARD_NODES_BY_ID: Map<string, BoardNodeView> = $derived.by(
+        () => new Map(BOARD_NODES.map((node) => [node.id, node]))
     )
 
     const BOARD_ADJACENCY: Map<string, Set<string>> = $derived.by(() => {
@@ -184,7 +249,7 @@
     })
 
     const DEBUG_CONNECTIONS: DebugConnection[] = $derived.by(() => {
-        if (colorMode === 'sea') {
+        if (colorMode !== 'land') {
             return []
         }
 
@@ -217,6 +282,22 @@
 
         connections.sort((left, right) => left.id.localeCompare(right.id))
         return connections
+    })
+
+    const HOVERED_SEA_LAND_AREAS: DebugArea[] = $derived.by(() => {
+        if (colorMode !== 'sea' || !hoveredSeaId) {
+            return []
+        }
+
+        const seaNode = BOARD_NODES_BY_ID.get(hoveredSeaId)
+        if (!seaNode || seaNode.type !== 'Sea') {
+            return []
+        }
+
+        return seaNode.landNeighbors
+            .map((neighborId) => LAND_DEBUG_AREAS_BY_ID.get(neighborId))
+            .filter((area): area is DebugArea => area !== undefined)
+            .sort((left, right) => compareAreaIds(left.id, right.id))
     })
 
     function computeAdjacencyColorMap(
@@ -297,11 +378,17 @@
     }
 
     const DEBUG_AREA_COLORS: Map<string, string> = $derived.by(() => {
+        if (colorMode === 'none') {
+            return new Map()
+        }
         if (colorMode === 'sea') {
             return computeSequentialColorMap(DISPLAY_AREAS)
         }
         if (colorMode === 'region') {
             return computeRegionColorMap(DISPLAY_AREAS)
+        }
+        if (colorMode === 'coastal') {
+            return computeAdjacencyColorMap(DISPLAY_AREAS, BOARD_ADJACENCY)
         }
         return computeAdjacencyColorMap(DISPLAY_AREAS, BOARD_ADJACENCY)
     })
@@ -311,17 +398,39 @@
     <div class="debug-controls">
         <button
             type="button"
-            class:active={colorMode === 'adjacency'}
+            class:active={colorMode === 'none'}
             onclick={() => {
-                colorMode = 'adjacency'
+                hoveredSeaId = null
+                colorMode = 'none'
             }}
         >
-            Adjacency
+            None
+        </button>
+        <button
+            type="button"
+            class:active={colorMode === 'land'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'land'
+            }}
+        >
+            Land
+        </button>
+        <button
+            type="button"
+            class:active={colorMode === 'coastal'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'coastal'
+            }}
+        >
+            Coastal
         </button>
         <button
             type="button"
             class:active={colorMode === 'region'}
             onclick={() => {
+                hoveredSeaId = null
                 colorMode = 'region'
             }}
         >
@@ -331,6 +440,7 @@
             type="button"
             class:active={colorMode === 'sea'}
             onclick={() => {
+                hoveredSeaId = null
                 colorMode = 'sea'
             }}
         >
@@ -343,7 +453,7 @@
         viewBox={`0 0 ${width} ${height}`}
         aria-label="Indonesia board debug overlay"
     >
-        <g class="pointer-events-none" aria-label="Debug map geometry">
+        <g aria-label="Debug map geometry">
             {#each DISPLAY_AREAS as area (area.id)}
                 {@const areaColor = DEBUG_AREA_COLORS.get(area.id) ?? '#ff1e1e'}
                 <path
@@ -356,8 +466,34 @@
                     stroke-linejoin="round"
                     stroke-linecap="round"
                     opacity="0.95"
+                    pointer-events={colorMode === 'sea' ? 'all' : 'none'}
+                    onmouseenter={() => {
+                        if (colorMode === 'sea') {
+                            hoveredSeaId = area.id
+                        }
+                    }}
+                    onmouseleave={() => {
+                        if (colorMode === 'sea' && hoveredSeaId === area.id) {
+                            hoveredSeaId = null
+                        }
+                    }}
                 ></path>
             {/each}
+            {#if colorMode === 'sea'}
+                {#each HOVERED_SEA_LAND_AREAS as area (area.id)}
+                    <path
+                        d={area.path}
+                        fill="#fde68a"
+                        fill-opacity="0.68"
+                        stroke="#92400e"
+                        stroke-width="2.2"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.95"
+                        pointer-events="none"
+                    ></path>
+                {/each}
+            {/if}
             {#each DEBUG_CONNECTIONS as connection (connection.id)}
                 <line
                     x1={connection.x1}
@@ -368,6 +504,7 @@
                     stroke-width="2.4"
                     stroke-linecap="round"
                     opacity="0.85"
+                    pointer-events="none"
                 ></line>
             {/each}
             {#each DISPLAY_AREAS as area (area.id)}
@@ -382,10 +519,30 @@
                     font-weight="700"
                     text-anchor="middle"
                     dominant-baseline="middle"
+                    pointer-events="none"
                 >
                     {area.label}
                 </text>
             {/each}
+            {#if colorMode === 'sea'}
+                {#each HOVERED_SEA_LAND_AREAS as area (area.id)}
+                    <text
+                        x={area.labelX}
+                        y={area.labelY}
+                        fill="#78350f"
+                        stroke="#fef3c7"
+                        stroke-width="1.1"
+                        paint-order="stroke fill"
+                        font-size="12"
+                        font-weight="700"
+                        text-anchor="middle"
+                        dominant-baseline="middle"
+                        pointer-events="none"
+                    >
+                        {area.label}
+                    </text>
+                {/each}
+            {/if}
         </g>
     </svg>
 </div>

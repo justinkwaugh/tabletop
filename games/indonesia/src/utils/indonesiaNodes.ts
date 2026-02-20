@@ -147,335 +147,155 @@ export enum IndonesiaNeighborDirection {
     Sea = 'Sea'
 }
 
+export enum IndonesiaAreaType {
+    Land = 'Land',
+    Sea = 'Sea'
+}
+
 export type IndonesiaDirectedNeighbors = Record<IndonesiaNeighborDirection, IndonesiaNodeId[]>
 
 export type IndonesiaNode = GraphNode & {
     id: IndonesiaNodeId
+    type: IndonesiaAreaType
     neighbors: IndonesiaDirectedNeighbors
     region: IndonesiaRegionId | null
 }
 
-type IndonesiaNodeBase = {
-    id: IndonesiaNodeId
-    neighbors: IndonesiaNodeId[]
-}
-
-const INDONESIA_LAND_NODES_BASE: IndonesiaNodeBase[] = [
-    { id: 'A01', neighbors: ['A03', 'A04'] },
-    { id: 'A02', neighbors: ['A03', 'A05'] },
-    { id: 'A03', neighbors: ['A01', 'A02', 'A04', 'A08'] },
-    { id: 'A04', neighbors: ['A01', 'A03', 'A07'] },
-    { id: 'A05', neighbors: ['A02', 'A06', 'A08'] },
-    { id: 'A06', neighbors: ['A05', 'A09'] },
-    { id: 'A07', neighbors: ['A04', 'A08', 'A10'] },
-    { id: 'A08', neighbors: ['A03', 'A05', 'A07', 'A10', 'A11', 'A12'] },
-    { id: 'A09', neighbors: ['A06', 'A13'] },
-    { id: 'A10', neighbors: ['A07', 'A08', 'A12', 'A16'] },
-    { id: 'A11', neighbors: ['A08', 'A12', 'A13', 'A15'] },
-    { id: 'A12', neighbors: ['A08', 'A10', 'A11', 'A15', 'A16'] },
-    { id: 'A13', neighbors: ['A09', 'A11', 'A14', 'A15', 'A18'] },
-    { id: 'A14', neighbors: ['A13', 'A17', 'A18'] },
-    { id: 'A15', neighbors: ['A11', 'A12', 'A13', 'A16', 'A19'] },
-    { id: 'A16', neighbors: ['A10', 'A12', 'A15', 'A19'] },
-    { id: 'A17', neighbors: ['A14', 'A18', 'A20', 'A21', 'A24'] },
-    { id: 'A18', neighbors: ['A13', 'A14', 'A17', 'A19', 'A20', 'A23'] },
-    { id: 'A19', neighbors: ['A15', 'A16', 'A18', 'A23', 'A26'] },
-    { id: 'A20', neighbors: ['A17', 'A18', 'A24', 'A27', 'A28'] },
-    { id: 'A21', neighbors: ['A17', 'A22', 'A24'] },
-    { id: 'A22', neighbors: ['A21', 'A24', 'A29', 'A34'] },
-    { id: 'A23', neighbors: ['A18', 'A19', 'A25', 'A28'] },
-    { id: 'A24', neighbors: ['A17', 'A20', 'A21', 'A22', 'A27'] },
-    { id: 'A25', neighbors: ['A23', 'A28'] },
-    { id: 'A26', neighbors: ['A19'] },
-    { id: 'A27', neighbors: ['A20', 'A24', 'A28', 'A29', 'A31'] },
-    { id: 'A28', neighbors: ['A20', 'A23', 'A25', 'A27', 'A31'] },
-    { id: 'A29', neighbors: ['A22', 'A27', 'A30', 'A34'] },
-    { id: 'A30', neighbors: ['A29', 'A31', 'A34'] },
-    { id: 'A31', neighbors: ['A27', 'A28', 'A30', 'A32'] },
-    { id: 'A32', neighbors: ['A31', 'A33'] },
-    { id: 'A33', neighbors: ['A32'] },
-    { id: 'A34', neighbors: ['A22', 'A29', 'A30'] },
-    { id: 'B01', neighbors: ['B02', 'B03'] },
-    { id: 'B02', neighbors: ['B01', 'B03', 'B04', 'B05'] },
-    { id: 'B03', neighbors: ['B01', 'B02', 'B04', 'B09', 'B10'] },
-    { id: 'B04', neighbors: ['B02', 'B03', 'B07', 'B10'] },
-    { id: 'B05', neighbors: ['B02', 'B06', 'B07'] },
-    { id: 'B06', neighbors: ['B05', 'B07', 'B08'] },
-    { id: 'B07', neighbors: ['B04', 'B05', 'B06', 'B08', 'B10', 'B11', 'B16'] },
-    { id: 'B08', neighbors: ['B06', 'B07', 'B11'] },
-    { id: 'B09', neighbors: ['B03', 'B10', 'B13', 'B18', 'B19'] },
-    { id: 'B10', neighbors: ['B03', 'B04', 'B07', 'B09', 'B16', 'B18', 'B20'] },
-    { id: 'B11', neighbors: ['B07', 'B08', 'B12', 'B15', 'B16', 'B17'] },
-    { id: 'B12', neighbors: ['B11', 'B14', 'B15'] },
-    { id: 'B13', neighbors: ['B09', 'B19'] },
-    { id: 'B14', neighbors: ['B12', 'B15'] },
-    { id: 'B15', neighbors: ['B11', 'B12', 'B14', 'B17'] },
-    { id: 'B16', neighbors: ['B07', 'B10', 'B11', 'B17', 'B20'] },
-    { id: 'B17', neighbors: ['B11', 'B15', 'B16'] },
-    { id: 'B18', neighbors: ['B09', 'B10', 'B19', 'B20'] },
-    { id: 'B19', neighbors: ['B09', 'B13', 'B18'] },
-    { id: 'B20', neighbors: ['B10', 'B16', 'B18'] },
-    { id: 'C01', neighbors: ['C02', 'C03'] },
-    { id: 'C02', neighbors: ['C01', 'C03', 'C04', 'C05'] },
-    { id: 'C03', neighbors: ['C01', 'C02', 'C05'] },
-    { id: 'C04', neighbors: ['C02', 'C05', 'C06', 'C07'] },
-    { id: 'C05', neighbors: ['C02', 'C03', 'C04', 'C07'] },
-    { id: 'C06', neighbors: ['C04', 'C07', 'C08'] },
-    { id: 'C07', neighbors: ['C04', 'C05', 'C06', 'C08'] },
-    { id: 'C08', neighbors: ['C06', 'C07', 'C09'] },
-    { id: 'C09', neighbors: ['C08', 'C10', 'C11'] },
-    { id: 'C10', neighbors: ['C09', 'C11', 'C14'] },
-    { id: 'C11', neighbors: ['C09', 'C10', 'C12', 'C14'] },
-    { id: 'C12', neighbors: ['C11', 'C13', 'C14', 'C16'] },
-    { id: 'C13', neighbors: ['C12', 'C14', 'C15'] },
-    { id: 'C14', neighbors: ['C10', 'C11', 'C12', 'C13'] },
-    { id: 'C15', neighbors: ['C13', 'C17'] },
-    { id: 'C16', neighbors: ['C12'] },
-    { id: 'C17', neighbors: ['C15', 'C21'] },
-    { id: 'C18', neighbors: ['C19', 'C30'] },
-    { id: 'C19', neighbors: ['C18', 'C20'] },
-    { id: 'C20', neighbors: ['C19', 'F04'] },
-    { id: 'C21', neighbors: ['C17', 'C22'] },
-    { id: 'C22', neighbors: ['C21', 'C23'] },
-    { id: 'C23', neighbors: ['C22', 'C24'] },
-    { id: 'C24', neighbors: ['C23', 'C25'] },
-    { id: 'C25', neighbors: ['C24', 'C26', 'C28'] },
-    { id: 'C26', neighbors: ['C25'] },
-    { id: 'C27', neighbors: ['C29'] },
-    { id: 'C28', neighbors: ['C25', 'C29'] },
-    { id: 'C29', neighbors: ['C27', 'C28', 'C30'] },
-    { id: 'C30', neighbors: ['C18', 'C29'] },
-    { id: 'D01', neighbors: ['D02', 'D04'] },
-    { id: 'D02', neighbors: ['D01', 'D03', 'D12'] },
-    { id: 'D03', neighbors: ['D02'] },
-    { id: 'D04', neighbors: ['D01', 'D05', 'D07', 'D08'] },
-    { id: 'D05', neighbors: ['D04', 'D06', 'D08', 'D09', 'D12'] },
-    { id: 'D06', neighbors: ['D05'] },
-    { id: 'D07', neighbors: ['D04', 'D08'] },
-    { id: 'D08', neighbors: ['D04', 'D05', 'D07', 'D09', 'D11'] },
-    { id: 'D09', neighbors: ['D05', 'D08', 'D10'] },
-    { id: 'D10', neighbors: ['D09', 'D13'] },
-    { id: 'D11', neighbors: ['D08'] },
-    { id: 'D12', neighbors: ['D02', 'D05'] },
-    { id: 'D13', neighbors: ['D10'] },
-    { id: 'E01', neighbors: ['E10'] },
-    { id: 'E02', neighbors: ['E03'] },
-    { id: 'E03', neighbors: ['E02', 'E04', 'E05', 'E10'] },
-    { id: 'E04', neighbors: ['E03', 'E05'] },
-    { id: 'E05', neighbors: ['E03', 'E04'] },
-    { id: 'E06', neighbors: ['E08'] },
-    { id: 'E07', neighbors: ['E09', 'E11'] },
-    { id: 'E08', neighbors: ['E06', 'E09'] },
-    { id: 'E09', neighbors: ['E07', 'E08'] },
-    { id: 'E10', neighbors: ['E01', 'E03'] },
-    { id: 'E11', neighbors: ['E07'] },
-    { id: 'F01', neighbors: ['F02', 'F04'] },
-    { id: 'F02', neighbors: ['F01', 'F04', 'F05'] },
-    { id: 'F03', neighbors: ['F05', 'F06', 'F07'] },
-    { id: 'F04', neighbors: ['C20', 'F01', 'F02', 'F05'] },
-    { id: 'F05', neighbors: ['F02', 'F03', 'F04'] },
-    { id: 'F06', neighbors: ['F03'] },
-    { id: 'F07', neighbors: ['F03'] },
+export const INDONESIA_NODES: IndonesiaNode[] = [
+    { id: 'A01', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A03', 'A04'], [IndonesiaNeighborDirection.Sea]: ['S14'] }, region: INDONESIA_REGION_BY_AREA_ID['A01'] ?? null },
+    { id: 'A02', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A03', 'A05'], [IndonesiaNeighborDirection.Sea]: ['S14'] }, region: INDONESIA_REGION_BY_AREA_ID['A02'] ?? null },
+    { id: 'A03', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A01', 'A02', 'A04', 'A08'], [IndonesiaNeighborDirection.Sea]: ['S14'] }, region: INDONESIA_REGION_BY_AREA_ID['A03'] ?? null },
+    { id: 'A04', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A01', 'A03', 'A07'], [IndonesiaNeighborDirection.Sea]: ['S14'] }, region: INDONESIA_REGION_BY_AREA_ID['A04'] ?? null },
+    { id: 'A05', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A02', 'A06', 'A08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A05'] ?? null },
+    { id: 'A06', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A05', 'A09'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A06'] ?? null },
+    { id: 'A07', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A04', 'A08', 'A10'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A07'] ?? null },
+    { id: 'A08', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A03', 'A05', 'A07', 'A10', 'A11', 'A12'], [IndonesiaNeighborDirection.Sea]: ['S14'] }, region: INDONESIA_REGION_BY_AREA_ID['A08'] ?? null },
+    { id: 'A09', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A06', 'A13'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A09'] ?? null },
+    { id: 'A10', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A07', 'A08', 'A12', 'A16'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A10'] ?? null },
+    { id: 'A11', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A08', 'A12', 'A13', 'A15'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A11'] ?? null },
+    { id: 'A12', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A08', 'A10', 'A11', 'A15', 'A16'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A12'] ?? null },
+    { id: 'A13', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A09', 'A11', 'A14', 'A15', 'A18'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A13'] ?? null },
+    { id: 'A14', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A13', 'A17', 'A18'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A14'] ?? null },
+    { id: 'A15', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A11', 'A12', 'A13', 'A16', 'A19'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A15'] ?? null },
+    { id: 'A16', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A10', 'A12', 'A15', 'A19'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A16'] ?? null },
+    { id: 'A17', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A14', 'A18', 'A20', 'A21', 'A24'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A17'] ?? null },
+    { id: 'A18', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A13', 'A14', 'A17', 'A19', 'A20', 'A23'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A18'] ?? null },
+    { id: 'A19', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A15', 'A16', 'A18', 'A23', 'A26'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A19'] ?? null },
+    { id: 'A20', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A17', 'A18', 'A24', 'A27', 'A28'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A20'] ?? null },
+    { id: 'A21', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A17', 'A22', 'A24'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A21'] ?? null },
+    { id: 'A22', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A21', 'A24', 'A29', 'A34'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A22'] ?? null },
+    { id: 'A23', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A18', 'A19', 'A25', 'A28'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A23'] ?? null },
+    { id: 'A24', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A17', 'A20', 'A21', 'A22', 'A27'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A24'] ?? null },
+    { id: 'A25', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A23', 'A28'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A25'] ?? null },
+    { id: 'A26', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A19'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A26'] ?? null },
+    { id: 'A27', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A20', 'A24', 'A28', 'A29', 'A31'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A27'] ?? null },
+    { id: 'A28', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A20', 'A23', 'A25', 'A27', 'A31'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A28'] ?? null },
+    { id: 'A29', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A22', 'A27', 'A30', 'A34'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A29'] ?? null },
+    { id: 'A30', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A29', 'A31', 'A34'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A30'] ?? null },
+    { id: 'A31', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A27', 'A28', 'A30', 'A32'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A31'] ?? null },
+    { id: 'A32', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A31', 'A33'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A32'] ?? null },
+    { id: 'A33', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A32'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A33'] ?? null },
+    { id: 'A34', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A22', 'A29', 'A30'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['A34'] ?? null },
+    { id: 'B01', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B02', 'B03'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B01'] ?? null },
+    { id: 'B02', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B01', 'B03', 'B04', 'B05'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B02'] ?? null },
+    { id: 'B03', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B01', 'B02', 'B04', 'B09', 'B10'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B03'] ?? null },
+    { id: 'B04', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B02', 'B03', 'B07', 'B10'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B04'] ?? null },
+    { id: 'B05', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B02', 'B06', 'B07'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B05'] ?? null },
+    { id: 'B06', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B05', 'B07', 'B08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B06'] ?? null },
+    { id: 'B07', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B04', 'B05', 'B06', 'B08', 'B10', 'B11', 'B16'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B07'] ?? null },
+    { id: 'B08', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B06', 'B07', 'B11'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B08'] ?? null },
+    { id: 'B09', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B03', 'B10', 'B13', 'B18', 'B19'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B09'] ?? null },
+    { id: 'B10', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B03', 'B04', 'B07', 'B09', 'B16', 'B18', 'B20'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B10'] ?? null },
+    { id: 'B11', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B07', 'B08', 'B12', 'B15', 'B16', 'B17'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B11'] ?? null },
+    { id: 'B12', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B11', 'B14', 'B15'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B12'] ?? null },
+    { id: 'B13', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B09', 'B19'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B13'] ?? null },
+    { id: 'B14', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B12', 'B15'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B14'] ?? null },
+    { id: 'B15', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B11', 'B12', 'B14', 'B17'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B15'] ?? null },
+    { id: 'B16', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B07', 'B10', 'B11', 'B17', 'B20'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B16'] ?? null },
+    { id: 'B17', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B11', 'B15', 'B16'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B17'] ?? null },
+    { id: 'B18', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B09', 'B10', 'B19', 'B20'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B18'] ?? null },
+    { id: 'B19', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B09', 'B13', 'B18'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B19'] ?? null },
+    { id: 'B20', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['B10', 'B16', 'B18'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['B20'] ?? null },
+    { id: 'C01', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C02', 'C03'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C01'] ?? null },
+    { id: 'C02', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C01', 'C03', 'C04', 'C05'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C02'] ?? null },
+    { id: 'C03', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C01', 'C02', 'C05'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C03'] ?? null },
+    { id: 'C04', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C02', 'C05', 'C06', 'C07'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C04'] ?? null },
+    { id: 'C05', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C02', 'C03', 'C04', 'C07'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C05'] ?? null },
+    { id: 'C06', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C04', 'C07', 'C08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C06'] ?? null },
+    { id: 'C07', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C04', 'C05', 'C06', 'C08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C07'] ?? null },
+    { id: 'C08', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C06', 'C07', 'C09'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C08'] ?? null },
+    { id: 'C09', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C08', 'C10', 'C11'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C09'] ?? null },
+    { id: 'C10', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C09', 'C11', 'C14'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C10'] ?? null },
+    { id: 'C11', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C09', 'C10', 'C12', 'C14'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C11'] ?? null },
+    { id: 'C12', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C11', 'C13', 'C14', 'C16'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C12'] ?? null },
+    { id: 'C13', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C12', 'C14', 'C15'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C13'] ?? null },
+    { id: 'C14', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C10', 'C11', 'C12', 'C13'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C14'] ?? null },
+    { id: 'C15', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C13', 'C17'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C15'] ?? null },
+    { id: 'C16', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C12'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C16'] ?? null },
+    { id: 'C17', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C15', 'C21'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C17'] ?? null },
+    { id: 'C18', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C19', 'C30'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C18'] ?? null },
+    { id: 'C19', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C18', 'C20'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C19'] ?? null },
+    { id: 'C20', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C19', 'F04'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C20'] ?? null },
+    { id: 'C21', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C17', 'C22'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C21'] ?? null },
+    { id: 'C22', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C21', 'C23'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C22'] ?? null },
+    { id: 'C23', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C22', 'C24'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C23'] ?? null },
+    { id: 'C24', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C23', 'C25'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C24'] ?? null },
+    { id: 'C25', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C24', 'C26', 'C28'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C25'] ?? null },
+    { id: 'C26', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C25'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C26'] ?? null },
+    { id: 'C27', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C29'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C27'] ?? null },
+    { id: 'C28', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C25', 'C29'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C28'] ?? null },
+    { id: 'C29', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C27', 'C28', 'C30'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C29'] ?? null },
+    { id: 'C30', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C18', 'C29'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['C30'] ?? null },
+    { id: 'D01', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D02', 'D04'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D01'] ?? null },
+    { id: 'D02', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D01', 'D03', 'D12'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D02'] ?? null },
+    { id: 'D03', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D02'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D03'] ?? null },
+    { id: 'D04', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D01', 'D05', 'D07', 'D08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D04'] ?? null },
+    { id: 'D05', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D04', 'D06', 'D08', 'D09', 'D12'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D05'] ?? null },
+    { id: 'D06', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D05'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D06'] ?? null },
+    { id: 'D07', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D04', 'D08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D07'] ?? null },
+    { id: 'D08', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D04', 'D05', 'D07', 'D09', 'D11'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D08'] ?? null },
+    { id: 'D09', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D05', 'D08', 'D10'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D09'] ?? null },
+    { id: 'D10', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D09', 'D13'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D10'] ?? null },
+    { id: 'D11', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D11'] ?? null },
+    { id: 'D12', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D02', 'D05'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D12'] ?? null },
+    { id: 'D13', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['D10'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['D13'] ?? null },
+    { id: 'E01', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E10'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E01'] ?? null },
+    { id: 'E02', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E03'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E02'] ?? null },
+    { id: 'E03', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E02', 'E04', 'E05', 'E10'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E03'] ?? null },
+    { id: 'E04', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E03', 'E05'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E04'] ?? null },
+    { id: 'E05', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E03', 'E04'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E05'] ?? null },
+    { id: 'E06', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E06'] ?? null },
+    { id: 'E07', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E09', 'E11'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E07'] ?? null },
+    { id: 'E08', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E06', 'E09'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E08'] ?? null },
+    { id: 'E09', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E07', 'E08'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E09'] ?? null },
+    { id: 'E10', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E01', 'E03'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E10'] ?? null },
+    { id: 'E11', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['E07'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['E11'] ?? null },
+    { id: 'F01', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['F02', 'F04'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['F01'] ?? null },
+    { id: 'F02', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['F01', 'F04', 'F05'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['F02'] ?? null },
+    { id: 'F03', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['F05', 'F06', 'F07'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['F03'] ?? null },
+    { id: 'F04', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['C20', 'F01', 'F02', 'F05'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['F04'] ?? null },
+    { id: 'F05', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['F02', 'F03', 'F04'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['F05'] ?? null },
+    { id: 'F06', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['F03'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['F06'] ?? null },
+    { id: 'F07', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['F03'], [IndonesiaNeighborDirection.Sea]: [] }, region: INDONESIA_REGION_BY_AREA_ID['F07'] ?? null },
+    { id: 'S01', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['E06', 'E05', 'E04', 'E03', 'E02', 'E10', 'E01'], [IndonesiaNeighborDirection.Sea]: ['S20', 'S07', 'S02', 'S12', 'S17'] }, region: INDONESIA_REGION_BY_AREA_ID['S01'] ?? null },
+    { id: 'S02', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['B19', 'B18', 'B20', 'B16', 'B17', 'D08', 'D07', 'D04', 'D01', 'D02'], [IndonesiaNeighborDirection.Sea]: ['S01', 'S12', 'S05', 'S13', 'S17'] }, region: INDONESIA_REGION_BY_AREA_ID['S02'] ?? null },
+    { id: 'S03', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A21', 'A22', 'A34', 'C01', 'C02', 'C04', 'C06'], [IndonesiaNeighborDirection.Sea]: ['S06', 'S10', 'S16'] }, region: INDONESIA_REGION_BY_AREA_ID['S03'] ?? null },
+    { id: 'S04', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['C19', 'C20', 'F05', 'F04', 'F01'], [IndonesiaNeighborDirection.Sea]: ['S07', 'S20'] }, region: INDONESIA_REGION_BY_AREA_ID['S04'] ?? null },
+    { id: 'S05', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['B01', 'B03', 'B09', 'B13'], [IndonesiaNeighborDirection.Sea]: ['S14', 'S09', 'S21', 'S11', 'S02'] }, region: INDONESIA_REGION_BY_AREA_ID['S05'] ?? null },
+    { id: 'S06', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A05', 'A06', 'A09', 'A08', 'A11', 'A13', 'A14', 'A17', 'A21'], [IndonesiaNeighborDirection.Sea]: ['S14', 'S03'] }, region: INDONESIA_REGION_BY_AREA_ID['S06'] ?? null },
+    { id: 'S07', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['E08', 'E09', 'E07', 'E11', 'C18'], [IndonesiaNeighborDirection.Sea]: ['S08', 'S17', 'S01', 'S20', 'S04'] }, region: INDONESIA_REGION_BY_AREA_ID['S07'] ?? null },
+    { id: 'S08', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['C25', 'C28', 'C30', 'C27', 'C29'], [IndonesiaNeighborDirection.Sea]: ['S18', 'S17', 'S07'] }, region: INDONESIA_REGION_BY_AREA_ID['S08'] ?? null },
+    { id: 'S09', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A04', 'A07', 'A10', 'A16'], [IndonesiaNeighborDirection.Sea]: ['S14', 'S05', 'S21'] }, region: INDONESIA_REGION_BY_AREA_ID['S09'] ?? null },
+    { id: 'S10', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['C06', 'C08', 'C09', 'C10', 'C14', 'C13', 'C15', 'C17', 'C21'], [IndonesiaNeighborDirection.Sea]: ['S03', 'S18', 'S15'] }, region: INDONESIA_REGION_BY_AREA_ID['S10'] ?? null },
+    { id: 'S11', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A33', 'B01', 'B02', 'B05', 'B06'], [IndonesiaNeighborDirection.Sea]: ['S13', 'S15', 'S16', 'S19', 'S21', 'S05'] }, region: INDONESIA_REGION_BY_AREA_ID['S11'] ?? null },
+    { id: 'S12', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['D03', 'D02', 'D01', 'D04', 'D05', 'D06', 'D09', 'D12'], [IndonesiaNeighborDirection.Sea]: ['S02', 'S01', 'S17'] }, region: INDONESIA_REGION_BY_AREA_ID['S12'] ?? null },
+    { id: 'S13', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['B06', 'B08', 'B11', 'B12', 'B14', 'B15', 'B17'], [IndonesiaNeighborDirection.Sea]: ['S02', 'S17', 'S18', 'S15', 'S11'] }, region: INDONESIA_REGION_BY_AREA_ID['S13'] ?? null },
+    { id: 'S14', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A01', 'A02', 'A03', 'A04', 'A08'], [IndonesiaNeighborDirection.Sea]: ['S09', 'S05', 'S06'] }, region: INDONESIA_REGION_BY_AREA_ID['S14'] ?? null },
+    { id: 'S15', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['C09', 'C11', 'C12', 'C16', 'C13', 'C15', 'C17', 'C21'], [IndonesiaNeighborDirection.Sea]: ['S16', 'S11', 'S13', 'S18', 'S10'] }, region: INDONESIA_REGION_BY_AREA_ID['S15'] ?? null },
+    { id: 'S16', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A34', 'A30', 'C01', 'C03', 'C05', 'C07', 'C08', 'C09'], [IndonesiaNeighborDirection.Sea]: ['S19', 'S11', 'S15', 'S03'] }, region: INDONESIA_REGION_BY_AREA_ID['S16'] ?? null },
+    { id: 'S17', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['D11', 'D08', 'D09', 'D10', 'D13'], [IndonesiaNeighborDirection.Sea]: ['S13', 'S18', 'S08', 'S07', 'S01', 'S02', 'S12'] }, region: INDONESIA_REGION_BY_AREA_ID['S17'] ?? null },
+    { id: 'S18', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['C21', 'C22', 'C23', 'C24', 'C26'], [IndonesiaNeighborDirection.Sea]: ['S10', 'S15', 'S13', 'S17', 'S08'] }, region: INDONESIA_REGION_BY_AREA_ID['S18'] ?? null },
+    { id: 'S19', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A25', 'A28', 'A31', 'A30', 'A32'], [IndonesiaNeighborDirection.Sea]: ['S11', 'S16', 'S21'] }, region: INDONESIA_REGION_BY_AREA_ID['S19'] ?? null },
+    { id: 'S20', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['F06', 'F03', 'F05', 'F07', 'F02'], [IndonesiaNeighborDirection.Sea]: ['S01', 'S07', 'S04'] }, region: INDONESIA_REGION_BY_AREA_ID['S20'] ?? null },
+    { id: 'S21', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A16', 'A19', 'A23', 'A25', 'A26'], [IndonesiaNeighborDirection.Sea]: ['S19', 'S11', 'S05', 'S09'] }, region: INDONESIA_REGION_BY_AREA_ID['S21'] ?? null },
 ]
-
-const INDONESIA_SEA_NODES_BASE: IndonesiaNodeBase[] = [
-    { id: 'S01', neighbors: [] },
-    { id: 'S02', neighbors: [] },
-    { id: 'S03', neighbors: [] },
-    { id: 'S04', neighbors: [] },
-    { id: 'S05', neighbors: [] },
-    { id: 'S06', neighbors: [] },
-    { id: 'S07', neighbors: [] },
-    { id: 'S08', neighbors: [] },
-    { id: 'S09', neighbors: [] },
-    { id: 'S10', neighbors: [] },
-    { id: 'S11', neighbors: [] },
-    { id: 'S12', neighbors: [] },
-    { id: 'S13', neighbors: [] },
-    { id: 'S14', neighbors: [] },
-    { id: 'S15', neighbors: [] },
-    { id: 'S16', neighbors: [] },
-    { id: 'S17', neighbors: [] },
-    { id: 'S18', neighbors: [] },
-    { id: 'S19', neighbors: [] },
-    { id: 'S20', neighbors: [] },
-    { id: 'S21', neighbors: [] },
-]
-
-const INDONESIA_NODES_BASE: IndonesiaNodeBase[] = [
-    ...INDONESIA_LAND_NODES_BASE,
-    ...INDONESIA_SEA_NODES_BASE
-]
-
-type IndonesiaDirectedNeighborOverride = Partial<
-    Record<IndonesiaNeighborDirection, IndonesiaNodeId[]>
->
-
-const INDONESIA_NODE_DIRECTIONAL_OVERRIDES: Partial<
-    Record<IndonesiaNodeId, IndonesiaDirectedNeighborOverride>
-> = {
-    S14: {
-        [IndonesiaNeighborDirection.Sea]: ['S09', 'S05', 'S06'],
-        [IndonesiaNeighborDirection.Land]: ['A01', 'A02', 'A03', 'A04', 'A08']
-    },
-    A01: {
-        [IndonesiaNeighborDirection.Sea]: ['S14']
-    },
-    A02: {
-        [IndonesiaNeighborDirection.Sea]: ['S14']
-    },
-    A03: {
-        [IndonesiaNeighborDirection.Sea]: ['S14']
-    },
-    A04: {
-        [IndonesiaNeighborDirection.Sea]: ['S14']
-    },
-    A08: {
-        [IndonesiaNeighborDirection.Sea]: ['S14']
-    },
-    S09: {
-        [IndonesiaNeighborDirection.Sea]: ['S14', 'S05', 'S21'],
-        [IndonesiaNeighborDirection.Land]: ['A04', 'A07', 'A10', 'A16']
-    },
-    S05: {
-        [IndonesiaNeighborDirection.Sea]: ['S14', 'S09', 'S21', 'S11', 'S02'],
-        [IndonesiaNeighborDirection.Land]: ['B01', 'B03', 'B09', 'B13']
-    },
-    S06: {
-        [IndonesiaNeighborDirection.Sea]: ['S14', 'S03'],
-        [IndonesiaNeighborDirection.Land]: [
-            'A05',
-            'A06',
-            'A09',
-            'A08',
-            'A11',
-            'A13',
-            'A14',
-            'A17',
-            'A21'
-        ]
-    },
-    S03: {
-        [IndonesiaNeighborDirection.Sea]: ['S06', 'S10', 'S16'],
-        [IndonesiaNeighborDirection.Land]: ['A21', 'A22', 'A34', 'C01', 'C02', 'C04', 'C06']
-    },
-    S10: {
-        [IndonesiaNeighborDirection.Sea]: ['S03', 'S18', 'S15'],
-        [IndonesiaNeighborDirection.Land]: [
-            'C06',
-            'C08',
-            'C09',
-            'C10',
-            'C14',
-            'C13',
-            'C15',
-            'C17',
-            'C21'
-        ]
-    },
-    S18: {
-        [IndonesiaNeighborDirection.Sea]: ['S10', 'S15', 'S13', 'S17', 'S08'],
-        [IndonesiaNeighborDirection.Land]: ['C21', 'C22', 'C23', 'C24', 'C26']
-    },
-    S08: {
-        [IndonesiaNeighborDirection.Sea]: ['S18', 'S17', 'S07'],
-        [IndonesiaNeighborDirection.Land]: ['C25', 'C28', 'C30', 'C27', 'C29']
-    },
-    S07: {
-        [IndonesiaNeighborDirection.Sea]: ['S08', 'S17', 'S01', 'S20', 'S04'],
-        [IndonesiaNeighborDirection.Land]: ['E08', 'E09', 'E07', 'E11', 'C18']
-    },
-    S04: {
-        [IndonesiaNeighborDirection.Sea]: ['S07', 'S20'],
-        [IndonesiaNeighborDirection.Land]: ['C19', 'C20', 'F05', 'F04', 'F01']
-    },
-    S20: {
-        [IndonesiaNeighborDirection.Sea]: ['S01', 'S07', 'S04'],
-        [IndonesiaNeighborDirection.Land]: ['F06', 'F03', 'F05', 'F07', 'F02']
-    },
-    S01: {
-        [IndonesiaNeighborDirection.Sea]: ['S20', 'S07', 'S02', 'S12', 'S17'],
-        [IndonesiaNeighborDirection.Land]: ['E06', 'E05', 'E04', 'E03', 'E02', 'E10', 'E01']
-    },
-    S02: {
-        [IndonesiaNeighborDirection.Sea]: ['S01', 'S12', 'S05', 'S13', 'S17'],
-        [IndonesiaNeighborDirection.Land]: [
-            'B19',
-            'B18',
-            'B20',
-            'B16',
-            'B17',
-            'D08',
-            'D07',
-            'D04',
-            'D01',
-            'D02'
-        ]
-    },
-    S13: {
-        [IndonesiaNeighborDirection.Sea]: ['S02', 'S17', 'S18', 'S15', 'S11'],
-        [IndonesiaNeighborDirection.Land]: ['B06', 'B08', 'B11', 'B12', 'B14', 'B15', 'B17']
-    },
-    S11: {
-        [IndonesiaNeighborDirection.Sea]: ['S13', 'S15', 'S16', 'S19', 'S21', 'S05'],
-        [IndonesiaNeighborDirection.Land]: ['A33', 'B01', 'B02', 'B05', 'B06']
-    },
-    S15: {
-        [IndonesiaNeighborDirection.Sea]: ['S16', 'S11', 'S13', 'S18', 'S10'],
-        [IndonesiaNeighborDirection.Land]: [
-            'C09',
-            'C11',
-            'C12',
-            'C16',
-            'C13',
-            'C15',
-            'C17',
-            'C21'
-        ]
-    },
-    S16: {
-        [IndonesiaNeighborDirection.Sea]: ['S19', 'S11', 'S15', 'S03'],
-        [IndonesiaNeighborDirection.Land]: [
-            'A34',
-            'A30',
-            'C01',
-            'C03',
-            'C05',
-            'C07',
-            'C08',
-            'C09'
-        ]
-    },
-    S19: {
-        [IndonesiaNeighborDirection.Sea]: ['S11', 'S16', 'S21'],
-        [IndonesiaNeighborDirection.Land]: ['A25', 'A28', 'A31', 'A30', 'A32']
-    },
-    S21: {
-        [IndonesiaNeighborDirection.Sea]: ['S19', 'S11', 'S05', 'S09'],
-        [IndonesiaNeighborDirection.Land]: ['A16', 'A19', 'A23', 'A25', 'A26']
-    },
-    S12: {
-        [IndonesiaNeighborDirection.Sea]: ['S02', 'S01', 'S17'],
-        [IndonesiaNeighborDirection.Land]: ['D03', 'D02', 'D01', 'D04', 'D05', 'D06', 'D09', 'D12']
-    },
-    S17: {
-        [IndonesiaNeighborDirection.Sea]: ['S13', 'S18', 'S08', 'S07', 'S01', 'S02', 'S12'],
-        [IndonesiaNeighborDirection.Land]: ['D11', 'D08', 'D09', 'D10', 'D13']
-    }
-}
-
-export const INDONESIA_NODES: IndonesiaNode[] = INDONESIA_NODES_BASE.map((node) => ({
-    id: node.id,
-    ...(() => {
-        const override = INDONESIA_NODE_DIRECTIONAL_OVERRIDES[node.id]
-        const landNeighbors = override?.[IndonesiaNeighborDirection.Land] ?? node.neighbors
-        const seaNeighbors = override?.[IndonesiaNeighborDirection.Sea] ?? []
-        return {
-            neighbors: {
-                [IndonesiaNeighborDirection.Land]: [...landNeighbors],
-                [IndonesiaNeighborDirection.Sea]: [...seaNeighbors]
-            }
-        }
-    })(),
-    region: INDONESIA_REGION_BY_AREA_ID[node.id] ?? null
-}))
