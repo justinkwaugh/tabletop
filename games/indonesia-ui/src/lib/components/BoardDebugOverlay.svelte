@@ -322,22 +322,40 @@
         })
 
         const areaColors = new Map<string, string>()
+        const colorUsage = new Map<string, number>()
+        const colorCandidateCount = Math.max(sortedIds.length, DEBUG_PALETTE.length)
+
         for (const id of sortedIds) {
             const neighborColors = new Set(
                 [...(filteredAdjacency.get(id) ?? [])]
                     .map((neighborId) => areaColors.get(neighborId))
                     .filter(Boolean)
             )
-            for (let colorIndex = 0; colorIndex < 256; colorIndex++) {
+
+            let selectedColor: string | null = null
+            let selectedColorUsage = Number.POSITIVE_INFINITY
+
+            // Prefer unused colors first, then least-used colors, while still
+            // respecting adjacency constraints.
+            for (let colorIndex = 0; colorIndex < colorCandidateCount; colorIndex++) {
                 const candidate = getPaletteColor(colorIndex)
-                if (!neighborColors.has(candidate)) {
-                    areaColors.set(id, candidate)
-                    break
+                if (neighborColors.has(candidate)) {
+                    continue
+                }
+
+                const usage = colorUsage.get(candidate) ?? 0
+                if (usage < selectedColorUsage) {
+                    selectedColor = candidate
+                    selectedColorUsage = usage
                 }
             }
-            if (!areaColors.has(id)) {
-                areaColors.set(id, getPaletteColor(0))
+
+            if (selectedColor === null) {
+                selectedColor = getPaletteColor(colorCandidateCount)
             }
+
+            areaColors.set(id, selectedColor)
+            colorUsage.set(selectedColor, (colorUsage.get(selectedColor) ?? 0) + 1)
         }
 
         return areaColors
