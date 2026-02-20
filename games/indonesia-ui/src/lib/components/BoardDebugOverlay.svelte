@@ -4,6 +4,7 @@
         EASTCENTRAL_ISLAND_AREAS,
         LEFTMOST_ISLAND_AREAS,
         NORTHEAST_ISLAND_AREAS,
+        SEA_AREAS,
         TOP_CENTER_ISLAND_AREAS,
         SOUTHCHAIN_ISLAND_AREAS,
         SOUTHLEFT_ISLAND_AREAS
@@ -14,8 +15,8 @@
 
     let { width, height }: { width: number; height: number } = $props()
 
-    type ColorMode = 'adjacency' | 'region'
-    let colorMode: ColorMode = $state('adjacency')
+    type OverlayMode = 'adjacency' | 'region' | 'sea'
+    let colorMode: OverlayMode = $state('adjacency')
 
     type BoardNodeView = {
         id: string
@@ -103,7 +104,7 @@
         return nodes
     })
 
-    const DEBUG_MAP_AREAS: DebugArea[] = $derived.by(() => {
+    const LAND_DEBUG_MAP_AREAS: DebugArea[] = $derived.by(() => {
         const mappedAreas: DebugArea[] = []
         const seenIds = new Set<string>()
 
@@ -130,8 +131,24 @@
         return mappedAreas
     })
 
-    const DEBUG_AREAS_BY_ID: Map<string, DebugArea> = $derived.by(
-        () => new Map(DEBUG_MAP_AREAS.map((area) => [area.id, area]))
+    const SEA_DEBUG_MAP_AREAS: DebugArea[] = $derived.by(() => {
+        const areas = SEA_AREAS.map((area) => ({
+            id: area.id,
+            path: area.path,
+            label: area.id,
+            region: null,
+            ...getPathLabelPosition(area.path)
+        }))
+        areas.sort((left, right) => compareAreaIds(left.id, right.id))
+        return areas
+    })
+
+    const DISPLAY_AREAS: DebugArea[] = $derived.by(() =>
+        colorMode === 'sea' ? SEA_DEBUG_MAP_AREAS : LAND_DEBUG_MAP_AREAS
+    )
+
+    const LAND_DEBUG_AREAS_BY_ID: Map<string, DebugArea> = $derived.by(
+        () => new Map(LAND_DEBUG_MAP_AREAS.map((area) => [area.id, area]))
     )
 
     const BOARD_ADJACENCY: Map<string, Set<string>> = $derived.by(() => {
@@ -150,6 +167,10 @@
     })
 
     const DEBUG_CONNECTIONS: DebugConnection[] = $derived.by(() => {
+        if (colorMode === 'sea') {
+            return []
+        }
+
         const connections: DebugConnection[] = []
         const seenEdgeIds = new Set<string>()
 
@@ -161,8 +182,8 @@
                 }
                 seenEdgeIds.add(edgeId)
 
-                const from = DEBUG_AREAS_BY_ID.get(node.id)
-                const to = DEBUG_AREAS_BY_ID.get(neighborId)
+                const from = LAND_DEBUG_AREAS_BY_ID.get(node.id)
+                const to = LAND_DEBUG_AREAS_BY_ID.get(neighborId)
                 if (!from || !to) {
                     continue
                 }
@@ -250,11 +271,22 @@
         return areaColors
     }
 
-    const DEBUG_AREA_COLORS: Map<string, string> = $derived.by(() => {
-        if (colorMode === 'region') {
-            return computeRegionColorMap(DEBUG_MAP_AREAS)
+    function computeSequentialColorMap(areas: DebugArea[]): Map<string, string> {
+        const areaColors = new Map<string, string>()
+        for (const [index, area] of areas.entries()) {
+            areaColors.set(area.id, getPaletteColor(index))
         }
-        return computeAdjacencyColorMap(DEBUG_MAP_AREAS, BOARD_ADJACENCY)
+        return areaColors
+    }
+
+    const DEBUG_AREA_COLORS: Map<string, string> = $derived.by(() => {
+        if (colorMode === 'sea') {
+            return computeSequentialColorMap(DISPLAY_AREAS)
+        }
+        if (colorMode === 'region') {
+            return computeRegionColorMap(DISPLAY_AREAS)
+        }
+        return computeAdjacencyColorMap(DISPLAY_AREAS, BOARD_ADJACENCY)
     })
 </script>
 
@@ -278,6 +310,15 @@
         >
             Region
         </button>
+        <button
+            type="button"
+            class:active={colorMode === 'sea'}
+            onclick={() => {
+                colorMode = 'sea'
+            }}
+        >
+            Sea
+        </button>
     </div>
 
     <svg
@@ -286,7 +327,7 @@
         aria-label="Indonesia board debug overlay"
     >
         <g class="pointer-events-none" aria-label="Debug map geometry">
-            {#each DEBUG_MAP_AREAS as area (area.id)}
+            {#each DISPLAY_AREAS as area (area.id)}
                 {@const areaColor = DEBUG_AREA_COLORS.get(area.id) ?? '#ff1e1e'}
                 <path
                     d={area.path}
@@ -312,7 +353,7 @@
                     opacity="0.85"
                 ></line>
             {/each}
-            {#each DEBUG_MAP_AREAS as area (area.id)}
+            {#each DISPLAY_AREAS as area (area.id)}
                 <text
                     x={area.labelX}
                     y={area.labelY}
