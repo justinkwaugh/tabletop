@@ -34,10 +34,33 @@ describe('IndonesiaGraph', () => {
         }
     })
 
-    it('starts with no Sea-direction neighbors', () => {
+    it('includes configured S14 sea and land direction neighbors', () => {
         const graph = new IndonesiaGraph()
-        for (const node of graph) {
-            expect(graph.neighborsOf(node, IndonesiaNeighborDirection.Sea)).toHaveLength(0)
-        }
+        const s14 = graph.nodeById('S14')
+        expect(s14).toBeDefined()
+        expect(
+            sorted(
+                graph
+                    .neighborsOf(s14!, IndonesiaNeighborDirection.Sea)
+                    .map((neighbor) => neighbor.id.toString())
+            )
+        ).toEqual(['S05', 'S06', 'S09'])
+        expect(
+            sorted(
+                graph
+                    .neighborsOf(s14!, IndonesiaNeighborDirection.Land)
+                    .map((neighbor) => neighbor.id.toString())
+            )
+        ).toEqual(['A01', 'A02', 'A03', 'A04', 'A08'])
+
+        expect(
+            sorted(
+                graph
+                    .neighborsOf(graph.nodeById('A01')!, IndonesiaNeighborDirection.Sea)
+                    .map((neighbor) => neighbor.id.toString())
+            )
+        ).toEqual(['S14'])
+
+        expect(graph.neighborsOf(graph.nodeById('S01')!, IndonesiaNeighborDirection.Sea)).toHaveLength(0)
     })
 })

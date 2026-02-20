@@ -307,11 +307,175 @@ const INDONESIA_NODES_BASE: IndonesiaNodeBase[] = [
     ...INDONESIA_SEA_NODES_BASE
 ]
 
+type IndonesiaDirectedNeighborOverride = Partial<
+    Record<IndonesiaNeighborDirection, IndonesiaNodeId[]>
+>
+
+const INDONESIA_NODE_DIRECTIONAL_OVERRIDES: Partial<
+    Record<IndonesiaNodeId, IndonesiaDirectedNeighborOverride>
+> = {
+    S14: {
+        [IndonesiaNeighborDirection.Sea]: ['S09', 'S05', 'S06'],
+        [IndonesiaNeighborDirection.Land]: ['A01', 'A02', 'A03', 'A04', 'A08']
+    },
+    A01: {
+        [IndonesiaNeighborDirection.Sea]: ['S14']
+    },
+    A02: {
+        [IndonesiaNeighborDirection.Sea]: ['S14']
+    },
+    A03: {
+        [IndonesiaNeighborDirection.Sea]: ['S14']
+    },
+    A04: {
+        [IndonesiaNeighborDirection.Sea]: ['S14']
+    },
+    A08: {
+        [IndonesiaNeighborDirection.Sea]: ['S14']
+    },
+    S09: {
+        [IndonesiaNeighborDirection.Sea]: ['S14', 'S05', 'S21'],
+        [IndonesiaNeighborDirection.Land]: ['A04', 'A07', 'A10', 'A16']
+    },
+    S05: {
+        [IndonesiaNeighborDirection.Sea]: ['S14', 'S09', 'S21', 'S11', 'S02'],
+        [IndonesiaNeighborDirection.Land]: ['B01', 'B03', 'B09', 'B13']
+    },
+    S06: {
+        [IndonesiaNeighborDirection.Sea]: ['S14', 'S03'],
+        [IndonesiaNeighborDirection.Land]: [
+            'A05',
+            'A06',
+            'A09',
+            'A08',
+            'A11',
+            'A13',
+            'A14',
+            'A17',
+            'A21'
+        ]
+    },
+    S03: {
+        [IndonesiaNeighborDirection.Sea]: ['S06', 'S10', 'S16'],
+        [IndonesiaNeighborDirection.Land]: ['A21', 'A22', 'A34', 'C01', 'C02', 'C04', 'C06']
+    },
+    S10: {
+        [IndonesiaNeighborDirection.Sea]: ['S03', 'S18', 'S15'],
+        [IndonesiaNeighborDirection.Land]: [
+            'C06',
+            'C08',
+            'C09',
+            'C10',
+            'C14',
+            'C13',
+            'C15',
+            'C17',
+            'C21'
+        ]
+    },
+    S18: {
+        [IndonesiaNeighborDirection.Sea]: ['S10', 'S15', 'S13', 'S17', 'S08'],
+        [IndonesiaNeighborDirection.Land]: ['C21', 'C22', 'C23', 'C24', 'C26']
+    },
+    S08: {
+        [IndonesiaNeighborDirection.Sea]: ['S18', 'S17', 'S07'],
+        [IndonesiaNeighborDirection.Land]: ['C25', 'C28', 'C30', 'C27', 'C29']
+    },
+    S07: {
+        [IndonesiaNeighborDirection.Sea]: ['S08', 'S17', 'S01', 'S20', 'S04'],
+        [IndonesiaNeighborDirection.Land]: ['E08', 'E09', 'E07', 'E11', 'C18']
+    },
+    S04: {
+        [IndonesiaNeighborDirection.Sea]: ['S07', 'S20'],
+        [IndonesiaNeighborDirection.Land]: ['C19', 'C20', 'F05', 'F04', 'F01']
+    },
+    S20: {
+        [IndonesiaNeighborDirection.Sea]: ['S01', 'S07', 'S04'],
+        [IndonesiaNeighborDirection.Land]: ['F06', 'F03', 'F05', 'F07', 'F02']
+    },
+    S01: {
+        [IndonesiaNeighborDirection.Sea]: ['S20', 'S07', 'S02', 'S12', 'S17'],
+        [IndonesiaNeighborDirection.Land]: ['E06', 'E05', 'E04', 'E03', 'E02', 'E10', 'E01']
+    },
+    S02: {
+        [IndonesiaNeighborDirection.Sea]: ['S01', 'S12', 'S05', 'S13', 'S17'],
+        [IndonesiaNeighborDirection.Land]: [
+            'B19',
+            'B18',
+            'B20',
+            'B16',
+            'B17',
+            'D08',
+            'D07',
+            'D04',
+            'D01',
+            'D02'
+        ]
+    },
+    S13: {
+        [IndonesiaNeighborDirection.Sea]: ['S02', 'S17', 'S18', 'S15', 'S11'],
+        [IndonesiaNeighborDirection.Land]: ['B06', 'B08', 'B11', 'B12', 'B14', 'B15', 'B17']
+    },
+    S11: {
+        [IndonesiaNeighborDirection.Sea]: ['S13', 'S15', 'S16', 'S19', 'S21', 'S05'],
+        [IndonesiaNeighborDirection.Land]: ['A33', 'B01', 'B02', 'B05', 'B06']
+    },
+    S15: {
+        [IndonesiaNeighborDirection.Sea]: ['S16', 'S11', 'S13', 'S18', 'S10'],
+        [IndonesiaNeighborDirection.Land]: [
+            'C09',
+            'C11',
+            'C12',
+            'C16',
+            'C13',
+            'C15',
+            'C17',
+            'C21'
+        ]
+    },
+    S16: {
+        [IndonesiaNeighborDirection.Sea]: ['S19', 'S11', 'S15', 'S03'],
+        [IndonesiaNeighborDirection.Land]: [
+            'A34',
+            'A30',
+            'C01',
+            'C03',
+            'C05',
+            'C07',
+            'C08',
+            'C09'
+        ]
+    },
+    S19: {
+        [IndonesiaNeighborDirection.Sea]: ['S11', 'S16', 'S21'],
+        [IndonesiaNeighborDirection.Land]: ['A25', 'A28', 'A31', 'A30', 'A32']
+    },
+    S21: {
+        [IndonesiaNeighborDirection.Sea]: ['S19', 'S11', 'S05', 'S09'],
+        [IndonesiaNeighborDirection.Land]: ['A16', 'A19', 'A23', 'A25', 'A26']
+    },
+    S12: {
+        [IndonesiaNeighborDirection.Sea]: ['S02', 'S01', 'S17'],
+        [IndonesiaNeighborDirection.Land]: ['D03', 'D02', 'D01', 'D04', 'D05', 'D06', 'D09', 'D12']
+    },
+    S17: {
+        [IndonesiaNeighborDirection.Sea]: ['S13', 'S18', 'S08', 'S07', 'S01', 'S02', 'S12'],
+        [IndonesiaNeighborDirection.Land]: ['D11', 'D08', 'D09', 'D10', 'D13']
+    }
+}
+
 export const INDONESIA_NODES: IndonesiaNode[] = INDONESIA_NODES_BASE.map((node) => ({
     id: node.id,
-    neighbors: {
-        [IndonesiaNeighborDirection.Land]: [...node.neighbors],
-        [IndonesiaNeighborDirection.Sea]: []
-    },
+    ...(() => {
+        const override = INDONESIA_NODE_DIRECTIONAL_OVERRIDES[node.id]
+        const landNeighbors = override?.[IndonesiaNeighborDirection.Land] ?? node.neighbors
+        const seaNeighbors = override?.[IndonesiaNeighborDirection.Sea] ?? []
+        return {
+            neighbors: {
+                [IndonesiaNeighborDirection.Land]: [...landNeighbors],
+                [IndonesiaNeighborDirection.Sea]: [...seaNeighbors]
+            }
+        }
+    })(),
     region: INDONESIA_REGION_BY_AREA_ID[node.id] ?? null
 }))
