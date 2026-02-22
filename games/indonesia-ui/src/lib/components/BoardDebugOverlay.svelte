@@ -14,6 +14,7 @@
     import OilMarker from '$lib/components/OilMarker.svelte'
     import RiceMarker from '$lib/components/RiceMarker.svelte'
     import RubberMarker from '$lib/components/RubberMarker.svelte'
+    import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
 
     const gameSession = getGameSession()
@@ -51,8 +52,27 @@
         y2: number
     }
 
+    type ProductionMarkerType = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
+
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
     const PRODUCTION_ICON_HEIGHT = 30
+    const GLASS_BEAD_HEIGHT = 40
+    const GLASS_BEAD_OPACITY = 0.85
+    const PRODUCTION_MARKER_TYPES: ProductionMarkerType[] = [
+        'spice',
+        'siapsaji',
+        'oil',
+        'rice',
+        'rubber'
+    ]
+    const GLASS_BEAD_PREVIEW_MARKERS = [
+        { x: 172, y: 90, tone: 'amber' },
+        { x: 207, y: 103, tone: 'red' },
+        { x: 243, y: 92, tone: 'green' },
+        { x: 279, y: 104, tone: 'amber' },
+        { x: 314, y: 92, tone: 'red' },
+        { x: 349, y: 103, tone: 'green' }
+    ] as const
 
     function compareAreaIds(left: string, right: string): number {
         return left.localeCompare(right, undefined, { numeric: true })
@@ -309,6 +329,35 @@
             .sort((left, right) => compareAreaIds(left.id, right.id))
     })
 
+    const PRODUCTION_MARKER_BY_AREA: Map<string, ProductionMarkerType> = $derived.by(() => {
+        const regionIds = [
+            ...new Set(
+                LAND_DEBUG_MAP_AREAS.map((area) => area.region).filter(
+                    (regionId): regionId is string => regionId !== null
+                )
+            )
+        ].sort((left, right) => left.localeCompare(right))
+
+        const markerByRegion = new Map<string, ProductionMarkerType>()
+        for (const [regionIndex, regionId] of regionIds.entries()) {
+            markerByRegion.set(
+                regionId,
+                PRODUCTION_MARKER_TYPES[regionIndex % PRODUCTION_MARKER_TYPES.length]
+            )
+        }
+
+        const markerByArea = new Map<string, ProductionMarkerType>()
+        for (const [areaIndex, area] of LAND_DEBUG_MAP_AREAS.entries()) {
+            if (area.region) {
+                markerByArea.set(area.id, markerByRegion.get(area.region) ?? 'spice')
+                continue
+            }
+            markerByArea.set(area.id, PRODUCTION_MARKER_TYPES[areaIndex % PRODUCTION_MARKER_TYPES.length])
+        }
+
+        return markerByArea
+    })
+
     function computeAdjacencyColorMap(
         areas: DebugArea[],
         adjacency: Map<string, Set<string>>
@@ -495,19 +544,27 @@
     >
         <g aria-label="Debug map geometry">
             {#if colorMode === 'production'}
-                {#each LAND_DEBUG_MAP_AREAS as area, areaIndex (area.id)}
-                    {@const markerType = areaIndex % 5}
-                    {#if markerType === 0}
+                {#each LAND_DEBUG_MAP_AREAS as area (area.id)}
+                    {@const markerType = PRODUCTION_MARKER_BY_AREA.get(area.id) ?? 'spice'}
+                    {#if area.id === 'A34'}
+                        <GlassBeadMarker
+                            x={area.labelX}
+                            y={area.labelY}
+                            height={GLASS_BEAD_HEIGHT}
+                            tone="green"
+                            opacity={GLASS_BEAD_OPACITY}
+                        />
+                    {:else if markerType === 'spice'}
                         <SpiceMarker x={area.labelX} y={area.labelY} height={PRODUCTION_ICON_HEIGHT} />
-                    {:else if markerType === 1}
+                    {:else if markerType === 'siapsaji'}
                         <SiapSajiMarker
                             x={area.labelX}
                             y={area.labelY}
                             height={PRODUCTION_ICON_HEIGHT}
                         />
-                    {:else if markerType === 2}
+                    {:else if markerType === 'oil'}
                         <OilMarker x={area.labelX} y={area.labelY} height={PRODUCTION_ICON_HEIGHT} />
-                    {:else if markerType === 3}
+                    {:else if markerType === 'rice'}
                         <RiceMarker x={area.labelX} y={area.labelY} height={PRODUCTION_ICON_HEIGHT} />
                     {:else}
                         <RubberMarker
@@ -516,6 +573,15 @@
                             height={PRODUCTION_ICON_HEIGHT}
                         />
                     {/if}
+                {/each}
+                {#each GLASS_BEAD_PREVIEW_MARKERS as marker, markerIndex (`glass-${markerIndex}`)}
+                    <GlassBeadMarker
+                        x={marker.x}
+                        y={marker.y}
+                        height={GLASS_BEAD_HEIGHT}
+                        tone={marker.tone}
+                        opacity={GLASS_BEAD_OPACITY}
+                    />
                 {/each}
             {/if}
             {#each DISPLAY_AREAS as area (area.id)}
