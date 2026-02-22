@@ -6,49 +6,53 @@
     const BEAD_TONE_COLORS: Record<
         BeadTone,
         {
-            baseLight: string
+            baseHighlight: string
             baseMid: string
             baseDark: string
             baseDeep: string
-            topShade: string
-            innerGlow: string
             rim: string
-            shadow: string
+            lowerBandLight: string
+            lowerBandHot: string
             caustic: string
+            cutShade: string
+            shadow: string
         }
     > = {
         amber: {
-            baseLight: '#ffd575',
-            baseMid: '#d27b16',
-            baseDark: '#8d3f09',
-            baseDeep: '#4a1f04',
-            topShade: '#2b1204',
-            innerGlow: '#ff9a1a',
-            rim: '#5c2c06',
+            baseHighlight: '#bc6f2b',
+            baseMid: '#7c3510',
+            baseDark: '#4b1c08',
+            baseDeep: '#281006',
+            rim: '#3b1709',
+            lowerBandLight: '#ffc23a',
+            lowerBandHot: '#ff8b09',
+            caustic: '#ff9a18',
+            cutShade: '#2a0d04',
             shadow: '#1b1106',
-            caustic: '#ffe6a0'
         },
         red: {
-            baseLight: '#ffd4df',
-            baseMid: '#d94866',
-            baseDark: '#8d1536',
-            baseDeep: '#47091f',
-            topShade: '#25060f',
-            innerGlow: '#ff5477',
-            rim: '#4a0f24',
+            baseHighlight: '#b23049',
+            baseMid: '#741830',
+            baseDark: '#43111e',
+            baseDeep: '#22080f',
+            rim: '#32101a',
+            lowerBandLight: '#ff7da0',
+            lowerBandHot: '#ff3d6f',
+            caustic: '#ff5f87',
+            cutShade: '#26060d',
             shadow: '#1e0b0a',
-            caustic: '#ffe2ea'
         },
         green: {
-            baseLight: '#dcf4bb',
-            baseMid: '#66ab39',
-            baseDark: '#2f6f23',
-            baseDeep: '#163b12',
-            topShade: '#0c1d0a',
-            innerGlow: '#8fda53',
-            rim: '#1f4a1a',
+            baseHighlight: '#4f8f2d',
+            baseMid: '#2f5d19',
+            baseDark: '#1a3510',
+            baseDeep: '#0f1d09',
+            rim: '#153011',
+            lowerBandLight: '#b8ee59',
+            lowerBandHot: '#74ca29',
+            caustic: '#93e03f',
+            cutShade: '#0d1d08',
             shadow: '#0c1709',
-            caustic: '#e8fbd8'
         }
     }
 
@@ -67,44 +71,64 @@
 
     const colors = $derived(BEAD_TONE_COLORS[tone])
     const safeIdSuffix = $derived(idSuffix.replace(/[^a-zA-Z0-9_-]/g, '-'))
-    const baseGradientId = $derived(`glass-bead-base-${tone}-${safeIdSuffix}`)
-    const topShadeGradientId = $derived(`glass-bead-top-${tone}-${safeIdSuffix}`)
-    const lowerGlowGradientId = $derived(`glass-bead-lower-${tone}-${safeIdSuffix}`)
-    const glossGradientId = $derived(`glass-bead-gloss-${tone}-${safeIdSuffix}`)
+    const bodyGradientId = $derived(`glass-bead-body-${tone}-${safeIdSuffix}`)
+    const lowerBandGradientId = $derived(`glass-bead-band-${tone}-${safeIdSuffix}`)
+    const causticGradientId = $derived(`glass-bead-caustic-${tone}-${safeIdSuffix}`)
 </script>
 
 <svg {width} {height} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" {...svgProps}>
     <defs>
-        <radialGradient id={baseGradientId} cx="42%" cy="30%" r="72%">
-            <stop offset="0%" stop-color={colors.baseLight} />
-            <stop offset="35%" stop-color={colors.baseMid} />
-            <stop offset="78%" stop-color={colors.baseDark} />
+        <radialGradient id={bodyGradientId} cx="38%" cy="27%" r="74%">
+            <stop offset="0%" stop-color={colors.baseHighlight} />
+            <stop offset="42%" stop-color={colors.baseMid} />
+            <stop offset="79%" stop-color={colors.baseDark} />
             <stop offset="100%" stop-color={colors.baseDeep} />
         </radialGradient>
-        <radialGradient id={topShadeGradientId} cx="52%" cy="18%" r="70%">
-            <stop offset="0%" stop-color={colors.topShade} stop-opacity="0.86" />
-            <stop offset="60%" stop-color={colors.topShade} stop-opacity="0.52" />
-            <stop offset="100%" stop-color={colors.topShade} stop-opacity="0" />
-        </radialGradient>
-        <radialGradient id={lowerGlowGradientId} cx="52%" cy="84%" r="56%">
-            <stop offset="0%" stop-color={colors.innerGlow} stop-opacity="0.95" />
-            <stop offset="72%" stop-color={colors.innerGlow} stop-opacity="0.2" />
-            <stop offset="100%" stop-color={colors.innerGlow} stop-opacity="0" />
-        </radialGradient>
-        <linearGradient id={glossGradientId} x1="0%" x2="0%" y1="0%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.75" />
-            <stop offset="55%" stop-color="#ffffff" stop-opacity="0.06" />
-            <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+        <linearGradient id={lowerBandGradientId} x1="20%" y1="0%" x2="80%" y2="0%">
+            <stop offset="0%" stop-color={colors.lowerBandHot} />
+            <stop offset="45%" stop-color={colors.lowerBandLight} />
+            <stop offset="100%" stop-color={colors.lowerBandHot} />
         </linearGradient>
+        <radialGradient id={causticGradientId} cx="50%" cy="78%" r="34%">
+            <stop offset="0%" stop-color={colors.caustic} stop-opacity="0.66" />
+            <stop offset="72%" stop-color={colors.caustic} stop-opacity="0.1" />
+            <stop offset="100%" stop-color={colors.caustic} stop-opacity="0" />
+        </radialGradient>
     </defs>
 
-    <ellipse cx="50" cy="79.5" rx="28" ry="8.8" fill={colors.shadow} opacity="0.2" />
-    <ellipse cx="50" cy="50.5" rx="33.2" ry="33.2" fill={`url(#${baseGradientId})`} stroke={colors.rim} stroke-width="2.2" />
-    <ellipse cx="50" cy="44.6" rx="28.8" ry="18.8" fill={`url(#${topShadeGradientId})`} />
-    <ellipse cx="50" cy="66" rx="19.4" ry="8.9" fill={`url(#${lowerGlowGradientId})`} opacity="0.92" />
-    <ellipse cx="50" cy="70.8" rx="9.8" ry="4.2" fill={colors.caustic} opacity="0.42" />
+    <ellipse cx="50" cy="82.5" rx="24.5" ry="8.2" fill={colors.shadow} opacity="0.18" />
+    <ellipse
+        cx="50"
+        cy="50"
+        rx="32.5"
+        ry="32.5"
+        fill={`url(#${bodyGradientId})`}
+        stroke={colors.rim}
+        stroke-width="2.1"
+    />
 
-    <path d="M30.5 33.8c7.6-4.5 23.2-5.1 37.4-.4" fill="none" stroke={`url(#${glossGradientId})`} stroke-width="5.6" stroke-linecap="round" opacity="0.72" />
-    <ellipse cx="58.4" cy="34.6" rx="9.6" ry="3.8" fill="#fff9ed" opacity="0.4" />
-    <path d="M26.8 55.2c2.5 8.8 10.8 16.1 20.1 19.3" fill="none" stroke={colors.caustic} stroke-width="2.1" stroke-linecap="round" opacity="0.22" />
+    <ellipse cx="50" cy="41.5" rx="25.5" ry="14" fill={colors.baseDeep} opacity="0.45" />
+    <ellipse cx="50" cy="42.2" rx="23.5" ry="11.8" fill={colors.baseDark} opacity="0.3" />
+
+    <ellipse cx="50" cy="68.8" rx="24.6" ry="8.7" fill={`url(#${lowerBandGradientId})`} opacity="0.96" />
+    <ellipse cx="50" cy="64.5" rx="24.8" ry="8.9" fill={colors.cutShade} opacity="0.62" />
+    <ellipse cx="50" cy="71.3" rx="12.8" ry="4.4" fill={`url(#${causticGradientId})`} />
+
+    <ellipse cx="50.8" cy="69.1" rx="3.4" ry="2.2" fill={colors.baseDark} opacity="0.62" />
+    <ellipse cx="30.8" cy="69.6" rx="2.8" ry="1.8" fill={colors.baseDark} opacity="0.53" />
+
+    <path
+        d="M27 28c4.8-9.2 19.3-11.7 28.8-5.4c-5.4 5.9-12.3 10.2-20.5 13c-3.8-1.5-6.9-4.2-8.3-7.6Z"
+        fill="#fffdf7"
+        opacity="0.73"
+    />
+    <ellipse cx="62" cy="26.2" rx="3.8" ry="1.6" fill="#fffdf7" opacity="0.42" />
+    <path
+        d="M61 27c2.9 4.4 4.6 9.5 4.9 14.3"
+        fill="none"
+        stroke="#fffdf7"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        opacity="0.22"
+    />
 </svg>

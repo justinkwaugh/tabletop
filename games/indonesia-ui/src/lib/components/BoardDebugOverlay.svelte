@@ -56,7 +56,7 @@
 
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
     const PRODUCTION_ICON_HEIGHT = 30
-    const GLASS_BEAD_HEIGHT = 40
+    const GLASS_BEAD_HEIGHT = 46
     const GLASS_BEAD_OPACITY = 0.85
     const PRODUCTION_MARKER_TYPES: ProductionMarkerType[] = [
         'spice',
