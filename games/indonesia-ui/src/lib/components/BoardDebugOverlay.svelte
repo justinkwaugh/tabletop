@@ -9,13 +9,18 @@
         SOUTHCHAIN_ISLAND_AREAS,
         SOUTHLEFT_ISLAND_AREAS
     } from '$lib/definitions/boardGeometry.js'
+    import SpiceMarker from '$lib/components/SpiceMarker.svelte'
+    import SiapSajiMarker from '$lib/components/SiapSajiMarker.svelte'
+    import OilMarker from '$lib/components/OilMarker.svelte'
+    import RiceMarker from '$lib/components/RiceMarker.svelte'
+    import RubberMarker from '$lib/components/RubberMarker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
 
     const gameSession = getGameSession()
 
     let { width, height }: { width: number; height: number } = $props()
 
-    type OverlayMode = 'none' | 'land' | 'coastal' | 'region' | 'sea'
+    type OverlayMode = 'none' | 'land' | 'coastal' | 'region' | 'sea' | 'production'
     let colorMode: OverlayMode = $state('none')
     let hoveredSeaId: string | null = $state(null)
 
@@ -47,6 +52,7 @@
     }
 
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
+    const PRODUCTION_ICON_HEIGHT = 30
 
     function compareAreaIds(left: string, right: string): number {
         return left.localeCompare(right, undefined, { numeric: true })
@@ -221,6 +227,9 @@
         }
         if (colorMode === 'coastal') {
             return COASTAL_LAND_DEBUG_AREAS
+        }
+        if (colorMode === 'production') {
+            return []
         }
         return LAND_DEBUG_MAP_AREAS
     })
@@ -399,6 +408,9 @@
         if (colorMode === 'none') {
             return new Map()
         }
+        if (colorMode === 'production') {
+            return new Map()
+        }
         if (colorMode === 'sea') {
             return computeSequentialColorMap(DISPLAY_AREAS)
         }
@@ -464,6 +476,16 @@
         >
             Sea
         </button>
+        <button
+            type="button"
+            class:active={colorMode === 'production'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'production'
+            }}
+        >
+            Production
+        </button>
     </div>
 
     <svg
@@ -472,6 +494,30 @@
         aria-label="Indonesia board debug overlay"
     >
         <g aria-label="Debug map geometry">
+            {#if colorMode === 'production'}
+                {#each LAND_DEBUG_MAP_AREAS as area, areaIndex (area.id)}
+                    {@const markerType = areaIndex % 5}
+                    {#if markerType === 0}
+                        <SpiceMarker x={area.labelX} y={area.labelY} height={PRODUCTION_ICON_HEIGHT} />
+                    {:else if markerType === 1}
+                        <SiapSajiMarker
+                            x={area.labelX}
+                            y={area.labelY}
+                            height={PRODUCTION_ICON_HEIGHT}
+                        />
+                    {:else if markerType === 2}
+                        <OilMarker x={area.labelX} y={area.labelY} height={PRODUCTION_ICON_HEIGHT} />
+                    {:else if markerType === 3}
+                        <RiceMarker x={area.labelX} y={area.labelY} height={PRODUCTION_ICON_HEIGHT} />
+                    {:else}
+                        <RubberMarker
+                            x={area.labelX}
+                            y={area.labelY}
+                            height={PRODUCTION_ICON_HEIGHT}
+                        />
+                    {/if}
+                {/each}
+            {/if}
             {#each DISPLAY_AREAS as area (area.id)}
                 {@const areaColor = DEBUG_AREA_COLORS.get(area.id) ?? '#ff1e1e'}
                 <path
