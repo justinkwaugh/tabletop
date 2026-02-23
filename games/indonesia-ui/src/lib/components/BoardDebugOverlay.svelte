@@ -1160,6 +1160,7 @@
                     x={COMPANIES_SHIP_CARD_A10_X + 100}
                     y={COMPANIES_SHIP_CARD_A10_Y - 100}
                     height={58}
+                    text={['Sumatera', '     Utara'].join('\n')}
                 />
                 <RiceCompanyCard x={45} y={250} height={58} text="Areh" />
             {/if}
