@@ -1,5 +1,6 @@
 <script lang="ts">
     import boardImg from '$lib/images/indo_map_sm.jpg'
+    import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
 
     const BOARD_WIDTH = 2646
@@ -14,6 +15,13 @@
             alt="Indonesia game board"
             class="board-image absolute inset-0 h-full w-full"
         />
+        <svg
+            class="absolute inset-0 z-[1] h-full w-full"
+            viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
+            aria-label="Indonesia board state layer"
+        >
+            <BoardDeedsLayer />
+        </svg>
         {#if SHOW_DEBUG_GEOMETRY}
             <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} />
         {/if}

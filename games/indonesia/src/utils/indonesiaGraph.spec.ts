@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { IndonesiaGraph } from './indonesiaGraph.js'
-import { INDONESIA_NODE_IDS, INDONESIA_NODES, IndonesiaNeighborDirection } from './indonesiaNodes.js'
+import {
+    INDONESIA_NODE_IDS,
+    INDONESIA_NODES,
+    IndonesiaAreaType,
+    IndonesiaNeighborDirection
+} from './indonesiaNodes.js'
 
 function sorted(values: string[]): string[] {
     return [...values].sort((left, right) => left.localeCompare(right))
@@ -61,6 +66,43 @@ describe('IndonesiaGraph', () => {
             )
         ).toEqual(['S14'])
 
-        expect(graph.neighborsOf(graph.nodeById('S01')!, IndonesiaNeighborDirection.Sea)).toHaveLength(0)
+        const expectedS01SeaNeighbors = sorted(
+            INDONESIA_NODES.find((node) => node.id === 'S01')!.neighbors[IndonesiaNeighborDirection.Sea]
+        )
+        expect(
+            sorted(
+                graph
+                    .neighborsOf(graph.nodeById('S01')!, IndonesiaNeighborDirection.Sea)
+                    .map((neighbor) => neighbor.id.toString())
+            )
+        ).toEqual(expectedS01SeaNeighbors)
+    })
+
+    it('keeps all directed edges reciprocal', () => {
+        const graph = new IndonesiaGraph()
+        for (const node of INDONESIA_NODES) {
+            const graphNode = graph.nodeById(node.id)
+            expect(graphNode).toBeDefined()
+            if (!graphNode) {
+                continue
+            }
+
+            for (const direction of Object.values(IndonesiaNeighborDirection)) {
+                for (const neighborId of graphNode.neighbors[direction]) {
+                    const neighbor = graph.nodeById(neighborId)
+                    expect(neighbor).toBeDefined()
+                    if (!neighbor) {
+                        continue
+                    }
+
+                    const reciprocalDirection =
+                        graphNode.type === IndonesiaAreaType.Sea
+                            ? IndonesiaNeighborDirection.Sea
+                            : IndonesiaNeighborDirection.Land
+
+                    expect(neighbor.neighbors[reciprocalDirection]).toContain(graphNode.id)
+                }
+            }
+        }
     })
 })

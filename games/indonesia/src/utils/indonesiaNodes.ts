@@ -162,7 +162,7 @@ export type IndonesiaNode = GraphNode & {
     region: IndonesiaRegionId | null
 }
 
-export const INDONESIA_NODES: IndonesiaNode[] = [
+const INDONESIA_NODES_INPUT: IndonesiaNode[] = [
     { id: 'A01', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A03', 'A04'], [IndonesiaNeighborDirection.Sea]: ['S14'] }, region: INDONESIA_REGION_BY_AREA_ID['A01'] ?? null },
     { id: 'A02', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A03', 'A05'], [IndonesiaNeighborDirection.Sea]: ['S14'] }, region: INDONESIA_REGION_BY_AREA_ID['A02'] ?? null },
     { id: 'A03', type: IndonesiaAreaType.Land, neighbors: { [IndonesiaNeighborDirection.Land]: ['A01', 'A02', 'A04', 'A08'], [IndonesiaNeighborDirection.Sea]: ['S14'] }, region: INDONESIA_REGION_BY_AREA_ID['A03'] ?? null },
@@ -301,3 +301,78 @@ export const INDONESIA_NODES: IndonesiaNode[] = [
     { id: 'S20', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['F06', 'F03', 'F05', 'F07', 'F02'], [IndonesiaNeighborDirection.Sea]: ['S01', 'S07', 'S04'] }, region: INDONESIA_REGION_BY_AREA_ID['S20'] ?? null },
     { id: 'S21', type: IndonesiaAreaType.Sea, neighbors: { [IndonesiaNeighborDirection.Land]: ['A16', 'A19', 'A23', 'A25', 'A26'], [IndonesiaNeighborDirection.Sea]: ['S19', 'S11', 'S05', 'S09'] }, region: INDONESIA_REGION_BY_AREA_ID['S21'] ?? null },
 ]
+
+type MutableNeighborSets = {
+    [IndonesiaNeighborDirection.Land]: Set<IndonesiaNodeId>
+    [IndonesiaNeighborDirection.Sea]: Set<IndonesiaNodeId>
+}
+
+function neighborDirectionForTarget(targetType: IndonesiaAreaType): IndonesiaNeighborDirection {
+    return targetType === IndonesiaAreaType.Sea
+        ? IndonesiaNeighborDirection.Sea
+        : IndonesiaNeighborDirection.Land
+}
+
+function reciprocalDirectionForSource(
+    sourceType: IndonesiaAreaType
+): IndonesiaNeighborDirection {
+    return sourceType === IndonesiaAreaType.Sea
+        ? IndonesiaNeighborDirection.Sea
+        : IndonesiaNeighborDirection.Land
+}
+
+function createReciprocalNodes(nodes: readonly IndonesiaNode[]): IndonesiaNode[] {
+    const nodeById = new Map<IndonesiaNodeId, IndonesiaNode>(nodes.map((node) => [node.id, node]))
+    const neighborSetsById = new Map<IndonesiaNodeId, MutableNeighborSets>(
+        nodes.map((node) => [
+            node.id,
+            {
+                [IndonesiaNeighborDirection.Land]: new Set<IndonesiaNodeId>(),
+                [IndonesiaNeighborDirection.Sea]: new Set<IndonesiaNodeId>()
+            }
+        ])
+    )
+
+    for (const sourceNode of nodes) {
+        const sourceNeighborSets = neighborSetsById.get(sourceNode.id)
+        if (!sourceNeighborSets) {
+            continue
+        }
+
+        for (const declaredDirection of Object.values(IndonesiaNeighborDirection)) {
+            for (const targetNodeId of sourceNode.neighbors[declaredDirection]) {
+                const targetNode = nodeById.get(targetNodeId)
+                if (!targetNode) {
+                    continue
+                }
+
+                const sourceDirection = neighborDirectionForTarget(targetNode.type)
+                sourceNeighborSets[sourceDirection].add(targetNode.id)
+
+                const targetNeighborSets = neighborSetsById.get(targetNode.id)
+                if (!targetNeighborSets) {
+                    continue
+                }
+                const reciprocalDirection = reciprocalDirectionForSource(sourceNode.type)
+                targetNeighborSets[reciprocalDirection].add(sourceNode.id)
+            }
+        }
+    }
+
+    return nodes.map((node) => {
+        const neighborSets = neighborSetsById.get(node.id)
+        return {
+            ...node,
+            neighbors: {
+                [IndonesiaNeighborDirection.Land]: [...(neighborSets?.Land ?? [])].sort((left, right) =>
+                    left.localeCompare(right, undefined, { numeric: true })
+                ),
+                [IndonesiaNeighborDirection.Sea]: [...(neighborSets?.Sea ?? [])].sort((left, right) =>
+                    left.localeCompare(right, undefined, { numeric: true })
+                )
+            }
+        }
+    })
+}
+
+export const INDONESIA_NODES: IndonesiaNode[] = createReciprocalNodes(INDONESIA_NODES_INPUT)

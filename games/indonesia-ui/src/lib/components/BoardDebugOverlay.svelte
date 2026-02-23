@@ -10,6 +10,7 @@
         SOUTHCHAIN_ISLAND_AREAS,
         SOUTHLEFT_ISLAND_AREAS
     } from '$lib/definitions/boardGeometry.js'
+    import Area from '$lib/components/Area.svelte'
     import SpiceMarker from '$lib/components/SpiceMarker.svelte'
     import SiapSajiMarker from '$lib/components/SiapSajiMarker.svelte'
     import OilMarker from '$lib/components/OilMarker.svelte'
@@ -17,13 +18,12 @@
     import RubberMarker from '$lib/components/RubberMarker.svelte'
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
-    import RubberCompanyCard from '$lib/components/RubberCompanyCard.svelte'
-    import SpiceCompanyCard from '$lib/components/SpiceCompanyCard.svelte'
-    import RiceCompanyCard from '$lib/components/RiceCompanyCard.svelte'
-    import ShipCompanyCard from '$lib/components/ShipCompanyCard.svelte'
+    import CompanyCard from '$lib/components/CompanyCard.svelte'
+    import { DEED_CARD_POSITIONS, DEED_CARD_POSITIONS_STORAGE_KEY } from '$lib/definitions/deedCardPositions.js'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
     import { SEA_SHIP_MARKER_POSITIONS } from '$lib/definitions/seaShipMarkerPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { CompanyType, Deeds, Era, Good, INDONESIA_REGIONS, type AnyDeed } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
 
@@ -36,6 +36,7 @@
         | 'region'
         | 'sea'
         | 'ships'
+        | 'deeds'
         | 'production'
         | 'companies'
         | 'marker'
@@ -56,6 +57,12 @@
     let shipMarkerSelectedIndex = $state(0)
     let shipMarkerDragging: { seaId: string; index: number } | null = $state(null)
     let shipMarkerCopyStatus: string | null = $state(null)
+    let deedCardPositions: Record<string, { x: number; y: number }> = $state({})
+    let deedCardPositionsLoaded = $state(false)
+    let deedEra: Era = $state(Era.A)
+    let selectedDeedCardKey: string | null = $state(null)
+    let deedCardDraggingKey: string | null = $state(null)
+    let deedCardCopyStatus: string | null = $state(null)
 
     type BoardNodeAreaType = 'Land' | 'Sea'
 
@@ -126,11 +133,31 @@
         index: number
     }
 
+    type DeedCardKind = 'rice' | 'spice' | 'rubber' | 'oil' | 'ship'
+    type ShippingSizeEntry = {
+        era: Era
+        size: number
+    }
+
+    type DeedTuneEntry = {
+        positionKey: string
+        regionId: string
+        regionName: string
+        cardKind: DeedCardKind
+        shippingSizes: readonly ShippingSizeEntry[] | null
+        x: number
+        y: number
+    }
+
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
     const PRODUCTION_ICON_HEIGHT = 30
     const SHIP_MARKER_HEIGHT = 45
     const GLASS_BEAD_HEIGHT = 46
     const GLASS_BEAD_OPACITY = 0.85
+    const DEED_CARD_HEIGHT = 58
+    const DEED_CARD_BASE_OFFSET_X = 76
+    const DEED_CARD_BASE_OFFSET_Y = -92
+    const DEED_CARD_HANDLE_OFFSET = 8
     const COMPANY_OVERLAY_LIGHT = '#e3d8c0'
     const COMPANY_OVERLAY_DARK = '#6c5a46'
     const RUBBER_OVERLAY_LIGHT = '#c1bdbb'
@@ -146,6 +173,7 @@
         string,
         { x: number; y: number }
     >
+    const REGION_NAME_BY_ID = new Map(INDONESIA_REGIONS.map((region) => [region.id, region.name]))
     const SHIP_LAYOUT_OFFSETS: Record<1 | 2 | 3, Array<{ x: number; y: number }>> = {
         1: [{ x: 0, y: 0 }],
         2: [
@@ -266,6 +294,39 @@
 
     function toRoundedMarkerValue(value: number): number {
         return Math.round(value * 10) / 10
+    }
+
+    function deedPositionKey(regionId: string, deedType: CompanyType): string {
+        return `${regionId}:${deedType}`
+    }
+
+    function parseDeedPositionKey(
+        key: string
+    ): {
+        regionId: string
+        deedType: CompanyType
+    } | null {
+        const [regionId, deedTypeRaw] = key.split(':')
+        if (!regionId || !deedTypeRaw) {
+            return null
+        }
+        if (deedTypeRaw !== CompanyType.Production && deedTypeRaw !== CompanyType.Shipping) {
+            return null
+        }
+        return {
+            regionId,
+            deedType: deedTypeRaw
+        }
+    }
+
+    function setDeedCardPosition(positionKey: string, x: number, y: number): void {
+        deedCardPositions = {
+            ...deedCardPositions,
+            [positionKey]: {
+                x: toRoundedMarkerValue(x),
+                y: toRoundedMarkerValue(y)
+            }
+        }
     }
 
     function cloneShipLayout(layout: SeaShipLayout): SeaShipLayout {
@@ -458,9 +519,25 @@
         event.preventDefault()
     }
 
+    function startDeedCardDrag(positionKey: string, event: PointerEvent): void {
+        if (colorMode !== 'deeds') {
+            return
+        }
+        selectedDeedCardKey = positionKey
+        deedCardDraggingKey = positionKey
+        const nextPoint = getSvgCoordinates(event)
+        if (nextPoint) {
+            setDeedCardPosition(positionKey, nextPoint.x, nextPoint.y)
+        }
+        const target = event.currentTarget as Element | null
+        target?.setPointerCapture?.(event.pointerId)
+        event.preventDefault()
+    }
+
     function stopMarkerDrag(): void {
         markerDraggingAreaId = null
         shipMarkerDragging = null
+        deedCardDraggingKey = null
     }
 
     function handleMarkerPointerMove(event: PointerEvent): void {
@@ -470,6 +547,15 @@
                 return
             }
             setMarkerPositionForArea(markerDraggingAreaId, nextPoint.x, nextPoint.y)
+            return
+        }
+
+        if (colorMode === 'deeds' && deedCardDraggingKey) {
+            const nextPoint = getSvgCoordinates(event)
+            if (!nextPoint) {
+                return
+            }
+            setDeedCardPosition(deedCardDraggingKey, nextPoint.x, nextPoint.y)
             return
         }
 
@@ -518,6 +604,19 @@
         shipMarkerPositions = {}
     }
 
+    function clearSelectedDeedCardOverride(): void {
+        if (!selectedDeedCardKey || deedCardPositions[selectedDeedCardKey] === undefined) {
+            return
+        }
+        const nextPositions = { ...deedCardPositions }
+        delete nextPositions[selectedDeedCardKey]
+        deedCardPositions = nextPositions
+    }
+
+    function clearAllDeedCardOverrides(): void {
+        deedCardPositions = {}
+    }
+
     function selectShipMarkerCount(nextCount: 1 | 2 | 3): void {
         shipMarkerCount = nextCount
         const maxMarkerIndex = nextCount - 1
@@ -532,11 +631,13 @@
 
     async function copyToClipboard(
         value: string,
-        target: 'marker' | 'ship' = 'marker'
+        target: 'marker' | 'ship' | 'deed' = 'marker'
     ): Promise<void> {
         if (typeof navigator === 'undefined' || !navigator.clipboard) {
             if (target === 'ship') {
                 shipMarkerCopyStatus = 'Clipboard unavailable'
+            } else if (target === 'deed') {
+                deedCardCopyStatus = 'Clipboard unavailable'
             } else {
                 markerCopyStatus = 'Clipboard unavailable'
             }
@@ -546,12 +647,16 @@
             await navigator.clipboard.writeText(value)
             if (target === 'ship') {
                 shipMarkerCopyStatus = 'Copied'
+            } else if (target === 'deed') {
+                deedCardCopyStatus = 'Copied'
             } else {
                 markerCopyStatus = 'Copied'
             }
         } catch {
             if (target === 'ship') {
                 shipMarkerCopyStatus = 'Copy failed'
+            } else if (target === 'deed') {
+                deedCardCopyStatus = 'Copy failed'
             } else {
                 markerCopyStatus = 'Copy failed'
             }
@@ -608,6 +713,36 @@
         } finally {
             shipMarkerPositionsLoaded = true
         }
+
+        try {
+            const stored = window.localStorage.getItem(DEED_CARD_POSITIONS_STORAGE_KEY)
+            if (stored) {
+                const parsed = JSON.parse(stored) as Record<string, unknown>
+                const nextPositions: Record<string, { x: number; y: number }> = {}
+                for (const [positionKey, value] of Object.entries(parsed)) {
+                    if (!value || typeof value !== 'object') {
+                        continue
+                    }
+                    const candidate = value as { x?: unknown; y?: unknown }
+                    if (typeof candidate.x !== 'number' || typeof candidate.y !== 'number') {
+                        continue
+                    }
+                    const parsedKey = parseDeedPositionKey(positionKey)
+                    if (!parsedKey) {
+                        continue
+                    }
+                    nextPositions[positionKey] = {
+                        x: toRoundedMarkerValue(candidate.x),
+                        y: toRoundedMarkerValue(candidate.y)
+                    }
+                }
+                deedCardPositions = nextPositions
+            }
+        } catch {
+            deedCardPositions = {}
+        } finally {
+            deedCardPositionsLoaded = true
+        }
     })
 
     $effect(() => {
@@ -624,6 +759,16 @@
         window.localStorage.setItem(
             SHIP_MARKER_POSITIONS_STORAGE_KEY,
             JSON.stringify(shipMarkerPositions)
+        )
+    })
+
+    $effect(() => {
+        if (!deedCardPositionsLoaded || typeof window === 'undefined') {
+            return
+        }
+        window.localStorage.setItem(
+            DEED_CARD_POSITIONS_STORAGE_KEY,
+            JSON.stringify(deedCardPositions)
         )
     })
 
@@ -736,6 +881,9 @@
         if (colorMode === 'companies') {
             return []
         }
+        if (colorMode === 'deeds') {
+            return []
+        }
         if (colorMode === 'marker') {
             return LAND_DEBUG_MAP_AREAS
         }
@@ -745,6 +893,184 @@
     const LAND_DEBUG_AREAS_BY_ID: Map<string, DebugArea> = $derived.by(
         () => new Map(LAND_DEBUG_MAP_AREAS.map((area) => [area.id, area]))
     )
+
+    const REGION_CENTER_BY_ID_FOR_DEEDS: Map<string, { x: number; y: number }> = $derived.by(() => {
+        const centers = new Map<string, { x: number; y: number }>()
+        for (const region of INDONESIA_REGIONS) {
+            const points: Array<{ x: number; y: number }> = []
+            for (const areaId of region.areaIds) {
+                const markerPoint = LAND_MARKER_POSITION_LOOKUP[areaId]
+                if (markerPoint) {
+                    points.push(markerPoint)
+                    continue
+                }
+                const fallbackArea = LAND_DEBUG_AREAS_BY_ID.get(areaId)
+                if (fallbackArea) {
+                    points.push({ x: fallbackArea.labelX, y: fallbackArea.labelY })
+                }
+            }
+            if (points.length === 0) {
+                continue
+            }
+            const center = points.reduce(
+                (acc, point) => {
+                    acc.x += point.x
+                    acc.y += point.y
+                    return acc
+                },
+                { x: 0, y: 0 }
+            )
+            centers.set(region.id, {
+                x: toRoundedMarkerValue(center.x / points.length),
+                y: toRoundedMarkerValue(center.y / points.length)
+            })
+        }
+        return centers
+    })
+
+    function getDefaultDeedCardPosition(regionId: string): { x: number; y: number } | null {
+        const center = REGION_CENTER_BY_ID_FOR_DEEDS.get(regionId)
+        if (!center) {
+            return null
+        }
+        return {
+            x: toRoundedMarkerValue(center.x + DEED_CARD_BASE_OFFSET_X),
+            y: toRoundedMarkerValue(center.y + DEED_CARD_BASE_OFFSET_Y)
+        }
+    }
+
+    function getDeedCardPosition(positionKey: string, regionId: string): { x: number; y: number } | null {
+        const overridePosition = deedCardPositions[positionKey]
+        if (overridePosition) {
+            return {
+                x: toRoundedMarkerValue(overridePosition.x),
+                y: toRoundedMarkerValue(overridePosition.y)
+            }
+        }
+
+        const baselinePosition = DEED_CARD_POSITIONS[positionKey]
+        if (baselinePosition) {
+            return {
+                x: toRoundedMarkerValue(baselinePosition.x),
+                y: toRoundedMarkerValue(baselinePosition.y)
+            }
+        }
+
+        return getDefaultDeedCardPosition(regionId)
+    }
+
+    function getDeedCardKind(deed: AnyDeed): DeedCardKind {
+        if (deed.type === CompanyType.Shipping) {
+            return 'ship'
+        }
+        if (deed.good === Good.Rice) {
+            return 'rice'
+        }
+        if (deed.good === Good.Rubber) {
+            return 'rubber'
+        }
+        if (deed.good === Good.Oil) {
+            return 'oil'
+        }
+        return 'spice'
+    }
+
+    function selectDeedEra(nextEra: Era): void {
+        deedEra = nextEra
+        selectedDeedCardKey = null
+        deedCardDraggingKey = null
+    }
+
+    function shippingSizeEntriesFromDeed(deed: AnyDeed): readonly ShippingSizeEntry[] | null {
+        if (deed.type !== CompanyType.Shipping) {
+            return null
+        }
+
+        return [Era.A, Era.B, Era.C].flatMap((era) => {
+            const size = deed.sizes[era]
+            if (typeof size !== 'number') {
+                return []
+            }
+            return [{ era, size }]
+        })
+    }
+
+    const DEEDS_FOR_SELECTED_ERA: AnyDeed[] = $derived.by(() =>
+        Deeds.filter((deed) => deed.era === deedEra)
+    )
+
+    const DEED_TUNE_ENTRIES: DeedTuneEntry[] = $derived.by(() => {
+        const entries: DeedTuneEntry[] = []
+        for (const deed of DEEDS_FOR_SELECTED_ERA) {
+            const positionKey = deedPositionKey(deed.region, deed.type)
+            const position = getDeedCardPosition(positionKey, deed.region)
+            if (!position) {
+                continue
+            }
+            entries.push({
+                positionKey,
+                regionId: deed.region,
+                regionName: REGION_NAME_BY_ID.get(deed.region) ?? deed.region,
+                cardKind: getDeedCardKind(deed),
+                shippingSizes: shippingSizeEntriesFromDeed(deed),
+                x: position.x,
+                y: position.y
+            })
+        }
+        return entries
+    })
+
+    const DEED_TUNE_ENTRY_BY_POSITION_KEY: Map<string, DeedTuneEntry> = $derived.by(() => {
+        const byKey = new Map<string, DeedTuneEntry>()
+        for (const entry of DEED_TUNE_ENTRIES) {
+            if (!byKey.has(entry.positionKey)) {
+                byKey.set(entry.positionKey, entry)
+            }
+        }
+        return byKey
+    })
+
+    const SELECTED_DEED_TUNE_ENTRY: DeedTuneEntry | null = $derived.by(() => {
+        if (!selectedDeedCardKey) {
+            return null
+        }
+        return DEED_TUNE_ENTRY_BY_POSITION_KEY.get(selectedDeedCardKey) ?? null
+    })
+
+    const DEED_CARD_OVERRIDES_EXPORT_TEXT: string = $derived.by(() => {
+        const keys = Object.keys(deedCardPositions).sort((left, right) =>
+            left.localeCompare(right, undefined, { numeric: true })
+        )
+        if (keys.length === 0) {
+            return '// No deed card overrides yet.'
+        }
+        const lines = keys.map((positionKey) => {
+            const point = deedCardPositions[positionKey]
+            return `    '${positionKey}': { x: ${point.x.toFixed(1)}, y: ${point.y.toFixed(1)} },`
+        })
+        return `export const DEED_CARD_POSITIONS = {\n${lines.join('\n')}\n} as const`
+    })
+
+    const DEED_CARD_FULL_EXPORT_TEXT: string = $derived.by(() => {
+        const keys = [...new Set(Deeds.map((deed) => deedPositionKey(deed.region, deed.type)))].sort(
+            (left, right) => left.localeCompare(right, undefined, { numeric: true })
+        )
+        const lines: string[] = []
+        for (const positionKey of keys) {
+            const parsedKey = parseDeedPositionKey(positionKey)
+            if (!parsedKey) {
+                continue
+            }
+            const point = getDeedCardPosition(positionKey, parsedKey.regionId)
+            if (!point) {
+                continue
+            }
+            lines.push(
+                `    '${positionKey}': { x: ${point.x.toFixed(1)}, y: ${point.y.toFixed(1)} },`
+            )
+        }
+        return `export const DEED_CARD_POSITIONS = {\n${lines.join('\n')}\n} as const`
+    })
 
     const BOARD_NODES_BY_ID: Map<string, BoardNodeView> = $derived.by(
         () => new Map(BOARD_NODES.map((node) => [node.id, node]))
@@ -1217,6 +1543,9 @@
         if (colorMode === 'companies') {
             return new Map()
         }
+        if (colorMode === 'deeds') {
+            return new Map()
+        }
         if (colorMode === 'marker') {
             return computeMarkerTuneColorMap(DISPLAY_AREAS)
         }
@@ -1297,6 +1626,16 @@
             }}
         >
             Ships
+        </button>
+        <button
+            type="button"
+            class:active={colorMode === 'deeds'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'deeds'
+            }}
+        >
+            Deeds
         </button>
         <button
             type="button"
@@ -1455,6 +1794,69 @@
             ></textarea>
         </div>
     {/if}
+    {#if colorMode === 'deeds'}
+        <div class="marker-tune-panel">
+            <div class="marker-tune-title">Deed Card Placement</div>
+            <div class="marker-tune-row marker-tune-buttons">
+                <span>Era:</span>
+                <button type="button" class:active={deedEra === Era.A} onclick={() => selectDeedEra(Era.A)}
+                    >A</button
+                >
+                <button type="button" class:active={deedEra === Era.B} onclick={() => selectDeedEra(Era.B)}
+                    >B</button
+                >
+                <button type="button" class:active={deedEra === Era.C} onclick={() => selectDeedEra(Era.C)}
+                    >C</button
+                >
+            </div>
+            <div class="marker-tune-row">
+                <span>Selected:</span>
+                <strong>{selectedDeedCardKey ?? 'None'}</strong>
+            </div>
+            {#if SELECTED_DEED_TUNE_ENTRY}
+                {@const parsedSelectedKey = parseDeedPositionKey(SELECTED_DEED_TUNE_ENTRY.positionKey)}
+                <div class="marker-tune-row">
+                    <span>Region:</span>
+                    <strong>{SELECTED_DEED_TUNE_ENTRY.regionId}</strong>
+                    <span>Type:</span>
+                    <strong>{parsedSelectedKey?.deedType ?? 'Unknown'}</strong>
+                </div>
+                <div class="marker-tune-row">
+                    <span>X:</span>
+                    <code>{SELECTED_DEED_TUNE_ENTRY.x.toFixed(1)}</code>
+                    <span>Y:</span>
+                    <code>{SELECTED_DEED_TUNE_ENTRY.y.toFixed(1)}</code>
+                </div>
+            {/if}
+            <div class="marker-tune-row marker-tune-buttons">
+                <button type="button" onclick={clearSelectedDeedCardOverride}>Clear Selected</button>
+                <button type="button" onclick={clearAllDeedCardOverrides}>Clear All</button>
+            </div>
+            <div class="marker-tune-row marker-tune-buttons">
+                <button
+                    type="button"
+                    onclick={() => copyToClipboard(DEED_CARD_OVERRIDES_EXPORT_TEXT, 'deed')}
+                >
+                    Copy Overrides
+                </button>
+                <button type="button" onclick={() => copyToClipboard(DEED_CARD_FULL_EXPORT_TEXT, 'deed')}>
+                    Copy Full
+                </button>
+            </div>
+            <div class="marker-tune-row">
+                <span>Overrides:</span>
+                <strong>{Object.keys(deedCardPositions).length}</strong>
+                {#if deedCardCopyStatus}
+                    <em>{deedCardCopyStatus}</em>
+                {/if}
+            </div>
+            <label class="marker-tune-label" for="deed-overrides-export">Overrides Export</label>
+            <textarea id="deed-overrides-export" readonly value={DEED_CARD_OVERRIDES_EXPORT_TEXT}
+            ></textarea>
+            <label class="marker-tune-label" for="deed-full-export">Full Export</label>
+            <textarea id="deed-full-export" readonly value={DEED_CARD_FULL_EXPORT_TEXT}></textarea>
+        </div>
+    {/if}
     {#if colorMode === 'companies'}
         <div class="companies-ship-count-panel">
             <div class="marker-tune-title">Company Ships</div>
@@ -1498,15 +1900,15 @@
         <g aria-label="Debug map geometry">
             {#each DISPLAY_AREAS as area (area.id)}
                 {@const areaColor = DEBUG_AREA_COLORS.get(area.id) ?? '#ff1e1e'}
-                <path
-                    d={area.path}
+                <Area
+                    areaId={area.id}
                     fill={areaColor}
-                    fill-opacity={colorMode === 'marker' || colorMode === 'ships' ? '0.22' : '0.5'}
-                    fill-rule="evenodd"
+                    fillOpacity={colorMode === 'marker' || colorMode === 'ships' ? '0.22' : '0.5'}
+                    fillRule="evenodd"
                     stroke="#111827"
-                    stroke-width="1.8"
-                    stroke-linejoin="round"
-                    stroke-linecap="round"
+                    strokeWidth="1.8"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
                     opacity="0.95"
                     pointer-events={colorMode === 'sea' ||
                     colorMode === 'marker' ||
@@ -1531,116 +1933,116 @@
                             shipMarkerSelectedIndex = 0
                         }
                     }}
-                ></path>
+                />
             {/each}
             {#if colorMode === 'marker' && SELECTED_MARKER_AREA}
-                <path
-                    d={SELECTED_MARKER_AREA.path}
+                <Area
+                    areaId={SELECTED_MARKER_AREA.id}
                     fill="none"
                     stroke="#f59e0b"
-                    stroke-width="2.6"
-                    stroke-linejoin="round"
-                    stroke-linecap="round"
+                    strokeWidth="2.6"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
                     opacity="0.95"
                     pointer-events="none"
-                ></path>
+                />
             {/if}
             {#if colorMode === 'ships' && SELECTED_SHIP_SEA_AREA}
-                <path
-                    d={SELECTED_SHIP_SEA_AREA.path}
+                <Area
+                    areaId={SELECTED_SHIP_SEA_AREA.id}
                     fill="none"
                     stroke="#f59e0b"
-                    stroke-width="2.6"
-                    stroke-linejoin="round"
-                    stroke-linecap="round"
+                    strokeWidth="2.6"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
                     opacity="0.95"
                     pointer-events="none"
-                ></path>
+                />
             {/if}
             {#if colorMode === 'companies'}
                 {#each COMPANY_SHIP_SEA_AREAS as area (area.id)}
-                    <path
-                        d={area.path}
+                    <Area
+                        areaId={area.id}
                         fill={SHIP_OVERLAY_LIGHT}
-                        fill-opacity="1"
-                        fill-rule="evenodd"
+                        fillOpacity="1"
+                        fillRule="evenodd"
                         stroke={SHIP_OVERLAY_DARK}
-                        stroke-width="1.9"
-                        stroke-linejoin="round"
-                        stroke-linecap="round"
+                        strokeWidth="1.9"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
                         opacity="0.8"
                         pointer-events="none"
-                    ></path>
+                    />
                 {/each}
                 {#each COMPANY_R03_AREAS as area (area.id)}
-                    <path
-                        d={area.path}
+                    <Area
+                        areaId={area.id}
                         fill={RUBBER_OVERLAY_LIGHT}
-                        fill-opacity="1"
-                        fill-rule="evenodd"
+                        fillOpacity="1"
+                        fillRule="evenodd"
                         stroke={RUBBER_OVERLAY_DARK}
-                        stroke-width="1.9"
-                        stroke-linejoin="round"
-                        stroke-linecap="round"
+                        strokeWidth="1.9"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
                         opacity="0.8"
                         pointer-events="none"
-                    ></path>
+                    />
                 {/each}
                 {#each COMPANY_R04_AREAS as area (area.id)}
-                    <path
-                        d={area.path}
+                    <Area
+                        areaId={area.id}
                         fill={RUBBER_OVERLAY_LIGHT}
-                        fill-opacity="1"
-                        fill-rule="evenodd"
+                        fillOpacity="1"
+                        fillRule="evenodd"
                         stroke={RUBBER_OVERLAY_DARK}
-                        stroke-width="1.9"
-                        stroke-linejoin="round"
-                        stroke-linecap="round"
+                        strokeWidth="1.9"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
                         opacity="0.8"
                         pointer-events="none"
-                    ></path>
+                    />
                 {/each}
                 {#each COMPANY_R10_AREAS as area (area.id)}
-                    <path
-                        d={area.path}
+                    <Area
+                        areaId={area.id}
                         fill={RUBBER_OVERLAY_LIGHT}
-                        fill-opacity="1"
-                        fill-rule="evenodd"
+                        fillOpacity="1"
+                        fillRule="evenodd"
                         stroke={RUBBER_OVERLAY_DARK}
-                        stroke-width="1.9"
-                        stroke-linejoin="round"
-                        stroke-linecap="round"
+                        strokeWidth="1.9"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
                         opacity="0.8"
                         pointer-events="none"
-                    ></path>
+                    />
                 {/each}
                 {#each COMPANY_R19_AREAS as area (area.id)}
-                    <path
-                        d={area.path}
+                    <Area
+                        areaId={area.id}
                         fill={SPICE_OVERLAY_LIGHT}
-                        fill-opacity="1"
-                        fill-rule="evenodd"
+                        fillOpacity="1"
+                        fillRule="evenodd"
                         stroke={SPICE_OVERLAY_DARK}
-                        stroke-width="1.9"
-                        stroke-linejoin="round"
-                        stroke-linecap="round"
+                        strokeWidth="1.9"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
                         opacity="0.8"
                         pointer-events="none"
-                    ></path>
+                    />
                 {/each}
                 {#each COMPANY_R01_AREAS as area (area.id)}
-                    <path
-                        d={area.path}
+                    <Area
+                        areaId={area.id}
                         fill={COMPANY_OVERLAY_LIGHT}
-                        fill-opacity="1"
-                        fill-rule="evenodd"
+                        fillOpacity="1"
+                        fillRule="evenodd"
                         stroke={COMPANY_OVERLAY_DARK}
-                        stroke-width="1.9"
-                        stroke-linejoin="round"
-                        stroke-linecap="round"
+                        strokeWidth="1.9"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
                         opacity="0.8"
                         pointer-events="none"
-                    ></path>
+                    />
                 {/each}
                 {#each COMPANY_SHIP_MARKERS as shipMarker (shipMarker.id)}
                     <ShipMarker
@@ -1650,36 +2052,53 @@
                         height={SHIP_MARKER_HEIGHT}
                     />
                 {/each}
-                <RubberCompanyCard
-                    x={200}
-                    y={680}
-                    height={58}
-                    text={['Sumatera', '     Barat'].join('\n')}
-                />
-                <RubberCompanyCard
+                <CompanyCard type="rubber" x={200} y={680} height={58} text="Sumatera Barat" />
+                <CompanyCard
+                    type="rubber"
                     x={COMPANIES_RUBBER_CARD_A26_X}
                     y={COMPANIES_RUBBER_CARD_A26_Y}
                     height={58}
                     text="Riau"
                 />
-                <RubberCompanyCard
+                <CompanyCard
+                    type="rubber"
                     x={COMPANIES_RUBBER_CARD_B02_X}
                     y={COMPANIES_RUBBER_CARD_B02_Y}
                     height={58}
-                    text={['Kalimantan', '     Barat'].join('\n')}
+                    text="Kalimantan Barat"
                 />
-                <SpiceCompanyCard
+                <CompanyCard
+                    type="spice"
                     x={COMPANIES_SPICE_CARD_C09_X}
                     y={COMPANIES_SPICE_CARD_C09_Y}
                     height={58}
-                    text={['Jawa', 'Tengah'].join('\n')}
+                    text="Jawa Tengah"
                 />
-                <ShipCompanyCard
-                    x={COMPANIES_SHIP_CARD_A10_X}
-                    y={COMPANIES_SHIP_CARD_A10_Y}
-                    height={58}
-                />
-                <RiceCompanyCard x={45} y={250} height={58} text="Areh" />
+                <CompanyCard type="ship" x={COMPANIES_SHIP_CARD_A10_X} y={COMPANIES_SHIP_CARD_A10_Y} height={58} />
+                <CompanyCard type="rice" x={45} y={250} height={58} text="Areh" />
+            {/if}
+            {#if colorMode === 'deeds'}
+                {#each DEED_TUNE_ENTRIES as deed (deed.positionKey)}
+                    <CompanyCard
+                        type={deed.cardKind}
+                        x={deed.x}
+                        y={deed.y}
+                        height={DEED_CARD_HEIGHT}
+                        text={deed.regionName}
+                        shippingSizes={deed.shippingSizes}
+                    />
+                    <circle
+                        cx={deed.x + DEED_CARD_HANDLE_OFFSET}
+                        cy={deed.y + DEED_CARD_HANDLE_OFFSET}
+                        r={deed.positionKey === selectedDeedCardKey ? 8 : 6.5}
+                        fill={deed.positionKey === selectedDeedCardKey ? '#fef3c7' : '#ffffff'}
+                        fill-opacity="0.35"
+                        stroke={deed.positionKey === selectedDeedCardKey ? '#b45309' : '#1f2937'}
+                        stroke-width={deed.positionKey === selectedDeedCardKey ? 2.2 : 1.5}
+                        pointer-events="all"
+                        onpointerdown={(event) => startDeedCardDrag(deed.positionKey, event)}
+                    ></circle>
+                {/each}
             {/if}
             {#if colorMode === 'ships'}
                 {#each SHIP_TUNE_MARKERS as shipMarker (shipMarker.id)}
@@ -1753,17 +2172,17 @@
             {/if}
             {#if colorMode === 'sea'}
                 {#each HOVERED_SEA_LAND_AREAS as area (area.id)}
-                    <path
-                        d={area.path}
+                    <Area
+                        areaId={area.id}
                         fill="#fde68a"
-                        fill-opacity="0.68"
+                        fillOpacity="0.68"
                         stroke="#92400e"
-                        stroke-width="2.2"
-                        stroke-linejoin="round"
-                        stroke-linecap="round"
+                        strokeWidth="2.2"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
                         opacity="0.95"
                         pointer-events="none"
-                    ></path>
+                    />
                 {/each}
             {/if}
             {#each DEBUG_CONNECTIONS as connection (connection.id)}
