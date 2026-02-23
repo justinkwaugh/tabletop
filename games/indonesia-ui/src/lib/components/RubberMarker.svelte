@@ -29,10 +29,10 @@
     const width = $derived(height * RUBBER_ASPECT_RATIO)
     const iconX = $derived(x - width / 2)
     const iconY = $derived(y - height / 2)
-    const outlineWidth = $derived(width + 2)
+    const outlineWidth = $derived(width)
     const outlineHeight = $derived(height)
-    const outlineX = $derived(iconX)
-    const outlineY = $derived(iconY + 2)
+    const outlineX = $derived(iconX + 1)
+    const outlineY = $derived(iconY + 1)
 </script>
 
 <g class="pointer-events-none select-none" aria-hidden="true">
@@ -43,6 +43,7 @@
             width={outlineWidth}
             height={outlineHeight}
             fill={outlineColor}
+            opacity={0.75}
             aria-hidden="true"
         />
     {/if}

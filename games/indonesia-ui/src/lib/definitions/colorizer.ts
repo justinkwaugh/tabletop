@@ -16,6 +16,8 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
                 return '#804796'
             case Color.Gray:
                 return '#888888'
+            case Color.Orange:
+                return '#f28c28'
             case Color.Black:
                 return '#444444'
             default:
@@ -39,6 +41,8 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
                 return 'bg-[#aaaaaa]'
             case Color.Black:
                 return 'bg-[#444444]'
+            case Color.Orange:
+                return 'bg-[#f28c28]'
             default:
                 return 'bg-[#555555]'
         }
@@ -60,6 +64,8 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
                 return 'border-[#888888]'
             case Color.Black:
                 return 'border-[#444444]'
+            case Color.Orange:
+                return 'border-[#f28c28]'
             default:
                 return 'border-[#555555]'
         }

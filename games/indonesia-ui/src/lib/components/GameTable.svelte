@@ -3,6 +3,7 @@
         ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
+        CustomFont,
         GameSession
     } from '@tabletop/frontend-components'
 
@@ -12,13 +13,17 @@
 
     import type { IndonesiaGameSession } from '$lib/model/session.svelte'
     import type { HydratedIndonesiaGameState, IndonesiaGameState } from '@tabletop/indonesia'
+    import ScriptinaProFont from '$lib/fonts/Scriptina Pro.woff2'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
     let {
         gameSession
     }: { gameSession: GameSession<IndonesiaGameState, HydratedIndonesiaGameState> } = $props()
+    // svelte-ignore state_referenced_locally
     setGameSession(gameSession as IndonesiaGameSession)
 </script>
+
+<CustomFont fontFamily="scriptina-pro" url={ScriptinaProFont} format="woff2" />
 
 <!-- Full Height and Width with 8px padding-->
 <div style="--chat-height-offset: 0px;">
@@ -52,3 +57,9 @@
         {/snippet}
     </DefaultTableLayout>
 </div>
+
+<style>
+    :global(.indonesia-font) {
+        font-family: 'scriptina-pro', cursive;
+    }
+</style>

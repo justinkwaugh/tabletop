@@ -16,6 +16,9 @@
     import RiceMarker from '$lib/components/RiceMarker.svelte'
     import RubberMarker from '$lib/components/RubberMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
+    import RubberCompanyCard from '$lib/components/RubberCompanyCard.svelte'
+    import SpiceCompanyCard from '$lib/components/SpiceCompanyCard.svelte'
+    import RiceCompanyCard from '$lib/components/RiceCompanyCard.svelte'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
 
@@ -23,7 +26,15 @@
 
     let { width, height }: { width: number; height: number } = $props()
 
-    type OverlayMode = 'none' | 'land' | 'coastal' | 'region' | 'sea' | 'production' | 'marker'
+    type OverlayMode =
+        | 'none'
+        | 'land'
+        | 'coastal'
+        | 'region'
+        | 'sea'
+        | 'production'
+        | 'companies'
+        | 'marker'
     type BeadTone = 'amber' | 'red' | 'green'
     let colorMode: OverlayMode = $state('none')
     let hoveredSeaId: string | null = $state(null)
@@ -61,6 +72,12 @@
         y2: number
     }
 
+    type RegionLabel = {
+        regionId: string
+        x: number
+        y: number
+    }
+
     type ProductionMarkerType = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
     type ProductionMarkerPlacement = {
         areaId: string
@@ -74,11 +91,26 @@
     const PRODUCTION_ICON_HEIGHT = 30
     const GLASS_BEAD_HEIGHT = 46
     const GLASS_BEAD_OPACITY = 0.85
+    const COMPANY_OVERLAY_LIGHT = '#e3d8c0'
+    const COMPANY_OVERLAY_DARK = '#6c5a46'
+    const RUBBER_OVERLAY_LIGHT = '#c1bdbb'
+    const RUBBER_OVERLAY_DARK = '#131113'
+    const SPICE_OVERLAY_LIGHT = '#d5e1b1'
+    const SPICE_OVERLAY_DARK = '#425735'
     const MARKER_POSITIONS_STORAGE_KEY = 'indonesia-marker-positions-v1'
     const LAND_MARKER_POSITION_LOOKUP = LAND_MARKER_POSITIONS as Record<
         string,
         { x: number; y: number }
     >
+    const A26_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['A26'] ?? { x: 595.9, y: 452.9 }
+    const B02_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['B02'] ?? { x: 946.9, y: 542.5 }
+    const C09_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['C09'] ?? { x: 916.9, y: 940.4 }
+    const COMPANIES_RUBBER_CARD_A26_X = A26_MARKER_POSITION.x + 120
+    const COMPANIES_RUBBER_CARD_A26_Y = A26_MARKER_POSITION.y - 95
+    const COMPANIES_RUBBER_CARD_B02_X = B02_MARKER_POSITION.x
+    const COMPANIES_RUBBER_CARD_B02_Y = B02_MARKER_POSITION.y + 110
+    const COMPANIES_SPICE_CARD_C09_X = C09_MARKER_POSITION.x + 10
+    const COMPANIES_SPICE_CARD_C09_Y = C09_MARKER_POSITION.y + 160
     const PRODUCTION_MARKER_TYPES: ProductionMarkerType[] = [
         'spice',
         'siapsaji',
@@ -332,18 +364,18 @@
         ...NORTHEAST_ISLAND_AREAS,
         ...EAST_ISLAND_AREAS
     ]
-    const BOARD_GEOMETRY_LOOKUP = new Map(
-        BOARD_GEOMETRY_AREAS.map((area) => [area.id, area.path])
-    )
+    const BOARD_GEOMETRY_LOOKUP = new Map(BOARD_GEOMETRY_AREAS.map((area) => [area.id, area.path]))
 
     const BOARD_NODES: BoardNodeView[] = $derived.by(() => {
         const nodes = Array.from(gameSession.gameState.board, (node) => ({
             id: node.id,
             type: extractNodeAreaType(
                 node.id,
-                (node as {
-                    type?: unknown
-                }).type
+                (
+                    node as {
+                        type?: unknown
+                    }
+                ).type
             ),
             landNeighbors: extractLandNeighbors(node.neighbors),
             seaNeighbors: extractSeaNeighbors(node.neighbors),
@@ -420,6 +452,9 @@
             return COASTAL_LAND_DEBUG_AREAS
         }
         if (colorMode === 'production') {
+            return []
+        }
+        if (colorMode === 'companies') {
             return []
         }
         if (colorMode === 'marker') {
@@ -503,6 +538,92 @@
             .sort((left, right) => compareAreaIds(left.id, right.id))
     })
 
+    const COMPANY_R01_AREAS: DebugArea[] = $derived.by(() => {
+        if (colorMode !== 'companies') {
+            return []
+        }
+        return LAND_DEBUG_MAP_AREAS.filter((area) => area.region === 'R01').sort((left, right) =>
+            compareAreaIds(left.id, right.id)
+        )
+    })
+
+    const COMPANY_R03_AREAS: DebugArea[] = $derived.by(() => {
+        if (colorMode !== 'companies') {
+            return []
+        }
+        return LAND_DEBUG_MAP_AREAS.filter((area) => area.region === 'R03').sort((left, right) =>
+            compareAreaIds(left.id, right.id)
+        )
+    })
+
+    const COMPANY_R04_AREAS: DebugArea[] = $derived.by(() => {
+        if (colorMode !== 'companies') {
+            return []
+        }
+        return LAND_DEBUG_MAP_AREAS.filter((area) => area.region === 'R04').sort((left, right) =>
+            compareAreaIds(left.id, right.id)
+        )
+    })
+
+    const COMPANY_R10_AREAS: DebugArea[] = $derived.by(() => {
+        if (colorMode !== 'companies') {
+            return []
+        }
+        return LAND_DEBUG_MAP_AREAS.filter((area) => area.region === 'R10').sort((left, right) =>
+            compareAreaIds(left.id, right.id)
+        )
+    })
+
+    const COMPANY_R19_AREAS: DebugArea[] = $derived.by(() => {
+        if (colorMode !== 'companies') {
+            return []
+        }
+        return LAND_DEBUG_MAP_AREAS.filter((area) => area.region === 'R19').sort((left, right) =>
+            compareAreaIds(left.id, right.id)
+        )
+    })
+
+    const REGION_LABELS: RegionLabel[] = $derived.by(() => {
+        if (colorMode !== 'region') {
+            return []
+        }
+
+        const grouped = new Map<string, DebugArea[]>()
+        for (const area of LAND_DEBUG_MAP_AREAS) {
+            if (!area.region) {
+                continue
+            }
+            const group = grouped.get(area.region) ?? []
+            group.push(area)
+            grouped.set(area.region, group)
+        }
+
+        const labels: RegionLabel[] = []
+        for (const [regionId, areas] of grouped.entries()) {
+            if (areas.length === 0) {
+                continue
+            }
+
+            const center = areas.reduce(
+                (acc, area) => {
+                    acc.x += area.labelX
+                    acc.y += area.labelY
+                    return acc
+                },
+                { x: 0, y: 0 }
+            )
+
+            labels.push({
+                regionId,
+                x: center.x / areas.length,
+                y: center.y / areas.length
+            })
+        }
+
+        labels.sort((left, right) => left.regionId.localeCompare(right.regionId))
+        return labels
+    })
+
     const SELECTED_MARKER_AREA: DebugArea | null = $derived.by(() => {
         if (!markerSelectedAreaId) {
             return null
@@ -533,7 +654,10 @@
                 markerByArea.set(area.id, markerByRegion.get(area.region) ?? 'spice')
                 continue
             }
-            markerByArea.set(area.id, PRODUCTION_MARKER_TYPES[areaIndex % PRODUCTION_MARKER_TYPES.length])
+            markerByArea.set(
+                area.id,
+                PRODUCTION_MARKER_TYPES[areaIndex % PRODUCTION_MARKER_TYPES.length]
+            )
         }
 
         return markerByArea
@@ -710,6 +834,9 @@
         if (colorMode === 'production') {
             return new Map()
         }
+        if (colorMode === 'companies') {
+            return new Map()
+        }
         if (colorMode === 'marker') {
             return computeMarkerTuneColorMap(DISPLAY_AREAS)
         }
@@ -790,6 +917,16 @@
         </button>
         <button
             type="button"
+            class:active={colorMode === 'companies'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'companies'
+            }}
+        >
+            Companies
+        </button>
+        <button
+            type="button"
             class:active={colorMode === 'marker'}
             onclick={() => {
                 hoveredSeaId = null
@@ -835,7 +972,8 @@
                 {/if}
             </div>
             <label class="marker-tune-label" for="marker-overrides-export">Overrides Export</label>
-            <textarea id="marker-overrides-export" readonly value={MARKER_OVERRIDES_EXPORT_TEXT}></textarea>
+            <textarea id="marker-overrides-export" readonly value={MARKER_OVERRIDES_EXPORT_TEXT}
+            ></textarea>
             <label class="marker-tune-label" for="marker-full-export">Full Export</label>
             <textarea id="marker-full-export" readonly value={MARKER_FULL_EXPORT_TEXT}></textarea>
         </div>
@@ -894,6 +1032,103 @@
                     pointer-events="none"
                 ></path>
             {/if}
+            {#if colorMode === 'companies'}
+                {#each COMPANY_R03_AREAS as area (area.id)}
+                    <path
+                        d={area.path}
+                        fill={RUBBER_OVERLAY_LIGHT}
+                        fill-opacity="1"
+                        fill-rule="evenodd"
+                        stroke={RUBBER_OVERLAY_DARK}
+                        stroke-width="1.9"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.8"
+                        pointer-events="none"
+                    ></path>
+                {/each}
+                {#each COMPANY_R04_AREAS as area (area.id)}
+                    <path
+                        d={area.path}
+                        fill={RUBBER_OVERLAY_LIGHT}
+                        fill-opacity="1"
+                        fill-rule="evenodd"
+                        stroke={RUBBER_OVERLAY_DARK}
+                        stroke-width="1.9"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.8"
+                        pointer-events="none"
+                    ></path>
+                {/each}
+                {#each COMPANY_R10_AREAS as area (area.id)}
+                    <path
+                        d={area.path}
+                        fill={RUBBER_OVERLAY_LIGHT}
+                        fill-opacity="1"
+                        fill-rule="evenodd"
+                        stroke={RUBBER_OVERLAY_DARK}
+                        stroke-width="1.9"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.8"
+                        pointer-events="none"
+                    ></path>
+                {/each}
+                {#each COMPANY_R19_AREAS as area (area.id)}
+                    <path
+                        d={area.path}
+                        fill={SPICE_OVERLAY_LIGHT}
+                        fill-opacity="1"
+                        fill-rule="evenodd"
+                        stroke={SPICE_OVERLAY_DARK}
+                        stroke-width="1.9"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.8"
+                        pointer-events="none"
+                    ></path>
+                {/each}
+                {#each COMPANY_R01_AREAS as area (area.id)}
+                    <path
+                        d={area.path}
+                        fill={COMPANY_OVERLAY_LIGHT}
+                        fill-opacity="1"
+                        fill-rule="evenodd"
+                        stroke={COMPANY_OVERLAY_DARK}
+                        stroke-width="1.9"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.8"
+                        pointer-events="none"
+                    ></path>
+                {/each}
+                <RubberCompanyCard
+                    x={180}
+                    y={700}
+                    height={58}
+                    text={['Sumatera', '     Barat'].join('\n')}
+                />
+                <RubberCompanyCard
+                    x={COMPANIES_RUBBER_CARD_A26_X}
+                    y={COMPANIES_RUBBER_CARD_A26_Y}
+                    height={58}
+                    text="Riau"
+                />
+                <RubberCompanyCard
+                    x={COMPANIES_RUBBER_CARD_B02_X}
+                    y={COMPANIES_RUBBER_CARD_B02_Y}
+                    height={58}
+                    text={['Kalimantan', '     Barat'].join('\n')}
+                />
+                <SpiceCompanyCard
+                    x={COMPANIES_SPICE_CARD_C09_X}
+                    y={COMPANIES_SPICE_CARD_C09_Y}
+                    height={58}
+                    text={['Jawa', 'Tengah'].join('\n')}
+                />
+                <RiceCompanyCard x={45} y={250} height={58} text="Areh" />
+            {/if}
             {#if colorMode === 'production' || colorMode === 'marker'}
                 {#each DISPLAYED_MARKERS as marker (marker.areaId)}
                     {#if marker.markerType === 'bead'}
@@ -907,21 +1142,13 @@
                     {:else if marker.markerType === 'spice'}
                         <SpiceMarker x={marker.x} y={marker.y} height={PRODUCTION_ICON_HEIGHT} />
                     {:else if marker.markerType === 'siapsaji'}
-                        <SiapSajiMarker
-                            x={marker.x}
-                            y={marker.y}
-                            height={PRODUCTION_ICON_HEIGHT}
-                        />
+                        <SiapSajiMarker x={marker.x} y={marker.y} height={PRODUCTION_ICON_HEIGHT} />
                     {:else if marker.markerType === 'oil'}
                         <OilMarker x={marker.x} y={marker.y} height={PRODUCTION_ICON_HEIGHT} />
                     {:else if marker.markerType === 'rice'}
                         <RiceMarker x={marker.x} y={marker.y} height={PRODUCTION_ICON_HEIGHT} />
                     {:else}
-                        <RubberMarker
-                            x={marker.x}
-                            y={marker.y}
-                            height={PRODUCTION_ICON_HEIGHT}
-                        />
+                        <RubberMarker x={marker.x} y={marker.y} height={PRODUCTION_ICON_HEIGHT} />
                     {/if}
                     {#if colorMode === 'marker'}
                         <circle
@@ -937,17 +1164,6 @@
                         ></circle>
                     {/if}
                 {/each}
-                {#if colorMode === 'production'}
-                    {#each GLASS_BEAD_PREVIEW_MARKERS as marker, markerIndex (`glass-${markerIndex}`)}
-                        <GlassBeadMarker
-                            x={marker.x}
-                            y={marker.y}
-                            height={GLASS_BEAD_HEIGHT}
-                            tone={marker.tone}
-                            opacity={GLASS_BEAD_OPACITY}
-                        />
-                    {/each}
-                {/if}
             {/if}
             {#if colorMode === 'sea'}
                 {#each HOVERED_SEA_LAND_AREAS as area (area.id)}
@@ -994,6 +1210,25 @@
                     {area.label}
                 </text>
             {/each}
+            {#if colorMode === 'region'}
+                {#each REGION_LABELS as regionLabel (regionLabel.regionId)}
+                    <text
+                        x={regionLabel.x}
+                        y={regionLabel.y}
+                        fill="#7c2d12"
+                        stroke="#ffffff"
+                        stroke-width="1.6"
+                        paint-order="stroke fill"
+                        font-size="18"
+                        font-weight="800"
+                        text-anchor="middle"
+                        dominant-baseline="middle"
+                        pointer-events="none"
+                    >
+                        {regionLabel.regionId}
+                    </text>
+                {/each}
+            {/if}
             {#if colorMode === 'sea'}
                 {#each HOVERED_SEA_LAND_AREAS as area (area.id)}
                     <text
@@ -1079,7 +1314,8 @@
     }
 
     .marker-tune-row code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+        font-family:
+            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
         font-size: 12px;
         padding: 1px 4px;
         border-radius: 4px;
@@ -1118,7 +1354,8 @@
         width: 100%;
         min-height: 84px;
         resize: vertical;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+        font-family:
+            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
         font-size: 11px;
         line-height: 1.35;
         border: 1px solid rgba(17, 24, 39, 0.25);
