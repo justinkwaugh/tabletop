@@ -22,6 +22,7 @@
     import RiceCompanyCard from '$lib/components/RiceCompanyCard.svelte'
     import ShipCompanyCard from '$lib/components/ShipCompanyCard.svelte'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
+    import { SEA_SHIP_MARKER_POSITIONS } from '$lib/definitions/seaShipMarkerPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
 
     const gameSession = getGameSession()
@@ -34,6 +35,7 @@
         | 'coastal'
         | 'region'
         | 'sea'
+        | 'ships'
         | 'production'
         | 'companies'
         | 'marker'
@@ -46,6 +48,14 @@
     let markerSelectedAreaId: string | null = $state(null)
     let markerDraggingAreaId: string | null = $state(null)
     let markerCopyStatus: string | null = $state(null)
+    let shipMarkerCount: 1 | 2 | 3 = $state(1)
+    let companyShipMarkerCount: 1 | 2 | 3 = $state(1)
+    let shipMarkerPositions: Record<string, SeaShipLayout> = $state({})
+    let shipMarkerPositionsLoaded = $state(false)
+    let shipMarkerSelectedSeaId: string | null = $state(null)
+    let shipMarkerSelectedIndex = $state(0)
+    let shipMarkerDragging: { seaId: string; index: number } | null = $state(null)
+    let shipMarkerCopyStatus: string | null = $state(null)
 
     type BoardNodeAreaType = 'Land' | 'Sea'
 
@@ -96,9 +106,29 @@
         style: 'a' | 'b'
     }
 
+    type ShipMarkerPoint = {
+        x: number
+        y: number
+    }
+
+    type SeaShipLayout = {
+        1: ShipMarkerPoint[]
+        2: ShipMarkerPoint[]
+        3: ShipMarkerPoint[]
+    }
+
+    type ShipTuneMarker = {
+        id: string
+        seaId: string
+        x: number
+        y: number
+        style: 'a' | 'b'
+        index: number
+    }
+
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
     const PRODUCTION_ICON_HEIGHT = 30
-    const SHIP_MARKER_HEIGHT = 30
+    const SHIP_MARKER_HEIGHT = 45
     const GLASS_BEAD_HEIGHT = 46
     const GLASS_BEAD_OPACITY = 0.85
     const COMPANY_OVERLAY_LIGHT = '#e3d8c0'
@@ -110,16 +140,30 @@
     const SHIP_OVERLAY_LIGHT = '#9fc4c5'
     const SHIP_OVERLAY_DARK = '#396c78'
     const MARKER_POSITIONS_STORAGE_KEY = 'indonesia-marker-positions-v1'
+    const SHIP_MARKER_POSITIONS_STORAGE_KEY = 'indonesia-sea-ship-marker-positions-v1'
+    const SEA_SHIP_MARKER_POSITION_LOOKUP = SEA_SHIP_MARKER_POSITIONS as Record<string, unknown>
     const LAND_MARKER_POSITION_LOOKUP = LAND_MARKER_POSITIONS as Record<
         string,
         { x: number; y: number }
     >
+    const SHIP_LAYOUT_OFFSETS: Record<1 | 2 | 3, Array<{ x: number; y: number }>> = {
+        1: [{ x: 0, y: 0 }],
+        2: [
+            { x: -24, y: 0 },
+            { x: 24, y: 0 }
+        ],
+        3: [
+            { x: -26, y: 12 },
+            { x: 0, y: -16 },
+            { x: 26, y: 12 }
+        ]
+    }
     const A10_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['A10'] ?? { x: 390.8, y: 386.1 }
     const A26_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['A26'] ?? { x: 595.9, y: 452.9 }
     const B02_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['B02'] ?? { x: 946.9, y: 542.5 }
     const C09_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['C09'] ?? { x: 916.9, y: 940.4 }
-    const COMPANIES_SHIP_CARD_A10_X = A10_MARKER_POSITION.x
-    const COMPANIES_SHIP_CARD_A10_Y = A10_MARKER_POSITION.y - 110
+    const COMPANIES_SHIP_CARD_A10_X = A10_MARKER_POSITION.x + 50
+    const COMPANIES_SHIP_CARD_A10_Y = A10_MARKER_POSITION.y - 210
     const COMPANIES_RUBBER_CARD_A26_X = A26_MARKER_POSITION.x + 120
     const COMPANIES_RUBBER_CARD_A26_Y = A26_MARKER_POSITION.y - 95
     const COMPANIES_RUBBER_CARD_B02_X = B02_MARKER_POSITION.x
@@ -224,6 +268,89 @@
         return Math.round(value * 10) / 10
     }
 
+    function cloneShipLayout(layout: SeaShipLayout): SeaShipLayout {
+        return {
+            1: layout[1].map((point) => ({ ...point })),
+            2: layout[2].map((point) => ({ ...point })),
+            3: layout[3].map((point) => ({ ...point }))
+        }
+    }
+
+    function getDefaultShipLayoutForArea(area: DebugArea): SeaShipLayout {
+        const baseX = toRoundedMarkerValue(area.labelX)
+        const baseY = toRoundedMarkerValue(area.labelY)
+        const fallbackLayout: SeaShipLayout = {
+            1: SHIP_LAYOUT_OFFSETS[1].map((offset) => ({
+                x: toRoundedMarkerValue(baseX + offset.x),
+                y: toRoundedMarkerValue(baseY + offset.y)
+            })),
+            2: SHIP_LAYOUT_OFFSETS[2].map((offset) => ({
+                x: toRoundedMarkerValue(baseX + offset.x),
+                y: toRoundedMarkerValue(baseY + offset.y)
+            })),
+            3: SHIP_LAYOUT_OFFSETS[3].map((offset) => ({
+                x: toRoundedMarkerValue(baseX + offset.x),
+                y: toRoundedMarkerValue(baseY + offset.y)
+            }))
+        }
+
+        const providedLayout = SEA_SHIP_MARKER_POSITION_LOOKUP[area.id]
+        if (!providedLayout) {
+            return fallbackLayout
+        }
+
+        return normalizeStoredShipLayout(providedLayout, fallbackLayout)
+    }
+
+    function normalizeStoredShipLayout(value: unknown, fallback: SeaShipLayout): SeaShipLayout {
+        const normalized = cloneShipLayout(fallback)
+        if (!value || typeof value !== 'object') {
+            return normalized
+        }
+
+        for (const count of [1, 2, 3] as const) {
+            const candidate = (value as Record<string, unknown>)[String(count)]
+            if (!Array.isArray(candidate)) {
+                continue
+            }
+            const fallbackPoints = fallback[count]
+            const nextPoints = fallbackPoints.map((fallbackPoint, pointIndex) => {
+                const source = candidate[pointIndex]
+                if (!source || typeof source !== 'object') {
+                    return { ...fallbackPoint }
+                }
+                const point = source as { x?: unknown; y?: unknown }
+                if (typeof point.x !== 'number' || typeof point.y !== 'number') {
+                    return { ...fallbackPoint }
+                }
+                return {
+                    x: toRoundedMarkerValue(point.x),
+                    y: toRoundedMarkerValue(point.y)
+                }
+            })
+            normalized[count] = nextPoints
+        }
+
+        return normalized
+    }
+
+    function getShipLayoutForSeaArea(seaArea: DebugArea): SeaShipLayout {
+        const defaultLayout = getDefaultShipLayoutForArea(seaArea)
+        const overrideLayout = shipMarkerPositions[seaArea.id]
+        if (!overrideLayout) {
+            return defaultLayout
+        }
+        return normalizeStoredShipLayout(overrideLayout, defaultLayout)
+    }
+
+    function getShipLayoutForSeaId(seaId: string): SeaShipLayout | null {
+        const seaArea = SEA_DEBUG_AREAS_BY_ID.get(seaId)
+        if (!seaArea) {
+            return null
+        }
+        return getShipLayoutForSeaArea(seaArea)
+    }
+
     function getSvgCoordinates(event: PointerEvent): { x: number; y: number } | null {
         if (!debugSvgElement) {
             return null
@@ -249,6 +376,32 @@
                 x: toRoundedMarkerValue(x),
                 y: toRoundedMarkerValue(y)
             }
+        }
+    }
+
+    function setShipMarkerPosition(
+        seaId: string,
+        count: 1 | 2 | 3,
+        markerIndex: number,
+        x: number,
+        y: number
+    ): void {
+        const currentLayout = getShipLayoutForSeaId(seaId)
+        if (!currentLayout) {
+            return
+        }
+        const nextLayout = cloneShipLayout(currentLayout)
+        const points = nextLayout[count]
+        if (markerIndex < 0 || markerIndex >= points.length) {
+            return
+        }
+        points[markerIndex] = {
+            x: toRoundedMarkerValue(x),
+            y: toRoundedMarkerValue(y)
+        }
+        shipMarkerPositions = {
+            ...shipMarkerPositions,
+            [seaId]: nextLayout
         }
     }
 
@@ -289,19 +442,51 @@
         event.preventDefault()
     }
 
+    function startShipMarkerDrag(seaId: string, markerIndex: number, event: PointerEvent): void {
+        if (colorMode !== 'ships') {
+            return
+        }
+        shipMarkerSelectedSeaId = seaId
+        shipMarkerSelectedIndex = markerIndex
+        shipMarkerDragging = { seaId, index: markerIndex }
+        const nextPoint = getSvgCoordinates(event)
+        if (nextPoint) {
+            setShipMarkerPosition(seaId, shipMarkerCount, markerIndex, nextPoint.x, nextPoint.y)
+        }
+        const target = event.currentTarget as Element | null
+        target?.setPointerCapture?.(event.pointerId)
+        event.preventDefault()
+    }
+
     function stopMarkerDrag(): void {
         markerDraggingAreaId = null
+        shipMarkerDragging = null
     }
 
     function handleMarkerPointerMove(event: PointerEvent): void {
-        if (colorMode !== 'marker' || !markerDraggingAreaId) {
+        if (colorMode === 'marker' && markerDraggingAreaId) {
+            const nextPoint = getSvgCoordinates(event)
+            if (!nextPoint) {
+                return
+            }
+            setMarkerPositionForArea(markerDraggingAreaId, nextPoint.x, nextPoint.y)
+            return
+        }
+
+        if (colorMode !== 'ships' || !shipMarkerDragging) {
             return
         }
         const nextPoint = getSvgCoordinates(event)
         if (!nextPoint) {
             return
         }
-        setMarkerPositionForArea(markerDraggingAreaId, nextPoint.x, nextPoint.y)
+        setShipMarkerPosition(
+            shipMarkerDragging.seaId,
+            shipMarkerCount,
+            shipMarkerDragging.index,
+            nextPoint.x,
+            nextPoint.y
+        )
     }
 
     function clearSelectedMarkerOverride(): void {
@@ -317,16 +502,59 @@
         markerPositions = {}
     }
 
-    async function copyToClipboard(value: string): Promise<void> {
+    function clearSelectedShipMarkerOverride(): void {
+        if (
+            !shipMarkerSelectedSeaId ||
+            shipMarkerPositions[shipMarkerSelectedSeaId] === undefined
+        ) {
+            return
+        }
+        const nextPositions = { ...shipMarkerPositions }
+        delete nextPositions[shipMarkerSelectedSeaId]
+        shipMarkerPositions = nextPositions
+    }
+
+    function clearAllShipMarkerOverrides(): void {
+        shipMarkerPositions = {}
+    }
+
+    function selectShipMarkerCount(nextCount: 1 | 2 | 3): void {
+        shipMarkerCount = nextCount
+        const maxMarkerIndex = nextCount - 1
+        if (shipMarkerSelectedIndex > maxMarkerIndex) {
+            shipMarkerSelectedIndex = maxMarkerIndex
+        }
+    }
+
+    function selectCompanyShipMarkerCount(nextCount: 1 | 2 | 3): void {
+        companyShipMarkerCount = nextCount
+    }
+
+    async function copyToClipboard(
+        value: string,
+        target: 'marker' | 'ship' = 'marker'
+    ): Promise<void> {
         if (typeof navigator === 'undefined' || !navigator.clipboard) {
-            markerCopyStatus = 'Clipboard unavailable'
+            if (target === 'ship') {
+                shipMarkerCopyStatus = 'Clipboard unavailable'
+            } else {
+                markerCopyStatus = 'Clipboard unavailable'
+            }
             return
         }
         try {
             await navigator.clipboard.writeText(value)
-            markerCopyStatus = 'Copied'
+            if (target === 'ship') {
+                shipMarkerCopyStatus = 'Copied'
+            } else {
+                markerCopyStatus = 'Copied'
+            }
         } catch {
-            markerCopyStatus = 'Copy failed'
+            if (target === 'ship') {
+                shipMarkerCopyStatus = 'Copy failed'
+            } else {
+                markerCopyStatus = 'Copy failed'
+            }
         }
     }
 
@@ -336,30 +564,49 @@
         }
         try {
             const stored = window.localStorage.getItem(MARKER_POSITIONS_STORAGE_KEY)
-            if (!stored) {
-                markerPositionsLoaded = true
-                return
+            if (stored) {
+                const parsed = JSON.parse(stored) as Record<string, unknown>
+                const nextPositions: Record<string, { x: number; y: number }> = {}
+                for (const [areaId, value] of Object.entries(parsed)) {
+                    if (!value || typeof value !== 'object') {
+                        continue
+                    }
+                    const candidate = value as { x?: unknown; y?: unknown }
+                    if (typeof candidate.x !== 'number' || typeof candidate.y !== 'number') {
+                        continue
+                    }
+                    nextPositions[areaId] = {
+                        x: toRoundedMarkerValue(candidate.x),
+                        y: toRoundedMarkerValue(candidate.y)
+                    }
+                }
+                markerPositions = nextPositions
             }
-            const parsed = JSON.parse(stored) as Record<string, unknown>
-            const nextPositions: Record<string, { x: number; y: number }> = {}
-            for (const [areaId, value] of Object.entries(parsed)) {
-                if (!value || typeof value !== 'object') {
-                    continue
-                }
-                const candidate = value as { x?: unknown; y?: unknown }
-                if (typeof candidate.x !== 'number' || typeof candidate.y !== 'number') {
-                    continue
-                }
-                nextPositions[areaId] = {
-                    x: toRoundedMarkerValue(candidate.x),
-                    y: toRoundedMarkerValue(candidate.y)
-                }
-            }
-            markerPositions = nextPositions
         } catch {
             markerPositions = {}
         } finally {
             markerPositionsLoaded = true
+        }
+
+        try {
+            const stored = window.localStorage.getItem(SHIP_MARKER_POSITIONS_STORAGE_KEY)
+            if (stored) {
+                const parsed = JSON.parse(stored) as Record<string, unknown>
+                const nextPositions: Record<string, SeaShipLayout> = {}
+                for (const seaArea of SEA_DEBUG_MAP_AREAS) {
+                    const fallback = getDefaultShipLayoutForArea(seaArea)
+                    const storedLayout = parsed[seaArea.id]
+                    const normalized = normalizeStoredShipLayout(storedLayout, fallback)
+                    if (storedLayout !== undefined) {
+                        nextPositions[seaArea.id] = normalized
+                    }
+                }
+                shipMarkerPositions = nextPositions
+            }
+        } catch {
+            shipMarkerPositions = {}
+        } finally {
+            shipMarkerPositionsLoaded = true
         }
     })
 
@@ -368,6 +615,16 @@
             return
         }
         window.localStorage.setItem(MARKER_POSITIONS_STORAGE_KEY, JSON.stringify(markerPositions))
+    })
+
+    $effect(() => {
+        if (!shipMarkerPositionsLoaded || typeof window === 'undefined') {
+            return
+        }
+        window.localStorage.setItem(
+            SHIP_MARKER_POSITIONS_STORAGE_KEY,
+            JSON.stringify(shipMarkerPositions)
+        )
     })
 
     const BOARD_GEOMETRY_AREAS = [
@@ -439,6 +696,10 @@
         return areas
     })
 
+    const SEA_DEBUG_AREAS_BY_ID: Map<string, DebugArea> = $derived.by(
+        () => new Map(SEA_DEBUG_MAP_AREAS.map((area) => [area.id, area]))
+    )
+
     const COASTAL_LAND_AREA_IDS: Set<string> = $derived.by(() => {
         const coastalAreaIds = new Set<string>()
         for (const node of BOARD_NODES) {
@@ -461,6 +722,9 @@
             return []
         }
         if (colorMode === 'sea') {
+            return SEA_DEBUG_MAP_AREAS
+        }
+        if (colorMode === 'ships') {
             return SEA_DEBUG_MAP_AREAS
         }
         if (colorMode === 'coastal') {
@@ -611,12 +875,92 @@
         if (colorMode !== 'companies') {
             return []
         }
-        return SEA_DEBUG_MAP_AREAS.map((area, areaIndex) => ({
-            id: area.id,
-            x: area.labelX,
-            y: area.labelY,
-            style: areaIndex % 2 === 0 ? 'a' : 'b'
-        }))
+        const markers: ShipSeaMarker[] = []
+        for (const [areaIndex, area] of SEA_DEBUG_MAP_AREAS.entries()) {
+            const layout = getShipLayoutForSeaArea(area)
+            for (const [markerIndex, point] of layout[companyShipMarkerCount].entries()) {
+                markers.push({
+                    id: `${area.id}-${companyShipMarkerCount}-${markerIndex}`,
+                    x: point.x,
+                    y: point.y,
+                    style: (areaIndex + markerIndex) % 2 === 0 ? 'a' : 'b'
+                })
+            }
+        }
+        return markers
+    })
+
+    const SHIP_TUNE_MARKERS: ShipTuneMarker[] = $derived.by(() => {
+        if (colorMode !== 'ships') {
+            return []
+        }
+        const markers: ShipTuneMarker[] = []
+        for (const seaArea of SEA_DEBUG_MAP_AREAS) {
+            const layout = getShipLayoutForSeaArea(seaArea)
+            for (const [markerIndex, point] of layout[shipMarkerCount].entries()) {
+                markers.push({
+                    id: `${seaArea.id}-${shipMarkerCount}-${markerIndex}`,
+                    seaId: seaArea.id,
+                    x: point.x,
+                    y: point.y,
+                    style: markerIndex % 2 === 0 ? 'a' : 'b',
+                    index: markerIndex
+                })
+            }
+        }
+        return markers
+    })
+
+    const SELECTED_SHIP_SEA_AREA: DebugArea | null = $derived.by(() => {
+        if (!shipMarkerSelectedSeaId) {
+            return null
+        }
+        return SEA_DEBUG_AREAS_BY_ID.get(shipMarkerSelectedSeaId) ?? null
+    })
+
+    const SELECTED_SHIP_MARKER_POINT: ShipMarkerPoint | null = $derived.by(() => {
+        if (!shipMarkerSelectedSeaId) {
+            return null
+        }
+        const layout = getShipLayoutForSeaId(shipMarkerSelectedSeaId)
+        if (!layout) {
+            return null
+        }
+        const points = layout[shipMarkerCount]
+        if (shipMarkerSelectedIndex < 0 || shipMarkerSelectedIndex >= points.length) {
+            return null
+        }
+        return points[shipMarkerSelectedIndex]
+    })
+
+    function formatShipPoints(points: ShipMarkerPoint[]): string {
+        return points
+            .map((point) => `{ x: ${point.x.toFixed(1)}, y: ${point.y.toFixed(1)} }`)
+            .join(', ')
+    }
+
+    const SHIP_MARKER_OVERRIDES_EXPORT_TEXT: string = $derived.by(() => {
+        const ids = Object.keys(shipMarkerPositions).sort(compareAreaIds)
+        if (ids.length === 0) {
+            return '// No ship marker overrides yet.'
+        }
+        const lines = ids.map((seaId) => {
+            const seaArea = SEA_DEBUG_AREAS_BY_ID.get(seaId)
+            if (!seaArea) {
+                return ''
+            }
+            const layout = getShipLayoutForSeaArea(seaArea)
+            return `    ${seaId}: {\n        1: [${formatShipPoints(layout[1])}],\n        2: [${formatShipPoints(layout[2])}],\n        3: [${formatShipPoints(layout[3])}]\n    },`
+        })
+        return `export const SEA_SHIP_MARKER_POSITIONS = {\n${lines.filter(Boolean).join('\n')}\n} as const`
+    })
+
+    const SHIP_MARKER_FULL_EXPORT_TEXT: string = $derived.by(() => {
+        const lines = SEA_DEBUG_MAP_AREAS.map((seaArea) => {
+            const layout = getShipLayoutForSeaArea(seaArea)
+            return `    ${seaArea.id}: {\n        1: [${formatShipPoints(layout[1])}],\n        2: [${formatShipPoints(layout[2])}],\n        3: [${formatShipPoints(layout[3])}]\n    },`
+        })
+        return `export const SEA_SHIP_MARKER_POSITIONS = {\n${lines.join('\n')}\n} as const`
     })
 
     const REGION_LABELS: RegionLabel[] = $derived.by(() => {
@@ -879,6 +1223,9 @@
         if (colorMode === 'sea') {
             return computeSequentialColorMap(DISPLAY_AREAS)
         }
+        if (colorMode === 'ships') {
+            return computeSequentialColorMap(DISPLAY_AREAS)
+        }
         if (colorMode === 'region') {
             return computeRegionColorMap(DISPLAY_AREAS)
         }
@@ -943,6 +1290,16 @@
         </button>
         <button
             type="button"
+            class:active={colorMode === 'ships'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'ships'
+            }}
+        >
+            Ships
+        </button>
+        <button
+            type="button"
             class:active={colorMode === 'production'}
             onclick={() => {
                 hoveredSeaId = null
@@ -993,10 +1350,16 @@
                 <button type="button" onclick={clearAllMarkerOverrides}>Clear All</button>
             </div>
             <div class="marker-tune-row marker-tune-buttons">
-                <button type="button" onclick={() => copyToClipboard(MARKER_OVERRIDES_EXPORT_TEXT)}>
+                <button
+                    type="button"
+                    onclick={() => copyToClipboard(MARKER_OVERRIDES_EXPORT_TEXT, 'marker')}
+                >
                     Copy Overrides
                 </button>
-                <button type="button" onclick={() => copyToClipboard(MARKER_FULL_EXPORT_TEXT)}>
+                <button
+                    type="button"
+                    onclick={() => copyToClipboard(MARKER_FULL_EXPORT_TEXT, 'marker')}
+                >
                     Copy Full
                 </button>
             </div>
@@ -1012,6 +1375,113 @@
             ></textarea>
             <label class="marker-tune-label" for="marker-full-export">Full Export</label>
             <textarea id="marker-full-export" readonly value={MARKER_FULL_EXPORT_TEXT}></textarea>
+        </div>
+    {/if}
+    {#if colorMode === 'ships'}
+        <div class="marker-tune-panel">
+            <div class="marker-tune-title">Ship Marker Placement</div>
+            <div class="marker-tune-row">
+                <span>Selected Sea:</span>
+                <strong>{shipMarkerSelectedSeaId ?? 'None'}</strong>
+            </div>
+            <div class="marker-tune-row marker-tune-buttons">
+                <span>Ship Count:</span>
+                <button
+                    type="button"
+                    class:active={shipMarkerCount === 1}
+                    onclick={() => selectShipMarkerCount(1)}
+                >
+                    1
+                </button>
+                <button
+                    type="button"
+                    class:active={shipMarkerCount === 2}
+                    onclick={() => selectShipMarkerCount(2)}
+                >
+                    2
+                </button>
+                <button
+                    type="button"
+                    class:active={shipMarkerCount === 3}
+                    onclick={() => selectShipMarkerCount(3)}
+                >
+                    3
+                </button>
+            </div>
+            <div class="marker-tune-row">
+                <span>Selected Ship:</span>
+                <strong>#{shipMarkerSelectedIndex + 1}</strong>
+            </div>
+            {#if SELECTED_SHIP_MARKER_POINT}
+                <div class="marker-tune-row">
+                    <span>X:</span>
+                    <code>{SELECTED_SHIP_MARKER_POINT.x.toFixed(1)}</code>
+                    <span>Y:</span>
+                    <code>{SELECTED_SHIP_MARKER_POINT.y.toFixed(1)}</code>
+                </div>
+            {/if}
+            <div class="marker-tune-row marker-tune-buttons">
+                <button type="button" onclick={clearSelectedShipMarkerOverride}
+                    >Clear Selected</button
+                >
+                <button type="button" onclick={clearAllShipMarkerOverrides}>Clear All</button>
+            </div>
+            <div class="marker-tune-row marker-tune-buttons">
+                <button
+                    type="button"
+                    onclick={() => copyToClipboard(SHIP_MARKER_OVERRIDES_EXPORT_TEXT, 'ship')}
+                >
+                    Copy Overrides
+                </button>
+                <button
+                    type="button"
+                    onclick={() => copyToClipboard(SHIP_MARKER_FULL_EXPORT_TEXT, 'ship')}
+                >
+                    Copy Full
+                </button>
+            </div>
+            <div class="marker-tune-row">
+                <span>Overrides:</span>
+                <strong>{Object.keys(shipMarkerPositions).length}</strong>
+                {#if shipMarkerCopyStatus}
+                    <em>{shipMarkerCopyStatus}</em>
+                {/if}
+            </div>
+            <label class="marker-tune-label" for="ship-overrides-export">Overrides Export</label>
+            <textarea id="ship-overrides-export" readonly value={SHIP_MARKER_OVERRIDES_EXPORT_TEXT}
+            ></textarea>
+            <label class="marker-tune-label" for="ship-full-export">Full Export</label>
+            <textarea id="ship-full-export" readonly value={SHIP_MARKER_FULL_EXPORT_TEXT}
+            ></textarea>
+        </div>
+    {/if}
+    {#if colorMode === 'companies'}
+        <div class="companies-ship-count-panel">
+            <div class="marker-tune-title">Company Ships</div>
+            <div class="marker-tune-row marker-tune-buttons">
+                <span>Ship Count:</span>
+                <button
+                    type="button"
+                    class:active={companyShipMarkerCount === 1}
+                    onclick={() => selectCompanyShipMarkerCount(1)}
+                >
+                    1
+                </button>
+                <button
+                    type="button"
+                    class:active={companyShipMarkerCount === 2}
+                    onclick={() => selectCompanyShipMarkerCount(2)}
+                >
+                    2
+                </button>
+                <button
+                    type="button"
+                    class:active={companyShipMarkerCount === 3}
+                    onclick={() => selectCompanyShipMarkerCount(3)}
+                >
+                    3
+                </button>
+            </div>
         </div>
     {/if}
 
@@ -1031,14 +1501,18 @@
                 <path
                     d={area.path}
                     fill={areaColor}
-                    fill-opacity={colorMode === 'marker' ? '0.22' : '0.5'}
+                    fill-opacity={colorMode === 'marker' || colorMode === 'ships' ? '0.22' : '0.5'}
                     fill-rule="evenodd"
                     stroke="#111827"
                     stroke-width="1.8"
                     stroke-linejoin="round"
                     stroke-linecap="round"
                     opacity="0.95"
-                    pointer-events={colorMode === 'sea' || colorMode === 'marker' ? 'all' : 'none'}
+                    pointer-events={colorMode === 'sea' ||
+                    colorMode === 'marker' ||
+                    colorMode === 'ships'
+                        ? 'all'
+                        : 'none'}
                     onmouseenter={() => {
                         if (colorMode === 'sea') {
                             hoveredSeaId = area.id
@@ -1052,6 +1526,9 @@
                     onpointerdown={() => {
                         if (colorMode === 'marker') {
                             markerSelectedAreaId = area.id
+                        } else if (colorMode === 'ships') {
+                            shipMarkerSelectedSeaId = area.id
+                            shipMarkerSelectedIndex = 0
                         }
                     }}
                 ></path>
@@ -1059,6 +1536,18 @@
             {#if colorMode === 'marker' && SELECTED_MARKER_AREA}
                 <path
                     d={SELECTED_MARKER_AREA.path}
+                    fill="none"
+                    stroke="#f59e0b"
+                    stroke-width="2.6"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                    opacity="0.95"
+                    pointer-events="none"
+                ></path>
+            {/if}
+            {#if colorMode === 'ships' && SELECTED_SHIP_SEA_AREA}
+                <path
+                    d={SELECTED_SHIP_SEA_AREA.path}
                     fill="none"
                     stroke="#f59e0b"
                     stroke-width="2.6"
@@ -1191,6 +1680,40 @@
                     height={58}
                 />
                 <RiceCompanyCard x={45} y={250} height={58} text="Areh" />
+            {/if}
+            {#if colorMode === 'ships'}
+                {#each SHIP_TUNE_MARKERS as shipMarker (shipMarker.id)}
+                    <ShipMarker
+                        x={shipMarker.x}
+                        y={shipMarker.y}
+                        style={shipMarker.style}
+                        height={SHIP_MARKER_HEIGHT}
+                    />
+                    <circle
+                        cx={shipMarker.x}
+                        cy={shipMarker.y}
+                        r={shipMarker.seaId === shipMarkerSelectedSeaId &&
+                        shipMarker.index === shipMarkerSelectedIndex
+                            ? 8
+                            : 6.5}
+                        fill={shipMarker.seaId === shipMarkerSelectedSeaId &&
+                        shipMarker.index === shipMarkerSelectedIndex
+                            ? '#fef3c7'
+                            : '#ffffff'}
+                        fill-opacity="0.35"
+                        stroke={shipMarker.seaId === shipMarkerSelectedSeaId &&
+                        shipMarker.index === shipMarkerSelectedIndex
+                            ? '#b45309'
+                            : '#1f2937'}
+                        stroke-width={shipMarker.seaId === shipMarkerSelectedSeaId &&
+                        shipMarker.index === shipMarkerSelectedIndex
+                            ? 2.2
+                            : 1.5}
+                        pointer-events="all"
+                        onpointerdown={(event) =>
+                            startShipMarkerDrag(shipMarker.seaId, shipMarker.index, event)}
+                    ></circle>
+                {/each}
             {/if}
             {#if colorMode === 'production' || colorMode === 'marker'}
                 {#each DISPLAYED_MARKERS as marker (marker.areaId)}
@@ -1362,6 +1885,20 @@
         border: 1px solid rgba(17, 24, 39, 0.12);
     }
 
+    .companies-ship-count-panel {
+        position: absolute;
+        top: 62px;
+        left: 12px;
+        z-index: 4;
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 1px 3px rgba(17, 24, 39, 0.22);
+        border: 1px solid rgba(17, 24, 39, 0.12);
+    }
+
     .marker-tune-title {
         font-size: 13px;
         font-weight: 700;
@@ -1405,6 +1942,12 @@
         font-weight: 600;
         line-height: 1.1;
         cursor: pointer;
+    }
+
+    .marker-tune-buttons button.active {
+        background: #1f2937;
+        color: #ffffff;
+        border-color: #111827;
     }
 
     .marker-tune-label {
