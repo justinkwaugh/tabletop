@@ -15,6 +15,7 @@
     import OilMarker from '$lib/components/OilMarker.svelte'
     import RiceMarker from '$lib/components/RiceMarker.svelte'
     import RubberMarker from '$lib/components/RubberMarker.svelte'
+    import ShipMarker from '$lib/components/ShipMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
     import RubberCompanyCard from '$lib/components/RubberCompanyCard.svelte'
     import SpiceCompanyCard from '$lib/components/SpiceCompanyCard.svelte'
@@ -88,8 +89,16 @@
         beadTone?: BeadTone
     }
 
+    type ShipSeaMarker = {
+        id: string
+        x: number
+        y: number
+        style: 'a' | 'b'
+    }
+
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
     const PRODUCTION_ICON_HEIGHT = 30
+    const SHIP_MARKER_HEIGHT = 30
     const GLASS_BEAD_HEIGHT = 46
     const GLASS_BEAD_OPACITY = 0.85
     const COMPANY_OVERLAY_LIGHT = '#e3d8c0'
@@ -596,6 +605,18 @@
         return SEA_DEBUG_MAP_AREAS.filter(
             (area) => area.id === 'S06' || area.id === 'S09' || area.id === 'S14'
         )
+    })
+
+    const COMPANY_SHIP_MARKERS: ShipSeaMarker[] = $derived.by(() => {
+        if (colorMode !== 'companies') {
+            return []
+        }
+        return SEA_DEBUG_MAP_AREAS.map((area, areaIndex) => ({
+            id: area.id,
+            x: area.labelX,
+            y: area.labelY,
+            style: areaIndex % 2 === 0 ? 'a' : 'b'
+        }))
     })
 
     const REGION_LABELS: RegionLabel[] = $derived.by(() => {
@@ -1132,6 +1153,14 @@
                         pointer-events="none"
                     ></path>
                 {/each}
+                {#each COMPANY_SHIP_MARKERS as shipMarker (shipMarker.id)}
+                    <ShipMarker
+                        x={shipMarker.x}
+                        y={shipMarker.y}
+                        style={shipMarker.style}
+                        height={SHIP_MARKER_HEIGHT}
+                    />
+                {/each}
                 <RubberCompanyCard
                     x={200}
                     y={680}
@@ -1157,10 +1186,9 @@
                     text={['Jawa', 'Tengah'].join('\n')}
                 />
                 <ShipCompanyCard
-                    x={COMPANIES_SHIP_CARD_A10_X + 100}
-                    y={COMPANIES_SHIP_CARD_A10_Y - 100}
+                    x={COMPANIES_SHIP_CARD_A10_X}
+                    y={COMPANIES_SHIP_CARD_A10_Y}
                     height={58}
-                    text={['Sumatera', '     Utara'].join('\n')}
                 />
                 <RiceCompanyCard x={45} y={250} height={58} text="Areh" />
             {/if}
