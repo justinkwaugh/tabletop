@@ -19,6 +19,7 @@
     import RubberCompanyCard from '$lib/components/RubberCompanyCard.svelte'
     import SpiceCompanyCard from '$lib/components/SpiceCompanyCard.svelte'
     import RiceCompanyCard from '$lib/components/RiceCompanyCard.svelte'
+    import ShipCompanyCard from '$lib/components/ShipCompanyCard.svelte'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
 
@@ -97,14 +98,19 @@
     const RUBBER_OVERLAY_DARK = '#131113'
     const SPICE_OVERLAY_LIGHT = '#d5e1b1'
     const SPICE_OVERLAY_DARK = '#425735'
+    const SHIP_OVERLAY_LIGHT = '#9fc4c5'
+    const SHIP_OVERLAY_DARK = '#396c78'
     const MARKER_POSITIONS_STORAGE_KEY = 'indonesia-marker-positions-v1'
     const LAND_MARKER_POSITION_LOOKUP = LAND_MARKER_POSITIONS as Record<
         string,
         { x: number; y: number }
     >
+    const A10_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['A10'] ?? { x: 390.8, y: 386.1 }
     const A26_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['A26'] ?? { x: 595.9, y: 452.9 }
     const B02_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['B02'] ?? { x: 946.9, y: 542.5 }
     const C09_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['C09'] ?? { x: 916.9, y: 940.4 }
+    const COMPANIES_SHIP_CARD_A10_X = A10_MARKER_POSITION.x
+    const COMPANIES_SHIP_CARD_A10_Y = A10_MARKER_POSITION.y - 110
     const COMPANIES_RUBBER_CARD_A26_X = A26_MARKER_POSITION.x + 120
     const COMPANIES_RUBBER_CARD_A26_Y = A26_MARKER_POSITION.y - 95
     const COMPANIES_RUBBER_CARD_B02_X = B02_MARKER_POSITION.x
@@ -583,6 +589,15 @@
         )
     })
 
+    const COMPANY_SHIP_SEA_AREAS: DebugArea[] = $derived.by(() => {
+        if (colorMode !== 'companies') {
+            return []
+        }
+        return SEA_DEBUG_MAP_AREAS.filter(
+            (area) => area.id === 'S06' || area.id === 'S09' || area.id === 'S14'
+        )
+    })
+
     const REGION_LABELS: RegionLabel[] = $derived.by(() => {
         if (colorMode !== 'region') {
             return []
@@ -1033,6 +1048,20 @@
                 ></path>
             {/if}
             {#if colorMode === 'companies'}
+                {#each COMPANY_SHIP_SEA_AREAS as area (area.id)}
+                    <path
+                        d={area.path}
+                        fill={SHIP_OVERLAY_LIGHT}
+                        fill-opacity="1"
+                        fill-rule="evenodd"
+                        stroke={SHIP_OVERLAY_DARK}
+                        stroke-width="1.9"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.8"
+                        pointer-events="none"
+                    ></path>
+                {/each}
                 {#each COMPANY_R03_AREAS as area (area.id)}
                     <path
                         d={area.path}
@@ -1104,8 +1133,8 @@
                     ></path>
                 {/each}
                 <RubberCompanyCard
-                    x={180}
-                    y={700}
+                    x={200}
+                    y={680}
                     height={58}
                     text={['Sumatera', '     Barat'].join('\n')}
                 />
@@ -1126,6 +1155,11 @@
                     y={COMPANIES_SPICE_CARD_C09_Y}
                     height={58}
                     text={['Jawa', 'Tengah'].join('\n')}
+                />
+                <ShipCompanyCard
+                    x={COMPANIES_SHIP_CARD_A10_X + 100}
+                    y={COMPANIES_SHIP_CARD_A10_Y - 100}
+                    height={58}
                 />
                 <RiceCompanyCard x={45} y={250} height={58} text="Areh" />
             {/if}
