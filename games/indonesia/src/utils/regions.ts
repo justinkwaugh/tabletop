@@ -99,7 +99,7 @@ export const INDONESIA_REGIONS = [
     },
     {
         id: 'R25',
-        areaIds: ['E08', 'E09', 'E07', 'E11', 'E06'] as const
+        areaIds: ['E08', 'E09', 'E07', 'E11', 'E06', 'E12'] as const
     },
     {
         id: 'R26',

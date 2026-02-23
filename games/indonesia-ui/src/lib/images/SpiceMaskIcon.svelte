@@ -4,7 +4,7 @@
     let {
         width = 31.77,
         height = 29.39,
-        fill = '#b4b78c',
+        fill = '#d5e1b1',
         ...svgProps
     }: {
         width?: number
