@@ -5,19 +5,19 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
     override getUiColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return '#539ad1'
+                return '#90cace'
             case Color.Red:
                 return '#e55649'
             case Color.Yellow:
-                return '#f3c244'
+                return '#d8bc67'
             case Color.Green:
-                return '#63b878'
+                return '#50823c'
             case Color.Purple:
-                return '#804796'
+                return '#aa387f'
             case Color.Gray:
                 return '#888888'
             case Color.Orange:
-                return '#f28c28'
+                return '#e78e52'
             case Color.Black:
                 return '#444444'
             default:
@@ -28,21 +28,21 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
     override getBgColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return 'bg-[#539ad1]'
+                return 'bg-[#90cace]'
             case Color.Red:
                 return 'bg-[#e55649]'
             case Color.Yellow:
-                return 'bg-[#f3c244]'
+                return 'bg-[#d8bc67]'
             case Color.Green:
-                return 'bg-[#63b878]'
+                return 'bg-[#50823c]'
             case Color.Purple:
-                return 'bg-[#804796]'
+                return 'bg-[#aa387f]'
             case Color.Gray:
                 return 'bg-[#aaaaaa]'
             case Color.Black:
                 return 'bg-[#444444]'
             case Color.Orange:
-                return 'bg-[#f28c28]'
+                return 'bg-[#e78e52]'
             default:
                 return 'bg-[#555555]'
         }
@@ -51,21 +51,21 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
     override getBorderColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return 'border-[#539ad1]'
+                return 'border-[#90cace]'
             case Color.Red:
                 return 'border-[#e55649]'
             case Color.Yellow:
-                return 'border-[#f3c244]'
+                return 'border-[#d8bc67]'
             case Color.Green:
-                return 'border-[#63b878]'
+                return 'border-[#50823c]'
             case Color.Purple:
-                return 'border-[#804796]'
+                return 'border-[#aa387f]'
             case Color.Gray:
                 return 'border-[#888888]'
             case Color.Black:
                 return 'border-[#444444]'
             case Color.Orange:
-                return 'border-[#f28c28]'
+                return 'border-[#e78e52]'
             default:
                 return 'border-[#555555]'
         }
