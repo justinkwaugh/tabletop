@@ -3,110 +3,132 @@ import type { IndonesiaNodeId } from './indonesiaNodes.js'
 export const INDONESIA_REGIONS = [
     {
         id: 'R01',
+        name: 'Aceh',
         areaIds: ['A01', 'A02', 'A03', 'A04'] as const
     },
     {
         id: 'R02',
+        name: 'Sumatera Utara',
         areaIds: ['A05', 'A07', 'A08', 'A10'] as const
     },
     {
         id: 'R03',
+        name: 'Sumatera Barat',
         areaIds: ['A06', 'A09', 'A11', 'A13'] as const
     },
     {
         id: 'R04',
+        name: 'Riau',
         areaIds: ['A12', 'A16', 'A15', 'A19', 'A26'] as const
     },
     {
         id: 'R05',
+        name: 'Jambi',
         areaIds: ['A18', 'A23', 'A25'] as const
     },
     {
         id: 'R06',
+        name: 'Bengkulu',
         areaIds: ['A14', 'A17', 'A21'] as const
     },
     {
         id: 'R07',
+        name: 'Sumatera Selatan',
         areaIds: ['A20', 'A24', 'A27', 'A28', 'A31', 'A32', 'A33'] as const
     },
     {
         id: 'R08',
+        name: 'Lampung',
         areaIds: ['A22', 'A29', 'A30', 'A34'] as const
     },
     {
         id: 'R09',
+        name: 'Sarawak',
         areaIds: ['B03', 'B09', 'B13', 'B19'] as const
     },
     {
         id: 'R10',
+        name: 'Kalimantan Barat',
         areaIds: ['B01', 'B02', 'B04'] as const
     },
     {
         id: 'R11',
+        name: 'Kalimantan Timur',
         areaIds: ['B18', 'B10', 'B20', 'B16', 'B17'] as const
     },
     {
         id: 'R12',
+        name: 'Kalimantan Tengah',
         areaIds: ['B05', 'B06', 'B07', 'B08', 'B11'] as const
     },
     {
         id: 'R13',
+        name: 'Kalimantan Selatan',
         areaIds: ['B12', 'B15', 'B14'] as const
     },
     {
         id: 'R14',
+        name: 'Sulawesi Selatan',
         areaIds: ['D11', 'D07', 'D08'] as const
     },
     {
         id: 'R15',
+        name: 'Sulawesi Tenggara',
         areaIds: ['D09', 'D10', 'D13'] as const
     },
     {
         id: 'R16',
+        name: 'Sulawesi Tengah',
         areaIds: ['D01', 'D04', 'D05', 'D06', 'D12'] as const
     },
     {
         id: 'R17',
+        name: 'Sulawesi Utara',
         areaIds: ['D02', 'D03'] as const
     },
     {
         id: 'R18',
+        name: 'Jawa Barat',
         areaIds: ['C01', 'C02', 'C03', 'C04', 'C05', 'C06', 'C07'] as const
     },
     {
         id: 'R19',
+        name: 'Jawa Tengah',
         areaIds: ['C08', 'C09', 'C10', 'C11'] as const
     },
     {
         id: 'R20',
+        name: 'Jawa Timur',
         areaIds: ['C12', 'C13', 'C14', 'C15', 'C16', 'C17'] as const
     },
     {
         id: 'R21',
+        name: 'Bali',
         areaIds: ['C21', 'C22'] as const
     },
     {
         id: 'R22',
+        name: 'Nusa Tenggara Barat',
         areaIds: ['C23', 'C24'] as const
     },
     {
         id: 'R23',
+        name: 'Nusa Tenggara Timur',
         areaIds: ['C26', 'C25', 'C28', 'C27', 'C29', 'C30'] as const
     },
     {
         id: 'R24',
-        areaIds: ['C18', 'C19', 'C20'] as const
-    },
-    {
-        id: 'R25',
-        areaIds: ['E08', 'E09', 'E07', 'E11', 'E06', 'E12'] as const
+        name: 'Maluku',
+        areaIds: ['C18', 'C19', 'C20', 'E08', 'E09', 'E07', 'E11', 'E06', 'E12'] as const
     },
     {
         id: 'R26',
+        name: 'Halmahera',
         areaIds: ['E05', 'E04', 'E03', 'E02', 'E10', 'E01'] as const
     },
     {
         id: 'R27',
+        name: 'Papua',
         areaIds: ['F06', 'F03', 'F05', 'F02', 'F04', 'F01', 'F07'] as const
     }
 ] as const

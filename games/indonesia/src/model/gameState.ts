@@ -10,6 +10,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { IndonesiaBoard, HydratedIndonesiaBoard } from '../components/board.js'
+import { AnyDeed } from '../components/deed.js'
 
 export type IndonesiaGameState = Type.Static<typeof IndonesiaGameState>
 export const IndonesiaGameState = Type.Evaluate(
@@ -18,7 +19,8 @@ export const IndonesiaGameState = Type.Evaluate(
         Type.Object({
             players: Type.Array(IndonesiaPlayerState), // Redefine with the specific player state type
             machineState: Type.Enum(MachineState), // Redefine with the specific machine states
-            board: IndonesiaBoard
+            board: IndonesiaBoard,
+            availableDeeds: Type.Array(AnyDeed)
         })
     ])
 )
@@ -42,6 +44,7 @@ export class HydratedIndonesiaGameState
     declare board: HydratedIndonesiaBoard
     declare result?: GameResult
     declare winningPlayerIds: string[]
+    declare availableDeeds: AnyDeed[]
 
     constructor(data: IndonesiaGameState) {
         super(data, IndonesiaGameStateValidator)
