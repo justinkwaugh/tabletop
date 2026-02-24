@@ -16,6 +16,7 @@
         isVroom
     } from '@tabletop/bus'
     import { isAggregatedBusAction } from '$lib/aggregates/aggregatedBusAction.js'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     let {
         action,
@@ -81,7 +82,13 @@
 >
     {#if isAggregatedBusAction(action)}
         {#if action.aggregatedType === ActionType.PlaceBusLine}
-            expanded their bus line by {action.count} {pluralizeSegments(action.count)}
+            expanded <PlayerName
+                playerId={action.playerId}
+                possessive={true}
+                plainSelfPossessive={true}
+                possessivePlayerId={action.playerId}
+            /> bus line by {action.count}
+            {pluralizeSegments(action.count)}
         {:else if action.aggregatedType === ActionType.PlaceBuilding}
             placed {action.count} {pluralizeBuildings(action.count)}
         {:else if action.aggregatedType === ActionType.AddPassengers}
