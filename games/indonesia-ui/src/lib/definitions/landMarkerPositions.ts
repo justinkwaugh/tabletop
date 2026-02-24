@@ -1,4 +1,6 @@
-export const LAND_MARKER_POSITIONS = {
+import type { Point } from '@tabletop/common'
+
+export const LAND_MARKER_POSITIONS: Readonly<Record<string, Point>> = {
     A01: { x: 125.4, y: 191.3 },
     A02: { x: 125.0, y: 323.3 },
     A03: { x: 200.9, y: 268.3 },
@@ -114,4 +116,4 @@ export const LAND_MARKER_POSITIONS = {
     F05: { x: 2276.6, y: 679.3 },
     F06: { x: 2036.8, y: 541.2 },
     F07: { x: 2359.5, y: 563.0 }
-} as const
+}

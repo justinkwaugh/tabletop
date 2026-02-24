@@ -1,10 +1,9 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
-    import type { IndonesiaGameSession } from '$lib/model/session.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    const gameSession = getGameSession() as IndonesiaGameSession
+    const gameSession = getGameSession()
 
     const currentTurnPlayerId = $derived.by(
         () => gameSession.gameState.turnManager.currentTurn()?.playerId

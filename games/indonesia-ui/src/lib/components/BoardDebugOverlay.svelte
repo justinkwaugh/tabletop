@@ -18,12 +18,21 @@
     import RubberMarker from '$lib/components/RubberMarker.svelte'
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
-    import CompanyCard from '$lib/components/CompanyCard.svelte'
+    import CompanyDeed, { deedCardKindFor } from '$lib/components/CompanyDeed.svelte'
     import { DEED_CARD_POSITIONS, DEED_CARD_POSITIONS_STORAGE_KEY } from '$lib/definitions/deedCardPositions.js'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
+    import { getRegionName } from '$lib/definitions/regions.js'
     import { SEA_SHIP_MARKER_POSITIONS } from '$lib/definitions/seaShipMarkerPositions.js'
+    import {
+        deedPositionKey,
+        shippingSizeEntriesFromDeed,
+        type ShippingSizeEntry
+    } from '$lib/utils/deeds.js'
+    import { getPathCenter, roundToTenth } from '$lib/utils/geometry.js'
+    import type { CompanyCardType } from '$lib/types/companyCard.js'
+    import type { Point } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { CompanyType, Deeds, Era, Good, INDONESIA_REGIONS, type AnyDeed } from '@tabletop/indonesia'
+    import { CompanyType, Deeds, Era, Good, type AnyDeed } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
 
@@ -44,7 +53,7 @@
     let colorMode: OverlayMode = $state('none')
     let hoveredSeaId: string | null = $state(null)
     let debugSvgElement: SVGSVGElement | null = $state(null)
-    let markerPositions: Record<string, { x: number; y: number }> = $state({})
+    let markerPositions: Record<string, Point> = $state({})
     let markerPositionsLoaded = $state(false)
     let markerSelectedAreaId: string | null = $state(null)
     let markerDraggingAreaId: string | null = $state(null)
@@ -57,7 +66,7 @@
     let shipMarkerSelectedIndex = $state(0)
     let shipMarkerDragging: { seaId: string; index: number } | null = $state(null)
     let shipMarkerCopyStatus: string | null = $state(null)
-    let deedCardPositions: Record<string, { x: number; y: number }> = $state({})
+    let deedCardPositions: Record<string, Point> = $state({})
     let deedCardPositionsLoaded = $state(false)
     let deedEra: Era = $state(Era.A)
     let selectedDeedCardKey: string | null = $state(null)
@@ -91,63 +100,40 @@
         y2: number
     }
 
-    type RegionLabel = {
-        regionId: string
-        x: number
-        y: number
-    }
+    type RegionLabel = { regionId: string } & Point
 
     type ProductionMarkerType = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
     type ProductionMarkerPlacement = {
         areaId: string
         markerType: ProductionMarkerType | 'bead'
-        x: number
-        y: number
         beadTone?: BeadTone
-    }
+    } & Point
 
     type ShipSeaMarker = {
         id: string
-        x: number
-        y: number
         style: 'a' | 'b'
-    }
-
-    type ShipMarkerPoint = {
-        x: number
-        y: number
-    }
+    } & Point
 
     type SeaShipLayout = {
-        1: ShipMarkerPoint[]
-        2: ShipMarkerPoint[]
-        3: ShipMarkerPoint[]
+        1: Point[]
+        2: Point[]
+        3: Point[]
     }
 
     type ShipTuneMarker = {
         id: string
         seaId: string
-        x: number
-        y: number
         style: 'a' | 'b'
         index: number
-    }
-
-    type DeedCardKind = 'rice' | 'spice' | 'rubber' | 'oil' | 'ship'
-    type ShippingSizeEntry = {
-        era: Era
-        size: number
-    }
+    } & Point
 
     type DeedTuneEntry = {
         positionKey: string
         regionId: string
         regionName: string
-        cardKind: DeedCardKind
+        cardKind: CompanyCardType
         shippingSizes: readonly ShippingSizeEntry[] | null
-        x: number
-        y: number
-    }
+    } & Point
 
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
     const PRODUCTION_ICON_HEIGHT = 30
@@ -155,8 +141,6 @@
     const GLASS_BEAD_HEIGHT = 46
     const GLASS_BEAD_OPACITY = 0.85
     const DEED_CARD_HEIGHT = 58
-    const DEED_CARD_BASE_OFFSET_X = 76
-    const DEED_CARD_BASE_OFFSET_Y = -92
     const DEED_CARD_HANDLE_OFFSET = 8
     const COMPANY_OVERLAY_LIGHT = '#e3d8c0'
     const COMPANY_OVERLAY_DARK = '#6c5a46'
@@ -168,13 +152,9 @@
     const SHIP_OVERLAY_DARK = '#396c78'
     const MARKER_POSITIONS_STORAGE_KEY = 'indonesia-marker-positions-v1'
     const SHIP_MARKER_POSITIONS_STORAGE_KEY = 'indonesia-sea-ship-marker-positions-v1'
-    const SEA_SHIP_MARKER_POSITION_LOOKUP = SEA_SHIP_MARKER_POSITIONS as Record<string, unknown>
-    const LAND_MARKER_POSITION_LOOKUP = LAND_MARKER_POSITIONS as Record<
-        string,
-        { x: number; y: number }
-    >
-    const REGION_NAME_BY_ID = new Map(INDONESIA_REGIONS.map((region) => [region.id, region.name]))
-    const SHIP_LAYOUT_OFFSETS: Record<1 | 2 | 3, Array<{ x: number; y: number }>> = {
+    const SEA_SHIP_MARKER_POSITION_LOOKUP = SEA_SHIP_MARKER_POSITIONS
+    const LAND_MARKER_POSITION_LOOKUP = LAND_MARKER_POSITIONS
+    const SHIP_LAYOUT_OFFSETS: Record<1 | 2 | 3, Point[]> = {
         1: [{ x: 0, y: 0 }],
         2: [
             { x: -24, y: 0 },
@@ -270,36 +250,6 @@
         return `hsl(${hue} 62% 54%)`
     }
 
-    function getPathLabelPosition(path: string): { labelX: number; labelY: number } {
-        const values = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? []
-        let minX = Number.POSITIVE_INFINITY
-        let minY = Number.POSITIVE_INFINITY
-        let maxX = Number.NEGATIVE_INFINITY
-        let maxY = Number.NEGATIVE_INFINITY
-
-        for (let i = 0; i < values.length - 1; i += 2) {
-            const x = values[i]
-            const y = values[i + 1]
-            if (x < minX) minX = x
-            if (x > maxX) maxX = x
-            if (y < minY) minY = y
-            if (y > maxY) maxY = y
-        }
-
-        return {
-            labelX: (minX + maxX) / 2,
-            labelY: (minY + maxY) / 2
-        }
-    }
-
-    function toRoundedMarkerValue(value: number): number {
-        return Math.round(value * 10) / 10
-    }
-
-    function deedPositionKey(regionId: string, deedType: CompanyType): string {
-        return `${regionId}:${deedType}`
-    }
-
     function parseDeedPositionKey(
         key: string
     ): {
@@ -323,8 +273,8 @@
         deedCardPositions = {
             ...deedCardPositions,
             [positionKey]: {
-                x: toRoundedMarkerValue(x),
-                y: toRoundedMarkerValue(y)
+                x: roundToTenth(x),
+                y: roundToTenth(y)
             }
         }
     }
@@ -338,20 +288,20 @@
     }
 
     function getDefaultShipLayoutForArea(area: DebugArea): SeaShipLayout {
-        const baseX = toRoundedMarkerValue(area.labelX)
-        const baseY = toRoundedMarkerValue(area.labelY)
+        const baseX = area.labelX
+        const baseY = area.labelY
         const fallbackLayout: SeaShipLayout = {
             1: SHIP_LAYOUT_OFFSETS[1].map((offset) => ({
-                x: toRoundedMarkerValue(baseX + offset.x),
-                y: toRoundedMarkerValue(baseY + offset.y)
+                x: baseX + offset.x,
+                y: baseY + offset.y
             })),
             2: SHIP_LAYOUT_OFFSETS[2].map((offset) => ({
-                x: toRoundedMarkerValue(baseX + offset.x),
-                y: toRoundedMarkerValue(baseY + offset.y)
+                x: baseX + offset.x,
+                y: baseY + offset.y
             })),
             3: SHIP_LAYOUT_OFFSETS[3].map((offset) => ({
-                x: toRoundedMarkerValue(baseX + offset.x),
-                y: toRoundedMarkerValue(baseY + offset.y)
+                x: baseX + offset.x,
+                y: baseY + offset.y
             }))
         }
 
@@ -385,8 +335,8 @@
                     return { ...fallbackPoint }
                 }
                 return {
-                    x: toRoundedMarkerValue(point.x),
-                    y: toRoundedMarkerValue(point.y)
+                    x: point.x,
+                    y: point.y
                 }
             })
             normalized[count] = nextPoints
@@ -412,7 +362,7 @@
         return getShipLayoutForSeaArea(seaArea)
     }
 
-    function getSvgCoordinates(event: PointerEvent): { x: number; y: number } | null {
+    function getSvgCoordinates(event: PointerEvent): Point | null {
         if (!debugSvgElement) {
             return null
         }
@@ -425,8 +375,8 @@
         point.y = event.clientY
         const transformed = point.matrixTransform(ctm.inverse())
         return {
-            x: toRoundedMarkerValue(transformed.x),
-            y: toRoundedMarkerValue(transformed.y)
+            x: roundToTenth(transformed.x),
+            y: roundToTenth(transformed.y)
         }
     }
 
@@ -434,8 +384,8 @@
         markerPositions = {
             ...markerPositions,
             [areaId]: {
-                x: toRoundedMarkerValue(x),
-                y: toRoundedMarkerValue(y)
+                x: roundToTenth(x),
+                y: roundToTenth(y)
             }
         }
     }
@@ -457,8 +407,8 @@
             return
         }
         points[markerIndex] = {
-            x: toRoundedMarkerValue(x),
-            y: toRoundedMarkerValue(y)
+            x: roundToTenth(x),
+            y: roundToTenth(y)
         }
         shipMarkerPositions = {
             ...shipMarkerPositions,
@@ -466,21 +416,21 @@
         }
     }
 
-    function getDefaultMarkerPositionForArea(area: DebugArea): { x: number; y: number } {
+    function getDefaultMarkerPositionForArea(area: DebugArea): Point {
         const defaultPosition = LAND_MARKER_POSITION_LOOKUP[area.id]
         if (defaultPosition) {
             return {
-                x: toRoundedMarkerValue(defaultPosition.x),
-                y: toRoundedMarkerValue(defaultPosition.y)
+                x: defaultPosition.x,
+                y: defaultPosition.y
             }
         }
         return {
-            x: toRoundedMarkerValue(area.labelX),
-            y: toRoundedMarkerValue(area.labelY)
+            x: area.labelX,
+            y: area.labelY
         }
     }
 
-    function getMarkerPositionForArea(area: DebugArea): { x: number; y: number } {
+    function getMarkerPositionForArea(area: DebugArea): Point {
         const override = markerPositions[area.id]
         if (override) {
             return override
@@ -671,7 +621,7 @@
             const stored = window.localStorage.getItem(MARKER_POSITIONS_STORAGE_KEY)
             if (stored) {
                 const parsed = JSON.parse(stored) as Record<string, unknown>
-                const nextPositions: Record<string, { x: number; y: number }> = {}
+                const nextPositions: Record<string, Point> = {}
                 for (const [areaId, value] of Object.entries(parsed)) {
                     if (!value || typeof value !== 'object') {
                         continue
@@ -681,8 +631,8 @@
                         continue
                     }
                     nextPositions[areaId] = {
-                        x: toRoundedMarkerValue(candidate.x),
-                        y: toRoundedMarkerValue(candidate.y)
+                        x: candidate.x,
+                        y: candidate.y
                     }
                 }
                 markerPositions = nextPositions
@@ -718,7 +668,7 @@
             const stored = window.localStorage.getItem(DEED_CARD_POSITIONS_STORAGE_KEY)
             if (stored) {
                 const parsed = JSON.parse(stored) as Record<string, unknown>
-                const nextPositions: Record<string, { x: number; y: number }> = {}
+                const nextPositions: Record<string, Point> = {}
                 for (const [positionKey, value] of Object.entries(parsed)) {
                     if (!value || typeof value !== 'object') {
                         continue
@@ -732,8 +682,8 @@
                         continue
                     }
                     nextPositions[positionKey] = {
-                        x: toRoundedMarkerValue(candidate.x),
-                        y: toRoundedMarkerValue(candidate.y)
+                        x: candidate.x,
+                        y: candidate.y
                     }
                 }
                 deedCardPositions = nextPositions
@@ -816,13 +766,15 @@
             if (!path) {
                 continue
             }
+            const labelPosition = getPathCenter(path)
 
             mappedAreas.push({
                 id: node.id,
                 path,
                 label: node.id,
                 region: node.region,
-                ...getPathLabelPosition(path)
+                labelX: labelPosition.x,
+                labelY: labelPosition.y
             })
         }
 
@@ -830,13 +782,17 @@
     })
 
     const SEA_DEBUG_MAP_AREAS: DebugArea[] = $derived.by(() => {
-        const areas = SEA_AREAS.map((area) => ({
-            id: area.id,
-            path: area.path,
-            label: area.id,
-            region: null,
-            ...getPathLabelPosition(area.path)
-        }))
+        const areas = SEA_AREAS.map((area) => {
+            const labelPosition = getPathCenter(area.path)
+            return {
+                id: area.id,
+                path: area.path,
+                label: area.id,
+                region: null,
+                labelX: labelPosition.x,
+                labelY: labelPosition.y
+            }
+        })
         areas.sort((left, right) => compareAreaIds(left.id, right.id))
         return areas
     })
@@ -894,105 +850,30 @@
         () => new Map(LAND_DEBUG_MAP_AREAS.map((area) => [area.id, area]))
     )
 
-    const REGION_CENTER_BY_ID_FOR_DEEDS: Map<string, { x: number; y: number }> = $derived.by(() => {
-        const centers = new Map<string, { x: number; y: number }>()
-        for (const region of INDONESIA_REGIONS) {
-            const points: Array<{ x: number; y: number }> = []
-            for (const areaId of region.areaIds) {
-                const markerPoint = LAND_MARKER_POSITION_LOOKUP[areaId]
-                if (markerPoint) {
-                    points.push(markerPoint)
-                    continue
-                }
-                const fallbackArea = LAND_DEBUG_AREAS_BY_ID.get(areaId)
-                if (fallbackArea) {
-                    points.push({ x: fallbackArea.labelX, y: fallbackArea.labelY })
-                }
-            }
-            if (points.length === 0) {
-                continue
-            }
-            const center = points.reduce(
-                (acc, point) => {
-                    acc.x += point.x
-                    acc.y += point.y
-                    return acc
-                },
-                { x: 0, y: 0 }
-            )
-            centers.set(region.id, {
-                x: toRoundedMarkerValue(center.x / points.length),
-                y: toRoundedMarkerValue(center.y / points.length)
-            })
-        }
-        return centers
-    })
-
-    function getDefaultDeedCardPosition(regionId: string): { x: number; y: number } | null {
-        const center = REGION_CENTER_BY_ID_FOR_DEEDS.get(regionId)
-        if (!center) {
-            return null
-        }
-        return {
-            x: toRoundedMarkerValue(center.x + DEED_CARD_BASE_OFFSET_X),
-            y: toRoundedMarkerValue(center.y + DEED_CARD_BASE_OFFSET_Y)
-        }
-    }
-
-    function getDeedCardPosition(positionKey: string, regionId: string): { x: number; y: number } | null {
+    function getDeedCardPosition(positionKey: string): Point | null {
         const overridePosition = deedCardPositions[positionKey]
         if (overridePosition) {
             return {
-                x: toRoundedMarkerValue(overridePosition.x),
-                y: toRoundedMarkerValue(overridePosition.y)
+                x: overridePosition.x,
+                y: overridePosition.y
             }
         }
 
         const baselinePosition = DEED_CARD_POSITIONS[positionKey]
         if (baselinePosition) {
             return {
-                x: toRoundedMarkerValue(baselinePosition.x),
-                y: toRoundedMarkerValue(baselinePosition.y)
+                x: baselinePosition.x,
+                y: baselinePosition.y
             }
         }
 
-        return getDefaultDeedCardPosition(regionId)
-    }
-
-    function getDeedCardKind(deed: AnyDeed): DeedCardKind {
-        if (deed.type === CompanyType.Shipping) {
-            return 'ship'
-        }
-        if (deed.good === Good.Rice) {
-            return 'rice'
-        }
-        if (deed.good === Good.Rubber) {
-            return 'rubber'
-        }
-        if (deed.good === Good.Oil) {
-            return 'oil'
-        }
-        return 'spice'
+        return null
     }
 
     function selectDeedEra(nextEra: Era): void {
         deedEra = nextEra
         selectedDeedCardKey = null
         deedCardDraggingKey = null
-    }
-
-    function shippingSizeEntriesFromDeed(deed: AnyDeed): readonly ShippingSizeEntry[] | null {
-        if (deed.type !== CompanyType.Shipping) {
-            return null
-        }
-
-        return [Era.A, Era.B, Era.C].flatMap((era) => {
-            const size = deed.sizes[era]
-            if (typeof size !== 'number') {
-                return []
-            }
-            return [{ era, size }]
-        })
     }
 
     const DEEDS_FOR_SELECTED_ERA: AnyDeed[] = $derived.by(() =>
@@ -1003,15 +884,15 @@
         const entries: DeedTuneEntry[] = []
         for (const deed of DEEDS_FOR_SELECTED_ERA) {
             const positionKey = deedPositionKey(deed.region, deed.type)
-            const position = getDeedCardPosition(positionKey, deed.region)
+            const position = getDeedCardPosition(positionKey)
             if (!position) {
                 continue
             }
             entries.push({
                 positionKey,
                 regionId: deed.region,
-                regionName: REGION_NAME_BY_ID.get(deed.region) ?? deed.region,
-                cardKind: getDeedCardKind(deed),
+                regionName: getRegionName(deed.region),
+                cardKind: deedCardKindFor(deed),
                 shippingSizes: shippingSizeEntriesFromDeed(deed),
                 x: position.x,
                 y: position.y
@@ -1061,7 +942,7 @@
             if (!parsedKey) {
                 continue
             }
-            const point = getDeedCardPosition(positionKey, parsedKey.regionId)
+            const point = getDeedCardPosition(positionKey)
             if (!point) {
                 continue
             }
@@ -1244,7 +1125,7 @@
         return SEA_DEBUG_AREAS_BY_ID.get(shipMarkerSelectedSeaId) ?? null
     })
 
-    const SELECTED_SHIP_MARKER_POINT: ShipMarkerPoint | null = $derived.by(() => {
+    const SELECTED_SHIP_MARKER_POINT: Point | null = $derived.by(() => {
         if (!shipMarkerSelectedSeaId) {
             return null
         }
@@ -1259,7 +1140,7 @@
         return points[shipMarkerSelectedIndex]
     })
 
-    function formatShipPoints(points: ShipMarkerPoint[]): string {
+    function formatShipPoints(points: Point[]): string {
         return points
             .map((point) => `{ x: ${point.x.toFixed(1)}, y: ${point.y.toFixed(1)} }`)
             .join(', ')
@@ -1370,7 +1251,7 @@
     })
 
     function buildProductionMarkers(
-        resolvePosition: (area: DebugArea) => { x: number; y: number }
+        resolvePosition: (area: DebugArea) => Point
     ): ProductionMarkerPlacement[] {
         const placements: ProductionMarkerPlacement[] = []
         for (const area of LAND_DEBUG_MAP_AREAS) {
@@ -2052,34 +1933,34 @@
                         height={SHIP_MARKER_HEIGHT}
                     />
                 {/each}
-                <CompanyCard type="rubber" x={200} y={680} height={58} text="Sumatera Barat" />
-                <CompanyCard
+                <CompanyDeed type="rubber" x={200} y={680} height={58} text="Sumatera Barat" />
+                <CompanyDeed
                     type="rubber"
                     x={COMPANIES_RUBBER_CARD_A26_X}
                     y={COMPANIES_RUBBER_CARD_A26_Y}
                     height={58}
                     text="Riau"
                 />
-                <CompanyCard
+                <CompanyDeed
                     type="rubber"
                     x={COMPANIES_RUBBER_CARD_B02_X}
                     y={COMPANIES_RUBBER_CARD_B02_Y}
                     height={58}
                     text="Kalimantan Barat"
                 />
-                <CompanyCard
+                <CompanyDeed
                     type="spice"
                     x={COMPANIES_SPICE_CARD_C09_X}
                     y={COMPANIES_SPICE_CARD_C09_Y}
                     height={58}
                     text="Jawa Tengah"
                 />
-                <CompanyCard type="ship" x={COMPANIES_SHIP_CARD_A10_X} y={COMPANIES_SHIP_CARD_A10_Y} height={58} />
-                <CompanyCard type="rice" x={45} y={250} height={58} text="Areh" />
+                <CompanyDeed type="ship" x={COMPANIES_SHIP_CARD_A10_X} y={COMPANIES_SHIP_CARD_A10_Y} height={58} />
+                <CompanyDeed type="rice" x={45} y={250} height={58} text="Areh" />
             {/if}
             {#if colorMode === 'deeds'}
                 {#each DEED_TUNE_ENTRIES as deed (deed.positionKey)}
-                    <CompanyCard
+                    <CompanyDeed
                         type={deed.cardKind}
                         x={deed.x}
                         y={deed.y}

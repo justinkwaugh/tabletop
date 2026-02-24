@@ -1,7 +1,6 @@
-export type DeedCardPosition = {
-    x: number
-    y: number
-}
+import type { Point } from '@tabletop/common'
+
+export type DeedCardPosition = Point
 
 export type DeedCardPositionsByDeed = Record<string, DeedCardPosition>
 

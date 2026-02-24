@@ -1,4 +1,14 @@
-export const SEA_SHIP_MARKER_POSITIONS = {
+import type { Point } from '@tabletop/common'
+
+export type SeaShipLayout = {
+    1: Point[]
+    2: Point[]
+    3: Point[]
+}
+
+export type SeaShipMarkerPositionsBySeaId = Readonly<Record<string, SeaShipLayout>>
+
+export const SEA_SHIP_MARKER_POSITIONS: SeaShipMarkerPositionsBySeaId = {
     S01: {
         1: [{ x: 1739.2, y: 647.2 }],
         2: [{ x: 1737.3, y: 647.0 }, { x: 1773.3, y: 541.9 }],
@@ -104,4 +114,4 @@ export const SEA_SHIP_MARKER_POSITIONS = {
         2: [{ x: 593.1, y: 324.8 }, { x: 695.2, y: 462.0 }],
         3: [{ x: 583.1, y: 441.1 }, { x: 609.1, y: 413.1 }, { x: 635.1, y: 441.1 }]
     }
-} as const
+}

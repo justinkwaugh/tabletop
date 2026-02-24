@@ -3,16 +3,16 @@
         ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
-        CustomFont,
-        GameSession
+        CustomFont
     } from '@tabletop/frontend-components'
+    import type { GameSession } from '@tabletop/frontend-components'
 
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
 
-    import type { IndonesiaGameSession } from '$lib/model/session.svelte'
+    import { IndonesiaGameSession } from '$lib/model/session.svelte.js'
     import type { HydratedIndonesiaGameState, IndonesiaGameState } from '@tabletop/indonesia'
     import ScriptinaProFont from '$lib/fonts/Scriptina Pro.woff2'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
@@ -20,14 +20,24 @@
     let {
         gameSession
     }: { gameSession: GameSession<IndonesiaGameState, HydratedIndonesiaGameState> } = $props()
+
+    function ensureIndonesiaGameSession(
+        session: GameSession<IndonesiaGameState, HydratedIndonesiaGameState>
+    ): IndonesiaGameSession {
+        if (session instanceof IndonesiaGameSession) {
+            return session
+        }
+        throw new Error('GameTable expected IndonesiaGameSession in gameSession prop.')
+    }
+
     // svelte-ignore state_referenced_locally
-    setGameSession(gameSession as IndonesiaGameSession)
+    setGameSession(ensureIndonesiaGameSession(gameSession))
 </script>
 
 <CustomFont fontFamily="scriptina-pro" url={ScriptinaProFont} format="woff2" />
 
 <!-- Full Height and Width with 8px padding-->
-<div style="--chat-height-offset: 0px;">
+<div class="bg-[#ede2dc]" style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent>
@@ -35,7 +45,7 @@
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
-                   <History />
+                    <History />
                 {/snippet}
             </DefaultSideContent>
         {/snippet}

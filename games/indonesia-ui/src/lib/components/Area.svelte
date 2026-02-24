@@ -2,6 +2,10 @@
     import type { SVGAttributes } from 'svelte/elements'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
 
+    type SvgFillRule = SVGAttributes<SVGPathElement>['fill-rule']
+    type SvgStrokeLineJoin = SVGAttributes<SVGPathElement>['stroke-linejoin']
+    type SvgStrokeLineCap = SVGAttributes<SVGPathElement>['stroke-linecap']
+
     let {
         areaId,
         fill = 'transparent',
@@ -19,9 +23,9 @@
         stroke?: string
         fillOpacity?: number | string
         strokeWidth?: number | string
-        fillRule?: string
-        strokeLineJoin?: string
-        strokeLineCap?: string
+        fillRule?: SvgFillRule
+        strokeLineJoin?: SvgStrokeLineJoin
+        strokeLineCap?: SvgStrokeLineCap
         opacity?: number | string
     } = $props()
 
