@@ -109,7 +109,7 @@ export class HydratedIndonesiaBoard
     }
 
     public hasCityInRegion(regionId: string): boolean {
-        return this.areasForRegion(regionId).every((area) => !area.city)
+        return this.areasForRegion(regionId).some((area) => !!area.city)
     }
 
     public isEmptyArea(area: Area): boolean {

@@ -62,46 +62,51 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
     }
 
     isValidPlaceCity(state: HydratedIndonesiaGameState): boolean {
-        const currentCityCard = state.currentCityCard
-        if (!currentCityCard) {
-            return false
-        }
-
-        const playerState = state.getPlayerState(this.playerId)
-        if (!playerState.cityCards[state.era].find((card) => card.id === currentCityCard.id)) {
-            return false
-        }
-
         if (!isIndonesiaNodeId(this.areaId)) {
             return false
         }
 
-        const area = state.board.getArea(this.areaId)
-        if (!area || !state.board.isEmptyArea(area) || !state.board.isCoastalArea(area)) {
-            return false
+        for (const areaId of HydratedPlaceCity.validAreaIds(state, this.playerId)) {
+            if (areaId === this.areaId) {
+                return true
+            }
         }
 
-        if (!area.region || state.board.hasCityInRegion(area.region)) {
-            return false
-        }
-
-        return currentCityCard.regions.find((region) => region === area.region) !== undefined
+        return false
     }
 
     static canPlaceCity(state: HydratedIndonesiaGameState, playerId: string): boolean {
+        for (const _ of HydratedPlaceCity.validAreaIds(state, playerId)) {
+            return true
+        }
+        return false
+    }
+
+    static *validAreaIds(
+        state: HydratedIndonesiaGameState,
+        playerId: string
+    ): Generator<string, void, undefined> {
         const playerState = state.getPlayerState(playerId)
         const currentCityCard = state.currentCityCard
         if (!currentCityCard) {
-            return false
+            return
         }
 
         if (!playerState.cityCards[state.era].find((card) => card.id === currentCityCard.id)) {
-            return false
+            return
         }
-        return currentCityCard.regions.some((region) => {
-            return state.board
-                .coastalAreasForRegion(region)
-                .some((area) => state.board.isEmptyArea(area))
-        })
+
+        for (const regionId of currentCityCard.regions) {
+            if (state.board.hasCityInRegion(regionId)) {
+                continue
+            }
+
+            for (const area of state.board.coastalAreasForRegion(regionId)) {
+                if (!state.board.isEmptyArea(area)) {
+                    continue
+                }
+                yield area.id
+            }
+        }
     }
 }

@@ -1446,7 +1446,7 @@
     })
 </script>
 
-<div class="absolute inset-0 z-[2]">
+<div class="pointer-events-none absolute inset-0 z-[2]">
     <div class="debug-controls">
         <button
             type="button"
@@ -1773,6 +1773,7 @@
         class="absolute inset-0 h-full w-full"
         viewBox={`0 0 ${width} ${height}`}
         aria-label="Indonesia board debug overlay"
+        pointer-events={colorMode === 'none' ? 'none' : 'auto'}
         onpointermove={handleMarkerPointerMove}
         onpointerup={stopMarkerDrag}
         onpointercancel={stopMarkerDrag}
@@ -2139,6 +2140,12 @@
 </div>
 
 <style>
+    .debug-controls,
+    .marker-tune-panel,
+    .companies-ship-count-panel {
+        pointer-events: auto;
+    }
+
     .debug-controls {
         position: absolute;
         top: 12px;

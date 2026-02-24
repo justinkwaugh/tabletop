@@ -51,6 +51,7 @@ export class NewEraStateHandler implements MachineStateHandler<
     enter(context: MachineContext<HydratedIndonesiaGameState>) {
         const gameState = context.gameState
         const phaseManager = gameState.phaseManager
+
         if (phaseManager.currentPhase?.name !== PhaseName.NewEra) {
             phaseManager.startPhase(PhaseName.NewEra, gameState.actionCount)
             if (gameState.era !== Era.A) {
@@ -65,6 +66,7 @@ export class NewEraStateHandler implements MachineStateHandler<
 
         const nextPlayerId = gameState.placingCities.at(0)
         assertExists(nextPlayerId, 'No next player found for New Era phase')
+        gameState.turnManager.startTurn(nextPlayerId, gameState.actionCount)
         gameState.activePlayerIds = [nextPlayerId]
 
         const playerState = gameState.getPlayerState(nextPlayerId)

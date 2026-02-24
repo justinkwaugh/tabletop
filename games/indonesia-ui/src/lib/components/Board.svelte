@@ -1,5 +1,6 @@
 <script lang="ts">
     import boardImg from '$lib/images/indo_map_sm.jpg'
+    import BoardActionAreasLayer from '$lib/components/BoardActionAreasLayer.svelte'
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
 
@@ -21,6 +22,7 @@
             aria-label="Indonesia board state layer"
         >
             <BoardDeedsLayer />
+            <BoardActionAreasLayer />
         </svg>
         {#if SHOW_DEBUG_GEOMETRY}
             <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} />
