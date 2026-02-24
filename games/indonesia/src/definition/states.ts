@@ -2,6 +2,8 @@
 
 export enum MachineState { 
 
+    Acquisitions = 'Acquisitions',
+    Mergers = 'Mergers',
     BiddingForTurnOrder = 'BiddingForTurnOrder',
     NewEra = 'NewEra',
     EndOfGame = 'EndOfGame',

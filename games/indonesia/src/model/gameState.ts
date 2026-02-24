@@ -2,8 +2,10 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
+    HydratedOnceAroundAuction,
     HydratedPhaseManager,
     HydratedTurnManager,
+    OnceAroundAuction,
     PhaseManager,
     PrngState
 } from '@tabletop/common'
@@ -26,6 +28,12 @@ export const IndonesiaGameState = Type.Evaluate(
             phaseManager: PhaseManager,
             board: IndonesiaBoard,
             availableDeeds: Type.Array(AnyDeed),
+            availableCities: Type.Object({
+                size1: Type.Number(),
+                size2: Type.Number(),
+                size3: Type.Number()
+            }),
+            turnOrderBids: Type.Optional(Type.Record(Type.String(), Type.Number())), // Map of playerId to their turn order bid
             era: Type.Enum(Era),
             currentCityCard: Type.Optional(CityCard), // The city card currently being placed in the New Era phase
             placingCities: Type.Array(Type.String()) // List of players remaining to place cities
@@ -54,6 +62,12 @@ export class HydratedIndonesiaGameState
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare availableDeeds: AnyDeed[]
+    declare availableCities: {
+        size1: number
+        size2: number
+        size3: number
+    }
+    declare turnOrderBids?: Record<string, number>
     declare era: Era
     declare currentCityCard: CityCard | undefined
     declare placingCities: string[]

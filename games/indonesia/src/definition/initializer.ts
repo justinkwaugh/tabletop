@@ -64,6 +64,11 @@ export class IndonesiaGameInitializer
             phaseManager: phaseManager,
             board: board,
             availableDeeds: eraADeeds,
+            availableCities: {
+                size1: 12,
+                size2: 8,
+                size3: 3
+            },
             era: Era.A,
             placingCities: [] // This will be populated at the start of the New Era phase
         })

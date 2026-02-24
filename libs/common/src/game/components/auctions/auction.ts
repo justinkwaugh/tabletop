@@ -25,7 +25,10 @@ export const Auction = Type.Object({
     winnerId: Type.Optional(Type.String())
 })
 
-export abstract class HydratedAuction<T extends Type.TSchema> extends Hydratable<T> implements Auction {
+export abstract class HydratedAuction<T extends Type.TSchema>
+    extends Hydratable<T>
+    implements Auction
+{
     declare id: string
     declare type: AuctionType
     declare participants: AuctionParticipant[]

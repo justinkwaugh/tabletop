@@ -2,6 +2,10 @@
 
 export enum ActionType { 
 
+    StartCompany = 'startCompany',
+    ProposeMerger = 'proposeMerger',
+    SetTurnOrder = 'setTurnOrder',
+    PlaceTurnOrderBid = 'placeTurnOrderBid',
     PlaceCompanyDeeds = 'placeCompanyDeeds',
     PlaceCity = 'placeCity',
     Pass = 'pass',}

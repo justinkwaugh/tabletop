@@ -1,5 +1,9 @@
 import { ActionType } from './actions.js'
 
+import { StartCompany } from '../actions/startCompany.js'
+import { ProposeMerger } from '../actions/proposeMerger.js'
+import { SetTurnOrder } from '../actions/setTurnOrder.js'
+import { PlaceTurnOrderBid } from '../actions/placeTurnOrderBid.js'
 import { PlaceCompanyDeeds } from '../actions/placeCompanyDeeds.js'
 import { PlaceCity } from '../actions/placeCity.js'
 import { Pass } from '../actions/pass.js'
@@ -8,6 +12,10 @@ import { Pass } from '../actions/pass.js'
 // This is used by the backend to auto generate endpoints for every action with schema validation
 export const IndonesiaApiActions = {
 
+    [ActionType.StartCompany]: StartCompany,
+    [ActionType.ProposeMerger]: ProposeMerger,
+    [ActionType.SetTurnOrder]: SetTurnOrder,    [ActionType.PlaceTurnOrderBid]: PlaceTurnOrderBid,
     [ActionType.PlaceCompanyDeeds]: PlaceCompanyDeeds,
     [ActionType.PlaceCity]: PlaceCity,
-    [ActionType.Pass]: Pass,}
+    [ActionType.Pass]: Pass
+}

@@ -53,6 +53,7 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
         }
 
         state.board.addCity(city)
+        state.availableCities.size1 -= 1
 
         // TODO: Remove deeds that can no longer be started
 
@@ -62,6 +63,10 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
     }
 
     isValidPlaceCity(state: HydratedIndonesiaGameState): boolean {
+        if (state.availableCities.size1 === 0) {
+            return false
+        }
+
         if (!isIndonesiaNodeId(this.areaId)) {
             return false
         }
@@ -76,6 +81,10 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
     }
 
     static canPlaceCity(state: HydratedIndonesiaGameState, playerId: string): boolean {
+        if (state.availableCities.size1 === 0) {
+            return false
+        }
+
         for (const _ of HydratedPlaceCity.validAreaIds(state, playerId)) {
             return true
         }

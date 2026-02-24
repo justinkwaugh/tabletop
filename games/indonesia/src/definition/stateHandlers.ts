@@ -2,6 +2,8 @@ import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import type { HydratedIndonesiaGameState } from '../model/gameState.js'
 
+import { AcquisitionsStateHandler } from '../stateHandlers/acquisitions.js'
+import { MergersStateHandler } from '../stateHandlers/mergers.js'
 import { BiddingForTurnOrderStateHandler } from '../stateHandlers/biddingForTurnOrder.js'
 import { NewEraStateHandler } from '../stateHandlers/newEra.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
@@ -14,4 +16,6 @@ export const IndonesiaStateHandlers: Record<
 
     [MachineState.NewEra]: new NewEraStateHandler(),
     [MachineState.BiddingForTurnOrder]: new BiddingForTurnOrderStateHandler(),
+    [MachineState.Mergers]: new MergersStateHandler(),
+    [MachineState.Acquisitions]: new AcquisitionsStateHandler(),
 }

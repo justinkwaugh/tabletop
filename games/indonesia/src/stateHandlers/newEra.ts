@@ -109,6 +109,7 @@ export class NewEraStateHandler implements MachineStateHandler<
         state.turnManager.endTurn(state.actionCount)
 
         if (state.placingCities.length === 0) {
+            state.phaseManager.endPhase(state.actionCount)
             return MachineState.BiddingForTurnOrder
         } else {
             return MachineState.NewEra
