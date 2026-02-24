@@ -3,6 +3,7 @@
     import BoardActionAreasLayer from '$lib/components/BoardActionAreasLayer.svelte'
     import BoardCitiesLayer from '$lib/components/BoardCitiesLayer.svelte'
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
+    import BoardTurnOrderLayer from '$lib/components/BoardTurnOrderLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
 
     const BOARD_WIDTH = 2646
@@ -25,6 +26,7 @@
             <BoardDeedsLayer />
             <BoardCitiesLayer />
             <BoardActionAreasLayer />
+            <BoardTurnOrderLayer />
         </svg>
         {#if SHOW_DEBUG_GEOMETRY}
             <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} />
