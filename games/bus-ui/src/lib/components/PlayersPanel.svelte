@@ -25,10 +25,11 @@
             (playerId) => playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
 
-        const withActionsRemaining = turnOrderSorted.filter((item) => item.playerState.actions > 0)
-        const withoutActionsRemaining = turnOrderSorted.filter((item) => item.playerState.actions <= 0)
+        const passedPlayerIds = new Set(gameSession.gameState.passedPlayers)
+        const notPassedPlayers = turnOrderSorted.filter((item) => !passedPlayerIds.has(item.player.id))
+        const passedPlayers = turnOrderSorted.filter((item) => passedPlayerIds.has(item.player.id))
 
-        return [...withActionsRemaining, ...withoutActionsRemaining]
+        return [...notPassedPlayers, ...passedPlayers]
     })
     function getPlayerForState(playerState: BusPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)

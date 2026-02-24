@@ -31,6 +31,7 @@ export class EndOfGameStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedBusGameState>) {
         const gameState = context.gameState
+        gameState.passedPlayers = []
 
         const scoreOrderIndexByPlayerId = new Map<string, number>(
             gameState.scoreOrder.map((playerId, index) => [playerId, index])
