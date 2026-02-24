@@ -2,5 +2,7 @@
 
 export enum MachineState { 
 
+    BiddingForTurnOrder = 'BiddingForTurnOrder',
+    NewEra = 'NewEra',
     EndOfGame = 'EndOfGame',
 }

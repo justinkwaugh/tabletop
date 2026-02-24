@@ -2,7 +2,8 @@ import {
     type GameInitializer,
     BaseGameInitializer,
     Prng,
-    type UninitializedGameState
+    type UninitializedGameState,
+    HydratedPhaseManager
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
 import { HydratedIndonesiaGameState, IndonesiaGameState } from '../model/gameState.js'
@@ -37,6 +38,9 @@ export class IndonesiaGameInitializer
         // Every game state has a turn manager to track whose turn it is
         const turnManager = HydratedTurnManager.generate(players, prng.random)
 
+        // We've got phases in this game, can be easier to track with a phase manager
+        const phaseManager = HydratedPhaseManager.generate()
+
         // Put players array in our randomly generated turn order
         const orderedPlayers: IndonesiaPlayerState[] = []
         for (const playerId of turnManager.turnOrder) {
@@ -47,17 +51,21 @@ export class IndonesiaGameInitializer
         }
 
         const board = new HydratedIndonesiaBoard({
-            cities: []
+            cities: [],
+            cultivatedAreas: []
         })
 
         const eraADeeds = structuredClone(Deeds.filter((deed) => deed.era === Era.A))
 
         const indonesiaGameState: IndonesiaGameState = Object.assign(state, {
             players: orderedPlayers,
-            machineState: MachineState.EndOfGame,
+            machineState: MachineState.NewEra,
             turnManager: turnManager,
+            phaseManager: phaseManager,
             board: board,
-            availableDeeds: eraADeeds
+            availableDeeds: eraADeeds,
+            era: Era.A,
+            placingCities: [] // This will be populated at the start of the New Era phase
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
@@ -79,7 +87,10 @@ export class IndonesiaGameInitializer
         shuffle(eraBCards, prng.random)
         shuffle(eraCCards, prng.random)
 
+        const playerCount = game.players.length
+
         const players = game.players.map((player: Player, index: number) => {
+            const cityCardStartIndex = playerCount === 2 ? index * 2 : index
             return new HydratedIndonesiaPlayerState({
                 playerId: player.id,
                 color: colors[index],
@@ -93,9 +104,18 @@ export class IndonesiaGameInitializer
                 bank: 0,
                 cash: 100,
                 cityCards: {
-                    [Era.A]: structuredClone(eraACards[index]),
-                    [Era.B]: structuredClone(eraBCards[index]),
-                    [Era.C]: structuredClone(eraCCards[index])
+                    [Era.A]:
+                        playerCount === 2
+                            ? eraACards.slice(cityCardStartIndex, cityCardStartIndex + 2)
+                            : [eraACards[index]],
+                    [Era.B]:
+                        playerCount === 2
+                            ? eraBCards.slice(cityCardStartIndex, cityCardStartIndex + 2)
+                            : [eraBCards[index]],
+                    [Era.C]:
+                        playerCount === 2
+                            ? eraCCards.slice(cityCardStartIndex, cityCardStartIndex + 2)
+                            : [eraCCards[index]]
                 }
             })
         })

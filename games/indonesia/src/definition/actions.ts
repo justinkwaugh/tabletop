@@ -2,4 +2,6 @@
 
 export enum ActionType { 
 
+    PlaceCompanyDeeds = 'placeCompanyDeeds',
+    PlaceCity = 'placeCity',
     Pass = 'pass',}

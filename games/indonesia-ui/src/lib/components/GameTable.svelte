@@ -10,6 +10,7 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
+    import Header from '$lib/components/Header.svelte'
 
     import type { IndonesiaGameSession } from '$lib/model/session.svelte'
     import type { HydratedIndonesiaGameState, IndonesiaGameState } from '@tabletop/indonesia'
@@ -41,6 +42,7 @@
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
+                <Header />
                 {#if gameSession.gameState.result}
                     <!-- <GameEndPanel /> -->
                 {:else}

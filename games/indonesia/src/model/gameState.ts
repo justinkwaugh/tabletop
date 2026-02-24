@@ -2,7 +2,9 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
+    HydratedPhaseManager,
     HydratedTurnManager,
+    PhaseManager,
     PrngState
 } from '@tabletop/common'
 import { IndonesiaPlayerState, HydratedIndonesiaPlayerState } from './playerState.js'
@@ -11,6 +13,8 @@ import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { IndonesiaBoard, HydratedIndonesiaBoard } from '../components/board.js'
 import { AnyDeed } from '../components/deed.js'
+import { Era } from '../definition/eras.js'
+import { CityCard } from '../components/cards.js'
 
 export type IndonesiaGameState = Type.Static<typeof IndonesiaGameState>
 export const IndonesiaGameState = Type.Evaluate(
@@ -19,8 +23,12 @@ export const IndonesiaGameState = Type.Evaluate(
         Type.Object({
             players: Type.Array(IndonesiaPlayerState), // Redefine with the specific player state type
             machineState: Type.Enum(MachineState), // Redefine with the specific machine states
+            phaseManager: PhaseManager,
             board: IndonesiaBoard,
-            availableDeeds: Type.Array(AnyDeed)
+            availableDeeds: Type.Array(AnyDeed),
+            era: Type.Enum(Era),
+            currentCityCard: Type.Optional(CityCard), // The city card currently being placed in the New Era phase
+            placingCities: Type.Array(Type.String()) // List of players remaining to place cities
         })
     ])
 )
@@ -40,16 +48,21 @@ export class HydratedIndonesiaGameState
     declare actionChecksum: number
     declare players: HydratedIndonesiaPlayerState[]
     declare turnManager: HydratedTurnManager
+    declare phaseManager: HydratedPhaseManager
     declare machineState: MachineState
     declare board: HydratedIndonesiaBoard
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare availableDeeds: AnyDeed[]
+    declare era: Era
+    declare currentCityCard: CityCard | undefined
+    declare placingCities: string[]
 
     constructor(data: IndonesiaGameState) {
         super(data, IndonesiaGameStateValidator)
 
         this.players = data.players.map((player) => new HydratedIndonesiaPlayerState(player))
         this.board = new HydratedIndonesiaBoard(data.board)
+        this.phaseManager = new HydratedPhaseManager(data.phaseManager)
     }
 }

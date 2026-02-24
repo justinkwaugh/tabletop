@@ -1,4 +1,4 @@
-import { Hydratable, PlayerState } from '@tabletop/common'
+import { assert, Hydratable, PlayerState } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
@@ -19,7 +19,7 @@ export const IndonesiaPlayerState = Type.Evaluate(
             }),
             bank: Type.Number(),
             cash: Type.Number(),
-            cityCards: Type.Record(Type.Enum(Era), CityCard)
+            cityCards: Type.Record(Type.Enum(Era), Type.Array(CityCard))
         })
     ])
 )
@@ -41,9 +41,20 @@ export class HydratedIndonesiaPlayerState
     }
     declare bank: number
     declare cash: number
-    declare cityCards: Record<Era, CityCard>
+    declare cityCards: Record<Era, CityCard[]>
 
     constructor(data: IndonesiaPlayerState) {
         super(data, IndonesiaPlayerStateValidator)
+    }
+
+    nextCityCardForEra(era: Era, currentCard?: CityCard): CityCard {
+        const cards = this.cityCards[era]
+        assert(cards.length > 0, `Player ${this.playerId} has no city cards for era ${era}`)
+        if (currentCard?.id !== cards[0].id) {
+            return cards[0]
+        }
+
+        assert(cards.length > 1, `Player ${this.playerId} has no more city cards for era ${era}`)
+        return cards[1]
     }
 }
