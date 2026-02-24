@@ -9,9 +9,12 @@ import {
     type IndonesiaNodeId
 } from '../utils/indonesiaNodes.js'
 import { INDONESIA_REGIONS } from '../utils/regions.js'
+import { City } from './city.js'
 
 export type IndonesiaBoard = Type.Static<typeof IndonesiaBoard>
-export const IndonesiaBoard = Type.Object({})
+export const IndonesiaBoard = Type.Object({
+    cities: Type.Array(City)
+})
 
 const IndonesiaBoardValidator = Compile(IndonesiaBoard)
 
@@ -19,6 +22,8 @@ export class HydratedIndonesiaBoard
     extends Hydratable<typeof IndonesiaBoard>
     implements IndonesiaBoard, Iterable<IndonesiaNode>
 {
+    declare cities: City[]
+
     private internalGraph?: IndonesiaGraph;
 
     *[Symbol.iterator](): IterableIterator<IndonesiaNode> {

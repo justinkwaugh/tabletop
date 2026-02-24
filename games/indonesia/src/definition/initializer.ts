@@ -46,7 +46,9 @@ export class IndonesiaGameInitializer
             }
         }
 
-        const board = new HydratedIndonesiaBoard({})
+        const board = new HydratedIndonesiaBoard({
+            cities: []
+        })
 
         const eraADeeds = structuredClone(Deeds.filter((deed) => deed.era === Era.A))
 

@@ -22,7 +22,6 @@ export const ProductionDeed = Type.Evaluate(
     ])
 )
 
-export type ShippingDeed = Type.Static<typeof ShippingDeed>
 const ShippingSizes = Type.Partial(
     Type.Object({
         [Era.A]: Type.Number(),
@@ -31,6 +30,7 @@ const ShippingSizes = Type.Partial(
     })
 )
 
+export type ShippingDeed = Type.Static<typeof ShippingDeed>
 export const ShippingDeed = Type.Evaluate(
     Type.Intersect([
         Deed,
@@ -98,5 +98,5 @@ export const Deeds: AnyDeed[] = [
     { type: CompanyType.Production, era: Era.C, region: 'R13', good: Good.Oil },
     { type: CompanyType.Production, era: Era.C, region: 'R09', good: Good.Oil },
     { type: CompanyType.Production, era: Era.C, region: 'R24', good: Good.Oil },
-    { type: CompanyType.Production, era: Era.C, region: 'R27', good: Good.Oil },
+    { type: CompanyType.Production, era: Era.C, region: 'R27', good: Good.Oil }
 ]
