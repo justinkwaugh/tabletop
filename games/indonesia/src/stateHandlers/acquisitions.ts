@@ -10,7 +10,7 @@ export class AcquisitionsStateHandler implements MachineStateHandler<Acquisition
 
     isValidAction(action: HydratedAction, context: MachineContext<HydratedIndonesiaGameState>): action is AcquisitionsAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return false
+        return isStartCompany(action)
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext<HydratedIndonesiaGameState>): ActionType[] {

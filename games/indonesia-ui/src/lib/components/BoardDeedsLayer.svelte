@@ -7,6 +7,7 @@
         deedCardKindFor
     } from '$lib/components/CompanyDeed.svelte'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
+    import { BOARD_DEED_CARD_HEIGHT } from '$lib/definitions/companyDeedGeometry.js'
     import { shadeHexColor } from '$lib/utils/color.js'
     import {
         deedPositionKey,
@@ -36,7 +37,6 @@
         opacity: number
     }
 
-    const CARD_HEIGHT = 58
     const DEED_DARKNESS_SHIFT_BY_KEY: Record<string, number> = {
         'R08:Shipping': 0.15,
         'R14:Shipping': 0.15,
@@ -134,7 +134,7 @@
             type={deed.cardKind}
             x={deed.cardX}
             y={deed.cardY}
-            height={CARD_HEIGHT}
+            height={BOARD_DEED_CARD_HEIGHT}
             text={deed.text}
             shippingSizes={deed.shippingSizes}
         />

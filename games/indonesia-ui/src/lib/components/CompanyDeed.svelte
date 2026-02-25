@@ -83,18 +83,20 @@
 </script>
 
 <script lang="ts">
+    import {
+        COMPANY_DEED_ASPECT_RATIO,
+        COMPANY_DEED_VIEWBOX_HEIGHT,
+        COMPANY_DEED_VIEWBOX_RX,
+        COMPANY_DEED_VIEWBOX_RY,
+        COMPANY_DEED_VIEWBOX_WIDTH
+    } from '$lib/definitions/companyDeedGeometry.js'
+
     type CompanyDeedType = import('$lib/types/companyCard.js').CompanyCardType
 
     type ShippingSizeEntry = {
         era: 'A' | 'B' | 'C'
         size: number
     }
-
-    const COMPANY_DEED_VIEWBOX_WIDTH = 832.24
-    const COMPANY_DEED_VIEWBOX_HEIGHT = 551.63
-    const COMPANY_DEED_VIEWBOX_RX = 67.48
-    const COMPANY_DEED_VIEWBOX_RY = 67.48
-    const COMPANY_DEED_ASPECT_RATIO = COMPANY_DEED_VIEWBOX_WIDTH / COMPANY_DEED_VIEWBOX_HEIGHT
 
     let {
         type,

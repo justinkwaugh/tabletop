@@ -18,9 +18,7 @@ import {
 import {
     AreaType,
     CultivatedArea,
-    isEmptyLandArea,
     isSeaArea,
-    SeaArea
 } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 
@@ -127,22 +125,59 @@ export class HydratedStartCompany
             return false
         }
 
-        const area = state.board.getArea(this.areaId)
-        if (!state.board.isInRegion(area, deed.region)) {
-            return false
+        for (const validAreaId of HydratedStartCompany.validAreaIds(state, this.playerId, deed.id)) {
+            if (validAreaId === this.areaId) {
+                return true
+            }
         }
-
-        if (deed.type === CompanyType.Production) {
-            return isEmptyLandArea(area) && !state.board.hasCultivatedNeighbors(area)
-        } else {
-            const validSeaAreas = state.board.seaAreasForRegion(deed.region)
-            return isSeaArea(area) && validSeaAreas.some((seaArea) => seaArea.id === area.id)
-        }
+        return false
     }
 
     static canStartCompany(state: HydratedIndonesiaGameState, playerId: string): boolean {
+        if (!HydratedStartCompany.canStartCompanyForPlayerState(state, playerId)) {
+            return false
+        }
+
+        for (const deed of state.availableDeeds) {
+            for (const _ of HydratedStartCompany.validAreaIds(state, playerId, deed.id)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    static *validAreaIds(
+        state: HydratedIndonesiaGameState,
+        playerId: string,
+        deedId: string
+    ): Generator<string, void, undefined> {
+        const deed = state.availableDeeds.find((candidate) => candidate.id === deedId)
+        if (!deed) {
+            return
+        }
+
+        if (deed.type === CompanyType.Production) {
+            for (const area of state.board.areasForRegion(deed.region)) {
+                if (state.board.canBeNewlyCultivated(area)) {
+                    yield area.id
+                }
+            }
+            return
+        }
+
+        for (const seaArea of state.board.seaAreasForRegion(deed.region)) {
+            yield seaArea.id
+        }
+    }
+
+    private static canStartCompanyForPlayerState(
+        state: HydratedIndonesiaGameState,
+        playerId: string
+    ): boolean {
         const playerState = state.getPlayerState(playerId)
-        if (playerState.ownedCompanies.length >= playerState.research.slots) {
+        // Everyone can start at least one company; slot research adds additional capacity.
+        const maxCompanies = 1 + playerState.research.slots
+        if (playerState.ownedCompanies.length >= maxCompanies) {
             return false
         }
 

@@ -1,9 +1,7 @@
 <script lang="ts">
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
-    import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
-    import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { getPathCenter } from '$lib/utils/geometry.js'
+    import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
 
     type BeadTone = 'amber' | 'green' | 'red'
 
@@ -31,27 +29,15 @@
         const markers: CityMarker[] = []
 
         for (const city of gameSession.gameState.board.cities) {
-            const markerPosition = LAND_MARKER_POSITIONS[city.area]
-            if (markerPosition) {
-                markers.push({
-                    key: city.id,
-                    x: markerPosition.x,
-                    y: markerPosition.y,
-                    tone: beadToneForCitySize(city.size)
-                })
+            const markerPosition = resolveLandMarkerPosition(city.area)
+            if (!markerPosition) {
                 continue
             }
 
-            const areaPath = boardAreaPathById(city.area)
-            if (!areaPath) {
-                continue
-            }
-
-            const center = getPathCenter(areaPath)
             markers.push({
                 key: city.id,
-                x: center.x,
-                y: center.y,
+                x: markerPosition.x,
+                y: markerPosition.y,
                 tone: beadToneForCitySize(city.size)
             })
         }

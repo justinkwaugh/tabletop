@@ -2,6 +2,10 @@
 
 See docs/agent-coding-policy.md for shared-code and shared-types rules.
 
+## Indonesia UI Action Pattern Note
+
+- Follow the `bus-ui` pattern: initiate game actions centrally on the session class and call those session methods from components, rather than calling `createPlayerAction`/`applyAction` directly in component files.
+
 1. Make animator timeline scheduling explicit (`position: 0` + explicit offsets) in all animators to avoid cross-animator drift.
 2. Fix score-disc animation transform conflict (`animate:flip` mixed with inline SVG `transform`) in `BoardMetaMarkers`.
 3. Remove imperative hover-reset side effects from `$effect` in `BusLineLayer`; keep state derivation pure.

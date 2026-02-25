@@ -3,7 +3,6 @@
         ActionType,
         BID_RESEARCH_MULTIPLIERS,
         MachineState,
-        PlaceTurnOrderBid,
         type TurnOrderBid
     } from '@tabletop/indonesia'
     import { PlayerName } from '@tabletop/frontend-components'
@@ -119,7 +118,7 @@
             case MachineState.Mergers:
                 return 'Propose a merger.'
             case MachineState.Acquisitions:
-                return 'Start a company.'
+                return 'Select a deed, then select a highlighted area to start the company.'
             case MachineState.EndOfGame:
                 return 'Game over.'
             default:
@@ -160,11 +159,7 @@
 
         placingTurnOrderBid = true
         try {
-            const action = gameSession.createPlayerAction(PlaceTurnOrderBid, {
-                type: ActionType.PlaceTurnOrderBid,
-                amount: bidAmount
-            })
-            await gameSession.applyAction(action)
+            await gameSession.placeTurnOrderBid(bidAmount)
             bidInput = '0'
         } finally {
             placingTurnOrderBid = false

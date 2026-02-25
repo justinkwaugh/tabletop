@@ -15,7 +15,9 @@ import {
     Area,
     AreaType,
     CityArea,
+    EmptyLandArea,
     isCityArea,
+    isEmptyLandArea,
     isCultivatedArea,
     isLandArea,
     isSeaArea,
@@ -169,5 +171,9 @@ export class HydratedIndonesiaBoard
         return this.graph
             .neighborsOf(node, IndonesiaNeighborDirection.Land)
             .some((neighbor) => isCultivatedArea(this.getArea(neighbor.id)))
+    }
+
+    public canBeNewlyCultivated(area: Area): area is EmptyLandArea {
+        return isEmptyLandArea(area) && !this.hasCultivatedNeighbors(area)
     }
 }

@@ -2,6 +2,7 @@
     import boardImg from '$lib/images/indo_map_sm.jpg'
     import BoardActionAreasLayer from '$lib/components/BoardActionAreasLayer.svelte'
     import BoardCitiesLayer from '$lib/components/BoardCitiesLayer.svelte'
+    import BoardCultivatedAreasLayer from '$lib/components/BoardCultivatedAreasLayer.svelte'
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
     import BoardTurnOrderLayer from '$lib/components/BoardTurnOrderLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
@@ -24,6 +25,7 @@
             aria-label="Indonesia board state layer"
         >
             <BoardDeedsLayer />
+            <BoardCultivatedAreasLayer />
             <BoardCitiesLayer />
             <BoardActionAreasLayer />
             <BoardTurnOrderLayer />

@@ -9,7 +9,7 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
             case Color.Red:
                 return '#e55649'
             case Color.Yellow:
-                return '#d8bc67'
+                return '#decd66'
             case Color.Green:
                 return '#50823c'
             case Color.Purple:
@@ -32,7 +32,7 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
             case Color.Red:
                 return 'bg-[#e55649]'
             case Color.Yellow:
-                return 'bg-[#d8bc67]'
+                return 'bg-[#decd66]'
             case Color.Green:
                 return 'bg-[#50823c]'
             case Color.Purple:
@@ -55,7 +55,7 @@ export class IndonesiaGameColorizer extends DefaultColorizer {
             case Color.Red:
                 return 'border-[#e55649]'
             case Color.Yellow:
-                return 'border-[#d8bc67]'
+                return 'border-[#decd66]'
             case Color.Green:
                 return 'border-[#50823c]'
             case Color.Purple:
