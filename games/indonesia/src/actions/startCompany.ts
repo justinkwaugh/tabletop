@@ -158,7 +158,7 @@ export class HydratedStartCompany
 
         if (deed.type === CompanyType.Production) {
             for (const area of state.board.areasForRegion(deed.region)) {
-                if (state.board.canBeNewlyCultivated(area)) {
+                if (state.board.canBeNewlyCultivated(area, deed.good)) {
                     yield area.id
                 }
             }

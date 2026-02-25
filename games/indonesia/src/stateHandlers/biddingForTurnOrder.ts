@@ -84,8 +84,9 @@ export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
             }
             case isSetTurnOrder(action): {
                 state.turnOrderBids = undefined
+                state.phaseManager.endPhase(state.actionCount)
 
-                // TODO: determine if we need to do mergers
+                // TODO: determine if we can do mergers or acquisitions
                 return MachineState.Acquisitions
             }
             // Leave this comment if you want the template to generate code for valid actions

@@ -10,6 +10,7 @@ import {
     type IndonesiaNodeId
 } from '../utils/indonesiaNodes.js'
 import { INDONESIA_REGIONS } from '../utils/regions.js'
+import { Good } from '../definition/goods.js'
 import { City } from './city.js'
 import {
     Area,
@@ -166,14 +167,17 @@ export class HydratedIndonesiaBoard
         return node.neighbors[IndonesiaNeighborDirection.Sea].length > 0
     }
 
-    public hasCultivatedNeighbors(area: Area): boolean {
+    public hasCultivatedNeighborsWithGood(area: Area, good: Good): boolean {
         const node = this.getNodeForArea(area)
         return this.graph
             .neighborsOf(node, IndonesiaNeighborDirection.Land)
-            .some((neighbor) => isCultivatedArea(this.getArea(neighbor.id)))
+            .some((neighbor) => {
+                const neighborArea = this.getArea(neighbor.id)
+                return isCultivatedArea(neighborArea) && neighborArea.good === good
+            })
     }
 
-    public canBeNewlyCultivated(area: Area): area is EmptyLandArea {
-        return isEmptyLandArea(area) && !this.hasCultivatedNeighbors(area)
+    public canBeNewlyCultivated(area: Area, good: Good): area is EmptyLandArea {
+        return isEmptyLandArea(area) && !this.hasCultivatedNeighborsWithGood(area, good)
     }
 }
