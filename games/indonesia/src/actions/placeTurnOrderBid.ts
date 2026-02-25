@@ -3,8 +3,7 @@ import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-
-const ResearchMultiplier = [1, 5, 25, 100, 400]
+import { BID_RESEARCH_MULTIPLIERS } from '../definition/bidResearchMultipliers.js'
 
 export type PlaceTurnOrderBidMetadata = Type.Static<typeof PlaceTurnOrderBidMetadata>
 export const PlaceTurnOrderBidMetadata = Type.Object({
@@ -48,7 +47,7 @@ export class HydratedPlaceTurnOrderBid
         }
 
         const playerState = state.getPlayerState(this.playerId)
-        const multiplier = ResearchMultiplier[playerState.research.bid]
+        const multiplier = BID_RESEARCH_MULTIPLIERS[playerState.research.bid] ?? 1
         const multipliedAmount = this.amount * multiplier
 
         assertExists(

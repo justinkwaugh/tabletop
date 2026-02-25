@@ -11,6 +11,7 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
+    import ActionPanel from '$lib/components/ActionPanel.svelte'
 
     import { IndonesiaGameSession } from '$lib/model/session.svelte.js'
     import type { HydratedIndonesiaGameState, IndonesiaGameState } from '@tabletop/indonesia'
@@ -56,7 +57,7 @@
                 {#if gameSession.gameState.result}
                     <!-- <GameEndPanel /> -->
                 {:else}
-                    <!-- <InformationPanel /> -->
+                    <ActionPanel />
                 {/if}
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.

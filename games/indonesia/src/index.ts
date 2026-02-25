@@ -2,6 +2,7 @@
 // It doesn't have to be everything, just whatever is needed externally
 
 export * from './definition/actions.js'
+export * from './definition/bidResearchMultipliers.js'
 export * from './definition/companyType.js'
 export * from './definition/config.js'
 export * from './definition/definition.js'
