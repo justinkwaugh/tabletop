@@ -5,6 +5,7 @@ import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { City } from '../components/city.js'
 import { isIndonesiaNodeId } from '../utils/indonesiaNodes.js'
+import { isEmptyLandArea } from '../components/area.js'
 
 export type PlaceCityMetadata = Type.Static<typeof PlaceCityMetadata>
 export const PlaceCityMetadata = Type.Object({
@@ -111,7 +112,7 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
             }
 
             for (const area of state.board.coastalAreasForRegion(regionId)) {
-                if (!state.board.isEmptyArea(area)) {
+                if (!isEmptyLandArea(area)) {
                     continue
                 }
                 yield area.id

@@ -19,7 +19,8 @@ export const IndonesiaPlayerState = Type.Evaluate(
             }),
             bank: Type.Number(),
             cash: Type.Number(),
-            cityCards: Type.Record(Type.Enum(Era), Type.Array(CityCard))
+            cityCards: Type.Record(Type.Enum(Era), Type.Array(CityCard)),
+            ownedCompanies: Type.Array(Type.String())
         })
     ])
 )
@@ -42,6 +43,7 @@ export class HydratedIndonesiaPlayerState
     declare bank: number
     declare cash: number
     declare cityCards: Record<Era, CityCard[]>
+    declare ownedCompanies: string[]
 
     constructor(data: IndonesiaPlayerState) {
         super(data, IndonesiaPlayerStateValidator)

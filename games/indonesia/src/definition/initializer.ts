@@ -52,7 +52,7 @@ export class IndonesiaGameInitializer
 
         const board = new HydratedIndonesiaBoard({
             cities: [],
-            cultivatedAreas: []
+            areas: {}
         })
 
         const eraADeeds = structuredClone(Deeds.filter((deed) => deed.era === Era.A))
@@ -70,7 +70,8 @@ export class IndonesiaGameInitializer
                 size3: 3
             },
             era: Era.A,
-            placingCities: [] // This will be populated at the start of the New Era phase
+            placingCities: [], // This will be populated at the start of the New Era phase
+            companies: [] // This will be populated as companies are started in the game
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
@@ -121,7 +122,8 @@ export class IndonesiaGameInitializer
                         playerCount === 2
                             ? eraCCards.slice(cityCardStartIndex, cityCardStartIndex + 2)
                             : [eraCCards[index]]
-                }
+                },
+                ownedCompanies: []
             })
         })
 

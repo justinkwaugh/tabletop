@@ -79,8 +79,9 @@
                     : shadeHexColor(baseStyle.overlayStroke, darknessShift * 0.7)
             const overlayAreaIds = isShipping
                 ? gameSession.gameState.board
-                    .seaAreasForRegion(regionId)
-                    .filter((seaAreaId) => BOARD_AREA_PATH_BY_ID.has(seaAreaId))
+                      .seaAreasForRegion(regionId)
+                      .map((seaArea) => seaArea.id)
+                      .filter((seaAreaId) => BOARD_AREA_PATH_BY_ID.has(seaAreaId))
                 : getRegionAreaIds(regionId)
 
             cards.push({

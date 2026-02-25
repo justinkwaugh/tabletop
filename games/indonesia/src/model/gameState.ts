@@ -2,10 +2,8 @@ import {
     GameResult,
     GameState,
     HydratableGameState,
-    HydratedOnceAroundAuction,
     HydratedPhaseManager,
     HydratedTurnManager,
-    OnceAroundAuction,
     PhaseManager,
     PrngState
 } from '@tabletop/common'
@@ -17,6 +15,7 @@ import { IndonesiaBoard, HydratedIndonesiaBoard } from '../components/board.js'
 import { AnyDeed } from '../components/deed.js'
 import { Era } from '../definition/eras.js'
 import { CityCard } from '../components/cards.js'
+import { Company } from '../components/company.js'
 
 export type TurnOrderBid = Type.Static<typeof TurnOrderBid>
 export const TurnOrderBid = Type.Object({
@@ -43,7 +42,8 @@ export const IndonesiaGameState = Type.Evaluate(
             turnOrderBids: Type.Optional(Type.Record(Type.String(), TurnOrderBid)), // Map of playerId to their turn order bid
             era: Type.Enum(Era),
             currentCityCard: Type.Optional(CityCard), // The city card currently being placed in the New Era phase
-            placingCities: Type.Array(Type.String()) // List of players remaining to place cities
+            placingCities: Type.Array(Type.String()), // List of players remaining to place cities
+            companies: Type.Array(Company) // List of companies in the game
         })
     ])
 )
@@ -78,6 +78,7 @@ export class HydratedIndonesiaGameState
     declare era: Era
     declare currentCityCard: CityCard | undefined
     declare placingCities: string[]
+    declare companies: Company[]
 
     constructor(data: IndonesiaGameState) {
         super(data, IndonesiaGameStateValidator)
