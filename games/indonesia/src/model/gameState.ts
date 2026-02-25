@@ -18,6 +18,13 @@ import { AnyDeed } from '../components/deed.js'
 import { Era } from '../definition/eras.js'
 import { CityCard } from '../components/cards.js'
 
+export type TurnOrderBid = Type.Static<typeof TurnOrderBid>
+export const TurnOrderBid = Type.Object({
+    bid: Type.Number(),
+    multiplier: Type.Number(),
+    total: Type.Number()
+})
+
 export type IndonesiaGameState = Type.Static<typeof IndonesiaGameState>
 export const IndonesiaGameState = Type.Evaluate(
     Type.Intersect([
@@ -33,7 +40,7 @@ export const IndonesiaGameState = Type.Evaluate(
                 size2: Type.Number(),
                 size3: Type.Number()
             }),
-            turnOrderBids: Type.Optional(Type.Record(Type.String(), Type.Number())), // Map of playerId to their turn order bid
+            turnOrderBids: Type.Optional(Type.Record(Type.String(), TurnOrderBid)), // Map of playerId to their turn order bid
             era: Type.Enum(Era),
             currentCityCard: Type.Optional(CityCard), // The city card currently being placed in the New Era phase
             placingCities: Type.Array(Type.String()) // List of players remaining to place cities
@@ -67,7 +74,7 @@ export class HydratedIndonesiaGameState
         size2: number
         size3: number
     }
-    declare turnOrderBids?: Record<string, number>
+    declare turnOrderBids?: Record<string, TurnOrderBid>
     declare era: Era
     declare currentCityCard: CityCard | undefined
     declare placingCities: string[]

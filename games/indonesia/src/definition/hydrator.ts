@@ -4,6 +4,7 @@ import { HydratedPlaceCity, isPlaceCity } from '../actions/placeCity.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedPlaceCompanyDeeds, isPlaceCompanyDeeds } from '../actions/placeCompanyDeeds.js'
 import { HydratedPlaceTurnOrderBid, isPlaceTurnOrderBid } from '../actions/placeTurnOrderBid.js'
+import { HydratedSetTurnOrder, isSetTurnOrder } from '../actions/setTurnOrder.js'
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Sample game.  Used by the game engine
@@ -24,6 +25,9 @@ export class IndonesiaHydrator implements GameHydrator<
             }
             case isPlaceTurnOrderBid(data): {
                 return new HydratedPlaceTurnOrderBid(data)
+            }
+            case isSetTurnOrder(data): {
+                return new HydratedSetTurnOrder(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

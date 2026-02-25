@@ -54,7 +54,11 @@ export class HydratedPlaceTurnOrderBid
             state.turnOrderBids,
             'turnOrderBids should be initialized when placing turn order bids'
         )
-        state.turnOrderBids[this.playerId] = multipliedAmount
+        state.turnOrderBids[this.playerId] = {
+            bid: this.amount,
+            multiplier,
+            total: multipliedAmount
+        }
         playerState.bank += this.amount
         playerState.cash -= this.amount
 

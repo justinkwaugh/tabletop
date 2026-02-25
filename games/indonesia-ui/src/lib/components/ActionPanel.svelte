@@ -3,12 +3,14 @@
         ActionType,
         BID_RESEARCH_MULTIPLIERS,
         MachineState,
-        PlaceTurnOrderBid
+        PlaceTurnOrderBid,
+        type TurnOrderBid
     } from '@tabletop/indonesia'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    let bidInput = $state('')
+    let bidInput = $state('0')
     let placingTurnOrderBid = $state(false)
 
     const showTurnOrderBidFormula = $derived.by(() => {
@@ -53,6 +55,31 @@
     const canSubmitTurnOrderBid = $derived.by(() => {
         return showTurnOrderBidFormula && !placingTurnOrderBid && !bidInputInvalid
     })
+
+    const showTurnOrderBidTracker = $derived.by(() => {
+        return (
+            gameSession.gameState.machineState === MachineState.BiddingForTurnOrder &&
+            !gameSession.gameState.result
+        )
+    })
+
+    type TurnOrderBidEntry = {
+        playerId: string
+        turnOrderBid: TurnOrderBid | null
+    }
+
+    const turnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() => {
+        const bidByPlayerId = gameSession.gameState.turnOrderBids ?? {}
+
+        return gameSession.gameState.turnManager.turnOrder.map((playerId) => ({
+            playerId,
+            turnOrderBid: bidByPlayerId[playerId] ?? null
+        }))
+    })
+
+    const submittedTurnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() =>
+        turnOrderBidEntries.filter((entry) => entry.turnOrderBid !== null)
+    )
 
     const message = $derived.by(() => {
         if (gameSession.isViewingHistory) {
@@ -107,6 +134,11 @@
         }
 
         const digitsOnly = target.value.replace(/[^0-9]/g, '')
+        if (digitsOnly.length === 0) {
+            bidInput = '0'
+            return
+        }
+
         bidInput = digitsOnly.slice(0, 4).replace(/^0+(?=\d)/, '')
     }
 
@@ -133,7 +165,7 @@
                 amount: bidAmount
             })
             await gameSession.applyAction(action)
-            bidInput = ''
+            bidInput = '0'
         } finally {
             placingTurnOrderBid = false
         }
@@ -141,40 +173,69 @@
 </script>
 
 <div
-    class="action-panel flex min-h-[50px] items-center justify-center border-b border-[#c9ccd1] px-4 py-1 text-center text-[18px] tracking-[0.02em] text-[#333]"
+    class="action-panel flex min-h-[50px] items-center justify-center px-4 py-2 text-center text-[18px] tracking-[0.02em] text-[#333]"
 >
-    {#if showTurnOrderBidFormula}
-        <form class="bid-formula" onsubmit={submitTurnOrderBid}>
-            <label class="sr-only" for="turn-order-bid-input">Turn order bid amount</label>
-            <span class="formula-equation">
-                <span class={`bid-slot ${bidInputInvalid ? 'is-invalid' : ''}`}>
-                    <input
-                        id="turn-order-bid-input"
-                        class="bid-value-input indonesia-font"
-                        type="text"
-                        inputmode="numeric"
-                        pattern="[0-9]*"
-                        maxlength="4"
-                        autocomplete="off"
-                        spellcheck={false}
-                        value={bidInput}
-                        onbeforeinput={handleBidBeforeInput}
-                        oninput={handleBidInput}
-                    />
-                </span>
-                <span class="formula-token">x</span>
-                <span class="formula-number">{bidResearchMultiplier}</span>
-                <span class="formula-token">=</span>
-                <span class="formula-total">{multipliedBidAmount}</span>
-            </span>
-            <button type="submit" class="commit-bid" disabled={!canSubmitTurnOrderBid}>
-                {#if placingTurnOrderBid}
-                    placing...
-                {:else}
-                    place bid
-                {/if}
-            </button>
-        </form>
+    {#if showTurnOrderBidTracker}
+        <div class="bid-tracker-panel">
+            {#if showTurnOrderBidFormula}
+                <form class="bid-formula" onsubmit={submitTurnOrderBid}>
+                    <label class="sr-only" for="turn-order-bid-input">Turn order bid amount</label>
+                    <span class="formula-equation">
+                        <span class={`bid-slot ${bidInputInvalid ? 'is-invalid' : ''}`}>
+                            <input
+                                id="turn-order-bid-input"
+                                class="bid-value-input indonesia-font"
+                                type="text"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                maxlength="4"
+                                autocomplete="off"
+                                spellcheck={false}
+                                value={bidInput}
+                                onbeforeinput={handleBidBeforeInput}
+                                oninput={handleBidInput}
+                            />
+                        </span>
+                        <span class="formula-token">x</span>
+                        <span class="formula-number">{bidResearchMultiplier}</span>
+                        <span class="formula-token">=</span>
+                        <span class="formula-total">{multipliedBidAmount}</span>
+                    </span>
+                    <button type="submit" class="commit-bid" disabled={!canSubmitTurnOrderBid}>
+                        {#if placingTurnOrderBid}
+                            placing...
+                        {:else}
+                            place bid
+                        {/if}
+                    </button>
+                </form>
+            {:else}
+                <span class="bid-tracker-message">{message}</span>
+            {/if}
+
+            {#if submittedTurnOrderBidEntries.length > 0}
+                <div class="bid-tracker-columns" aria-label="Turn order bids">
+                    {#each submittedTurnOrderBidEntries as entry (entry.playerId)}
+                        <div class="bid-player-cell">
+                            <PlayerName
+                                playerId={entry.playerId}
+                                capitalization="none"
+                                additionalClasses="text-[11px] leading-none tracking-[0.02em]"
+                            />
+                        </div>
+                        <div class="bid-value-cell">
+                            <span class="bid-value-text">
+                                <span class="bid-eq-number">{entry.turnOrderBid?.bid}</span>
+                                <span class="bid-eq-token">x</span>
+                                <span class="bid-eq-number">{entry.turnOrderBid?.multiplier}</span>
+                                <span class="bid-eq-token">=</span>
+                                <span class="bid-eq-total">{entry.turnOrderBid?.total}</span>
+                            </span>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+        </div>
     {:else}
         <span>{message}</span>
     {/if}
@@ -183,20 +244,119 @@
 <style>
     .action-panel {
         background:
-            radial-gradient(140% 180% at 12% 6%, rgba(248, 241, 225, 0.82), rgba(228, 214, 188, 0.82)),
-            linear-gradient(175deg, rgba(255, 251, 240, 0.56), rgba(181, 159, 123, 0.2));
+            radial-gradient(
+                135% 185% at 12% 6%,
+                rgba(248, 244, 240, 0.72),
+                rgba(236, 228, 221, 0.82)
+            ),
+            repeating-linear-gradient(
+                -30deg,
+                rgba(128, 120, 111, 0.024) 0 2px,
+                rgba(255, 255, 255, 0.02) 2px 7px
+            ),
+            #ede2dc;
+        border: 1px solid rgba(154, 143, 130, 0.68);
+        border-radius: 10px;
+        margin: 5px 8px 7px;
         box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.52),
             inset 0 -1px 0 rgba(98, 68, 39, 0.2);
     }
 
-    .bid-formula {
+    .bid-tracker-panel {
+        width: 100%;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         justify-content: center;
-        gap: 16px;
-        padding: 6px 0 8px;
+        gap: 8px 30px;
+        padding: 0;
+    }
+
+    .bid-formula {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        white-space: nowrap;
+    }
+
+    .bid-tracker-message {
+        font-size: 16px;
+        letter-spacing: 0.02em;
+    }
+
+    .bid-tracker-columns {
+        display: grid;
+        grid-template-columns: max-content max-content;
+        column-gap: 10px;
+        row-gap: 2px;
+        width: max-content;
+        max-width: 100%;
+    }
+
+    .bid-player-cell {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 0;
+        text-align: right;
+        padding-right: 0;
+        white-space: nowrap;
+    }
+
+    .bid-player-cell :global(span) {
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+        padding-left: 0.3rem;
+        padding-right: 0.3rem;
+    }
+
+    .bid-value-cell {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 0;
+        text-align: right;
+        font-size: 12px;
+        line-height: 1;
+        color: rgba(63, 46, 28, 0.9);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .bid-value-text {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 2px;
+        min-width: 0;
+        line-height: 1;
+    }
+
+    .bid-eq-number,
+    .bid-eq-total {
+        min-width: 1ch;
+        text-align: right;
+    }
+
+    .bid-eq-number {
+        color: rgba(63, 46, 28, 0.6);
+        font-weight: 400;
+    }
+
+    .bid-eq-token {
+        color: rgba(63, 46, 28, 0.56);
+        opacity: 0.9;
+        font-size: 11px;
+        font-weight: 400;
+    }
+
+    .bid-eq-total {
+        font-weight: 600;
+        color: rgba(63, 46, 28, 0.96);
     }
 
     .formula-equation {
