@@ -3,9 +3,13 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { ResearchArea } from '../definition/researchAreas.js'
 
 export type ResearchMetadata = Type.Static<typeof ResearchMetadata>
-export const ResearchMetadata = Type.Object({})
+export const ResearchMetadata = Type.Object({
+    oldLevel: Type.Number(),
+    newLevel: Type.Number()
+})
 
 export type Research = Type.Static<typeof Research>
 export const Research = Type.Evaluate(
@@ -14,7 +18,9 @@ export const Research = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Research),
             playerId: Type.String(),
-            metadata: Type.Optional(ResearchMetadata)
+            metadata: Type.Optional(ResearchMetadata),
+            targetPlayerId: Type.String(),
+            researchArea: Type.Enum(ResearchArea)
         })
     ])
 )
@@ -29,6 +35,8 @@ export class HydratedResearch extends HydratableAction<typeof Research> implemen
     declare type: ActionType.Research
     declare playerId: string
     declare metadata?: ResearchMetadata
+    declare targetPlayerId: string
+    declare researchArea: ResearchArea
 
     constructor(data: Research) {
         super(data, ResearchValidator)
@@ -39,11 +47,24 @@ export class HydratedResearch extends HydratableAction<typeof Research> implemen
             throw Error('Invalid Research action')
         }
 
-        this.metadata = {}
+        const targetPlayerState = state.getPlayerState(this.targetPlayerId)
+        const currentLevel = targetPlayerState.research[this.researchArea]
+        const newLevel = currentLevel + 1
+        targetPlayerState.research[this.researchArea] = newLevel
+
+        this.metadata = {
+            oldLevel: currentLevel,
+            newLevel: newLevel
+        }
     }
 
     isValidResearch(state: HydratedIndonesiaGameState): boolean {
-        return HydratedResearch.canResearch(state, this.playerId)
+        if (this.targetPlayerId !== this.playerId && this.researchArea !== ResearchArea.hull) {
+            return false
+        }
+        const targetPlayerState = state.getPlayerState(this.targetPlayerId)
+        const currentLevel = targetPlayerState.research[this.researchArea]
+        return currentLevel < 4
     }
 
     static canResearch(_state: HydratedIndonesiaGameState, _playerId: string): boolean {

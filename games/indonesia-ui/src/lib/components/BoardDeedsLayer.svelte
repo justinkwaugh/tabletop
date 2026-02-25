@@ -16,7 +16,7 @@
     } from '$lib/utils/deeds.js'
     import type { CompanyCardType } from '$lib/types/companyCard.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { CompanyType } from '@tabletop/indonesia'
+    import { CompanyType, MachineState } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
 
@@ -48,6 +48,9 @@
         overlays: OverlayArea[]
     } = $derived.by(() => {
         const deeds = gameSession.gameState.availableDeeds
+        const hideSeaOverlays =
+            gameSession.gameState.machineState === MachineState.ResearchAndDevelopment ||
+            gameSession.gameState.machineState === MachineState.Operations
 
         const cards: DeedCardEntry[] = []
         const overlays: OverlayArea[] = []
@@ -78,10 +81,12 @@
                     ? baseStyle.overlayStroke
                     : shadeHexColor(baseStyle.overlayStroke, darknessShift * 0.7)
             const overlayAreaIds = isShipping
-                ? gameSession.gameState.board
-                      .seaAreasForRegion(regionId)
-                      .map((seaArea) => seaArea.id)
-                      .filter((seaAreaId) => BOARD_AREA_PATH_BY_ID.has(seaAreaId))
+                ? hideSeaOverlays
+                    ? []
+                    : gameSession.gameState.board
+                          .seaAreasForRegion(regionId)
+                          .map((seaArea) => seaArea.id)
+                          .filter((seaAreaId) => BOARD_AREA_PATH_BY_ID.has(seaAreaId))
                 : getRegionAreaIds(regionId)
 
             cards.push({

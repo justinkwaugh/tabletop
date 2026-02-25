@@ -8,6 +8,7 @@ import { HydratedSetTurnOrder, isSetTurnOrder } from '../actions/setTurnOrder.js
 import { HydratedStartCompany, isStartCompany } from '../actions/startCompany.js'
 import { HydratedProposeMerger, isProposeMerger } from '../actions/proposeMerger.js'
 import { HydratedResearch, isResearch } from '../actions/research.js'
+import { HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Sample game.  Used by the game engine
@@ -40,6 +41,9 @@ export class IndonesiaHydrator implements GameHydrator<
             }
             case isResearch(data): {
                 return new HydratedResearch(data)
+            }
+            case isDeliverGood(data): {
+                return new HydratedDeliverGood(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

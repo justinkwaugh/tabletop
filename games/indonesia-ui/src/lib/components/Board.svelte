@@ -4,13 +4,17 @@
     import BoardCitiesLayer from '$lib/components/BoardCitiesLayer.svelte'
     import BoardCultivatedAreasLayer from '$lib/components/BoardCultivatedAreasLayer.svelte'
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
+    import BoardResearchLayer from '$lib/components/BoardResearchLayer.svelte'
     import BoardShipsLayer from '$lib/components/BoardShipsLayer.svelte'
     import BoardTurnOrderLayer from '$lib/components/BoardTurnOrderLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
+    import { getGameSession } from '$lib/model/sessionContext.svelte'
 
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
     const SHOW_DEBUG_GEOMETRY = true
+
+    const gameSession = getGameSession()
 </script>
 
 <div class="board-shell">
@@ -30,7 +34,21 @@
             <BoardShipsLayer />
             <BoardCitiesLayer />
             <BoardActionAreasLayer />
-            <BoardTurnOrderLayer />
+            <BoardTurnOrderLayer
+                selectedPlayerId={
+                    gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
+                }
+                selectable={gameSession.researchSelectionEnabled}
+                onSelectPlayer={(playerId) => {
+                    gameSession.selectResearchPlayer(playerId)
+                }}
+            />
+            <BoardResearchLayer
+                selectedPlayerId={
+                    gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
+                }
+                currentPlayerId={gameSession.currentResearchPlayerId}
+            />
         </svg>
         {#if SHOW_DEBUG_GEOMETRY}
             <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} />

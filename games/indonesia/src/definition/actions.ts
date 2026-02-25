@@ -2,6 +2,7 @@
 
 export enum ActionType {
     Research = 'research',
+    DeliverGood = 'deliverGood',
     StartCompany = 'startCompany',
     ProposeMerger = 'proposeMerger',
     SetTurnOrder = 'setTurnOrder',

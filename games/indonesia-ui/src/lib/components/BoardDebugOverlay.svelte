@@ -16,13 +16,24 @@
     import OilMarker from '$lib/components/OilMarker.svelte'
     import RiceMarker from '$lib/components/RiceMarker.svelte'
     import RubberMarker from '$lib/components/RubberMarker.svelte'
+    import CubeMarker from '$lib/components/CubeMarker.svelte'
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
     import CompanyDeed, { deedCardKindFor } from '$lib/components/CompanyDeed.svelte'
     import { DEED_CARD_POSITIONS, DEED_CARD_POSITIONS_STORAGE_KEY } from '$lib/definitions/deedCardPositions.js'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
+    import {
+        RESEARCH_ROWS,
+        RESEARCH_TRACK_CELLS,
+        type ResearchRow
+    } from '$lib/definitions/researchTrackPositions.js'
     import { getRegionName } from '$lib/definitions/regions.js'
     import { SEA_SHIP_MARKER_POSITIONS } from '$lib/definitions/seaShipMarkerPositions.js'
+    import {
+        researchCubeHorizontalJitter,
+        researchCubeOffsets,
+        researchCubeRotationDegrees
+    } from '$lib/utils/researchCubeLayout.js'
     import {
         deedPositionKey,
         shippingSizeEntriesFromDeed,
@@ -48,6 +59,7 @@
         | 'deeds'
         | 'production'
         | 'companies'
+        | 'research'
         | 'marker'
     type BeadTone = 'amber' | 'red' | 'green'
     let colorMode: OverlayMode = $state('none')
@@ -135,6 +147,14 @@
         shippingSizes: readonly ShippingSizeEntry[] | null
     } & Point
 
+    type DebugResearchCube = {
+        key: string
+        x: number
+        y: number
+        color: string
+        rotationDegrees: number
+    }
+
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
     const PRODUCTION_ICON_HEIGHT = 30
     const SHIP_MARKER_HEIGHT = 45
@@ -166,6 +186,19 @@
             { x: 26, y: 12 }
         ]
     }
+    const DEBUG_RESEARCH_ROW_COUNT_BY_ROW: Readonly<Record<ResearchRow, number>> = {
+        bid: 1,
+        slots: 2,
+        mergers: 3,
+        expansion: 4,
+        hull: 5
+    }
+    const DEBUG_RESEARCH_CUBE_SIZE = 18
+    const DEBUG_RESEARCH_CUBE_GAP = 0.5
+    const DEBUG_RESEARCH_CUBE_SPACING = DEBUG_RESEARCH_CUBE_SIZE + DEBUG_RESEARCH_CUBE_GAP
+    const DEBUG_RESEARCH_SLOT_OUTLINE_COLOR = '#334155'
+    const DEBUG_RESEARCH_SLOT_OUTLINE_WIDTH = 1.2
+    const DEBUG_RESEARCH_SLOT_OUTLINE_OPACITY = 0.72
     const A10_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['A10'] ?? { x: 390.8, y: 386.1 }
     const A26_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['A26'] ?? { x: 595.9, y: 452.9 }
     const B02_MARKER_POSITION = LAND_MARKER_POSITION_LOOKUP['B02'] ?? { x: 946.9, y: 542.5 }
@@ -818,6 +851,81 @@
         LAND_DEBUG_MAP_AREAS.filter((area) => COASTAL_LAND_AREA_IDS.has(area.id))
     )
 
+    const RESEARCH_TRACK_CELLS_BY_ROW: Record<ResearchRow, (typeof RESEARCH_TRACK_CELLS)[number][]> =
+        {
+            bid: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'bid'),
+            slots: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'slots'),
+            mergers: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'mergers'),
+            expansion: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'expansion'),
+            hull: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'hull')
+        }
+
+    const DEBUG_RESEARCH_PLAYER_COLORS: string[] = $derived.by(() => {
+        const playerIds = gameSession.gameState.turnManager.turnOrder
+        if (playerIds.length > 0) {
+            return playerIds.map((playerId) => gameSession.colors.getPlayerUiColor(playerId))
+        }
+
+        return gameSession.gameState.players.map((playerState) =>
+            gameSession.colors.getPlayerUiColor(playerState.playerId)
+        )
+    })
+
+    const DEBUG_RESEARCH_CUBES: DebugResearchCube[] = $derived.by(() => {
+        if (colorMode !== 'research') {
+            return []
+        }
+
+        const cubes: DebugResearchCube[] = []
+        for (const row of RESEARCH_ROWS) {
+            const rowCells = RESEARCH_TRACK_CELLS_BY_ROW[row]
+            const cubeCount = DEBUG_RESEARCH_ROW_COUNT_BY_ROW[row]
+
+            for (let columnIndex = 0; columnIndex < rowCells.length; columnIndex += 1) {
+                const cell = rowCells[columnIndex]
+                if (!cell) {
+                    continue
+                }
+
+                const offsets = researchCubeOffsets(
+                    cubeCount,
+                    DEBUG_RESEARCH_CUBE_SPACING,
+                    row,
+                    `${row}-${columnIndex}`
+                )
+                for (let cubeIndex = 0; cubeIndex < cubeCount; cubeIndex += 1) {
+                    const offset = offsets[cubeIndex]
+                    if (!offset) {
+                        continue
+                    }
+
+                    cubes.push({
+                        key: `${row}-${columnIndex}-${cubeIndex}`,
+                        x:
+                            cell.center.x +
+                            offset.x +
+                            researchCubeHorizontalJitter(
+                                `${columnIndex}-${cubeIndex}`,
+                                row,
+                                DEBUG_RESEARCH_CUBE_SPACING
+                            ),
+                        y: cell.center.y + offset.y,
+                        color:
+                            DEBUG_RESEARCH_PLAYER_COLORS[
+                                cubeIndex % DEBUG_RESEARCH_PLAYER_COLORS.length
+                            ] ?? '#64748b',
+                        rotationDegrees: researchCubeRotationDegrees(
+                            `${columnIndex}-${cubeIndex}`,
+                            row
+                        )
+                    })
+                }
+            }
+        }
+
+        return cubes
+    })
+
     const DISPLAY_AREAS: DebugArea[] = $derived.by(() => {
         if (colorMode === 'none') {
             return []
@@ -838,6 +946,9 @@
             return []
         }
         if (colorMode === 'deeds') {
+            return []
+        }
+        if (colorMode === 'research') {
             return []
         }
         if (colorMode === 'marker') {
@@ -1427,6 +1538,9 @@
         if (colorMode === 'deeds') {
             return new Map()
         }
+        if (colorMode === 'research') {
+            return new Map()
+        }
         if (colorMode === 'marker') {
             return computeMarkerTuneColorMap(DISPLAY_AREAS)
         }
@@ -1537,6 +1651,16 @@
             }}
         >
             Companies
+        </button>
+        <button
+            type="button"
+            class:active={colorMode === 'research'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'research'
+            }}
+        >
+            Research
         </button>
         <button
             type="button"
@@ -2050,6 +2174,30 @@
                             onpointerdown={(event) => startMarkerDrag(marker.areaId, event)}
                         ></circle>
                     {/if}
+                {/each}
+            {/if}
+            {#if colorMode === 'research'}
+                {#each RESEARCH_TRACK_CELLS as slot (slot.id)}
+                    <rect
+                        x={slot.left}
+                        y={slot.top}
+                        width={slot.width}
+                        height={slot.height}
+                        fill="none"
+                        stroke={DEBUG_RESEARCH_SLOT_OUTLINE_COLOR}
+                        stroke-width={DEBUG_RESEARCH_SLOT_OUTLINE_WIDTH}
+                        opacity={DEBUG_RESEARCH_SLOT_OUTLINE_OPACITY}
+                        pointer-events="none"
+                    ></rect>
+                {/each}
+                {#each DEBUG_RESEARCH_CUBES as cube (cube.key)}
+                    <CubeMarker
+                        x={cube.x}
+                        y={cube.y}
+                        size={DEBUG_RESEARCH_CUBE_SIZE}
+                        color={cube.color}
+                        rotationDegrees={cube.rotationDegrees}
+                    />
                 {/each}
             {/if}
             {#if colorMode === 'sea'}
