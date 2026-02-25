@@ -7,6 +7,7 @@ import { MergersStateHandler } from '../stateHandlers/mergers.js'
 import { BiddingForTurnOrderStateHandler } from '../stateHandlers/biddingForTurnOrder.js'
 import { NewEraStateHandler } from '../stateHandlers/newEra.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { ResearchAndDevelopmentStateHandler } from '../stateHandlers/researchAndDevelopment.js'
 // The mapping of machine states to their handlers for the Sample game, used by the game engine
 export const IndonesiaStateHandlers: Record<
     MachineState,
@@ -18,4 +19,5 @@ export const IndonesiaStateHandlers: Record<
     [MachineState.BiddingForTurnOrder]: new BiddingForTurnOrderStateHandler(),
     [MachineState.Mergers]: new MergersStateHandler(),
     [MachineState.Acquisitions]: new AcquisitionsStateHandler(),
+    [MachineState.ResearchAndDevelopment]: new ResearchAndDevelopmentStateHandler(),
 }

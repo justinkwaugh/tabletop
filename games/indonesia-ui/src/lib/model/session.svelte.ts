@@ -4,6 +4,7 @@ import {
     MachineState,
     PlaceCity,
     PlaceTurnOrderBid,
+    Research,
     StartCompany,
     type HydratedIndonesiaGameState,
     type IndonesiaGameState
@@ -48,6 +49,17 @@ export class IndonesiaGameSession extends GameSession<
             type: ActionType.StartCompany,
             deedId,
             areaId
+        })
+        await this.applyAction(action)
+    }
+
+    async research(): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.Research)) {
+            return
+        }
+
+        const action = this.createPlayerAction(Research, {
+            type: ActionType.Research
         })
         await this.applyAction(action)
     }

@@ -14,6 +14,9 @@
         y,
         style = 'a',
         height = 20,
+        hullFillColor = '#7ea6ad',
+        hullStrokeColor = 'none',
+        hullStrokeWidth = 0,
         outline = true,
         outlineColor = '#333',
         mask = false,
@@ -24,6 +27,9 @@
         y: number
         style?: 'a' | 'b'
         height?: number
+        hullFillColor?: string
+        hullStrokeColor?: string
+        hullStrokeWidth?: number
         outline?: boolean
         outlineColor?: string
         mask?: boolean
@@ -71,9 +77,25 @@
     {/if}
 
     {#if style === 'a'}
-        <ShipAIcon x={iconX} y={iconY} {width} {height} />
+        <ShipAIcon
+            x={iconX}
+            y={iconY}
+            {width}
+            {height}
+            hullFill={hullFillColor}
+            hullStroke={hullStrokeColor}
+            hullStrokeWidth={hullStrokeWidth}
+        />
     {:else}
-        <ShipBIcon x={iconX} y={iconY} {width} {height} />
+        <ShipBIcon
+            x={iconX}
+            y={iconY}
+            {width}
+            {height}
+            hullFill={hullFillColor}
+            hullStroke={hullStrokeColor}
+            hullStrokeWidth={hullStrokeWidth}
+        />
     {/if}
 
     {#if mask}

@@ -8,6 +8,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSetTurnOrder, isSetTurnOrder, SetTurnOrder } from '../actions/setTurnOrder.js'
 import { HydratedPlaceTurnOrderBid, isPlaceTurnOrderBid } from '../actions/placeTurnOrderBid.js'
+import { HydratedStartCompany } from '../actions/startCompany.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 
@@ -86,7 +87,13 @@ export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
                 state.turnOrderBids = undefined
                 state.phaseManager.endPhase(state.actionCount)
 
-                // TODO: determine if we can do mergers or acquisitions
+                const anyPlayerCanStartCompany = state.turnManager.turnOrder.some((playerId) =>
+                    HydratedStartCompany.canStartCompany(state, playerId)
+                )
+                if (!anyPlayerCanStartCompany) {
+                    return MachineState.ResearchAndDevelopment
+                }
+
                 return MachineState.Acquisitions
             }
             // Leave this comment if you want the template to generate code for valid actions

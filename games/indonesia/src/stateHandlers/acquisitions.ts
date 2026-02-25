@@ -1,6 +1,7 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
+    assert,
     assertExists,
     MachineContext
 } from '@tabletop/common'
@@ -44,15 +45,25 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
         const gameState = context.gameState
         const turnManager = gameState.turnManager
         const phaseManager = gameState.phaseManager
+        const canStartCompany = (playerId: string) =>
+            HydratedStartCompany.canStartCompany(gameState, playerId)
 
-        let nextPlayerId
+        const playersWhoCanStart = turnManager.turnOrder.filter((playerId) =>
+            canStartCompany(playerId)
+        )
+        assert(
+            playersWhoCanStart.length > 0,
+            'At least one player should be able to start a company when entering the Acquisitions state'
+        )
+
+        let nextPlayerId: string | undefined
         if (phaseManager.currentPhase?.name !== PhaseName.Acquisitions) {
             phaseManager.startPhase(PhaseName.Acquisitions, gameState.actionCount)
-
-            // TODO: start turn for first player who *can* acquire a company deed, rather than just the first player
-            nextPlayerId = turnManager.restartTurnOrder(gameState.actionCount)
+            nextPlayerId = playersWhoCanStart[0]
+            turnManager.startTurn(nextPlayerId, gameState.actionCount)
         } else {
-            nextPlayerId = turnManager.startNextTurn(gameState.actionCount)
+            nextPlayerId = turnManager.nextPlayer(turnManager.lastPlayer(), canStartCompany)
+            turnManager.startTurn(nextPlayerId, gameState.actionCount)
         }
 
         assertExists(
@@ -66,8 +77,21 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
         action: AcquisitionsAction,
         context: MachineContext<HydratedIndonesiaGameState>
     ): MachineState {
+        const state = context.gameState
+
         switch (true) {
             case isStartCompany(action): {
+                state.turnManager.endTurn(state.actionCount)
+
+                const anyPlayerCanStartCompany = state.turnManager.turnOrder.some((playerId) =>
+                    HydratedStartCompany.canStartCompany(state, playerId)
+                )
+                if (!anyPlayerCanStartCompany) {
+                    state.phaseManager.endPhase(state.actionCount)
+                    state.activePlayerIds = []
+                    return MachineState.ResearchAndDevelopment
+                }
+
                 return MachineState.Acquisitions
             }
             // Leave this comment if you want the template to generate code for valid actions

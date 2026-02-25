@@ -11,6 +11,7 @@
     const gameSession = getGameSession()
     let bidInput = $state('0')
     let placingTurnOrderBid = $state(false)
+    let researching = $state(false)
 
     const showTurnOrderBidFormula = $derived.by(() => {
         return (
@@ -59,6 +60,14 @@
         return (
             gameSession.gameState.machineState === MachineState.BiddingForTurnOrder &&
             !gameSession.gameState.result
+        )
+    })
+
+    const showResearchAction = $derived.by(() => {
+        return (
+            gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.ResearchAndDevelopment &&
+            gameSession.validActionTypes.includes(ActionType.Research)
         )
     })
 
@@ -119,6 +128,8 @@
                 return 'Propose a merger.'
             case MachineState.Acquisitions:
                 return 'Select a deed, then select a highlighted area to start the company.'
+            case MachineState.ResearchAndDevelopment:
+                return 'Choose your research action.'
             case MachineState.EndOfGame:
                 return 'Game over.'
             default:
@@ -163,6 +174,19 @@
             bidInput = '0'
         } finally {
             placingTurnOrderBid = false
+        }
+    }
+
+    async function submitResearch(): Promise<void> {
+        if (!showResearchAction || researching) {
+            return
+        }
+
+        researching = true
+        try {
+            await gameSession.research()
+        } finally {
+            researching = false
         }
     }
 </script>
@@ -232,7 +256,20 @@
             {/if}
         </div>
     {:else}
-        <span>{message}</span>
+        {#if showResearchAction}
+            <div class="flex items-center justify-center gap-3">
+                <span>{message}</span>
+                <button type="button" class="commit-bid" disabled={researching} onclick={submitResearch}>
+                    {#if researching}
+                        researching...
+                    {:else}
+                        research
+                    {/if}
+                </button>
+            </div>
+        {:else}
+            <span>{message}</span>
+        {/if}
     {/if}
 </div>
 

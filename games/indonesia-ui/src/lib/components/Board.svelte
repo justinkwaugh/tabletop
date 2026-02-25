@@ -4,6 +4,7 @@
     import BoardCitiesLayer from '$lib/components/BoardCitiesLayer.svelte'
     import BoardCultivatedAreasLayer from '$lib/components/BoardCultivatedAreasLayer.svelte'
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
+    import BoardShipsLayer from '$lib/components/BoardShipsLayer.svelte'
     import BoardTurnOrderLayer from '$lib/components/BoardTurnOrderLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
 
@@ -26,6 +27,7 @@
         >
             <BoardDeedsLayer />
             <BoardCultivatedAreasLayer />
+            <BoardShipsLayer />
             <BoardCitiesLayer />
             <BoardActionAreasLayer />
             <BoardTurnOrderLayer />
