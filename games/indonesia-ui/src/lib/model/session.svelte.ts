@@ -1,7 +1,10 @@
 import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
+    ChooseOperatingCompany,
+    CompanyType,
     DeliverGood,
+    Expand,
     MachineState,
     PlaceCity,
     PlaceTurnOrderBid,
@@ -17,6 +20,7 @@ export class IndonesiaGameSession extends GameSession<
     HydratedIndonesiaGameState
 > {
     selectedResearchPlayerIdOverride: string | undefined = $state()
+    hoveredOperatingCompanyIdOverride: string | undefined = $state()
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
     researchSelectionEnabled = $derived.by(
@@ -44,8 +48,23 @@ export class IndonesiaGameSession extends GameSession<
         return null
     })
 
+    hoveredOperatingCompanyId: string | null = $derived.by(() => {
+        const hoveredCompanyId = this.hoveredOperatingCompanyIdOverride
+        if (!hoveredCompanyId) {
+            return null
+        }
+
+        const company = this.gameState.companies.find((entry) => entry.id === hoveredCompanyId)
+        if (!company) {
+            return null
+        }
+
+        return company.id
+    })
+
     resetAction(): void {
         this.selectedResearchPlayerIdOverride = undefined
+        this.hoveredOperatingCompanyIdOverride = undefined
     }
 
     override beforeNewState(): void {
@@ -61,6 +80,35 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         this.selectedResearchPlayerIdOverride = playerId
+    }
+
+    setHoveredOperatingCompany(companyId: string | undefined): void {
+        if (!companyId) {
+            this.hoveredOperatingCompanyIdOverride = undefined
+            return
+        }
+
+        if (!this.isMyTurn || this.gameState.machineState !== MachineState.Operations) {
+            return
+        }
+
+        if (!this.validActionTypes.includes(ActionType.ChooseOperatingCompany)) {
+            return
+        }
+
+        const company = this.gameState.companies.find((entry) => entry.id === companyId)
+        if (!company) {
+            return
+        }
+        if (company.owner !== this.myPlayer?.id) {
+            return
+        }
+        if (company.type !== CompanyType.Shipping) {
+            this.hoveredOperatingCompanyIdOverride = undefined
+            return
+        }
+
+        this.hoveredOperatingCompanyIdOverride = companyId
     }
 
     async placeTurnOrderBid(amount: number): Promise<void> {
@@ -126,6 +174,29 @@ export class IndonesiaGameSession extends GameSession<
 
         const action = this.createPlayerAction(DeliverGood, {
             type: ActionType.DeliverGood
+        })
+        await this.applyAction(action)
+    }
+
+    async chooseOperatingCompany(companyId: string): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.ChooseOperatingCompany)) {
+            return
+        }
+
+        const action = this.createPlayerAction(ChooseOperatingCompany, {
+            type: ActionType.ChooseOperatingCompany,
+            companyId
+        })
+        await this.applyAction(action)
+    }
+
+    async expand(): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.Expand)) {
+            return
+        }
+
+        const action = this.createPlayerAction(Expand, {
+            type: ActionType.Expand
         })
         await this.applyAction(action)
     }

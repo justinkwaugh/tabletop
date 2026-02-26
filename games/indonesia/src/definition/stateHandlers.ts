@@ -9,6 +9,8 @@ import { NewEraStateHandler } from '../stateHandlers/newEra.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { ResearchAndDevelopmentStateHandler } from '../stateHandlers/researchAndDevelopment.js'
 import { OperationsStateHandler } from '../stateHandlers/operations.js'
+import { ShippingOperationsStateHandler } from '../stateHandlers/shippingOperations.js'
+import { ProductionOperaionsStateHandler } from '../stateHandlers/productionOperaions.js'
 // The mapping of machine states to their handlers for the Sample game, used by the game engine
 export const IndonesiaStateHandlers: Record<
     MachineState,
@@ -22,4 +24,6 @@ export const IndonesiaStateHandlers: Record<
     [MachineState.Acquisitions]: new AcquisitionsStateHandler(),
     [MachineState.ResearchAndDevelopment]: new ResearchAndDevelopmentStateHandler(),
     [MachineState.Operations]: new OperationsStateHandler(),
+    [MachineState.ShippingOperations]: new ShippingOperationsStateHandler(),
+    [MachineState.ProductionOperaions]: new ProductionOperaionsStateHandler(),
 }

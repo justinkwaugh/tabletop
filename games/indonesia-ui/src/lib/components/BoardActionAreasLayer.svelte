@@ -1,5 +1,6 @@
 <script lang="ts">
     import Area from '$lib/components/Area.svelte'
+    import { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
     import {
         BOARD_DEED_CARD_CORNER_RX,
@@ -20,6 +21,7 @@
     } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
+    const SHIPPING_HIGHLIGHT_STYLE = companyDeedStyleForType('ship')
 
     type AreaInteractionAction = 'place-city' | 'start-company'
     type ActiveAreaInteraction = {
@@ -208,6 +210,36 @@
         return maskedIds
     })
 
+    const hoveredShippingCompanySeaAreaIds: readonly string[] = $derived.by(() => {
+        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
+        if (!hoveredCompanyId) {
+            return []
+        }
+
+        const hoveredCompany = gameSession.gameState.companies.find(
+            (company) => company.id === hoveredCompanyId
+        )
+        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Shipping) {
+            return []
+        }
+
+        const highlightedAreaIds: string[] = []
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!('ships' in area) || area.ships.length === 0) {
+                continue
+            }
+            if (!boardAreaPathById(area.id)) {
+                continue
+            }
+            if (!area.ships.includes(hoveredCompanyId)) {
+                continue
+            }
+            highlightedAreaIds.push(area.id)
+        }
+
+        return highlightedAreaIds
+    })
+
     async function handleAreaClick(areaId: string): Promise<void> {
         if (!activeAreaInteraction || applyingAreaAction || !myPlayerId) {
             return
@@ -246,8 +278,23 @@
     }
 </script>
 
-{#if activeAreaInteraction || startCompanySelectionEnabled}
+{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredShippingCompanySeaAreaIds.length > 0}
     <g class="select-none" aria-label="Board action areas layer">
+        {#each hoveredShippingCompanySeaAreaIds as areaId (areaId)}
+            <Area
+                areaId={areaId}
+                fill={SHIPPING_HIGHLIGHT_STYLE.overlayFill}
+                stroke={SHIPPING_HIGHLIGHT_STYLE.overlayStroke}
+                fillOpacity="1"
+                fillRule="evenodd"
+                strokeWidth="1.9"
+                strokeLineJoin="round"
+                strokeLineCap="round"
+                opacity={SHIPPING_HIGHLIGHT_STYLE.overlayOpacity}
+                pointer-events="none"
+            />
+        {/each}
+
         {#if activeAreaInteraction}
             {#each maskedAreaIds as areaId (areaId)}
                 <Area

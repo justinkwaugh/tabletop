@@ -43,7 +43,8 @@ export const IndonesiaGameState = Type.Evaluate(
             era: Type.Enum(Era),
             currentCityCard: Type.Optional(CityCard), // The city card currently being placed in the New Era phase
             placingCities: Type.Array(Type.String()), // List of players remaining to place cities
-            companies: Type.Array(Company) // List of companies in the game
+            companies: Type.Array(Company), // List of companies in the game
+            operatingCompanyId: Type.Optional(Type.String()) // Company currently being operated in operations sub-states
         })
     ])
 )
@@ -79,6 +80,7 @@ export class HydratedIndonesiaGameState
     declare currentCityCard: CityCard | undefined
     declare placingCities: string[]
     declare companies: Company[]
+    declare operatingCompanyId?: string
 
     constructor(data: IndonesiaGameState) {
         super(data, IndonesiaGameStateValidator)

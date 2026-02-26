@@ -1,18 +1,30 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
+    assert,
     assertExists,
     MachineContext
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
+import {
+    HydratedChooseOperatingCompany,
+    isChooseOperatingCompany
+} from '../actions/chooseOperatingCompany.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
+import { CompanyType } from '../definition/companyType.js'
 
-type OperationsAction = HydratedDeliverGood
+type OperationsAction = HydratedChooseOperatingCompany
+
+function canOperateCompany(state: HydratedIndonesiaGameState, playerId: string): boolean {
+    return state.companies.some((company) => company.owner === playerId)
+}
 
 function hasCompletedOperationsTurn(state: HydratedIndonesiaGameState, playerId: string): boolean {
+    if (!canOperateCompany(state, playerId)) {
+        return true
+    }
     const currentPhase = state.phaseManager.currentPhase
     if (!currentPhase || currentPhase.name !== PhaseName.Operations) {
         return false
@@ -20,12 +32,15 @@ function hasCompletedOperationsTurn(state: HydratedIndonesiaGameState, playerId:
     return state.turnManager.hadTurnSinceAction(playerId, currentPhase.start)
 }
 
-export class OperationsStateHandler implements MachineStateHandler<OperationsAction, HydratedIndonesiaGameState> {
+export class OperationsStateHandler implements MachineStateHandler<
+    OperationsAction,
+    HydratedIndonesiaGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
     ): action is OperationsAction {
-        return isDeliverGood(action)
+        return isChooseOperatingCompany(action)
     }
 
     validActionsForPlayer(
@@ -35,11 +50,10 @@ export class OperationsStateHandler implements MachineStateHandler<OperationsAct
         const gameState = context.gameState
         const validActions: ActionType[] = []
 
-        if (
-            !hasCompletedOperationsTurn(gameState, playerId) &&
-            HydratedDeliverGood.canDeliverGood(gameState, playerId)
-        ) {
-            validActions.push(ActionType.DeliverGood)
+        if (!hasCompletedOperationsTurn(gameState, playerId)) {
+            if (HydratedChooseOperatingCompany.canChooseOperatingCompany(gameState, playerId)) {
+                validActions.push(ActionType.ChooseOperatingCompany)
+            }
         }
 
         return validActions
@@ -51,27 +65,17 @@ export class OperationsStateHandler implements MachineStateHandler<OperationsAct
         const phaseManager = gameState.phaseManager
 
         let nextPlayerId: string | undefined
+        let lastPlayerId: string | undefined
         if (phaseManager.currentPhase?.name !== PhaseName.Operations) {
             phaseManager.startPhase(PhaseName.Operations, gameState.actionCount)
-            nextPlayerId = turnManager.restartTurnOrder(gameState.actionCount)
+            gameState.operatingCompanyId = undefined
         } else {
-            const currentPhase = phaseManager.currentPhase
-            assertExists(currentPhase, 'Current phase should exist in Operations enter')
-
-            const playersStillToAct = turnManager.turnOrder.filter(
-                (playerId) => !turnManager.hadTurnSinceAction(playerId, currentPhase.start)
-            )
-            if (playersStillToAct.length === 0) {
-                gameState.activePlayerIds = []
-                return
-            }
-
-            nextPlayerId = turnManager.nextPlayer(turnManager.lastPlayer(), (playerId) =>
-                playersStillToAct.includes(playerId)
-            )
-            turnManager.startTurn(nextPlayerId, gameState.actionCount)
+            lastPlayerId = turnManager.lastPlayer()
         }
-
+        nextPlayerId = turnManager.nextPlayer(lastPlayerId, (playerId) =>
+            canOperateCompany(gameState, playerId)
+        )
+        turnManager.startTurn(nextPlayerId, gameState.actionCount)
         assertExists(nextPlayerId, 'There should always be a next player when entering Operations')
         gameState.activePlayerIds = [nextPlayerId]
     }
@@ -83,21 +87,20 @@ export class OperationsStateHandler implements MachineStateHandler<OperationsAct
         const state = context.gameState
 
         switch (true) {
-            case isDeliverGood(action): {
-                state.turnManager.endTurn(state.actionCount)
-
-                const currentPhase = state.phaseManager.currentPhase
-                assertExists(currentPhase, 'Current phase should exist while handling DeliverGood')
-                const allPlayersDelivered = state.turnManager.turnOrder.every((playerId) =>
-                    state.turnManager.hadTurnSinceAction(playerId, currentPhase.start)
+            case isChooseOperatingCompany(action): {
+                const operatingCompany = state.companies.find(
+                    (company) => company.id === action.companyId
+                )
+                assertExists(
+                    operatingCompany,
+                    'Operating company should exist while handling ChooseOperatingCompany'
                 )
 
-                if (allPlayersDelivered) {
-                    state.phaseManager.endPhase(state.actionCount)
-                    return MachineState.BiddingForTurnOrder
+                if (operatingCompany.type === CompanyType.Shipping) {
+                    return MachineState.ShippingOperations
                 }
 
-                return MachineState.Operations
+                return MachineState.ProductionOperaions
             }
             default: {
                 throw Error('Invalid action type')

@@ -74,11 +74,21 @@
         return COMPANY_DEED_STYLE_BY_TYPE[type]
     }
 
-    export function deedCardKindFor(deed: AnyDeed): CompanyCardType {
-        if (deed.type === CompanyType.Shipping) {
+    export function companyCardKindFor(companyType: CompanyType, good?: Good): CompanyCardType {
+        if (companyType === CompanyType.Shipping) {
             return 'ship'
         }
-        return PRODUCTION_COMPANY_DEED_TYPE_BY_GOOD[deed.good]
+        if (!good) {
+            throw new Error('Production company card kind requires a good type')
+        }
+        return PRODUCTION_COMPANY_DEED_TYPE_BY_GOOD[good]
+    }
+
+    export function deedCardKindFor(deed: AnyDeed): CompanyCardType {
+        if (deed.type === CompanyType.Production) {
+            return companyCardKindFor(deed.type, deed.good)
+        }
+        return companyCardKindFor(deed.type)
     }
 </script>
 

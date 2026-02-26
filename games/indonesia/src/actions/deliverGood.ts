@@ -47,7 +47,21 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
         return HydratedDeliverGood.canDeliverGood(state, this.playerId)
     }
 
-    static canDeliverGood(state: HydratedIndonesiaGameState, _playerId: string): boolean {
-        return state.machineState === MachineState.Operations
+    static canDeliverGood(state: HydratedIndonesiaGameState, playerId: string): boolean {
+        if (state.machineState !== MachineState.ProductionOperaions) {
+            return false
+        }
+
+        const operatingCompanyId = state.operatingCompanyId
+        if (!operatingCompanyId) {
+            return false
+        }
+
+        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        if (!operatingCompany) {
+            return false
+        }
+
+        return operatingCompany.owner === playerId
     }
 }

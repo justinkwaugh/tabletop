@@ -1,7 +1,9 @@
 <script lang="ts">
+    import CompanyCard from '$lib/components/CompanyCard.svelte'
     import {
         ActionType,
         BID_RESEARCH_MULTIPLIERS,
+        CompanyType,
         MachineState,
         type TurnOrderBid
     } from '@tabletop/indonesia'
@@ -11,6 +13,7 @@
     const gameSession = getGameSession()
     let bidInput = $state('0')
     let placingTurnOrderBid = $state(false)
+    let choosingOperatingCompany = $state(false)
 
     const showTurnOrderBidFormula = $derived.by(() => {
         return (
@@ -80,6 +83,57 @@
         turnOrderBidEntries.filter((entry) => entry.turnOrderBid !== null)
     )
 
+    const showOperatingCompanyPicker = $derived.by(() => {
+        return (
+            gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.Operations &&
+            gameSession.validActionTypes.includes(ActionType.ChooseOperatingCompany) &&
+            !gameSession.gameState.result
+        )
+    })
+
+    $effect(() => {
+        if (!showOperatingCompanyPicker) {
+            gameSession.setHoveredOperatingCompany(undefined)
+        }
+    })
+
+    type OwnedOperatingCompanyEntry = {
+        company: (typeof gameSession.gameState.companies)[number]
+        cultivatedAreaCount: number
+        earnings: number | null
+    }
+
+    const cultivatedAreaCountByCompanyId: Record<string, number> = $derived.by(() => {
+        const cultivatedCounts: Record<string, number> = {}
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!('companyId' in area)) {
+                continue
+            }
+
+            cultivatedCounts[area.companyId] = (cultivatedCounts[area.companyId] ?? 0) + 1
+        }
+        return cultivatedCounts
+    })
+
+    const ownedOperatingCompanies: OwnedOperatingCompanyEntry[] = $derived.by(() => {
+        const myPlayerId = gameSession.myPlayer?.id
+        if (!myPlayerId) {
+            return []
+        }
+
+        return gameSession.gameState.companies
+            .filter((company) => company.owner === myPlayerId)
+            .map((company) => ({
+                company,
+                cultivatedAreaCount:
+                    company.type === CompanyType.Production
+                        ? (cultivatedAreaCountByCompanyId[company.id] ?? 0)
+                        : 0,
+                earnings: null
+            }))
+    })
+
     const message = $derived.by(() => {
         if (gameSession.isViewingHistory) {
             return 'Viewing history.'
@@ -122,7 +176,11 @@
             case MachineState.ResearchAndDevelopment:
                 return 'Choose an area to research.'
             case MachineState.Operations:
-                return 'Deliver goods.'
+                return 'Choose a company to operate.'
+            case MachineState.ShippingOperations:
+                return 'Operate shipping company.'
+            case MachineState.ProductionOperaions:
+                return 'Operate production company.'
             case MachineState.EndOfGame:
                 return 'Game over.'
             default:
@@ -167,6 +225,19 @@
             bidInput = '0'
         } finally {
             placingTurnOrderBid = false
+        }
+    }
+
+    async function submitChooseOperatingCompany(companyId: string): Promise<void> {
+        if (!showOperatingCompanyPicker || choosingOperatingCompany) {
+            return
+        }
+
+        choosingOperatingCompany = true
+        try {
+            await gameSession.chooseOperatingCompany(companyId)
+        } finally {
+            choosingOperatingCompany = false
         }
     }
 
@@ -236,6 +307,45 @@
                 </div>
             {/if}
         </div>
+    {:else if showOperatingCompanyPicker}
+        <div class="operating-company-panel">
+            <span class="operating-company-message">{message}</span>
+            <div class="operating-company-cards" aria-label="Operating companies">
+                {#each ownedOperatingCompanies as companyEntry (companyEntry.company.id)}
+                    <button
+                        type="button"
+                        class="operating-company-button"
+                        disabled={choosingOperatingCompany}
+                        onmouseenter={() => {
+                            gameSession.setHoveredOperatingCompany(companyEntry.company.id)
+                        }}
+                        onmouseleave={() => {
+                            gameSession.setHoveredOperatingCompany(undefined)
+                        }}
+                        onfocus={() => {
+                            gameSession.setHoveredOperatingCompany(companyEntry.company.id)
+                        }}
+                        onblur={() => {
+                            gameSession.setHoveredOperatingCompany(undefined)
+                        }}
+                        onclick={() => {
+                            submitChooseOperatingCompany(companyEntry.company.id)
+                        }}
+                    >
+                        <svg class="operating-company-card-svg" viewBox="0 0 126 78" aria-hidden="true">
+                            <CompanyCard
+                                company={companyEntry.company}
+                                x={63}
+                                y={39}
+                                height={58}
+                                cultivatedAreaCount={companyEntry.cultivatedAreaCount}
+                                earnings={companyEntry.earnings}
+                            />
+                        </svg>
+                    </button>
+                {/each}
+            </div>
+        </div>
     {:else}
         <span>{message}</span>
     {/if}
@@ -271,6 +381,56 @@
         justify-content: center;
         gap: 8px 30px;
         padding: 0;
+    }
+
+    .operating-company-panel {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .operating-company-message {
+        font-size: 16px;
+        line-height: 1.15;
+        letter-spacing: 0.02em;
+    }
+
+    .operating-company-cards {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .operating-company-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        transition: opacity 140ms ease;
+    }
+
+    .operating-company-button:hover:enabled {
+        opacity: 0.9;
+    }
+
+    .operating-company-button:disabled {
+        opacity: 0.58;
+        cursor: default;
+    }
+
+    .operating-company-card-svg {
+        display: block;
+        width: 126px;
+        height: 78px;
     }
 
     .bid-formula {

@@ -6,6 +6,7 @@ import { Hydratable } from '../../util/hydration.js'
 import { PlayerState } from '../model/playerState.js'
 import { shuffle } from '../../util/shuffle.js'
 import type { RandomFunction } from '../../util/prng.js'
+import { assert } from '../../util/assertions.js'
 
 export type TurnManager = Type.Static<typeof TurnManager>
 export const TurnManager = Type.Object({
@@ -108,11 +109,16 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
     }
 
     nextPlayer(currentPlayerId?: string, predicate?: (nextPlayerId: string) => boolean): string {
-        if (!currentPlayerId) {
+        assert(this.turnOrder.length > 0, 'Turn order must have at least one player')
+
+        if (this.turnOrder.length === 1) {
             return this.turnOrder[0]
         }
 
-        const currentPlayerIndex = this.getTurnOrderIndex(currentPlayerId)
+        const currentPlayerIndex =
+            currentPlayerId !== undefined
+                ? this.getTurnOrderIndex(currentPlayerId)
+                : this.turnOrder.length - 1
         let nextPlayerIndex = currentPlayerIndex
         do {
             nextPlayerIndex = (nextPlayerIndex + 1) % this.turnOrder.length

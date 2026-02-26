@@ -31,3 +31,25 @@ export function shippingSizeEntriesFromDeed(deed: AnyDeed): readonly ShippingSiz
     }
     return shippingSizeEntriesFromRecord(deed.sizes)
 }
+
+export function shippingSizeTotalsFromDeeds(deeds: readonly AnyDeed[]): readonly ShippingSizeEntry[] {
+    const totals: Record<ShippingEra, number> = {
+        [Era.A]: 0,
+        [Era.B]: 0,
+        [Era.C]: 0
+    }
+
+    for (const deed of deeds) {
+        if (deed.type !== CompanyType.Shipping) {
+            continue
+        }
+        for (const era of SHIPPING_ERA_ORDER) {
+            totals[era] += deed.sizes[era] ?? 0
+        }
+    }
+
+    return SHIPPING_ERA_ORDER.map((era) => ({
+        era,
+        size: totals[era]
+    }))
+}

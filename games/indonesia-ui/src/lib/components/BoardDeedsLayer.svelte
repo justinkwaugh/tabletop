@@ -50,7 +50,9 @@
         const deeds = gameSession.gameState.availableDeeds
         const hideSeaOverlays =
             gameSession.gameState.machineState === MachineState.ResearchAndDevelopment ||
-            gameSession.gameState.machineState === MachineState.Operations
+            gameSession.gameState.machineState === MachineState.Operations ||
+            gameSession.gameState.machineState === MachineState.ShippingOperations ||
+            gameSession.gameState.machineState === MachineState.ProductionOperaions
 
         const cards: DeedCardEntry[] = []
         const overlays: OverlayArea[] = []

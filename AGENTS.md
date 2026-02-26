@@ -6,6 +6,60 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 
 - Follow the `bus-ui` pattern: initiate game actions centrally on the session class and call those session methods from components, rather than calling `createPlayerAction`/`applyAction` directly in component files.
 
+## Indonesia Operations Rules Summary (Implementation Reference, 2026-02-26)
+
+- Operations phase runs in rounds, in turn order.
+- In each round, each player must operate exactly one of their unoperated companies (if they have any), even if operation is bad/detrimental.
+- After operating, mark that company as operated (flipped). Merged companies operate as one entity.
+- Phase ends when all companies have operated once.
+
+### Shipping Company Operation
+
+- Shipping operation only has expansion.
+- Company ship cap is the deed value for current era (A/B/C). Merged shipping companies add their deed limits.
+- Per operation, ships added are limited by owner’s `expansion` R&D value and remaining room to cap.
+- New ships may be placed in a sea area containing a company ship or adjacent to one.
+- Expansion chaining is allowed within the same operation (later ship placements can use adjacency opened by earlier placements).
+
+### Production Company Operation Sequence
+
+- Order is mandatory: `sell goods -> receive/pay income -> expand`.
+
+#### Selling and Transport
+
+- City demand per good for the whole operations phase is by city size:
+  - size 1: buys 1 of each currently-produced good type
+  - size 2: buys 2
+  - size 3: buys 3
+- Goods can be sold only if connected from producing zone to city via a continuous chain of ships owned by one shipping company.
+- Merged shipping companies count as one company for chain ownership.
+- A good may not switch shipping company mid-chain.
+- Goods move freely within one contiguous production zone.
+- Goods cannot be delivered over land to city, even if adjacent by land.
+- If a production company has multiple non-adjacent zones (from merger), treat each zone independently for shipping access.
+- Ship capacity, per production company, is `1 + hull_research_level(ship_owner)`.
+- Ship capacity refreshes for each production company (city demand does not refresh).
+- Shipping fee is paid by production owner: `5` per ship use to shipping owner, per use.
+- Production companies must sell as many goods as possible, even if net profit is negative.
+
+#### Expansion Rules
+
+- If all current goods were sold, expansion is mandatory and free, up to owner `expansion` R&D limit.
+- If not all goods were sold, expansion is optional/investment, up to owner `expansion` R&D limit.
+- Investment expansion cost per added area equals that company good’s value (e.g. rice 20, spice 25, etc.), paid to bank.
+- Expansion must be adjacent to one of the company’s production zones.
+- Can expand only into empty land areas (cities/companies block).
+- Cannot cross sea unless explicit map arrow allows that land-to-land connection.
+- Cannot expand such that production zones of different companies with the same good would merge.
+- Merged production companies expand once total per operation (shared expansion allotment).
+
+### Last Earnings Double
+
+- Track operations-phase earnings in a separate current-year stack.
+- If game continues, move that stack to cash at the start of next year.
+- If game ends, double that stack and add to cash for final scoring.
+- If an operation is negative, pay from this stack (track owed amount if needed and settle later in phase; if never offset, apply end-of-phase doubling rule to the negative amount).
+
 1. Make animator timeline scheduling explicit (`position: 0` + explicit offsets) in all animators to avoid cross-animator drift.
 2. Fix score-disc animation transform conflict (`animate:flip` mixed with inline SVG `transform`) in `BoardMetaMarkers`.
 3. Remove imperative hover-reset side effects from `$effect` in `BusLineLayer`; keep state derivation pure.

@@ -1,13 +1,13 @@
 import * as Type from 'typebox'
 import { Good } from '../definition/goods.js'
-import { Deed } from './deed.js'
+import { AnyDeed } from './deed.js'
 import { CompanyType } from '../definition/companyType.js'
 
 export type BaseCompany = Type.Static<typeof BaseCompany>
 export const BaseCompany = Type.Object({
     id: Type.String(),
     type: Type.Enum(CompanyType),
-    deeds: Type.Array(Deed),
+    deeds: Type.Array(AnyDeed),
     owner: Type.String()
 })
 
