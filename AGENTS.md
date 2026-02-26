@@ -25,6 +25,62 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 
 - Order is mandatory: `sell goods -> receive/pay income -> expand`.
 
+#### Delivery Solver Model (Implementation Strategy)
+
+- Model delivery as a **capacitated network flow** problem.
+- Primary objective: maximize total delivered goods for the operating production company (`must deliver as many as possible`).
+- Build a layered flow network where each layer is one shipping-company network so a good cannot switch shipping company mid-route.
+- Use one solve for one operating company/good type context at a time against current phase demand/capacity state.
+- Preferred solver formulation:
+  - **max-flow** for mandatory maximum-delivery calculation;
+  - **min-cost max-flow** with **minimum shipping cost** as tie-break policy.
+- Inputs and constraints that must be encoded:
+  - source supply per production zone (goods currently cultivated by operating company);
+  - city sink demand per good (remaining demand this operations phase; demand does not refresh per producer);
+  - ship-edge capacity per shipping company based on owner hull research (`1 + hull level`) per production company operation;
+  - reachability only through sea-ship chains from zone-adjacent sea to city-adjacent sea;
+  - no land delivery path to city;
+  - merged shipping companies count as one chain-owner choice.
+- Output should include enough path/edge usage detail to compute shipping fees (`5` per ship use paid to ship owner) and to update city demand trackers.
+- Enumerating *all* feasible maximum assignments is combinatorial; default behavior should compute one optimal maximum solution, not exhaustively enumerate all solutions.
+
+#### DeliverGood Solver Implementation Plan (Concrete)
+
+1. Extract production zones for the operating production company (`connected cultivated components by companyId`).
+2. Compute remaining city demand for the company good for the current operations phase.
+3. Build a layered transport network per shipping company so a good cannot switch shipping company mid-route.
+4. Add capacities:
+   - zone supply capacity from cultivated count per zone;
+   - city demand capacity from remaining demand for that good;
+   - ship capacity as node-capacity per sea area per shipping company:
+     `shipCountInArea * (1 + hullResearchLevel(shipOwner))`.
+5. Solve max delivery with a dedicated capacitated flow solver (max-flow; min-cost max-flow if deterministic tie-break/secondary optimization is desired).
+6. Decode the selected flow into:
+   - delivered goods by zone/city;
+   - ship-use counts by shipping company;
+   - shipping payments (`5` per ship use).
+7. Apply `DeliverGood` state updates atomically, then continue production operation flow.
+
+#### DeliverGood Inputs Already Available
+
+- Board topology and sea/land adjacencies (`IndonesiaGraph` / node neighbors).
+- Area occupancy/state (`Cultivated`, `City`, `Sea`, with `SeaArea.ships`).
+- City size and demand object on city state.
+- Company ownership/type data.
+- Player hull research levels.
+
+#### DeliverGood Decisions Now Codified
+
+1. Production revenue table is codified in `definition/operationsEconomy.ts`.
+2. `city.demand` semantics are codified as **delivered-so-far in current operations phase**.
+3. City demand is reset at **operations phase entry**.
+4. Tie-break policy target is codified as **minimum shipping cost**.
+
+#### DeliverGood Remaining Open Items Before Full Implementation
+
+1. Define delivery action metadata shape for replay/UI/debug visibility.
+2. Align merged-company handling semantics with final merger representation in state.
+
 #### Selling and Transport
 
 - City demand per good for the whole operations phase is by city size:

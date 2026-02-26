@@ -17,6 +17,7 @@ import { IndonesiaBoard, HydratedIndonesiaBoard } from '../components/board.js'
 import { AnyDeed } from '../components/deed.js'
 import { Era } from '../definition/eras.js'
 import { CityCard } from '../components/cards.js'
+import { City } from '../components/city.js'
 import {
     Company,
     isProductionCompany,
@@ -26,6 +27,7 @@ import {
 } from '../components/company.js'
 import { isCultivatedArea, isSeaArea, type SeaArea } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
+import { Good, isGood } from '../definition/goods.js'
 import {
     IndonesiaAreaType,
     IndonesiaNeighborDirection,
@@ -162,6 +164,61 @@ export class HydratedIndonesiaGameState
         const expansionLimit = playerState.research.expansion + 1
         const expansionCount = this.operatingCompanyExpansionCount ?? 0
         return expansionCount < expansionLimit
+    }
+
+    public resetCityDemandsForOperationsPhase(): void {
+        for (const city of this.board.cities) {
+            city.demand = {}
+        }
+    }
+
+    public producedGoodsOnBoard(): Set<Good> {
+        const goods = new Set<Good>()
+        for (const area of Object.values(this.board.areas)) {
+            if (!isCultivatedArea(area)) {
+                continue
+            }
+            assert(isGood(area.good), `Cultivated area ${area.id} has an invalid good value`)
+            goods.add(area.good)
+        }
+
+        return goods
+    }
+
+    public isGoodProducedOnBoard(good: Good): boolean {
+        return this.producedGoodsOnBoard().has(good)
+    }
+
+    public currentCityDemandForGood(city: City, good: Good): number {
+        return city.demand[good] ?? 0
+    }
+
+    public remainingCityDemandForGood(city: City, good: Good): number {
+        if (!this.isGoodProducedOnBoard(good)) {
+            return 0
+        }
+
+        return Math.max(0, city.size - this.currentCityDemandForGood(city, good))
+    }
+
+    public canCityAcceptGood(city: City, good: Good): boolean {
+        return this.remainingCityDemandForGood(city, good) > 0
+    }
+
+    public recordCityGoodDelivery(cityId: string, good: Good, quantity: number): void {
+        assert(Number.isInteger(quantity), 'Delivery quantity must be an integer')
+        assert(quantity > 0, 'Delivery quantity must be positive')
+
+        const city = this.board.cities.find((entry) => entry.id === cityId)
+        assertExists(city, `City ${cityId} should exist before recording delivery`)
+
+        const remainingDemand = this.remainingCityDemandForGood(city, good)
+        assert(
+            quantity <= remainingDemand,
+            `Delivery quantity ${quantity} exceeds remaining demand ${remainingDemand} for city ${cityId} and good ${good}`
+        )
+
+        city.demand[good] = this.currentCityDemandForGood(city, good) + quantity
     }
 
     public canCompanyExpand(companyId: string): boolean {

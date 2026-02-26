@@ -50,6 +50,7 @@ export class OperationsStateHandler implements MachineStateHandler<
         if (enteringPhase) {
             phaseManager.startPhase(PhaseName.Operations, gameState.actionCount)
             gameState.resetOperationsTracking()
+            gameState.resetCityDemandsForOperationsPhase()
         }
 
         const playersWhoCanOperate = turnManager.turnOrder.filter((playerId) =>
