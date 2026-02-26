@@ -62,6 +62,18 @@ type MinCostMaxFlowResult = {
     augmentations: AugmentationPath[]
 }
 
+export type DeliverySolveStats = {
+    iterations: number
+    elapsedMilliseconds: number
+    totalFlow: number
+    totalCost: number
+}
+
+export type DeliverySolveResult = {
+    plan: DeliveryPlan
+    stats: DeliverySolveStats
+}
+
 function createFlowNetwork(): FlowNetwork {
     return {
         nodes: [],
@@ -600,7 +612,22 @@ function solveFromAugmentations(
 }
 
 export function solveDeliveryProblem(problem: DeliveryProblem): DeliveryPlan {
+    return solveDeliveryProblemWithStats(problem).plan
+}
+
+export function solveDeliveryProblemWithStats(problem: DeliveryProblem): DeliverySolveResult {
     const built = buildFlowNetwork(problem)
+    const startedAtMilliseconds = Date.now()
     const solved = runMinCostMaxFlow(built.network, built.sourceIndex, built.sinkIndex)
-    return solveFromAugmentations(problem, solved)
+    const endedAtMilliseconds = Date.now()
+
+    return {
+        plan: solveFromAugmentations(problem, solved),
+        stats: {
+            iterations: solved.augmentations.length,
+            elapsedMilliseconds: endedAtMilliseconds - startedAtMilliseconds,
+            totalFlow: solved.flow,
+            totalCost: solved.cost
+        }
+    }
 }
