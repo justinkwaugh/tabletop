@@ -18,3 +18,4 @@
 16. Do not remove or relax guards just to unblock behavior. When a guard blocks expected behavior, first verify whether the guard condition, input assumptions, or upstream state derivation is incorrect; only change/remove the guard after identifying and fixing the root cause.
 17. Centralize UI action initiation in the game session object. Components should call session methods (for example `session.placeCity(...)`) instead of constructing/applying actions directly via `createPlayerAction` + `applyAction`.
 18. In files that define a class, if a helper is only used by that class, implement it as a private class method instead of a top-level function. Use top-level helpers only when shared across classes/functions.
+19. For invariant conditions that are expected to always hold (for example required IDs passed from trusted game flow), use `assert`/`assertExists` with clear messages instead of silently returning fallback values like `false`.

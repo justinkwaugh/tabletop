@@ -179,7 +179,7 @@
                 return 'Choose a company to operate.'
             case MachineState.ShippingOperations:
                 return 'Operate shipping company.'
-            case MachineState.ProductionOperaions:
+            case MachineState.ProductionOperations:
                 return 'Operate production company.'
             case MachineState.EndOfGame:
                 return 'Game over.'

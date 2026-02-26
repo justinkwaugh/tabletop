@@ -1,7 +1,6 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
-    assertExists,
     MachineContext
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
@@ -9,38 +8,17 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
+import { finishOperatingCompany } from './operationsFlow.js'
 
-type ProductionOperaionsAction = HydratedDeliverGood | HydratedExpand
+type ProductionOperationsAction = HydratedDeliverGood | HydratedExpand
 
-function finishOperatingCompany(state: HydratedIndonesiaGameState): MachineState {
-    state.operatingCompanyId = undefined
-    state.turnManager.endTurn(state.actionCount)
-
-    const currentPhase = state.phaseManager.currentPhase
-    assertExists(currentPhase, 'Current phase should exist while handling production operations')
-    const playersWhoCanOperate = state.turnManager.turnOrder.filter((playerId) =>
-        state.companies.some((company) => company.owner === playerId)
-    )
-    const allPlayersOperated =
-        playersWhoCanOperate.length === 0 ||
-        playersWhoCanOperate.every((playerId) =>
-            state.turnManager.hadTurnSinceAction(playerId, currentPhase.start)
-        )
-    if (allPlayersOperated) {
-        state.phaseManager.endPhase(state.actionCount)
-        return MachineState.BiddingForTurnOrder
-    }
-
-    return MachineState.Operations
-}
-
-export class ProductionOperaionsStateHandler
-    implements MachineStateHandler<ProductionOperaionsAction, HydratedIndonesiaGameState>
+export class ProductionOperationsStateHandler
+    implements MachineStateHandler<ProductionOperationsAction, HydratedIndonesiaGameState>
 {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
-    ): action is ProductionOperaionsAction {
+    ): action is ProductionOperationsAction {
         return isDeliverGood(action) || isExpand(action)
     }
 
@@ -64,7 +42,7 @@ export class ProductionOperaionsStateHandler
     enter(_context: MachineContext<HydratedIndonesiaGameState>) {}
 
     onAction(
-        action: ProductionOperaionsAction,
+        action: ProductionOperationsAction,
         context: MachineContext<HydratedIndonesiaGameState>
     ): MachineState {
         const state = context.gameState

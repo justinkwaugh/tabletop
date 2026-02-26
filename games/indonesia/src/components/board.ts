@@ -167,17 +167,33 @@ export class HydratedIndonesiaBoard
         return node.neighbors[IndonesiaNeighborDirection.Sea].length > 0
     }
 
-    public hasCultivatedNeighborsWithGood(area: Area, good: Good): boolean {
+    public hasCultivatedNeighborsWithGood(
+        area: Area,
+        good: Good,
+        allowedCompanyId?: string
+    ): boolean {
         const node = this.getNodeForArea(area)
         return this.graph
             .neighborsOf(node, IndonesiaNeighborDirection.Land)
             .some((neighbor) => {
                 const neighborArea = this.getArea(neighbor.id)
-                return isCultivatedArea(neighborArea) && neighborArea.good === good
+                return (
+                    isCultivatedArea(neighborArea) &&
+                    neighborArea.good === good &&
+                    (allowedCompanyId === undefined ||
+                        neighborArea.companyId !== allowedCompanyId)
+                )
             })
     }
 
-    public canBeNewlyCultivated(area: Area, good: Good): area is EmptyLandArea {
-        return isEmptyLandArea(area) && !this.hasCultivatedNeighborsWithGood(area, good)
+    public canBeNewlyCultivated(
+        area: Area,
+        good: Good,
+        allowedCompanyId?: string
+    ): area is EmptyLandArea {
+        return (
+            isEmptyLandArea(area) &&
+            !this.hasCultivatedNeighborsWithGood(area, good, allowedCompanyId)
+        )
     }
 }

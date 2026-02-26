@@ -52,7 +52,7 @@
             gameSession.gameState.machineState === MachineState.ResearchAndDevelopment ||
             gameSession.gameState.machineState === MachineState.Operations ||
             gameSession.gameState.machineState === MachineState.ShippingOperations ||
-            gameSession.gameState.machineState === MachineState.ProductionOperaions
+            gameSession.gameState.machineState === MachineState.ProductionOperations
 
         const cards: DeedCardEntry[] = []
         const overlays: OverlayArea[] = []

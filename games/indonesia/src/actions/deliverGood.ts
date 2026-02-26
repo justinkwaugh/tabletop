@@ -48,7 +48,7 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
     }
 
     static canDeliverGood(state: HydratedIndonesiaGameState, playerId: string): boolean {
-        if (state.machineState !== MachineState.ProductionOperaions) {
+        if (state.machineState !== MachineState.ProductionOperations) {
             return false
         }
 

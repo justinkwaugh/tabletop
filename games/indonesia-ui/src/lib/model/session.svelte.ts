@@ -190,13 +190,14 @@ export class IndonesiaGameSession extends GameSession<
         await this.applyAction(action)
     }
 
-    async expand(): Promise<void> {
+    async expand(areaId: string): Promise<void> {
         if (!this.validActionTypes.includes(ActionType.Expand)) {
             return
         }
 
         const action = this.createPlayerAction(Expand, {
-            type: ActionType.Expand
+            type: ActionType.Expand,
+            areaId
         })
         await this.applyAction(action)
     }

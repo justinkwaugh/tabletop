@@ -1,9 +1,11 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { assert, assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { isShippingCompany } from '../components/company.js'
+import { isSeaArea } from '../components/area.js'
 
 export type ExpandMetadata = Type.Static<typeof ExpandMetadata>
 export const ExpandMetadata = Type.Object({})
@@ -15,7 +17,8 @@ export const Expand = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Expand),
             playerId: Type.String(),
-            metadata: Type.Optional(ExpandMetadata)
+            metadata: Type.Optional(ExpandMetadata),
+            areaId: Type.String() // The ID of the area where the expansion is being placed
         })
     ])
 )
@@ -30,6 +33,7 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
     declare type: ActionType.Expand
     declare playerId: string
     declare metadata?: ExpandMetadata
+    declare areaId: string
 
     constructor(data: Expand) {
         super(data, ExpandValidator)
@@ -40,17 +44,31 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
             throw Error('Invalid Expand action')
         }
 
+        const operatingCompanyId = state.operatingCompanyId
+        assertExists(operatingCompanyId, 'Operating company id should be set for Expand action')
+
+        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        assertExists(operatingCompany, `Operating company ${operatingCompanyId} should exist`)
+
+        if (isShippingCompany(operatingCompany)) {
+            const seaArea = state.board.getArea(this.areaId)
+            assert(isSeaArea(seaArea), `Area with id ${this.areaId} is not a sea area`)
+            seaArea.ships.push(operatingCompany.id)
+            state.board.areas[seaArea.id] = seaArea
+            state.incrementOperatingCompanyExpansionCount()
+        }
+
         this.metadata = {}
     }
 
     isValidExpand(state: HydratedIndonesiaGameState): boolean {
-        return HydratedExpand.canExpand(state, this.playerId)
+        return HydratedExpand.canExpand(state, this.playerId, this.areaId)
     }
 
-    static canExpand(state: HydratedIndonesiaGameState, playerId: string): boolean {
+    static canExpand(state: HydratedIndonesiaGameState, playerId: string, areaId?: string): boolean {
         if (
             state.machineState !== MachineState.ShippingOperations &&
-            state.machineState !== MachineState.ProductionOperaions
+            state.machineState !== MachineState.ProductionOperations
         ) {
             return false
         }
@@ -60,11 +78,25 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
             return false
         }
 
-        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        const operatingCompany = state.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
         if (!operatingCompany) {
             return false
         }
 
-        return operatingCompany.owner === playerId
+        if (operatingCompany.owner !== playerId) {
+            return false
+        }
+
+        if (!state.canCurrentOperationExpandForPlayer(playerId)) {
+            return false
+        }
+
+        if (areaId !== undefined) {
+            return state.canCompanyExpandToArea(operatingCompany.id, areaId)
+        }
+
+        return state.canCompanyExpand(operatingCompany.id)
     }
 }

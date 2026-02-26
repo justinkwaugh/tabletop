@@ -45,7 +45,7 @@ export class HydratedChooseOperatingCompany
             throw Error('Invalid ChooseOperatingCompany action')
         }
 
-        state.operatingCompanyId = this.companyId
+        state.beginCompanyOperation(this.companyId)
         this.metadata = {}
     }
 
@@ -67,7 +67,7 @@ export class HydratedChooseOperatingCompany
         if (state.operatingCompanyId) {
             return false
         }
-        return state.companies.some((company) => company.owner === playerId)
+        return state.canPlayerOperateAnyCompany(playerId)
     }
 
     static canChooseSpecificCompany(
@@ -79,6 +79,10 @@ export class HydratedChooseOperatingCompany
         if (!company) {
             return false
         }
-        return company.owner === playerId
+        if (company.owner !== playerId) {
+            return false
+        }
+
+        return !state.hasCompanyOperated(company.id)
     }
 }

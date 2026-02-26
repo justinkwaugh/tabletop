@@ -1,7 +1,6 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
-    assert,
     assertExists,
     MachineContext
 } from '@tabletop/common'
@@ -16,21 +15,6 @@ import { PhaseName } from '../definition/phases.js'
 import { CompanyType } from '../definition/companyType.js'
 
 type OperationsAction = HydratedChooseOperatingCompany
-
-function canOperateCompany(state: HydratedIndonesiaGameState, playerId: string): boolean {
-    return state.companies.some((company) => company.owner === playerId)
-}
-
-function hasCompletedOperationsTurn(state: HydratedIndonesiaGameState, playerId: string): boolean {
-    if (!canOperateCompany(state, playerId)) {
-        return true
-    }
-    const currentPhase = state.phaseManager.currentPhase
-    if (!currentPhase || currentPhase.name !== PhaseName.Operations) {
-        return false
-    }
-    return state.turnManager.hadTurnSinceAction(playerId, currentPhase.start)
-}
 
 export class OperationsStateHandler implements MachineStateHandler<
     OperationsAction,
@@ -50,10 +34,8 @@ export class OperationsStateHandler implements MachineStateHandler<
         const gameState = context.gameState
         const validActions: ActionType[] = []
 
-        if (!hasCompletedOperationsTurn(gameState, playerId)) {
-            if (HydratedChooseOperatingCompany.canChooseOperatingCompany(gameState, playerId)) {
-                validActions.push(ActionType.ChooseOperatingCompany)
-            }
+        if (HydratedChooseOperatingCompany.canChooseOperatingCompany(gameState, playerId)) {
+            validActions.push(ActionType.ChooseOperatingCompany)
         }
 
         return validActions
@@ -64,19 +46,30 @@ export class OperationsStateHandler implements MachineStateHandler<
         const turnManager = gameState.turnManager
         const phaseManager = gameState.phaseManager
 
-        let nextPlayerId: string | undefined
-        let lastPlayerId: string | undefined
-        if (phaseManager.currentPhase?.name !== PhaseName.Operations) {
+        const enteringPhase = phaseManager.currentPhase?.name !== PhaseName.Operations
+        if (enteringPhase) {
             phaseManager.startPhase(PhaseName.Operations, gameState.actionCount)
-            gameState.operatingCompanyId = undefined
-        } else {
-            lastPlayerId = turnManager.lastPlayer()
+            gameState.resetOperationsTracking()
         }
-        nextPlayerId = turnManager.nextPlayer(lastPlayerId, (playerId) =>
-            canOperateCompany(gameState, playerId)
+
+        const playersWhoCanOperate = turnManager.turnOrder.filter((playerId) =>
+            gameState.canPlayerOperateAnyCompany(playerId)
         )
-        turnManager.startTurn(nextPlayerId, gameState.actionCount)
+        if (playersWhoCanOperate.length === 0) {
+            gameState.activePlayerIds = []
+            return
+        }
+
+        let nextPlayerId: string | undefined
+        if (enteringPhase) {
+            nextPlayerId = playersWhoCanOperate[0]
+        } else {
+            nextPlayerId = turnManager.nextPlayer(turnManager.lastPlayer(), (playerId) =>
+                gameState.canPlayerOperateAnyCompany(playerId)
+            )
+        }
         assertExists(nextPlayerId, 'There should always be a next player when entering Operations')
+        turnManager.startTurn(nextPlayerId, gameState.actionCount)
         gameState.activePlayerIds = [nextPlayerId]
     }
 
@@ -100,7 +93,7 @@ export class OperationsStateHandler implements MachineStateHandler<
                     return MachineState.ShippingOperations
                 }
 
-                return MachineState.ProductionOperaions
+                return MachineState.ProductionOperations
             }
             default: {
                 throw Error('Invalid action type')

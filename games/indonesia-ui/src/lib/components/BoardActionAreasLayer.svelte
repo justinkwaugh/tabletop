@@ -23,12 +23,13 @@
     const gameSession = getGameSession()
     const SHIPPING_HIGHLIGHT_STYLE = companyDeedStyleForType('ship')
 
-    type AreaInteractionAction = 'place-city' | 'start-company'
+    type AreaInteractionAction = 'place-city' | 'start-company' | 'expand'
     type ActiveAreaInteraction = {
         action: AreaInteractionAction
         validAreaIds: readonly string[]
         outlineColor: string
         maskedAreaType: IndonesiaAreaType
+        maskInvalidAreas: boolean
     }
 
     type StartCompanyDeedEntry = {
@@ -117,6 +118,24 @@
         return gameSession.colors.getPlayerUiColor(myPlayerId)
     })
 
+    const shippingExpandValidAreaIds: readonly string[] = $derived.by(() => {
+        if (
+            !myPlayerId ||
+            !gameSession.isMyTurn ||
+            gameSession.gameState.machineState !== MachineState.ShippingOperations ||
+            !gameSession.validActionTypes.includes(ActionType.Expand)
+        ) {
+            return []
+        }
+
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (!operatingCompanyId) {
+            return []
+        }
+
+        return Array.from(gameSession.gameState.validExpansionAreaIds(operatingCompanyId))
+    })
+
     $effect(() => {
         if (!startCompanySelectionEnabled) {
             selectedStartCompanyDeedId = null
@@ -153,7 +172,18 @@
                 action: 'place-city',
                 validAreaIds,
                 outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
-                maskedAreaType: IndonesiaAreaType.Land
+                maskedAreaType: IndonesiaAreaType.Land,
+                maskInvalidAreas: true
+            }
+        }
+
+        if (myPlayerId && shippingExpandValidAreaIds.length > 0) {
+            return {
+                action: 'expand',
+                validAreaIds: shippingExpandValidAreaIds,
+                outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
+                maskedAreaType: IndonesiaAreaType.Sea,
+                maskInvalidAreas: false
             }
         }
 
@@ -168,7 +198,8 @@
                 maskedAreaType:
                     selectedStartCompanyDeed.type === CompanyType.Shipping
                         ? IndonesiaAreaType.Sea
-                        : IndonesiaAreaType.Land
+                        : IndonesiaAreaType.Land,
+                maskInvalidAreas: true
             }
         }
 
@@ -189,7 +220,7 @@
     })
 
     const maskedAreaIds: string[] = $derived.by(() => {
-        if (!activeAreaInteraction) {
+        if (!activeAreaInteraction || !activeAreaInteraction.maskInvalidAreas) {
             return []
         }
 
@@ -255,6 +286,11 @@
                 return
             }
 
+            if (activeAreaInteraction.action === 'expand') {
+                await gameSession.expand(areaId)
+                return
+            }
+
             if (!selectedStartCompanyDeedId) {
                 return
             }
@@ -296,6 +332,23 @@
         {/each}
 
         {#if activeAreaInteraction}
+            {#if activeAreaInteraction.action === 'expand'}
+                {#each interactiveValidAreaIds as areaId (areaId)}
+                    <Area
+                        areaId={areaId}
+                        fill={SHIPPING_HIGHLIGHT_STYLE.overlayFill}
+                        stroke={SHIPPING_HIGHLIGHT_STYLE.overlayStroke}
+                        fillOpacity="1"
+                        fillRule="evenodd"
+                        strokeWidth="1.9"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
+                        opacity={SHIPPING_HIGHLIGHT_STYLE.overlayOpacity}
+                        pointer-events="none"
+                    />
+                {/each}
+            {/if}
+
             {#each maskedAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
