@@ -249,6 +249,16 @@ function buildShippingCompanyNetworks(state: HydratedIndonesiaGameState): Shippi
     return networks
 }
 
+function buildOwnedShippingCompanyIds(
+    state: HydratedIndonesiaGameState,
+    ownerId: string
+): string[] {
+    return state.companies
+        .filter((company) => isShippingCompany(company) && company.owner === ownerId)
+        .map((company) => company.id)
+        .sort((companyIdA, companyIdB) => companyIdA.localeCompare(companyIdB))
+}
+
 export function buildDeliveryProblem(
     state: HydratedIndonesiaGameState,
     operatingCompanyId: string
@@ -265,6 +275,8 @@ export function buildDeliveryProblem(
 
     return {
         operatingCompanyId: operatingCompany.id,
+        operatingCompanyOwnerId: operatingCompany.owner,
+        ownedShippingCompanyIds: buildOwnedShippingCompanyIds(state, operatingCompany.owner),
         good: operatingCompany.good,
         shippingFeePerShipUse: SHIPPING_FEE_PER_SHIP_USE,
         tieBreakPolicy: DEFAULT_DELIVERY_TIE_BREAK_POLICY,

@@ -132,6 +132,8 @@ describe('buildDeliveryProblem', () => {
         const problem = buildDeliveryProblem(state, 'prod-1')
 
         expect(problem.operatingCompanyId).toBe('prod-1')
+        expect(problem.operatingCompanyOwnerId).toBe(state.players[0].playerId)
+        expect(problem.ownedShippingCompanyIds).toEqual([])
         expect(problem.good).toBe(Good.Rice)
         expect(problem.zoneSupplies).toHaveLength(2)
         expect(problem.zoneSupplies[0]).toEqual({
@@ -209,6 +211,8 @@ describe('buildDeliveryProblem', () => {
         }
 
         const problem = buildDeliveryProblem(state, 'prod-1')
+        expect(problem.operatingCompanyOwnerId).toBe(ownerA)
+        expect(problem.ownedShippingCompanyIds).toEqual(['ship-a'])
         const shipANetwork = problem.shippingCompanyNetworks.find(
             (network) => network.shippingCompanyId === 'ship-a'
         )

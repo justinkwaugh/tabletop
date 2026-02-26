@@ -124,12 +124,32 @@ function nodeKey(node: NetworkNode): string {
     }
 }
 
-function seaCapacityEdgeCost(problem: DeliveryProblem): number {
-    if (problem.tieBreakPolicy === DeliveryTieBreakPolicy.MinShippingCost) {
-        return problem.shippingFeePerShipUse
+function ownershipPenaltyScaleForTieBreak(problem: DeliveryProblem): number {
+    let totalSeaCapacity = 0
+    for (const shippingNetwork of problem.shippingCompanyNetworks) {
+        for (const seaAreaCapacity of shippingNetwork.seaAreaCapacities) {
+            totalSeaCapacity += seaAreaCapacity.capacity
+        }
     }
 
-    return 0
+    return totalSeaCapacity * problem.shippingFeePerShipUse + 1
+}
+
+function seaCapacityEdgeCost(
+    problem: DeliveryProblem,
+    shippingCompanyId: string,
+    ownedShippingCompanyIdSet: ReadonlySet<string>,
+    ownershipPenaltyScale: number
+): number {
+    if (problem.tieBreakPolicy !== DeliveryTieBreakPolicy.MinShippingCost) {
+        return 0
+    }
+
+    const shippingCostComponent = problem.shippingFeePerShipUse
+    const ownershipPenalty = ownedShippingCompanyIdSet.has(shippingCompanyId)
+        ? 0
+        : ownershipPenaltyScale
+    return ownershipPenalty + shippingCostComponent
 }
 
 function sortIds<T extends string>(ids: readonly T[]): T[] {
@@ -192,6 +212,8 @@ function buildFlowNetwork(problem: DeliveryProblem): {
     const sortedShippingNetworks = [...problem.shippingCompanyNetworks].sort((a, b) =>
         a.shippingCompanyId.localeCompare(b.shippingCompanyId)
     )
+    const ownedShippingCompanyIdSet = new Set(problem.ownedShippingCompanyIds)
+    const ownershipPenaltyScale = ownershipPenaltyScaleForTieBreak(problem)
 
     for (const shippingNetwork of sortedShippingNetworks) {
         const seaInNodeIndexBySeaAreaId = new Map<IndonesiaNodeId, number>()
@@ -225,7 +247,12 @@ function buildFlowNetwork(problem: DeliveryProblem): {
                 seaInNodeIndex,
                 seaOutNodeIndex,
                 seaAreaCapacity.capacity,
-                seaCapacityEdgeCost(problem),
+                seaCapacityEdgeCost(
+                    problem,
+                    shippingNetwork.shippingCompanyId,
+                    ownedShippingCompanyIdSet,
+                    ownershipPenaltyScale
+                ),
                 {
                     kind: 'sea-capacity',
                     shippingCompanyId: shippingNetwork.shippingCompanyId,

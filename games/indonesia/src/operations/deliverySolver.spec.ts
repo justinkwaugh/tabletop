@@ -7,6 +7,8 @@ import { solveDeliveryProblem } from './deliverySolver.js'
 function createBaseProblem(): DeliveryProblem {
     return {
         operatingCompanyId: 'prod-1',
+        operatingCompanyOwnerId: 'p1',
+        ownedShippingCompanyIds: ['ship-a'],
         good: Good.Rice,
         shippingFeePerShipUse: 5,
         tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
@@ -76,6 +78,8 @@ describe('solveDeliveryProblem', () => {
     it('uses min-shipping-cost tie-break when multiple max-delivery solutions exist', () => {
         const problem: DeliveryProblem = {
             operatingCompanyId: 'prod-1',
+            operatingCompanyOwnerId: 'p1',
+            ownedShippingCompanyIds: ['ship-cheap'],
             good: Good.Rice,
             shippingFeePerShipUse: 5,
             tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
@@ -173,6 +177,153 @@ describe('solveDeliveryProblem', () => {
                 shippingCompanyId: 'ship-expensive',
                 quantity: 1,
                 seaPathAreaIds: ['S02', 'S03']
+            }
+        ])
+    })
+
+    it('prefers shipping payments to owned shipping companies for equal-cost solutions', () => {
+        const problem: DeliveryProblem = {
+            operatingCompanyId: 'prod-1',
+            operatingCompanyOwnerId: 'p1',
+            ownedShippingCompanyIds: ['ship-owned'],
+            good: Good.Rice,
+            shippingFeePerShipUse: 5,
+            tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
+            zoneSupplies: [
+                {
+                    zoneId: 'prod-1:zone:1',
+                    areaIds: ['A01'],
+                    adjacentSeaAreaIds: ['S01', 'S02'],
+                    supply: 1
+                }
+            ],
+            cityDemands: [
+                {
+                    cityId: 'city-a',
+                    cityAreaId: 'A04',
+                    adjacentSeaAreaIds: ['S01', 'S02'],
+                    remainingDemand: 1
+                }
+            ],
+            shippingCompanyNetworks: [
+                {
+                    shippingCompanyId: 'ship-not-owned',
+                    seaLanes: [],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S01',
+                            capacity: 1
+                        }
+                    ]
+                },
+                {
+                    shippingCompanyId: 'ship-owned',
+                    seaLanes: [],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S02',
+                            capacity: 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        const plan = solveDeliveryProblem(problem)
+
+        expect(plan.totalDelivered).toBe(1)
+        expect(plan.shippingCost).toBe(5)
+        expect(plan.deliveries).toEqual([
+            {
+                zoneId: 'prod-1:zone:1',
+                cityId: 'city-a',
+                shippingCompanyId: 'ship-owned',
+                quantity: 1,
+                seaPathAreaIds: ['S02']
+            }
+        ])
+        expect(plan.shippingPayments).toEqual([
+            {
+                shippingCompanyId: 'ship-owned',
+                amount: 5
+            }
+        ])
+    })
+
+    it('prefers owned-shipping payments over lower shipping cost', () => {
+        const problem: DeliveryProblem = {
+            operatingCompanyId: 'prod-1',
+            operatingCompanyOwnerId: 'p1',
+            ownedShippingCompanyIds: ['ship-owned'],
+            good: Good.Rice,
+            shippingFeePerShipUse: 5,
+            tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
+            zoneSupplies: [
+                {
+                    zoneId: 'prod-1:zone:1',
+                    areaIds: ['A01'],
+                    adjacentSeaAreaIds: ['S01', 'S02'],
+                    supply: 1
+                }
+            ],
+            cityDemands: [
+                {
+                    cityId: 'city-a',
+                    cityAreaId: 'A04',
+                    adjacentSeaAreaIds: ['S01', 'S03'],
+                    remainingDemand: 1
+                }
+            ],
+            shippingCompanyNetworks: [
+                {
+                    shippingCompanyId: 'ship-not-owned',
+                    seaLanes: [],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S01',
+                            capacity: 1
+                        }
+                    ]
+                },
+                {
+                    shippingCompanyId: 'ship-owned',
+                    seaLanes: [
+                        {
+                            fromSeaAreaId: 'S02',
+                            toSeaAreaId: 'S03'
+                        }
+                    ],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S02',
+                            capacity: 1
+                        },
+                        {
+                            seaAreaId: 'S03',
+                            capacity: 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        const plan = solveDeliveryProblem(problem)
+
+        expect(plan.totalDelivered).toBe(1)
+        expect(plan.shippingCost).toBe(10)
+        expect(plan.deliveries).toEqual([
+            {
+                zoneId: 'prod-1:zone:1',
+                cityId: 'city-a',
+                shippingCompanyId: 'ship-owned',
+                quantity: 1,
+                seaPathAreaIds: ['S02', 'S03']
+            }
+        ])
+        expect(plan.shippingPayments).toEqual([
+            {
+                shippingCompanyId: 'ship-owned',
+                amount: 10
             }
         ])
     })

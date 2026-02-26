@@ -39,6 +39,8 @@ export type ShippingCompanyNetwork = {
 
 export type DeliveryProblem = {
     operatingCompanyId: CompanyId
+    operatingCompanyOwnerId: string
+    ownedShippingCompanyIds: readonly CompanyId[]
     good: Good
     shippingFeePerShipUse: number
     tieBreakPolicy: DeliveryTieBreakPolicy
@@ -52,7 +54,7 @@ export type CityDelivery = {
     cityId: CityId
     shippingCompanyId: CompanyId
     quantity: number
-    seaPathAreaIds: readonly IndonesiaNodeId[]
+    seaPathAreaIds: IndonesiaNodeId[]
 }
 
 export type ShipUse = {
@@ -75,9 +77,9 @@ export type DeliveryTieBreakResult = {
 export type DeliveryPlan = {
     operatingCompanyId: CompanyId
     good: Good
-    deliveries: readonly CityDelivery[]
-    shipUses: readonly ShipUse[]
-    shippingPayments: readonly ShippingPayment[]
+    deliveries: CityDelivery[]
+    shipUses: ShipUse[]
+    shippingPayments: ShippingPayment[]
     totalDelivered: number
     revenue: number
     shippingCost: number
