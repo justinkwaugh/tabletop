@@ -33,6 +33,7 @@ import {
     IndonesiaNeighborDirection,
     isIndonesiaNodeId
 } from '../utils/indonesiaNodes.js'
+import { DeliveryPlanSchema, type DeliveryPlan } from '../operations/deliveryPlan.js'
 
 export type TurnOrderBid = Type.Static<typeof TurnOrderBid>
 export const TurnOrderBid = Type.Object({
@@ -63,6 +64,7 @@ export const IndonesiaGameState = Type.Evaluate(
             companies: Type.Array(Company), // List of companies in the game
             operatingCompanyId: Type.Optional(Type.String()), // Company currently being operated in operations sub-states
             operatingCompanyExpansionCount: Type.Optional(Type.Number()), // Number of expansions performed during current company operation
+            operatingCompanyDeliveryPlan: Type.Optional(DeliveryPlanSchema), // Delivery plan for the currently operating production company
             operatedCompanyIds: Type.Array(Type.String()) // Companies that have already operated this operations phase
         })
     ])
@@ -101,6 +103,7 @@ export class HydratedIndonesiaGameState
     declare companies: Company[]
     declare operatingCompanyId?: string
     declare operatingCompanyExpansionCount?: number
+    declare operatingCompanyDeliveryPlan?: DeliveryPlan
     declare operatedCompanyIds: string[]
 
     constructor(data: IndonesiaGameState) {
@@ -124,11 +127,31 @@ export class HydratedIndonesiaGameState
     public beginCompanyOperation(companyId: string): void {
         this.operatingCompanyId = companyId
         this.operatingCompanyExpansionCount = 0
+        this.clearOperatingCompanyDeliveryPlan()
     }
 
     public clearOperatingCompany(): void {
         this.operatingCompanyId = undefined
         this.operatingCompanyExpansionCount = undefined
+        this.clearOperatingCompanyDeliveryPlan()
+    }
+
+    public setOperatingCompanyDeliveryPlan(deliveryPlan: DeliveryPlan): void {
+        const operatingCompanyId = this.operatingCompanyId
+        assertExists(
+            operatingCompanyId,
+            'Operating company id should be set before storing operating company delivery plan'
+        )
+        assert(
+            deliveryPlan.operatingCompanyId === operatingCompanyId,
+            `Delivery plan company ${deliveryPlan.operatingCompanyId} should match operating company ${operatingCompanyId}`
+        )
+
+        this.operatingCompanyDeliveryPlan = deliveryPlan
+    }
+
+    public clearOperatingCompanyDeliveryPlan(): void {
+        this.operatingCompanyDeliveryPlan = undefined
     }
 
     public resetOperationsTracking(): void {

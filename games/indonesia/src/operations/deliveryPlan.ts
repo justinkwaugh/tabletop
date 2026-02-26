@@ -1,5 +1,6 @@
-import type { DeliveryTieBreakPolicy } from '../definition/operationsEconomy.js'
-import type { Good } from '../definition/goods.js'
+import * as Type from 'typebox'
+import { DeliveryTieBreakPolicy } from '../definition/operationsEconomy.js'
+import { Good } from '../definition/goods.js'
 import type { IndonesiaNodeId } from '../utils/indonesiaNodes.js'
 
 export type ProductionZoneId = string
@@ -88,3 +89,41 @@ export type DeliverySolutionMetadata = {
     candidateSolutionCount: number
     selected: DeliveryTieBreakResult
 }
+
+export const CityDeliverySchema = Type.Object({
+    zoneId: Type.String(),
+    cityId: Type.String(),
+    shippingCompanyId: Type.String(),
+    quantity: Type.Number(),
+    seaPathAreaIds: Type.Array(Type.String())
+})
+
+export const ShipUseSchema = Type.Object({
+    shippingCompanyId: Type.String(),
+    seaAreaId: Type.String(),
+    uses: Type.Number()
+})
+
+export const ShippingPaymentSchema = Type.Object({
+    shippingCompanyId: Type.String(),
+    amount: Type.Number()
+})
+
+export const DeliveryTieBreakResultSchema = Type.Object({
+    policy: Type.Enum(DeliveryTieBreakPolicy),
+    deliveredGoods: Type.Number(),
+    shippingCost: Type.Number()
+})
+
+export const DeliveryPlanSchema = Type.Object({
+    operatingCompanyId: Type.String(),
+    good: Type.Enum(Good),
+    deliveries: Type.Array(CityDeliverySchema),
+    shipUses: Type.Array(ShipUseSchema),
+    shippingPayments: Type.Array(ShippingPaymentSchema),
+    totalDelivered: Type.Number(),
+    revenue: Type.Number(),
+    shippingCost: Type.Number(),
+    netIncome: Type.Number(),
+    tieBreakResult: DeliveryTieBreakResultSchema
+})
