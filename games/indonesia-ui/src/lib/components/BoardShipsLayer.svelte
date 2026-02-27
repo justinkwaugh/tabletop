@@ -1,10 +1,10 @@
 <script lang="ts">
-    import ShipMarker from '$lib/components/ShipMarker.svelte'
-    import { SEA_SHIP_MARKER_POSITIONS } from '$lib/definitions/seaShipMarkerPositions.js'
-    import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { shadeHexColor } from '$lib/utils/color.js'
-    import { Color } from '@tabletop/common'
-    import { CompanyType, MachineState, isIndonesiaNodeId } from '@tabletop/indonesia'
+import ShipMarker from '$lib/components/ShipMarker.svelte'
+import { getGameSession } from '$lib/model/sessionContext.svelte'
+import { shadeHexColor } from '$lib/utils/color.js'
+import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
+import { Color } from '@tabletop/common'
+import { CompanyType, MachineState, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
@@ -23,16 +23,6 @@
     const SHIP_MARKER_HULL_STROKE_WIDTH = 10
     const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT = 0.35
 
-    function layoutCountForShips(shipCount: number): 1 | 2 | 3 {
-        if (shipCount <= 1) {
-            return 1
-        }
-        if (shipCount === 2) {
-            return 2
-        }
-        return 3
-    }
-
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
@@ -48,12 +38,7 @@
                 continue
             }
 
-            const layout = SEA_SHIP_MARKER_POSITIONS[area.id]
-            if (!layout) {
-                continue
-            }
-
-            const points = layout[layoutCountForShips(area.ships.length)]
+            const points = markerPointsForSeaAreaShipList(area.id, area.ships)
             const markerCount = Math.min(area.ships.length, points.length)
             const companyShipOrdinalById = new Map<string, number>()
             for (let markerIndex = 0; markerIndex < markerCount; markerIndex += 1) {

@@ -1,7 +1,11 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { IndonesiaNeighborDirection, isIndonesiaNodeId } from '@tabletop/indonesia'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { buildDeliveryShippingRoutePath } from '$lib/utils/shippingRouteOverlay.js'
+    import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
+    import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
+    import type { Point } from '@tabletop/common'
 
     type DeliveryShippingRouteOverlay = {
         routeKey: string
@@ -29,6 +33,141 @@
         return gameSession.hoveredDeliveryShippingChoice?.routeKey ?? null
     })
 
+    function pointDistance(a: Point, b: Point): number {
+        const dx = a.x - b.x
+        const dy = a.y - b.y
+        return Math.hypot(dx, dy)
+    }
+
+    function firstShipWaypointForChoice(
+        choice: (typeof gameSession.deliveryShippingChoices)[number],
+        cultivatedAreaIdsByZoneId: Map<string, string[]>
+    ): Point | undefined {
+        const firstSeaAreaId = choice.candidate.seaAreaIds[0]
+        if (!firstSeaAreaId) {
+            return undefined
+        }
+
+        const firstSeaArea = gameSession.gameState.board.areas[firstSeaAreaId]
+        if (!firstSeaArea || !('ships' in firstSeaArea) || firstSeaArea.ships.length === 0) {
+            return undefined
+        }
+
+        const markerPoints = markerPointsForSeaAreaShipList(firstSeaAreaId, firstSeaArea.ships)
+        if (markerPoints.length === 0) {
+            return undefined
+        }
+
+        const companyMarkerPoints: Point[] = []
+        for (let markerIndex = 0; markerIndex < markerPoints.length; markerIndex += 1) {
+            if (firstSeaArea.ships[markerIndex] !== choice.candidate.shippingCompanyId) {
+                continue
+            }
+            companyMarkerPoints.push(markerPoints[markerIndex])
+        }
+        if (companyMarkerPoints.length === 0) {
+            return undefined
+        }
+
+        const zoneAreaIds = cultivatedAreaIdsByZoneId.get(choice.candidate.zoneId) ?? [
+            choice.candidate.cultivatedAreaId
+        ]
+        let nearestCompanyMarkerPoint: Point | undefined
+        let nearestDistance = Number.POSITIVE_INFINITY
+        for (const areaId of zoneAreaIds) {
+            const landPoint = resolveLandMarkerPosition(areaId)
+            if (!landPoint) {
+                continue
+            }
+
+            for (const markerPoint of companyMarkerPoints) {
+                const distance = pointDistance(landPoint, markerPoint)
+                if (distance < nearestDistance) {
+                    nearestDistance = distance
+                    nearestCompanyMarkerPoint = markerPoint
+                }
+            }
+        }
+
+        return nearestCompanyMarkerPoint ?? companyMarkerPoints[0]
+    }
+
+    const cultivatedAreaIdsByZoneId: Map<string, string[]> = $derived.by(() => {
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (!operatingCompanyId) {
+            return new Map()
+        }
+
+        const cultivatedAreaIdSet = new Set<string>()
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!('companyId' in area)) {
+                continue
+            }
+            if (area.companyId !== operatingCompanyId) {
+                continue
+            }
+            cultivatedAreaIdSet.add(area.id)
+        }
+
+        const unvisited = [...cultivatedAreaIdSet].sort((left, right) => left.localeCompare(right))
+        const zoneAreaIdGroups: string[][] = []
+        while (unvisited.length > 0) {
+            const seedAreaId = unvisited.shift()
+            if (!seedAreaId) {
+                continue
+            }
+
+            const remaining = new Set(unvisited)
+            remaining.delete(seedAreaId)
+
+            const queue: string[] = [seedAreaId]
+            const zoneAreaIds: string[] = []
+            while (queue.length > 0) {
+                const areaId = queue.shift()
+                if (!areaId) {
+                    continue
+                }
+                zoneAreaIds.push(areaId)
+                if (!isIndonesiaNodeId(areaId)) {
+                    continue
+                }
+
+                const node = gameSession.gameState.board.graph.nodeById(areaId)
+                if (!node) {
+                    continue
+                }
+
+                for (const neighborNode of gameSession.gameState.board.graph.neighborsOf(
+                    node,
+                    IndonesiaNeighborDirection.Land
+                )) {
+                    if (!remaining.has(neighborNode.id)) {
+                        continue
+                    }
+                    remaining.delete(neighborNode.id)
+                    queue.push(neighborNode.id)
+                }
+            }
+
+            unvisited.splice(
+                0,
+                unvisited.length,
+                ...[...remaining].sort((left, right) => left.localeCompare(right))
+            )
+            zoneAreaIdGroups.push(zoneAreaIds.sort((left, right) => left.localeCompare(right)))
+        }
+
+        const areaIdsByZoneId = new Map<string, string[]>()
+        const sortedZoneAreaGroups = [...zoneAreaIdGroups].sort((left, right) =>
+            (left[0] ?? '').localeCompare(right[0] ?? '')
+        )
+        sortedZoneAreaGroups.forEach((areaIds, index) => {
+            areaIdsByZoneId.set(`${operatingCompanyId}:zone:${index + 1}`, areaIds)
+        })
+
+        return areaIdsByZoneId
+    })
+
     const deliveryShippingRouteOverlays: readonly DeliveryShippingRouteOverlay[] = $derived.by(() => {
         if (!routeOverlayReady || gameSession.deliverySelectionStage !== 'shipping') {
             return []
@@ -48,6 +187,11 @@
 
             const routePath = buildDeliveryShippingRoutePath({
                 cultivatedAreaId: choice.candidate.cultivatedAreaId,
+                cultivatedZoneAreaIds: cultivatedAreaIdsByZoneId.get(choice.candidate.zoneId),
+                firstSeaWaypointOverride: firstShipWaypointForChoice(
+                    choice,
+                    cultivatedAreaIdsByZoneId
+                ),
                 seaAreaIds: choice.candidate.seaAreaIds,
                 cityAreaId
             })

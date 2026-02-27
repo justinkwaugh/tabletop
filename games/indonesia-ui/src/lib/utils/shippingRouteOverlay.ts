@@ -6,6 +6,8 @@ import { getPathCenter } from '$lib/utils/geometry.js'
 
 type DeliveryShippingRoutePathInput = {
     cultivatedAreaId: string
+    cultivatedZoneAreaIds?: readonly string[]
+    firstSeaWaypointOverride?: Point
     seaAreaIds: readonly string[]
     cityAreaId: string
 }
@@ -76,6 +78,48 @@ function pointDistance(a: Point, b: Point): number {
     const dx = a.x - b.x
     const dy = a.y - b.y
     return Math.hypot(dx, dy)
+}
+
+function resolveFirstSeaWaypoint(input: DeliveryShippingRoutePathInput): Point | null {
+    if (input.firstSeaWaypointOverride) {
+        return input.firstSeaWaypointOverride
+    }
+
+    const firstSeaAreaId = input.seaAreaIds[0]
+    if (!firstSeaAreaId) {
+        return null
+    }
+
+    return seaWaypointForAreaId(firstSeaAreaId)
+}
+
+function resolveRouteSourceCultivatedAreaId(input: DeliveryShippingRoutePathInput): string {
+    const firstSeaPoint = resolveFirstSeaWaypoint(input)
+    if (!firstSeaPoint) {
+        return input.cultivatedAreaId
+    }
+
+    const zoneAreaIds = input.cultivatedZoneAreaIds
+    if (!zoneAreaIds || zoneAreaIds.length === 0) {
+        return input.cultivatedAreaId
+    }
+
+    let nearestAreaId = input.cultivatedAreaId
+    let nearestDistance = Number.POSITIVE_INFINITY
+    for (const areaId of zoneAreaIds) {
+        const areaPoint = resolveLandMarkerPosition(areaId)
+        if (!areaPoint) {
+            continue
+        }
+
+        const distance = pointDistance(areaPoint, firstSeaPoint)
+        if (distance < nearestDistance) {
+            nearestDistance = distance
+            nearestAreaId = areaId
+        }
+    }
+
+    return nearestAreaId
 }
 
 function pointsAreNear(a: Point, b: Point, epsilon = 0.5): boolean {
@@ -586,13 +630,15 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
     }
 
     const points: Point[] = []
-    const cultivatedPoint = resolveLandMarkerPosition(input.cultivatedAreaId)
+    const sourceCultivatedAreaId = resolveRouteSourceCultivatedAreaId(input)
+    const cultivatedPoint = resolveLandMarkerPosition(sourceCultivatedAreaId)
     if (cultivatedPoint) {
         points.push(cultivatedPoint)
     }
 
-    for (const seaAreaId of input.seaAreaIds) {
-        const seaPoint = seaWaypointForAreaId(seaAreaId)
+    for (const [seaAreaIndex, seaAreaId] of input.seaAreaIds.entries()) {
+        const seaPoint =
+            seaAreaIndex === 0 ? resolveFirstSeaWaypoint(input) : seaWaypointForAreaId(seaAreaId)
         if (!seaPoint) {
             return null
         }
@@ -613,8 +659,9 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
     }
 
     const seaWaypoints: Point[] = []
-    for (const seaAreaId of input.seaAreaIds) {
-        const seaWaypoint = seaWaypointForAreaId(seaAreaId)
+    for (const [seaAreaIndex, seaAreaId] of input.seaAreaIds.entries()) {
+        const seaWaypoint =
+            seaAreaIndex === 0 ? resolveFirstSeaWaypoint(input) : seaWaypointForAreaId(seaAreaId)
         if (!seaWaypoint) {
             return null
         }
@@ -626,13 +673,14 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         return buildStraightFallbackPath(input)
     }
 
-    const sourceRoutingContext = createRoutingContext([input.cultivatedAreaId])
+    const sourceCultivatedAreaId = resolveRouteSourceCultivatedAreaId(input)
+    const sourceRoutingContext = createRoutingContext([sourceCultivatedAreaId])
     const seaRoutingContext = createRoutingContext([])
     const targetRoutingContext = createRoutingContext([input.cityAreaId])
 
     const fullRoutePoints: Point[] = []
 
-    const cultivatedPoint = resolveLandMarkerPosition(input.cultivatedAreaId)
+    const cultivatedPoint = resolveLandMarkerPosition(sourceCultivatedAreaId)
     const firstSeaPoint = seaWaypoints[0]
     if (cultivatedPoint) {
         appendPointIfNeeded(fullRoutePoints, cultivatedPoint)

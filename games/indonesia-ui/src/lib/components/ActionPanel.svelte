@@ -219,6 +219,13 @@
         return gameSession.gameState.operatingCompanyShippedGoodsCount ?? 0
     })
 
+    const remainingGoodsToShipForCurrentProductionOperation = $derived.by(() => {
+        return Math.max(
+            0,
+            maxGoodsToShipForCurrentProductionOperation - shippedGoodsCountForCurrentProductionOperation
+        )
+    })
+
     const remainingProductionExpansionCount = $derived.by(() => {
         if (
             gameSession.productionOperationStage !== 'mandatory-expansion' &&
@@ -293,12 +300,12 @@
                     return `You may expand up to ${remainingExpansions} ${areasLabel} or finish.`
                 }
 
-                const maxGoodsToShip = maxGoodsToShipForCurrentProductionOperation
-                const goodsLabel = maxGoodsToShip === 1 ? 'good' : 'goods'
+                const remainingGoodsToShip = remainingGoodsToShipForCurrentProductionOperation
+                const goodsLabel = remainingGoodsToShip === 1 ? 'good' : 'goods'
                 const baseMessage =
                     shippedGoodsCountForCurrentProductionOperation > 0
-                        ? `Ship ${maxGoodsToShip} more ${goodsLabel}.`
-                        : `Ship ${maxGoodsToShip} ${goodsLabel}.`
+                        ? `Ship ${remainingGoodsToShip} more ${goodsLabel}.`
+                        : `Ship ${remainingGoodsToShip} ${goodsLabel}.`
 
                 if (gameSession.deliverySelectionStage === 'cultivated') {
                     return `${baseMessage} Choose a cultivated area.`
