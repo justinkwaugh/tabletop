@@ -1,6 +1,10 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { IndonesiaNeighborDirection, isIndonesiaNodeId } from '@tabletop/indonesia'
+    import {
+        CompanyType,
+        IndonesiaNeighborDirection,
+        isIndonesiaNodeId
+    } from '@tabletop/indonesia'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { buildDeliveryShippingRoutePath } from '$lib/utils/shippingRouteOverlay.js'
     import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
@@ -91,6 +95,44 @@
 
         return nearestCompanyMarkerPoint ?? companyMarkerPoints[0]
     }
+
+    const blockedShipPointsByShippingCompanyId: Map<string, Point[]> = $derived.by(() => {
+        const blockedByCompanyId = new Map<string, Point[]>()
+        const shippingCompanyIds = new Set(
+            gameSession.gameState.companies
+                .filter((company) => company.type === CompanyType.Shipping)
+                .map((company) => company.id)
+        )
+
+        for (const selectedShippingCompanyId of shippingCompanyIds) {
+            blockedByCompanyId.set(selectedShippingCompanyId, [])
+        }
+
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!('ships' in area) || area.ships.length === 0) {
+                continue
+            }
+
+            const markerPoints = markerPointsForSeaAreaShipList(area.id, area.ships)
+            const markerCount = Math.min(area.ships.length, markerPoints.length)
+            for (let markerIndex = 0; markerIndex < markerCount; markerIndex += 1) {
+                const shipCompanyId = area.ships[markerIndex]
+                const markerPoint = markerPoints[markerIndex]
+                for (const selectedShippingCompanyId of shippingCompanyIds) {
+                    if (shipCompanyId === selectedShippingCompanyId) {
+                        continue
+                    }
+                    const blockedPoints = blockedByCompanyId.get(selectedShippingCompanyId)
+                    if (!blockedPoints) {
+                        continue
+                    }
+                    blockedPoints.push(markerPoint)
+                }
+            }
+        }
+
+        return blockedByCompanyId
+    })
 
     const cultivatedAreaIdsByZoneId: Map<string, string[]> = $derived.by(() => {
         const operatingCompanyId = gameSession.gameState.operatingCompanyId
@@ -191,6 +233,9 @@
                 firstSeaWaypointOverride: firstShipWaypointForChoice(
                     choice,
                     cultivatedAreaIdsByZoneId
+                ),
+                blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
+                    choice.candidate.shippingCompanyId
                 ),
                 seaAreaIds: choice.candidate.seaAreaIds,
                 cityAreaId

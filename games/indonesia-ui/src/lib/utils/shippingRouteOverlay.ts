@@ -8,6 +8,7 @@ type DeliveryShippingRoutePathInput = {
     cultivatedAreaId: string
     cultivatedZoneAreaIds?: readonly string[]
     firstSeaWaypointOverride?: Point
+    blockedShipPoints?: readonly Point[]
     seaAreaIds: readonly string[]
     cityAreaId: string
 }
@@ -35,6 +36,8 @@ type LandShape = {
 
 type RoutingContext = {
     allowedLandAreaIds: ReadonlySet<string>
+    blockedShipPoints: readonly Point[]
+    blockedShipRadius: number
     cacheKey: string
 }
 
@@ -49,6 +52,7 @@ const MAX_SEARCH_STEPS = 200_000
 const SEGMENT_SAMPLE_STEP = 6
 const CURVE_CORNER_MAX_RADIUS = 14
 const CURVE_CORNER_RATIO = 0.34
+const BLOCKED_SHIP_RADIUS = 26
 
 const EIGHT_WAY_NEIGHBORS = [
     { dx: -1, dy: -1, cost: Math.SQRT2 },
@@ -180,11 +184,28 @@ function pointToward(from: Point, to: Point, distance: number): Point {
     }
 }
 
-function createRoutingContext(allowedLandAreaIds: readonly string[]): RoutingContext {
+function createRoutingContext(
+    allowedLandAreaIds: readonly string[],
+    options?: {
+        blockedShipPoints?: readonly Point[]
+        blockedShipRadius?: number
+    }
+): RoutingContext {
     const sortedAllowedAreaIds = [...allowedLandAreaIds].sort((a, b) => a.localeCompare(b))
+    const blockedShipPoints = [...(options?.blockedShipPoints ?? [])]
+    const blockedShipRadius = options?.blockedShipRadius ?? BLOCKED_SHIP_RADIUS
+    const blockedShipPointsKey = blockedShipPoints
+        .map((point) => `${formatCoordinate(point.x)},${formatCoordinate(point.y)}`)
+        .sort((left, right) => left.localeCompare(right))
+        .join(';')
+
     return {
         allowedLandAreaIds: new Set(sortedAllowedAreaIds),
-        cacheKey: sortedAllowedAreaIds.join('|')
+        blockedShipPoints,
+        blockedShipRadius,
+        cacheKey: `${sortedAllowedAreaIds.join('|')}::ships:${blockedShipPointsKey}::r:${formatCoordinate(
+            blockedShipRadius
+        )}`
     }
 }
 
@@ -286,6 +307,20 @@ function pointInLand(point: Point, routingContext: RoutingContext): boolean {
     return false
 }
 
+function pointHitsBlockedShip(point: Point, routingContext: RoutingContext): boolean {
+    for (const shipPoint of routingContext.blockedShipPoints) {
+        if (pointDistance(point, shipPoint) <= routingContext.blockedShipRadius) {
+            return true
+        }
+    }
+
+    return false
+}
+
+function pointIsBlocked(point: Point, routingContext: RoutingContext): boolean {
+    return pointInLand(point, routingContext) || pointHitsBlockedShip(point, routingContext)
+}
+
 function isWaterCell(cell: GridCell, routingContext: RoutingContext): boolean {
     if (cell.x < 0 || cell.x >= GRID_COLS || cell.y < 0 || cell.y >= GRID_ROWS) {
         return false
@@ -297,7 +332,8 @@ function isWaterCell(cell: GridCell, routingContext: RoutingContext): boolean {
         return !cachedBlocked
     }
 
-    const blocked = pointInLand(cellToPoint(cell), routingContext)
+    const point = cellToPoint(cell)
+    const blocked = pointIsBlocked(point, routingContext)
     blockedCellByKey.set(key, blocked)
     return !blocked
 }
@@ -448,13 +484,13 @@ function findWaterGridPath(
 function segmentStaysOnWater(start: Point, end: Point, routingContext: RoutingContext): boolean {
     const segmentLength = pointDistance(start, end)
     if (segmentLength <= 0) {
-        return !pointInLand(start, routingContext)
+        return !pointIsBlocked(start, routingContext)
     }
 
     const sampleCount = Math.max(1, Math.ceil(segmentLength / SEGMENT_SAMPLE_STEP))
     for (let sampleIndex = 0; sampleIndex <= sampleCount; sampleIndex += 1) {
         const samplePoint = pointLerp(start, end, sampleIndex / sampleCount)
-        if (pointInLand(samplePoint, routingContext)) {
+        if (pointIsBlocked(samplePoint, routingContext)) {
             return false
         }
     }
@@ -535,7 +571,7 @@ function firstWaterPointAlongLine(
     const samples = 96
     for (let sampleIndex = 0; sampleIndex <= samples; sampleIndex += 1) {
         const point = pointLerp(landPoint, towardPoint, sampleIndex / samples)
-        if (!pointInLand(point, routingContext)) {
+        if (!pointIsBlocked(point, routingContext)) {
             return point
         }
     }
@@ -673,10 +709,13 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         return buildStraightFallbackPath(input)
     }
 
+    const blockedShipPoints = input.blockedShipPoints ?? []
     const sourceCultivatedAreaId = resolveRouteSourceCultivatedAreaId(input)
-    const sourceRoutingContext = createRoutingContext([sourceCultivatedAreaId])
-    const seaRoutingContext = createRoutingContext([])
-    const targetRoutingContext = createRoutingContext([input.cityAreaId])
+    const sourceRoutingContext = createRoutingContext([sourceCultivatedAreaId], {
+        blockedShipPoints
+    })
+    const seaRoutingContext = createRoutingContext([], { blockedShipPoints })
+    const targetRoutingContext = createRoutingContext([input.cityAreaId], { blockedShipPoints })
 
     const fullRoutePoints: Point[] = []
 
