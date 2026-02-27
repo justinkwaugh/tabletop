@@ -4,11 +4,18 @@ import { assert, assertExists, GameAction, HydratableAction, MachineContext } fr
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { isShippingCompany } from '../components/company.js'
-import { isSeaArea } from '../components/area.js'
+import { isProductionCompany, isShippingCompany } from '../components/company.js'
+import { AreaType, isEmptyLandArea, isSeaArea } from '../components/area.js'
+import {
+    canAnyProductionExpansionBeApplied,
+    describeProductionOperation,
+    ProductionOperationStage
+} from '../operations/productionOperationProgress.js'
 
 export type ExpandMetadata = Type.Static<typeof ExpandMetadata>
-export const ExpandMetadata = Type.Object({})
+export const ExpandMetadata = Type.Object({
+    cost: Type.Number()
+})
 
 export type Expand = Type.Static<typeof Expand>
 export const Expand = Type.Evaluate(
@@ -56,9 +63,57 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
             seaArea.ships.push(operatingCompany.id)
             state.board.areas[seaArea.id] = seaArea
             state.incrementOperatingCompanyExpansionCount()
+            this.metadata = {
+                cost: 0
+            }
+            return
         }
 
-        this.metadata = {}
+        if (isProductionCompany(operatingCompany)) {
+            const productionProgress = describeProductionOperation(state)
+            assertExists(
+                productionProgress,
+                'Production operation context should exist for production expansion'
+            )
+            assert(
+                productionProgress.operatingCompanyId === operatingCompany.id,
+                `Production operation company ${productionProgress.operatingCompanyId} should match operating company ${operatingCompany.id}`
+            )
+            assert(
+                productionProgress.stage !== ProductionOperationStage.Delivery,
+                'Production expansion cannot be applied before required deliveries are completed'
+            )
+
+            const targetArea = state.board.getArea(this.areaId)
+            assert(
+                isEmptyLandArea(targetArea),
+                `Area with id ${this.areaId} should be empty land for production expansion`
+            )
+            state.board.areas[targetArea.id] = {
+                id: targetArea.id,
+                type: AreaType.Cultivated,
+                companyId: operatingCompany.id,
+                good: operatingCompany.good
+            }
+
+            const expansionCost = productionProgress.expansionCostPerArea
+            if (expansionCost > 0) {
+                const ownerState = state.getPlayerState(operatingCompany.owner)
+                assert(
+                    ownerState.cash >= expansionCost,
+                    `Player ${operatingCompany.owner} cannot pay expansion cost ${expansionCost}`
+                )
+                ownerState.cash -= expansionCost
+            }
+
+            state.incrementOperatingCompanyExpansionCount()
+            this.metadata = {
+                cost: expansionCost
+            }
+            return
+        }
+
+        assert(false, 'Unsupported operating company type for Expand action')
     }
 
     isValidExpand(state: HydratedIndonesiaGameState): boolean {
@@ -89,14 +144,42 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
             return false
         }
 
-        if (!state.canCurrentOperationExpandForPlayer(playerId)) {
-            return false
+        if (isShippingCompany(operatingCompany)) {
+            if (!state.canCurrentOperationExpandForPlayer(playerId)) {
+                return false
+            }
+            if (areaId !== undefined) {
+                return state.canCompanyExpandToArea(operatingCompany.id, areaId)
+            }
+
+            return state.canCompanyExpand(operatingCompany.id)
         }
 
-        if (areaId !== undefined) {
-            return state.canCompanyExpandToArea(operatingCompany.id, areaId)
+        if (isProductionCompany(operatingCompany)) {
+            const productionProgress = describeProductionOperation(state)
+            if (!productionProgress) {
+                return false
+            }
+            if (productionProgress.ownerPlayerId !== playerId) {
+                return false
+            }
+            if (productionProgress.stage === ProductionOperationStage.Delivery) {
+                return false
+            }
+            if (!state.canCurrentOperationExpandForPlayer(playerId)) {
+                return false
+            }
+            if (!canAnyProductionExpansionBeApplied(state, playerId)) {
+                return false
+            }
+
+            if (areaId !== undefined) {
+                return state.canCompanyExpandToArea(operatingCompany.id, areaId)
+            }
+
+            return state.canCompanyExpand(operatingCompany.id)
         }
 
-        return state.canCompanyExpand(operatingCompany.id)
+        return false
     }
 }

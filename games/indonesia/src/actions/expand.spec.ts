@@ -12,10 +12,12 @@ import {
 import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
+import { DeliveryTieBreakPolicy, GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { MachineState } from '../definition/states.js'
 import { Expand, HydratedExpand } from './expand.js'
 import { IndonesiaAreaType, IndonesiaNeighborDirection } from '../utils/indonesiaNodes.js'
+import type { Good } from '../definition/goods.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -126,6 +128,33 @@ function findShippingExpansionFixture(state: ReturnType<typeof createTestState>)
     }
 
     return null
+}
+
+function setCompletedProductionDeliveryStage(
+    state: ReturnType<typeof createTestState>,
+    companyId: string,
+    good: Good,
+    producedGoodsCount: number,
+    deliveryTarget: number
+): void {
+    state.operatingCompanyDeliveryPlan = {
+        operatingCompanyId: companyId,
+        good,
+        deliveries: [],
+        shipUses: [],
+        shippingPayments: [],
+        totalDelivered: deliveryTarget,
+        revenue: 0,
+        shippingCost: 0,
+        netIncome: 0,
+        tieBreakResult: {
+            policy: DeliveryTieBreakPolicy.MinShippingCost,
+            deliveredGoods: deliveryTarget,
+            shippingCost: 0
+        }
+    }
+    state.operatingCompanyProducedGoodsCount = producedGoodsCount
+    state.operatingCompanyShippedGoodsCount = deliveryTarget
 }
 
 describe('HydratedExpand.canExpand', () => {
@@ -385,6 +414,7 @@ describe('HydratedExpand.canExpand', () => {
                 cityId: `city-${blockedNeighborAreaId}`
             }
         }
+        setCompletedProductionDeliveryStage(state, companyId, productionDeed.good, 1, 0)
 
         expect(HydratedExpand.canExpand(state, playerId)).toBe(true)
         expect(HydratedExpand.canExpand(state, playerId, fixture.candidateExpansionAreaId)).toBe(
@@ -438,6 +468,72 @@ describe('HydratedExpand.canExpand', () => {
             companyId: 'other-company',
             good: productionDeed.good
         }
+        setCompletedProductionDeliveryStage(state, companyId, productionDeed.good, 1, 0)
+
+        expect(HydratedExpand.canExpand(state, playerId)).toBe(false)
+        expect(HydratedExpand.canExpand(state, playerId, fixture.candidateExpansionAreaId)).toBe(
+            false
+        )
+    })
+
+    it('blocks production expansion before required deliveries are complete', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+        const fixture = findProductionExpansionFixture(state)
+
+        expect(productionDeed).toBeDefined()
+        expect(fixture).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production || !fixture) {
+            return
+        }
+
+        const companyId = 'company-production'
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            }
+        ]
+        state.operatingCompanyId = companyId
+        state.machineState = MachineState.ProductionOperations
+
+        state.board.areas[fixture.companyCultivatedAreaId] = {
+            id: fixture.companyCultivatedAreaId,
+            type: AreaType.Cultivated,
+            companyId,
+            good: productionDeed.good
+        }
+        for (const blockedNeighborAreaId of fixture.blockedNeighborAreaIds) {
+            state.board.areas[blockedNeighborAreaId] = {
+                id: blockedNeighborAreaId,
+                type: AreaType.City,
+                cityId: `city-${blockedNeighborAreaId}`
+            }
+        }
+        state.operatingCompanyDeliveryPlan = {
+            operatingCompanyId: companyId,
+            good: productionDeed.good,
+            deliveries: [],
+            shipUses: [],
+            shippingPayments: [],
+            totalDelivered: 1,
+            revenue: 0,
+            shippingCost: 0,
+            netIncome: 0,
+            tieBreakResult: {
+                policy: DeliveryTieBreakPolicy.MinShippingCost,
+                deliveredGoods: 1,
+                shippingCost: 0
+            }
+        }
+        state.operatingCompanyProducedGoodsCount = 1
+        state.operatingCompanyShippedGoodsCount = 0
 
         expect(HydratedExpand.canExpand(state, playerId)).toBe(false)
         expect(HydratedExpand.canExpand(state, playerId, fixture.candidateExpansionAreaId)).toBe(
@@ -497,5 +593,142 @@ describe('HydratedExpand.canExpand', () => {
         expect(
             expandedArea.ships.filter((shipCompanyId: string) => shipCompanyId === companyId)
         ).toHaveLength(1)
+    })
+
+    it('apply cultivates land and charges cost for optional production expansion', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+        const fixture = findProductionExpansionFixture(state)
+
+        expect(productionDeed).toBeDefined()
+        expect(fixture).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production || !fixture) {
+            return
+        }
+
+        const companyId = 'company-production'
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            }
+        ]
+        state.operatingCompanyId = companyId
+        state.machineState = MachineState.ProductionOperations
+        state.board.areas[fixture.companyCultivatedAreaId] = {
+            id: fixture.companyCultivatedAreaId,
+            type: AreaType.Cultivated,
+            companyId,
+            good: productionDeed.good
+        }
+        for (const blockedNeighborAreaId of fixture.blockedNeighborAreaIds) {
+            state.board.areas[blockedNeighborAreaId] = {
+                id: blockedNeighborAreaId,
+                type: AreaType.City,
+                cityId: `city-${blockedNeighborAreaId}`
+            }
+        }
+        setCompletedProductionDeliveryStage(state, companyId, productionDeed.good, 1, 0)
+
+        const ownerState = state.getPlayerState(playerId)
+        const cashBefore = ownerState.cash
+        const expectedCost = GOOD_REVENUE_BY_GOOD[productionDeed.good]
+
+        const action = new HydratedExpand(
+            createAction(Expand, {
+                id: 'action-expand-production-optional',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId,
+                areaId: fixture.candidateExpansionAreaId
+            })
+        )
+        action.apply(state)
+
+        const expandedArea = state.board.getArea(fixture.candidateExpansionAreaId)
+        expect(expandedArea).toMatchObject({
+            id: fixture.candidateExpansionAreaId,
+            type: AreaType.Cultivated,
+            companyId,
+            good: productionDeed.good
+        })
+        expect(ownerState.cash).toBe(cashBefore - expectedCost)
+        expect(action.metadata).toEqual({
+            cost: expectedCost
+        })
+    })
+
+    it('apply cultivates land for free during mandatory production expansion', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+        const fixture = findProductionExpansionFixture(state)
+
+        expect(productionDeed).toBeDefined()
+        expect(fixture).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production || !fixture) {
+            return
+        }
+
+        const companyId = 'company-production'
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            }
+        ]
+        state.operatingCompanyId = companyId
+        state.machineState = MachineState.ProductionOperations
+        state.board.areas[fixture.companyCultivatedAreaId] = {
+            id: fixture.companyCultivatedAreaId,
+            type: AreaType.Cultivated,
+            companyId,
+            good: productionDeed.good
+        }
+        for (const blockedNeighborAreaId of fixture.blockedNeighborAreaIds) {
+            state.board.areas[blockedNeighborAreaId] = {
+                id: blockedNeighborAreaId,
+                type: AreaType.City,
+                cityId: `city-${blockedNeighborAreaId}`
+            }
+        }
+        setCompletedProductionDeliveryStage(state, companyId, productionDeed.good, 1, 1)
+
+        const ownerState = state.getPlayerState(playerId)
+        const cashBefore = ownerState.cash
+
+        const action = new HydratedExpand(
+            createAction(Expand, {
+                id: 'action-expand-production-mandatory',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId,
+                areaId: fixture.candidateExpansionAreaId
+            })
+        )
+        action.apply(state)
+
+        const expandedArea = state.board.getArea(fixture.candidateExpansionAreaId)
+        expect(expandedArea).toMatchObject({
+            id: fixture.candidateExpansionAreaId,
+            type: AreaType.Cultivated,
+            companyId,
+            good: productionDeed.good
+        })
+        expect(ownerState.cash).toBe(cashBefore)
+        expect(action.metadata).toEqual({
+            cost: 0
+        })
     })
 })

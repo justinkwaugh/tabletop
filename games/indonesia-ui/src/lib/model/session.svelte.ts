@@ -10,6 +10,8 @@ import {
     MachineState,
     PlaceCity,
     PlaceTurnOrderBid,
+    Pass,
+    PassReason,
     Research,
     ResearchArea,
     StartCompany,
@@ -186,6 +188,30 @@ export class IndonesiaGameSession extends GameSession<
 
         return 'shipping'
     })
+
+    productionOperationStage: 'none' | 'delivery' | 'mandatory-expansion' | 'optional-expansion' =
+        $derived.by(() => {
+            if (this.gameState.machineState !== MachineState.ProductionOperations) {
+                return 'none'
+            }
+
+            const deliveryTarget = this.gameState.operatingCompanyDeliveryPlan?.totalDelivered
+            if (deliveryTarget === undefined) {
+                return 'none'
+            }
+
+            const shippedGoodsCount = this.gameState.operatingCompanyShippedGoodsCount ?? 0
+            if (shippedGoodsCount < deliveryTarget) {
+                return 'delivery'
+            }
+
+            const producedGoodsCount = this.gameState.operatingCompanyProducedGoodsCount
+            if (producedGoodsCount === undefined) {
+                return 'none'
+            }
+
+            return deliveryTarget >= producedGoodsCount ? 'mandatory-expansion' : 'optional-expansion'
+        })
 
     deliveryAvailableCityAreaIds: string[] = $derived.by(() => {
         const cityAreaIds: string[] = []
@@ -448,6 +474,18 @@ export class IndonesiaGameSession extends GameSession<
         await this.applyAction(action)
     }
 
+    async pass(reason: PassReason): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.Pass)) {
+            return
+        }
+
+        const action = this.createPlayerAction(Pass, {
+            type: ActionType.Pass,
+            reason
+        })
+        await this.applyAction(action)
+    }
+
     async expand(areaId: string): Promise<void> {
         if (!this.validActionTypes.includes(ActionType.Expand)) {
             return
@@ -458,5 +496,9 @@ export class IndonesiaGameSession extends GameSession<
             areaId
         })
         await this.applyAction(action)
+    }
+
+    async finishOptionalProductionExpansion(): Promise<void> {
+        await this.pass(PassReason.FinishOptionalProductionExpansion)
     }
 }

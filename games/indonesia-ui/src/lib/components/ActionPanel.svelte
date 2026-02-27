@@ -18,6 +18,7 @@
     let placingTurnOrderBid = $state(false)
     let choosingOperatingCompany = $state(false)
     let deliveringGood = $state(false)
+    let finishingOptionalProductionExpansion = $state(false)
 
     const showTurnOrderBidFormula = $derived.by(() => {
         return (
@@ -96,15 +97,27 @@
         )
     })
 
-    const showProductionDeliveryPanel = $derived.by(() => {
-        return gameSession.deliverySelectionEnabled && !gameSession.gameState.result
+    const showProductionOperationsPanel = $derived.by(() => {
+        return (
+            gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.ProductionOperations &&
+            !gameSession.gameState.result
+        )
     })
 
     const showDeliveryShippingChoices = $derived.by(() => {
         return (
-            showProductionDeliveryPanel &&
+            showProductionOperationsPanel &&
             gameSession.deliverySelectionStage === 'shipping' &&
             gameSession.deliveryShippingChoices.length > 0
+        )
+    })
+
+    const showOptionalProductionExpansionDoneButton = $derived.by(() => {
+        return (
+            showProductionOperationsPanel &&
+            gameSession.productionOperationStage === 'optional-expansion' &&
+            gameSession.validActionTypes.includes(ActionType.Pass)
         )
     })
 
@@ -192,6 +205,19 @@
         return gameSession.gameState.operatingCompanyShippedGoodsCount ?? 0
     })
 
+    const remainingProductionExpansionCount = $derived.by(() => {
+        if (
+            gameSession.productionOperationStage !== 'mandatory-expansion' &&
+            gameSession.productionOperationStage !== 'optional-expansion'
+        ) {
+            return 0
+        }
+
+        const expansionLimit = (gameSession.myPlayerState?.research.expansion ?? 0) + 1
+        const expansionCount = gameSession.gameState.operatingCompanyExpansionCount ?? 0
+        return Math.max(0, expansionLimit - expansionCount)
+    })
+
     const message = $derived.by(() => {
         if (gameSession.isViewingHistory) {
             return 'Viewing history.'
@@ -238,6 +264,18 @@
             case MachineState.ShippingOperations:
                 return 'Operate shipping company.'
             case MachineState.ProductionOperations: {
+                if (gameSession.productionOperationStage === 'mandatory-expansion') {
+                    const remainingExpansions = remainingProductionExpansionCount
+                    const areasLabel = remainingExpansions === 1 ? 'area' : 'areas'
+                    return `Expand ${remainingExpansions} ${areasLabel} for free.`
+                }
+
+                if (gameSession.productionOperationStage === 'optional-expansion') {
+                    const remainingExpansions = remainingProductionExpansionCount
+                    const areasLabel = remainingExpansions === 1 ? 'area' : 'areas'
+                    return `You may expand up to ${remainingExpansions} ${areasLabel} or finish.`
+                }
+
                 const maxGoodsToShip = maxGoodsToShipForCurrentProductionOperation
                 const goodsLabel = maxGoodsToShip === 1 ? 'good' : 'goods'
                 const baseMessage =
@@ -327,6 +365,19 @@
             await gameSession.deliverGoodForRoute(routeKey)
         } finally {
             deliveringGood = false
+        }
+    }
+
+    async function submitFinishOptionalProductionExpansion(): Promise<void> {
+        if (!showOptionalProductionExpansionDoneButton || finishingOptionalProductionExpansion) {
+            return
+        }
+
+        finishingOptionalProductionExpansion = true
+        try {
+            await gameSession.finishOptionalProductionExpansion()
+        } finally {
+            finishingOptionalProductionExpansion = false
         }
     }
 
@@ -435,7 +486,7 @@
                 {/each}
             </div>
         </div>
-    {:else if showProductionDeliveryPanel}
+    {:else if showProductionOperationsPanel}
         <div class="production-delivery-panel">
             <span class="operating-company-message">{message}</span>
             {#if showDeliveryShippingChoices}
@@ -496,6 +547,20 @@
                         </div>
                     {/each}
                 </div>
+            {/if}
+            {#if showOptionalProductionExpansionDoneButton}
+                <button
+                    type="button"
+                    class="finish-production-expansion"
+                    disabled={finishingOptionalProductionExpansion}
+                    onclick={submitFinishOptionalProductionExpansion}
+                >
+                    {#if finishingOptionalProductionExpansion}
+                        finishing...
+                    {:else}
+                        done expanding
+                    {/if}
+                </button>
             {/if}
         </div>
     {:else}
@@ -837,6 +902,35 @@
     }
 
     .commit-bid:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+
+    .finish-production-expansion {
+        border: 1px solid rgba(96, 71, 43, 0.44);
+        border-radius: 999px;
+        background: linear-gradient(
+            180deg,
+            rgba(250, 241, 220, 0.86),
+            rgba(219, 198, 163, 0.78)
+        );
+        color: #3d2d1d;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 12px;
+        padding: 7px 12px 6px;
+        transition: background 140ms ease, opacity 140ms ease;
+    }
+
+    .finish-production-expansion:hover:enabled {
+        background: linear-gradient(
+            180deg,
+            rgba(255, 246, 226, 0.92),
+            rgba(228, 208, 174, 0.82)
+        );
+    }
+
+    .finish-production-expansion:disabled {
         opacity: 0.45;
         cursor: default;
     }

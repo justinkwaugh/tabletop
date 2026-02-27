@@ -69,6 +69,7 @@ export const IndonesiaGameState = Type.Evaluate(
             operatingCompanyShipUseCounts: Type.Optional(Type.Record(Type.String(), Type.Number())), // Number of ship uses by shippingCompanyId|seaAreaId during the current production company operation
             operatingCompanyDeliveredCultivatedAreaIds: Type.Optional(Type.Array(Type.String())), // Cultivated area ids that have already delivered goods during the current production company operation
             operatingCompanyDeliveryPlan: Type.Optional(DeliveryPlanSchema), // Delivery plan for the currently operating production company
+            operatingCompanyProducedGoodsCount: Type.Optional(Type.Number()), // Number of goods the operating production company had on board before expansion
             operatedCompanyIds: Type.Array(Type.String()) // Companies that have already operated this operations phase
         })
     ])
@@ -111,6 +112,7 @@ export class HydratedIndonesiaGameState
     declare operatingCompanyShipUseCounts?: Record<string, number>
     declare operatingCompanyDeliveredCultivatedAreaIds?: IndonesiaNodeId[]
     declare operatingCompanyDeliveryPlan?: DeliveryPlan
+    declare operatingCompanyProducedGoodsCount?: number
     declare operatedCompanyIds: string[]
 
     constructor(data: IndonesiaGameState) {
@@ -137,6 +139,7 @@ export class HydratedIndonesiaGameState
         this.operatingCompanyShippedGoodsCount = 0
         this.operatingCompanyShipUseCounts = {}
         this.operatingCompanyDeliveredCultivatedAreaIds = []
+        this.operatingCompanyProducedGoodsCount = undefined
         this.clearOperatingCompanyDeliveryPlan()
     }
 
@@ -146,6 +149,7 @@ export class HydratedIndonesiaGameState
         this.operatingCompanyShippedGoodsCount = undefined
         this.operatingCompanyShipUseCounts = undefined
         this.operatingCompanyDeliveredCultivatedAreaIds = undefined
+        this.operatingCompanyProducedGoodsCount = undefined
         this.clearOperatingCompanyDeliveryPlan()
     }
 
@@ -165,6 +169,19 @@ export class HydratedIndonesiaGameState
 
     public clearOperatingCompanyDeliveryPlan(): void {
         this.operatingCompanyDeliveryPlan = undefined
+    }
+
+    public setOperatingCompanyProducedGoodsCount(count: number): void {
+        assert(Number.isInteger(count), 'Operating company produced-goods count should be an integer')
+        assert(count >= 0, 'Operating company produced-goods count should be non-negative')
+
+        const operatingCompanyId = this.operatingCompanyId
+        assertExists(
+            operatingCompanyId,
+            'Operating company id should be set before storing produced-goods count'
+        )
+
+        this.operatingCompanyProducedGoodsCount = count
     }
 
     public resetOperationsTracking(): void {

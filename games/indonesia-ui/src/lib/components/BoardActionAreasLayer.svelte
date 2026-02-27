@@ -138,6 +138,26 @@
             return []
         }
 
+        return Array.from(gameSession.gameState.validExpansionAreaIds(operatingCompanyId)).filter((areaId) =>
+            HydratedExpand.canExpand(gameSession.gameState, myPlayerId, areaId)
+        )
+    })
+
+    const productionExpandValidAreaIds: readonly string[] = $derived.by(() => {
+        if (
+            !myPlayerId ||
+            !gameSession.isMyTurn ||
+            gameSession.gameState.machineState !== MachineState.ProductionOperations ||
+            !gameSession.validActionTypes.includes(ActionType.Expand)
+        ) {
+            return []
+        }
+
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (!operatingCompanyId) {
+            return []
+        }
+
         return Array.from(gameSession.gameState.validExpansionAreaIds(operatingCompanyId))
     })
 
@@ -191,6 +211,16 @@
                 outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
                 maskedAreaType: IndonesiaAreaType.Sea,
                 maskInvalidAreas: false
+            }
+        }
+
+        if (myPlayerId && productionExpandValidAreaIds.length > 0) {
+            return {
+                action: 'expand',
+                validAreaIds: productionExpandValidAreaIds,
+                outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
+                maskedAreaType: IndonesiaAreaType.Land,
+                maskInvalidAreas: true
             }
         }
 
@@ -392,7 +422,8 @@
         {/each}
 
         {#if activeAreaInteraction}
-            {#if activeAreaInteraction.action === 'expand'}
+            {#if activeAreaInteraction.action === 'expand' &&
+                activeAreaInteraction.maskedAreaType === IndonesiaAreaType.Sea}
                 {#each interactiveValidAreaIds as areaId (areaId)}
                     <Area
                         areaId={areaId}

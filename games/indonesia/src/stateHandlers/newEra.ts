@@ -76,7 +76,10 @@ export class NewEraStateHandler implements MachineStateHandler<
         )
 
         if (!HydratedPlaceCity.canPlaceCity(gameState, nextPlayerId)) {
-            context.addSystemAction(Pass, { reason: PassReason.CannotPlaceCity })
+            context.addSystemAction(Pass, {
+                playerId: nextPlayerId,
+                reason: PassReason.CannotPlaceCity
+            })
         }
     }
 

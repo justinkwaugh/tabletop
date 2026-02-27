@@ -5,9 +5,16 @@ import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedPlaceCity } from './placeCity.js'
+import { HydratedExpand } from './expand.js'
+import {
+    describeProductionOperation,
+    ProductionOperationStage
+} from '../operations/productionOperationProgress.js'
 
 export enum PassReason {
-    CannotPlaceCity = 'CannotPlaceCity'
+    CannotPlaceCity = 'CannotPlaceCity',
+    FinishOptionalProductionExpansion = 'FinishOptionalProductionExpansion',
+    SkipProductionExpansion = 'SkipProductionExpansion'
 }
 
 export type PassMetadata = Type.Static<typeof PassMetadata>
@@ -51,15 +58,44 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
     }
 
     isValidPass(state: HydratedIndonesiaGameState): boolean {
-        const playerState = state.getPlayerState(this.playerId)
-        return true
+        return HydratedPass.canPass(state, this.playerId, this.reason)
     }
 
-    static canPass(state: HydratedIndonesiaGameState, playerId: string): boolean {
-        const playerState = state.getPlayerState(playerId)
+    static canPass(state: HydratedIndonesiaGameState, playerId: string, reason?: PassReason): boolean {
         if (state.machineState === MachineState.NewEra) {
-            return !HydratedPlaceCity.canPlaceCity(state, playerId)
+            return (
+                (reason === undefined || reason === PassReason.CannotPlaceCity) &&
+                !HydratedPlaceCity.canPlaceCity(state, playerId)
+            )
         }
+
+        if (state.machineState !== MachineState.ProductionOperations) {
+            return false
+        }
+
+        const productionProgress = describeProductionOperation(state)
+        if (!productionProgress) {
+            return false
+        }
+        if (productionProgress.ownerPlayerId !== playerId) {
+            return false
+        }
+
+        if (
+            reason === PassReason.FinishOptionalProductionExpansion ||
+            (reason === undefined &&
+                productionProgress.stage === ProductionOperationStage.OptionalExpansion)
+        ) {
+            return productionProgress.stage === ProductionOperationStage.OptionalExpansion
+        }
+
+        if (reason === PassReason.SkipProductionExpansion) {
+            if (productionProgress.stage === ProductionOperationStage.Delivery) {
+                return false
+            }
+            return !HydratedExpand.canExpand(state, playerId)
+        }
+
         return false
     }
 }
