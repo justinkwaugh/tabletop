@@ -94,7 +94,6 @@ describe('HydratedRemoveCompanyDeed', () => {
                 id: 'remove-deed-action',
                 gameId: state.gameId,
                 source: ActionSource.System,
-                playerId: '',
                 deedId: productionDeed.id
             })
         )
@@ -121,7 +120,6 @@ describe('HydratedRemoveCompanyDeed', () => {
                 id: 'remove-deed-action-invalid',
                 gameId: state.gameId,
                 source: ActionSource.System,
-                playerId: '',
                 deedId: productionDeed.id
             })
         )

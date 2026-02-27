@@ -1,4 +1,5 @@
 import {
+    assert,
     type HydratedAction,
     type MachineStateHandler,
     assertExists,
@@ -8,7 +9,11 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPass, isPass, Pass, PassReason } from '../actions/pass.js'
 import { HydratedPlaceCity, isPlaceCity } from '../actions/placeCity.js'
-import { HydratedPlaceCompanyDeeds, isPlaceCompanyDeeds } from '../actions/placeCompanyDeeds.js'
+import {
+    HydratedPlaceCompanyDeeds,
+    isPlaceCompanyDeeds,
+    PlaceCompanyDeeds
+} from '../actions/placeCompanyDeeds.js'
 import {
     HydratedRemoveCompanyDeed,
     isRemoveCompanyDeed
@@ -48,10 +53,6 @@ export class NewEraStateHandler implements MachineStateHandler<
 
         const validActions: ActionType[] = []
 
-        if (HydratedPlaceCompanyDeeds.canPlaceCompanyDeeds(gameState, playerId)) {
-            validActions.push(ActionType.PlaceCompanyDeeds)
-        }
-
         if (HydratedPlaceCity.canPlaceCity(gameState, playerId)) {
             validActions.push(ActionType.PlaceCity)
         } else {
@@ -67,10 +68,20 @@ export class NewEraStateHandler implements MachineStateHandler<
 
         if (phaseManager.currentPhase?.name !== PhaseName.NewEra) {
             phaseManager.startPhase(PhaseName.NewEra, gameState.actionCount)
-            if (gameState.era !== Era.A) {
-                // add company deeds for the new era
+            gameState.placingCities = [...gameState.turnManager.turnOrder]
+            const firstPlacingPlayerId = gameState.placingCities[0]
+            assertExists(
+                firstPlacingPlayerId,
+                'No first placing player found while entering New Era'
+            )
+            if (
+                gameState.era !== Era.A &&
+                HydratedPlaceCompanyDeeds.canPlaceCompanyDeeds(gameState) &&
+                !this.hasPendingPlaceCompanyDeeds(context)
+            ) {
+                context.addSystemAction(PlaceCompanyDeeds)
             }
-            gameState.placingCities = gameState.players.map((player) => player.playerId)
+
             if (gameState.numPlayers === 2) {
                 // In a 2 player game, each player places 2 cities in the new era, so we need to double the array
                 gameState.placingCities.push(...gameState.placingCities)
@@ -83,10 +94,23 @@ export class NewEraStateHandler implements MachineStateHandler<
         gameState.activePlayerIds = [nextPlayerId]
 
         const playerState = gameState.getPlayerState(nextPlayerId)
-        gameState.currentCityCard = playerState.nextCityCardForEra(
-            gameState.era,
-            gameState.currentCityCard
+        const placementsPerPlayer = gameState.numPlayers === 2 ? 2 : 1
+        const remainingPlacementsForPlayer = gameState.placingCities.filter(
+            (playerId) => playerId === nextPlayerId
+        ).length
+        const completedPlacementsForPlayer = placementsPerPlayer - remainingPlacementsForPlayer
+        assert(
+            completedPlacementsForPlayer >= 0,
+            `Completed placement count for player ${nextPlayerId} should be non-negative`
         )
+
+        const currentCardForPlacement =
+            playerState.cityCards[gameState.era][completedPlacementsForPlayer]
+        assertExists(
+            currentCardForPlacement,
+            `Player ${nextPlayerId} has no city card for era ${gameState.era} at placement ${completedPlacementsForPlayer}`
+        )
+        gameState.currentCityCard = currentCardForPlacement
 
         if (
             !HydratedPlaceCity.canPlaceCity(gameState, nextPlayerId) &&
@@ -148,5 +172,9 @@ export class NewEraStateHandler implements MachineStateHandler<
                 pendingAction.playerId === playerId &&
                 pendingAction.reason === PassReason.CannotPlaceCity
         )
+    }
+
+    private hasPendingPlaceCompanyDeeds(context: MachineContext<HydratedIndonesiaGameState>): boolean {
+        return context.getPendingActions().some((pendingAction) => isPlaceCompanyDeeds(pendingAction))
     }
 }

@@ -3,6 +3,8 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { Deeds } from '../components/deed.js'
+import { Era } from '../definition/eras.js'
 
 export type PlaceCompanyDeedsMetadata = Type.Static<typeof PlaceCompanyDeedsMetadata>
 export const PlaceCompanyDeedsMetadata = Type.Object({
@@ -11,10 +13,9 @@ export const PlaceCompanyDeedsMetadata = Type.Object({
 export type PlaceCompanyDeeds = Type.Static<typeof PlaceCompanyDeeds>
 export const PlaceCompanyDeeds = Type.Evaluate(
     Type.Intersect([
-        Type.Omit(GameAction, ['playerId']), // Omit playerId to redefine it
+        Type.Omit(GameAction, ['type']),
         Type.Object({
             type: Type.Literal(ActionType.PlaceCompanyDeeds), // This action is always this type
-            playerId: Type.String(), // Required now
             metadata: Type.Optional(PlaceCompanyDeedsMetadata) // Always optional, because it is an output
         })
     ])
@@ -28,7 +29,7 @@ export function isPlaceCompanyDeeds(action?: GameAction): action is PlaceCompany
 
 export class HydratedPlaceCompanyDeeds extends HydratableAction<typeof PlaceCompanyDeeds> implements PlaceCompanyDeeds {
     declare type: ActionType.PlaceCompanyDeeds
-    declare playerId: string
+    declare playerId?: string
     declare metadata?: PlaceCompanyDeedsMetadata
 
     constructor(data: PlaceCompanyDeeds) {
@@ -40,16 +41,26 @@ export class HydratedPlaceCompanyDeeds extends HydratableAction<typeof PlaceComp
             throw Error('Invalid PlaceCompanyDeeds action')
         }
 
+        const eraDeedsToAdd = Deeds.filter((deed) => deed.era === state.era).filter(
+            (deed) => !state.availableDeeds.some((availableDeed) => availableDeed.id === deed.id)
+        )
+        state.availableDeeds.push(...structuredClone(eraDeedsToAdd))
         this.metadata = {}
     }
 
     isValidPlaceCompanyDeeds(state: HydratedIndonesiaGameState): boolean {
-        const playerState = state.getPlayerState(this.playerId)
-        return true
+        return HydratedPlaceCompanyDeeds.canPlaceCompanyDeeds(state)
     }
 
-    static canPlaceCompanyDeeds(state: HydratedIndonesiaGameState, playerId: string): boolean {
-        const playerState = state.getPlayerState(playerId)
-        return true
+    static canPlaceCompanyDeeds(state: HydratedIndonesiaGameState): boolean {
+        if (state.era === Era.A) {
+            return false
+        }
+
+        return Deeds.some(
+            (deed) =>
+                deed.era === state.era &&
+                !state.availableDeeds.some((availableDeed) => availableDeed.id === deed.id)
+        )
     }
 }

@@ -540,6 +540,14 @@ export class IndonesiaGameSession extends GameSession<
             return
         }
 
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) {
+            return
+        }
+        if (!this.gameState.activePlayerIds.includes(myPlayerId)) {
+            return
+        }
+
         const action = this.createPlayerAction(Pass, {
             type: ActionType.Pass,
             reason

@@ -14,10 +14,9 @@ export const GrowCityMetadata = Type.Object({
 export type GrowCity = Type.Static<typeof GrowCity>
 export const GrowCity = Type.Evaluate(
     Type.Intersect([
-        Type.Omit(GameAction, ['playerId']),
+        Type.Omit(GameAction, ['type']),
         Type.Object({
             type: Type.Literal(ActionType.GrowCity),
-            playerId: Type.String(),
             metadata: Type.Optional(GrowCityMetadata),
             cityId: Type.String()
         })
@@ -32,7 +31,7 @@ export function isGrowCity(action?: GameAction): action is GrowCity {
 
 export class HydratedGrowCity extends HydratableAction<typeof GrowCity> implements GrowCity {
     declare type: ActionType.GrowCity
-    declare playerId: string
+    declare playerId?: string
     declare metadata?: GrowCityMetadata
     declare cityId: string
 
@@ -54,7 +53,7 @@ export class HydratedGrowCity extends HydratableAction<typeof GrowCity> implemen
 
     static canGrowCity(
         state: HydratedIndonesiaGameState,
-        playerId: string,
+        playerId?: string,
         cityId?: string
     ): boolean {
         if (state.machineState !== MachineState.CityGrowth) {
@@ -62,7 +61,10 @@ export class HydratedGrowCity extends HydratableAction<typeof GrowCity> implemen
         }
 
         const growthDecisionPlayerId = state.cityGrowthDecisionPlayerId()
-        if (!growthDecisionPlayerId || growthDecisionPlayerId !== playerId) {
+        if (!growthDecisionPlayerId) {
+            return false
+        }
+        if (playerId !== undefined && growthDecisionPlayerId !== playerId) {
             return false
         }
 

@@ -13,10 +13,9 @@ export const SetTurnOrderMetadata = Type.Object({
 export type SetTurnOrder = Type.Static<typeof SetTurnOrder>
 export const SetTurnOrder = Type.Evaluate(
     Type.Intersect([
-        Type.Omit(GameAction, ['playerId']), // Omit playerId to redefine it
+        Type.Omit(GameAction, ['type']),
         Type.Object({
             type: Type.Literal(ActionType.SetTurnOrder), // This action is always this type
-            playerId: Type.String(), // Required now
             metadata: Type.Optional(SetTurnOrderMetadata) // Always optional, because it is an output
         })
     ])
@@ -33,7 +32,7 @@ export class HydratedSetTurnOrder
     implements SetTurnOrder
 {
     declare type: ActionType.SetTurnOrder
-    declare playerId: string
+    declare playerId?: string
     declare metadata?: SetTurnOrderMetadata
 
     constructor(data: SetTurnOrder) {

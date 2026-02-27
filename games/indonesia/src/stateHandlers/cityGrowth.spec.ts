@@ -111,7 +111,6 @@ describe('CityGrowthStateHandler', () => {
         expect(context.getPendingActions()).toHaveLength(1)
         expect(context.getPendingActions()[0]).toMatchObject({
             type: ActionType.GrowCity,
-            playerId: growthDecisionPlayerId,
             cityId: 'city-1'
         })
     })

@@ -60,7 +60,6 @@ export class CityGrowthStateHandler
             gameState.activePlayerIds = [growthDecisionPlayerId]
             if (!this.hasPendingGrowCity(context, automaticCityId)) {
                 context.addSystemAction(GrowCity, {
-                    playerId: growthDecisionPlayerId,
                     cityId: automaticCityId
                 })
             }

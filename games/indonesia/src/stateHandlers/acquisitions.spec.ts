@@ -227,7 +227,6 @@ describe('AcquisitionsStateHandler', () => {
                 id: 'remove-deed-action',
                 gameId: state.gameId,
                 source: ActionSource.System,
-                playerId: '',
                 deedId: productionDeed.id
             })
         )

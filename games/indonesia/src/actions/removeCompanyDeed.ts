@@ -14,10 +14,9 @@ export const RemoveCompanyDeedMetadata = Type.Object({
 export type RemoveCompanyDeed = Type.Static<typeof RemoveCompanyDeed>
 export const RemoveCompanyDeed = Type.Evaluate(
     Type.Intersect([
-        Type.Omit(GameAction, ['playerId']),
+        Type.Omit(GameAction, ['type']),
         Type.Object({
             type: Type.Literal(ActionType.RemoveCompanyDeed),
-            playerId: Type.String(),
             metadata: Type.Optional(RemoveCompanyDeedMetadata),
             deedId: Type.String()
         })
@@ -35,7 +34,7 @@ export class HydratedRemoveCompanyDeed
     implements RemoveCompanyDeed
 {
     declare type: ActionType.RemoveCompanyDeed
-    declare playerId: string
+    declare playerId?: string
     declare metadata?: RemoveCompanyDeedMetadata
     declare deedId: string
 
