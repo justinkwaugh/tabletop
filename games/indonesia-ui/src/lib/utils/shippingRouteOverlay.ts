@@ -21,14 +21,20 @@ type OpenNode = {
 }
 
 type LandShape = {
+    areaId: string
     path: SVGPathElement
     bbox: DOMRect
+}
+
+type RoutingContext = {
+    allowedLandAreaIds: ReadonlySet<string>
+    cacheKey: string
 }
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 const BOARD_WIDTH = 2646
 const BOARD_HEIGHT = 1280
-const LAND_INFLATION_PIXELS = 10
+const LAND_INFLATION_PIXELS = 20
 const GRID_STEP = 12
 const GRID_COLS = Math.floor(BOARD_WIDTH / GRID_STEP) + 1
 const GRID_ROWS = Math.floor(BOARD_HEIGHT / GRID_STEP) + 1
@@ -48,7 +54,7 @@ const EIGHT_WAY_NEIGHBORS = [
 
 let hiddenSvgRoot: SVGSVGElement | null = null
 let cachedLandShapes: readonly LandShape[] | null = null
-const blockedCellByKey = new Map<number, boolean>()
+const blockedCellByKey = new Map<string, boolean>()
 const waterPathByCellPairKey = new Map<string, Point[]>()
 
 function clamp(value: number, min: number, max: number): number {
@@ -110,6 +116,14 @@ function pointLerp(a: Point, b: Point, t: number): Point {
     }
 }
 
+function createRoutingContext(allowedLandAreaIds: readonly string[]): RoutingContext {
+    const sortedAllowedAreaIds = [...allowedLandAreaIds].sort((a, b) => a.localeCompare(b))
+    return {
+        allowedLandAreaIds: new Set(sortedAllowedAreaIds),
+        cacheKey: sortedAllowedAreaIds.join('|')
+    }
+}
+
 function ensureHiddenSvgRoot(): SVGSVGElement | null {
     if (typeof document === 'undefined') {
         return null
@@ -163,14 +177,18 @@ function ensureLandShapes(): readonly LandShape[] {
         root.appendChild(path)
 
         const bbox = path.getBBox()
-        shapes.push({ path, bbox })
+        shapes.push({
+            areaId: area.id,
+            path,
+            bbox
+        })
     }
 
     cachedLandShapes = shapes
     return cachedLandShapes
 }
 
-function pointInLand(point: Point): boolean {
+function pointInLand(point: Point, routingContext: RoutingContext): boolean {
     const landShapes = ensureLandShapes()
     if (landShapes.length === 0 || typeof DOMPoint === 'undefined') {
         return false
@@ -178,6 +196,10 @@ function pointInLand(point: Point): boolean {
 
     const domPoint = new DOMPoint(point.x, point.y)
     for (const shape of landShapes) {
+        if (routingContext.allowedLandAreaIds.has(shape.areaId)) {
+            continue
+        }
+
         if (
             point.x < shape.bbox.x ||
             point.x > shape.bbox.x + shape.bbox.width ||
@@ -195,24 +217,28 @@ function pointInLand(point: Point): boolean {
     return false
 }
 
-function isWaterCell(cell: GridCell): boolean {
+function isWaterCell(cell: GridCell, routingContext: RoutingContext): boolean {
     if (cell.x < 0 || cell.x >= GRID_COLS || cell.y < 0 || cell.y >= GRID_ROWS) {
         return false
     }
 
-    const key = cellToKey(cell)
+    const key = `${routingContext.cacheKey}:${cellToKey(cell)}`
     const cachedBlocked = blockedCellByKey.get(key)
     if (cachedBlocked !== undefined) {
         return !cachedBlocked
     }
 
-    const blocked = pointInLand(cellToPoint(cell))
+    const blocked = pointInLand(cellToPoint(cell), routingContext)
     blockedCellByKey.set(key, blocked)
     return !blocked
 }
 
-function nearestWaterCell(cell: GridCell, maxRadius = 10): GridCell | null {
-    if (isWaterCell(cell)) {
+function nearestWaterCell(
+    cell: GridCell,
+    routingContext: RoutingContext,
+    maxRadius = 10
+): GridCell | null {
+    if (isWaterCell(cell, routingContext)) {
         return cell
     }
 
@@ -230,7 +256,7 @@ function nearestWaterCell(cell: GridCell, maxRadius = 10): GridCell | null {
                     x: cell.x + dx,
                     y: cell.y + dy
                 }
-                if (!isWaterCell(candidate)) {
+                if (!isWaterCell(candidate, routingContext)) {
                     continue
                 }
 
@@ -280,9 +306,13 @@ function popLowestScoreNode(openNodes: OpenNode[]): OpenNode | null {
     return node ?? null
 }
 
-function findWaterGridPath(start: Point, end: Point): Point[] | null {
-    const startCell = nearestWaterCell(pointToCell(start))
-    const endCell = nearestWaterCell(pointToCell(end))
+function findWaterGridPath(
+    start: Point,
+    end: Point,
+    routingContext: RoutingContext
+): Point[] | null {
+    const startCell = nearestWaterCell(pointToCell(start), routingContext)
+    const endCell = nearestWaterCell(pointToCell(end), routingContext)
     if (!startCell || !endCell) {
         return null
     }
@@ -322,7 +352,7 @@ function findWaterGridPath(start: Point, end: Point): Point[] | null {
                 x: currentCell.x + neighborOffset.dx,
                 y: currentCell.y + neighborOffset.dy
             }
-            if (!isWaterCell(neighborCell)) {
+            if (!isWaterCell(neighborCell, routingContext)) {
                 continue
             }
 
@@ -346,16 +376,16 @@ function findWaterGridPath(start: Point, end: Point): Point[] | null {
     return null
 }
 
-function segmentStaysOnWater(start: Point, end: Point): boolean {
+function segmentStaysOnWater(start: Point, end: Point, routingContext: RoutingContext): boolean {
     const segmentLength = pointDistance(start, end)
     if (segmentLength <= 0) {
-        return !pointInLand(start)
+        return !pointInLand(start, routingContext)
     }
 
     const sampleCount = Math.max(1, Math.ceil(segmentLength / SEGMENT_SAMPLE_STEP))
     for (let sampleIndex = 0; sampleIndex <= sampleCount; sampleIndex += 1) {
         const samplePoint = pointLerp(start, end, sampleIndex / sampleCount)
-        if (pointInLand(samplePoint)) {
+        if (pointInLand(samplePoint, routingContext)) {
             return false
         }
     }
@@ -363,7 +393,7 @@ function segmentStaysOnWater(start: Point, end: Point): boolean {
     return true
 }
 
-function simplifyWaterPath(points: readonly Point[]): Point[] {
+function simplifyWaterPath(points: readonly Point[], routingContext: RoutingContext): Point[] {
     if (points.length <= 2) {
         return [...points]
     }
@@ -373,7 +403,7 @@ function simplifyWaterPath(points: readonly Point[]): Point[] {
     while (anchorIndex < points.length - 1) {
         let nextIndex = points.length - 1
         while (nextIndex > anchorIndex + 1) {
-            if (segmentStaysOnWater(points[anchorIndex], points[nextIndex])) {
+            if (segmentStaysOnWater(points[anchorIndex], points[nextIndex], routingContext)) {
                 break
             }
             nextIndex -= 1
@@ -386,56 +416,62 @@ function simplifyWaterPath(points: readonly Point[]): Point[] {
     return simplified
 }
 
-function routeThroughWater(start: Point, end: Point): Point[] {
+function routeThroughWater(
+    start: Point,
+    end: Point,
+    routingContext: RoutingContext
+): Point[] | null {
     if (typeof document === 'undefined' || cachedLandShapes?.length === 0) {
         return [start, end]
     }
 
-    if (segmentStaysOnWater(start, end)) {
+    if (segmentStaysOnWater(start, end, routingContext)) {
         return [start, end]
     }
 
     const startCell = pointToCell(start)
     const endCell = pointToCell(end)
-    const forwardKey = `${startCell.x},${startCell.y}->${endCell.x},${endCell.y}`
+    const forwardKey = `${routingContext.cacheKey}:${startCell.x},${startCell.y}->${endCell.x},${endCell.y}`
     const cachedForward = waterPathByCellPairKey.get(forwardKey)
     if (cachedForward) {
         return cachedForward
     }
 
-    const reverseKey = `${endCell.x},${endCell.y}->${startCell.x},${startCell.y}`
+    const reverseKey = `${routingContext.cacheKey}:${endCell.x},${endCell.y}->${startCell.x},${startCell.y}`
     const cachedReverse = waterPathByCellPairKey.get(reverseKey)
     if (cachedReverse) {
         return [...cachedReverse].reverse()
     }
 
-    const routedPath = findWaterGridPath(start, end)
+    const routedPath = findWaterGridPath(start, end, routingContext)
     if (!routedPath || routedPath.length === 0) {
-        const fallback = [start, end]
-        waterPathByCellPairKey.set(forwardKey, fallback)
-        return fallback
+        return null
     }
 
     const withExactEndpoints = [...routedPath]
     withExactEndpoints[0] = start
     withExactEndpoints[withExactEndpoints.length - 1] = end
 
-    const simplifiedPath = simplifyWaterPath(withExactEndpoints)
+    const simplifiedPath = simplifyWaterPath(withExactEndpoints, routingContext)
     waterPathByCellPairKey.set(forwardKey, simplifiedPath)
     waterPathByCellPairKey.set(reverseKey, [...simplifiedPath].reverse())
     return simplifiedPath
 }
 
-function firstWaterPointAlongLine(landPoint: Point, towardPoint: Point): Point {
+function firstWaterPointAlongLine(
+    landPoint: Point,
+    towardPoint: Point,
+    routingContext: RoutingContext
+): Point | null {
     const samples = 96
-    for (let sampleIndex = 1; sampleIndex <= samples; sampleIndex += 1) {
+    for (let sampleIndex = 0; sampleIndex <= samples; sampleIndex += 1) {
         const point = pointLerp(landPoint, towardPoint, sampleIndex / samples)
-        if (!pointInLand(point)) {
+        if (!pointInLand(point, routingContext)) {
             return point
         }
     }
 
-    return towardPoint
+    return null
 }
 
 function seaWaypointForAreaId(seaAreaId: string): Point | null {
@@ -524,14 +560,33 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         return buildStraightFallbackPath(input)
     }
 
+    const sourceRoutingContext = createRoutingContext([input.cultivatedAreaId])
+    const seaRoutingContext = createRoutingContext([])
+    const targetRoutingContext = createRoutingContext([input.cityAreaId])
+
     const fullRoutePoints: Point[] = []
 
     const cultivatedPoint = resolveLandMarkerPosition(input.cultivatedAreaId)
     const firstSeaPoint = seaWaypoints[0]
     if (cultivatedPoint) {
         appendPointIfNeeded(fullRoutePoints, cultivatedPoint)
-        const startWaterPoint = firstWaterPointAlongLine(cultivatedPoint, firstSeaPoint)
-        appendPathSegment(fullRoutePoints, routeThroughWater(startWaterPoint, firstSeaPoint))
+        const startWaterPoint = firstWaterPointAlongLine(
+            cultivatedPoint,
+            firstSeaPoint,
+            sourceRoutingContext
+        )
+        if (!startWaterPoint) {
+            return null
+        }
+        const startSegment = routeThroughWater(
+            startWaterPoint,
+            firstSeaPoint,
+            sourceRoutingContext
+        )
+        if (!startSegment) {
+            return null
+        }
+        appendPathSegment(fullRoutePoints, startSegment)
     } else {
         appendPointIfNeeded(fullRoutePoints, firstSeaPoint)
     }
@@ -539,14 +594,25 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
     for (let index = 1; index < seaWaypoints.length; index += 1) {
         const from = seaWaypoints[index - 1]
         const to = seaWaypoints[index]
-        appendPathSegment(fullRoutePoints, routeThroughWater(from, to))
+        const seaSegment = routeThroughWater(from, to, seaRoutingContext)
+        if (!seaSegment) {
+            return null
+        }
+        appendPathSegment(fullRoutePoints, seaSegment)
     }
 
     const cityPoint = resolveLandMarkerPosition(input.cityAreaId)
     const lastSeaPoint = seaWaypoints[seaWaypoints.length - 1]
     if (cityPoint) {
-        const cityWaterPoint = firstWaterPointAlongLine(cityPoint, lastSeaPoint)
-        appendPathSegment(fullRoutePoints, routeThroughWater(lastSeaPoint, cityWaterPoint))
+        const cityWaterPoint = firstWaterPointAlongLine(cityPoint, lastSeaPoint, targetRoutingContext)
+        if (!cityWaterPoint) {
+            return null
+        }
+        const endSegment = routeThroughWater(lastSeaPoint, cityWaterPoint, targetRoutingContext)
+        if (!endSegment) {
+            return null
+        }
+        appendPathSegment(fullRoutePoints, endSegment)
         appendPointIfNeeded(fullRoutePoints, cityPoint)
     }
 
