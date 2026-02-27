@@ -990,6 +990,7 @@ export class GameService {
             if (
                 actions.some(
                     (action) =>
+                        action.source === ActionSource.User &&
                         action.playerId &&
                         action.playerId !== userPlayer?.id &&
                         !this.isSameSimultaneousGroup(action, actionToUndo)
