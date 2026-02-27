@@ -1,5 +1,8 @@
 <script lang="ts">
     import CompanyCard from '$lib/components/CompanyCard.svelte'
+    import ShipMarker from '$lib/components/ShipMarker.svelte'
+    import { shadeHexColor } from '$lib/utils/color.js'
+    import { Color } from '@tabletop/common'
     import {
         ActionType,
         BID_RESEARCH_MULTIPLIERS,
@@ -14,6 +17,7 @@
     let bidInput = $state('0')
     let placingTurnOrderBid = $state(false)
     let choosingOperatingCompany = $state(false)
+    let deliveringGood = $state(false)
 
     const showTurnOrderBidFormula = $derived.by(() => {
         return (
@@ -92,9 +96,31 @@
         )
     })
 
+    const showProductionDeliveryPanel = $derived.by(() => {
+        return gameSession.deliverySelectionEnabled && !gameSession.gameState.result
+    })
+
+    const showDeliveryShippingChoices = $derived.by(() => {
+        return (
+            showProductionDeliveryPanel &&
+            gameSession.deliverySelectionStage === 'shipping' &&
+            gameSession.deliveryShippingChoices.length > 0
+        )
+    })
+
+    const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
+        () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
+    )
+
     $effect(() => {
         if (!showOperatingCompanyPicker) {
             gameSession.setHoveredOperatingCompany(undefined)
+        }
+    })
+
+    $effect(() => {
+        if (!showDeliveryShippingChoices) {
+            gameSession.setHoveredDeliveryRoute(undefined)
         }
     })
 
@@ -102,6 +128,30 @@
         company: (typeof gameSession.gameState.companies)[number]
         cultivatedAreaCount: number
         earnings: number | null
+    }
+
+    function shippingMarkerVisualForCompany(shippingCompanyId: string): {
+        style: 'a' | 'b'
+        hullFillColor: string
+        hullStrokeColor: string
+    } {
+        const company = companyById.get(shippingCompanyId)
+        if (!company) {
+            return {
+                style: 'a',
+                hullFillColor: '#7ea6ad',
+                hullStrokeColor: 'none'
+            }
+        }
+
+        const hullFillColor = gameSession.colors.getPlayerUiColor(company.owner)
+        const ownerPlayerColor = gameSession.colors.getPlayerColor(company.owner)
+        return {
+            style: shippingCompanyId.charCodeAt(0) % 2 === 0 ? 'a' : 'b',
+            hullFillColor,
+            hullStrokeColor:
+                ownerPlayerColor === Color.Yellow ? shadeHexColor(hullFillColor, 0.35) : 'none'
+        }
     }
 
     const cultivatedAreaCountByCompanyId: Record<string, number> = $derived.by(() => {
@@ -190,11 +240,22 @@
             case MachineState.ProductionOperations: {
                 const maxGoodsToShip = maxGoodsToShipForCurrentProductionOperation
                 const goodsLabel = maxGoodsToShip === 1 ? 'good' : 'goods'
-                if (shippedGoodsCountForCurrentProductionOperation > 0) {
-                    return `Ship ${maxGoodsToShip} more ${goodsLabel}.`
+                const baseMessage =
+                    shippedGoodsCountForCurrentProductionOperation > 0
+                        ? `Ship ${maxGoodsToShip} more ${goodsLabel}.`
+                        : `Ship ${maxGoodsToShip} ${goodsLabel}.`
+
+                if (gameSession.deliverySelectionStage === 'cultivated') {
+                    return `${baseMessage} Choose a cultivated area.`
+                }
+                if (gameSession.deliverySelectionStage === 'city') {
+                    return `${baseMessage} Choose a destination city.`
+                }
+                if (gameSession.deliverySelectionStage === 'shipping') {
+                    return `${baseMessage} Choose shipping.`
                 }
 
-                return `Ship ${maxGoodsToShip} ${goodsLabel}.`
+                return baseMessage
             }
             case MachineState.EndOfGame:
                 return 'Game over.'
@@ -253,6 +314,19 @@
             await gameSession.chooseOperatingCompany(companyId)
         } finally {
             choosingOperatingCompany = false
+        }
+    }
+
+    async function submitDeliveryShippingChoice(routeKey: string): Promise<void> {
+        if (!showDeliveryShippingChoices || deliveringGood) {
+            return
+        }
+
+        deliveringGood = true
+        try {
+            await gameSession.deliverGoodForRoute(routeKey)
+        } finally {
+            deliveringGood = false
         }
     }
 
@@ -361,6 +435,69 @@
                 {/each}
             </div>
         </div>
+    {:else if showProductionDeliveryPanel}
+        <div class="production-delivery-panel">
+            <span class="operating-company-message">{message}</span>
+            {#if showDeliveryShippingChoices}
+                <div class="delivery-shipping-choices" aria-label="Delivery shipping choices">
+                    {#each gameSession.deliveryShippingChoices as choice (choice.routeKey)}
+                        {@const markerVisual = shippingMarkerVisualForCompany(
+                            choice.candidate.shippingCompanyId
+                        )}
+                        <div
+                            class={`delivery-shipping-choice ${deliveringGood ? 'is-disabled' : ''}`}
+                            role="button"
+                            tabindex={deliveringGood ? -1 : 0}
+                            aria-disabled={deliveringGood}
+                            aria-label={`Deliver via shipping company ${choice.candidate.shippingCompanyId}`}
+                            title={`${choice.candidate.shippingCompanyId}: ${choice.candidate.seaAreaIds.join(' -> ')}`}
+                            onmouseenter={() => {
+                                gameSession.setHoveredDeliveryRoute(choice.routeKey)
+                            }}
+                            onmouseleave={() => {
+                                gameSession.setHoveredDeliveryRoute(undefined)
+                            }}
+                            onfocus={() => {
+                                gameSession.setHoveredDeliveryRoute(choice.routeKey)
+                            }}
+                            onblur={() => {
+                                gameSession.setHoveredDeliveryRoute(undefined)
+                            }}
+                            onclick={() => {
+                                submitDeliveryShippingChoice(choice.routeKey)
+                            }}
+                            onkeydown={(event) => {
+                                if (event.key !== 'Enter' && event.key !== ' ') {
+                                    return
+                                }
+                                event.preventDefault()
+                                submitDeliveryShippingChoice(choice.routeKey)
+                            }}
+                        >
+                            <span class="delivery-route-icon-wrap" aria-hidden="true">
+                                <svg
+                                    class="delivery-route-icon-svg"
+                                    viewBox="0 0 102 72"
+                                    width="102"
+                                    height="72"
+                                >
+                                    <ShipMarker
+                                        x={51}
+                                        y={36}
+                                        style={markerVisual.style}
+                                        height={54}
+                                        outline={false}
+                                        hullFillColor={markerVisual.hullFillColor}
+                                        hullStrokeColor={markerVisual.hullStrokeColor}
+                                        hullStrokeWidth={12}
+                                    />
+                                </svg>
+                            </span>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+        </div>
     {:else}
         <span>{message}</span>
     {/if}
@@ -399,6 +536,15 @@
     }
 
     .operating-company-panel {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .production-delivery-panel {
         width: 100%;
         display: flex;
         flex-direction: column;
@@ -446,6 +592,53 @@
         display: block;
         width: 126px;
         height: 78px;
+    }
+
+    .delivery-shipping-choices {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .delivery-shipping-choice {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        max-width: 100%;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        padding: 2px 3px;
+        transition: opacity 120ms ease;
+        cursor: pointer;
+    }
+
+    .delivery-shipping-choice:hover,
+    .delivery-shipping-choice:focus-visible {
+        opacity: 0.9;
+        outline: none;
+    }
+
+    .delivery-shipping-choice.is-disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+
+    .delivery-route-icon-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 102px;
+        height: 72px;
+        flex: 0 0 auto;
+    }
+
+    .delivery-route-icon-svg {
+        display: block;
     }
 
     .bid-formula {

@@ -54,7 +54,13 @@ export class ProductionOperationsStateHandler
     ): MachineState {
         const state = context.gameState
         switch (true) {
-            case isDeliverGood(action):
+            case isDeliverGood(action): {
+                if (HydratedDeliverGood.canDeliverGood(state, action.playerId)) {
+                    return MachineState.ProductionOperations
+                }
+
+                return finishOperatingCompany(state)
+            }
             case isExpand(action): {
                 return finishOperatingCompany(state)
             }

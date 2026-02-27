@@ -1,14 +1,18 @@
 import {
+    ActionSource,
     GameCategory,
     GameStatus,
     GameStorage,
     MachineContext,
     PlayerStatus,
+    createAction,
     type Game,
     type Player,
     type UninitializedGameState
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { DeliverGood, HydratedDeliverGood } from '../actions/deliverGood.js'
+import { ActionType } from '../definition/actions.js'
 import { AreaType } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
@@ -129,5 +133,78 @@ describe('ProductionOperationsStateHandler', () => {
             shippingCost: 5,
             netIncome: 15
         })
+    })
+
+    it('stays in production operations after a delivery when more safe deliveries remain', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        state.getPlayerState(playerId).research.hull = 0
+
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [],
+                good: Good.Rice
+            },
+            {
+                id: 'ship-1',
+                type: CompanyType.Shipping,
+                owner: playerId,
+                deeds: []
+            }
+        ]
+
+        state.board.areas['A01'] = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas['A02'] = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas['S14'] = {
+            id: 'S14',
+            type: AreaType.Sea,
+            ships: ['ship-1', 'ship-1']
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A04',
+            size: 2,
+            demand: {}
+        })
+
+        state.machineState = MachineState.ProductionOperations
+        state.beginCompanyOperation('prod-1')
+
+        const handler = new ProductionOperationsStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        const action = new HydratedDeliverGood(
+            createAction(DeliverGood, {
+                id: `deliver-good-${state.actionCount}`,
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId,
+                type: ActionType.DeliverGood,
+                cultivatedAreaId: 'A01',
+                shippingCompanyId: 'ship-1',
+                seaAreaIds: ['S14'],
+                cityId: 'city-1'
+            })
+        )
+
+        action.apply(state, context)
+        const nextState = handler.onAction(action, context)
+
+        expect(nextState).toBe(MachineState.ProductionOperations)
+        expect(state.operatingCompanyShippedGoodsCount).toBe(1)
     })
 })

@@ -19,3 +19,4 @@
 17. Centralize UI action initiation in the game session object. Components should call session methods (for example `session.placeCity(...)`) instead of constructing/applying actions directly via `createPlayerAction` + `applyAction`.
 18. In files that define a class, if a helper is only used by that class, implement it as a private class method instead of a top-level function. Use top-level helpers only when shared across classes/functions.
 19. For invariant conditions that are expected to always hold (for example required IDs passed from trusted game flow), use `assert`/`assertExists` with clear messages instead of silently returning fallback values like `false`.
+20. In staged/multi-step UI flows, `undo` must clear in-progress local UI selection state first; only when no staged local state exists should it invoke action-history undo. Follow the same interaction pattern used in Bus/Sol.

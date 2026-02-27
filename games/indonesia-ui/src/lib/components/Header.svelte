@@ -9,6 +9,10 @@
         () => gameSession.gameState.turnManager.currentTurn()?.playerId
     )
 
+    function back() {
+        gameSession.back()
+    }
+
     async function undo() {
         await gameSession.undo()
     }
@@ -43,7 +47,15 @@
     </div>
 
     <div class="header-grid grid text-[18px]">
-        {#if gameSession.undoableAction}
+        {#if gameSession.midAction}
+            <button
+                type="button"
+                onclick={back}
+                class="rounded-lg px-2 py-1 text-[#333] hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5d6979]/60"
+            >
+                UNDO
+            </button>
+        {:else if gameSession.undoableAction}
             <button
                 type="button"
                 onclick={undo}

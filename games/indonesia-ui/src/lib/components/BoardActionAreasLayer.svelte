@@ -23,7 +23,12 @@
     const gameSession = getGameSession()
     const SHIPPING_HIGHLIGHT_STYLE = companyDeedStyleForType('ship')
 
-    type AreaInteractionAction = 'place-city' | 'start-company' | 'expand'
+    type AreaInteractionAction =
+        | 'place-city'
+        | 'start-company'
+        | 'expand'
+        | 'select-delivery-cultivated'
+        | 'select-delivery-city'
     type ActiveAreaInteraction = {
         action: AreaInteractionAction
         validAreaIds: readonly string[]
@@ -136,6 +141,24 @@
         return Array.from(gameSession.gameState.validExpansionAreaIds(operatingCompanyId))
     })
 
+    const deliverySelectionEnabled: boolean = $derived.by(() => gameSession.deliverySelectionEnabled)
+
+    const deliveryShippingChoiceSeaAreaIds: readonly string[] = $derived.by(() => {
+        if (gameSession.deliverySelectionStage !== 'shipping') {
+            return []
+        }
+
+        return gameSession.deliveryShippingChoiceSeaAreaIds.filter((areaId) => boardAreaPathById(areaId))
+    })
+
+    const hoveredDeliveryRouteSeaAreaIds: readonly string[] = $derived.by(() => {
+        if (gameSession.deliverySelectionStage !== 'shipping') {
+            return []
+        }
+
+        return gameSession.hoveredDeliveryRouteSeaAreaIds.filter((areaId) => boardAreaPathById(areaId))
+    })
+
     $effect(() => {
         if (!startCompanySelectionEnabled) {
             selectedStartCompanyDeedId = null
@@ -184,6 +207,42 @@
                 outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
                 maskedAreaType: IndonesiaAreaType.Sea,
                 maskInvalidAreas: false
+            }
+        }
+
+        if (myPlayerId && deliverySelectionEnabled) {
+            if (gameSession.deliverySelectionStage === 'cultivated') {
+                const validAreaIds = gameSession.deliveryAvailableCultivatedAreaIds.filter((areaId) =>
+                    boardAreaPathById(areaId)
+                )
+                if (validAreaIds.length === 0) {
+                    return null
+                }
+
+                return {
+                    action: 'select-delivery-cultivated',
+                    validAreaIds,
+                    outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
+                    maskedAreaType: IndonesiaAreaType.Land,
+                    maskInvalidAreas: true
+                }
+            }
+
+            if (gameSession.deliverySelectionStage === 'city') {
+                const validAreaIds = gameSession.deliveryAvailableCityAreaIds.filter((areaId) =>
+                    boardAreaPathById(areaId)
+                )
+                if (validAreaIds.length === 0) {
+                    return null
+                }
+
+                return {
+                    action: 'select-delivery-city',
+                    validAreaIds,
+                    outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
+                    maskedAreaType: IndonesiaAreaType.Land,
+                    maskInvalidAreas: true
+                }
             }
         }
 
@@ -279,6 +338,23 @@
             return
         }
 
+        if (activeAreaInteraction.action === 'select-delivery-cultivated') {
+            gameSession.selectDeliveryCultivatedArea(areaId)
+            hoveredAreaId = null
+            return
+        }
+
+        if (activeAreaInteraction.action === 'select-delivery-city') {
+            const city = gameSession.gameState.board.cities.find((entry) => entry.area === areaId)
+            if (!city) {
+                return
+            }
+
+            gameSession.selectDeliveryCity(city.id)
+            hoveredAreaId = null
+            return
+        }
+
         applyingAreaAction = true
         try {
             if (activeAreaInteraction.action === 'place-city') {
@@ -314,7 +390,7 @@
     }
 </script>
 
-{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredShippingCompanySeaAreaIds.length > 0}
+{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredShippingCompanySeaAreaIds.length > 0 || deliveryShippingChoiceSeaAreaIds.length > 0 || hoveredDeliveryRouteSeaAreaIds.length > 0}
     <g class="select-none" aria-label="Board action areas layer">
         {#each hoveredShippingCompanySeaAreaIds as areaId (areaId)}
             <Area
@@ -327,6 +403,32 @@
                 strokeLineJoin="round"
                 strokeLineCap="round"
                 opacity={SHIPPING_HIGHLIGHT_STYLE.overlayOpacity}
+                pointer-events="none"
+            />
+        {/each}
+
+        {#each deliveryShippingChoiceSeaAreaIds as areaId (areaId)}
+            <Area
+                areaId={areaId}
+                fill={SHIPPING_HIGHLIGHT_STYLE.overlayFill}
+                stroke={SHIPPING_HIGHLIGHT_STYLE.overlayStroke}
+                fillOpacity="1"
+                fillRule="evenodd"
+                strokeWidth="1.9"
+                strokeLineJoin="round"
+                strokeLineCap="round"
+                opacity={SHIPPING_HIGHLIGHT_STYLE.overlayOpacity}
+                pointer-events="none"
+            />
+        {/each}
+
+        {#each hoveredDeliveryRouteSeaAreaIds as areaId (areaId)}
+            <Area
+                areaId={areaId}
+                fill="none"
+                stroke="#000000"
+                fillOpacity="0"
+                strokeWidth="4"
                 pointer-events="none"
             />
         {/each}

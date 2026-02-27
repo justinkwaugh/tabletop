@@ -1,10 +1,12 @@
 import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
+    type AtomicDeliveryCandidate,
     ChooseOperatingCompany,
     CompanyType,
     DeliverGood,
     Expand,
+    listSafeAtomicDeliveryCandidatesForPlayer,
     MachineState,
     PlaceCity,
     PlaceTurnOrderBid,
@@ -21,6 +23,9 @@ export class IndonesiaGameSession extends GameSession<
 > {
     selectedResearchPlayerIdOverride: string | undefined = $state()
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
+    selectedDeliveryCultivatedAreaIdOverride: string | undefined = $state()
+    selectedDeliveryCityIdOverride: string | undefined = $state()
+    hoveredDeliveryRouteKeyOverride: string | undefined = $state()
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
     researchSelectionEnabled = $derived.by(
@@ -62,13 +67,196 @@ export class IndonesiaGameSession extends GameSession<
         return company.id
     })
 
+    deliverySelectionEnabled = $derived.by(
+        () =>
+            this.isMyTurn &&
+            this.gameState.machineState === MachineState.ProductionOperations &&
+            this.validActionTypes.includes(ActionType.DeliverGood)
+    )
+
+    midAction = $derived.by(
+        () =>
+            !!this.selectedDeliveryCultivatedAreaIdOverride ||
+            !!this.selectedDeliveryCityIdOverride ||
+            !!this.selectedResearchPlayerIdOverride
+    )
+
+    safeDeliveryCandidates: AtomicDeliveryCandidate[] = $derived.by(() => {
+        if (!this.deliverySelectionEnabled) {
+            return []
+        }
+
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) {
+            return []
+        }
+
+        return listSafeAtomicDeliveryCandidatesForPlayer(this.gameState, myPlayerId)
+    })
+
+    deliveryAvailableCultivatedAreaIds: string[] = $derived.by(() => {
+        const areaIdSet = new Set<string>()
+        for (const candidate of this.safeDeliveryCandidates) {
+            areaIdSet.add(candidate.cultivatedAreaId)
+        }
+
+        return [...areaIdSet].sort((a, b) => a.localeCompare(b))
+    })
+
+    selectedDeliveryCultivatedAreaId: string | null = $derived.by(() => {
+        const selectedAreaId = this.selectedDeliveryCultivatedAreaIdOverride
+        if (!selectedAreaId) {
+            return null
+        }
+
+        return this.deliveryAvailableCultivatedAreaIds.includes(selectedAreaId)
+            ? selectedAreaId
+            : null
+    })
+
+    deliveryAvailableCityIds: string[] = $derived.by(() => {
+        const selectedAreaId = this.selectedDeliveryCultivatedAreaId
+        if (!selectedAreaId) {
+            return []
+        }
+
+        const cityIdSet = new Set<string>()
+        for (const candidate of this.safeDeliveryCandidates) {
+            if (candidate.cultivatedAreaId !== selectedAreaId) {
+                continue
+            }
+            cityIdSet.add(candidate.cityId)
+        }
+
+        return [...cityIdSet].sort((a, b) => a.localeCompare(b))
+    })
+
+    selectedDeliveryCityId: string | null = $derived.by(() => {
+        const selectedCityId = this.selectedDeliveryCityIdOverride
+        if (!selectedCityId) {
+            return null
+        }
+
+        return this.deliveryAvailableCityIds.includes(selectedCityId) ? selectedCityId : null
+    })
+
+    deliveryShippingChoices: { routeKey: string; candidate: AtomicDeliveryCandidate }[] = $derived.by(() => {
+        const selectedAreaId = this.selectedDeliveryCultivatedAreaId
+        const selectedCityId = this.selectedDeliveryCityId
+        if (!selectedAreaId || !selectedCityId) {
+            return []
+        }
+
+        return this.safeDeliveryCandidates
+            .filter(
+                (candidate) =>
+                    candidate.cultivatedAreaId === selectedAreaId && candidate.cityId === selectedCityId
+            )
+            .map((candidate) => ({
+                routeKey: `${candidate.shippingCompanyId}|${candidate.seaAreaIds.join('>')}`,
+                candidate
+            }))
+            .sort((choiceA, choiceB) => choiceA.routeKey.localeCompare(choiceB.routeKey))
+    })
+
+    hoveredDeliveryShippingChoice: { routeKey: string; candidate: AtomicDeliveryCandidate } | null =
+        $derived.by(() => {
+            const hoveredRouteKey = this.hoveredDeliveryRouteKeyOverride
+            if (!hoveredRouteKey) {
+                return null
+            }
+
+            return (
+                this.deliveryShippingChoices.find((choice) => choice.routeKey === hoveredRouteKey) ?? null
+            )
+        })
+
+    deliverySelectionStage: 'cultivated' | 'city' | 'shipping' | 'none' = $derived.by(() => {
+        if (!this.deliverySelectionEnabled) {
+            return 'none'
+        }
+
+        if (!this.selectedDeliveryCultivatedAreaId) {
+            return 'cultivated'
+        }
+
+        if (!this.selectedDeliveryCityId) {
+            return 'city'
+        }
+
+        return 'shipping'
+    })
+
+    deliveryAvailableCityAreaIds: string[] = $derived.by(() => {
+        const cityAreaIds: string[] = []
+        for (const cityId of this.deliveryAvailableCityIds) {
+            const city = this.gameState.board.cities.find((entry) => entry.id === cityId)
+            if (!city) {
+                continue
+            }
+            cityAreaIds.push(city.area)
+        }
+        return cityAreaIds
+    })
+
+    deliveryShippingChoiceSeaAreaIds: string[] = $derived.by(() => {
+        const seaAreaIdSet = new Set<string>()
+        for (const choice of this.deliveryShippingChoices) {
+            for (const seaAreaId of choice.candidate.seaAreaIds) {
+                seaAreaIdSet.add(seaAreaId)
+            }
+        }
+
+        return [...seaAreaIdSet].sort((a, b) => a.localeCompare(b))
+    })
+
+    hoveredDeliveryRouteSeaAreaIds: string[] = $derived.by(() => {
+        const hoveredChoice = this.hoveredDeliveryShippingChoice
+        if (!hoveredChoice) {
+            return []
+        }
+
+        return hoveredChoice.candidate.seaAreaIds
+    })
+
     resetAction(): void {
         this.selectedResearchPlayerIdOverride = undefined
         this.hoveredOperatingCompanyIdOverride = undefined
+        this.selectedDeliveryCultivatedAreaIdOverride = undefined
+        this.selectedDeliveryCityIdOverride = undefined
+        this.hoveredDeliveryRouteKeyOverride = undefined
     }
 
     override beforeNewState(): void {
         this.resetAction()
+    }
+
+    back(): void {
+        if (this.selectedDeliveryCityIdOverride) {
+            this.selectedDeliveryCityIdOverride = undefined
+            this.hoveredDeliveryRouteKeyOverride = undefined
+            return
+        }
+
+        if (this.selectedDeliveryCultivatedAreaIdOverride) {
+            this.selectedDeliveryCultivatedAreaIdOverride = undefined
+            this.selectedDeliveryCityIdOverride = undefined
+            this.hoveredDeliveryRouteKeyOverride = undefined
+            return
+        }
+
+        if (this.selectedResearchPlayerIdOverride) {
+            this.selectedResearchPlayerIdOverride = undefined
+        }
+    }
+
+    override async undo(): Promise<void> {
+        if (this.midAction) {
+            this.back()
+            return
+        }
+
+        await super.undo()
     }
 
     selectResearchPlayer(playerId: string): void {
@@ -109,6 +297,67 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         this.hoveredOperatingCompanyIdOverride = companyId
+    }
+
+    selectDeliveryCultivatedArea(areaId: string): void {
+        if (!this.deliverySelectionEnabled) {
+            return
+        }
+        if (!this.deliveryAvailableCultivatedAreaIds.includes(areaId)) {
+            return
+        }
+
+        this.selectedDeliveryCultivatedAreaIdOverride = areaId
+        this.selectedDeliveryCityIdOverride = undefined
+        this.hoveredDeliveryRouteKeyOverride = undefined
+    }
+
+    selectDeliveryCity(cityId: string): void {
+        if (!this.deliverySelectionEnabled) {
+            return
+        }
+        if (!this.selectedDeliveryCultivatedAreaId) {
+            return
+        }
+        if (!this.deliveryAvailableCityIds.includes(cityId)) {
+            return
+        }
+
+        this.selectedDeliveryCityIdOverride = cityId
+        this.hoveredDeliveryRouteKeyOverride = undefined
+    }
+
+    setHoveredDeliveryRoute(routeKey: string | undefined): void {
+        if (!routeKey) {
+            this.hoveredDeliveryRouteKeyOverride = undefined
+            return
+        }
+        if (this.deliverySelectionStage !== 'shipping') {
+            return
+        }
+        if (!this.deliveryShippingChoices.some((choice) => choice.routeKey === routeKey)) {
+            return
+        }
+
+        this.hoveredDeliveryRouteKeyOverride = routeKey
+    }
+
+    async deliverGoodForRoute(routeKey: string): Promise<void> {
+        if (!this.deliverySelectionEnabled) {
+            return
+        }
+
+        const choice = this.deliveryShippingChoices.find((entry) => entry.routeKey === routeKey)
+        if (!choice) {
+            return
+        }
+
+        await this.deliverGood(
+            choice.candidate.cultivatedAreaId,
+            choice.candidate.shippingCompanyId,
+            choice.candidate.seaAreaIds,
+            choice.candidate.cityId
+        )
     }
 
     async placeTurnOrderBid(amount: number): Promise<void> {
