@@ -190,3 +190,105 @@ describe('HydratedIndonesiaGameState era transition helpers', () => {
         expect(state.era).toBe(Era.C)
     })
 })
+
+describe('HydratedIndonesiaGameState company operation eligibility', () => {
+    it('does not count full-capacity shipping companies as operable', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const shippingDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Shipping && (deed.sizes[state.era] ?? 0) > 0
+        )
+
+        expect(shippingDeed).toBeDefined()
+        if (!shippingDeed || shippingDeed.type !== CompanyType.Shipping) {
+            return
+        }
+
+        const companyId = 'shipping-full'
+        const shippingCapacity = shippingDeed.sizes[state.era] ?? 0
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Shipping,
+                owner: playerId,
+                deeds: [shippingDeed]
+            }
+        ]
+        state.board.areas.S01 = {
+            id: 'S01',
+            type: AreaType.Sea,
+            ships: Array.from({ length: shippingCapacity }, () => companyId)
+        }
+
+        expect(state.canCompanyBeOperated(companyId)).toBe(false)
+        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(false)
+    })
+
+    it('does not count production companies with no cultivated areas as operable', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+
+        expect(productionDeed).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production) {
+            return
+        }
+
+        const companyId = 'production-empty'
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            }
+        ]
+
+        expect(state.canCompanyBeOperated(companyId)).toBe(false)
+        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(false)
+    })
+
+    it('does not count production companies with no city demand as operable', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+
+        expect(productionDeed).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production) {
+            return
+        }
+
+        const companyId = 'production-no-demand'
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            }
+        ]
+        state.board.areas.A02 = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId,
+            good: productionDeed.good
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A01',
+            size: 1,
+            demand: {
+                [productionDeed.good]: 1
+            }
+        })
+
+        expect(state.canCompanyBeOperated(companyId)).toBe(false)
+        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(false)
+    })
+})

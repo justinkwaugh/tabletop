@@ -9,6 +9,7 @@ import {
     type UninitializedGameState
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { AreaType } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { PhaseName } from '../definition/phases.js'
@@ -155,5 +156,120 @@ describe('OperationsStateHandler', () => {
         expect(state.board.cities[0].demand).toEqual({
             [Good.Rice]: 1
         })
+    })
+
+    it('skips players whose only shipping companies cannot expand', () => {
+        const state = createTestState()
+        const player1Id = state.players[0].playerId
+        const player2Id = state.players[1].playerId
+        const blockedShippingDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Shipping && (deed.sizes[state.era] ?? 0) > 0
+        )
+        const operableShippingDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Shipping && (deed.sizes[state.era] ?? 0) > 1
+        )
+
+        expect(blockedShippingDeed).toBeDefined()
+        expect(operableShippingDeed).toBeDefined()
+        if (
+            !blockedShippingDeed ||
+            blockedShippingDeed.type !== CompanyType.Shipping ||
+            !operableShippingDeed ||
+            operableShippingDeed.type !== CompanyType.Shipping
+        ) {
+            return
+        }
+
+        const blockedShippingCompanyId = 'shipping-full'
+        const blockedShippingCapacity = blockedShippingDeed.sizes[state.era] ?? 0
+        const operableShippingCompanyId = 'shipping-operable'
+        state.companies = [
+            {
+                id: blockedShippingCompanyId,
+                type: CompanyType.Shipping,
+                owner: player1Id,
+                deeds: [blockedShippingDeed]
+            },
+            {
+                id: operableShippingCompanyId,
+                type: CompanyType.Shipping,
+                owner: player2Id,
+                deeds: [operableShippingDeed]
+            }
+        ]
+        state.board.areas.S01 = {
+            id: 'S01',
+            type: AreaType.Sea,
+            ships: Array.from({ length: blockedShippingCapacity }, () => blockedShippingCompanyId)
+        }
+        state.board.areas.S14 = {
+            id: 'S14',
+            type: AreaType.Sea,
+            ships: [operableShippingCompanyId]
+        }
+
+        const handler = new OperationsStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        expect(state.activePlayerIds).toEqual([player2Id])
+    })
+
+    it('skips players whose only production companies have no city demand', () => {
+        const state = createTestState()
+        const player1Id = state.players[0].playerId
+        const player2Id = state.players[1].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+        const shippingDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Shipping && (deed.sizes[state.era] ?? 0) > 1
+        )
+
+        expect(productionDeed).toBeDefined()
+        expect(shippingDeed).toBeDefined()
+        if (
+            !productionDeed ||
+            productionDeed.type !== CompanyType.Production ||
+            !shippingDeed ||
+            shippingDeed.type !== CompanyType.Shipping
+        ) {
+            return
+        }
+
+        const productionCompanyId = 'production-no-demand'
+        const shippingCompanyId = 'shipping-operable'
+        state.companies = [
+            {
+                id: productionCompanyId,
+                type: CompanyType.Production,
+                owner: player1Id,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            },
+            {
+                id: shippingCompanyId,
+                type: CompanyType.Shipping,
+                owner: player2Id,
+                deeds: [shippingDeed]
+            }
+        ]
+        state.board.areas.A02 = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId: productionCompanyId,
+            good: productionDeed.good
+        }
+        state.board.areas.S01 = {
+            id: 'S01',
+            type: AreaType.Sea,
+            ships: [shippingCompanyId]
+        }
+
+        const handler = new OperationsStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        expect(state.activePlayerIds).toEqual([player2Id])
     })
 })

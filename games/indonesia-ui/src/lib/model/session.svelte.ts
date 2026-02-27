@@ -16,6 +16,7 @@ import {
     Research,
     ResearchArea,
     StartCompany,
+    HydratedChooseOperatingCompany,
     type HydratedIndonesiaGameState,
     type IndonesiaGameState
 } from '@tabletop/indonesia'
@@ -68,6 +69,31 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         return company.id
+    })
+
+    operableOwnedCompanyIds: string[] = $derived.by(() => {
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) {
+            return []
+        }
+        if (this.gameState.machineState !== MachineState.Operations) {
+            return []
+        }
+        if (!this.validActionTypes.includes(ActionType.ChooseOperatingCompany)) {
+            return []
+        }
+
+        return this.gameState.companies
+            .filter(
+                (company) =>
+                    company.owner === myPlayerId &&
+                    HydratedChooseOperatingCompany.canChooseSpecificCompany(
+                        this.gameState,
+                        myPlayerId,
+                        company.id
+                    )
+            )
+            .map((company) => company.id)
     })
 
     deliverySelectionEnabled = $derived.by(
@@ -318,6 +344,15 @@ export class IndonesiaGameSession extends GameSession<
         if (company.owner !== this.myPlayer?.id) {
             return
         }
+        if (
+            !HydratedChooseOperatingCompany.canChooseSpecificCompany(
+                this.gameState,
+                this.myPlayer.id,
+                company.id
+            )
+        ) {
+            return
+        }
         if (company.type !== CompanyType.Shipping) {
             this.hoveredOperatingCompanyIdOverride = undefined
             return
@@ -477,6 +512,19 @@ export class IndonesiaGameSession extends GameSession<
 
     async chooseOperatingCompany(companyId: string): Promise<void> {
         if (!this.validActionTypes.includes(ActionType.ChooseOperatingCompany)) {
+            return
+        }
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) {
+            return
+        }
+        if (
+            !HydratedChooseOperatingCompany.canChooseSpecificCompany(
+                this.gameState,
+                myPlayerId,
+                companyId
+            )
+        ) {
             return
         }
 

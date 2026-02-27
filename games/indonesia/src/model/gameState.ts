@@ -127,9 +127,27 @@ export class HydratedIndonesiaGameState
         return this.operatedCompanyIds.includes(companyId)
     }
 
+    public canCompanyBeOperated(companyId: string): boolean {
+        const company = this.companies.find((entry) => entry.id === companyId)
+        if (!company) {
+            return false
+        }
+        if (this.hasCompanyOperated(company.id)) {
+            return false
+        }
+        if (isShippingCompany(company)) {
+            return this.canCompanyExpand(company.id)
+        }
+        if (isProductionCompany(company)) {
+            return this.canProductionCompanyOperate(company)
+        }
+
+        return false
+    }
+
     public canPlayerOperateAnyCompany(playerId: string): boolean {
         return this.companies.some(
-            (company) => company.owner === playerId && !this.hasCompanyOperated(company.id)
+            (company) => company.owner === playerId && this.canCompanyBeOperated(company.id)
         )
     }
 
@@ -592,6 +610,28 @@ export class HydratedIndonesiaGameState
         }
 
         return false
+    }
+
+    private canProductionCompanyOperate(company: ProductionCompany): boolean {
+        const cultivatedAreaCount = this.cultivatedAreaCountForCompany(company.id)
+        if (cultivatedAreaCount === 0) {
+            return false
+        }
+
+        return this.board.cities.some((city) => this.canCityAcceptGood(city, company.good))
+    }
+
+    private cultivatedAreaCountForCompany(companyId: string): number {
+        let count = 0
+        for (const area of Object.values(this.board.areas)) {
+            if (!isCultivatedArea(area)) {
+                continue
+            }
+            if (area.companyId === companyId) {
+                count += 1
+            }
+        }
+        return count
     }
 
     private *productionExpansionAreaIds(

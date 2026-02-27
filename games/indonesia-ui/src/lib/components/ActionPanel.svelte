@@ -184,9 +184,12 @@
         if (!myPlayerId) {
             return []
         }
+        const operableCompanyIdSet = new Set(gameSession.operableOwnedCompanyIds)
 
         return gameSession.gameState.companies
-            .filter((company) => company.owner === myPlayerId)
+            .filter(
+                (company) => company.owner === myPlayerId && operableCompanyIdSet.has(company.id)
+            )
             .map((company) => ({
                 company,
                 cultivatedAreaCount:

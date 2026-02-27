@@ -83,6 +83,6 @@ export class HydratedChooseOperatingCompany
             return false
         }
 
-        return !state.hasCompanyOperated(company.id)
+        return state.canCompanyBeOperated(company.id)
     }
 }

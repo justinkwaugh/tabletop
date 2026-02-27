@@ -4,7 +4,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { shadeHexColor } from '$lib/utils/color.js'
     import { Color } from '@tabletop/common'
-    import { CompanyType, MachineState } from '@tabletop/indonesia'
+    import { CompanyType, MachineState, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
@@ -69,7 +69,11 @@
                 const ownerColor = gameSession.colors.getPlayerUiColor(company.owner)
                 const ownerPlayerColor = gameSession.colors.getPlayerColor(company.owner)
                 let remainingCapacity: number | undefined
-                if (showRemainingCapacityBadges && company.type === CompanyType.Shipping) {
+                if (
+                    showRemainingCapacityBadges &&
+                    company.type === CompanyType.Shipping &&
+                    isIndonesiaNodeId(area.id)
+                ) {
                     const ownerHullLevel = gameSession.gameState.getPlayerState(company.owner).research.hull
                     const capacityPerShip = 1 + ownerHullLevel
                     const usedCapacity = gameSession.gameState.operatingCompanyShipUseCount(
