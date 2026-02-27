@@ -21,7 +21,10 @@
         outlineColor = '#333',
         mask = false,
         maskColor = '#000',
-        maskOpacity = 0.35
+        maskOpacity = 0.35,
+        capacityBadgeValue = undefined,
+        capacityBadgeFillColor = '#111827',
+        capacityBadgeTextColor = '#f8fafc'
     }: {
         x: number
         y: number
@@ -35,6 +38,9 @@
         mask?: boolean
         maskColor?: string
         maskOpacity?: number
+        capacityBadgeValue?: number
+        capacityBadgeFillColor?: string
+        capacityBadgeTextColor?: string
     } = $props()
 
     const aspectRatio = $derived(
@@ -49,6 +55,13 @@
     const outlineHeight = $derived(height)
     const outlineX = $derived(iconX + 1)
     const outlineY = $derived(iconY + 1)
+    const showCapacityBadge = $derived(
+        typeof capacityBadgeValue === 'number' && Number.isFinite(capacityBadgeValue)
+    )
+    const badgeRadius = $derived(Math.max(8, height * 0.22))
+    const badgeX = $derived(x)
+    const badgeY = $derived(iconY + height)
+    const badgeFontSize = $derived(Math.max(14, badgeRadius * 1.6))
 </script>
 
 <g class="pointer-events-none select-none" aria-hidden="true">
@@ -84,7 +97,7 @@
             {height}
             hullFill={hullFillColor}
             hullStroke={hullStrokeColor}
-            hullStrokeWidth={hullStrokeWidth}
+            {hullStrokeWidth}
         />
     {:else}
         <ShipBIcon
@@ -94,7 +107,7 @@
             {height}
             hullFill={hullFillColor}
             hullStroke={hullStrokeColor}
-            hullStrokeWidth={hullStrokeWidth}
+            {hullStrokeWidth}
         />
     {/if}
 
@@ -120,5 +133,22 @@
                 aria-hidden="true"
             />
         {/if}
+    {/if}
+
+    {#if showCapacityBadge}
+        <g aria-hidden="true">
+            <circle cx={badgeX} cy={badgeY} r={badgeRadius} fill={capacityBadgeFillColor}></circle>
+            <text
+                x={badgeX}
+                y={badgeY + 1}
+                fill={capacityBadgeTextColor}
+                font-size={badgeFontSize}
+                font-weight="700"
+                text-anchor="middle"
+                dominant-baseline="middle"
+            >
+                {capacityBadgeValue}
+            </text>
+        </g>
     {/if}
 </g>

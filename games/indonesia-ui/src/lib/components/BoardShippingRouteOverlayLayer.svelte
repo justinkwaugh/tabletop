@@ -66,10 +66,10 @@
         return overlays
     })
 
-    const BASE_ROUTE_WIDTH = 5.1
-    const HOVER_ROUTE_WIDTH = 6.9
-    const BASE_ROUTE_UNDERLAY_WIDTH = 7.5
-    const HOVER_ROUTE_UNDERLAY_WIDTH = 10.5
+    const BASE_ROUTE_WIDTH = 7.65
+    const HOVER_ROUTE_WIDTH = 10.35
+    const BASE_ROUTE_UNDERLAY_WIDTH = 11.25
+    const HOVER_ROUTE_UNDERLAY_WIDTH = 15.75
 </script>
 
 {#if deliveryShippingRouteOverlays.length > 0}
@@ -82,7 +82,7 @@
                 stroke-width={route.hovered ? HOVER_ROUTE_UNDERLAY_WIDTH : BASE_ROUTE_UNDERLAY_WIDTH}
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-dasharray={route.hovered ? '20 12' : '16 12'}
+                stroke-dasharray={route.hovered ? '20 14' : '16 14'}
                 opacity={route.hovered ? 0.85 : 0.6}
             />
             <path
@@ -92,10 +92,9 @@
                 stroke-width={route.hovered ? HOVER_ROUTE_WIDTH : BASE_ROUTE_WIDTH}
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-dasharray={route.hovered ? '20 12' : '16 12'}
+                stroke-dasharray={route.hovered ? '20 14' : '16 14'}
                 opacity={route.hovered ? 1 : 0.82}
             />
         {/each}
     </g>
 {/if}
-

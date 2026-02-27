@@ -4,6 +4,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { shadeHexColor } from '$lib/utils/color.js'
     import { Color } from '@tabletop/common'
+    import { CompanyType, MachineState } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
@@ -12,6 +13,8 @@
         style: 'a' | 'b'
         ownerColor: string
         ownerStrokeColor: string
+        remainingCapacity?: number
+        capacityBadgeTextColor: string
     }
 
     const gameSession = getGameSession()
@@ -33,6 +36,9 @@
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
+    const showRemainingCapacityBadges = $derived(
+        gameSession.gameState.machineState === MachineState.ProductionOperations
+    )
 
     const shipMarkers: ShipMarkerEntry[] = $derived.by(() => {
         const markers: ShipMarkerEntry[] = []
@@ -49,22 +55,45 @@
 
             const points = layout[layoutCountForShips(area.ships.length)]
             const markerCount = Math.min(area.ships.length, points.length)
+            const companyShipOrdinalById = new Map<string, number>()
             for (let markerIndex = 0; markerIndex < markerCount; markerIndex += 1) {
                 const companyId = area.ships[markerIndex]
                 const company = companyById.get(companyId)
                 if (!company) {
                     continue
                 }
+                const companyShipOrdinal = companyShipOrdinalById.get(companyId) ?? 0
+                companyShipOrdinalById.set(companyId, companyShipOrdinal + 1)
 
                 const markerPoint = points[markerIndex]
                 const ownerColor = gameSession.colors.getPlayerUiColor(company.owner)
                 const ownerPlayerColor = gameSession.colors.getPlayerColor(company.owner)
+                let remainingCapacity: number | undefined
+                if (showRemainingCapacityBadges && company.type === CompanyType.Shipping) {
+                    const ownerHullLevel = gameSession.gameState.getPlayerState(company.owner).research.hull
+                    const capacityPerShip = 1 + ownerHullLevel
+                    const usedCapacity = gameSession.gameState.operatingCompanyShipUseCount(
+                        company.id,
+                        area.id
+                    )
+                    remainingCapacity = Math.max(
+                        0,
+                        Math.min(
+                            capacityPerShip,
+                            (companyShipOrdinal + 1) * capacityPerShip - usedCapacity
+                        )
+                    )
+                }
+
                 markers.push({
                     key: `${area.id}-${companyId}-${markerIndex}`,
                     x: markerPoint.x,
                     y: markerPoint.y,
                     style: markerIndex % 2 === 0 ? 'a' : 'b',
                     ownerColor,
+                    remainingCapacity,
+                    capacityBadgeTextColor:
+                        ownerPlayerColor === Color.Yellow ? '#111827' : '#f8fafc',
                     ownerStrokeColor:
                         ownerPlayerColor === Color.Yellow
                             ? shadeHexColor(ownerColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT)
@@ -88,6 +117,9 @@
             hullFillColor={ship.ownerColor}
             hullStrokeColor={ship.ownerStrokeColor}
             hullStrokeWidth={SHIP_MARKER_HULL_STROKE_WIDTH}
+            capacityBadgeValue={ship.remainingCapacity}
+            capacityBadgeFillColor={ship.ownerColor}
+            capacityBadgeTextColor={ship.capacityBadgeTextColor}
         />
     {/each}
 </g>
