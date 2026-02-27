@@ -10,6 +10,7 @@ import {
     type UninitializedGameState
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { AreaType } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 import { ActionType } from '../definition/actions.js'
 import { DeliveryTieBreakPolicy } from '../definition/operationsEconomy.js'
@@ -74,7 +75,11 @@ function createDeliverGoodAction(state: ReturnType<typeof createTestState>, play
             gameId: state.gameId,
             source: ActionSource.User,
             playerId,
-            type: ActionType.DeliverGood
+            type: ActionType.DeliverGood,
+            cultivatedAreaId: 'A01',
+            shippingCompanyId: 'ship-1',
+            seaAreaIds: ['S14'],
+            cityId: 'city-1'
         })
     )
 }
@@ -85,6 +90,14 @@ function setupProductionOperationWithPlan(
     totalDelivered: number
 ): void {
     const companyId = 'prod-1'
+    const shippingCompanyId = 'ship-1'
+    const shippingOwnerId = state.players.find((player) => player.playerId !== playerId)?.playerId
+    if (!shippingOwnerId) {
+        throw Error('Expected at least one non-operating player to own the shipping company')
+    }
+
+    state.getPlayerState(shippingOwnerId).research.hull = 0
+
     state.companies = [
         {
             id: companyId,
@@ -92,8 +105,31 @@ function setupProductionOperationWithPlan(
             owner: playerId,
             deeds: [],
             good: Good.Rice
+        },
+        {
+            id: shippingCompanyId,
+            type: CompanyType.Shipping,
+            owner: shippingOwnerId,
+            deeds: []
         }
     ]
+    state.board.areas['A01'] = {
+        id: 'A01',
+        type: AreaType.Cultivated,
+        companyId,
+        good: Good.Rice
+    }
+    state.board.areas['S14'] = {
+        id: 'S14',
+        type: AreaType.Sea,
+        ships: Array.from({ length: totalDelivered }, () => shippingCompanyId)
+    }
+    state.board.addCity({
+        id: 'city-1',
+        area: 'A04',
+        size: totalDelivered,
+        demand: {}
+    })
 
     state.machineState = MachineState.ProductionOperations
     state.beginCompanyOperation(companyId)
@@ -119,7 +155,7 @@ describe('HydratedDeliverGood', () => {
     it('increments shipped goods count when applied', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
-        setupProductionOperationWithPlan(state, playerId, 2)
+        setupProductionOperationWithPlan(state, playerId, 1)
         const action = createDeliverGoodAction(state, playerId)
 
         expect(state.operatingCompanyShippedGoodsCount).toBe(0)
@@ -127,7 +163,21 @@ describe('HydratedDeliverGood', () => {
         action.apply(state)
 
         expect(state.operatingCompanyShippedGoodsCount).toBe(1)
-        expect(action.metadata).toEqual({})
+        expect(state.operatingCompanyDeliveredCultivatedAreaIds).toEqual(['A01'])
+        expect(state.operatingCompanyShipUseCount('ship-1', 'S14')).toBe(1)
+        expect(state.board.cities[0]?.demand[Good.Rice]).toBe(1)
+        expect(action.metadata).toEqual({
+            revenue: 20,
+            shippingCost: 5,
+            netProfit: 15,
+            shippingPayments: [
+                {
+                    shippingCompanyId: 'ship-1',
+                    ownerPlayerId: state.players[1]?.playerId,
+                    amount: 5
+                }
+            ]
+        })
     })
 
     it('cannot deliver more goods than the delivery plan allows', () => {

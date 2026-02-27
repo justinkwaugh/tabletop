@@ -167,13 +167,22 @@ export class IndonesiaGameSession extends GameSession<
         await this.applyAction(action)
     }
 
-    async deliverGood(): Promise<void> {
+    async deliverGood(
+        cultivatedAreaId: string,
+        shippingCompanyId: string,
+        seaAreaIds: string[],
+        cityId: string
+    ): Promise<void> {
         if (!this.validActionTypes.includes(ActionType.DeliverGood)) {
             return
         }
 
         const action = this.createPlayerAction(DeliverGood, {
-            type: ActionType.DeliverGood
+            type: ActionType.DeliverGood,
+            cultivatedAreaId,
+            shippingCompanyId,
+            seaAreaIds,
+            cityId
         })
         await this.applyAction(action)
     }

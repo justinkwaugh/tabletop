@@ -31,7 +31,8 @@ import { Good, isGood } from '../definition/goods.js'
 import {
     IndonesiaAreaType,
     IndonesiaNeighborDirection,
-    isIndonesiaNodeId
+    isIndonesiaNodeId,
+    type IndonesiaNodeId
 } from '../utils/indonesiaNodes.js'
 import { DeliveryPlanSchema, type DeliveryPlan } from '../operations/deliveryPlan.js'
 
@@ -65,6 +66,8 @@ export const IndonesiaGameState = Type.Evaluate(
             operatingCompanyId: Type.Optional(Type.String()), // Company currently being operated in operations sub-states
             operatingCompanyExpansionCount: Type.Optional(Type.Number()), // Number of expansions performed during current company operation
             operatingCompanyShippedGoodsCount: Type.Optional(Type.Number()), // Number of goods delivered so far during the current production company operation
+            operatingCompanyShipUseCounts: Type.Optional(Type.Record(Type.String(), Type.Number())), // Number of ship uses by shippingCompanyId|seaAreaId during the current production company operation
+            operatingCompanyDeliveredCultivatedAreaIds: Type.Optional(Type.Array(Type.String())), // Cultivated area ids that have already delivered goods during the current production company operation
             operatingCompanyDeliveryPlan: Type.Optional(DeliveryPlanSchema), // Delivery plan for the currently operating production company
             operatedCompanyIds: Type.Array(Type.String()) // Companies that have already operated this operations phase
         })
@@ -105,6 +108,8 @@ export class HydratedIndonesiaGameState
     declare operatingCompanyId?: string
     declare operatingCompanyExpansionCount?: number
     declare operatingCompanyShippedGoodsCount?: number
+    declare operatingCompanyShipUseCounts?: Record<string, number>
+    declare operatingCompanyDeliveredCultivatedAreaIds?: IndonesiaNodeId[]
     declare operatingCompanyDeliveryPlan?: DeliveryPlan
     declare operatedCompanyIds: string[]
 
@@ -130,6 +135,8 @@ export class HydratedIndonesiaGameState
         this.operatingCompanyId = companyId
         this.operatingCompanyExpansionCount = 0
         this.operatingCompanyShippedGoodsCount = 0
+        this.operatingCompanyShipUseCounts = {}
+        this.operatingCompanyDeliveredCultivatedAreaIds = []
         this.clearOperatingCompanyDeliveryPlan()
     }
 
@@ -137,6 +144,8 @@ export class HydratedIndonesiaGameState
         this.operatingCompanyId = undefined
         this.operatingCompanyExpansionCount = undefined
         this.operatingCompanyShippedGoodsCount = undefined
+        this.operatingCompanyShipUseCounts = undefined
+        this.operatingCompanyDeliveredCultivatedAreaIds = undefined
         this.clearOperatingCompanyDeliveryPlan()
     }
 
@@ -205,6 +214,78 @@ export class HydratedIndonesiaGameState
         )
 
         this.operatingCompanyShippedGoodsCount = nextShippedGoodsCount
+    }
+
+    public operatingCompanyShipUseCount(
+        shippingCompanyId: string,
+        seaAreaId: IndonesiaNodeId
+    ): number {
+        const shipUseCounts = this.operatingCompanyShipUseCounts ?? {}
+        const key = this.operatingCompanyShipUseKey(shippingCompanyId, seaAreaId)
+        return shipUseCounts[key] ?? 0
+    }
+
+    public incrementOperatingCompanyShipUseCount(
+        shippingCompanyId: string,
+        seaAreaId: IndonesiaNodeId,
+        uses = 1
+    ): void {
+        assert(Number.isInteger(uses), 'Ship uses increment must be an integer')
+        assert(uses > 0, 'Ship uses increment must be positive')
+
+        const operatingCompanyId = this.operatingCompanyId
+        assertExists(
+            operatingCompanyId,
+            'Operating company id should be set before incrementing ship use count'
+        )
+
+        const shipUseCounts = this.operatingCompanyShipUseCounts
+        assertExists(
+            shipUseCounts,
+            'Operating company ship use counts should be initialized before incrementing'
+        )
+
+        const key = this.operatingCompanyShipUseKey(shippingCompanyId, seaAreaId)
+        shipUseCounts[key] = (shipUseCounts[key] ?? 0) + uses
+    }
+
+    public hasOperatingCompanyDeliveredCultivatedArea(cultivatedAreaId: IndonesiaNodeId): boolean {
+        const deliveredAreaIds = this.operatingCompanyDeliveredCultivatedAreaIds ?? []
+        return deliveredAreaIds.includes(cultivatedAreaId)
+    }
+
+    public markOperatingCompanyCultivatedAreaDelivered(cultivatedAreaId: string): void {
+        const operatingCompanyId = this.operatingCompanyId
+        assertExists(
+            operatingCompanyId,
+            'Operating company id should be set before marking cultivated area as delivered'
+        )
+        assert(
+            isIndonesiaNodeId(cultivatedAreaId),
+            `Cultivated area id ${cultivatedAreaId} should be a valid node id`
+        )
+
+        const deliveredAreaIds = this.operatingCompanyDeliveredCultivatedAreaIds
+        assertExists(
+            deliveredAreaIds,
+            'Operating company delivered cultivated area ids should be initialized before marking delivery'
+        )
+        assert(
+            !deliveredAreaIds.includes(cultivatedAreaId),
+            `Cultivated area ${cultivatedAreaId} has already delivered a good during this operation`
+        )
+
+        const area = this.board.getArea(cultivatedAreaId)
+        assert(
+            isCultivatedArea(area),
+            `Area ${cultivatedAreaId} should be cultivated before marking delivery`
+        )
+        assert(
+            area.companyId === operatingCompanyId,
+            `Cultivated area ${cultivatedAreaId} belongs to ${area.companyId}, expected ${operatingCompanyId}`
+        )
+
+        deliveredAreaIds.push(cultivatedAreaId)
     }
 
     public canCurrentOperationExpandForPlayer(playerId: string): boolean {
@@ -381,6 +462,13 @@ export class HydratedIndonesiaGameState
 
     private seaAreaHasCompanyShip(area: SeaArea, companyId: string): boolean {
         return area.ships.some((shipCompanyId) => shipCompanyId === companyId)
+    }
+
+    private operatingCompanyShipUseKey(
+        shippingCompanyId: string,
+        seaAreaId: IndonesiaNodeId
+    ): string {
+        return `${shippingCompanyId}|${seaAreaId}`
     }
 
     private shippingCapacityForEra(company: ShippingCompany): number {
