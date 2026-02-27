@@ -143,22 +143,6 @@
 
     const deliverySelectionEnabled: boolean = $derived.by(() => gameSession.deliverySelectionEnabled)
 
-    const deliveryShippingChoiceSeaAreaIds: readonly string[] = $derived.by(() => {
-        if (gameSession.deliverySelectionStage !== 'shipping') {
-            return []
-        }
-
-        return gameSession.deliveryShippingChoiceSeaAreaIds.filter((areaId) => boardAreaPathById(areaId))
-    })
-
-    const hoveredDeliveryRouteSeaAreaIds: readonly string[] = $derived.by(() => {
-        if (gameSession.deliverySelectionStage !== 'shipping') {
-            return []
-        }
-
-        return gameSession.hoveredDeliveryRouteSeaAreaIds.filter((areaId) => boardAreaPathById(areaId))
-    })
-
     $effect(() => {
         if (!startCompanySelectionEnabled) {
             selectedStartCompanyDeedId = null
@@ -390,7 +374,7 @@
     }
 </script>
 
-{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredShippingCompanySeaAreaIds.length > 0 || deliveryShippingChoiceSeaAreaIds.length > 0 || hoveredDeliveryRouteSeaAreaIds.length > 0}
+{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredShippingCompanySeaAreaIds.length > 0}
     <g class="select-none" aria-label="Board action areas layer">
         {#each hoveredShippingCompanySeaAreaIds as areaId (areaId)}
             <Area
@@ -403,32 +387,6 @@
                 strokeLineJoin="round"
                 strokeLineCap="round"
                 opacity={SHIPPING_HIGHLIGHT_STYLE.overlayOpacity}
-                pointer-events="none"
-            />
-        {/each}
-
-        {#each deliveryShippingChoiceSeaAreaIds as areaId (areaId)}
-            <Area
-                areaId={areaId}
-                fill={SHIPPING_HIGHLIGHT_STYLE.overlayFill}
-                stroke={SHIPPING_HIGHLIGHT_STYLE.overlayStroke}
-                fillOpacity="1"
-                fillRule="evenodd"
-                strokeWidth="1.9"
-                strokeLineJoin="round"
-                strokeLineCap="round"
-                opacity={SHIPPING_HIGHLIGHT_STYLE.overlayOpacity}
-                pointer-events="none"
-            />
-        {/each}
-
-        {#each hoveredDeliveryRouteSeaAreaIds as areaId (areaId)}
-            <Area
-                areaId={areaId}
-                fill="none"
-                stroke="#000000"
-                fillOpacity="0"
-                strokeWidth="4"
                 pointer-events="none"
             />
         {/each}

@@ -5,6 +5,7 @@
     import BoardCultivatedAreasLayer from '$lib/components/BoardCultivatedAreasLayer.svelte'
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
     import BoardResearchLayer from '$lib/components/BoardResearchLayer.svelte'
+    import BoardShippingRouteOverlayLayer from '$lib/components/BoardShippingRouteOverlayLayer.svelte'
     import BoardShipsLayer from '$lib/components/BoardShipsLayer.svelte'
     import BoardTurnOrderLayer from '$lib/components/BoardTurnOrderLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
@@ -30,6 +31,7 @@
             aria-label="Indonesia board state layer"
         >
             <BoardDeedsLayer />
+            <BoardShippingRouteOverlayLayer />
             <BoardCultivatedAreasLayer />
             <BoardShipsLayer />
             <BoardCitiesLayer />
