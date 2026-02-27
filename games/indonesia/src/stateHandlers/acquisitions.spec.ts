@@ -13,7 +13,9 @@ import {
 import { describe, expect, it } from 'vitest'
 import { StartCompany, HydratedStartCompany } from '../actions/startCompany.js'
 import { HydratedRemoveCompanyDeed, RemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
+import { HydratedPass, Pass, PassReason } from '../actions/pass.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
+import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { AcquisitionsStateHandler } from './acquisitions.js'
 import type { HydratedIndonesiaGameState } from '../model/gameState.js'
@@ -96,6 +98,19 @@ function createMachineContext(state: HydratedIndonesiaGameState) {
     })
 }
 
+function createPassAction(state: ReturnType<typeof createTestState>, playerId: string) {
+    actionCounter += 1
+    return new HydratedPass(
+        createAction(Pass, {
+            id: `action-${actionCounter}`,
+            gameId: state.gameId,
+            source: ActionSource.User,
+            playerId,
+            reason: PassReason.DeclineStartCompany
+        })
+    )
+}
+
 describe('AcquisitionsStateHandler', () => {
     it('selects the first eligible player in turn order when entering the phase', () => {
         const state = createTestState()
@@ -153,6 +168,32 @@ describe('AcquisitionsStateHandler', () => {
         const nextState = handler.onAction(action, context)
 
         expect(nextState).toBe(MachineState.ResearchAndDevelopment)
+    })
+
+    it('supports passing and transitions to research and development after all eligible players pass', () => {
+        const state = createTestState()
+        const handler = new AcquisitionsStateHandler()
+        const context = createMachineContext(state)
+
+        handler.enter(context)
+        const firstPlayerId = state.activePlayerIds[0]
+
+        const firstPlayerValidActions = handler.validActionsForPlayer(firstPlayerId, context)
+        expect(firstPlayerValidActions).toContain(ActionType.StartCompany)
+        expect(firstPlayerValidActions).toContain(ActionType.Pass)
+
+        const firstPassAction = createPassAction(state, firstPlayerId)
+        const afterFirstPassState = handler.onAction(firstPassAction, context)
+        expect(afterFirstPassState).toBe(MachineState.Acquisitions)
+
+        handler.enter(context)
+        const secondPlayerId = state.activePlayerIds[0]
+        expect(secondPlayerId).not.toBe(firstPlayerId)
+
+        const secondPassAction = createPassAction(state, secondPlayerId)
+        const afterSecondPassState = handler.onAction(secondPassAction, context)
+        expect(afterSecondPassState).toBe(MachineState.ResearchAndDevelopment)
+        expect(state.activePlayerIds).toEqual([])
     })
 
     it('transitions to research and development when a remove-company-deed leaves no startable deeds', () => {

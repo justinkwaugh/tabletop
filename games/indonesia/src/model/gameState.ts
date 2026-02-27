@@ -62,6 +62,7 @@ export const IndonesiaGameState = Type.Evaluate(
             era: Type.Enum(Era),
             currentCityCard: Type.Optional(CityCard), // The city card currently being placed in the New Era phase
             placingCities: Type.Array(Type.String()), // List of players remaining to place cities
+            acquisitionsPassedPlayerIds: Type.Array(Type.String()), // Players who chose to pass during the current acquisitions phase
             companies: Type.Array(Company), // List of companies in the game
             operatingCompanyId: Type.Optional(Type.String()), // Company currently being operated in operations sub-states
             operatingCompanyExpansionCount: Type.Optional(Type.Number()), // Number of expansions performed during current company operation
@@ -105,6 +106,7 @@ export class HydratedIndonesiaGameState
     declare era: Era
     declare currentCityCard: CityCard | undefined
     declare placingCities: string[]
+    declare acquisitionsPassedPlayerIds: string[]
     declare companies: Company[]
     declare operatingCompanyId?: string
     declare operatingCompanyExpansionCount?: number
@@ -125,6 +127,20 @@ export class HydratedIndonesiaGameState
 
     public hasCompanyOperated(companyId: string): boolean {
         return this.operatedCompanyIds.includes(companyId)
+    }
+
+    public hasPlayerPassedAcquisitions(playerId: string): boolean {
+        return this.acquisitionsPassedPlayerIds.includes(playerId)
+    }
+
+    public markPlayerPassedAcquisitions(playerId: string): void {
+        if (!this.acquisitionsPassedPlayerIds.includes(playerId)) {
+            this.acquisitionsPassedPlayerIds.push(playerId)
+        }
+    }
+
+    public resetAcquisitionsPasses(): void {
+        this.acquisitionsPassedPlayerIds = []
     }
 
     public canCompanyBeOperated(companyId: string): boolean {

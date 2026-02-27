@@ -71,6 +71,7 @@ export class IndonesiaGameInitializer
             },
             era: Era.A,
             placingCities: [], // This will be populated at the start of the New Era phase
+            acquisitionsPassedPlayerIds: [],
             companies: [], // This will be populated as companies are started in the game
             operatedCompanyIds: []
         })

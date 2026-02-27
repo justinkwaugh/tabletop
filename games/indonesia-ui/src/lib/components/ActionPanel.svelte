@@ -8,6 +8,7 @@
         BID_RESEARCH_MULTIPLIERS,
         CompanyType,
         MachineState,
+        PassReason,
         type TurnOrderBid
     } from '@tabletop/indonesia'
     import { PlayerName } from '@tabletop/frontend-components'
@@ -19,6 +20,7 @@
     let choosingOperatingCompany = $state(false)
     let deliveringGood = $state(false)
     let finishingOptionalProductionExpansion = $state(false)
+    let passingAcquisitions = $state(false)
 
     const showTurnOrderBidFormula = $derived.by(() => {
         return (
@@ -118,6 +120,15 @@
             showProductionOperationsPanel &&
             gameSession.productionOperationStage === 'optional-expansion' &&
             gameSession.validActionTypes.includes(ActionType.Pass)
+        )
+    })
+
+    const showAcquisitionsPassButton = $derived.by(() => {
+        return (
+            gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.Acquisitions &&
+            gameSession.validActionTypes.includes(ActionType.Pass) &&
+            !gameSession.gameState.result
         )
     })
 
@@ -259,6 +270,9 @@
             case MachineState.Mergers:
                 return 'Propose a merger.'
             case MachineState.Acquisitions:
+                if (gameSession.validActionTypes.includes(ActionType.Pass)) {
+                    return 'Select a deed, then select a highlighted area to start the company, or pass.'
+                }
                 return 'Select a deed, then select a highlighted area to start the company.'
             case MachineState.ResearchAndDevelopment:
                 return 'Choose an area to research.'
@@ -387,6 +401,19 @@
             await gameSession.finishOptionalProductionExpansion()
         } finally {
             finishingOptionalProductionExpansion = false
+        }
+    }
+
+    async function submitAcquisitionsPass(): Promise<void> {
+        if (!showAcquisitionsPassButton || passingAcquisitions) {
+            return
+        }
+
+        passingAcquisitions = true
+        try {
+            await gameSession.pass(PassReason.DeclineStartCompany)
+        } finally {
+            passingAcquisitions = false
         }
     }
 
@@ -568,6 +595,24 @@
                         finishing...
                     {:else}
                         done expanding
+                    {/if}
+                </button>
+            {/if}
+        </div>
+    {:else if gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.Acquisitions}
+        <div class="production-delivery-panel">
+            <span class="operating-company-message">{message}</span>
+            {#if showAcquisitionsPassButton}
+                <button
+                    type="button"
+                    class="finish-production-expansion"
+                    disabled={passingAcquisitions}
+                    onclick={submitAcquisitionsPass}
+                >
+                    {#if passingAcquisitions}
+                        passing...
+                    {:else}
+                        pass
                     {/if}
                 </button>
             {/if}

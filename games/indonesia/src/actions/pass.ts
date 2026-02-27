@@ -6,6 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedPlaceCity } from './placeCity.js'
 import { HydratedExpand } from './expand.js'
+import { HydratedStartCompany } from './startCompany.js'
 import {
     describeProductionOperation,
     ProductionOperationStage
@@ -13,6 +14,7 @@ import {
 
 export enum PassReason {
     CannotPlaceCity = 'CannotPlaceCity',
+    DeclineStartCompany = 'DeclineStartCompany',
     FinishOptionalProductionExpansion = 'FinishOptionalProductionExpansion',
     SkipProductionExpansion = 'SkipProductionExpansion'
 }
@@ -66,6 +68,14 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
             return (
                 (reason === undefined || reason === PassReason.CannotPlaceCity) &&
                 !HydratedPlaceCity.canPlaceCity(state, playerId)
+            )
+        }
+
+        if (state.machineState === MachineState.Acquisitions) {
+            return (
+                (reason === undefined || reason === PassReason.DeclineStartCompany) &&
+                HydratedStartCompany.canStartCompany(state, playerId) &&
+                !state.hasPlayerPassedAcquisitions(playerId)
             )
         }
 

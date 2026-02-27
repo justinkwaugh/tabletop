@@ -12,10 +12,11 @@ import {
     HydratedRemoveCompanyDeed,
     isRemoveCompanyDeed
 } from '../actions/removeCompanyDeed.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 
-type AcquisitionsAction = HydratedStartCompany | HydratedRemoveCompanyDeed
+type AcquisitionsAction = HydratedStartCompany | HydratedPass | HydratedRemoveCompanyDeed
 
 export class AcquisitionsStateHandler implements MachineStateHandler<
     AcquisitionsAction,
@@ -23,10 +24,10 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedIndonesiaGameState>
+        _context: MachineContext<HydratedIndonesiaGameState>
     ): action is AcquisitionsAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return isStartCompany(action) || isRemoveCompanyDeed(action)
+        return isStartCompany(action) || isPass(action) || isRemoveCompanyDeed(action)
     }
 
     validActionsForPlayer(
@@ -37,8 +38,9 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
 
         const validActions: ActionType[] = []
 
-        if (HydratedStartCompany.canStartCompany(gameState, playerId)) {
+        if (this.canPlayerTakeAcquisitionsTurn(gameState, playerId)) {
             validActions.push(ActionType.StartCompany)
+            validActions.push(ActionType.Pass)
         }
         // Leave this comment if you want the template to generate code for valid actions
 
@@ -49,11 +51,17 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
         const gameState = context.gameState
         const turnManager = gameState.turnManager
         const phaseManager = gameState.phaseManager
-        const canStartCompany = (playerId: string) =>
-            HydratedStartCompany.canStartCompany(gameState, playerId)
+        const canTakeAcquisitionsTurn = (playerId: string) =>
+            this.canPlayerTakeAcquisitionsTurn(gameState, playerId)
+        const enteringPhase = phaseManager.currentPhase?.name !== PhaseName.Acquisitions
+
+        if (enteringPhase) {
+            phaseManager.startPhase(PhaseName.Acquisitions, gameState.actionCount)
+            gameState.resetAcquisitionsPasses()
+        }
 
         const playersWhoCanStart = turnManager.turnOrder.filter((playerId) =>
-            canStartCompany(playerId)
+            canTakeAcquisitionsTurn(playerId)
         )
         assert(
             playersWhoCanStart.length > 0,
@@ -61,12 +69,11 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
         )
 
         let nextPlayerId: string | undefined
-        if (phaseManager.currentPhase?.name !== PhaseName.Acquisitions) {
-            phaseManager.startPhase(PhaseName.Acquisitions, gameState.actionCount)
+        if (enteringPhase) {
             nextPlayerId = playersWhoCanStart[0]
             turnManager.startTurn(nextPlayerId, gameState.actionCount)
         } else {
-            nextPlayerId = turnManager.nextPlayer(turnManager.lastPlayer(), canStartCompany)
+            nextPlayerId = turnManager.nextPlayer(turnManager.lastPlayer(), canTakeAcquisitionsTurn)
             turnManager.startTurn(nextPlayerId, gameState.actionCount)
         }
 
@@ -87,10 +94,19 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
             case isStartCompany(action): {
                 state.turnManager.endTurn(state.actionCount)
 
-                const anyPlayerCanStartCompany = state.turnManager.turnOrder.some((playerId) =>
-                    HydratedStartCompany.canStartCompany(state, playerId)
-                )
-                if (!anyPlayerCanStartCompany) {
+                if (!this.hasAnyPlayerEligibleForAcquisitions(state)) {
+                    state.phaseManager.endPhase(state.actionCount)
+                    state.activePlayerIds = []
+                    return MachineState.ResearchAndDevelopment
+                }
+
+                return MachineState.Acquisitions
+            }
+            case isPass(action): {
+                state.markPlayerPassedAcquisitions(action.playerId)
+                state.turnManager.endTurn(state.actionCount)
+
+                if (!this.hasAnyPlayerEligibleForAcquisitions(state)) {
                     state.phaseManager.endPhase(state.actionCount)
                     state.activePlayerIds = []
                     return MachineState.ResearchAndDevelopment
@@ -99,10 +115,7 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
                 return MachineState.Acquisitions
             }
             case isRemoveCompanyDeed(action): {
-                const anyPlayerCanStartCompany = state.turnManager.turnOrder.some((playerId) =>
-                    HydratedStartCompany.canStartCompany(state, playerId)
-                )
-                if (!anyPlayerCanStartCompany) {
+                if (!this.hasAnyPlayerEligibleForAcquisitions(state)) {
                     state.phaseManager.endPhase(state.actionCount)
                     state.activePlayerIds = []
                     return MachineState.ResearchAndDevelopment
@@ -115,5 +128,21 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
                 throw Error('Invalid action type')
             }
         }
+    }
+
+    private canPlayerTakeAcquisitionsTurn(
+        state: HydratedIndonesiaGameState,
+        playerId: string
+    ): boolean {
+        return (
+            HydratedStartCompany.canStartCompany(state, playerId) &&
+            !state.hasPlayerPassedAcquisitions(playerId)
+        )
+    }
+
+    private hasAnyPlayerEligibleForAcquisitions(state: HydratedIndonesiaGameState): boolean {
+        return state.turnManager.turnOrder.some((playerId) =>
+            this.canPlayerTakeAcquisitionsTurn(state, playerId)
+        )
     }
 }
