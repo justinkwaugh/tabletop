@@ -9,6 +9,8 @@ import {
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
+import { CompanyType } from '../definition/companyType.js'
+import { Era } from '../definition/eras.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { Good } from '../definition/goods.js'
 
@@ -140,5 +142,51 @@ describe('HydratedIndonesiaGameState city demand helpers', () => {
 
         const city = state.board.cities[0]
         expect(city.demand).toEqual({})
+    })
+})
+
+describe('HydratedIndonesiaGameState era transition helpers', () => {
+    it('starts a new era when no deeds are available', () => {
+        const state = createTestState()
+        state.availableDeeds = []
+
+        expect(state.shouldStartNewEra()).toBe(true)
+    })
+
+    it('starts a new era when all remaining deeds are production with one good', () => {
+        const state = createTestState()
+        state.availableDeeds = state.availableDeeds
+            .filter((deed) => deed.type === CompanyType.Production)
+            .map((deed) => ({
+                ...deed,
+                good: Good.Spice
+            }))
+
+        expect(state.shouldStartNewEra()).toBe(true)
+    })
+
+    it('starts a new era when all remaining deeds are shipping', () => {
+        const state = createTestState()
+        state.availableDeeds = state.availableDeeds.filter(
+            (deed) => deed.type === CompanyType.Shipping
+        )
+
+        expect(state.shouldStartNewEra()).toBe(true)
+    })
+
+    it('does not start a new era when remaining deeds are mixed', () => {
+        const state = createTestState()
+
+        expect(state.shouldStartNewEra()).toBe(false)
+    })
+
+    it('increments the era in sequence', () => {
+        const state = createTestState()
+
+        state.incrementEra()
+        expect(state.era).toBe(Era.B)
+
+        state.incrementEra()
+        expect(state.era).toBe(Era.C)
     })
 })

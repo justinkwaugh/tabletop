@@ -312,6 +312,49 @@ export class HydratedIndonesiaGameState
         return expansionCount < expansionLimit
     }
 
+    public shouldStartNewEra(): boolean {
+        if (this.availableDeeds.length === 0) {
+            return true
+        }
+
+        const allShipping = this.availableDeeds.every(
+            (deed) => deed.type === CompanyType.Shipping
+        )
+        if (allShipping) {
+            return true
+        }
+
+        const productionDeeds = this.availableDeeds.filter(
+            (deed) => deed.type === CompanyType.Production
+        )
+        if (productionDeeds.length !== this.availableDeeds.length) {
+            return false
+        }
+
+        const firstGood = productionDeeds[0]?.good
+        if (!firstGood) {
+            return false
+        }
+
+        return productionDeeds.every((deed) => deed.good === firstGood)
+    }
+
+    public incrementEra(): void {
+        switch (this.era) {
+            case Era.A: {
+                this.era = Era.B
+                return
+            }
+            case Era.B: {
+                this.era = Era.C
+                return
+            }
+            case Era.C: {
+                throw Error('Cannot increment era beyond Era.C')
+            }
+        }
+    }
+
     public resetCityDemandsForOperationsPhase(): void {
         for (const city of this.board.cities) {
             city.demand = {}

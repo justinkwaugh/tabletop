@@ -13,6 +13,7 @@ import {
 import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
 import { ActionType } from '../definition/actions.js'
+import { Era } from '../definition/eras.js'
 import { Good } from '../definition/goods.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { PhaseName } from '../definition/phases.js'
@@ -200,10 +201,57 @@ describe('CityGrowthStateHandler', () => {
         action.apply(state, context)
         const nextState = handler.onAction(action, context)
 
-        expect(nextState).toBe(MachineState.NewEra)
+        expect(nextState).toBe(MachineState.BiddingForTurnOrder)
         expect(state.phaseManager.currentPhase).toBeUndefined()
         expect(state.activePlayerIds).toEqual([])
         expect(state.board.cities[0].size).toBe(2)
         expect(state.board.cities[0].demand).toEqual({})
+    })
+
+    it('starts a new era when no available deeds remain after city growth', () => {
+        const state = createTestState()
+        const growthDecisionPlayerId = state.turnManager.turnOrder[0]
+        expect(growthDecisionPlayerId).toBeDefined()
+        if (!growthDecisionPlayerId) {
+            return
+        }
+
+        state.machineState = MachineState.CityGrowth
+        state.availableDeeds = []
+        state.board.areas['A05'] = {
+            id: 'A05',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A01',
+            size: 1,
+            demand: {
+                [Good.Rice]: 1
+            }
+        })
+
+        const handler = new CityGrowthStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        const action = new HydratedGrowCity(
+            createAction(GrowCity, {
+                id: `grow-city-${state.actionCount}`,
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: growthDecisionPlayerId,
+                type: ActionType.GrowCity,
+                cityId: 'city-1'
+            })
+        )
+
+        action.apply(state, context)
+        const nextState = handler.onAction(action, context)
+
+        expect(nextState).toBe(MachineState.NewEra)
+        expect(state.era).toBe(Era.B)
     })
 })

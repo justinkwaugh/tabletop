@@ -10,6 +10,10 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
 import { HydratedPass, Pass, PassReason, isPass } from '../actions/pass.js'
+import {
+    HydratedRemoveCompanyDeed,
+    isRemoveCompanyDeed
+} from '../actions/removeCompanyDeed.js'
 import { isProductionCompany } from '../components/company.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { buildDeliveryProblem } from '../operations/deliveryProblemBuilder.js'
@@ -20,7 +24,11 @@ import {
 import { solveDeliveryProblem } from '../operations/deliverySolver.js'
 import { finishOperatingCompany } from './operationsFlow.js'
 
-type ProductionOperationsAction = HydratedDeliverGood | HydratedExpand | HydratedPass
+type ProductionOperationsAction =
+    | HydratedDeliverGood
+    | HydratedExpand
+    | HydratedPass
+    | HydratedRemoveCompanyDeed
 
 export class ProductionOperationsStateHandler
     implements MachineStateHandler<ProductionOperationsAction, HydratedIndonesiaGameState>
@@ -29,7 +37,12 @@ export class ProductionOperationsStateHandler
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
     ): action is ProductionOperationsAction {
-        return isDeliverGood(action) || isExpand(action) || isPass(action)
+        return (
+            isDeliverGood(action) ||
+            isExpand(action) ||
+            isPass(action) ||
+            isRemoveCompanyDeed(action)
+        )
     }
 
     validActionsForPlayer(
@@ -84,6 +97,9 @@ export class ProductionOperationsStateHandler
             case isPass(action): {
                 return finishOperatingCompany(state)
             }
+            case isRemoveCompanyDeed(action): {
+                return MachineState.ProductionOperations
+            }
             default: {
                 throw Error('Invalid action type')
             }
@@ -137,10 +153,25 @@ export class ProductionOperationsStateHandler
         if (HydratedExpand.canExpand(state, productionProgress.ownerPlayerId)) {
             return
         }
+        if (this.hasPendingSkipExpansionPass(context, productionProgress.ownerPlayerId)) {
+            return
+        }
 
         context.addSystemAction(Pass, {
             playerId: productionProgress.ownerPlayerId,
             reason: PassReason.SkipProductionExpansion
         })
+    }
+
+    private hasPendingSkipExpansionPass(
+        context: MachineContext<HydratedIndonesiaGameState>,
+        playerId: string
+    ): boolean {
+        return context.getPendingActions().some(
+            (pendingAction) =>
+                isPass(pendingAction) &&
+                pendingAction.playerId === playerId &&
+                pendingAction.reason === PassReason.SkipProductionExpansion
+        )
     }
 }

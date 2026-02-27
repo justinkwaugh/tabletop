@@ -11,6 +11,7 @@ import {
     describeProductionOperation,
     ProductionOperationStage
 } from '../operations/productionOperationProgress.js'
+import { queueRemovalForUnstartableAvailableDeeds } from '../operations/deedAvailability.js'
 
 export type ExpandMetadata = Type.Static<typeof ExpandMetadata>
 export const ExpandMetadata = Type.Object({
@@ -46,7 +47,7 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
         super(data, ExpandValidator)
     }
 
-    apply(state: HydratedIndonesiaGameState, _context?: MachineContext) {
+    apply(state: HydratedIndonesiaGameState, context?: MachineContext) {
         if (!this.isValidExpand(state)) {
             throw Error('Invalid Expand action')
         }
@@ -105,6 +106,8 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
                 )
                 ownerState.cash -= expansionCost
             }
+
+            queueRemovalForUnstartableAvailableDeeds(state, context)
 
             state.incrementOperatingCompanyExpansionCount()
             this.metadata = {

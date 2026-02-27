@@ -9,6 +9,7 @@ import {
 } from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { type AnyDeed } from '../components/deed.js'
 import {
     Company,
     isProductionCompany,
@@ -21,6 +22,7 @@ import {
     isSeaArea,
 } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
+import { queueRemovalForUnstartableAvailableDeeds } from '../operations/deedAvailability.js'
 
 export type StartCompanyMetadata = Type.Static<typeof StartCompanyMetadata>
 export const StartCompanyMetadata = Type.Object({
@@ -110,6 +112,8 @@ export class HydratedStartCompany
             state.board.areas[seaArea.id] = seaArea
         }
 
+        queueRemovalForUnstartableAvailableDeeds(state, context)
+
         this.metadata = {
             company: newCompany
         }
@@ -139,7 +143,7 @@ export class HydratedStartCompany
         }
 
         for (const deed of state.availableDeeds) {
-            for (const _ of HydratedStartCompany.validAreaIds(state, playerId, deed.id)) {
+            if (HydratedStartCompany.canDeedBeStarted(state, deed.id)) {
                 return true
             }
         }
@@ -156,18 +160,20 @@ export class HydratedStartCompany
             return
         }
 
-        if (deed.type === CompanyType.Production) {
-            for (const area of state.board.areasForRegion(deed.region)) {
-                if (state.board.canBeNewlyCultivated(area, deed.good)) {
-                    yield area.id
-                }
-            }
-            return
+        yield* HydratedStartCompany.validAreaIdsForDeed(state, deed)
+    }
+
+    static canDeedBeStarted(state: HydratedIndonesiaGameState, deedId: string): boolean {
+        const deed = state.availableDeeds.find((candidate) => candidate.id === deedId)
+        if (!deed) {
+            return false
         }
 
-        for (const seaArea of state.board.seaAreasForRegion(deed.region)) {
-            yield seaArea.id
+        for (const _ of HydratedStartCompany.validAreaIdsForDeed(state, deed)) {
+            return true
         }
+
+        return false
     }
 
     private static canStartCompanyForPlayerState(
@@ -186,5 +192,23 @@ export class HydratedStartCompany
         }
 
         return true
+    }
+
+    private static *validAreaIdsForDeed(
+        state: HydratedIndonesiaGameState,
+        deed: AnyDeed
+    ): Generator<string, void, undefined> {
+        if (deed.type === CompanyType.Production) {
+            for (const area of state.board.areasForRegion(deed.region)) {
+                if (state.board.canBeNewlyCultivated(area, deed.good)) {
+                    yield area.id
+                }
+            }
+            return
+        }
+
+        for (const seaArea of state.board.seaAreasForRegion(deed.region)) {
+            yield seaArea.id
+        }
     }
 }

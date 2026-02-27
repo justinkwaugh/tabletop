@@ -9,10 +9,17 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedSetTurnOrder, isSetTurnOrder, SetTurnOrder } from '../actions/setTurnOrder.js'
 import { HydratedPlaceTurnOrderBid, isPlaceTurnOrderBid } from '../actions/placeTurnOrderBid.js'
 import { HydratedStartCompany } from '../actions/startCompany.js'
+import {
+    HydratedRemoveCompanyDeed,
+    isRemoveCompanyDeed
+} from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 
-type BiddingForTurnOrderAction = HydratedPlaceTurnOrderBid | HydratedSetTurnOrder
+type BiddingForTurnOrderAction =
+    | HydratedPlaceTurnOrderBid
+    | HydratedSetTurnOrder
+    | HydratedRemoveCompanyDeed
 
 export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
     BiddingForTurnOrderAction,
@@ -23,7 +30,7 @@ export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedIndonesiaGameState>
     ): action is BiddingForTurnOrderAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return isPlaceTurnOrderBid(action) || isSetTurnOrder(action)
+        return isPlaceTurnOrderBid(action) || isSetTurnOrder(action) || isRemoveCompanyDeed(action)
     }
 
     validActionsForPlayer(
@@ -53,7 +60,9 @@ export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
             : 0
         const allPlayersHaveBid = numPlayersWhoBid === gameState.players.length
         if (allPlayersHaveBid) {
-            context.addSystemAction(SetTurnOrder)
+            if (!this.hasPendingSetTurnOrder(context)) {
+                context.addSystemAction(SetTurnOrder)
+            }
             return
         }
 
@@ -96,10 +105,19 @@ export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
 
                 return MachineState.Acquisitions
             }
+            case isRemoveCompanyDeed(action): {
+                return MachineState.BiddingForTurnOrder
+            }
             // Leave this comment if you want the template to generate code for valid actions
             default: {
                 throw Error('Invalid action type')
             }
         }
+    }
+
+    private hasPendingSetTurnOrder(
+        context: MachineContext<HydratedIndonesiaGameState>
+    ): boolean {
+        return context.getPendingActions().some((pendingAction) => isSetTurnOrder(pendingAction))
     }
 }

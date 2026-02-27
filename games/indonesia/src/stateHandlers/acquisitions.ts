@@ -8,10 +8,14 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedStartCompany, isStartCompany } from '../actions/startCompany.js'
+import {
+    HydratedRemoveCompanyDeed,
+    isRemoveCompanyDeed
+} from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 
-type AcquisitionsAction = HydratedStartCompany
+type AcquisitionsAction = HydratedStartCompany | HydratedRemoveCompanyDeed
 
 export class AcquisitionsStateHandler implements MachineStateHandler<
     AcquisitionsAction,
@@ -22,7 +26,7 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedIndonesiaGameState>
     ): action is AcquisitionsAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return isStartCompany(action)
+        return isStartCompany(action) || isRemoveCompanyDeed(action)
     }
 
     validActionsForPlayer(
@@ -83,6 +87,18 @@ export class AcquisitionsStateHandler implements MachineStateHandler<
             case isStartCompany(action): {
                 state.turnManager.endTurn(state.actionCount)
 
+                const anyPlayerCanStartCompany = state.turnManager.turnOrder.some((playerId) =>
+                    HydratedStartCompany.canStartCompany(state, playerId)
+                )
+                if (!anyPlayerCanStartCompany) {
+                    state.phaseManager.endPhase(state.actionCount)
+                    state.activePlayerIds = []
+                    return MachineState.ResearchAndDevelopment
+                }
+
+                return MachineState.Acquisitions
+            }
+            case isRemoveCompanyDeed(action): {
                 const anyPlayerCanStartCompany = state.turnManager.turnOrder.some((playerId) =>
                     HydratedStartCompany.canStartCompany(state, playerId)
                 )

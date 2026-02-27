@@ -3,6 +3,15 @@ import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 
+export function resolvePostOperationsState(state: HydratedIndonesiaGameState): MachineState {
+    if (state.shouldStartNewEra()) {
+        state.incrementEra()
+        return MachineState.NewEra
+    }
+
+    return MachineState.BiddingForTurnOrder
+}
+
 export function finishOperatingCompany(state: HydratedIndonesiaGameState): MachineState {
     const currentPhase = state.phaseManager.currentPhase
     assertExists(currentPhase, 'Current phase should exist while finishing company operation')
@@ -23,7 +32,7 @@ export function finishOperatingCompany(state: HydratedIndonesiaGameState): Machi
         if (state.canAnyCityGrow()) {
             return MachineState.CityGrowth
         }
-        return MachineState.NewEra
+        return resolvePostOperationsState(state)
     }
 
     return MachineState.Operations

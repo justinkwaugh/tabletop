@@ -12,11 +12,14 @@ import {
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { StartCompany, HydratedStartCompany } from '../actions/startCompany.js'
+import { HydratedRemoveCompanyDeed, RemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { MachineState } from '../definition/states.js'
 import { AcquisitionsStateHandler } from './acquisitions.js'
 import type { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { CompanyType } from '../definition/companyType.js'
+import { AreaType } from '../components/area.js'
+import { Good } from '../definition/goods.js'
 
 let actionCounter = 0
 
@@ -150,5 +153,46 @@ describe('AcquisitionsStateHandler', () => {
         const nextState = handler.onAction(action, context)
 
         expect(nextState).toBe(MachineState.ResearchAndDevelopment)
+    })
+
+    it('transitions to research and development when a remove-company-deed leaves no startable deeds', () => {
+        const state = createTestState()
+        const handler = new AcquisitionsStateHandler()
+        const context = createMachineContext(state)
+
+        handler.enter(context)
+
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+        expect(productionDeed).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production) {
+            return
+        }
+
+        const blockerGood = productionDeed.good === Good.Rice ? Good.Spice : Good.Rice
+        for (const area of state.board.areasForRegion(productionDeed.region)) {
+            state.board.areas[area.id] = {
+                id: area.id,
+                type: AreaType.Cultivated,
+                companyId: `blocker-${area.id}`,
+                good: blockerGood
+            }
+        }
+        state.availableDeeds = [productionDeed]
+
+        const action = new HydratedRemoveCompanyDeed(
+            createAction(RemoveCompanyDeed, {
+                id: 'remove-deed-action',
+                gameId: state.gameId,
+                source: ActionSource.System,
+                playerId: '',
+                deedId: productionDeed.id
+            })
+        )
+
+        const nextState = handler.onAction(action, context)
+        expect(nextState).toBe(MachineState.ResearchAndDevelopment)
+        expect(state.activePlayerIds).toEqual([])
     })
 })

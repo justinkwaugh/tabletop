@@ -6,6 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { City } from '../components/city.js'
 import { isIndonesiaNodeId } from '../utils/indonesiaNodes.js'
 import { isEmptyLandArea } from '../components/area.js'
+import { queueRemovalForUnstartableAvailableDeeds } from '../operations/deedAvailability.js'
 
 export type PlaceCityMetadata = Type.Static<typeof PlaceCityMetadata>
 export const PlaceCityMetadata = Type.Object({
@@ -56,7 +57,7 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
         state.board.addCity(city)
         state.availableCities.size1 -= 1
 
-        // TODO: Remove deeds that can no longer be started
+        queueRemovalForUnstartableAvailableDeeds(state, context)
 
         this.metadata = {
             city

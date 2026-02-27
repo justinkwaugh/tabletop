@@ -1,6 +1,7 @@
 // Defines the entire set of action types
 
 export enum ActionType {
+    RemoveCompanyDeed = 'removeCompanyDeed',
     Research = 'research',
     DeliverGood = 'deliverGood',
     Expand = 'expand',

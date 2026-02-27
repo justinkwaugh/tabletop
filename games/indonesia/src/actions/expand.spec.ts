@@ -3,6 +3,7 @@ import {
     GameCategory,
     GameStatus,
     GameStorage,
+    MachineContext,
     PlayerStatus,
     createAction,
     type Game,
@@ -11,13 +12,16 @@ import {
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
+import type { ProductionDeed } from '../components/deed.js'
 import { CompanyType } from '../definition/companyType.js'
 import { DeliveryTieBreakPolicy, GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { MachineState } from '../definition/states.js'
 import { Expand, HydratedExpand } from './expand.js'
 import { IndonesiaAreaType, IndonesiaNeighborDirection } from '../utils/indonesiaNodes.js'
-import type { Good } from '../definition/goods.js'
+import { Good } from '../definition/goods.js'
+import { HydratedStartCompany } from './startCompany.js'
+import { isRemoveCompanyDeed } from './removeCompanyDeed.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -155,6 +159,16 @@ function setCompletedProductionDeliveryStage(
     }
     state.operatingCompanyProducedGoodsCount = producedGoodsCount
     state.operatingCompanyShippedGoodsCount = deliveryTarget
+}
+
+function selectDistinctGood(excluded: Good[]): Good {
+    const candidates = [Good.Rice, Good.Spice, Good.Rubber, Good.Oil, Good.SiapSaji]
+    for (const candidate of candidates) {
+        if (!excluded.includes(candidate)) {
+            return candidate
+        }
+    }
+    return Good.Rice
 }
 
 describe('HydratedExpand.canExpand', () => {
@@ -729,6 +743,105 @@ describe('HydratedExpand.canExpand', () => {
         expect(ownerState.cash).toBe(cashBefore)
         expect(action.metadata).toEqual({
             cost: 0
+        })
+    })
+
+    it('queues remove-company-deed when expansion makes an available deed unstartable', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+        const fixture = findProductionExpansionFixture(state)
+
+        expect(productionDeed).toBeDefined()
+        expect(fixture).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production || !fixture) {
+            return
+        }
+
+        const companyId = 'company-production'
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            }
+        ]
+        state.operatingCompanyId = companyId
+        state.machineState = MachineState.ProductionOperations
+        state.board.areas[fixture.companyCultivatedAreaId] = {
+            id: fixture.companyCultivatedAreaId,
+            type: AreaType.Cultivated,
+            companyId,
+            good: productionDeed.good
+        }
+        for (const blockedNeighborAreaId of fixture.blockedNeighborAreaIds) {
+            state.board.areas[blockedNeighborAreaId] = {
+                id: blockedNeighborAreaId,
+                type: AreaType.City,
+                cityId: `city-${blockedNeighborAreaId}`
+            }
+        }
+        setCompletedProductionDeliveryStage(state, companyId, productionDeed.good, 1, 0)
+
+        const targetNode = state.board.graph.nodeById(fixture.candidateExpansionAreaId)
+        expect(targetNode?.region).toBeDefined()
+        if (!targetNode?.region) {
+            return
+        }
+
+        const deedGood = selectDistinctGood([productionDeed.good])
+        const blockerGood = selectDistinctGood([productionDeed.good, deedGood])
+        const blockedDeed: ProductionDeed = {
+            id: 'blocked-by-expand',
+            type: CompanyType.Production,
+            era: state.era,
+            region: targetNode.region,
+            good: deedGood
+        }
+        state.availableDeeds = [blockedDeed]
+        for (const area of state.board.areasForRegion(targetNode.region)) {
+            if (area.id === fixture.candidateExpansionAreaId) {
+                continue
+            }
+            if (area.id === fixture.companyCultivatedAreaId) {
+                continue
+            }
+            state.board.areas[area.id] = {
+                id: area.id,
+                type: AreaType.Cultivated,
+                companyId: `blocked-${area.id}`,
+                good: blockerGood
+            }
+        }
+
+        expect(HydratedStartCompany.canDeedBeStarted(state, blockedDeed.id)).toBe(true)
+
+        const action = new HydratedExpand(
+            createAction(Expand, {
+                id: 'action-expand-production-queues-remove',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId,
+                areaId: fixture.candidateExpansionAreaId
+            })
+        )
+        const context = new MachineContext({
+            gameConfig: {},
+            gameState: state
+        })
+
+        action.apply(state, context)
+
+        const pendingRemovals = context
+            .getPendingActions()
+            .filter((pendingAction) => isRemoveCompanyDeed(pendingAction))
+        expect(pendingRemovals).toHaveLength(1)
+        expect(pendingRemovals[0]).toMatchObject({
+            deedId: blockedDeed.id
         })
     })
 })

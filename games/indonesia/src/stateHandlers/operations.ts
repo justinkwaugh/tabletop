@@ -10,11 +10,15 @@ import {
     HydratedChooseOperatingCompany,
     isChooseOperatingCompany
 } from '../actions/chooseOperatingCompany.js'
+import {
+    HydratedRemoveCompanyDeed,
+    isRemoveCompanyDeed
+} from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { CompanyType } from '../definition/companyType.js'
 
-type OperationsAction = HydratedChooseOperatingCompany
+type OperationsAction = HydratedChooseOperatingCompany | HydratedRemoveCompanyDeed
 
 export class OperationsStateHandler implements MachineStateHandler<
     OperationsAction,
@@ -24,7 +28,7 @@ export class OperationsStateHandler implements MachineStateHandler<
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
     ): action is OperationsAction {
-        return isChooseOperatingCompany(action)
+        return isChooseOperatingCompany(action) || isRemoveCompanyDeed(action)
     }
 
     validActionsForPlayer(
@@ -95,6 +99,9 @@ export class OperationsStateHandler implements MachineStateHandler<
                 }
 
                 return MachineState.ProductionOperations
+            }
+            case isRemoveCompanyDeed(action): {
+                return MachineState.Operations
             }
             default: {
                 throw Error('Invalid action type')

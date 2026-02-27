@@ -10,8 +10,13 @@ import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
+import {
+    HydratedRemoveCompanyDeed,
+    isRemoveCompanyDeed
+} from '../actions/removeCompanyDeed.js'
+import { resolvePostOperationsState } from './operationsFlow.js'
 
-type CityGrowthAction = HydratedGrowCity
+type CityGrowthAction = HydratedGrowCity | HydratedRemoveCompanyDeed
 
 export class CityGrowthStateHandler
     implements MachineStateHandler<CityGrowthAction, HydratedIndonesiaGameState>
@@ -20,7 +25,7 @@ export class CityGrowthStateHandler
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
     ): action is CityGrowthAction {
-        return isGrowCity(action)
+        return isGrowCity(action) || isRemoveCompanyDeed(action)
     }
 
     validActionsForPlayer(
@@ -53,10 +58,12 @@ export class CityGrowthStateHandler
         if (automaticCityId) {
             // Automatic growth does not open a player turn.
             gameState.activePlayerIds = [growthDecisionPlayerId]
-            context.addSystemAction(GrowCity, {
-                playerId: growthDecisionPlayerId,
-                cityId: automaticCityId
-            })
+            if (!this.hasPendingGrowCity(context, automaticCityId)) {
+                context.addSystemAction(GrowCity, {
+                    playerId: growthDecisionPlayerId,
+                    cityId: automaticCityId
+                })
+            }
             return
         }
 
@@ -76,7 +83,10 @@ export class CityGrowthStateHandler
                 }
 
                 this.completeCityGrowth(state)
-                return MachineState.NewEra
+                return resolvePostOperationsState(state)
+            }
+            case isRemoveCompanyDeed(action): {
+                return MachineState.CityGrowth
             }
             default: {
                 throw Error('Invalid action type')
@@ -120,5 +130,14 @@ export class CityGrowthStateHandler
 
     private firstCityId(cities: City[]): string | undefined {
         return cities[0]?.id
+    }
+
+    private hasPendingGrowCity(
+        context: MachineContext<HydratedIndonesiaGameState>,
+        cityId: string
+    ): boolean {
+        return context.getPendingActions().some(
+            (pendingAction) => isGrowCity(pendingAction) && pendingAction.cityId === cityId
+        )
     }
 }

@@ -7,10 +7,15 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedResearch, isResearch } from '../actions/research.js'
+import {
+    HydratedRemoveCompanyDeed,
+    isRemoveCompanyDeed
+} from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
+import { resolvePostOperationsState } from './operationsFlow.js'
 
-type ResearchAndDevelopmentAction = HydratedResearch
+type ResearchAndDevelopmentAction = HydratedResearch | HydratedRemoveCompanyDeed
 
 function hasCompletedResearchTurn(state: HydratedIndonesiaGameState, playerId: string): boolean {
     const currentPhase = state.phaseManager.currentPhase
@@ -28,7 +33,7 @@ export class ResearchAndDevelopmentStateHandler implements MachineStateHandler<
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
     ): action is ResearchAndDevelopmentAction {
-        return isResearch(action)
+        return isResearch(action) || isRemoveCompanyDeed(action)
     }
 
     validActionsForPlayer(
@@ -111,11 +116,14 @@ export class ResearchAndDevelopmentStateHandler implements MachineStateHandler<
                         if (state.canAnyCityGrow()) {
                             return MachineState.CityGrowth
                         }
-                        return MachineState.NewEra
+                        return resolvePostOperationsState(state)
                     }
                     return MachineState.Operations
                 }
 
+                return MachineState.ResearchAndDevelopment
+            }
+            case isRemoveCompanyDeed(action): {
                 return MachineState.ResearchAndDevelopment
             }
             default: {

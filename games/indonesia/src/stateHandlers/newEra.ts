@@ -9,11 +9,19 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedPass, isPass, Pass, PassReason } from '../actions/pass.js'
 import { HydratedPlaceCity, isPlaceCity } from '../actions/placeCity.js'
 import { HydratedPlaceCompanyDeeds, isPlaceCompanyDeeds } from '../actions/placeCompanyDeeds.js'
+import {
+    HydratedRemoveCompanyDeed,
+    isRemoveCompanyDeed
+} from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { Era } from '../definition/eras.js'
 
-type NewEraAction = HydratedPlaceCompanyDeeds | HydratedPlaceCity | HydratedPass
+type NewEraAction =
+    | HydratedPlaceCompanyDeeds
+    | HydratedPlaceCity
+    | HydratedPass
+    | HydratedRemoveCompanyDeed
 
 export class NewEraStateHandler implements MachineStateHandler<
     NewEraAction,
@@ -24,7 +32,12 @@ export class NewEraStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedIndonesiaGameState>
     ): action is NewEraAction {
         // Leave this comment if you want the template to generate code for valid actions
-        return isPlaceCompanyDeeds(action) || isPlaceCity(action) || isPass(action)
+        return (
+            isPlaceCompanyDeeds(action) ||
+            isPlaceCity(action) ||
+            isPass(action) ||
+            isRemoveCompanyDeed(action)
+        )
     }
 
     validActionsForPlayer(
@@ -75,7 +88,10 @@ export class NewEraStateHandler implements MachineStateHandler<
             gameState.currentCityCard
         )
 
-        if (!HydratedPlaceCity.canPlaceCity(gameState, nextPlayerId)) {
+        if (
+            !HydratedPlaceCity.canPlaceCity(gameState, nextPlayerId) &&
+            !this.hasPendingCannotPlaceCityPass(context, nextPlayerId)
+        ) {
             context.addSystemAction(Pass, {
                 playerId: nextPlayerId,
                 reason: PassReason.CannotPlaceCity
@@ -97,6 +113,9 @@ export class NewEraStateHandler implements MachineStateHandler<
             case isPass(action): {
                 return this.handlePlayerActionAndReturnNextState(action, context.gameState)
             }
+            case isRemoveCompanyDeed(action): {
+                return MachineState.NewEra
+            }
             // Leave this comment if you want the template to generate code for valid actions
             default: {
                 throw Error('Invalid action type')
@@ -117,5 +136,17 @@ export class NewEraStateHandler implements MachineStateHandler<
         } else {
             return MachineState.NewEra
         }
+    }
+
+    private hasPendingCannotPlaceCityPass(
+        context: MachineContext<HydratedIndonesiaGameState>,
+        playerId: string
+    ): boolean {
+        return context.getPendingActions().some(
+            (pendingAction) =>
+                isPass(pendingAction) &&
+                pendingAction.playerId === playerId &&
+                pendingAction.reason === PassReason.CannotPlaceCity
+        )
     }
 }

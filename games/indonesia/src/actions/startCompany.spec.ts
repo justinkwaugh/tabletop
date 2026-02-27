@@ -1,8 +1,11 @@
 import {
+    ActionSource,
     GameCategory,
     GameStatus,
     GameStorage,
+    MachineContext,
     PlayerStatus,
+    createAction,
     type Game,
     type Player,
     type UninitializedGameState
@@ -10,11 +13,12 @@ import {
 import { describe, expect, it } from 'vitest'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { MachineState } from '../definition/states.js'
-import { HydratedStartCompany } from './startCompany.js'
+import { HydratedStartCompany, StartCompany } from './startCompany.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
 import { AreaType } from '../components/area.js'
 import { IndonesiaNeighborDirection } from '../utils/indonesiaNodes.js'
+import { isRemoveCompanyDeed } from './removeCompanyDeed.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -172,5 +176,73 @@ describe('HydratedStartCompany.canStartCompany', () => {
             HydratedStartCompany.validAreaIds(state, playerId, productionDeed.id)
         )
         expect(validAreaIds).toContain(candidateArea.id)
+    })
+
+    it('queues remove-company-deed for remaining deeds that become unstartable', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        state.machineState = MachineState.Acquisitions
+        state.activePlayerIds = [playerId]
+
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+        expect(productionDeed).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production) {
+            return
+        }
+
+        const validAreaId = HydratedStartCompany.validAreaIds(state, playerId, productionDeed.id)
+            .next().value
+        expect(validAreaId).toBeDefined()
+        if (!validAreaId) {
+            return
+        }
+
+        const blockerGood = productionDeed.good === Good.Rice ? Good.Spice : Good.Rice
+        for (const area of state.board.areasForRegion(productionDeed.region)) {
+            if (area.id === validAreaId) {
+                continue
+            }
+            state.board.areas[area.id] = {
+                id: area.id,
+                type: AreaType.Cultivated,
+                companyId: `blocker-${area.id}`,
+                good: blockerGood
+            }
+        }
+
+        const duplicateDeed = {
+            ...productionDeed,
+            id: `${productionDeed.id}-duplicate`
+        }
+        state.availableDeeds = [productionDeed, duplicateDeed]
+
+        expect(HydratedStartCompany.canDeedBeStarted(state, duplicateDeed.id)).toBe(true)
+
+        const action = new HydratedStartCompany(
+            createAction(StartCompany, {
+                id: 'start-company-action',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId,
+                deedId: productionDeed.id,
+                areaId: validAreaId
+            })
+        )
+        const context = new MachineContext({
+            gameConfig: {},
+            gameState: state
+        })
+
+        action.apply(state, context)
+
+        const pendingRemovals = context
+            .getPendingActions()
+            .filter((pendingAction) => isRemoveCompanyDeed(pendingAction))
+        expect(pendingRemovals).toHaveLength(1)
+        expect(pendingRemovals[0]).toMatchObject({
+            deedId: duplicateDeed.id
+        })
     })
 })
