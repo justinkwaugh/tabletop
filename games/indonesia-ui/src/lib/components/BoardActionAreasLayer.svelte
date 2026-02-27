@@ -14,6 +14,8 @@
     import {
         ActionType,
         CompanyType,
+        HydratedExpand,
+        HydratedGrowCity,
         HydratedPlaceCity,
         HydratedStartCompany,
         IndonesiaAreaType,
@@ -25,6 +27,7 @@
 
     type AreaInteractionAction =
         | 'place-city'
+        | 'grow-city'
         | 'start-company'
         | 'expand'
         | 'select-delivery-cultivated'
@@ -182,6 +185,28 @@
     })
 
     const activeAreaInteraction: ActiveAreaInteraction | null = $derived.by(() => {
+        if (
+            myPlayerId &&
+            gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.CityGrowth &&
+            gameSession.validActionTypes.includes(ActionType.GrowCity)
+        ) {
+            const validAreaIds = Array.from(
+                HydratedGrowCity.validCityAreaIds(gameSession.gameState, myPlayerId)
+            )
+            if (validAreaIds.length === 0) {
+                return null
+            }
+
+            return {
+                action: 'grow-city',
+                validAreaIds,
+                outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
+                maskedAreaType: IndonesiaAreaType.Land,
+                maskInvalidAreas: true
+            }
+        }
+
         if (
             myPlayerId &&
             gameSession.isMyTurn &&
@@ -373,6 +398,16 @@
         try {
             if (activeAreaInteraction.action === 'place-city') {
                 await gameSession.placeCity(areaId)
+                return
+            }
+
+            if (activeAreaInteraction.action === 'grow-city') {
+                const city = gameSession.gameState.board.cities.find((entry) => entry.area === areaId)
+                if (!city) {
+                    return
+                }
+
+                await gameSession.growCity(city.id)
                 return
             }
 

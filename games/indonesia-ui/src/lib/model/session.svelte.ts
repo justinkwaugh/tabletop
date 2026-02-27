@@ -6,6 +6,7 @@ import {
     CompanyType,
     DeliverGood,
     Expand,
+    GrowCity,
     listSafeAtomicDeliveryCandidatesForPlayer,
     MachineState,
     PlaceCity,
@@ -406,6 +407,18 @@ export class IndonesiaGameSession extends GameSession<
         const action = this.createPlayerAction(PlaceCity, {
             type: ActionType.PlaceCity,
             areaId
+        })
+        await this.applyAction(action)
+    }
+
+    async growCity(cityId: string): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.GrowCity)) {
+            return
+        }
+
+        const action = this.createPlayerAction(GrowCity, {
+            type: ActionType.GrowCity,
+            cityId
         })
         await this.applyAction(action)
     }

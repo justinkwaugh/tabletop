@@ -10,6 +10,7 @@ import { Pass } from '../actions/pass.js'
 import { Research } from '../actions/research.js'
 import { DeliverGood } from '../actions/deliverGood.js'
 import { Expand } from '../actions/expand.js'
+import { GrowCity } from '../actions/growCity.js'
 import { ChooseOperatingCompany } from '../actions/chooseOperatingCompany.js'
 
 // Define the mapping of action type names to their actual types.
@@ -18,6 +19,7 @@ export const IndonesiaApiActions = {
     [ActionType.Research]: Research,
     [ActionType.DeliverGood]: DeliverGood,
     [ActionType.Expand]: Expand,
+    [ActionType.GrowCity]: GrowCity,
     [ActionType.ChooseOperatingCompany]: ChooseOperatingCompany,
     [ActionType.StartCompany]: StartCompany,
     [ActionType.ProposeMerger]: ProposeMerger,

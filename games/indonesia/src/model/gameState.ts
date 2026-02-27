@@ -367,6 +367,50 @@ export class HydratedIndonesiaGameState
         city.demand[good] = this.currentCityDemandForGood(city, good) + quantity
     }
 
+    public cityGrowthDecisionPlayerId(): string | undefined {
+        return this.turnManager.turnOrder[0]
+    }
+
+    public cityGrowthEligibleCities(): City[] {
+        const producedGoods = this.producedGoodsOnBoard()
+        return this.board.cities.filter((city) => this.canCityGrow(city, producedGoods))
+    }
+
+    public cityGrowthEligibleCityIds(): string[] {
+        return this.cityGrowthEligibleCities().map((city) => city.id)
+    }
+
+    public canAnyCityGrow(): boolean {
+        return this.cityGrowthEligibleCities().length > 0
+    }
+
+    public growCity(cityId: string): { oldSize: number; newSize: number } {
+        const city = this.board.cities.find((entry) => entry.id === cityId)
+        assertExists(city, `City ${cityId} should exist before growth`)
+
+        const oldSize = city.size
+        const newSize = oldSize + 1
+
+        switch (oldSize) {
+            case 1: {
+                this.availableCities.size1 += 1
+                this.availableCities.size2 -= 1
+                break
+            }
+            case 2: {
+                this.availableCities.size2 += 1
+                this.availableCities.size3 -= 1
+                break
+            }
+            default: {
+                assert(false, `City ${cityId} has unsupported size ${oldSize} for growth`)
+            }
+        }
+
+        city.size = newSize
+        return { oldSize, newSize }
+    }
+
     public canCompanyExpand(companyId: string): boolean {
         for (const _ of this.validExpansionAreaIds(companyId)) {
             return true
@@ -541,6 +585,31 @@ export class HydratedIndonesiaGameState
             if (neighborArea.companyId === company.id) {
                 return true
             }
+        }
+
+        return false
+    }
+
+    private canCityGrow(city: City, producedGoods: ReadonlySet<Good>): boolean {
+        if (!this.hasAvailableCityTokenForGrowth(city)) {
+            return false
+        }
+
+        for (const good of producedGoods) {
+            if (this.currentCityDemandForGood(city, good) < city.size) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private hasAvailableCityTokenForGrowth(city: City): boolean {
+        if (city.size === 1) {
+            return this.availableCities.size2 > 0
+        }
+        if (city.size === 2) {
+            return this.availableCities.size3 > 0
         }
 
         return false

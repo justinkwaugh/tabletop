@@ -14,6 +14,7 @@ import {
     isChooseOperatingCompany
 } from '../actions/chooseOperatingCompany.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
+import { HydratedGrowCity, isGrowCity } from '../actions/growCity.js'
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Sample game.  Used by the game engine
@@ -55,6 +56,9 @@ export class IndonesiaHydrator implements GameHydrator<
             }
             case isExpand(data): {
                 return new HydratedExpand(data)
+            }
+            case isGrowCity(data): {
+                return new HydratedGrowCity(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

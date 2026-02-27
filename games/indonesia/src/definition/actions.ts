@@ -4,6 +4,7 @@ export enum ActionType {
     Research = 'research',
     DeliverGood = 'deliverGood',
     Expand = 'expand',
+    GrowCity = 'growCity',
     ChooseOperatingCompany = 'chooseOperatingCompany',
     StartCompany = 'startCompany',
     ProposeMerger = 'proposeMerger',

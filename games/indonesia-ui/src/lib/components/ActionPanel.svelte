@@ -295,6 +295,12 @@
 
                 return baseMessage
             }
+            case MachineState.CityGrowth: {
+                if (gameSession.validActionTypes.includes(ActionType.GrowCity)) {
+                    return 'Choose a highlighted city to grow.'
+                }
+                return 'Resolving city growth.'
+            }
             case MachineState.EndOfGame:
                 return 'Game over.'
             default:

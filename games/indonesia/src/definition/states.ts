@@ -3,6 +3,7 @@
 export enum MachineState {
     ResearchAndDevelopment = 'ResearchAndDevelopment',
     Operations = 'Operations',
+    CityGrowth = 'CityGrowth',
     ShippingOperations = 'ShippingOperations',
     ProductionOperations = 'ProductionOperations',
     Acquisitions = 'Acquisitions',

@@ -20,7 +20,10 @@ export function finishOperatingCompany(state: HydratedIndonesiaGameState): Machi
     if (playersWhoCanOperate.length === 0) {
         state.phaseManager.endPhase(state.actionCount)
         state.activePlayerIds = []
-        return MachineState.BiddingForTurnOrder
+        if (state.canAnyCityGrow()) {
+            return MachineState.CityGrowth
+        }
+        return MachineState.NewEra
     }
 
     return MachineState.Operations

@@ -104,6 +104,15 @@ export class ResearchAndDevelopmentStateHandler implements MachineStateHandler<
                 )
                 if (allPlayersResearched) {
                     state.phaseManager.endPhase(state.actionCount)
+                    const anyPlayerCanOperateCompany = state.turnManager.turnOrder.some((playerId) =>
+                        state.canPlayerOperateAnyCompany(playerId)
+                    )
+                    if (!anyPlayerCanOperateCompany) {
+                        if (state.canAnyCityGrow()) {
+                            return MachineState.CityGrowth
+                        }
+                        return MachineState.NewEra
+                    }
                     return MachineState.Operations
                 }
 
