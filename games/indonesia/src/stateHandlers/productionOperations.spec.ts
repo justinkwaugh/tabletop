@@ -120,6 +120,7 @@ describe('ProductionOperationsStateHandler', () => {
         handler.enter(context)
 
         expect(state.operatingCompanyDeliveryPlan).toBeDefined()
+        expect(state.operatingCompanyShippedGoodsCount).toBe(0)
         expect(state.operatingCompanyDeliveryPlan).toMatchObject({
             operatingCompanyId: 'prod-1',
             good: Good.Rice,

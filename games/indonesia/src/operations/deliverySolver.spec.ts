@@ -327,4 +327,76 @@ describe('solveDeliveryProblem', () => {
             }
         ])
     })
+
+    it('prefers lower shipping cost when profit is tied', () => {
+        const problem: DeliveryProblem = {
+            operatingCompanyId: 'prod-1',
+            operatingCompanyOwnerId: 'p1',
+            ownedShippingCompanyIds: ['ship-owned-short', 'ship-owned-long'],
+            good: Good.Rice,
+            shippingFeePerShipUse: 5,
+            tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
+            zoneSupplies: [
+                {
+                    zoneId: 'prod-1:zone:1',
+                    areaIds: ['A01'],
+                    adjacentSeaAreaIds: ['S01', 'S02'],
+                    supply: 1
+                }
+            ],
+            cityDemands: [
+                {
+                    cityId: 'city-a',
+                    cityAreaId: 'A04',
+                    adjacentSeaAreaIds: ['S01', 'S03'],
+                    remainingDemand: 1
+                }
+            ],
+            shippingCompanyNetworks: [
+                {
+                    shippingCompanyId: 'ship-owned-short',
+                    seaLanes: [],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S01',
+                            capacity: 1
+                        }
+                    ]
+                },
+                {
+                    shippingCompanyId: 'ship-owned-long',
+                    seaLanes: [
+                        {
+                            fromSeaAreaId: 'S02',
+                            toSeaAreaId: 'S03'
+                        }
+                    ],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S02',
+                            capacity: 1
+                        },
+                        {
+                            seaAreaId: 'S03',
+                            capacity: 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        const plan = solveDeliveryProblem(problem)
+
+        expect(plan.totalDelivered).toBe(1)
+        expect(plan.shippingCost).toBe(5)
+        expect(plan.deliveries).toEqual([
+            {
+                zoneId: 'prod-1:zone:1',
+                cityId: 'city-a',
+                shippingCompanyId: 'ship-owned-short',
+                quantity: 1,
+                seaPathAreaIds: ['S01']
+            }
+        ])
+    })
 })

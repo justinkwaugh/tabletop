@@ -40,6 +40,7 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
             throw Error('Invalid DeliverGood action')
         }
 
+        state.incrementOperatingCompanyShippedGoodsCount()
         this.metadata = {}
     }
 
@@ -59,6 +60,16 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
 
         const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
         if (!operatingCompany) {
+            return false
+        }
+
+        const deliveryPlan = state.operatingCompanyDeliveryPlan
+        if (!deliveryPlan || deliveryPlan.operatingCompanyId !== operatingCompanyId) {
+            return false
+        }
+
+        const shippedGoodsCount = state.operatingCompanyShippedGoodsCount ?? 0
+        if (shippedGoodsCount >= deliveryPlan.totalDelivered) {
             return false
         }
 

@@ -136,7 +136,7 @@ function nodeKey(node: NetworkNode): string {
     }
 }
 
-function ownershipPenaltyScaleForTieBreak(problem: DeliveryProblem): number {
+function maxPossibleTotalShippingCost(problem: DeliveryProblem): number {
     let totalSeaCapacity = 0
     for (const shippingNetwork of problem.shippingCompanyNetworks) {
         for (const seaAreaCapacity of shippingNetwork.seaAreaCapacities) {
@@ -144,24 +144,28 @@ function ownershipPenaltyScaleForTieBreak(problem: DeliveryProblem): number {
         }
     }
 
-    return totalSeaCapacity * problem.shippingFeePerShipUse + 1
+    return totalSeaCapacity * problem.shippingFeePerShipUse
 }
 
 function seaCapacityEdgeCost(
     problem: DeliveryProblem,
     shippingCompanyId: string,
     ownedShippingCompanyIdSet: ReadonlySet<string>,
-    ownershipPenaltyScale: number
+    nonOwnedCostScale: number
 ): number {
     if (problem.tieBreakPolicy !== DeliveryTieBreakPolicy.MinShippingCost) {
         return 0
     }
 
-    const shippingCostComponent = problem.shippingFeePerShipUse
-    const ownershipPenalty = ownedShippingCompanyIdSet.has(shippingCompanyId)
+    // Lexicographic objective encoding (within fixed max-delivery):
+    // 1) maximize profit for production owner => minimize non-owned shipping cost
+    // 2) then minimize total shipping cost
+    const totalShippingCostComponent = problem.shippingFeePerShipUse
+    const nonOwnedShippingCostComponent = ownedShippingCompanyIdSet.has(shippingCompanyId)
         ? 0
-        : ownershipPenaltyScale
-    return ownershipPenalty + shippingCostComponent
+        : problem.shippingFeePerShipUse
+
+    return nonOwnedShippingCostComponent * nonOwnedCostScale + totalShippingCostComponent
 }
 
 function sortIds<T extends string>(ids: readonly T[]): T[] {
@@ -225,7 +229,7 @@ function buildFlowNetwork(problem: DeliveryProblem): {
         a.shippingCompanyId.localeCompare(b.shippingCompanyId)
     )
     const ownedShippingCompanyIdSet = new Set(problem.ownedShippingCompanyIds)
-    const ownershipPenaltyScale = ownershipPenaltyScaleForTieBreak(problem)
+    const nonOwnedCostScale = maxPossibleTotalShippingCost(problem) + 1
 
     for (const shippingNetwork of sortedShippingNetworks) {
         const seaInNodeIndexBySeaAreaId = new Map<IndonesiaNodeId, number>()
@@ -263,7 +267,7 @@ function buildFlowNetwork(problem: DeliveryProblem): {
                     problem,
                     shippingNetwork.shippingCompanyId,
                     ownedShippingCompanyIdSet,
-                    ownershipPenaltyScale
+                    nonOwnedCostScale
                 ),
                 {
                     kind: 'sea-capacity',

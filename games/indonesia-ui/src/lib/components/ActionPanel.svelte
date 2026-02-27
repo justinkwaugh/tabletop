@@ -134,6 +134,14 @@
             }))
     })
 
+    const maxGoodsToShipForCurrentProductionOperation = $derived.by(() => {
+        return gameSession.gameState.operatingCompanyDeliveryPlan?.totalDelivered ?? 0
+    })
+
+    const shippedGoodsCountForCurrentProductionOperation = $derived.by(() => {
+        return gameSession.gameState.operatingCompanyShippedGoodsCount ?? 0
+    })
+
     const message = $derived.by(() => {
         if (gameSession.isViewingHistory) {
             return 'Viewing history.'
@@ -179,8 +187,15 @@
                 return 'Choose a company to operate.'
             case MachineState.ShippingOperations:
                 return 'Operate shipping company.'
-            case MachineState.ProductionOperations:
-                return 'Operate production company.'
+            case MachineState.ProductionOperations: {
+                const maxGoodsToShip = maxGoodsToShipForCurrentProductionOperation
+                const goodsLabel = maxGoodsToShip === 1 ? 'good' : 'goods'
+                if (shippedGoodsCountForCurrentProductionOperation > 0) {
+                    return `Ship ${maxGoodsToShip} more ${goodsLabel}.`
+                }
+
+                return `Ship ${maxGoodsToShip} ${goodsLabel}.`
+            }
             case MachineState.EndOfGame:
                 return 'Game over.'
             default:

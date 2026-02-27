@@ -64,6 +64,7 @@ export const IndonesiaGameState = Type.Evaluate(
             companies: Type.Array(Company), // List of companies in the game
             operatingCompanyId: Type.Optional(Type.String()), // Company currently being operated in operations sub-states
             operatingCompanyExpansionCount: Type.Optional(Type.Number()), // Number of expansions performed during current company operation
+            operatingCompanyShippedGoodsCount: Type.Optional(Type.Number()), // Number of goods delivered so far during the current production company operation
             operatingCompanyDeliveryPlan: Type.Optional(DeliveryPlanSchema), // Delivery plan for the currently operating production company
             operatedCompanyIds: Type.Array(Type.String()) // Companies that have already operated this operations phase
         })
@@ -103,6 +104,7 @@ export class HydratedIndonesiaGameState
     declare companies: Company[]
     declare operatingCompanyId?: string
     declare operatingCompanyExpansionCount?: number
+    declare operatingCompanyShippedGoodsCount?: number
     declare operatingCompanyDeliveryPlan?: DeliveryPlan
     declare operatedCompanyIds: string[]
 
@@ -127,12 +129,14 @@ export class HydratedIndonesiaGameState
     public beginCompanyOperation(companyId: string): void {
         this.operatingCompanyId = companyId
         this.operatingCompanyExpansionCount = 0
+        this.operatingCompanyShippedGoodsCount = 0
         this.clearOperatingCompanyDeliveryPlan()
     }
 
     public clearOperatingCompany(): void {
         this.operatingCompanyId = undefined
         this.operatingCompanyExpansionCount = undefined
+        this.operatingCompanyShippedGoodsCount = undefined
         this.clearOperatingCompanyDeliveryPlan()
     }
 
@@ -180,6 +184,27 @@ export class HydratedIndonesiaGameState
             'Operating company id should be set before incrementing expansion count'
         )
         this.operatingCompanyExpansionCount = (this.operatingCompanyExpansionCount ?? 0) + 1
+    }
+
+    public incrementOperatingCompanyShippedGoodsCount(): void {
+        const operatingCompanyId = this.operatingCompanyId
+        assertExists(
+            operatingCompanyId,
+            'Operating company id should be set before incrementing shipped goods count'
+        )
+        const deliveryPlan = this.operatingCompanyDeliveryPlan
+        assertExists(
+            deliveryPlan,
+            'Operating company delivery plan should be set before incrementing shipped goods count'
+        )
+
+        const nextShippedGoodsCount = (this.operatingCompanyShippedGoodsCount ?? 0) + 1
+        assert(
+            nextShippedGoodsCount <= deliveryPlan.totalDelivered,
+            `Operating company ${operatingCompanyId} cannot ship more than ${deliveryPlan.totalDelivered} goods`
+        )
+
+        this.operatingCompanyShippedGoodsCount = nextShippedGoodsCount
     }
 
     public canCurrentOperationExpandForPlayer(playerId: string): boolean {
