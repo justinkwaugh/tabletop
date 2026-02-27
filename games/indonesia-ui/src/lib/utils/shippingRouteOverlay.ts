@@ -23,7 +23,12 @@ type OpenNode = {
 type LandShape = {
     areaId: string
     path: SVGPathElement
-    bbox: DOMRect
+    bbox: {
+        left: number
+        right: number
+        top: number
+        bottom: number
+    }
 }
 
 type RoutingContext = {
@@ -34,12 +39,14 @@ type RoutingContext = {
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 const BOARD_WIDTH = 2646
 const BOARD_HEIGHT = 1280
-const LAND_INFLATION_PIXELS = 20
+const LAND_INFLATION_PIXELS = 15
 const GRID_STEP = 12
 const GRID_COLS = Math.floor(BOARD_WIDTH / GRID_STEP) + 1
 const GRID_ROWS = Math.floor(BOARD_HEIGHT / GRID_STEP) + 1
 const MAX_SEARCH_STEPS = 200_000
 const SEGMENT_SAMPLE_STEP = 6
+const CURVE_CORNER_MAX_RADIUS = 14
+const CURVE_CORNER_RATIO = 0.34
 
 const EIGHT_WAY_NEIGHBORS = [
     { dx: -1, dy: -1, cost: Math.SQRT2 },
@@ -116,6 +123,19 @@ function pointLerp(a: Point, b: Point, t: number): Point {
     }
 }
 
+function pointToward(from: Point, to: Point, distance: number): Point {
+    const segmentLength = pointDistance(from, to)
+    if (segmentLength <= 0 || distance <= 0) {
+        return from
+    }
+
+    const t = clamp(distance / segmentLength, 0, 1)
+    return {
+        x: from.x + (to.x - from.x) * t,
+        y: from.y + (to.y - from.y) * t
+    }
+}
+
 function createRoutingContext(allowedLandAreaIds: readonly string[]): RoutingContext {
     const sortedAllowedAreaIds = [...allowedLandAreaIds].sort((a, b) => a.localeCompare(b))
     return {
@@ -180,7 +200,12 @@ function ensureLandShapes(): readonly LandShape[] {
         shapes.push({
             areaId: area.id,
             path,
-            bbox
+            bbox: {
+                left: bbox.x - LAND_INFLATION_PIXELS,
+                right: bbox.x + bbox.width + LAND_INFLATION_PIXELS,
+                top: bbox.y - LAND_INFLATION_PIXELS,
+                bottom: bbox.y + bbox.height + LAND_INFLATION_PIXELS
+            }
         })
     }
 
@@ -201,10 +226,10 @@ function pointInLand(point: Point, routingContext: RoutingContext): boolean {
         }
 
         if (
-            point.x < shape.bbox.x ||
-            point.x > shape.bbox.x + shape.bbox.width ||
-            point.y < shape.bbox.y ||
-            point.y > shape.bbox.y + shape.bbox.height
+            point.x < shape.bbox.left ||
+            point.x > shape.bbox.right ||
+            point.y < shape.bbox.top ||
+            point.y > shape.bbox.bottom
         ) {
             continue
         }
@@ -497,14 +522,55 @@ function pointsToSvgPath(points: readonly Point[]): string | null {
         return `M ${formatCoordinate(points[0].x)} ${formatCoordinate(points[0].y)}`
     }
 
-    const pathCommands: string[] = [
-        `M ${formatCoordinate(points[0].x)} ${formatCoordinate(points[0].y)}`
-    ]
-    for (let index = 1; index < points.length; index += 1) {
-        pathCommands.push(
-            `L ${formatCoordinate(points[index].x)} ${formatCoordinate(points[index].y)}`
+    const pathCommands: string[] = [`M ${formatCoordinate(points[0].x)} ${formatCoordinate(points[0].y)}`]
+    let currentPoint = points[0]
+
+    for (let index = 1; index < points.length - 1; index += 1) {
+        const previous = points[index - 1]
+        const corner = points[index]
+        const next = points[index + 1]
+
+        const incomingLength = pointDistance(previous, corner)
+        const outgoingLength = pointDistance(corner, next)
+        if (incomingLength <= 0 || outgoingLength <= 0) {
+            if (!pointsAreNear(currentPoint, corner)) {
+                pathCommands.push(`L ${formatCoordinate(corner.x)} ${formatCoordinate(corner.y)}`)
+                currentPoint = corner
+            }
+            continue
+        }
+
+        const cornerRadius = Math.min(
+            CURVE_CORNER_MAX_RADIUS,
+            incomingLength * CURVE_CORNER_RATIO,
+            outgoingLength * CURVE_CORNER_RATIO
         )
+        if (cornerRadius <= 0) {
+            if (!pointsAreNear(currentPoint, corner)) {
+                pathCommands.push(`L ${formatCoordinate(corner.x)} ${formatCoordinate(corner.y)}`)
+                currentPoint = corner
+            }
+            continue
+        }
+
+        const entryPoint = pointToward(corner, previous, cornerRadius)
+        const exitPoint = pointToward(corner, next, cornerRadius)
+
+        if (!pointsAreNear(currentPoint, entryPoint)) {
+            pathCommands.push(`L ${formatCoordinate(entryPoint.x)} ${formatCoordinate(entryPoint.y)}`)
+        }
+
+        pathCommands.push(
+            `Q ${formatCoordinate(corner.x)} ${formatCoordinate(corner.y)} ${formatCoordinate(exitPoint.x)} ${formatCoordinate(exitPoint.y)}`
+        )
+        currentPoint = exitPoint
     }
+
+    const lastPoint = points[points.length - 1]
+    if (!pointsAreNear(currentPoint, lastPoint)) {
+        pathCommands.push(`L ${formatCoordinate(lastPoint.x)} ${formatCoordinate(lastPoint.y)}`)
+    }
+
     return pathCommands.join(' ')
 }
 
