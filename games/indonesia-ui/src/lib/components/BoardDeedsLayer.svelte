@@ -38,6 +38,7 @@
     }
 
     const DEED_DARKNESS_SHIFT_BY_KEY: Record<string, number> = {
+        'R02:Shipping': 0.15,
         'R08:Shipping': 0.15,
         'R14:Shipping': 0.15,
         'R26:Production': 0.1

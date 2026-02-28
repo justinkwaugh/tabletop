@@ -68,7 +68,7 @@ function createTestState() {
 }
 
 describe('HydratedPlaceCompanyDeeds', () => {
-    it('adds current-era deeds to available deeds', () => {
+    it('replaces available deeds with current-era deeds', () => {
         const state = createTestState()
         const carriedDeed = state.availableDeeds[0]
         state.era = Era.B
@@ -87,11 +87,12 @@ describe('HydratedPlaceCompanyDeeds', () => {
         const expectedEraBIds = Deeds.filter((deed) => deed.era === Era.B).map((deed) => deed.id)
         const availableIds = state.availableDeeds.map((deed) => deed.id)
 
+        expect(availableIds).toHaveLength(expectedEraBIds.length)
         for (const deedId of expectedEraBIds) {
             expect(availableIds).toContain(deedId)
         }
         if (carriedDeed) {
-            expect(availableIds).toContain(carriedDeed.id)
+            expect(availableIds).not.toContain(carriedDeed.id)
         }
     })
 
@@ -107,5 +108,13 @@ describe('HydratedPlaceCompanyDeeds', () => {
         state.availableDeeds = structuredClone(Deeds.filter((deed) => deed.era === Era.B))
 
         expect(HydratedPlaceCompanyDeeds.canPlaceCompanyDeeds(state)).toBe(false)
+    })
+
+    it('is allowed when out-of-era deeds remain available', () => {
+        const state = createTestState()
+        state.era = Era.B
+        state.availableDeeds = structuredClone(Deeds.filter((deed) => deed.era === Era.A))
+
+        expect(HydratedPlaceCompanyDeeds.canPlaceCompanyDeeds(state)).toBe(true)
     })
 })

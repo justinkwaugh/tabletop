@@ -41,10 +41,8 @@ export class HydratedPlaceCompanyDeeds extends HydratableAction<typeof PlaceComp
             throw Error('Invalid PlaceCompanyDeeds action')
         }
 
-        const eraDeedsToAdd = Deeds.filter((deed) => deed.era === state.era).filter(
-            (deed) => !state.availableDeeds.some((availableDeed) => availableDeed.id === deed.id)
-        )
-        state.availableDeeds.push(...structuredClone(eraDeedsToAdd))
+        const eraDeeds = Deeds.filter((deed) => deed.era === state.era)
+        state.availableDeeds = structuredClone(eraDeeds)
         this.metadata = {}
     }
 
@@ -57,10 +55,12 @@ export class HydratedPlaceCompanyDeeds extends HydratableAction<typeof PlaceComp
             return false
         }
 
-        return Deeds.some(
-            (deed) =>
-                deed.era === state.era &&
-                !state.availableDeeds.some((availableDeed) => availableDeed.id === deed.id)
+        const availableDeedIds = new Set(state.availableDeeds.map((deed) => deed.id))
+        const hasMissingCurrentEraDeed = Deeds.some(
+            (deed) => deed.era === state.era && !availableDeedIds.has(deed.id)
         )
+        const hasOutOfEraDeed = state.availableDeeds.some((deed) => deed.era !== state.era)
+
+        return hasMissingCurrentEraDeed || hasOutOfEraDeed
     }
 }
