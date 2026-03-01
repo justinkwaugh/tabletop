@@ -1,12 +1,18 @@
 <script lang="ts">
-    import CompanyCard from '$lib/components/CompanyCard.svelte'
+    import PlayerCompanyCompactCard, {
+        type PlayerCompanyCardData
+    } from '$lib/components/PlayerCompanyCompactCard.svelte'
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import { shadeHexColor } from '$lib/utils/color.js'
+    import { SHIPPING_ERA_ORDER, shippingSizeTotalsFromDeeds } from '$lib/utils/deeds.js'
     import { Color } from '@tabletop/common'
     import {
         ActionType,
         BID_RESEARCH_MULTIPLIERS,
         CompanyType,
+        Era,
+        GOOD_REVENUE_BY_GOOD,
+        Good,
         MachineState,
         PassReason,
         type TurnOrderBid
@@ -148,10 +154,28 @@
         }
     })
 
+    const ERA_ORDER_INDEX: Record<Era, number> = {
+        [Era.A]: 0,
+        [Era.B]: 1,
+        [Era.C]: 2
+    }
+
+    function areaHasCompanyIdAndGood(area: Record<string, unknown>): area is Record<string, unknown> & {
+        companyId: string
+        good: Good
+    } {
+        return typeof area.companyId === 'string' && typeof area.good === 'string'
+    }
+
+    function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
+        ships: string[]
+    } {
+        return Array.isArray(area.ships)
+    }
+
     type OwnedOperatingCompanyEntry = {
         company: (typeof gameSession.gameState.companies)[number]
-        cultivatedAreaCount: number
-        earnings: number | null
+        cardData: PlayerCompanyCardData
     }
 
     function shippingMarkerVisualForCompany(shippingCompanyId: string): {
@@ -190,24 +214,130 @@
         return cultivatedCounts
     })
 
+    const shipCountByCompanyId: Record<string, number> = $derived.by(() => {
+        const shipCounts: Record<string, number> = {}
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!areaHasShips(area)) {
+                continue
+            }
+
+            for (const companyId of area.ships) {
+                shipCounts[companyId] = (shipCounts[companyId] ?? 0) + 1
+            }
+        }
+
+        return shipCounts
+    })
+
+    const productionHatchVariantByCompanyId: Map<string, number> = $derived.by(() => {
+        const myPlayerId = gameSession.myPlayer?.id
+        if (!myPlayerId) {
+            return new Map()
+        }
+
+        const ownedProductionCompanies = gameSession.gameState.companies.filter(
+            (company): company is (typeof gameSession.gameState.companies)[number] & {
+                type: CompanyType.Production
+                good: Good
+            } => company.owner === myPlayerId && company.type === CompanyType.Production && 'good' in company
+        )
+        const ownedProductionCompanyById = new Map(
+            ownedProductionCompanies.map((company) => [company.id, company] as const)
+        )
+        const companyIdsByOwnerAndGood = new Map<string, Set<string>>()
+        const conflictRankByCompanyId = new Map<string, number>()
+
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!areaHasCompanyIdAndGood(area)) {
+                continue
+            }
+
+            const company = ownedProductionCompanyById.get(area.companyId)
+            if (!company) {
+                continue
+            }
+
+            const ownerAndGoodKey = `${company.owner}|${area.good}`
+            const companyIds = companyIdsByOwnerAndGood.get(ownerAndGoodKey) ?? new Set<string>()
+            companyIds.add(company.id)
+            companyIdsByOwnerAndGood.set(ownerAndGoodKey, companyIds)
+        }
+
+        for (const companyIds of companyIdsByOwnerAndGood.values()) {
+            if (companyIds.size <= 1) {
+                continue
+            }
+
+            for (const [index, companyId] of [...companyIds]
+                .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+                .entries()) {
+                conflictRankByCompanyId.set(companyId, index)
+            }
+        }
+
+        const hatchVariantByCompanyId = new Map<string, number>()
+        for (const [companyId, conflictRank] of conflictRankByCompanyId.entries()) {
+            if (conflictRank <= 0) {
+                continue
+            }
+            hatchVariantByCompanyId.set(companyId, (conflictRank - 1) % 4)
+        }
+
+        return hatchVariantByCompanyId
+    })
+
     const ownedOperatingCompanies: OwnedOperatingCompanyEntry[] = $derived.by(() => {
         const myPlayerId = gameSession.myPlayer?.id
         if (!myPlayerId) {
             return []
         }
         const operableCompanyIdSet = new Set(gameSession.operableOwnedCompanyIds)
+        const currentEra = gameSession.gameState.era
+        const currentEraIndex = ERA_ORDER_INDEX[currentEra]
+        const hullSize = (gameSession.myPlayerState?.research.hull ?? 0) + 1
 
         return gameSession.gameState.companies
             .filter(
                 (company) => company.owner === myPlayerId && operableCompanyIdSet.has(company.id)
             )
+            .sort((left, right) => left.id.localeCompare(right.id, undefined, { numeric: true }))
             .map((company) => ({
                 company,
-                cultivatedAreaCount:
-                    company.type === CompanyType.Production
-                        ? (cultivatedAreaCountByCompanyId[company.id] ?? 0)
-                        : 0,
-                earnings: null
+                cardData:
+                    company.type === CompanyType.Production && 'good' in company
+                        ? ({
+                              id: company.id,
+                              type: CompanyType.Production,
+                              good: company.good,
+                              deedCount: company.deeds.length,
+                              goodsProduced: cultivatedAreaCountByCompanyId[company.id] ?? 0,
+                              value:
+                                  (cultivatedAreaCountByCompanyId[company.id] ?? 0) *
+                                  GOOD_REVENUE_BY_GOOD[company.good],
+                              hatchVariant: productionHatchVariantByCompanyId.get(company.id) ?? null
+                          } satisfies PlayerCompanyCardData)
+                        : (() => {
+                              const sizeEntries = shippingSizeTotalsFromDeeds(company.deeds)
+                              const maxByEra = new Map(
+                                  sizeEntries.map((entry) => [entry.era, entry.size] as const)
+                              )
+                              return {
+                                  id: company.id,
+                                  type: CompanyType.Shipping,
+                                  deedCount: company.deeds.length,
+                                  ships: shipCountByCompanyId[company.id] ?? 0,
+                                  maxShips: maxByEra.get(currentEra) ?? 0,
+                                  value: (shipCountByCompanyId[company.id] ?? 0) * 10,
+                                  hullSize,
+                                  remainingEraMaximums: SHIPPING_ERA_ORDER.filter(
+                                      (era) => ERA_ORDER_INDEX[era] >= currentEraIndex
+                                  ).map((era) => ({
+                                      era,
+                                      max: maxByEra.get(era) ?? 0
+                                  })),
+                                  hatchVariant: null
+                              } satisfies PlayerCompanyCardData
+                          })()
             }))
     })
 
@@ -515,16 +645,9 @@
                             submitChooseOperatingCompany(companyEntry.company.id)
                         }}
                     >
-                        <svg class="operating-company-card-svg" viewBox="0 0 126 78" aria-hidden="true">
-                            <CompanyCard
-                                company={companyEntry.company}
-                                x={63}
-                                y={39}
-                                height={58}
-                                cultivatedAreaCount={companyEntry.cultivatedAreaCount}
-                                earnings={companyEntry.earnings}
-                            />
-                        </svg>
+                        <span class="operating-company-mini-card-wrap" aria-hidden="true">
+                            <PlayerCompanyCompactCard card={companyEntry.cardData} />
+                        </span>
                     </button>
                 {/each}
             </div>
@@ -699,14 +822,18 @@
         align-items: center;
         justify-content: center;
         padding: 0;
-        border: none;
-        border-radius: 0;
-        background: transparent;
-        transition: opacity 140ms ease;
+        border: 1px solid rgba(93, 83, 72, 0.22);
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.16);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.46);
+        transition:
+            opacity 140ms ease,
+            transform 120ms ease;
     }
 
     .operating-company-button:hover:enabled {
-        opacity: 0.9;
+        opacity: 0.95;
+        transform: translateY(-1px);
     }
 
     .operating-company-button:disabled {
@@ -714,10 +841,9 @@
         cursor: default;
     }
 
-    .operating-company-card-svg {
+    .operating-company-mini-card-wrap {
         display: block;
-        width: 126px;
-        height: 78px;
+        width: 164px;
     }
 
     .delivery-shipping-choices {

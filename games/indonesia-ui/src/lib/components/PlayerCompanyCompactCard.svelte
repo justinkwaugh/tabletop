@@ -91,10 +91,12 @@
         return style
     })
 
+    const deedLabel = $derived(card.deedCount === 1 ? 'DEED' : 'DEEDS')
+
     const middleMetric = $derived.by(() => {
         if (card.type === CompanyType.Production) {
             return {
-                label: 'GOODS',
+                label: card.goodsProduced === 1 ? 'GOOD' : 'GOODS',
                 value: String(card.goodsProduced)
             }
         }
@@ -143,7 +145,7 @@
             <div class="company-mini-metrics">
                 <div class="company-mini-metric">
                     <span class="company-mini-value">{card.deedCount}</span>
-                    <span class="company-mini-label">DEEDS</span>
+                    <span class="company-mini-label">{deedLabel}</span>
                 </div>
                 <div class="company-mini-metric">
                     <span class="company-mini-value">{middleMetric.value}</span>
