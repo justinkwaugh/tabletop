@@ -65,6 +65,29 @@ Examples:
 6. Avoid side effects in `$effect`.
 7. Branch behavior on `action` presence: cinematic when present, fast fallback when absent.
 
+## Root-Cause Debugging Protocol
+
+Use this sequence before shipping animation bug fixes:
+
+1. Model the transition contract first.
+   - Trace the exact action/state transition sequence before editing animator code.
+   - Write down which step should trigger render changes vs animation changes.
+
+2. Choose one source of truth per concern.
+   - Explicitly choose authoritative inputs for:
+     - structural render presence,
+     - interaction eligibility,
+     - animation triggering.
+   - Avoid combining multiple inferred signals unless required by design.
+
+3. Change one behavioral axis at a time.
+   - Apply and verify fixes independently for:
+     - rendering,
+     - interaction,
+     - animation,
+     - history/undo behavior.
+   - Do not bundle multiple axis changes into one unverified patch.
+
 ## Pattern 0: Persistent Element Animator (Single Attached Node)
 
 Use when the same visual element exists for the entire game/session and never needs key-based mounting logic.
