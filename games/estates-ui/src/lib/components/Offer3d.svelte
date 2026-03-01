@@ -5,13 +5,14 @@
         Cube,
         EstatesGameState,
         HydratedEstatesGameState,
+        isDrawRoof,
         isMayor,
         isRoof,
         MachineState,
         PieceType
     } from '@tabletop/estates'
     import { Object3D, Group } from 'three'
-    import { getContext } from 'svelte'
+    import { getContext, onDestroy } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import TopHat from '$lib/3d/TopHat.svelte'
     import Cube3d from './Cube3d.svelte'
@@ -87,7 +88,9 @@
             return
         }
 
-        for (const [rowIndex, row] of gameSession.gameState.cubes.entries()) {
+        const sourceState = from ?? gameSession.gameState
+
+        for (const [rowIndex, row] of sourceState.cubes.entries()) {
             for (const [colIndex, cube] of row.entries()) {
                 if (cube && !to.cubes[rowIndex][colIndex]) {
                     const id = coordinatesToNumber({ row: rowIndex, col: colIndex })
@@ -103,8 +106,21 @@
             }
         }
 
-        for (const [index, roof] of gameSession.gameState.visibleRoofs.entries()) {
-            if (roof && !to.visibleRoofs[index]) {
+        if (action && isDrawRoof(action)) {
+            const index = action.visibleIndex
+            const roofObject = roofObjects[index]
+            if (sourceState.visibleRoofs[index] && !to.visibleRoofs[index] && roofObject) {
+                fadeUp({
+                    object: roofObject,
+                    height: 2,
+                    timeline: animationContext.actionTimeline
+                })
+            }
+        } else {
+            for (const [index, roof] of sourceState.visibleRoofs.entries()) {
+                if (!roof || to.visibleRoofs[index]) {
+                    continue
+                }
                 const roofObject = roofObjects[index]
                 if (roofObject) {
                     fadeUp({
@@ -116,11 +132,11 @@
             }
         }
 
-        if (gameSession.gameState.mayor && !to.mayor && mayorObject) {
+        if (sourceState.mayor && !to.mayor && mayorObject) {
             fadeUp({ object: mayorObject, height: 2, timeline: animationContext.actionTimeline })
         }
 
-        if (gameSession.gameState.barrierOne && !to.barrierOne && barrierOneObject) {
+        if (sourceState.barrierOne && !to.barrierOne && barrierOneObject) {
             fadeUp({
                 object: barrierOneObject,
                 height: 2,
@@ -128,7 +144,7 @@
             })
         }
 
-        if (gameSession.gameState.barrierTwo && !to.barrierTwo && barrierTwoObject) {
+        if (sourceState.barrierTwo && !to.barrierTwo && barrierTwoObject) {
             fadeUp({
                 object: barrierTwoObject,
                 height: 2,
@@ -136,7 +152,7 @@
             })
         }
 
-        if (gameSession.gameState.barrierThree && !to.barrierThree && barrierThreeObject) {
+        if (sourceState.barrierThree && !to.barrierThree && barrierThreeObject) {
             fadeUp({
                 object: barrierThreeObject,
                 height: 2,
@@ -144,7 +160,7 @@
             })
         }
 
-        if (gameSession.gameState.cancelCube && !to.cancelCube && cancelCubeObject) {
+        if (sourceState.cancelCube && !to.cancelCube && cancelCubeObject) {
             fadeUp({
                 object: cancelCubeObject,
                 height: 2,
@@ -154,6 +170,9 @@
     }
 
     gameSession.addGameStateChangeListener(onGameStateChange)
+    onDestroy(() => {
+        gameSession.removeGameStateChangeListener(onGameStateChange)
+    })
 
     function onCubeClick(event: any, cube: Cube, coords: OffsetCoordinates) {
         if (!canChoose || !placeableCubes.find((c) => sameCoordinates(c, coords))) {
@@ -279,6 +298,8 @@
         allowRoofInteraction = false
         outliner.removeOutline(obj)
         bloomer.removeBloom(obj)
+        let listenerHandled = false
+        let interactionRestoreTimeout: ReturnType<typeof setTimeout> | undefined
         // Make a listener for the game state update
         const listener = async ({
             to,
@@ -291,27 +312,50 @@
             action?: GameAction
             animationContext: AnimationContext
         }) => {
+            const previousVisible =
+                from?.visibleRoofs[index] ?? gameSession.gameState.visibleRoofs[index]
+            const slotBecameHidden = previousVisible && !to.visibleRoofs[index]
+            const matchingDrawRoofAction =
+                action !== undefined && isDrawRoof(action) && action.visibleIndex === index
+
+            if (!slotBecameHidden && !matchingDrawRoofAction) {
+                return
+            }
+
+            if (!isRoof(to.chosenPiece)) {
+                return
+            }
+
+            listenerHandled = true
             gameSession.removeGameStateChangeListener(listener)
+            if (interactionRestoreTimeout) {
+                clearTimeout(interactionRestoreTimeout)
+            }
 
-            if (to.machineState === MachineState.Auctioning && isRoof(to.chosenPiece)) {
-                // set the roof text to the chosen value
-                const textObj = obj.getObjectByName('roofText') as any
-                if (textObj) {
-                    textObj.text = to.chosenPiece.value
-                }
+            // set the roof text to the chosen value
+            const textObj = obj.getObjectByName('roofText') as any
+            if (textObj) {
+                textObj.text = to.chosenPiece.value
+            }
 
-                // Wait for the animation to finish before allowing the state to update
-                await new Promise<void>((resolve) => {
-                    setTimeout(() => {
-                        flipAndFadeUp(obj, () => {
-                            allowRoofInteraction = true
-                            resolve()
-                        })
+            // Wait for the animation to finish before allowing the state to update
+            await new Promise<void>((resolve) => {
+                setTimeout(() => {
+                    flipAndFadeUp(obj, () => {
+                        allowRoofInteraction = true
+                        resolve()
                     })
                 })
-            }
+            })
         }
         gameSession.addGameStateChangeListener(listener)
+        interactionRestoreTimeout = setTimeout(() => {
+            if (listenerHandled) {
+                return
+            }
+            gameSession.removeGameStateChangeListener(listener)
+            allowRoofInteraction = true
+        }, 3000)
 
         // Kick off the action
         await gameSession.drawRoof(index)
@@ -452,8 +496,8 @@
                 clearcoatRoughness={0.33}
             />
         </T.Mesh>
-        {#each gameSession.gameState.roofs.items as _, i (i)}
-            {#if gameSession.gameState.visibleRoofs[i]}
+        {#each gameSession.gameState.visibleRoofs as isVisible, i (i)}
+            {#if isVisible}
                 <Roof
                     roof={{ pieceType: PieceType.Roof, value: -1 }}
                     onloaded={(ref: Object3D) => {
