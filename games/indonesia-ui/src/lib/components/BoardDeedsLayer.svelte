@@ -10,6 +10,7 @@
     import { BOARD_DEED_CARD_HEIGHT } from '$lib/definitions/companyDeedGeometry.js'
     import { shadeHexColor } from '$lib/utils/color.js'
     import {
+        deedPositionLookupKeys,
         deedPositionKey,
         shippingSizeEntriesFromRecord,
         type ShippingSizeEntry
@@ -60,7 +61,8 @@
 
         for (const deed of deeds) {
             const regionId = deed.region
-            const positionKey = deedPositionKey(regionId, deed.type)
+            const positionKeys = deedPositionLookupKeys(deed)
+            const legacyPositionKey = deedPositionKey(regionId, deed.type)
             const isShipping = deed.type === CompanyType.Shipping
             if (!isShipping && deed.type !== CompanyType.Production) {
                 continue
@@ -69,12 +71,14 @@
             const regionName = getRegionName(regionId)
             const cardKind = deedCardKindFor(deed)
             const baseStyle = companyDeedStyleForType(cardKind)
-            const cardPosition = DEED_CARD_POSITIONS[positionKey]
+            const cardPosition = positionKeys
+                .map((key) => DEED_CARD_POSITIONS[key])
+                .find((point) => point !== undefined)
             if (!cardPosition) {
                 continue
             }
 
-            const darknessShift = DEED_DARKNESS_SHIFT_BY_KEY[positionKey] ?? 0
+            const darknessShift = DEED_DARKNESS_SHIFT_BY_KEY[legacyPositionKey] ?? 0
             const overlayFill =
                 darknessShift === 0
                     ? baseStyle.overlayFill
@@ -93,7 +97,7 @@
                 : getRegionAreaIds(regionId)
 
             cards.push({
-                key: positionKey,
+                key: deed.id,
                 text: regionName,
                 cardKind,
                 shippingSizes: isShipping ? shippingSizeEntriesFromRecord(deed.sizes) : null,
@@ -103,7 +107,7 @@
 
             for (const areaId of overlayAreaIds) {
                 overlays.push({
-                    key: `${positionKey}-${areaId}`,
+                    key: `${deed.id}-${areaId}`,
                     areaId,
                     fill: overlayFill,
                     stroke: overlayStroke,

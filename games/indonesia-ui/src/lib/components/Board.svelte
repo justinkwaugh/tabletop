@@ -4,6 +4,7 @@
     import BoardCitiesLayer from '$lib/components/BoardCitiesLayer.svelte'
     import BoardCultivatedAreasLayer from '$lib/components/BoardCultivatedAreasLayer.svelte'
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
+    import BoardProductionZoneMarkersLayer from '$lib/components/BoardProductionZoneMarkersLayer.svelte'
     import BoardResearchLayer from '$lib/components/BoardResearchLayer.svelte'
     import BoardShippingRouteOverlayLayer from '$lib/components/BoardShippingRouteOverlayLayer.svelte'
     import BoardShipsLayer from '$lib/components/BoardShipsLayer.svelte'
@@ -16,6 +17,7 @@
     const SHOW_DEBUG_GEOMETRY = true
 
     const gameSession = getGameSession()
+    let debugOverlayActive = $state(false)
 </script>
 
 <div class="board-shell">
@@ -30,30 +32,33 @@
             viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
             aria-label="Indonesia board state layer"
         >
-            <BoardDeedsLayer />
-            <BoardShippingRouteOverlayLayer />
-            <BoardCultivatedAreasLayer />
-            <BoardShipsLayer />
-            <BoardCitiesLayer />
-            <BoardActionAreasLayer />
-            <BoardTurnOrderLayer
-                selectedPlayerId={
-                    gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
-                }
-                selectable={gameSession.researchSelectionEnabled}
-                onSelectPlayer={(playerId) => {
-                    gameSession.selectResearchPlayer(playerId)
-                }}
-            />
-            <BoardResearchLayer
-                selectedPlayerId={
-                    gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
-                }
-                currentPlayerId={gameSession.currentResearchPlayerId}
-            />
+            {#if !debugOverlayActive}
+                <BoardDeedsLayer />
+                <BoardShippingRouteOverlayLayer />
+                <BoardCultivatedAreasLayer />
+                <BoardProductionZoneMarkersLayer />
+                <BoardShipsLayer />
+                <BoardCitiesLayer />
+                <BoardActionAreasLayer />
+                <BoardTurnOrderLayer
+                    selectedPlayerId={
+                        gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
+                    }
+                    selectable={gameSession.researchSelectionEnabled}
+                    onSelectPlayer={(playerId) => {
+                        gameSession.selectResearchPlayer(playerId)
+                    }}
+                />
+                <BoardResearchLayer
+                    selectedPlayerId={
+                        gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
+                    }
+                    currentPlayerId={gameSession.currentResearchPlayerId}
+                />
+            {/if}
         </svg>
         {#if SHOW_DEBUG_GEOMETRY}
-            <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} />
+            <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} bind:active={debugOverlayActive} />
         {/if}
     </div>
 </div>

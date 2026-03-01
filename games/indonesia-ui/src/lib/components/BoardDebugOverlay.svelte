@@ -19,9 +19,14 @@
     import CubeMarker from '$lib/components/CubeMarker.svelte'
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
+    import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
     import CompanyDeed, { deedCardKindFor } from '$lib/components/CompanyDeed.svelte'
     import { DEED_CARD_POSITIONS, DEED_CARD_POSITIONS_STORAGE_KEY } from '$lib/definitions/deedCardPositions.js'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
+    import {
+        PRODUCTION_ZONE_MARKER_OFFSETS,
+        PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY
+    } from '$lib/definitions/productionZoneMarkerOffsets.js'
     import {
         RESEARCH_ROWS,
         RESEARCH_TRACK_CELLS,
@@ -35,11 +40,14 @@
         researchCubeRotationDegrees
     } from '$lib/utils/researchCubeLayout.js'
     import {
+        deedPositionLookupKeys,
+        deedPositionRenderKey,
         deedPositionKey,
         shippingSizeEntriesFromDeed,
         type ShippingSizeEntry
     } from '$lib/utils/deeds.js'
     import { getPathCenter, roundToTenth } from '$lib/utils/geometry.js'
+    import { shadeHexColor } from '$lib/utils/color.js'
     import type { CompanyCardType } from '$lib/types/companyCard.js'
     import type { Point } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
@@ -47,7 +55,11 @@
 
     const gameSession = getGameSession()
 
-    let { width, height }: { width: number; height: number } = $props()
+    let {
+        width,
+        height,
+        active = $bindable(false)
+    }: { width: number; height: number; active?: boolean } = $props()
 
     type OverlayMode =
         | 'none'
@@ -61,6 +73,8 @@
         | 'companies'
         | 'research'
         | 'marker'
+        | 'companymarkers'
+        | 'layout'
     type BeadTone = 'amber' | 'red' | 'green'
     let colorMode: OverlayMode = $state('none')
     let hoveredSeaId: string | null = $state(null)
@@ -84,6 +98,15 @@
     let selectedDeedCardKey: string | null = $state(null)
     let deedCardDraggingKey: string | null = $state(null)
     let deedCardCopyStatus: string | null = $state(null)
+    let productionZoneMarkerOffsets: Record<string, Point> = $state({})
+    let productionZoneMarkerOffsetsLoaded = $state(false)
+    let selectedProductionZoneMarkerDeedId: string | null = $state(null)
+    let productionZoneMarkerDraggingDeedId: string | null = $state(null)
+    let productionZoneMarkerCopyStatus: string | null = $state(null)
+    let layoutShowShips = $state(true)
+    let layoutShowDeeds = $state(true)
+    let layoutShowTags = $state(true)
+    let layoutShipCountBySeaId: Record<string, 1 | 2 | 3> = $state({})
 
     type BoardNodeAreaType = 'Land' | 'Sea'
 
@@ -139,8 +162,29 @@
         index: number
     } & Point
 
+    type CompanyMarkerDirection = 'north' | 'east' | 'south' | 'west'
+    type DebugProductionDeedMarkerEntry = {
+        key: string
+        deedId: string
+        regionId: string
+        x: number
+        y: number
+        baseX: number
+        baseY: number
+        targetX: number
+        targetY: number
+        ownerColor: string
+        goodType: ProductionMarkerType
+        goodsCount: number
+        hatchPatternId: string | null
+        direction: CompanyMarkerDirection
+    }
+
     type DeedTuneEntry = {
+        deedId: string
+        deedType: CompanyType
         positionKey: string
+        legacyPositionKey: string
         regionId: string
         regionName: string
         cardKind: CompanyCardType
@@ -174,6 +218,40 @@
     const SHIP_MARKER_POSITIONS_STORAGE_KEY = 'indonesia-sea-ship-marker-positions-v1'
     const SEA_SHIP_MARKER_POSITION_LOOKUP = SEA_SHIP_MARKER_POSITIONS
     const LAND_MARKER_POSITION_LOOKUP = LAND_MARKER_POSITIONS
+    const DEED_IDS = Deeds.map((deed) => deed.id)
+    const DEED_ID_SET = new Set(DEED_IDS)
+    const LEGACY_DEED_POSITION_KEYS = new Set(
+        Deeds.map((deed) => deedPositionKey(deed.region, deed.type))
+    )
+    const DEED_IDS_BY_LEGACY_POSITION_KEY = (() => {
+        const byLegacyKey = new Map<string, string[]>()
+        for (const deed of Deeds) {
+            const legacyKey = deedPositionKey(deed.region, deed.type)
+            const deedIds = byLegacyKey.get(legacyKey) ?? []
+            deedIds.push(deed.id)
+            byLegacyKey.set(legacyKey, deedIds)
+        }
+        return byLegacyKey
+    })()
+    const VALID_DEED_POSITION_KEYS = new Set([
+        ...LEGACY_DEED_POSITION_KEYS,
+        ...Deeds.map((deed) => deed.id)
+    ])
+    const PRODUCTION_ZONE_MARKER_OFFSETS_EVENT = 'indonesia-production-zone-marker-offsets-change'
+    const DEBUG_COMPANY_MARKER_ENABLE_NS_DIRECTIONS = false
+    const DEBUG_COMPANY_MARKER_BOARD_WIDTH = 2646
+    const DEBUG_COMPANY_MARKER_BOARD_HEIGHT = 1280
+    const DEBUG_COMPANY_MARKER_BASE_OFFSET_DISTANCE = 100
+    const DEBUG_COMPANY_MARKER_RADIAL_STEP_DISTANCE = 18
+    const DEBUG_COMPANY_MARKER_LATERAL_SPREAD_DISTANCE = 62
+    const DEBUG_COMPANY_MARKER_EDGE_PADDING = 68
+    const DEBUG_COMPANY_MARKER_COLOR_BY_GOOD: Record<ProductionMarkerType, string> = {
+        rice: '#8eb15d',
+        spice: '#b57949',
+        rubber: '#6a4b3d',
+        oil: '#5a6070',
+        siapsaji: '#8f4ea4'
+    }
     const SHIP_LAYOUT_OFFSETS: Record<1 | 2 | 3, Point[]> = {
         1: [{ x: 0, y: 0 }],
         2: [
@@ -231,6 +309,10 @@
         return left.localeCompare(right, undefined, { numeric: true })
     }
 
+    function clamp(value: number, min: number, max: number): number {
+        return Math.max(min, Math.min(max, value))
+    }
+
     function pairKey(a: string, b: string): string {
         return a < b ? `${a}|${b}` : `${b}|${a}`
     }
@@ -283,23 +365,44 @@
         return `hsl(${hue} 62% 54%)`
     }
 
-    function parseDeedPositionKey(
-        key: string
-    ): {
-        regionId: string
-        deedType: CompanyType
-    } | null {
-        const [regionId, deedTypeRaw] = key.split(':')
-        if (!regionId || !deedTypeRaw) {
-            return null
+    function markerGoodForGood(good: Good): ProductionMarkerType {
+        if (good === Good.Rice) {
+            return 'rice'
         }
-        if (deedTypeRaw !== CompanyType.Production && deedTypeRaw !== CompanyType.Shipping) {
-            return null
+        if (good === Good.Spice) {
+            return 'spice'
         }
-        return {
-            regionId,
-            deedType: deedTypeRaw
+        if (good === Good.Rubber) {
+            return 'rubber'
         }
+        if (good === Good.Oil) {
+            return 'oil'
+        }
+        return 'siapsaji'
+    }
+
+    function companyMarkerDirectionTowardTarget(
+        markerX: number,
+        markerY: number,
+        targetX: number,
+        targetY: number
+    ): CompanyMarkerDirection {
+        const deltaX = targetX - markerX
+        const deltaY = targetY - markerY
+        const cardinalDirection: CompanyMarkerDirection =
+            Math.abs(deltaX) >= Math.abs(deltaY)
+                ? deltaX >= 0
+                    ? 'east'
+                    : 'west'
+                : deltaY >= 0
+                  ? 'south'
+                  : 'north'
+
+        if (DEBUG_COMPANY_MARKER_ENABLE_NS_DIRECTIONS || cardinalDirection === 'east' || cardinalDirection === 'west') {
+            return cardinalDirection
+        }
+
+        return deltaX >= 0 ? 'east' : 'west'
     }
 
     function setDeedCardPosition(positionKey: string, x: number, y: number): void {
@@ -310,6 +413,30 @@
                 y: roundToTenth(y)
             }
         }
+    }
+
+    function parseProductionZoneMarkerOffsets(value: unknown): Record<string, Point> {
+        if (!value || typeof value !== 'object') {
+            return {}
+        }
+
+        const parsed = value as Record<string, unknown>
+        const nextOffsets: Record<string, Point> = {}
+        for (const [deedId, candidate] of Object.entries(parsed)) {
+            if (!candidate || typeof candidate !== 'object') {
+                continue
+            }
+            const point = candidate as { x?: unknown; y?: unknown }
+            if (typeof point.x !== 'number' || typeof point.y !== 'number') {
+                continue
+            }
+            nextOffsets[deedId] = {
+                x: point.x,
+                y: point.y
+            }
+        }
+
+        return nextOffsets
     }
 
     function cloneShipLayout(layout: SeaShipLayout): SeaShipLayout {
@@ -517,10 +644,47 @@
         event.preventDefault()
     }
 
+    function setProductionZoneMarkerOffsetForAbsolutePosition(
+        deedId: string,
+        absolutePoint: Point
+    ): void {
+        const marker = DEBUG_PRODUCTION_DEED_MARKERS.find(
+            (candidate) => candidate.deedId === deedId
+        )
+        if (!marker) {
+            return
+        }
+
+        productionZoneMarkerOffsets = {
+            ...productionZoneMarkerOffsets,
+            [deedId]: {
+                x: roundToTenth(absolutePoint.x - marker.baseX),
+                y: roundToTenth(absolutePoint.y - marker.baseY)
+            }
+        }
+    }
+
+    function startProductionZoneMarkerDrag(deedId: string, event: PointerEvent): void {
+        if (colorMode !== 'companymarkers') {
+            return
+        }
+
+        selectedProductionZoneMarkerDeedId = deedId
+        productionZoneMarkerDraggingDeedId = deedId
+        const nextPoint = getSvgCoordinates(event)
+        if (nextPoint) {
+            setProductionZoneMarkerOffsetForAbsolutePosition(deedId, nextPoint)
+        }
+        const target = event.currentTarget as Element | null
+        target?.setPointerCapture?.(event.pointerId)
+        event.preventDefault()
+    }
+
     function stopMarkerDrag(): void {
         markerDraggingAreaId = null
         shipMarkerDragging = null
         deedCardDraggingKey = null
+        productionZoneMarkerDraggingDeedId = null
     }
 
     function handleMarkerPointerMove(event: PointerEvent): void {
@@ -543,6 +707,16 @@
         }
 
         if (colorMode !== 'ships' || !shipMarkerDragging) {
+            if (colorMode === 'companymarkers' && productionZoneMarkerDraggingDeedId) {
+                const nextPoint = getSvgCoordinates(event)
+                if (!nextPoint) {
+                    return
+                }
+                setProductionZoneMarkerOffsetForAbsolutePosition(
+                    productionZoneMarkerDraggingDeedId,
+                    nextPoint
+                )
+            }
             return
         }
         const nextPoint = getSvgCoordinates(event)
@@ -600,6 +774,23 @@
         deedCardPositions = {}
     }
 
+    function clearSelectedProductionZoneMarkerOverride(): void {
+        if (
+            !selectedProductionZoneMarkerDeedId ||
+            productionZoneMarkerOffsets[selectedProductionZoneMarkerDeedId] === undefined
+        ) {
+            return
+        }
+
+        const nextOffsets = { ...productionZoneMarkerOffsets }
+        delete nextOffsets[selectedProductionZoneMarkerDeedId]
+        productionZoneMarkerOffsets = nextOffsets
+    }
+
+    function clearAllProductionZoneMarkerOverrides(): void {
+        productionZoneMarkerOffsets = {}
+    }
+
     function selectShipMarkerCount(nextCount: 1 | 2 | 3): void {
         shipMarkerCount = nextCount
         const maxMarkerIndex = nextCount - 1
@@ -608,19 +799,40 @@
         }
     }
 
+    function getLayoutShipCountForSeaId(seaId: string): 1 | 2 | 3 {
+        return layoutShipCountBySeaId[seaId] ?? 1
+    }
+
+    function setLayoutShipCountForSeaId(seaId: string, shipCount: 1 | 2 | 3): void {
+        layoutShipCountBySeaId = {
+            ...layoutShipCountBySeaId,
+            [seaId]: shipCount
+        }
+    }
+
+    function setLayoutShipCountForAll(shipCount: 1 | 2 | 3): void {
+        const nextShipCountBySeaId: Record<string, 1 | 2 | 3> = {}
+        for (const seaArea of SEA_DEBUG_MAP_AREAS) {
+            nextShipCountBySeaId[seaArea.id] = shipCount
+        }
+        layoutShipCountBySeaId = nextShipCountBySeaId
+    }
+
     function selectCompanyShipMarkerCount(nextCount: 1 | 2 | 3): void {
         companyShipMarkerCount = nextCount
     }
 
     async function copyToClipboard(
         value: string,
-        target: 'marker' | 'ship' | 'deed' = 'marker'
+        target: 'marker' | 'ship' | 'deed' | 'companymarker' = 'marker'
     ): Promise<void> {
         if (typeof navigator === 'undefined' || !navigator.clipboard) {
             if (target === 'ship') {
                 shipMarkerCopyStatus = 'Clipboard unavailable'
             } else if (target === 'deed') {
                 deedCardCopyStatus = 'Clipboard unavailable'
+            } else if (target === 'companymarker') {
+                productionZoneMarkerCopyStatus = 'Clipboard unavailable'
             } else {
                 markerCopyStatus = 'Clipboard unavailable'
             }
@@ -632,6 +844,8 @@
                 shipMarkerCopyStatus = 'Copied'
             } else if (target === 'deed') {
                 deedCardCopyStatus = 'Copied'
+            } else if (target === 'companymarker') {
+                productionZoneMarkerCopyStatus = 'Copied'
             } else {
                 markerCopyStatus = 'Copied'
             }
@@ -640,6 +854,8 @@
                 shipMarkerCopyStatus = 'Copy failed'
             } else if (target === 'deed') {
                 deedCardCopyStatus = 'Copy failed'
+            } else if (target === 'companymarker') {
+                productionZoneMarkerCopyStatus = 'Copy failed'
             } else {
                 markerCopyStatus = 'Copy failed'
             }
@@ -710,8 +926,7 @@
                     if (typeof candidate.x !== 'number' || typeof candidate.y !== 'number') {
                         continue
                     }
-                    const parsedKey = parseDeedPositionKey(positionKey)
-                    if (!parsedKey) {
+                    if (!VALID_DEED_POSITION_KEYS.has(positionKey)) {
                         continue
                     }
                     nextPositions[positionKey] = {
@@ -725,6 +940,17 @@
             deedCardPositions = {}
         } finally {
             deedCardPositionsLoaded = true
+        }
+
+        try {
+            const stored = window.localStorage.getItem(PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY)
+            if (stored) {
+                productionZoneMarkerOffsets = parseProductionZoneMarkerOffsets(JSON.parse(stored))
+            }
+        } catch {
+            productionZoneMarkerOffsets = {}
+        } finally {
+            productionZoneMarkerOffsetsLoaded = true
         }
     })
 
@@ -753,6 +979,17 @@
             DEED_CARD_POSITIONS_STORAGE_KEY,
             JSON.stringify(deedCardPositions)
         )
+    })
+
+    $effect(() => {
+        if (!productionZoneMarkerOffsetsLoaded || typeof window === 'undefined') {
+            return
+        }
+        window.localStorage.setItem(
+            PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY,
+            JSON.stringify(productionZoneMarkerOffsets)
+        )
+        window.dispatchEvent(new Event(PRODUCTION_ZONE_MARKER_OFFSETS_EVENT))
     })
 
     const BOARD_GEOMETRY_AREAS = [
@@ -951,6 +1188,12 @@
         if (colorMode === 'research') {
             return []
         }
+        if (colorMode === 'companymarkers') {
+            return []
+        }
+        if (colorMode === 'layout') {
+            return []
+        }
         if (colorMode === 'marker') {
             return LAND_DEBUG_MAP_AREAS
         }
@@ -961,20 +1204,172 @@
         () => new Map(LAND_DEBUG_MAP_AREAS.map((area) => [area.id, area]))
     )
 
-    function getDeedCardPosition(positionKey: string): Point | null {
-        const overridePosition = deedCardPositions[positionKey]
-        if (overridePosition) {
-            return {
-                x: overridePosition.x,
-                y: overridePosition.y
+    const REGION_CENTER_BY_ID: Map<string, Point> = $derived.by(() => {
+        const areasByRegion = new Map<string, DebugArea[]>()
+        for (const area of LAND_DEBUG_MAP_AREAS) {
+            if (!area.region) {
+                continue
+            }
+            const areas = areasByRegion.get(area.region) ?? []
+            areas.push(area)
+            areasByRegion.set(area.region, areas)
+        }
+
+        const centers = new Map<string, Point>()
+        for (const [regionId, areas] of areasByRegion.entries()) {
+            if (areas.length === 0) {
+                continue
+            }
+            const sums = areas.reduce(
+                (accumulator, area) => {
+                    const position = getDefaultMarkerPositionForArea(area)
+                    accumulator.x += position.x
+                    accumulator.y += position.y
+                    return accumulator
+                },
+                { x: 0, y: 0 }
+            )
+            centers.set(regionId, {
+                x: sums.x / areas.length,
+                y: sums.y / areas.length
+            })
+        }
+
+        return centers
+    })
+
+    const DEBUG_PRODUCTION_DEED_MARKERS: DebugProductionDeedMarkerEntry[] = $derived.by(() => {
+        gameSession.gameState.actionCount
+        productionZoneMarkerOffsets
+
+        const deedOffsetsById: Record<string, Point> = {
+            ...PRODUCTION_ZONE_MARKER_OFFSETS,
+            ...productionZoneMarkerOffsets
+        }
+        const boardCenter = {
+            x: DEBUG_COMPANY_MARKER_BOARD_WIDTH / 2,
+            y: DEBUG_COMPANY_MARKER_BOARD_HEIGHT / 2
+        }
+        const productionDeeds = Deeds.filter(
+            (deed): deed is Extract<AnyDeed, { type: CompanyType.Production }> =>
+                deed.type === CompanyType.Production
+        )
+            .slice()
+            .sort((left, right) => {
+                if (left.region !== right.region) {
+                    return left.region.localeCompare(right.region, undefined, { numeric: true })
+                }
+                return left.id.localeCompare(right.id, undefined, { numeric: true })
+            })
+
+        const deedsByRegion = new Map<string, typeof productionDeeds>()
+        for (const deed of productionDeeds) {
+            const deeds = deedsByRegion.get(deed.region) ?? []
+            deeds.push(deed)
+            deedsByRegion.set(deed.region, deeds)
+        }
+
+        const markers: DebugProductionDeedMarkerEntry[] = []
+        for (const [regionId, regionDeeds] of deedsByRegion.entries()) {
+            const target = REGION_CENTER_BY_ID.get(regionId)
+            if (!target) {
+                continue
+            }
+
+            for (const [deedIndex, deed] of regionDeeds.entries()) {
+                const centeredIndex = deedIndex - (regionDeeds.length - 1) / 2
+                let directionX = target.x - boardCenter.x
+                let directionY = target.y - boardCenter.y
+                const magnitude = Math.hypot(directionX, directionY)
+                if (magnitude > 0.001) {
+                    directionX /= magnitude
+                    directionY /= magnitude
+                } else {
+                    directionX = 0
+                    directionY = -1
+                }
+                const tangentX = -directionY
+                const tangentY = directionX
+                const radialDistance =
+                    DEBUG_COMPANY_MARKER_BASE_OFFSET_DISTANCE +
+                    Math.floor(Math.abs(centeredIndex)) * DEBUG_COMPANY_MARKER_RADIAL_STEP_DISTANCE
+                const lateralDistance = centeredIndex * DEBUG_COMPANY_MARKER_LATERAL_SPREAD_DISTANCE
+                const baseX = clamp(
+                    target.x + directionX * radialDistance + tangentX * lateralDistance,
+                    DEBUG_COMPANY_MARKER_EDGE_PADDING,
+                    DEBUG_COMPANY_MARKER_BOARD_WIDTH - DEBUG_COMPANY_MARKER_EDGE_PADDING
+                )
+                const baseY = clamp(
+                    target.y + directionY * radialDistance + tangentY * lateralDistance,
+                    DEBUG_COMPANY_MARKER_EDGE_PADDING,
+                    DEBUG_COMPANY_MARKER_BOARD_HEIGHT - DEBUG_COMPANY_MARKER_EDGE_PADDING
+                )
+                const offset = deedOffsetsById[deed.id] ?? { x: 0, y: 0 }
+                const x = clamp(
+                    baseX + offset.x,
+                    DEBUG_COMPANY_MARKER_EDGE_PADDING,
+                    DEBUG_COMPANY_MARKER_BOARD_WIDTH - DEBUG_COMPANY_MARKER_EDGE_PADDING
+                )
+                const y = clamp(
+                    baseY + offset.y,
+                    DEBUG_COMPANY_MARKER_EDGE_PADDING,
+                    DEBUG_COMPANY_MARKER_BOARD_HEIGHT - DEBUG_COMPANY_MARKER_EDGE_PADDING
+                )
+                const markerGood = markerGoodForGood(deed.good)
+
+                markers.push({
+                    key: `${regionId}|${deed.id}`,
+                    deedId: deed.id,
+                    regionId,
+                    x,
+                    y,
+                    baseX,
+                    baseY,
+                    targetX: target.x,
+                    targetY: target.y,
+                    ownerColor: DEBUG_COMPANY_MARKER_COLOR_BY_GOOD[markerGood],
+                    goodType: markerGood,
+                    goodsCount: 1,
+                    hatchPatternId: null,
+                    direction: companyMarkerDirectionTowardTarget(x, y, target.x, target.y)
+                })
             }
         }
 
-        const baselinePosition = DEED_CARD_POSITIONS[positionKey]
-        if (baselinePosition) {
-            return {
-                x: baselinePosition.x,
-                y: baselinePosition.y
+        return markers.sort((left, right) => left.key.localeCompare(right.key))
+    })
+
+    const SELECTED_PRODUCTION_ZONE_MARKER_ENTRY: DebugProductionDeedMarkerEntry | null = $derived.by(() => {
+        if (!selectedProductionZoneMarkerDeedId) {
+            return null
+        }
+        return (
+            DEBUG_PRODUCTION_DEED_MARKERS.find(
+                (entry) => entry.deedId === selectedProductionZoneMarkerDeedId
+            ) ?? null
+        )
+    })
+
+    function getDeedCardPosition(positionKey: string): Point | null {
+        return getDeedCardPositionByKeys([positionKey])
+    }
+
+    function getDeedCardPositionByKeys(positionKeys: readonly string[]): Point | null {
+        for (const positionKey of positionKeys) {
+            const overridePosition = deedCardPositions[positionKey]
+            if (overridePosition) {
+                return {
+                    x: overridePosition.x,
+                    y: overridePosition.y
+                }
+            }
+
+            const baselinePosition = DEED_CARD_POSITIONS[positionKey]
+            if (baselinePosition) {
+                return {
+                    x: baselinePosition.x,
+                    y: baselinePosition.y
+                }
             }
         }
 
@@ -994,13 +1389,17 @@
     const DEED_TUNE_ENTRIES: DeedTuneEntry[] = $derived.by(() => {
         const entries: DeedTuneEntry[] = []
         for (const deed of DEEDS_FOR_SELECTED_ERA) {
-            const positionKey = deedPositionKey(deed.region, deed.type)
-            const position = getDeedCardPosition(positionKey)
+            const positionKey = deedPositionRenderKey(deed)
+            const legacyPositionKey = deedPositionKey(deed.region, deed.type)
+            const position = getDeedCardPositionByKeys(deedPositionLookupKeys(deed))
             if (!position) {
                 continue
             }
             entries.push({
+                deedId: deed.id,
+                deedType: deed.type,
                 positionKey,
+                legacyPositionKey,
                 regionId: deed.region,
                 regionName: getRegionName(deed.region),
                 cardKind: deedCardKindFor(deed),
@@ -1009,7 +1408,37 @@
                 y: position.y
             })
         }
-        return entries
+        return entries.sort((left, right) =>
+            left.positionKey.localeCompare(right.positionKey, undefined, { numeric: true })
+        )
+    })
+
+    const ALL_DEED_TUNE_ENTRIES: DeedTuneEntry[] = $derived.by(() => {
+        const entries: DeedTuneEntry[] = []
+        for (const deed of Deeds) {
+            const positionKey = deedPositionRenderKey(deed)
+            const legacyPositionKey = deedPositionKey(deed.region, deed.type)
+            const position = getDeedCardPositionByKeys(deedPositionLookupKeys(deed))
+            if (!position) {
+                continue
+            }
+            entries.push({
+                deedId: deed.id,
+                deedType: deed.type,
+                positionKey,
+                legacyPositionKey,
+                regionId: deed.region,
+                regionName: getRegionName(deed.region),
+                cardKind: deedCardKindFor(deed),
+                shippingSizes: shippingSizeEntriesFromDeed(deed),
+                x: position.x,
+                y: position.y
+            })
+        }
+
+        return entries.sort((left, right) =>
+            left.positionKey.localeCompare(right.positionKey, undefined, { numeric: true })
+        )
     })
 
     const DEED_TUNE_ENTRY_BY_POSITION_KEY: Map<string, DeedTuneEntry> = $derived.by(() => {
@@ -1029,39 +1458,95 @@
         return DEED_TUNE_ENTRY_BY_POSITION_KEY.get(selectedDeedCardKey) ?? null
     })
 
+    function deedCardOverridesByDeedId(): Map<string, Point> {
+        const byDeedId = new Map<string, Point>()
+
+        for (const [key, point] of Object.entries(deedCardPositions)) {
+            if (DEED_ID_SET.has(key)) {
+                byDeedId.set(key, point)
+            }
+        }
+
+        for (const [key, point] of Object.entries(deedCardPositions)) {
+            if (!LEGACY_DEED_POSITION_KEYS.has(key)) {
+                continue
+            }
+            const deedIds = DEED_IDS_BY_LEGACY_POSITION_KEY.get(key) ?? []
+            for (const deedId of deedIds) {
+                if (!byDeedId.has(deedId)) {
+                    byDeedId.set(deedId, point)
+                }
+            }
+        }
+
+        return byDeedId
+    }
+
     const DEED_CARD_OVERRIDES_EXPORT_TEXT: string = $derived.by(() => {
-        const keys = Object.keys(deedCardPositions).sort((left, right) =>
-            left.localeCompare(right, undefined, { numeric: true })
-        )
-        if (keys.length === 0) {
+        const deedOverrides = deedCardOverridesByDeedId()
+        if (deedOverrides.size === 0) {
             return '// No deed card overrides yet.'
         }
-        const lines = keys.map((positionKey) => {
-            const point = deedCardPositions[positionKey]
-            return `    '${positionKey}': { x: ${point.x.toFixed(1)}, y: ${point.y.toFixed(1)} },`
-        })
+        const deedIds = [...deedOverrides.keys()].sort((left, right) =>
+            left.localeCompare(right, undefined, { numeric: true })
+        )
+        const lines = deedIds
+            .map((deedId) => {
+                const point = deedOverrides.get(deedId)
+                if (!point) {
+                    return ''
+                }
+                return `    '${deedId}': { x: ${point.x.toFixed(1)}, y: ${point.y.toFixed(1)} },`
+            })
+            .filter((line): line is string => line.length > 0)
         return `export const DEED_CARD_POSITIONS = {\n${lines.join('\n')}\n} as const`
     })
 
     const DEED_CARD_FULL_EXPORT_TEXT: string = $derived.by(() => {
-        const keys = [...new Set(Deeds.map((deed) => deedPositionKey(deed.region, deed.type)))].sort(
-            (left, right) => left.localeCompare(right, undefined, { numeric: true })
+        const lineByDeedId = new Map(
+            ALL_DEED_TUNE_ENTRIES.map((entry) => [
+                entry.deedId,
+                `    '${entry.deedId}': { x: ${entry.x.toFixed(1)}, y: ${entry.y.toFixed(1)} },`
+            ])
         )
-        const lines: string[] = []
-        for (const positionKey of keys) {
-            const parsedKey = parseDeedPositionKey(positionKey)
-            if (!parsedKey) {
-                continue
-            }
-            const point = getDeedCardPosition(positionKey)
-            if (!point) {
-                continue
-            }
-            lines.push(
-                `    '${positionKey}': { x: ${point.x.toFixed(1)}, y: ${point.y.toFixed(1)} },`
-            )
-        }
+        const lines = DEED_IDS.map((deedId) => lineByDeedId.get(deedId)).filter(
+            (line): line is string => !!line
+        )
         return `export const DEED_CARD_POSITIONS = {\n${lines.join('\n')}\n} as const`
+    })
+
+    const PRODUCTION_ZONE_MARKER_OVERRIDES_EXPORT_TEXT: string = $derived.by(() => {
+        const deedIds = Object.keys(productionZoneMarkerOffsets).sort((left, right) =>
+            left.localeCompare(right, undefined, { numeric: true })
+        )
+        if (deedIds.length === 0) {
+            return '// No production zone marker overrides yet.'
+        }
+        const markerByDeedId = new Map(
+            DEBUG_PRODUCTION_DEED_MARKERS.map((marker) => [marker.deedId, marker] as const)
+        )
+        const lines = deedIds.map((deedId) => {
+            const offset = productionZoneMarkerOffsets[deedId]
+            const marker = markerByDeedId.get(deedId)
+            const suffix = marker ? ` // ${marker.regionId}` : ''
+            return `    '${deedId}': { x: ${offset.x.toFixed(1)}, y: ${offset.y.toFixed(1)} },${suffix}`
+        })
+        return `export const PRODUCTION_ZONE_MARKER_OFFSETS = {\n${lines.join('\n')}\n} as const`
+    })
+
+    const PRODUCTION_ZONE_MARKER_FULL_EXPORT_TEXT: string = $derived.by(() => {
+        const mergedOffsets: Record<string, Point> = {
+            ...PRODUCTION_ZONE_MARKER_OFFSETS,
+            ...productionZoneMarkerOffsets
+        }
+        const deedIds = Object.keys(mergedOffsets).sort((left, right) =>
+            left.localeCompare(right, undefined, { numeric: true })
+        )
+        const lines = deedIds.map((deedId) => {
+            const offset = mergedOffsets[deedId]
+            return `    '${deedId}': { x: ${offset.x.toFixed(1)}, y: ${offset.y.toFixed(1)} },`
+        })
+        return `export const PRODUCTION_ZONE_MARKER_OFFSETS = {\n${lines.join('\n')}\n} as const`
     })
 
     const BOARD_NODES_BY_ID: Map<string, BoardNodeView> = $derived.by(
@@ -1218,6 +1703,28 @@
             for (const [markerIndex, point] of layout[shipMarkerCount].entries()) {
                 markers.push({
                     id: `${seaArea.id}-${shipMarkerCount}-${markerIndex}`,
+                    seaId: seaArea.id,
+                    x: point.x,
+                    y: point.y,
+                    style: markerIndex % 2 === 0 ? 'a' : 'b',
+                    index: markerIndex
+                })
+            }
+        }
+        return markers
+    })
+
+    const LAYOUT_SHIP_MARKERS: ShipTuneMarker[] = $derived.by(() => {
+        if (colorMode !== 'layout' || !layoutShowShips) {
+            return []
+        }
+        const markers: ShipTuneMarker[] = []
+        for (const seaArea of SEA_DEBUG_MAP_AREAS) {
+            const shipCount = getLayoutShipCountForSeaId(seaArea.id)
+            const layout = getShipLayoutForSeaArea(seaArea)
+            for (const [markerIndex, point] of layout[shipCount].entries()) {
+                markers.push({
+                    id: `${seaArea.id}-${shipCount}-${markerIndex}`,
                     seaId: seaArea.id,
                     x: point.x,
                     y: point.y,
@@ -1541,6 +2048,12 @@
         if (colorMode === 'research') {
             return new Map()
         }
+        if (colorMode === 'companymarkers') {
+            return new Map()
+        }
+        if (colorMode === 'layout') {
+            return new Map()
+        }
         if (colorMode === 'marker') {
             return computeMarkerTuneColorMap(DISPLAY_AREAS)
         }
@@ -1557,6 +2070,10 @@
             return computeAdjacencyColorMap(DISPLAY_AREAS, BOARD_ADJACENCY)
         }
         return computeAdjacencyColorMap(DISPLAY_AREAS, BOARD_ADJACENCY)
+    })
+
+    $effect(() => {
+        active = colorMode !== 'none'
     })
 </script>
 
@@ -1671,6 +2188,26 @@
             }}
         >
             Markers
+        </button>
+        <button
+            type="button"
+            class:active={colorMode === 'companymarkers'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'companymarkers'
+            }}
+        >
+            Company Markers
+        </button>
+        <button
+            type="button"
+            class:active={colorMode === 'layout'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'layout'
+            }}
+        >
+            Layout
         </button>
     </div>
     {#if colorMode === 'marker'}
@@ -1819,12 +2356,13 @@
                 <strong>{selectedDeedCardKey ?? 'None'}</strong>
             </div>
             {#if SELECTED_DEED_TUNE_ENTRY}
-                {@const parsedSelectedKey = parseDeedPositionKey(SELECTED_DEED_TUNE_ENTRY.positionKey)}
                 <div class="marker-tune-row">
                     <span>Region:</span>
                     <strong>{SELECTED_DEED_TUNE_ENTRY.regionId}</strong>
                     <span>Type:</span>
-                    <strong>{parsedSelectedKey?.deedType ?? 'Unknown'}</strong>
+                    <strong>{SELECTED_DEED_TUNE_ENTRY.deedType}</strong>
+                    <span>Deed:</span>
+                    <strong>{SELECTED_DEED_TUNE_ENTRY.deedId}</strong>
                 </div>
                 <div class="marker-tune-row">
                     <span>X:</span>
@@ -1860,6 +2398,163 @@
             ></textarea>
             <label class="marker-tune-label" for="deed-full-export">Full Export</label>
             <textarea id="deed-full-export" readonly value={DEED_CARD_FULL_EXPORT_TEXT}></textarea>
+        </div>
+    {/if}
+    {#if colorMode === 'companymarkers'}
+        <div class="marker-tune-panel">
+            <div class="marker-tune-title">Zone Marker Placement</div>
+            <div class="marker-tune-row">
+                <span>Selected Deed:</span>
+                <strong>{selectedProductionZoneMarkerDeedId ?? 'None'}</strong>
+            </div>
+            {#if SELECTED_PRODUCTION_ZONE_MARKER_ENTRY}
+                {@const selectedEffectiveOffsetX =
+                    roundToTenth(
+                        SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.x -
+                            SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.baseX
+                    )}
+                {@const selectedEffectiveOffsetY =
+                    roundToTenth(
+                        SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.y -
+                            SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.baseY
+                    )}
+                <div class="marker-tune-row">
+                    <span>Region:</span>
+                    <strong>{SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.regionId}</strong>
+                </div>
+                <div class="marker-tune-row">
+                    <span>X:</span>
+                    <code>{SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.x.toFixed(1)}</code>
+                    <span>Y:</span>
+                    <code>{SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.y.toFixed(1)}</code>
+                </div>
+                <div class="marker-tune-row">
+                    <span>Offset X:</span>
+                    <code>{selectedEffectiveOffsetX.toFixed(1)}</code>
+                    <span>Offset Y:</span>
+                    <code>{selectedEffectiveOffsetY.toFixed(1)}</code>
+                </div>
+            {/if}
+            <div class="marker-tune-row marker-tune-buttons">
+                <button type="button" onclick={clearSelectedProductionZoneMarkerOverride}
+                    >Clear Selected</button
+                >
+                <button type="button" onclick={clearAllProductionZoneMarkerOverrides}
+                    >Clear All</button
+                >
+            </div>
+            <div class="marker-tune-row marker-tune-buttons">
+                <button
+                    type="button"
+                    onclick={() =>
+                        copyToClipboard(
+                            PRODUCTION_ZONE_MARKER_OVERRIDES_EXPORT_TEXT,
+                            'companymarker'
+                        )}
+                >
+                    Copy Overrides
+                </button>
+                <button
+                    type="button"
+                    onclick={() =>
+                        copyToClipboard(PRODUCTION_ZONE_MARKER_FULL_EXPORT_TEXT, 'companymarker')}
+                >
+                    Copy Full
+                </button>
+            </div>
+            <div class="marker-tune-row">
+                <span>Overrides:</span>
+                <strong>{Object.keys(productionZoneMarkerOffsets).length}</strong>
+                <span>Visible:</span>
+                <strong>{DEBUG_PRODUCTION_DEED_MARKERS.length}</strong>
+                {#if productionZoneMarkerCopyStatus}
+                    <em>{productionZoneMarkerCopyStatus}</em>
+                {/if}
+            </div>
+            <label class="marker-tune-label" for="company-marker-overrides-export"
+                >Overrides Export</label
+            >
+            <textarea
+                id="company-marker-overrides-export"
+                readonly
+                value={PRODUCTION_ZONE_MARKER_OVERRIDES_EXPORT_TEXT}
+            ></textarea>
+            <label class="marker-tune-label" for="company-marker-full-export">Full Export</label>
+            <textarea
+                id="company-marker-full-export"
+                readonly
+                value={PRODUCTION_ZONE_MARKER_FULL_EXPORT_TEXT}
+            ></textarea>
+        </div>
+    {/if}
+    {#if colorMode === 'layout'}
+        <div class="marker-tune-panel layout-composite-panel">
+            <div class="marker-tune-title">Composite Layout</div>
+            <div class="marker-tune-row marker-tune-buttons">
+                <button type="button" class:active={layoutShowShips} onclick={() => (layoutShowShips = !layoutShowShips)}>
+                    Ships
+                </button>
+                <button type="button" class:active={layoutShowDeeds} onclick={() => (layoutShowDeeds = !layoutShowDeeds)}>
+                    Deeds
+                </button>
+                <button type="button" class:active={layoutShowTags} onclick={() => (layoutShowTags = !layoutShowTags)}>
+                    Tags
+                </button>
+            </div>
+            {#if layoutShowShips}
+                <div class="marker-tune-row marker-tune-buttons">
+                    <span>All Seas:</span>
+                    <button type="button" onclick={() => setLayoutShipCountForAll(1)}>1</button>
+                    <button type="button" onclick={() => setLayoutShipCountForAll(2)}>2</button>
+                    <button type="button" onclick={() => setLayoutShipCountForAll(3)}>3</button>
+                </div>
+                <div class="layout-ship-count-grid">
+                    {#each SEA_DEBUG_MAP_AREAS as seaArea (seaArea.id)}
+                        {@const seaShipCount = getLayoutShipCountForSeaId(seaArea.id)}
+                        <div class="layout-ship-count-row">
+                            <span>{seaArea.id}</span>
+                            <div class="marker-tune-buttons">
+                                <button
+                                    type="button"
+                                    class:active={seaShipCount === 1}
+                                    onclick={() => setLayoutShipCountForSeaId(seaArea.id, 1)}
+                                >
+                                    1
+                                </button>
+                                <button
+                                    type="button"
+                                    class:active={seaShipCount === 2}
+                                    onclick={() => setLayoutShipCountForSeaId(seaArea.id, 2)}
+                                >
+                                    2
+                                </button>
+                                <button
+                                    type="button"
+                                    class:active={seaShipCount === 3}
+                                    onclick={() => setLayoutShipCountForSeaId(seaArea.id, 3)}
+                                >
+                                    3
+                                </button>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+            <div class="marker-tune-row">
+                <span>Rendered:</span>
+                <strong>
+                    {layoutShowShips ? LAYOUT_SHIP_MARKERS.length : 0}
+                </strong>
+                <span>ships</span>
+                <strong>
+                    {layoutShowDeeds ? ALL_DEED_TUNE_ENTRIES.length : 0}
+                </strong>
+                <span>deeds</span>
+                <strong>
+                    {layoutShowTags ? DEBUG_PRODUCTION_DEED_MARKERS.length : 0}
+                </strong>
+                <span>tags</span>
+            </div>
         </div>
     {/if}
     {#if colorMode === 'companies'}
@@ -2083,8 +2778,86 @@
                 <CompanyDeed type="ship" x={COMPANIES_SHIP_CARD_A10_X} y={COMPANIES_SHIP_CARD_A10_Y} height={58} />
                 <CompanyDeed type="rice" x={45} y={250} height={58} text="Areh" />
             {/if}
-            {#if colorMode === 'deeds'}
-                {#each DEED_TUNE_ENTRIES as deed (deed.positionKey)}
+            {#if colorMode === 'companymarkers'}
+                {#each DEBUG_PRODUCTION_DEED_MARKERS as marker (marker.key)}
+                    <CompanyZoneMarker
+                        x={marker.x}
+                        y={marker.y}
+                        targetX={marker.targetX}
+                        targetY={marker.targetY}
+                        playerColor={marker.ownerColor}
+                        goodType={marker.goodType}
+                        goodsCount={marker.goodsCount}
+                        hatchPatternId={marker.hatchPatternId}
+                        variant="pennant"
+                        direction={marker.direction}
+                    />
+                    <path
+                        d={`M ${marker.x} ${marker.y} L ${marker.targetX} ${marker.targetY}`}
+                        fill="none"
+                        stroke={shadeHexColor(marker.ownerColor, 0.28)}
+                        stroke-width="1.8"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.75"
+                        pointer-events="none"
+                    />
+                    <circle
+                        cx={marker.targetX}
+                        cy={marker.targetY}
+                        r="3.2"
+                        fill="#f8fafc"
+                        stroke={shadeHexColor(marker.ownerColor, 0.35)}
+                        stroke-width="1.4"
+                        opacity="0.85"
+                        pointer-events="none"
+                    ></circle>
+                    <circle
+                        cx={marker.x}
+                        cy={marker.y}
+                        r={marker.deedId === selectedProductionZoneMarkerDeedId ? 8 : 6.5}
+                        fill={marker.deedId === selectedProductionZoneMarkerDeedId ? '#fef3c7' : '#ffffff'}
+                        fill-opacity="0.38"
+                        stroke={marker.deedId === selectedProductionZoneMarkerDeedId ? '#b45309' : '#1f2937'}
+                        stroke-width={marker.deedId === selectedProductionZoneMarkerDeedId ? 2.2 : 1.5}
+                        pointer-events="all"
+                        onpointerdown={(event) => startProductionZoneMarkerDrag(marker.deedId, event)}
+                    ></circle>
+                    <text
+                        x={marker.x}
+                        y={marker.y - 12}
+                        fill={shadeHexColor(marker.ownerColor, 0.48)}
+                        stroke="#ffffff"
+                        stroke-width="1"
+                        paint-order="stroke fill"
+                        font-size="11"
+                        font-weight="700"
+                        text-anchor="middle"
+                        dominant-baseline="middle"
+                        pointer-events="none"
+                    >
+                        {marker.regionId}
+                    </text>
+                {/each}
+            {/if}
+            {#if colorMode === 'layout' && layoutShowTags}
+                {#each DEBUG_PRODUCTION_DEED_MARKERS as marker (marker.key)}
+                    <CompanyZoneMarker
+                        x={marker.x}
+                        y={marker.y}
+                        targetX={marker.targetX}
+                        targetY={marker.targetY}
+                        playerColor={marker.ownerColor}
+                        goodType={marker.goodType}
+                        goodsCount={marker.goodsCount}
+                        hatchPatternId={marker.hatchPatternId}
+                        variant="pennant"
+                        direction={marker.direction}
+                    />
+                {/each}
+            {/if}
+            {#if colorMode === 'deeds' || colorMode === 'ships' || (colorMode === 'layout' && layoutShowDeeds)}
+                {#each (colorMode === 'deeds' ? DEED_TUNE_ENTRIES : ALL_DEED_TUNE_ENTRIES) as deed (deed.positionKey)}
                     <CompanyDeed
                         type={deed.cardKind}
                         x={deed.x}
@@ -2093,51 +2866,72 @@
                         text={deed.regionName}
                         shippingSizes={deed.shippingSizes}
                     />
-                    <circle
-                        cx={deed.x + DEED_CARD_HANDLE_OFFSET}
-                        cy={deed.y + DEED_CARD_HANDLE_OFFSET}
-                        r={deed.positionKey === selectedDeedCardKey ? 8 : 6.5}
-                        fill={deed.positionKey === selectedDeedCardKey ? '#fef3c7' : '#ffffff'}
-                        fill-opacity="0.35"
-                        stroke={deed.positionKey === selectedDeedCardKey ? '#b45309' : '#1f2937'}
-                        stroke-width={deed.positionKey === selectedDeedCardKey ? 2.2 : 1.5}
-                        pointer-events="all"
-                        onpointerdown={(event) => startDeedCardDrag(deed.positionKey, event)}
-                    ></circle>
+                    {#if colorMode === 'deeds'}
+                        <circle
+                            cx={deed.x + DEED_CARD_HANDLE_OFFSET}
+                            cy={deed.y + DEED_CARD_HANDLE_OFFSET}
+                            r={deed.positionKey === selectedDeedCardKey ? 8 : 6.5}
+                            fill={deed.positionKey === selectedDeedCardKey ? '#fef3c7' : '#ffffff'}
+                            fill-opacity="0.35"
+                            stroke={deed.positionKey === selectedDeedCardKey ? '#b45309' : '#1f2937'}
+                            stroke-width={deed.positionKey === selectedDeedCardKey ? 2.2 : 1.5}
+                            pointer-events="all"
+                            onpointerdown={(event) => startDeedCardDrag(deed.positionKey, event)}
+                        ></circle>
+                    {/if}
                 {/each}
             {/if}
-            {#if colorMode === 'ships'}
-                {#each SHIP_TUNE_MARKERS as shipMarker (shipMarker.id)}
+            {#if colorMode === 'ships' || (colorMode === 'layout' && layoutShowShips)}
+                {#each (colorMode === 'ships' ? SHIP_TUNE_MARKERS : LAYOUT_SHIP_MARKERS) as shipMarker (shipMarker.id)}
                     <ShipMarker
                         x={shipMarker.x}
                         y={shipMarker.y}
                         style={shipMarker.style}
                         height={SHIP_MARKER_HEIGHT}
                     />
-                    <circle
-                        cx={shipMarker.x}
-                        cy={shipMarker.y}
-                        r={shipMarker.seaId === shipMarkerSelectedSeaId &&
-                        shipMarker.index === shipMarkerSelectedIndex
-                            ? 8
-                            : 6.5}
-                        fill={shipMarker.seaId === shipMarkerSelectedSeaId &&
-                        shipMarker.index === shipMarkerSelectedIndex
-                            ? '#fef3c7'
-                            : '#ffffff'}
-                        fill-opacity="0.35"
-                        stroke={shipMarker.seaId === shipMarkerSelectedSeaId &&
-                        shipMarker.index === shipMarkerSelectedIndex
-                            ? '#b45309'
-                            : '#1f2937'}
-                        stroke-width={shipMarker.seaId === shipMarkerSelectedSeaId &&
-                        shipMarker.index === shipMarkerSelectedIndex
-                            ? 2.2
-                            : 1.5}
-                        pointer-events="all"
-                        onpointerdown={(event) =>
-                            startShipMarkerDrag(shipMarker.seaId, shipMarker.index, event)}
-                    ></circle>
+                    {#if colorMode === 'ships'}
+                        <text
+                            x={shipMarker.x}
+                            y={shipMarker.y + 20}
+                            fill="#111827"
+                            stroke="#f8fafc"
+                            stroke-width="1.25"
+                            paint-order="stroke fill"
+                            font-size="13"
+                            font-weight="800"
+                            text-anchor="middle"
+                            dominant-baseline="middle"
+                            pointer-events="none"
+                        >
+                            {shipMarker.index + 1}
+                        </text>
+                    {/if}
+                    {#if colorMode === 'ships'}
+                        <circle
+                            cx={shipMarker.x}
+                            cy={shipMarker.y}
+                            r={shipMarker.seaId === shipMarkerSelectedSeaId &&
+                            shipMarker.index === shipMarkerSelectedIndex
+                                ? 8
+                                : 6.5}
+                            fill={shipMarker.seaId === shipMarkerSelectedSeaId &&
+                            shipMarker.index === shipMarkerSelectedIndex
+                                ? '#fef3c7'
+                                : '#ffffff'}
+                            fill-opacity="0.35"
+                            stroke={shipMarker.seaId === shipMarkerSelectedSeaId &&
+                            shipMarker.index === shipMarkerSelectedIndex
+                                ? '#b45309'
+                                : '#1f2937'}
+                            stroke-width={shipMarker.seaId === shipMarkerSelectedSeaId &&
+                            shipMarker.index === shipMarkerSelectedIndex
+                                ? 2.2
+                                : 1.5}
+                            pointer-events="all"
+                            onpointerdown={(event) =>
+                                startShipMarkerDrag(shipMarker.seaId, shipMarker.index, event)}
+                        ></circle>
+                    {/if}
                 {/each}
             {/if}
             {#if colorMode === 'production' || colorMode === 'marker'}
@@ -2352,6 +3146,32 @@
         background: rgba(255, 255, 255, 0.9);
         box-shadow: 0 1px 3px rgba(17, 24, 39, 0.22);
         border: 1px solid rgba(17, 24, 39, 0.12);
+    }
+
+    .layout-composite-panel {
+        width: 420px;
+        max-height: 540px;
+        overflow-y: auto;
+    }
+
+    .layout-ship-count-grid {
+        display: grid;
+        gap: 4px;
+        max-height: 260px;
+        overflow-y: auto;
+        border: 1px solid rgba(17, 24, 39, 0.14);
+        border-radius: 8px;
+        padding: 6px;
+        background: rgba(255, 255, 255, 0.82);
+    }
+
+    .layout-ship-count-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+        color: #1f2937;
     }
 
     .marker-tune-title {

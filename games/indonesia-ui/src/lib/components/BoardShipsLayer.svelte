@@ -4,7 +4,7 @@ import { getGameSession } from '$lib/model/sessionContext.svelte'
 import { shadeHexColor } from '$lib/utils/color.js'
 import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
 import { Color } from '@tabletop/common'
-import { CompanyType, MachineState, isIndonesiaNodeId } from '@tabletop/indonesia'
+import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
@@ -25,9 +25,6 @@ import { CompanyType, MachineState, isIndonesiaNodeId } from '@tabletop/indonesi
 
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
-    )
-    const showRemainingCapacityBadges = $derived(
-        gameSession.gameState.machineState === MachineState.ProductionOperations
     )
 
     const shipMarkers: ShipMarkerEntry[] = $derived.by(() => {
@@ -54,11 +51,7 @@ import { CompanyType, MachineState, isIndonesiaNodeId } from '@tabletop/indonesi
                 const ownerColor = gameSession.colors.getPlayerUiColor(company.owner)
                 const ownerPlayerColor = gameSession.colors.getPlayerColor(company.owner)
                 let remainingCapacity: number | undefined
-                if (
-                    showRemainingCapacityBadges &&
-                    company.type === CompanyType.Shipping &&
-                    isIndonesiaNodeId(area.id)
-                ) {
+                if (company.type === CompanyType.Shipping && isIndonesiaNodeId(area.id)) {
                     const ownerHullLevel = gameSession.gameState.getPlayerState(company.owner).research.hull
                     const capacityPerShip = 1 + ownerHullLevel
                     const usedCapacity = gameSession.gameState.operatingCompanyShipUseCount(

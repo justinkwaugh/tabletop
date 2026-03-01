@@ -13,6 +13,19 @@ export function deedPositionKey(regionId: string, deedType: CompanyType): string
     return `${regionId}:${deedType}`
 }
 
+export function deedPositionRenderKey(deed: AnyDeed): string {
+    return deed.id
+}
+
+export function deedPositionLookupKeys(deed: AnyDeed): readonly string[] {
+    const renderKey = deedPositionRenderKey(deed)
+    const slotKey = deedPositionKey(deed.region, deed.type)
+    if (renderKey === slotKey) {
+        return [renderKey]
+    }
+    return [renderKey, slotKey]
+}
+
 export function shippingSizeEntriesFromRecord(
     sizes: Partial<Record<ShippingEra, number>>
 ): readonly ShippingSizeEntry[] {

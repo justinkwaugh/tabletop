@@ -10,7 +10,7 @@
     } from '$lib/definitions/companyDeedGeometry.js'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { deedPositionKey } from '$lib/utils/deeds.js'
+    import { deedPositionLookupKeys } from '$lib/utils/deeds.js'
     import {
         ActionType,
         CompanyType,
@@ -77,8 +77,11 @@
         }
 
         const deeds: StartCompanyDeedEntry[] = []
-        for (const deed of gameSession.gameState.availableDeeds) {
-            const position = DEED_CARD_POSITIONS[deedPositionKey(deed.region, deed.type)]
+        const availableDeeds = gameSession.gameState.availableDeeds
+        for (const deed of availableDeeds) {
+            const position = deedPositionLookupKeys(deed)
+                .map((key) => DEED_CARD_POSITIONS[key])
+                .find((point) => point !== undefined)
             if (!position) {
                 continue
             }
