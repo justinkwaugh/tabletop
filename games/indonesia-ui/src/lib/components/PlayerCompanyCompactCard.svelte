@@ -91,6 +91,19 @@
         return style
     })
 
+    const middleMetric = $derived.by(() => {
+        if (card.type === CompanyType.Production) {
+            return {
+                label: 'GOODS',
+                value: String(card.goodsProduced)
+            }
+        }
+        return {
+            label: 'SHIPS',
+            value: `${card.ships}/${card.maxShips}`
+        }
+    })
+
 </script>
 
 <article
@@ -127,37 +140,20 @@
         </div>
 
         <div class="company-mini-content">
-            {#if card.type === CompanyType.Production}
-                <div class="company-mini-metrics">
-                    <div class="company-mini-metric">
-                        <span class="company-mini-label">DEEDS</span>
-                        <span class="company-mini-value">{card.deedCount}</span>
-                    </div>
-                    <div class="company-mini-metric">
-                        <span class="company-mini-label">GOODS</span>
-                        <span class="company-mini-value">{card.goodsProduced}</span>
-                    </div>
-                    <div class="company-mini-metric">
-                        <span class="company-mini-label">VALUE</span>
-                        <span class="company-mini-value">{card.value}</span>
-                    </div>
+            <div class="company-mini-metrics">
+                <div class="company-mini-metric">
+                    <span class="company-mini-value">{card.deedCount}</span>
+                    <span class="company-mini-label">DEEDS</span>
                 </div>
-            {:else}
-                <div class="company-mini-metrics">
-                    <div class="company-mini-metric">
-                        <span class="company-mini-label">DEEDS</span>
-                        <span class="company-mini-value">{card.deedCount}</span>
-                    </div>
-                    <div class="company-mini-metric">
-                        <span class="company-mini-label">SHIPS</span>
-                        <span class="company-mini-value">{card.ships}/{card.maxShips}</span>
-                    </div>
-                    <div class="company-mini-metric">
-                        <span class="company-mini-label">VALUE</span>
-                        <span class="company-mini-value">{card.value}</span>
-                    </div>
+                <div class="company-mini-metric">
+                    <span class="company-mini-value">{middleMetric.value}</span>
+                    <span class="company-mini-label">{middleMetric.label}</span>
                 </div>
-            {/if}
+                <div class="company-mini-metric">
+                    <span class="company-mini-value">{card.value}</span>
+                    <span class="company-mini-label">VALUE</span>
+                </div>
+            </div>
         </div>
     </div>
 </article>
@@ -247,23 +243,25 @@
 
     .company-mini-metrics {
         display: grid;
-        row-gap: 1px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 4px;
     }
 
     .company-mini-metric {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        align-items: baseline;
-        column-gap: 8px;
-        line-height: 1.02;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        line-height: 1;
+        min-width: 0;
     }
 
     .company-mini-value {
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.015em;
         color: color-mix(in srgb, var(--company-text) 86%, #111827);
-        justify-self: end;
         white-space: nowrap;
     }
 
@@ -317,9 +315,9 @@
     }
 
     .company-mini-label {
-        font-size: 8px;
+        font-size: 7px;
         font-weight: 700;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.03em;
         color: color-mix(in srgb, var(--company-text) 64%, #374151);
         white-space: nowrap;
     }
