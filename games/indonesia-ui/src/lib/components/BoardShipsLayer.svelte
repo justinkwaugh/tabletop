@@ -8,6 +8,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
+        companyId: string
         x: number
         y: number
         style: 'a' | 'b'
@@ -20,12 +21,27 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     const gameSession = getGameSession()
 
     const SHIP_MARKER_HEIGHT = 45
+    const SHIP_MARKER_HEIGHT_HOVERED = 54
+    const DIMMED_SHIP_OPACITY = 0.32
+    const HOVERED_OUTLINE_COLOR = '#fff7cc'
     const SHIP_MARKER_HULL_STROKE_WIDTH = 10
     const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT = 0.35
 
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
+
+    const hoveredShippingCompanyId: string | null = $derived.by(() => {
+        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
+        if (!hoveredCompanyId) {
+            return null
+        }
+        const hoveredCompany = companyById.get(hoveredCompanyId)
+        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Shipping) {
+            return null
+        }
+        return hoveredCompany.id
+    })
 
     const shipMarkers: ShipMarkerEntry[] = $derived.by(() => {
         const markers: ShipMarkerEntry[] = []
@@ -69,6 +85,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
                 markers.push({
                     key: `${area.id}-${companyId}-${markerIndex}`,
+                    companyId,
                     x: markerPoint.x,
                     y: markerPoint.y,
                     style: markerIndex % 2 === 0 ? 'a' : 'b',
@@ -86,22 +103,57 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
         return markers
     })
+
+    const dimmedShipMarkers: ShipMarkerEntry[] = $derived.by(() => {
+        if (!hoveredShippingCompanyId) {
+            return shipMarkers
+        }
+        return shipMarkers.filter((ship) => ship.companyId !== hoveredShippingCompanyId)
+    })
+
+    const emphasizedShipMarkers: ShipMarkerEntry[] = $derived.by(() => {
+        if (!hoveredShippingCompanyId) {
+            return []
+        }
+        return shipMarkers.filter((ship) => ship.companyId === hoveredShippingCompanyId)
+    })
 </script>
 
 <g class="pointer-events-none select-none" aria-label="Ships layer">
-    {#each shipMarkers as ship (ship.key)}
-        <ShipMarker
-            x={ship.x}
-            y={ship.y}
-            style={ship.style}
-            height={SHIP_MARKER_HEIGHT}
-            outline={false}
-            hullFillColor={ship.ownerColor}
-            hullStrokeColor={ship.ownerStrokeColor}
-            hullStrokeWidth={SHIP_MARKER_HULL_STROKE_WIDTH}
-            capacityBadgeValue={ship.remainingCapacity}
-            capacityBadgeFillColor={ship.ownerColor}
-            capacityBadgeTextColor={ship.capacityBadgeTextColor}
-        />
+    {#each dimmedShipMarkers as ship (ship.key)}
+        <g opacity={hoveredShippingCompanyId ? DIMMED_SHIP_OPACITY : 1}>
+            <ShipMarker
+                x={ship.x}
+                y={ship.y}
+                style={ship.style}
+                height={SHIP_MARKER_HEIGHT}
+                outline={false}
+                hullFillColor={ship.ownerColor}
+                hullStrokeColor={ship.ownerStrokeColor}
+                hullStrokeWidth={SHIP_MARKER_HULL_STROKE_WIDTH}
+                capacityBadgeValue={ship.remainingCapacity}
+                capacityBadgeFillColor={ship.ownerColor}
+                capacityBadgeTextColor={ship.capacityBadgeTextColor}
+            />
+        </g>
     {/each}
+
+    {#if hoveredShippingCompanyId}
+        {#each emphasizedShipMarkers as ship (ship.key)}
+            <ShipMarker
+                x={ship.x}
+                y={ship.y}
+                style={ship.style}
+                height={SHIP_MARKER_HEIGHT_HOVERED}
+                outline={true}
+                outlineColor={HOVERED_OUTLINE_COLOR}
+                hullFillColor={ship.ownerColor}
+                hullStrokeColor={ship.ownerStrokeColor}
+                hullStrokeWidth={SHIP_MARKER_HULL_STROKE_WIDTH}
+                capacityBadgeValue={ship.remainingCapacity}
+                capacityBadgeFillColor={ship.ownerColor}
+                capacityBadgeTextColor={ship.capacityBadgeTextColor}
+            />
+        {/each}
+    {/if}
 </g>

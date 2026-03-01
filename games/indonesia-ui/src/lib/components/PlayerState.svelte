@@ -187,7 +187,17 @@
         {#if companyCards.length > 0}
             <div class="player-company-cards" aria-label={`${player.name} companies`}>
                 {#each companyCards as card (card.id)}
-                    <PlayerCompanyCompactCard {card} />
+                    <div
+                        class="player-company-card-hover-target"
+                        onmouseenter={() => {
+                            gameSession.setHoveredOperatingCompany(card.id)
+                        }}
+                        onmouseleave={() => {
+                            gameSession.setHoveredOperatingCompany(undefined)
+                        }}
+                    >
+                        <PlayerCompanyCompactCard {card} />
+                    </div>
                 {/each}
             </div>
         {/if}
@@ -223,5 +233,9 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 4px;
         margin-top: 3px;
+    }
+
+    .player-company-card-hover-target {
+        width: 100%;
     }
 </style>

@@ -1,6 +1,6 @@
 <script lang="ts">
     import Area from '$lib/components/Area.svelte'
-    import { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
+    import { companyCardKindFor, companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
     import {
         BOARD_DEED_CARD_CORNER_RX,
@@ -342,34 +342,53 @@
         return maskedIds
     })
 
-    const hoveredShippingCompanySeaAreaIds: readonly string[] = $derived.by(() => {
+    const hoveredCompanyHighlight: {
+        areaIds: readonly string[]
+        style: ReturnType<typeof companyDeedStyleForType>
+    } | null = $derived.by(() => {
         const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
         if (!hoveredCompanyId) {
-            return []
+            return null
         }
 
         const hoveredCompany = gameSession.gameState.companies.find(
             (company) => company.id === hoveredCompanyId
         )
-        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Shipping) {
-            return []
+        if (!hoveredCompany) {
+            return null
+        }
+
+        // Shipping hover should emphasize ship markers directly in BoardShipsLayer.
+        // Keep area overlays for production companies only.
+        if (hoveredCompany.type === CompanyType.Shipping) {
+            return null
+        }
+
+        if (!('good' in hoveredCompany)) {
+            return null
         }
 
         const highlightedAreaIds: string[] = []
         for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!('ships' in area) || area.ships.length === 0) {
+            if (!('companyId' in area) || area.companyId !== hoveredCompanyId) {
                 continue
             }
             if (!boardAreaPathById(area.id)) {
                 continue
             }
-            if (!area.ships.includes(hoveredCompanyId)) {
-                continue
-            }
             highlightedAreaIds.push(area.id)
         }
 
-        return highlightedAreaIds
+        if (highlightedAreaIds.length === 0) {
+            return null
+        }
+
+        return {
+            areaIds: highlightedAreaIds,
+            style: companyDeedStyleForType(
+                companyCardKindFor(hoveredCompany.type, hoveredCompany.good)
+            )
+        }
     })
 
     async function handleAreaClick(areaId: string): Promise<void> {
@@ -442,22 +461,24 @@
     }
 </script>
 
-{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredShippingCompanySeaAreaIds.length > 0}
+{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredCompanyHighlight}
     <g class="select-none" aria-label="Board action areas layer">
-        {#each hoveredShippingCompanySeaAreaIds as areaId (areaId)}
-            <Area
-                areaId={areaId}
-                fill={SHIPPING_HIGHLIGHT_STYLE.overlayFill}
-                stroke={SHIPPING_HIGHLIGHT_STYLE.overlayStroke}
-                fillOpacity="1"
-                fillRule="evenodd"
-                strokeWidth="1.9"
-                strokeLineJoin="round"
-                strokeLineCap="round"
-                opacity={SHIPPING_HIGHLIGHT_STYLE.overlayOpacity}
-                pointer-events="none"
-            />
-        {/each}
+        {#if hoveredCompanyHighlight}
+            {#each hoveredCompanyHighlight.areaIds as areaId (areaId)}
+                <Area
+                    areaId={areaId}
+                    fill={hoveredCompanyHighlight.style.overlayFill}
+                    stroke={hoveredCompanyHighlight.style.overlayStroke}
+                    fillOpacity="1"
+                    fillRule="evenodd"
+                    strokeWidth="1.9"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
+                    opacity={hoveredCompanyHighlight.style.overlayOpacity}
+                    pointer-events="none"
+                />
+            {/each}
+        {/if}
 
         {#if activeAreaInteraction}
             {#if activeAreaInteraction.action === 'expand' &&

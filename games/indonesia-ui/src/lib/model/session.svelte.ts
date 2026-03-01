@@ -329,36 +329,12 @@ export class IndonesiaGameSession extends GameSession<
             return
         }
 
-        if (!this.isMyTurn || this.gameState.machineState !== MachineState.Operations) {
-            return
-        }
-
-        if (!this.validActionTypes.includes(ActionType.ChooseOperatingCompany)) {
-            return
-        }
-
         const company = this.gameState.companies.find((entry) => entry.id === companyId)
         if (!company) {
             return
         }
-        if (company.owner !== this.myPlayer?.id) {
-            return
-        }
-        if (
-            !HydratedChooseOperatingCompany.canChooseSpecificCompany(
-                this.gameState,
-                this.myPlayer.id,
-                company.id
-            )
-        ) {
-            return
-        }
-        if (company.type !== CompanyType.Shipping) {
-            this.hoveredOperatingCompanyIdOverride = undefined
-            return
-        }
 
-        this.hoveredOperatingCompanyIdOverride = companyId
+        this.hoveredOperatingCompanyIdOverride = company.id
     }
 
     selectDeliveryCultivatedArea(areaId: string): void {
