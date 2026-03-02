@@ -55,7 +55,7 @@
             <DefaultTabs
                 fontClass="gap-1.5 indonesia-tab-title uppercase tracking-[0.08em]"
                 activeTabClass="py-1 px-2 border-b-2 border-[#7a5d3f] text-[#5e3f27] rounded-none"
-                inactiveTabClass="py-1 px-2 border-b-2 border-transparent text-[#9c7f61] hover:text-[#6f5135] hover:border-[#c8b398] rounded-none"
+                inactiveTabClass="py-1 px-2 border-b-2 border-transparent text-[#b7a181] hover:text-[#6f5135] hover:border-[#c8b398] rounded-none"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />

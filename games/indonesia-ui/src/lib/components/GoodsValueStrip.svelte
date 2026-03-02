@@ -1,7 +1,7 @@
 <script lang="ts">
     import simpleOilIconUrl from '$lib/images/simple-oil.svg'
     import simpleRiceIconUrl from '$lib/images/simple-rice.svg'
-    import simpleRubberIconUrl from '$lib/images/simple-rubber.svg'
+    import simpleRubberIconUrl from '$lib/images/simple-rubber-strip.svg'
     import simpleShipIconUrl from '$lib/images/simple-ship.svg'
     import simpleSiapSajiIconUrl from '$lib/images/simple-siapsaji.svg'
     import simpleSpiceIconUrl from '$lib/images/simple-spice.svg'
@@ -52,7 +52,7 @@
             <img
                 class={`goods-value-icon ${entry.key === 'ship' ? 'goods-value-icon-ship' : ''} ${entry.key === 'siap-saji'
                     ? 'goods-value-icon-siapsaji'
-                    : ''}`}
+                    : ''} ${entry.key === 'rubber' ? 'goods-value-icon-rubber' : ''}`}
                 src={entry.iconUrl}
                 alt=""
                 aria-hidden="true"
@@ -87,7 +87,7 @@
         height: 20px;
         object-fit: contain;
         display: block;
-        filter: none;
+        filter: sepia(1) saturate(2.8) hue-rotate(342deg) brightness(0.56) contrast(0.95);
         opacity: 0.94;
     }
 
@@ -99,6 +99,10 @@
     .goods-value-icon-siapsaji {
         width: 24px;
         height: 20px;
+    }
+
+    .goods-value-icon-rubber {
+        filter: none;
     }
 
     .goods-value-number {
