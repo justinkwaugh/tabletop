@@ -70,21 +70,21 @@
         padding: 10px;
         border-radius: 20px;
         background:
-            radial-gradient(980px 620px at 14% 10%, rgba(255, 255, 255, 0.4), transparent 64%),
+            radial-gradient(980px 620px at 14% 10%, rgba(255, 255, 255, 0.34), transparent 64%),
             repeating-linear-gradient(
                 -30deg,
-                rgba(126, 134, 148, 0.018) 0 2px,
-                rgba(255, 255, 255, 0.015) 2px 7px
+                rgba(120, 91, 62, 0.018) 0 2px,
+                rgba(255, 255, 255, 0.012) 2px 7px
             ),
-            #eceae4;
+            #efe6dc;
     }
 
     .board-surface {
         border-radius: 14px;
         overflow: hidden;
         box-shadow:
-            0 0 0 5px rgba(123, 131, 146, 0.24),
-            0 10px 22px rgba(17, 24, 39, 0.12);
+            0 0 0 5px rgba(122, 93, 63, 0.28),
+            0 10px 22px rgba(92, 66, 41, 0.14);
     }
 
     .board-image {

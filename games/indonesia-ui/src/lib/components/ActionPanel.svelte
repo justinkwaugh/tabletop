@@ -557,7 +557,7 @@
 </script>
 
 <div
-    class="action-panel flex min-h-[50px] items-center justify-center px-4 py-2 text-center text-[18px] tracking-[0.02em] text-[#333]"
+    class="action-panel flex min-h-[50px] items-center justify-center px-0 py-2 text-center text-[18px] tracking-[0.02em] text-[#333]"
 >
     {#if showTurnOrderBidTracker}
         <div class="bid-tracker-panel">
@@ -755,12 +755,13 @@
 <style>
     .action-panel {
         background: #f7f3ef;
-        border: 1px solid rgba(154, 143, 130, 0.68);
-        border-radius: 10px;
-        margin: 5px 8px 7px;
-        box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.52),
-            inset 0 -1px 0 rgba(98, 68, 39, 0.2);
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        border-bottom: 1px solid rgba(93, 68, 40, 0.58);
+        border-radius: 0;
+        margin: 0 0 7px;
+        box-shadow: none;
     }
 
     .bid-tracker-panel {

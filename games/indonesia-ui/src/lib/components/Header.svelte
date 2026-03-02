@@ -20,7 +20,7 @@
 
 <div
     id="indonesia-header"
-    class="flex h-[44px] items-center justify-between border-b border-[#c9ccd1] px-4 text-[#333] tracking-[0.08em]"
+    class="flex h-[44px] items-center justify-between border-b border-[#ad9c80] px-4 text-[#5e3f27] tracking-[0.08em]"
 >
     <div class="header-grid grid text-[18px]">
         {#if gameSession.isViewingHistory}
@@ -51,7 +51,7 @@
             <button
                 type="button"
                 onclick={back}
-                class="rounded-lg px-2 py-1 text-[#333] hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5d6979]/60"
+                class="rounded-lg px-2 py-1 text-[#5e3f27] hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5d6979]/60"
             >
                 UNDO
             </button>
@@ -59,7 +59,7 @@
             <button
                 type="button"
                 onclick={undo}
-                class="rounded-lg px-2 py-1 text-[#333] hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5d6979]/60"
+                class="rounded-lg px-2 py-1 text-[#5e3f27] hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5d6979]/60"
             >
                 UNDO
             </button>
