@@ -67,6 +67,12 @@
         direction: MarkerDirection
     }
 
+    function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
+        ships: string[]
+    } {
+        return Array.isArray(area.ships)
+    }
+
     let hoveredAreaId: string | null = $state(null)
     let hoveredStartCompanyDeedId: string | null = $state(null)
     let selectedStartCompanyDeedId: string | null = $state(null)
@@ -376,8 +382,6 @@
             return []
         }
 
-        // Shipping hover should emphasize ship markers directly in BoardShipsLayer.
-        // Keep area overlays for production companies only.
         if (hoveredCompany.type === CompanyType.Shipping) {
             return []
         }
@@ -398,6 +402,40 @@
         }
 
         return highlightedAreaIds
+    })
+
+    const hoveredShippingCompanyAreaIds: readonly string[] = $derived.by(() => {
+        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
+        if (!hoveredCompanyId) {
+            return []
+        }
+
+        const hoveredCompany = gameSession.gameState.companies.find(
+            (company) => company.id === hoveredCompanyId
+        )
+        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Shipping) {
+            return []
+        }
+
+        const highlightedSeaAreaIds: string[] = []
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!areaHasShips(area) || !area.ships.includes(hoveredCompanyId)) {
+                continue
+            }
+            if (!boardAreaPathById(area.id)) {
+                continue
+            }
+            highlightedSeaAreaIds.push(area.id)
+        }
+
+        return highlightedSeaAreaIds
+    })
+
+    const hoveredCompanySpotlightAreaIds: readonly string[] = $derived.by(() => {
+        if (hoveredProductionCompanyAreaIds.length > 0) {
+            return hoveredProductionCompanyAreaIds
+        }
+        return hoveredShippingCompanyAreaIds
     })
 
     const hoveredProductionCompanyId: string | null = $derived.by(() => {
@@ -499,13 +537,13 @@
     }
 </script>
 
-{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredProductionCompanyAreaIds.length > 0}
+{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredCompanySpotlightAreaIds.length > 0}
     <g class="select-none" aria-label="Board action areas layer">
-        {#if hoveredProductionCompanyAreaIds.length > 0}
+        {#if hoveredCompanySpotlightAreaIds.length > 0}
             <defs>
                 <mask id={PRODUCTION_HOVER_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
                     <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
-                    {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
+                    {#each hoveredCompanySpotlightAreaIds as areaId (areaId)}
                         <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
                     {/each}
                 </mask>
@@ -522,7 +560,7 @@
                 pointer-events="none"
             />
 
-            {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
+            {#each hoveredCompanySpotlightAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
                     fill="none"
