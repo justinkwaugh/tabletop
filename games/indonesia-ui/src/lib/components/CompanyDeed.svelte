@@ -117,7 +117,8 @@
         outlineColor,
         text = '',
         textColor,
-        shippingSizes = null
+        shippingSizes = null,
+        hatchPatternId = null
     }: {
         type: CompanyDeedType
         x: number
@@ -128,6 +129,7 @@
         text?: string
         textColor?: string
         shippingSizes?: readonly ShippingSizeEntry[] | null
+        hatchPatternId?: string | null
     } = $props()
 
     const deedStyle = $derived(companyDeedStyleForType(type))
@@ -178,6 +180,18 @@
         ></rect>
     {/if}
     <deedStyle.icon x={iconXLocal} y={iconYLocal} {width} {height} />
+    {#if hatchPatternId}
+        <rect
+            x={iconXLocal}
+            y={iconYLocal}
+            {width}
+            {height}
+            rx={outlineRx}
+            ry={outlineRy}
+            fill={`url(#${hatchPatternId})`}
+            opacity="0.45"
+        ></rect>
+    {/if}
     {#if textLines.length > 0}
         <text
             x={textXLocal}

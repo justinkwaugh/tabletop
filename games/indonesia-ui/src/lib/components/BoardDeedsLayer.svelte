@@ -1,14 +1,18 @@
 <script lang="ts">
     import { BOARD_AREA_PATH_BY_ID } from '$lib/definitions/boardGeometry.js'
-    import { getRegionAreaIds, getRegionName } from '$lib/definitions/regions.js'
+    import { getRegionName } from '$lib/definitions/regions.js'
     import Area from '$lib/components/Area.svelte'
     import CompanyDeed, {
         companyDeedStyleForType,
         deedCardKindFor
     } from '$lib/components/CompanyDeed.svelte'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
-    import { BOARD_DEED_CARD_HEIGHT } from '$lib/definitions/companyDeedGeometry.js'
-    import { shadeHexColor } from '$lib/utils/color.js'
+    import {
+        BOARD_DEED_CARD_CORNER_RX,
+        BOARD_DEED_CARD_CORNER_RY,
+        BOARD_DEED_CARD_HEIGHT,
+        BOARD_DEED_CARD_WIDTH
+    } from '$lib/definitions/companyDeedGeometry.js'
     import {
         deedPositionLookupKeys,
         deedPositionKey,
@@ -23,6 +27,8 @@
 
     type DeedCardEntry = {
         key: string
+        deedId: string
+        isShipping: boolean
         text: string
         cardKind: CompanyCardType
         shippingSizes: readonly ShippingSizeEntry[] | null
@@ -32,29 +38,27 @@
 
     type OverlayArea = {
         key: string
+        deedId: string
+        isShipping: boolean
         areaId: string
         fill: string
         stroke: string
         opacity: number
+        hatchPatternId: string | null
     }
 
-    const DEED_DARKNESS_SHIFT_BY_KEY: Record<string, number> = {
-        'R02:Shipping': 0.15,
-        'R08:Shipping': 0.15,
-        'R14:Shipping': 0.15,
-        'R26:Production': 0.1
+    const DEED_HATCH_PATTERN_BY_KEY: Record<string, string> = {
+        'R02:Shipping': 'deed-hatch-shipping',
+        'R08:Shipping': 'deed-hatch-shipping',
+        'R14:Shipping': 'deed-hatch-shipping',
+        'R04:Production': 'deed-hatch-production',
+        'R24:Production': 'deed-hatch-production'
     }
-
     const DEED_LAYER_DATA: {
         cards: DeedCardEntry[]
         overlays: OverlayArea[]
     } = $derived.by(() => {
         const deeds = gameSession.gameState.availableDeeds
-        const hideSeaOverlays =
-            gameSession.gameState.machineState === MachineState.ResearchAndDevelopment ||
-            gameSession.gameState.machineState === MachineState.Operations ||
-            gameSession.gameState.machineState === MachineState.ShippingOperations ||
-            gameSession.gameState.machineState === MachineState.ProductionOperations
 
         const cards: DeedCardEntry[] = []
         const overlays: OverlayArea[] = []
@@ -78,26 +82,24 @@
                 continue
             }
 
-            const darknessShift = DEED_DARKNESS_SHIFT_BY_KEY[legacyPositionKey] ?? 0
-            const overlayFill =
-                darknessShift === 0
-                    ? baseStyle.overlayFill
-                    : shadeHexColor(baseStyle.overlayFill, darknessShift)
-            const overlayStroke =
-                darknessShift === 0
-                    ? baseStyle.overlayStroke
-                    : shadeHexColor(baseStyle.overlayStroke, darknessShift * 0.7)
+            const hatchPatternId = DEED_HATCH_PATTERN_BY_KEY[legacyPositionKey] ?? null
+            const overlayFill = baseStyle.overlayFill
+            const overlayStroke = baseStyle.overlayStroke
             const overlayAreaIds = isShipping
-                ? hideSeaOverlays
-                    ? []
-                    : gameSession.gameState.board
-                          .seaAreasForRegion(regionId)
-                          .map((seaArea) => seaArea.id)
-                          .filter((seaAreaId) => BOARD_AREA_PATH_BY_ID.has(seaAreaId))
-                : getRegionAreaIds(regionId)
+                ? gameSession.gameState.board
+                      .seaAreasForRegion(regionId)
+                      .map((seaArea) => seaArea.id)
+                      .filter((seaAreaId) => BOARD_AREA_PATH_BY_ID.has(seaAreaId))
+                : gameSession.gameState.board
+                      .areasForRegion(regionId)
+                      .filter((area) => gameSession.gameState.board.canBeNewlyCultivated(area, deed.good))
+                      .map((area) => area.id)
+                      .filter((areaId) => BOARD_AREA_PATH_BY_ID.has(areaId))
 
             cards.push({
                 key: deed.id,
+                deedId: deed.id,
+                isShipping,
                 text: regionName,
                 cardKind,
                 shippingSizes: isShipping ? shippingSizeEntriesFromRecord(deed.sizes) : null,
@@ -108,10 +110,13 @@
             for (const areaId of overlayAreaIds) {
                 overlays.push({
                     key: `${deed.id}-${areaId}`,
+                    deedId: deed.id,
+                    isShipping,
                     areaId,
                     fill: overlayFill,
                     stroke: overlayStroke,
-                    opacity: baseStyle.overlayOpacity
+                    opacity: isShipping ? baseStyle.overlayOpacity : 1,
+                    hatchPatternId
                 })
             }
         }
@@ -124,10 +129,45 @@
 
     const DEED_CARD_ENTRIES: DeedCardEntry[] = $derived(DEED_LAYER_DATA.cards)
     const DEED_OVERLAY_AREAS: OverlayArea[] = $derived(DEED_LAYER_DATA.overlays)
+    const showAllShippingOverlays: boolean = $derived(
+        gameSession.gameState.machineState === MachineState.Acquisitions
+    )
+    const visibleDeedOverlayAreas: OverlayArea[] = $derived.by(() =>
+        DEED_OVERLAY_AREAS.filter((overlay) => {
+            if (!overlay.isShipping) {
+                return true
+            }
+            if (showAllShippingOverlays) {
+                return true
+            }
+            return overlay.deedId === gameSession.hoveredAvailableDeedId
+        })
+    )
 </script>
 
-<g class="pointer-events-none select-none" aria-label="Available deeds layer">
-    {#each DEED_OVERLAY_AREAS as overlay (overlay.key)}
+<g class="select-none" aria-label="Available deeds layer">
+    <defs>
+        <pattern
+            id="deed-hatch-shipping"
+            patternUnits="userSpaceOnUse"
+            width="24"
+            height="24"
+            patternTransform="rotate(-35)"
+        >
+            <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.25"></rect>
+        </pattern>
+        <pattern
+            id="deed-hatch-production"
+            patternUnits="userSpaceOnUse"
+            width="24"
+            height="24"
+            patternTransform="rotate(35)"
+        >
+            <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.24"></rect>
+        </pattern>
+    </defs>
+
+    {#each visibleDeedOverlayAreas as overlay (overlay.key)}
         <Area
             areaId={overlay.areaId}
             fill={overlay.fill}
@@ -138,17 +178,51 @@
             strokeLineJoin="round"
             strokeLineCap="round"
             opacity={overlay.opacity}
+            pointer-events="none"
         />
+        {#if overlay.hatchPatternId}
+            <Area
+                areaId={overlay.areaId}
+                fill={`url(#${overlay.hatchPatternId})`}
+                stroke="transparent"
+                fillOpacity={1}
+                strokeWidth={0}
+                opacity={overlay.opacity}
+                pointer-events="none"
+            />
+        {/if}
     {/each}
 
     {#each DEED_CARD_ENTRIES as deed (deed.key)}
-        <CompanyDeed
-            type={deed.cardKind}
-            x={deed.cardX}
-            y={deed.cardY}
-            height={BOARD_DEED_CARD_HEIGHT}
-            text={deed.text}
-            shippingSizes={deed.shippingSizes}
-        />
+        <g>
+            <CompanyDeed
+                type={deed.cardKind}
+                x={deed.cardX}
+                y={deed.cardY}
+                height={BOARD_DEED_CARD_HEIGHT}
+                text={deed.text}
+                shippingSizes={deed.shippingSizes}
+            />
+            <rect
+                x={deed.cardX - BOARD_DEED_CARD_WIDTH / 2}
+                y={deed.cardY - BOARD_DEED_CARD_HEIGHT / 2}
+                width={BOARD_DEED_CARD_WIDTH}
+                height={BOARD_DEED_CARD_HEIGHT}
+                rx={BOARD_DEED_CARD_CORNER_RX}
+                ry={BOARD_DEED_CARD_CORNER_RY}
+                fill="#ffffff"
+                fill-opacity="0.001"
+                stroke="none"
+                pointer-events="all"
+                onmouseenter={() => {
+                    gameSession.setHoveredAvailableDeed(deed.deedId)
+                }}
+                onmouseleave={() => {
+                    if (gameSession.hoveredAvailableDeedId === deed.deedId) {
+                        gameSession.setHoveredAvailableDeed(undefined)
+                    }
+                }}
+            />
+        </g>
     {/each}
 </g>

@@ -226,9 +226,7 @@
         </div>
 
         <div class="player-state-body">
-            <div class="player-section-header" aria-hidden="true">
-                <span class="player-section-rule"></span>
-                <span class="player-section-title">FINANCES</span>
+            <div class="player-section-header player-section-header-finances" aria-hidden="true">
                 <span class="player-section-rule"></span>
             </div>
             <div class="player-finance-row" aria-label={`${player.name} finances`}>
@@ -250,7 +248,6 @@
 
             {#if !showNoCompaniesPreview && companyCards.length > 0}
                 <div class="player-section-header player-section-header-companies" aria-hidden="true">
-                    <span class="player-section-title">COMPANIES</span>
                     <span class="player-section-dash" aria-hidden="true"></span>
                     <span class="player-section-title-meta">{openCompanySlots} {openSlotsLabel}</span>
                 </div>
@@ -271,7 +268,6 @@
                 </div>
             {:else}
                 <div class="player-section-header player-section-header-companies" aria-hidden="true">
-                    <span class="player-section-title">COMPANIES</span>
                     <span class="player-section-dash" aria-hidden="true"></span>
                     <span class="player-section-title-meta">{openCompanySlots} {openSlotsLabel}</span>
                 </div>
@@ -420,7 +416,7 @@
     }
 
     .player-state-body {
-        padding: 0;
+        padding: 4px 0 0;
     }
 
     .pulse-border {
@@ -475,14 +471,14 @@
         margin: 2px 0 6px;
     }
 
+    .player-section-header-finances {
+        margin-top: 0;
+    }
+
     .player-section-rule {
         flex: 1 1 auto;
         height: 1px;
         background: rgba(122, 93, 63, 0.38);
-    }
-
-    .player-section-header .player-section-rule:first-child {
-        display: none;
     }
 
     .player-section-title {

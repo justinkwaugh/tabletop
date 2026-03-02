@@ -193,6 +193,7 @@
         if (!startCompanySelectionEnabled) {
             selectedStartCompanyDeedId = null
             hoveredStartCompanyDeedId = null
+            gameSession.setHoveredAvailableDeed(undefined)
             hoveredAreaId = null
             return
         }
@@ -646,10 +647,14 @@
                     cursor={applyingAreaAction ? 'default' : 'pointer'}
                     onmouseenter={() => {
                         hoveredStartCompanyDeedId = deed.deedId
+                        gameSession.setHoveredAvailableDeed(deed.deedId)
                     }}
                     onmouseleave={() => {
                         if (hoveredStartCompanyDeedId === deed.deedId) {
                             hoveredStartCompanyDeedId = null
+                        }
+                        if (gameSession.hoveredAvailableDeedId === deed.deedId) {
+                            gameSession.setHoveredAvailableDeed(undefined)
                         }
                     }}
                     onpointerdown={() => {

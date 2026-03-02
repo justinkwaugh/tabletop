@@ -27,6 +27,7 @@ export class IndonesiaGameSession extends GameSession<
 > {
     selectedResearchPlayerIdOverride: string | undefined = $state()
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
+    hoveredAvailableDeedIdOverride: string | undefined = $state()
     selectedDeliveryCultivatedAreaIdOverride: string | undefined = $state()
     selectedDeliveryCityIdOverride: string | undefined = $state()
     hoveredDeliveryRouteKeyOverride: string | undefined = $state()
@@ -69,6 +70,20 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         return company.id
+    })
+
+    hoveredAvailableDeedId: string | null = $derived.by(() => {
+        const hoveredDeedId = this.hoveredAvailableDeedIdOverride
+        if (!hoveredDeedId) {
+            return null
+        }
+
+        const deed = this.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        if (!deed) {
+            return null
+        }
+
+        return deed.id
     })
 
     operableOwnedCompanyIds: string[] = $derived.by(() => {
@@ -275,6 +290,7 @@ export class IndonesiaGameSession extends GameSession<
     resetAction(): void {
         this.selectedResearchPlayerIdOverride = undefined
         this.hoveredOperatingCompanyIdOverride = undefined
+        this.hoveredAvailableDeedIdOverride = undefined
         this.selectedDeliveryCultivatedAreaIdOverride = undefined
         this.selectedDeliveryCityIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
@@ -335,6 +351,20 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         this.hoveredOperatingCompanyIdOverride = company.id
+    }
+
+    setHoveredAvailableDeed(deedId: string | undefined): void {
+        if (!deedId) {
+            this.hoveredAvailableDeedIdOverride = undefined
+            return
+        }
+
+        const deed = this.gameState.availableDeeds.find((entry) => entry.id === deedId)
+        if (!deed) {
+            return
+        }
+
+        this.hoveredAvailableDeedIdOverride = deed.id
     }
 
     selectDeliveryCultivatedArea(areaId: string): void {
