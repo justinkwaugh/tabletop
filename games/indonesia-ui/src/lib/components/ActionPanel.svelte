@@ -754,18 +754,7 @@
 
 <style>
     .action-panel {
-        background:
-            radial-gradient(
-                135% 185% at 12% 6%,
-                rgba(248, 244, 240, 0.72),
-                rgba(236, 228, 221, 0.82)
-            ),
-            repeating-linear-gradient(
-                -30deg,
-                rgba(128, 120, 111, 0.024) 0 2px,
-                rgba(255, 255, 255, 0.02) 2px 7px
-            ),
-            #ede2dc;
+        background: #f7f3ef;
         border: 1px solid rgba(154, 143, 130, 0.68);
         border-radius: 10px;
         margin: 5px 8px 7px;

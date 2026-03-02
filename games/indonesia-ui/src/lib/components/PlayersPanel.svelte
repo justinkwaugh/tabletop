@@ -49,9 +49,12 @@
 </div>
 
 <style>
+    .players-panel-list {
+        border-top: 2px solid #7a5d3f;
+        border-bottom: 2px solid #7a5d3f;
+    }
+
     .player-state-row-divider {
         border-top: 2px solid #7a5d3f;
-        margin-top: 4px;
-        padding-top: 4px;
     }
 </style>

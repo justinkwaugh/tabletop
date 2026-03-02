@@ -164,9 +164,9 @@
 
 <style>
     .company-mini-card {
-        border: 1px solid var(--company-outline);
+        border: none;
         border-radius: 8px;
-        padding: 4px;
+        padding: 4px 4px 4px 6px;
         display: flex;
         align-items: center;
         background: var(--company-fill);
@@ -209,7 +209,7 @@
 
     .company-mini-icon-wrap-shipping {
         justify-content: center;
-        gap: 6px;
+        gap: 4px;
         padding-top: 0;
         padding-bottom: 0;
     }

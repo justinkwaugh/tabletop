@@ -175,6 +175,12 @@
 
         return cards
     })
+
+    const maxCompanySlots = $derived(1 + playerState.research.slots)
+    const openCompanySlots = $derived(Math.max(0, maxCompanySlots - ownedCompanies.length))
+    const openSlotsLabel = $derived(openCompanySlots === 1 ? 'OPEN SLOT' : 'OPEN SLOTS')
+    // Temporary preview toggle for the empty companies treatment.
+    const showNoCompaniesPreview = false
 </script>
 
 <div class="relative">
@@ -242,11 +248,11 @@
                 </div>
             </div>
 
-            {#if companyCards.length > 0}
-                <div class="player-section-header" aria-hidden="true">
-                    <span class="player-section-rule"></span>
+            {#if !showNoCompaniesPreview && companyCards.length > 0}
+                <div class="player-section-header player-section-header-companies" aria-hidden="true">
                     <span class="player-section-title">COMPANIES</span>
-                    <span class="player-section-rule"></span>
+                    <span class="player-section-dash" aria-hidden="true"></span>
+                    <span class="player-section-title-meta">{openCompanySlots} {openSlotsLabel}</span>
                 </div>
                 <div class="player-company-cards" aria-label={`${player.name} companies`}>
                     {#each companyCards as card (card.id)}
@@ -262,6 +268,15 @@
                             <PlayerCompanyCompactCard {card} />
                         </div>
                     {/each}
+                </div>
+            {:else}
+                <div class="player-section-header player-section-header-companies" aria-hidden="true">
+                    <span class="player-section-title">COMPANIES</span>
+                    <span class="player-section-dash" aria-hidden="true"></span>
+                    <span class="player-section-title-meta">{openCompanySlots} {openSlotsLabel}</span>
+                </div>
+                <div class="player-company-empty" aria-label={`${player.name} has no companies`}>
+                    NO COMPANIES
                 </div>
             {/if}
 
@@ -297,8 +312,8 @@
     }
 
     .player-state-shell {
-        background: #ede2dc;
-        padding: 4px 0 5px;
+        background: #f7f3ef;
+        padding: 8px;
     }
 
     .player-state-header {
@@ -306,7 +321,7 @@
         justify-content: center;
         align-items: center;
         gap: 2px;
-        margin: 0 6px 4px;
+        margin: 0 0 4px;
     }
 
     .player-name-wrap {
@@ -321,7 +336,7 @@
         position: absolute;
         top: 1px;
         bottom: 1px;
-        opacity: 0.66;
+        opacity: 0.8;
         filter: none;
         pointer-events: none;
     }
@@ -405,7 +420,7 @@
     }
 
     .player-state-body {
-        padding: 0 6px;
+        padding: 0;
     }
 
     .pulse-border {
@@ -446,7 +461,7 @@
     }
 
     .player-finance-value {
-        font-size: 13px;
+        font-size: 15px;
         line-height: 1;
         font-weight: 700;
         letter-spacing: 0.01em;
@@ -457,7 +472,7 @@
         display: flex;
         align-items: center;
         column-gap: 7px;
-        margin: 2px 0 4px;
+        margin: 2px 0 6px;
     }
 
     .player-section-rule {
@@ -478,14 +493,45 @@
         color: rgba(97, 69, 44, 0.7);
     }
 
+    .player-section-title-meta {
+        font-size: 8px;
+        line-height: 1;
+        letter-spacing: 0.1em;
+        color: rgba(97, 69, 44, 0.62);
+        white-space: nowrap;
+    }
+
+    .player-section-header-companies {
+        width: 100%;
+        column-gap: 6px;
+    }
+
+    .player-section-dash {
+        flex: 1 1 auto;
+        height: 1px;
+        background: rgba(122, 93, 63, 0.38);
+    }
+
     .player-company-cards {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 4px;
+        gap: 8px;
     }
 
     .player-company-card-hover-target {
         width: 100%;
         height: 100%;
+    }
+
+    .player-company-empty {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 300;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(97, 69, 44, 0.42);
     }
 </style>
