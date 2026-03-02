@@ -115,7 +115,9 @@
 >
     <div class="company-mini-layout">
         <div
-            class="company-mini-icon-wrap {card.type === CompanyType.Shipping ? 'company-mini-icon-wrap-shipping' : ''}"
+            class="company-mini-icon-wrap {card.type === CompanyType.Shipping
+                ? 'company-mini-icon-wrap-shipping'
+                : 'company-mini-icon-wrap-production'}"
             aria-hidden="true"
         >
             {#if card.type === CompanyType.Shipping}
@@ -167,11 +169,10 @@
         padding: 4px;
         display: flex;
         align-items: center;
-        background:
-            linear-gradient(180deg, color-mix(in srgb, var(--company-fill) 88%, #ffffff), var(--company-fill)),
-            var(--company-fill);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+        background: var(--company-fill);
         min-height: 46px;
+        height: 100%;
+        box-sizing: border-box;
     }
 
     .company-mini-card-hatched {
@@ -181,7 +182,6 @@
                 rgb(255 255 255 / 0.2) 0 6px,
                 transparent 6px 12px
             ),
-            linear-gradient(180deg, color-mix(in srgb, var(--company-fill) 88%, #ffffff), var(--company-fill)),
             var(--company-fill);
     }
 
@@ -212,6 +212,10 @@
         gap: 6px;
         padding-top: 0;
         padding-bottom: 0;
+    }
+
+    .company-mini-icon-wrap-production {
+        padding-left: 3px;
     }
 
     .company-mini-icon {

@@ -16,6 +16,7 @@
         historyTitle,
         chatTitle,
         fontClass = '',
+        contentClass,
         activeTabClass,
         inactiveTabClass
     }: {
@@ -26,6 +27,7 @@
         historyTitle?: string
         chatTitle?: string
         fontClass?: string
+        contentClass?: string
         activeTabClass?: string
         inactiveTabClass?: string
     } = $props()
@@ -81,7 +83,7 @@
 <Tabs
     tabStyle="pill"
     classes={{
-        content: 'p-0 mt-0 dark:bg-transparent h-full overflow-auto rounded-lg'
+        content: contentClass ?? 'p-0 mt-0 dark:bg-transparent h-full overflow-auto rounded-lg'
     }}
 >
     {#if playersPanel}

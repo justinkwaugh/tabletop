@@ -43,6 +43,8 @@
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
+    const lastOperationsEarnings: number | null = null
+    let earningsDisplay = $derived(lastOperationsEarnings === null ? '\u2014' : String(lastOperationsEarnings))
     let ownedCompanies = $derived.by(() =>
         gameSession.gameState.companies
             .filter((company) => company.owner === playerState.playerId)
@@ -176,66 +178,314 @@
 </script>
 
 <div class="relative">
-    <div
-        class="rounded-lg {bgColor} pt-[3px] pb-2 px-2 text-center {gameSession.colors.getPlayerTextColor(
-            playerState.playerId
-        )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
-    >
-        <h1 class="{isTurn ? 'text-xl font-semibold' : 'text-lg font-medium'} mb-1">
-            {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
-        </h1>
-        {#if companyCards.length > 0}
-            <div class="player-company-cards" aria-label={`${player.name} companies`}>
-                {#each companyCards as card (card.id)}
-                    <div
-                        class="player-company-card-hover-target"
-                        onmouseenter={() => {
-                            gameSession.setHoveredOperatingCompany(card.id)
-                        }}
-                        onmouseleave={() => {
-                            gameSession.setHoveredOperatingCompany(undefined)
-                        }}
-                    >
-                        <PlayerCompanyCompactCard {card} />
-                    </div>
-                {/each}
+    <div class="player-state-shell {isTurn ? 'pulse-border' : ''}">
+        <div class="player-state-header">
+            <svg
+                class="player-name-ornament player-name-ornament-left"
+                viewBox="0 0 64.8 23.43"
+                aria-hidden="true"
+                focusable="false"
+            >
+                <path class="player-name-ornament-fill" d="M5.45,11.53C29.48,1.16,43.64,25.5,57.36,21c12.37-3.92,2.9-27.7-7.37-18.13,3.06-6.04,12.09-1.54,13.69,3.99,5.68,14.45-11.48,21.58-21.99,12.55-9.33-6.97-23.69-9.35-33.56-2.81-9.48,6.43-11.05.11-2.68-5.07Z"></path>
+                <path class="player-name-ornament-fill" d="M48.78,13.23c-5.03-6.36,6.16-11.99,9.7-5.28,3.05,4.29.05,10.92-5.24,11.2-4,.32-7.46-2.76-10.44-4.41-10.48-6.13-21.47-9.45-32.85-7.56C32.18.27,49.54,23.21,56.49,16.35c4.71-3.38-1.35-12.5-5.23-7.34-.46.85.32,1.96,1.02,2.19.95.22,1.79-.89,2.51-1.25,3.51,2.4-3.23,7.18-6.01,3.28Z"></path>
+                <path class="player-name-ornament-fill" d="M50.62,10.15c-1.29,3.2,3.76,5.14,4.96,1.91,1.29-3.2-3.76-5.14-4.96-1.91Z"></path>
+            </svg>
+            <div class="player-name-wrap">
+                <span class="player-name-wash player-name-wash-left {bgColor}" aria-hidden="true"></span>
+                <span class="player-name-wash player-name-wash-right {bgColor}" aria-hidden="true"></span>
+                <h1
+                    class="player-name-text {isTurn
+                        ? 'text-xl font-semibold'
+                        : 'text-lg font-medium'}"
+                >
+                    {#if isTurn}
+                        <span class="player-turn-arrow">⇢</span>
+                    {/if}
+                    <span class="player-name-core">{player.name}</span>
+                    {#if isTurn}
+                        <span class="player-turn-arrow">⇠</span>
+                    {/if}
+                </h1>
             </div>
-        {/if}
-        {#if gameSession.showDebug}
-            <div class="text-xs mt-2">id: {player.id}</div>
-        {/if}
+            <svg
+                class="player-name-ornament player-name-ornament-right"
+                viewBox="0 0 64.8 23.43"
+                aria-hidden="true"
+                focusable="false"
+            >
+                <path class="player-name-ornament-fill" d="M5.45,11.53C29.48,1.16,43.64,25.5,57.36,21c12.37-3.92,2.9-27.7-7.37-18.13,3.06-6.04,12.09-1.54,13.69,3.99,5.68,14.45-11.48,21.58-21.99,12.55-9.33-6.97-23.69-9.35-33.56-2.81-9.48,6.43-11.05.11-2.68-5.07Z"></path>
+                <path class="player-name-ornament-fill" d="M48.78,13.23c-5.03-6.36,6.16-11.99,9.7-5.28,3.05,4.29.05,10.92-5.24,11.2-4,.32-7.46-2.76-10.44-4.41-10.48-6.13-21.47-9.45-32.85-7.56C32.18.27,49.54,23.21,56.49,16.35c4.71-3.38-1.35-12.5-5.23-7.34-.46.85.32,1.96,1.02,2.19.95.22,1.79-.89,2.51-1.25,3.51,2.4-3.23,7.18-6.01,3.28Z"></path>
+                <path class="player-name-ornament-fill" d="M50.62,10.15c-1.29,3.2,3.76,5.14,4.96,1.91,1.29-3.2-3.76-5.14-4.96-1.91Z"></path>
+            </svg>
+        </div>
+
+        <div class="player-state-body">
+            <div class="player-section-header" aria-hidden="true">
+                <span class="player-section-rule"></span>
+                <span class="player-section-title">FINANCES</span>
+                <span class="player-section-rule"></span>
+            </div>
+            <div class="player-finance-row" aria-label={`${player.name} finances`}>
+                <div class="player-finance-chip">
+                    <span class="player-finance-label">CASH</span>
+                    <span class="player-finance-value">{playerState.cash}</span>
+                </div>
+                <div class="player-finance-divider" aria-hidden="true"></div>
+                <div class="player-finance-chip">
+                    <span class="player-finance-label">BANK</span>
+                    <span class="player-finance-value">{playerState.bank}</span>
+                </div>
+                <div class="player-finance-divider" aria-hidden="true"></div>
+                <div class="player-finance-chip">
+                    <span class="player-finance-label">EARNINGS</span>
+                    <span class="player-finance-value">{earningsDisplay}</span>
+                </div>
+            </div>
+
+            {#if companyCards.length > 0}
+                <div class="player-section-header" aria-hidden="true">
+                    <span class="player-section-rule"></span>
+                    <span class="player-section-title">COMPANIES</span>
+                    <span class="player-section-rule"></span>
+                </div>
+                <div class="player-company-cards" aria-label={`${player.name} companies`}>
+                    {#each companyCards as card (card.id)}
+                        <div
+                            class="player-company-card-hover-target"
+                            onmouseenter={() => {
+                                gameSession.setHoveredOperatingCompany(card.id)
+                            }}
+                            onmouseleave={() => {
+                                gameSession.setHoveredOperatingCompany(undefined)
+                            }}
+                        >
+                            <PlayerCompanyCompactCard {card} />
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+
+            {#if gameSession.showDebug}
+                <div class="text-xs mt-2">id: {player.id}</div>
+            {/if}
+        </div>
     </div>
 </div>
 
 <style>
     @keyframes border-pulsate {
         0% {
-            border-color: rgba(255, 255, 255, 0);
+            box-shadow:
+                0 0 0 0 rgba(245, 236, 221, 0),
+                inset 0 0 0 1px rgba(255, 255, 255, 0);
         }
         25% {
-            border-color: rgba(255, 255, 255, 255);
+            box-shadow:
+                0 0 0 2px rgba(245, 236, 221, 0.95),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.45);
         }
         75% {
-            border-color: rgba(255, 255, 255, 255);
+            box-shadow:
+                0 0 0 2px rgba(245, 236, 221, 0.95),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.45);
         }
         100% {
-            border-color: rgba(255, 255, 255, 0);
+            box-shadow:
+                0 0 0 0 rgba(245, 236, 221, 0),
+                inset 0 0 0 1px rgba(255, 255, 255, 0);
         }
     }
 
+    .player-state-shell {
+        background: #ede2dc;
+        padding: 4px 0 5px;
+    }
+
+    .player-state-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 2px;
+        margin: 0 6px 4px;
+    }
+
+    .player-name-wrap {
+        position: relative;
+        text-align: center;
+        padding: 3px 10px 2px;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .player-name-wash {
+        position: absolute;
+        top: 1px;
+        bottom: 1px;
+        opacity: 0.66;
+        filter: none;
+        pointer-events: none;
+    }
+
+    .player-name-wash-left {
+        left: 4px;
+        right: 4px;
+        border-radius: 3px;
+        -webkit-mask-image: linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.32) 24%,
+            rgba(0, 0, 0, 0.92) 58%,
+            rgba(0, 0, 0, 1) 74%
+        );
+        mask-image: linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.32) 24%,
+            rgba(0, 0, 0, 0.92) 58%,
+            rgba(0, 0, 0, 1) 74%
+        );
+    }
+
+    .player-name-wash-right {
+        left: 4px;
+        right: 4px;
+        border-radius: 3px;
+        -webkit-mask-image: linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 1) 26%,
+            rgba(0, 0, 0, 0.92) 42%,
+            rgba(0, 0, 0, 0.32) 76%,
+            rgba(0, 0, 0, 0) 100%
+        );
+        mask-image: linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 1) 26%,
+            rgba(0, 0, 0, 0.92) 42%,
+            rgba(0, 0, 0, 0.32) 76%,
+            rgba(0, 0, 0, 0) 100%
+        );
+    }
+
+    .player-name-text {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        letter-spacing: 0.02em;
+        color: #f6ecdc;
+    }
+
+    .player-name-core {
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .player-name-ornament {
+        width: 30px;
+        height: 22.5px;
+        flex: 0 0 auto;
+        opacity: 1;
+        color: rgba(122, 93, 63, 0.5);
+        transform: translateY(-0.5px);
+    }
+
+    .player-name-ornament-right {
+        transform: translateY(-0.5px) scaleX(-1);
+    }
+
+    .player-name-ornament-fill {
+        fill: currentColor;
+    }
+
+    .player-turn-arrow {
+        line-height: 1;
+        color: color-mix(in srgb, #f6ecdc 92%, #c8a277);
+    }
+
+    .player-state-body {
+        padding: 0 6px;
+    }
+
     .pulse-border {
-        border-color: white;
         animation: border-pulsate 2.5s infinite;
+    }
+
+    .player-finance-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: stretch;
+        margin-bottom: 4px;
+        background: transparent;
+    }
+
+    .player-finance-chip {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        padding: 4px 6px;
+    }
+
+    .player-finance-divider {
+        width: 1px;
+        height: 72%;
+        align-self: center;
+        background: rgba(124, 96, 66, 0.3);
+    }
+
+    .player-finance-label {
+        font-size: 8px;
+        letter-spacing: 0.14em;
+        line-height: 1;
+        font-weight: 700;
+        color: rgba(97, 69, 44, 0.72);
+    }
+
+    .player-finance-value {
+        font-size: 13px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: rgba(68, 44, 25, 0.96);
+    }
+
+    .player-section-header {
+        display: flex;
+        align-items: center;
+        column-gap: 7px;
+        margin: 2px 0 4px;
+    }
+
+    .player-section-rule {
+        flex: 1 1 auto;
+        height: 1px;
+        background: rgba(122, 93, 63, 0.38);
+    }
+
+    .player-section-header .player-section-rule:first-child {
+        display: none;
+    }
+
+    .player-section-title {
+        font-size: 8px;
+        line-height: 1;
+        letter-spacing: 0.12em;
+        font-weight: 700;
+        color: rgba(97, 69, 44, 0.7);
     }
 
     .player-company-cards {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 4px;
-        margin-top: 3px;
     }
 
     .player-company-card-hover-target {
         width: 100%;
+        height: 100%;
     }
 </style>

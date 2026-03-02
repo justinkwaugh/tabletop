@@ -40,8 +40,18 @@
     }
 </script>
 
-<div class="rounded-lg space-y-2 text-center grow-0 shrink-0">
-    {#each playersAndStates as playerAndState (playerAndState.player.id)}
-        <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+<div class="players-panel-list text-center grow-0 shrink-0">
+    {#each playersAndStates as playerAndState, index (playerAndState.player.id)}
+        <div class="player-state-row {index > 0 ? 'player-state-row-divider' : ''}">
+            <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+        </div>
     {/each}
 </div>
+
+<style>
+    .player-state-row-divider {
+        border-top: 2px solid #7a5d3f;
+        margin-top: 4px;
+        padding-top: 4px;
+    }
+</style>
