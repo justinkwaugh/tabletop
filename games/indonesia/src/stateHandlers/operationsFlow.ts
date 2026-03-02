@@ -2,6 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
+import { HydratedStartCompany } from '../actions/startCompany.js'
 
 export function resolvePostOperationsState(state: HydratedIndonesiaGameState): MachineState {
     if (state.shouldStartNewEra()) {
@@ -10,6 +11,17 @@ export function resolvePostOperationsState(state: HydratedIndonesiaGameState): M
     }
 
     return MachineState.BiddingForTurnOrder
+}
+
+export function resolvePostMergersState(state: HydratedIndonesiaGameState): MachineState {
+    const anyPlayerCanStartCompany = state.turnManager.turnOrder.some((playerId) =>
+        HydratedStartCompany.canStartCompany(state, playerId)
+    )
+    if (!anyPlayerCanStartCompany) {
+        return MachineState.ResearchAndDevelopment
+    }
+
+    return MachineState.Acquisitions
 }
 
 export function finishOperatingCompany(state: HydratedIndonesiaGameState): MachineState {

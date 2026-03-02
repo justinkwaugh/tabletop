@@ -635,3 +635,55 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
   - uses planar polygonization internally only to compute candidate face centroids/adjacency.
   - final zone ranking is by clipped sea geometry area (`zone - land_union`) so tiny land-only fragments are deprioritized.
   - defaults: `target=20`, `snap_tol=3.0`, `min_zone_area=75`, `min_piece_area=10`.
+
+## Indonesia Mergers Phase Plan Note (2026-03-02)
+
+- Implement full `MachineState.Mergers` between `BiddingForTurnOrder` and `Acquisitions`.
+- Skip mergers phase if either:
+  - no player has `research.mergers >= 1`, or
+  - no legal merger can be announced by any eligible announcer.
+- Rules decisions locked:
+  - max merged deed count = `announcer.research.mergers + 1`.
+  - siap saji half-retention is winner-selected (interactive choice).
+  - bidding must be strict greater-than current high bid.
+- Use common auction primitives from `libs/common` (simple auction style) for merger bidding flow.
+
+### Implementation sequence
+
+- Extend Indonesia game state with merger-phase state:
+  - active merger proposal info,
+  - active auction state,
+  - bidding order/pass-tracking,
+  - deeds merged this year tracker.
+- Replace merger stubs with concrete actions:
+  - announce merger,
+  - place merger bid,
+  - pass merger bid,
+  - resolve siap saji retained areas.
+- Implement validations:
+  - company compatibility (including rice+spice -> siap saji in era B/C only),
+  - announcer eligibility (owns one company or has free slot),
+  - bidder eligibility (owners or free slot),
+  - cash limits,
+  - bid increment step = total goods/ships count,
+  - deed-once-per-year merge lock.
+- Implement merger resolution:
+  - merge companies/deeds and assign winner owner,
+  - transfer winning cash and split payouts proportional to original goods/ships,
+  - shipping ship ownership remap,
+  - production ownership remap,
+  - siap saji conversion and border-only area give-up handling.
+- Wire transitions:
+  - `BiddingForTurnOrder -> Mergers -> Acquisitions`,
+  - fall back to `ResearchAndDevelopment` if acquisitions has no eligible starts.
+- Add UI/session support:
+  - merger proposal UI,
+  - merger bidding UI,
+  - siap saji retained-area selection UI on board.
+- Add tests:
+  - phase entry/skip/end behavior,
+  - action validity,
+  - auction progression and strict raise rules,
+  - payout math,
+  - shipping remap,
+  - siap saji retain/remove constraints.

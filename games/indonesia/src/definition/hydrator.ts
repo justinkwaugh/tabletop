@@ -7,6 +7,12 @@ import { HydratedPlaceTurnOrderBid, isPlaceTurnOrderBid } from '../actions/place
 import { HydratedSetTurnOrder, isSetTurnOrder } from '../actions/setTurnOrder.js'
 import { HydratedStartCompany, isStartCompany } from '../actions/startCompany.js'
 import { HydratedProposeMerger, isProposeMerger } from '../actions/proposeMerger.js'
+import { HydratedPlaceMergerBid, isPlaceMergerBid } from '../actions/placeMergerBid.js'
+import { HydratedPassMergerBid, isPassMergerBid } from '../actions/passMergerBid.js'
+import {
+    HydratedRemoveSiapSajiArea,
+    isRemoveSiapSajiArea
+} from '../actions/removeSiapSajiArea.js'
 import { HydratedResearch, isResearch } from '../actions/research.js'
 import { HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 import {
@@ -48,6 +54,15 @@ export class IndonesiaHydrator implements GameHydrator<
             }
             case isProposeMerger(data): {
                 return new HydratedProposeMerger(data)
+            }
+            case isPlaceMergerBid(data): {
+                return new HydratedPlaceMergerBid(data)
+            }
+            case isPassMergerBid(data): {
+                return new HydratedPassMergerBid(data)
+            }
+            case isRemoveSiapSajiArea(data): {
+                return new HydratedRemoveSiapSajiArea(data)
             }
             case isResearch(data): {
                 return new HydratedResearch(data)

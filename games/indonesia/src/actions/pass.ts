@@ -11,10 +11,12 @@ import {
     describeProductionOperation,
     ProductionOperationStage
 } from '../operations/productionOperationProgress.js'
+import { mergerAnnouncementOrder } from '../operations/mergers.js'
 
 export enum PassReason {
     CannotPlaceCity = 'CannotPlaceCity',
     DeclineStartCompany = 'DeclineStartCompany',
+    DeclineMergerAnnouncement = 'DeclineMergerAnnouncement',
     FinishOptionalProductionExpansion = 'FinishOptionalProductionExpansion',
     SkipProductionExpansion = 'SkipProductionExpansion'
 }
@@ -77,6 +79,23 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
                 HydratedStartCompany.canStartCompany(state, playerId) &&
                 !state.hasPlayerPassedAcquisitions(playerId)
             )
+        }
+
+        if (state.machineState === MachineState.Mergers) {
+            if (
+                reason !== undefined &&
+                reason !== PassReason.DeclineMergerAnnouncement
+            ) {
+                return false
+            }
+            if (state.activeMergerProposal || state.pendingSiapSajiReduction) {
+                return false
+            }
+            if (state.activePlayerIds[0] !== playerId) {
+                return false
+            }
+
+            return mergerAnnouncementOrder(state).includes(playerId)
         }
 
         if (state.machineState !== MachineState.ProductionOperations) {

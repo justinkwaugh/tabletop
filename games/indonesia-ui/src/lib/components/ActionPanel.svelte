@@ -13,6 +13,7 @@
         Era,
         GOOD_REVENUE_BY_GOOD,
         Good,
+        HydratedProposeMerger,
         MachineState,
         PassReason,
         type TurnOrderBid
@@ -27,6 +28,13 @@
     let deliveringGood = $state(false)
     let finishingOptionalProductionExpansion = $state(false)
     let passingAcquisitions = $state(false)
+    let proposingMerger = $state(false)
+    let passingMergerAnnouncement = $state(false)
+    let placingMergerBid = $state(false)
+    let passingMergerBid = $state(false)
+    let selectedMergerOptionKey = $state('')
+    let mergerOpeningBidInput = $state('')
+    let mergerBidInput = $state('0')
 
     const showTurnOrderBidFormula = $derived.by(() => {
         return (
@@ -81,6 +89,15 @@
     type TurnOrderBidEntry = {
         playerId: string
         turnOrderBid: TurnOrderBid | null
+    }
+
+    type GameCompany = (typeof gameSession.gameState.companies)[number]
+    type MergerOption = ReturnType<typeof HydratedProposeMerger.listProposableMergers>[number]
+    type MergerOptionRow = {
+        key: string
+        option: MergerOption
+        companyACard: PlayerCompanyCardData
+        companyBCard: PlayerCompanyCardData
     }
 
     const turnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() => {
@@ -138,8 +155,211 @@
         )
     })
 
+    const showMergersPanel = $derived.by(() => {
+        return (
+            gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.Mergers &&
+            !gameSession.gameState.result
+        )
+    })
+
+    const canProposeMerger = $derived.by(
+        () => showMergersPanel && gameSession.validActionTypes.includes(ActionType.ProposeMerger)
+    )
+
+    const canPlaceMergerBid = $derived.by(
+        () => showMergersPanel && gameSession.validActionTypes.includes(ActionType.PlaceMergerBid)
+    )
+
+    const canPassMergerBid = $derived.by(
+        () => showMergersPanel && gameSession.validActionTypes.includes(ActionType.PassMergerBid)
+    )
+
+    const isSiapSajiReductionSelection = $derived.by(
+        () => showMergersPanel && gameSession.validActionTypes.includes(ActionType.RemoveSiapSajiArea)
+    )
+
+    const canPassMergerAnnouncementOnly = $derived.by(
+        () =>
+            showMergersPanel &&
+            gameSession.validActionTypes.includes(ActionType.Pass) &&
+            !canProposeMerger &&
+            !canPlaceMergerBid &&
+            !canPassMergerBid &&
+            !isSiapSajiReductionSelection
+    )
+
+    const ERA_ORDER_INDEX: Record<Era, number> = {
+        [Era.A]: 0,
+        [Era.B]: 1,
+        [Era.C]: 2
+    }
+
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
+    )
+
+    const mergerOptions = $derived.by(() => {
+        if (!canProposeMerger) {
+            return []
+        }
+
+        const myPlayerId = gameSession.myPlayer?.id
+        if (!myPlayerId) {
+            return []
+        }
+
+        return HydratedProposeMerger.listProposableMergers(gameSession.gameState, myPlayerId)
+    })
+
+    const mergerOptionRows: MergerOptionRow[] = $derived.by(() => {
+        return mergerOptions
+            .map((option) => {
+                const companyA = companyById.get(option.companyAId)
+                const companyB = companyById.get(option.companyBId)
+                if (!companyA || !companyB) {
+                    return null
+                }
+
+                return {
+                    key: mergerOptionKey(option.companyAId, option.companyBId),
+                    option,
+                    companyACard: companyCardDataFor(companyA),
+                    companyBCard: companyCardDataFor(companyB)
+                } satisfies MergerOptionRow
+            })
+            .filter((row): row is MergerOptionRow => row !== null)
+    })
+
+    const selectedMergerOptionIndex = $derived.by(() =>
+        mergerOptionRows.findIndex((row) => row.key === selectedMergerOptionKey)
+    )
+
+    const selectedMergerOptionRow = $derived.by(() => {
+        const selectedIndex = selectedMergerOptionIndex
+        if (selectedIndex < 0) {
+            return null
+        }
+        return mergerOptionRows[selectedIndex] ?? null
+    })
+
+    const selectedMergerOption = $derived.by(() => {
+        const selectedRow = selectedMergerOptionRow
+        if (!selectedRow) {
+            return null
+        }
+        return selectedRow.option
+    })
+
+    const activeMergerProposal = $derived.by(() => gameSession.gameState.activeMergerProposal)
+    const activeMergerAuction = $derived.by(() => gameSession.gameState.activeMergerAuction)
+
+    const mergerCurrentHighBid = $derived.by(() => {
+        const proposal = activeMergerProposal
+        if (!proposal) {
+            return 0
+        }
+        return activeMergerAuction?.highBid ?? proposal.openingBid
+    })
+
+    const mergerMinimumNextBid = $derived.by(() => {
+        const proposal = activeMergerProposal
+        if (!proposal) {
+            return 0
+        }
+
+        const currentHighBid = mergerCurrentHighBid
+        let minimumBid = Math.max(currentHighBid + 1, proposal.nominalValue)
+        const offset = (minimumBid - proposal.nominalValue) % proposal.bidIncrement
+        if (offset !== 0) {
+            minimumBid += proposal.bidIncrement - offset
+        }
+        return minimumBid
+    })
+
+    const mergerOpeningBidAmount = $derived.by(() => {
+        if (mergerOpeningBidInput.length === 0) {
+            return Number.NaN
+        }
+        return Number.parseInt(mergerOpeningBidInput, 10)
+    })
+
+    const mergerBidAmount = $derived.by(() => {
+        if (mergerBidInput.length === 0) {
+            return Number.NaN
+        }
+        return Number.parseInt(mergerBidInput, 10)
+    })
+
+    const mergerActionPending = $derived.by(
+        () => proposingMerger || passingMergerAnnouncement || placingMergerBid || passingMergerBid
+    )
+
+    const mergerOpeningBidInvalid = $derived.by(() => {
+        if (!canProposeMerger) {
+            return false
+        }
+
+        const option = selectedMergerOption
+        if (!option) {
+            return true
+        }
+
+        const openingBid = mergerOpeningBidAmount
+        if (!Number.isFinite(openingBid)) {
+            return true
+        }
+        if (openingBid < option.nominalValue) {
+            return true
+        }
+        if ((openingBid - option.nominalValue) % option.bidIncrement !== 0) {
+            return true
+        }
+
+        return openingBid > availableCash
+    })
+
+    const mergerBidInvalid = $derived.by(() => {
+        if (!canPlaceMergerBid) {
+            return false
+        }
+
+        const proposal = activeMergerProposal
+        if (!proposal) {
+            return true
+        }
+
+        const bidAmount = mergerBidAmount
+        if (!Number.isFinite(bidAmount)) {
+            return true
+        }
+        if (bidAmount < mergerMinimumNextBid) {
+            return true
+        }
+        if ((bidAmount - proposal.nominalValue) % proposal.bidIncrement !== 0) {
+            return true
+        }
+
+        return bidAmount > availableCash
+    })
+
+    const canSubmitProposeMerger = $derived.by(
+        () => canProposeMerger && !mergerActionPending && !mergerOpeningBidInvalid
+    )
+
+    const canSubmitPassMergerAnnouncement = $derived.by(
+        () =>
+            showMergersPanel &&
+            gameSession.validActionTypes.includes(ActionType.Pass) &&
+            !mergerActionPending
+    )
+
+    const canSubmitMergerBid = $derived.by(
+        () => canPlaceMergerBid && !mergerActionPending && !mergerBidInvalid
+    )
+
+    const canSubmitPassMergerBid = $derived.by(
+        () => canPassMergerBid && !mergerActionPending
     )
 
     $effect(() => {
@@ -149,29 +369,55 @@
     })
 
     $effect(() => {
+        if (!canProposeMerger) {
+            gameSession.setHoveredCompanySpotlightCompanies(undefined)
+        }
+    })
+
+    $effect(() => {
+        if (!canProposeMerger) {
+            return
+        }
+
+        const selectedRow = selectedMergerOptionRow
+        if (!selectedRow) {
+            gameSession.setHoveredCompanySpotlightCompanies(undefined)
+            return
+        }
+
+        gameSession.setHoveredCompanySpotlightCompanies([
+            selectedRow.option.companyAId,
+            selectedRow.option.companyBId
+        ])
+    })
+
+    $effect(() => {
         if (!showDeliveryShippingChoices) {
             gameSession.setHoveredDeliveryRoute(undefined)
         }
     })
 
-    const ERA_ORDER_INDEX: Record<Era, number> = {
-        [Era.A]: 0,
-        [Era.B]: 1,
-        [Era.C]: 2
-    }
+    $effect(() => {
+        if (!canProposeMerger || mergerOptionRows.length === 0) {
+            selectedMergerOptionKey = ''
+            mergerOpeningBidInput = ''
+            return
+        }
 
-    function areaHasCompanyIdAndGood(area: Record<string, unknown>): area is Record<string, unknown> & {
-        companyId: string
-        good: Good
-    } {
-        return typeof area.companyId === 'string' && typeof area.good === 'string'
-    }
+        if (!mergerOptionRows.some((row) => row.key === selectedMergerOptionKey)) {
+            selectedMergerOptionKey = mergerOptionRows[0]?.key ?? ''
+            mergerOpeningBidInput = ''
+        }
+    })
 
-    function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
-        ships: string[]
-    } {
-        return Array.isArray(area.ships)
-    }
+    $effect(() => {
+        if (!canPlaceMergerBid && !canPassMergerBid) {
+            mergerBidInput = '0'
+            return
+        }
+
+        mergerBidInput = String(mergerMinimumNextBid)
+    })
 
     type OwnedOperatingCompanyEntry = {
         company: (typeof gameSession.gameState.companies)[number]
@@ -202,99 +448,12 @@
         }
     }
 
-    const cultivatedAreaCountByCompanyId: Record<string, number> = $derived.by(() => {
-        const cultivatedCounts: Record<string, number> = {}
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!('companyId' in area)) {
-                continue
-            }
-
-            cultivatedCounts[area.companyId] = (cultivatedCounts[area.companyId] ?? 0) + 1
-        }
-        return cultivatedCounts
-    })
-
-    const shipCountByCompanyId: Record<string, number> = $derived.by(() => {
-        const shipCounts: Record<string, number> = {}
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!areaHasShips(area)) {
-                continue
-            }
-
-            for (const companyId of area.ships) {
-                shipCounts[companyId] = (shipCounts[companyId] ?? 0) + 1
-            }
-        }
-
-        return shipCounts
-    })
-
-    const productionHatchVariantByCompanyId: Map<string, number> = $derived.by(() => {
-        const myPlayerId = gameSession.myPlayer?.id
-        if (!myPlayerId) {
-            return new Map()
-        }
-
-        const ownedProductionCompanies = gameSession.gameState.companies.filter(
-            (company): company is (typeof gameSession.gameState.companies)[number] & {
-                type: CompanyType.Production
-                good: Good
-            } => company.owner === myPlayerId && company.type === CompanyType.Production && 'good' in company
-        )
-        const ownedProductionCompanyById = new Map(
-            ownedProductionCompanies.map((company) => [company.id, company] as const)
-        )
-        const companyIdsByOwnerAndGood = new Map<string, Set<string>>()
-        const conflictRankByCompanyId = new Map<string, number>()
-
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!areaHasCompanyIdAndGood(area)) {
-                continue
-            }
-
-            const company = ownedProductionCompanyById.get(area.companyId)
-            if (!company) {
-                continue
-            }
-
-            const ownerAndGoodKey = `${company.owner}|${area.good}`
-            const companyIds = companyIdsByOwnerAndGood.get(ownerAndGoodKey) ?? new Set<string>()
-            companyIds.add(company.id)
-            companyIdsByOwnerAndGood.set(ownerAndGoodKey, companyIds)
-        }
-
-        for (const companyIds of companyIdsByOwnerAndGood.values()) {
-            if (companyIds.size <= 1) {
-                continue
-            }
-
-            for (const [index, companyId] of [...companyIds]
-                .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
-                .entries()) {
-                conflictRankByCompanyId.set(companyId, index)
-            }
-        }
-
-        const hatchVariantByCompanyId = new Map<string, number>()
-        for (const [companyId, conflictRank] of conflictRankByCompanyId.entries()) {
-            if (conflictRank <= 0) {
-                continue
-            }
-            hatchVariantByCompanyId.set(companyId, (conflictRank - 1) % 4)
-        }
-
-        return hatchVariantByCompanyId
-    })
-
     const ownedOperatingCompanies: OwnedOperatingCompanyEntry[] = $derived.by(() => {
         const myPlayerId = gameSession.myPlayer?.id
         if (!myPlayerId) {
             return []
         }
         const operableCompanyIdSet = new Set(gameSession.operableOwnedCompanyIds)
-        const currentEra = gameSession.gameState.era
-        const currentEraIndex = ERA_ORDER_INDEX[currentEra]
-        const hullSize = (gameSession.myPlayerState?.research.hull ?? 0) + 1
 
         return gameSession.gameState.companies
             .filter(
@@ -303,43 +462,65 @@
             .sort((left, right) => left.id.localeCompare(right.id, undefined, { numeric: true }))
             .map((company) => ({
                 company,
-                cardData:
-                    company.type === CompanyType.Production && 'good' in company
-                        ? ({
-                              id: company.id,
-                              type: CompanyType.Production,
-                              good: company.good,
-                              deedCount: company.deeds.length,
-                              goodsProduced: cultivatedAreaCountByCompanyId[company.id] ?? 0,
-                              value:
-                                  (cultivatedAreaCountByCompanyId[company.id] ?? 0) *
-                                  GOOD_REVENUE_BY_GOOD[company.good],
-                              hatchVariant: productionHatchVariantByCompanyId.get(company.id) ?? null
-                          } satisfies PlayerCompanyCardData)
-                        : (() => {
-                              const sizeEntries = shippingSizeTotalsFromDeeds(company.deeds)
-                              const maxByEra = new Map(
-                                  sizeEntries.map((entry) => [entry.era, entry.size] as const)
-                              )
-                              return {
-                                  id: company.id,
-                                  type: CompanyType.Shipping,
-                                  deedCount: company.deeds.length,
-                                  ships: shipCountByCompanyId[company.id] ?? 0,
-                                  maxShips: maxByEra.get(currentEra) ?? 0,
-                                  value: (shipCountByCompanyId[company.id] ?? 0) * 10,
-                                  hullSize,
-                                  remainingEraMaximums: SHIPPING_ERA_ORDER.filter(
-                                      (era) => ERA_ORDER_INDEX[era] >= currentEraIndex
-                                  ).map((era) => ({
-                                      era,
-                                      max: maxByEra.get(era) ?? 0
-                                  })),
-                                  hatchVariant: null
-                              } satisfies PlayerCompanyCardData
-                          })()
+                cardData: companyCardDataFor(company)
             }))
     })
+
+    function companyCardDataFor(company: GameCompany): PlayerCompanyCardData {
+        const currentEra = gameSession.gameState.era
+        const currentEraIndex = ERA_ORDER_INDEX[currentEra]
+
+        if (company.type === CompanyType.Production && 'good' in company) {
+            let producedGoodsCount = 0
+            for (const area of Object.values(gameSession.gameState.board.areas)) {
+                if (!('companyId' in area) || area.companyId !== company.id) {
+                    continue
+                }
+                producedGoodsCount += 1
+            }
+
+            return {
+                id: company.id,
+                type: CompanyType.Production,
+                good: company.good,
+                deedCount: company.deeds.length,
+                goodsProduced: producedGoodsCount,
+                value: producedGoodsCount * GOOD_REVENUE_BY_GOOD[company.good],
+                hatchVariant: null
+            } satisfies PlayerCompanyCardData
+        }
+
+        const sizeEntries = shippingSizeTotalsFromDeeds(company.deeds)
+        const maxByEra = new Map(sizeEntries.map((entry) => [entry.era, entry.size] as const))
+        let shipCount = 0
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!('ships' in area) || !Array.isArray(area.ships)) {
+                continue
+            }
+            for (const shipCompanyId of area.ships) {
+                if (shipCompanyId === company.id) {
+                    shipCount += 1
+                }
+            }
+        }
+        const ownerHullSize = (gameSession.gameState.getPlayerState(company.owner).research.hull ?? 0) + 1
+        return {
+            id: company.id,
+            type: CompanyType.Shipping,
+            deedCount: company.deeds.length,
+            ships: shipCount,
+            maxShips: maxByEra.get(currentEra) ?? 0,
+            value: shipCount * 10,
+            hullSize: ownerHullSize,
+            remainingEraMaximums: SHIPPING_ERA_ORDER.filter(
+                (era) => ERA_ORDER_INDEX[era] >= currentEraIndex
+            ).map((era) => ({
+                era,
+                max: maxByEra.get(era) ?? 0
+            })),
+            hatchVariant: null
+        } satisfies PlayerCompanyCardData
+    }
 
     const maxGoodsToShipForCurrentProductionOperation = $derived.by(() => {
         return gameSession.gameState.operatingCompanyDeliveryPlan?.totalDelivered ?? 0
@@ -404,8 +585,24 @@
                 }
                 return 'Resolve turn order.'
             }
-            case MachineState.Mergers:
-                return 'Propose a merger.'
+            case MachineState.Mergers: {
+                if (isSiapSajiReductionSelection) {
+                    const pendingReduction = gameSession.gameState.pendingSiapSajiReduction
+                    const removalsRemaining = pendingReduction?.removalsRemaining ?? 0
+                    const areaLabel = removalsRemaining === 1 ? 'area' : 'areas'
+                    return `Remove ${removalsRemaining} border ${areaLabel} from the merged company.`
+                }
+                if (canPlaceMergerBid || canPassMergerBid) {
+                    return 'Bid for control of the merged company.'
+                }
+                if (canProposeMerger) {
+                    return 'Propose a merger or pass.'
+                }
+                if (canPassMergerAnnouncementOnly) {
+                    return 'No legal mergers available. Pass to continue.'
+                }
+                return 'Waiting for merger announcement.'
+            }
             case MachineState.Acquisitions:
                 if (gameSession.validActionTypes.includes(ActionType.Pass)) {
                     return 'Select a deed, then select a highlighted area to start the company, or pass.'
@@ -467,14 +664,7 @@
         if (!(target instanceof HTMLInputElement)) {
             return
         }
-
-        const digitsOnly = target.value.replace(/[^0-9]/g, '')
-        if (digitsOnly.length === 0) {
-            bidInput = '0'
-            return
-        }
-
-        bidInput = digitsOnly.slice(0, 4).replace(/^0+(?=\d)/, '')
+        bidInput = sanitizeNumericInput(target.value)
     }
 
     function handleBidBeforeInput(event: InputEvent): void {
@@ -485,6 +675,89 @@
         if (event.inputType.startsWith('insert') && event.data && /[^0-9]/.test(event.data)) {
             event.preventDefault()
         }
+    }
+
+    function mergerOptionKey(companyAId: string, companyBId: string): string {
+        return [companyAId, companyBId].sort((left, right) => left.localeCompare(right)).join('|')
+    }
+
+    function selectMergerOptionByIndex(index: number): void {
+        if (mergerOptionRows.length === 0) {
+            return
+        }
+
+        const clampedIndex = Math.max(0, Math.min(index, mergerOptionRows.length - 1))
+        const selectedRow = mergerOptionRows[clampedIndex]
+        if (!selectedRow) {
+            return
+        }
+
+        if (selectedMergerOptionKey === selectedRow.key) {
+            return
+        }
+
+        selectedMergerOptionKey = selectedRow.key
+        mergerOpeningBidInput = ''
+    }
+
+    function selectNextMergerOption(): void {
+        const currentIndex = selectedMergerOptionIndex
+        const baseIndex = currentIndex >= 0 ? currentIndex : 0
+        if (baseIndex >= mergerOptionRows.length - 1) {
+            return
+        }
+
+        selectMergerOptionByIndex(baseIndex + 1)
+    }
+
+    function selectPreviousMergerOption(): void {
+        const currentIndex = selectedMergerOptionIndex
+        const baseIndex = currentIndex >= 0 ? currentIndex : 0
+        if (baseIndex <= 0) {
+            return
+        }
+
+        selectMergerOptionByIndex(baseIndex - 1)
+    }
+
+    const mergerCarouselOffsetPx = $derived.by(() => {
+        const slideWidth = 376
+        const selectedIndex = selectedMergerOptionIndex
+        if (selectedIndex < 0) {
+            return 0
+        }
+        return selectedIndex * slideWidth
+    })
+
+    function selectMergerOptionFromDot(index: number): void {
+        selectMergerOptionByIndex(index)
+    }
+
+    function sanitizeNumericInput(value: string): string {
+        const digitsOnly = value.replace(/[^0-9]/g, '')
+        if (digitsOnly.length === 0) {
+            return '0'
+        }
+
+        return digitsOnly.slice(0, 5).replace(/^0+(?=\d)/, '')
+    }
+
+    function handleMergerOpeningBidInput(event: Event): void {
+        const target = event.currentTarget
+        if (!(target instanceof HTMLInputElement)) {
+            return
+        }
+
+        mergerOpeningBidInput = sanitizeNumericInput(target.value)
+    }
+
+    function handleMergerBidInput(event: Event): void {
+        const target = event.currentTarget
+        if (!(target instanceof HTMLInputElement)) {
+            return
+        }
+
+        mergerBidInput = sanitizeNumericInput(target.value)
     }
 
     async function submitTurnOrderBid(event: SubmitEvent): Promise<void> {
@@ -551,6 +824,75 @@
             await gameSession.pass(PassReason.DeclineStartCompany)
         } finally {
             passingAcquisitions = false
+        }
+    }
+
+    async function submitProposeMerger(event: SubmitEvent): Promise<void> {
+        event.preventDefault()
+        if (!canSubmitProposeMerger) {
+            return
+        }
+
+        const option = selectedMergerOption
+        if (!option) {
+            return
+        }
+
+        const openingBid = mergerOpeningBidAmount
+        if (!Number.isFinite(openingBid)) {
+            return
+        }
+
+        proposingMerger = true
+        try {
+            await gameSession.proposeMerger(option.companyAId, option.companyBId, openingBid)
+        } finally {
+            proposingMerger = false
+        }
+    }
+
+    async function submitPassMergerAnnouncement(): Promise<void> {
+        if (!canSubmitPassMergerAnnouncement) {
+            return
+        }
+
+        passingMergerAnnouncement = true
+        try {
+            await gameSession.pass(PassReason.DeclineMergerAnnouncement)
+        } finally {
+            passingMergerAnnouncement = false
+        }
+    }
+
+    async function submitPlaceMergerBid(event: SubmitEvent): Promise<void> {
+        event.preventDefault()
+        if (!canSubmitMergerBid) {
+            return
+        }
+
+        const bidAmount = mergerBidAmount
+        if (!Number.isFinite(bidAmount)) {
+            return
+        }
+
+        placingMergerBid = true
+        try {
+            await gameSession.placeMergerBid(bidAmount)
+        } finally {
+            placingMergerBid = false
+        }
+    }
+
+    async function submitPassMergerBid(): Promise<void> {
+        if (!canSubmitPassMergerBid) {
+            return
+        }
+
+        passingMergerBid = true
+        try {
+            await gameSession.passMergerBid()
+        } finally {
+            passingMergerBid = false
         }
     }
 
@@ -729,6 +1071,199 @@
                 </button>
             {/if}
         </div>
+    {:else if showMergersPanel}
+        <div class="production-delivery-panel">
+            <span class="operating-company-message">{message}</span>
+
+            {#if canProposeMerger}
+                <form class="merger-formula" onsubmit={submitProposeMerger}>
+                    <div class="merger-carousel" aria-label="Available mergers">
+                        <button
+                            type="button"
+                            class="merger-carousel-nav merger-carousel-nav-left"
+                            disabled={mergerActionPending || mergerOptionRows.length <= 1 || selectedMergerOptionIndex <= 0}
+                            aria-label="Previous merger"
+                            onclick={selectPreviousMergerOption}
+                        >
+                            <svg
+                                aria-hidden="true"
+                                class="merger-carousel-nav-icon"
+                                viewBox="0 0 18 18"
+                            >
+                                <polyline points="11,3.5 6,9 11,14.5"></polyline>
+                            </svg>
+                        </button>
+                        <div class="merger-carousel-viewport">
+                            <div
+                                class="merger-carousel-track"
+                                style={`transform: translateX(-${mergerCarouselOffsetPx}px);`}
+                            >
+                                {#each mergerOptionRows as row (row.key)}
+                                    <div class="merger-carousel-slide">
+                                        <span class="merger-option-mini-card-wrap" aria-hidden="true">
+                                            <PlayerCompanyCompactCard card={row.companyACard} />
+                                        </span>
+                                        <span class="merger-option-plus" aria-hidden="true">+</span>
+                                        <span class="merger-option-mini-card-wrap" aria-hidden="true">
+                                            <PlayerCompanyCompactCard card={row.companyBCard} />
+                                        </span>
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="merger-carousel-nav merger-carousel-nav-right"
+                            disabled={mergerActionPending || mergerOptionRows.length <= 1 || selectedMergerOptionIndex >= mergerOptionRows.length - 1}
+                            aria-label="Next merger"
+                            onclick={selectNextMergerOption}
+                        >
+                            <svg
+                                aria-hidden="true"
+                                class="merger-carousel-nav-icon"
+                                viewBox="0 0 18 18"
+                            >
+                                <polyline points="7,3.5 12,9 7,14.5"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    {#if mergerOptionRows.length > 1}
+                        <div class="merger-carousel-dots" aria-label="Merger choices">
+                            {#each mergerOptionRows as row, index (row.key)}
+                                {@const isSelected = index === selectedMergerOptionIndex}
+                                <button
+                                    type="button"
+                                    class={`merger-carousel-dot ${isSelected ? 'is-active' : ''}`}
+                                    disabled={mergerActionPending}
+                                    aria-label={`Merger option ${index + 1} of ${mergerOptionRows.length}`}
+                                    aria-pressed={isSelected}
+                                    onclick={() => {
+                                        selectMergerOptionFromDot(index)
+                                    }}
+                                >
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
+
+                    {#if selectedMergerOption}
+                        <div class="merger-proposal-controls">
+                            <span class="merger-opening-prompt">Enter opening bid</span>
+                            <label class="sr-only" for="merger-opening-bid-input">Opening merger bid</label>
+                            <input
+                                id="merger-opening-bid-input"
+                                class={`bid-value-input indonesia-font ${mergerOpeningBidInvalid ? 'is-invalid' : ''}`}
+                                type="text"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                maxlength="5"
+                                autocomplete="off"
+                                spellcheck={false}
+                                value={mergerOpeningBidInput}
+                                onbeforeinput={handleBidBeforeInput}
+                                oninput={handleMergerOpeningBidInput}
+                            />
+                            <button
+                                type="submit"
+                                class="commit-bid"
+                                disabled={!canSubmitProposeMerger}
+                            >
+                                {#if proposingMerger}
+                                    proposing...
+                                {:else}
+                                    propose
+                                {/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="finish-production-expansion"
+                                disabled={!canSubmitPassMergerAnnouncement}
+                                onclick={submitPassMergerAnnouncement}
+                            >
+                                {#if passingMergerAnnouncement}
+                                    passing...
+                                {:else}
+                                    pass
+                                {/if}
+                            </button>
+                        </div>
+                    {:else}
+                        <div class="merger-proposal-controls">
+                            <span class="merger-opening-prompt">Choose a merger to continue</span>
+                            <button
+                                type="button"
+                                class="finish-production-expansion"
+                                disabled={!canSubmitPassMergerAnnouncement}
+                                onclick={submitPassMergerAnnouncement}
+                            >
+                                {#if passingMergerAnnouncement}
+                                    passing...
+                                {:else}
+                                    pass
+                                {/if}
+                            </button>
+                        </div>
+                    {/if}
+                </form>
+            {:else if canPlaceMergerBid || canPassMergerBid}
+                <div class="merger-bid-summary">
+                    <span>High bid: {mergerCurrentHighBid}</span>
+                    <span>Next valid: {mergerMinimumNextBid}</span>
+                </div>
+                <form class="merger-formula" onsubmit={submitPlaceMergerBid}>
+                    <label class="sr-only" for="merger-bid-input">Merger bid amount</label>
+                    <input
+                        id="merger-bid-input"
+                        class={`bid-value-input indonesia-font ${mergerBidInvalid ? 'is-invalid' : ''}`}
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="5"
+                        autocomplete="off"
+                        spellcheck={false}
+                        value={mergerBidInput}
+                        onbeforeinput={handleBidBeforeInput}
+                        oninput={handleMergerBidInput}
+                    />
+                    {#if canPlaceMergerBid}
+                        <button type="submit" class="commit-bid" disabled={!canSubmitMergerBid}>
+                            {#if placingMergerBid}
+                                bidding...
+                            {:else}
+                                bid
+                            {/if}
+                        </button>
+                    {/if}
+                    {#if canPassMergerBid}
+                        <button
+                            type="button"
+                            class="finish-production-expansion"
+                            disabled={!canSubmitPassMergerBid}
+                            onclick={submitPassMergerBid}
+                        >
+                            {#if passingMergerBid}
+                                passing...
+                            {:else}
+                                pass
+                            {/if}
+                        </button>
+                    {/if}
+                </form>
+            {:else if canPassMergerAnnouncementOnly}
+                <button
+                    type="button"
+                    class="finish-production-expansion"
+                    disabled={!canSubmitPassMergerAnnouncement}
+                    onclick={submitPassMergerAnnouncement}
+                >
+                    {#if passingMergerAnnouncement}
+                        passing...
+                    {:else}
+                        pass
+                    {/if}
+                </button>
+            {/if}
+        </div>
     {:else if gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.Acquisitions}
         <div class="production-delivery-panel">
             <span class="operating-company-message">{message}</span>
@@ -890,6 +1425,176 @@
         justify-content: center;
         gap: 12px;
         white-space: nowrap;
+    }
+
+    .merger-formula {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .merger-carousel {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 8px;
+        width: auto;
+        max-width: 100%;
+    }
+
+    .merger-carousel-viewport {
+        overflow: hidden;
+        width: 376px;
+        max-width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 54px;
+    }
+
+    .merger-carousel-track {
+        display: flex;
+        align-items: center;
+        transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+        will-change: transform;
+    }
+
+    .merger-carousel-slide {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 376px;
+        min-width: 376px;
+        max-width: 376px;
+    }
+
+    .merger-carousel-nav {
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        color: rgba(63, 46, 28, 0.74);
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        font-size: 28px;
+        line-height: 1;
+        transition:
+            color 120ms ease,
+            background 120ms ease,
+            opacity 120ms ease;
+    }
+
+    .merger-carousel-nav-icon {
+        width: 22px;
+        height: 22px;
+        display: block;
+        stroke: currentColor;
+        stroke-width: 2.15;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .merger-carousel-nav:hover:enabled {
+        color: rgba(63, 46, 28, 0.96);
+        background: rgba(95, 74, 50, 0.08);
+    }
+
+    .merger-carousel-nav:focus-visible {
+        outline: 1px solid rgba(110, 83, 52, 0.42);
+        outline-offset: 1px;
+    }
+
+    .merger-carousel-nav:disabled {
+        opacity: 0.33;
+        cursor: default;
+    }
+
+    .merger-carousel-dots {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        width: 100%;
+    }
+
+    .merger-carousel-dot {
+        border: none;
+        border-radius: 999px;
+        width: 7px;
+        height: 7px;
+        padding: 0;
+        background: rgba(79, 58, 36, 0.24);
+        transition:
+            background 120ms ease,
+            transform 120ms ease,
+            opacity 120ms ease;
+    }
+
+    .merger-carousel-dot:hover:enabled {
+        background: rgba(79, 58, 36, 0.42);
+    }
+
+    .merger-carousel-dot:focus-visible {
+        outline: 1px solid rgba(110, 83, 52, 0.38);
+        outline-offset: 2px;
+    }
+
+    .merger-carousel-dot.is-active {
+        background: rgba(79, 58, 36, 0.78);
+        transform: scale(1.14);
+    }
+
+    .merger-carousel-dot:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    .merger-option-mini-card-wrap {
+        display: block;
+        width: 164px;
+        min-width: 164px;
+    }
+
+    .merger-option-plus {
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1;
+        color: rgba(67, 48, 27, 0.9);
+        padding: 0 4px;
+        user-select: none;
+    }
+
+    .merger-proposal-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .merger-opening-prompt {
+        font-size: 12px;
+        color: rgba(63, 46, 28, 0.9);
+        letter-spacing: 0.02em;
+    }
+
+    .merger-bid-summary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-size: 12px;
+        color: rgba(63, 46, 28, 0.92);
+        letter-spacing: 0.02em;
     }
 
     .bid-tracker-message {

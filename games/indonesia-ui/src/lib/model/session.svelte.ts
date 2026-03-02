@@ -7,6 +7,12 @@ import {
     DeliverGood,
     Expand,
     GrowCity,
+    HydratedProposeMerger,
+    ProposeMerger,
+    PlaceMergerBid,
+    PassMergerBid,
+    RemoveSiapSajiArea,
+    HydratedRemoveSiapSajiArea,
     listSafeAtomicDeliveryCandidatesForPlayer,
     MachineState,
     PlaceCity,
@@ -27,6 +33,7 @@ export class IndonesiaGameSession extends GameSession<
 > {
     selectedResearchPlayerIdOverride: string | undefined = $state()
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
+    hoveredCompanySpotlightCompanyIdsOverride: string[] | undefined = $state()
     hoveredAvailableDeedIdOverride: string | undefined = $state()
     selectedDeliveryCultivatedAreaIdOverride: string | undefined = $state()
     selectedDeliveryCityIdOverride: string | undefined = $state()
@@ -70,6 +77,25 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         return company.id
+    })
+
+    hoveredCompanySpotlightCompanyIds: string[] = $derived.by(() => {
+        const candidateCompanyIds = this.hoveredCompanySpotlightCompanyIdsOverride
+        if (!candidateCompanyIds || candidateCompanyIds.length === 0) {
+            return []
+        }
+
+        const validCompanyIds: string[] = []
+        for (const companyId of candidateCompanyIds) {
+            if (!this.gameState.companies.some((company) => company.id === companyId)) {
+                continue
+            }
+            if (validCompanyIds.includes(companyId)) {
+                continue
+            }
+            validCompanyIds.push(companyId)
+        }
+        return validCompanyIds
     })
 
     hoveredAvailableDeedId: string | null = $derived.by(() => {
@@ -290,6 +316,7 @@ export class IndonesiaGameSession extends GameSession<
     resetAction(): void {
         this.selectedResearchPlayerIdOverride = undefined
         this.hoveredOperatingCompanyIdOverride = undefined
+        this.hoveredCompanySpotlightCompanyIdsOverride = undefined
         this.hoveredAvailableDeedIdOverride = undefined
         this.selectedDeliveryCultivatedAreaIdOverride = undefined
         this.selectedDeliveryCityIdOverride = undefined
@@ -351,6 +378,27 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         this.hoveredOperatingCompanyIdOverride = company.id
+    }
+
+    setHoveredCompanySpotlightCompanies(companyIds: string[] | undefined): void {
+        if (!companyIds || companyIds.length === 0) {
+            this.hoveredCompanySpotlightCompanyIdsOverride = undefined
+            return
+        }
+
+        const validCompanyIds: string[] = []
+        for (const companyId of companyIds) {
+            if (!this.gameState.companies.some((company) => company.id === companyId)) {
+                continue
+            }
+            if (validCompanyIds.includes(companyId)) {
+                continue
+            }
+            validCompanyIds.push(companyId)
+        }
+
+        this.hoveredCompanySpotlightCompanyIdsOverride =
+            validCompanyIds.length > 0 ? validCompanyIds : undefined
     }
 
     setHoveredAvailableDeed(deedId: string | undefined): void {
@@ -436,6 +484,107 @@ export class IndonesiaGameSession extends GameSession<
         const action = this.createPlayerAction(PlaceTurnOrderBid, {
             type: ActionType.PlaceTurnOrderBid,
             amount
+        })
+        await this.applyAction(action)
+    }
+
+    async proposeMerger(companyAId: string, companyBId: string, openingBid: number): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.ProposeMerger)) {
+            return
+        }
+        if (!Number.isFinite(openingBid) || !Number.isInteger(openingBid)) {
+            return
+        }
+
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) {
+            return
+        }
+
+        const option = HydratedProposeMerger.findOption(this.gameState, myPlayerId, companyAId, companyBId)
+        if (!option) {
+            return
+        }
+        if (openingBid < option.nominalValue) {
+            return
+        }
+        if ((openingBid - option.nominalValue) % option.bidIncrement !== 0) {
+            return
+        }
+        if ((this.myPlayerState?.cash ?? 0) < openingBid) {
+            return
+        }
+
+        const action = this.createPlayerAction(ProposeMerger, {
+            type: ActionType.ProposeMerger,
+            companyAId,
+            companyBId,
+            openingBid
+        })
+        await this.applyAction(action)
+    }
+
+    async placeMergerBid(amount: number): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.PlaceMergerBid)) {
+            return
+        }
+        if (!Number.isFinite(amount) || !Number.isInteger(amount)) {
+            return
+        }
+
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId || this.gameState.mergerCurrentBidderId !== myPlayerId) {
+            return
+        }
+
+        const minimumBid = this.minimumMergerBid()
+        if (minimumBid === null || amount < minimumBid) {
+            return
+        }
+        const proposal = this.gameState.activeMergerProposal
+        if (!proposal) {
+            return
+        }
+        if ((amount - proposal.nominalValue) % proposal.bidIncrement !== 0) {
+            return
+        }
+        if ((this.myPlayerState?.cash ?? 0) < amount) {
+            return
+        }
+
+        const action = this.createPlayerAction(PlaceMergerBid, {
+            type: ActionType.PlaceMergerBid,
+            amount
+        })
+        await this.applyAction(action)
+    }
+
+    async passMergerBid(): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.PassMergerBid)) {
+            return
+        }
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId || this.gameState.mergerCurrentBidderId !== myPlayerId) {
+            return
+        }
+
+        const action = this.createPlayerAction(PassMergerBid, {
+            type: ActionType.PassMergerBid
+        })
+        await this.applyAction(action)
+    }
+
+    async removeSiapSajiArea(areaId: string): Promise<void> {
+        if (!this.validActionTypes.includes(ActionType.RemoveSiapSajiArea)) {
+            return
+        }
+        if (!this.siapSajiRemovalAreaIds.includes(areaId)) {
+            return
+        }
+
+        const action = this.createPlayerAction(RemoveSiapSajiArea, {
+            type: ActionType.RemoveSiapSajiArea,
+            areaId
         })
         await this.applyAction(action)
     }
@@ -575,5 +724,29 @@ export class IndonesiaGameSession extends GameSession<
 
     async finishOptionalProductionExpansion(): Promise<void> {
         await this.pass(PassReason.FinishOptionalProductionExpansion)
+    }
+
+    siapSajiRemovalAreaIds: string[] = $derived.by(() => {
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) {
+            return []
+        }
+        return HydratedRemoveSiapSajiArea.validAreaIds(this.gameState, myPlayerId)
+    })
+
+    private minimumMergerBid(): number | null {
+        const proposal = this.gameState.activeMergerProposal
+        if (!proposal) {
+            return null
+        }
+
+        const currentHighBid = this.gameState.activeMergerAuction?.highBid ?? proposal.openingBid
+        let minimumBid = Math.max(currentHighBid + 1, proposal.nominalValue)
+        const offset = (minimumBid - proposal.nominalValue) % proposal.bidIncrement
+        if (offset !== 0) {
+            minimumBid += proposal.bidIncrement - offset
+        }
+
+        return minimumBid
     }
 }

@@ -3,10 +3,12 @@ import {
     assertExists,
     GameResult,
     GameState,
+    HydratedSimpleAuction,
     HydratableGameState,
     HydratedPhaseManager,
     HydratedTurnManager,
     PhaseManager,
+    SimpleAuction,
     PrngState
 } from '@tabletop/common'
 import { IndonesiaPlayerState, HydratedIndonesiaPlayerState } from './playerState.js'
@@ -43,6 +45,38 @@ export const TurnOrderBid = Type.Object({
     total: Type.Number()
 })
 
+export type MergerCompanySummary = Type.Static<typeof MergerCompanySummary>
+export const MergerCompanySummary = Type.Object({
+    companyId: Type.String(),
+    ownerId: Type.String(),
+    unitCount: Type.Number(),
+    deedIds: Type.Array(Type.String()),
+    good: Type.Optional(Type.Enum(Good))
+})
+
+export type ActiveMergerProposal = Type.Static<typeof ActiveMergerProposal>
+export const ActiveMergerProposal = Type.Object({
+    announcerId: Type.String(),
+    companyAId: Type.String(),
+    companyBId: Type.String(),
+    companyType: Type.Enum(CompanyType),
+    resultingGood: Type.Optional(Type.Enum(Good)),
+    isSiapSaji: Type.Boolean(),
+    totalUnits: Type.Number(),
+    nominalValue: Type.Number(),
+    bidIncrement: Type.Number(),
+    openingBid: Type.Number(),
+    companies: Type.Tuple([MergerCompanySummary, MergerCompanySummary])
+})
+
+export type PendingSiapSajiReduction = Type.Static<typeof PendingSiapSajiReduction>
+export const PendingSiapSajiReduction = Type.Object({
+    companyId: Type.String(),
+    winnerId: Type.String(),
+    removalsRemaining: Type.Number(),
+    totalRemovals: Type.Number()
+})
+
 export type IndonesiaGameState = Type.Static<typeof IndonesiaGameState>
 export const IndonesiaGameState = Type.Evaluate(
     Type.Intersect([
@@ -71,7 +105,17 @@ export const IndonesiaGameState = Type.Evaluate(
             operatingCompanyDeliveredCultivatedAreaIds: Type.Optional(Type.Array(Type.String())), // Cultivated area ids that have already delivered goods during the current production company operation
             operatingCompanyDeliveryPlan: Type.Optional(DeliveryPlanSchema), // Delivery plan for the currently operating production company
             operatingCompanyProducedGoodsCount: Type.Optional(Type.Number()), // Number of goods the operating production company had on board before expansion
-            operatedCompanyIds: Type.Array(Type.String()) // Companies that have already operated this operations phase
+            operatedCompanyIds: Type.Array(Type.String()), // Companies that have already operated this operations phase
+            mergedDeedIdsThisYear: Type.Array(Type.String()),
+            mergerAnnouncementOrder: Type.Optional(Type.Array(Type.String())),
+            mergerNextAnnouncerIndex: Type.Optional(Type.Number()),
+            mergerVisitedAnnouncersInCycle: Type.Optional(Type.Number()),
+            mergerAnnouncementsInCycle: Type.Optional(Type.Number()),
+            activeMergerProposal: Type.Optional(ActiveMergerProposal),
+            activeMergerAuction: Type.Optional(SimpleAuction),
+            mergerBidOrder: Type.Optional(Type.Array(Type.String())),
+            mergerCurrentBidderId: Type.Optional(Type.String()),
+            pendingSiapSajiReduction: Type.Optional(PendingSiapSajiReduction)
         })
     ])
 )
@@ -116,6 +160,16 @@ export class HydratedIndonesiaGameState
     declare operatingCompanyDeliveryPlan?: DeliveryPlan
     declare operatingCompanyProducedGoodsCount?: number
     declare operatedCompanyIds: string[]
+    declare mergedDeedIdsThisYear: string[]
+    declare mergerAnnouncementOrder?: string[]
+    declare mergerNextAnnouncerIndex?: number
+    declare mergerVisitedAnnouncersInCycle?: number
+    declare mergerAnnouncementsInCycle?: number
+    declare activeMergerProposal?: ActiveMergerProposal
+    declare activeMergerAuction?: HydratedSimpleAuction
+    declare mergerBidOrder?: string[]
+    declare mergerCurrentBidderId?: string
+    declare pendingSiapSajiReduction?: PendingSiapSajiReduction
 
     constructor(data: IndonesiaGameState) {
         super(data, IndonesiaGameStateValidator)
@@ -123,6 +177,26 @@ export class HydratedIndonesiaGameState
         this.players = data.players.map((player) => new HydratedIndonesiaPlayerState(player))
         this.board = new HydratedIndonesiaBoard(data.board)
         this.phaseManager = new HydratedPhaseManager(data.phaseManager)
+        if (data.activeMergerAuction) {
+            this.activeMergerAuction = new HydratedSimpleAuction(data.activeMergerAuction)
+        }
+    }
+
+    public resetMergersForYear(): void {
+        this.mergedDeedIdsThisYear = []
+        this.clearActiveMergerState()
+    }
+
+    public clearActiveMergerState(): void {
+        this.mergerAnnouncementOrder = undefined
+        this.mergerNextAnnouncerIndex = undefined
+        this.mergerVisitedAnnouncersInCycle = undefined
+        this.mergerAnnouncementsInCycle = undefined
+        this.activeMergerProposal = undefined
+        this.activeMergerAuction = undefined
+        this.mergerBidOrder = undefined
+        this.mergerCurrentBidderId = undefined
+        this.pendingSiapSajiReduction = undefined
     }
 
     public hasCompanyOperated(companyId: string): boolean {

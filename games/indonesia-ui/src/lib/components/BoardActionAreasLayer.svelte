@@ -34,6 +34,7 @@
         | 'grow-city'
         | 'start-company'
         | 'expand'
+        | 'remove-siap-saji-area'
         | 'select-delivery-cultivated'
         | 'select-delivery-city'
     type ActiveAreaInteraction = {
@@ -218,6 +219,26 @@
         if (
             myPlayerId &&
             gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.Mergers &&
+            gameSession.validActionTypes.includes(ActionType.RemoveSiapSajiArea)
+        ) {
+            const validAreaIds = gameSession.siapSajiRemovalAreaIds
+            if (validAreaIds.length === 0) {
+                return null
+            }
+
+            return {
+                action: 'remove-siap-saji-area',
+                validAreaIds,
+                outlineColor: '#fef3c7',
+                maskedAreaType: IndonesiaAreaType.Land,
+                maskInvalidAreas: true
+            }
+        }
+
+        if (
+            myPlayerId &&
+            gameSession.isMyTurn &&
             gameSession.gameState.machineState === MachineState.CityGrowth &&
             gameSession.validActionTypes.includes(ActionType.GrowCity)
         ) {
@@ -369,30 +390,34 @@
         return maskedIds
     })
 
-    const hoveredProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
+    const hoveredSpotlightCompanyIds: readonly string[] = $derived.by(() => {
+        if (gameSession.hoveredCompanySpotlightCompanyIds.length > 0) {
+            return gameSession.hoveredCompanySpotlightCompanyIds
+        }
         const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
         if (!hoveredCompanyId) {
             return []
         }
+        return [hoveredCompanyId]
+    })
 
-        const hoveredCompany = gameSession.gameState.companies.find(
-            (company) => company.id === hoveredCompanyId
+    const hoveredProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
+        if (hoveredSpotlightCompanyIds.length === 0) {
+            return []
+        }
+        const hoveredProductionCompanyIdSet = new Set(
+            hoveredSpotlightCompanyIds.filter((companyId) => {
+                const company = gameSession.gameState.companies.find((entry) => entry.id === companyId)
+                return !!company && company.type === CompanyType.Production
+            })
         )
-        if (!hoveredCompany) {
-            return []
-        }
-
-        if (hoveredCompany.type === CompanyType.Shipping) {
-            return []
-        }
-
-        if (!('good' in hoveredCompany)) {
+        if (hoveredProductionCompanyIdSet.size <= 0) {
             return []
         }
 
         const highlightedAreaIds: string[] = []
         for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!('companyId' in area) || area.companyId !== hoveredCompanyId) {
+            if (!('companyId' in area) || !hoveredProductionCompanyIdSet.has(area.companyId)) {
                 continue
             }
             if (!boardAreaPathById(area.id)) {
@@ -401,25 +426,26 @@
             highlightedAreaIds.push(area.id)
         }
 
-        return highlightedAreaIds
+        return highlightedAreaIds.sort((left, right) => left.localeCompare(right))
     })
 
     const hoveredShippingCompanyAreaIds: readonly string[] = $derived.by(() => {
-        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
-        if (!hoveredCompanyId) {
+        if (hoveredSpotlightCompanyIds.length === 0) {
             return []
         }
-
-        const hoveredCompany = gameSession.gameState.companies.find(
-            (company) => company.id === hoveredCompanyId
+        const hoveredShippingCompanyIdSet = new Set(
+            hoveredSpotlightCompanyIds.filter((companyId) => {
+                const company = gameSession.gameState.companies.find((entry) => entry.id === companyId)
+                return !!company && company.type === CompanyType.Shipping
+            })
         )
-        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Shipping) {
+        if (hoveredShippingCompanyIdSet.size <= 0) {
             return []
         }
 
         const highlightedSeaAreaIds: string[] = []
         for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!areaHasShips(area) || !area.ships.includes(hoveredCompanyId)) {
+            if (!areaHasShips(area) || !area.ships.some((companyId) => hoveredShippingCompanyIdSet.has(companyId))) {
                 continue
             }
             if (!boardAreaPathById(area.id)) {
@@ -428,32 +454,24 @@
             highlightedSeaAreaIds.push(area.id)
         }
 
-        return highlightedSeaAreaIds
+        return highlightedSeaAreaIds.sort((left, right) => left.localeCompare(right))
     })
 
     const hoveredCompanySpotlightAreaIds: readonly string[] = $derived.by(() => {
-        if (hoveredProductionCompanyAreaIds.length > 0) {
-            return hoveredProductionCompanyAreaIds
-        }
-        return hoveredShippingCompanyAreaIds
+        return [...new Set([...hoveredProductionCompanyAreaIds, ...hoveredShippingCompanyAreaIds])]
     })
 
-    const hoveredProductionCompanyId: string | null = $derived.by(() => {
-        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
-        if (!hoveredCompanyId) {
-            return null
-        }
-        const hoveredCompany = gameSession.gameState.companies.find(
-            (company) => company.id === hoveredCompanyId
-        )
-        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Production) {
-            return null
-        }
-        return hoveredCompany.id
+    const hoveredProductionCompanyIds: readonly string[] = $derived.by(() => {
+        return hoveredSpotlightCompanyIds.filter((companyId) => {
+            const hoveredCompany = gameSession.gameState.companies.find(
+                (company) => company.id === companyId
+            )
+            return !!hoveredCompany && hoveredCompany.type === CompanyType.Production
+        })
     })
 
     const hoveredProductionZoneMarkers: HoveredProductionZoneMarker[] = $derived.by(() => {
-        if (!hoveredProductionCompanyId || typeof window === 'undefined') {
+        if (hoveredProductionCompanyIds.length === 0 || typeof window === 'undefined') {
             return []
         }
         const markerEntries = (
@@ -464,7 +482,8 @@
         if (!Array.isArray(markerEntries) || markerEntries.length === 0) {
             return []
         }
-        return markerEntries.filter((marker) => marker.companyId === hoveredProductionCompanyId)
+        const hoveredProductionCompanyIdSet = new Set(hoveredProductionCompanyIds)
+        return markerEntries.filter((marker) => hoveredProductionCompanyIdSet.has(marker.companyId))
     })
 
     async function handleAreaClick(areaId: string): Promise<void> {
@@ -511,6 +530,11 @@
 
             if (activeAreaInteraction.action === 'expand') {
                 await gameSession.expand(areaId)
+                return
+            }
+
+            if (activeAreaInteraction.action === 'remove-siap-saji-area') {
+                await gameSession.removeSiapSajiArea(areaId)
                 return
             }
 
@@ -648,7 +672,7 @@
                             hoveredAreaId = null
                         }
                     }}
-                    onpointerdown={() => {
+                    onclick={() => {
                         handleAreaClick(areaId)
                     }}
                 />

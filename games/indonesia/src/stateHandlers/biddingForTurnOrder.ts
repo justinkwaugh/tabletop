@@ -8,13 +8,14 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSetTurnOrder, isSetTurnOrder, SetTurnOrder } from '../actions/setTurnOrder.js'
 import { HydratedPlaceTurnOrderBid, isPlaceTurnOrderBid } from '../actions/placeTurnOrderBid.js'
-import { HydratedStartCompany } from '../actions/startCompany.js'
 import {
     HydratedRemoveCompanyDeed,
     isRemoveCompanyDeed
 } from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
+import { canAnyPlayerAnnounceMerger } from '../operations/mergers.js'
+import { resolvePostMergersState } from './operationsFlow.js'
 
 type BiddingForTurnOrderAction =
     | HydratedPlaceTurnOrderBid
@@ -95,15 +96,12 @@ export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
             case isSetTurnOrder(action): {
                 state.turnOrderBids = undefined
                 state.phaseManager.endPhase(state.actionCount)
-
-                const anyPlayerCanStartCompany = state.turnManager.turnOrder.some((playerId) =>
-                    HydratedStartCompany.canStartCompany(state, playerId)
-                )
-                if (!anyPlayerCanStartCompany) {
-                    return MachineState.ResearchAndDevelopment
+                state.mergedDeedIdsThisYear = []
+                state.clearActiveMergerState()
+                if (canAnyPlayerAnnounceMerger(state)) {
+                    return MachineState.Mergers
                 }
-
-                return MachineState.Acquisitions
+                return resolvePostMergersState(state)
             }
             case isRemoveCompanyDeed(action): {
                 return MachineState.BiddingForTurnOrder

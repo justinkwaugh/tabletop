@@ -73,7 +73,8 @@ export class IndonesiaGameInitializer
             placingCities: [], // This will be populated at the start of the New Era phase
             acquisitionsPassedPlayerIds: [],
             companies: [], // This will be populated as companies are started in the game
-            operatedCompanyIds: []
+            operatedCompanyIds: [],
+            mergedDeedIdsThisYear: []
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
