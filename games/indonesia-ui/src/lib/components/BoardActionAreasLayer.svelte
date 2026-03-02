@@ -1,6 +1,7 @@
 <script lang="ts">
     import Area from '$lib/components/Area.svelte'
-    import { companyCardKindFor, companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
+    import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
+    import { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
     import {
         BOARD_DEED_CARD_CORNER_RX,
@@ -23,6 +24,9 @@
     } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
+    const BOARD_WIDTH = 2646
+    const BOARD_HEIGHT = 1280
+    const PRODUCTION_HOVER_SPOTLIGHT_MASK_ID = 'production-company-hover-spotlight-mask'
     const SHIPPING_HIGHLIGHT_STYLE = companyDeedStyleForType('ship')
 
     type AreaInteractionAction =
@@ -45,6 +49,22 @@
         type: CompanyType
         x: number
         y: number
+    }
+
+    type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
+    type MarkerDirection = 'north' | 'east' | 'south' | 'west'
+    type HoveredProductionZoneMarker = {
+        key: string
+        companyId: string
+        x: number
+        y: number
+        targetX: number
+        targetY: number
+        ownerColor: string
+        goodType: MarkerGood
+        goodsCount: number
+        hatchPatternId: string | null
+        direction: MarkerDirection
     }
 
     let hoveredAreaId: string | null = $state(null)
@@ -342,30 +362,27 @@
         return maskedIds
     })
 
-    const hoveredCompanyHighlight: {
-        areaIds: readonly string[]
-        style: ReturnType<typeof companyDeedStyleForType>
-    } | null = $derived.by(() => {
+    const hoveredProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
         const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
         if (!hoveredCompanyId) {
-            return null
+            return []
         }
 
         const hoveredCompany = gameSession.gameState.companies.find(
             (company) => company.id === hoveredCompanyId
         )
         if (!hoveredCompany) {
-            return null
+            return []
         }
 
         // Shipping hover should emphasize ship markers directly in BoardShipsLayer.
         // Keep area overlays for production companies only.
         if (hoveredCompany.type === CompanyType.Shipping) {
-            return null
+            return []
         }
 
         if (!('good' in hoveredCompany)) {
-            return null
+            return []
         }
 
         const highlightedAreaIds: string[] = []
@@ -379,16 +396,36 @@
             highlightedAreaIds.push(area.id)
         }
 
-        if (highlightedAreaIds.length === 0) {
+        return highlightedAreaIds
+    })
+
+    const hoveredProductionCompanyId: string | null = $derived.by(() => {
+        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
+        if (!hoveredCompanyId) {
             return null
         }
-
-        return {
-            areaIds: highlightedAreaIds,
-            style: companyDeedStyleForType(
-                companyCardKindFor(hoveredCompany.type, hoveredCompany.good)
-            )
+        const hoveredCompany = gameSession.gameState.companies.find(
+            (company) => company.id === hoveredCompanyId
+        )
+        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Production) {
+            return null
         }
+        return hoveredCompany.id
+    })
+
+    const hoveredProductionZoneMarkers: HoveredProductionZoneMarker[] = $derived.by(() => {
+        if (!hoveredProductionCompanyId || typeof window === 'undefined') {
+            return []
+        }
+        const markerEntries = (
+            window as Window & {
+                __indonesiaProductionZoneMarkerEntries?: HoveredProductionZoneMarker[]
+            }
+        ).__indonesiaProductionZoneMarkerEntries
+        if (!Array.isArray(markerEntries) || markerEntries.length === 0) {
+            return []
+        }
+        return markerEntries.filter((marker) => marker.companyId === hoveredProductionCompanyId)
     })
 
     async function handleAreaClick(areaId: string): Promise<void> {
@@ -461,21 +498,67 @@
     }
 </script>
 
-{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredCompanyHighlight}
+{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredProductionCompanyAreaIds.length > 0}
     <g class="select-none" aria-label="Board action areas layer">
-        {#if hoveredCompanyHighlight}
-            {#each hoveredCompanyHighlight.areaIds as areaId (areaId)}
+        {#if hoveredProductionCompanyAreaIds.length > 0}
+            <defs>
+                <mask id={PRODUCTION_HOVER_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
+                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
+                    {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
+                        <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                    {/each}
+                </mask>
+            </defs>
+
+            <rect
+                x="0"
+                y="0"
+                width={BOARD_WIDTH}
+                height={BOARD_HEIGHT}
+                fill="#000000"
+                fill-opacity="0.34"
+                mask={`url(#${PRODUCTION_HOVER_SPOTLIGHT_MASK_ID})`}
+                pointer-events="none"
+            />
+
+            {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
-                    fill={hoveredCompanyHighlight.style.overlayFill}
-                    stroke={hoveredCompanyHighlight.style.overlayStroke}
-                    fillOpacity="1"
-                    fillRule="evenodd"
-                    strokeWidth="1.9"
+                    fill="none"
+                    stroke="#fff8d7"
+                    fillOpacity="0"
+                    strokeWidth="7.2"
                     strokeLineJoin="round"
                     strokeLineCap="round"
-                    opacity={hoveredCompanyHighlight.style.overlayOpacity}
+                    opacity="0.9"
                     pointer-events="none"
+                />
+                <Area
+                    areaId={areaId}
+                    fill="none"
+                    stroke="#1f2937"
+                    fillOpacity="0"
+                    strokeWidth="2.2"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
+                    opacity="0.88"
+                    pointer-events="none"
+                />
+            {/each}
+
+            {#each hoveredProductionZoneMarkers as marker (marker.key)}
+                <CompanyZoneMarker
+                    x={marker.x}
+                    y={marker.y}
+                    targetX={marker.targetX}
+                    targetY={marker.targetY}
+                    playerColor={marker.ownerColor}
+                    goodType={marker.goodType}
+                    goodsCount={marker.goodsCount}
+                    hatchPatternId={marker.hatchPatternId}
+                    variant="pennant"
+                    direction={marker.direction}
+                    highlighted={true}
                 />
             {/each}
         {/if}

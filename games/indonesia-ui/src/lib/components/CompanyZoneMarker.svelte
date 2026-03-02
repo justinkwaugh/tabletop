@@ -22,6 +22,7 @@
         direction = 'east',
         height = 56,
         hatchPatternId = null,
+        highlighted = false,
         sampleLabel = null
     }: {
         x: number
@@ -35,6 +36,7 @@
         direction?: MarkerDirection
         height?: number
         hatchPatternId?: string | null
+        highlighted?: boolean
         sampleLabel?: string | null
     } = $props()
 
@@ -122,6 +124,24 @@
         return 0
     })
     const bodyTransform = $derived.by(() => `rotate(${bodyRotationDegrees} ${x} ${y})`)
+    const bodyScaleTransform = $derived.by(() => {
+        if (!highlighted) {
+            return bodyTransform
+        }
+        return `${bodyTransform} translate(${x} ${y}) scale(1.05) translate(${-x} ${-y})`
+    })
+    const contentScaleTransform = $derived.by(() => {
+        if (!highlighted) {
+            return undefined
+        }
+        return `translate(${x} ${y}) scale(1.05) translate(${-x} ${-y})`
+    })
+    const connectorHaloStrokeWidth = $derived(highlighted ? 7.1 : 5.5)
+    const connectorMainStrokeWidth = $derived(highlighted ? 3.5 : 2.6)
+    const connectorTargetRadius = $derived(highlighted ? 5.1 : 4.1)
+    const connectorTargetStrokeWidth = $derived(highlighted ? 2 : 1.6)
+    const connectorHaloOpacity = $derived(highlighted ? 0.82 : 0.24)
+    const bodyHaloStrokeWidth = $derived(highlighted ? 5.4 : 0)
 
     function rotatePointAroundCenter(
         pointX: number,
@@ -357,13 +377,43 @@
 
 <g class="pointer-events-none select-none" aria-hidden="true">
     {#if connectorPath && targetX !== null && targetY !== null}
-        <path d={connectorPath} fill="none" stroke={shadowColor} stroke-width="5.5" opacity="0.24"></path>
-        <path d={connectorPath} fill="none" stroke={borderColor} stroke-width="2.6"></path>
-        <circle cx={targetX} cy={targetY} r="4.1" fill="#f8fafc" stroke={borderColor} stroke-width="1.6"></circle>
+        <path
+            d={connectorPath}
+            fill="none"
+            stroke="#fff8d7"
+            stroke-width={connectorHaloStrokeWidth}
+            opacity={connectorHaloOpacity}
+        ></path>
+        <path
+            d={connectorPath}
+            fill="none"
+            stroke={shadowColor}
+            stroke-width={connectorHaloStrokeWidth}
+            opacity="0.24"
+        ></path>
+        <path d={connectorPath} fill="none" stroke={borderColor} stroke-width={connectorMainStrokeWidth}></path>
+        <circle
+            cx={targetX}
+            cy={targetY}
+            r={connectorTargetRadius}
+            fill="#f8fafc"
+            stroke={borderColor}
+            stroke-width={connectorTargetStrokeWidth}
+        ></circle>
     {/if}
 
-    <g transform={bodyTransform}>
+    <g transform={bodyScaleTransform}>
         <path d={bodyPath} fill={shadowColor} opacity="0.28" transform="translate(1.8 2.1)"></path>
+        {#if highlighted}
+            <path
+                d={bodyPath}
+                fill="none"
+                stroke="#fff8d7"
+                stroke-width={bodyHaloStrokeWidth}
+                stroke-linejoin="round"
+                opacity="0.86"
+            ></path>
+        {/if}
         <path
             d={bodyPath}
             fill={playerColor}
@@ -390,34 +440,36 @@
         ></path>
     </g>
 
-    {#if goodType === 'spice'}
-        <SpiceMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
-    {:else if goodType === 'siapsaji'}
-        <SiapSajiMarker x={iconCenterX} y={iconCenterY} height={siapSajiIconHeight} outline={false} />
-    {:else if goodType === 'oil'}
-        <OilMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
-    {:else if goodType === 'rice'}
-        <RiceMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
-    {:else}
-        <RubberMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
-    {/if}
+    <g transform={contentScaleTransform}>
+        {#if goodType === 'spice'}
+            <SpiceMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
+        {:else if goodType === 'siapsaji'}
+            <SiapSajiMarker x={iconCenterX} y={iconCenterY} height={siapSajiIconHeight} outline={false} />
+        {:else if goodType === 'oil'}
+            <OilMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
+        {:else if goodType === 'rice'}
+            <RiceMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
+        {:else}
+            <RubberMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
+        {/if}
 
-    <text
-        x={countX}
-        y={countY}
-        fill="#ffffff"
-        stroke={numberStroke}
-        stroke-width="1"
-        paint-order="stroke fill"
-        font-size={countFontSize}
-        font-weight="800"
-        text-anchor="middle"
-        dominant-baseline="central"
-        font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
-        letter-spacing="0.3"
-    >
-        {goodsCount}
-    </text>
+        <text
+            x={countX}
+            y={countY}
+            fill="#ffffff"
+            stroke={numberStroke}
+            stroke-width="1"
+            paint-order="stroke fill"
+            font-size={countFontSize}
+            font-weight="800"
+            text-anchor="middle"
+            dominant-baseline="central"
+            font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
+            letter-spacing="0.3"
+        >
+            {goodsCount}
+        </text>
+    </g>
 
     {#if sampleLabel}
         <text

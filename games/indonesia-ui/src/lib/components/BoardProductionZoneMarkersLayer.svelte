@@ -26,6 +26,7 @@
 
     type PendingProductionZoneMarker = {
         key: string
+        companyId: string
         regionId: string
         deedId: string
         ownerColor: string
@@ -45,6 +46,7 @@
 
     type ProductionZoneMarkerEntry = {
         key: string
+        companyId: string
         deedId: string
         regionId: string
         x: number
@@ -629,6 +631,7 @@
 
                 pendingMarkers.push({
                     key: `${company.id}|${deed.id}|${deedIndex}`,
+                    companyId: company.id,
                     regionId: deed.region,
                     deedId: deed.id,
                     ownerColor,
@@ -701,6 +704,7 @@
 
                 markerEntries.push({
                     key: `${regionId}|${marker.key}`,
+                    companyId: marker.companyId,
                     deedId: marker.deedId,
                     regionId,
                     x: markerX,
@@ -719,6 +723,34 @@
         }
 
         return markerEntries
+    })
+
+    const hoveredProductionCompanyId: string | null = $derived.by(() => {
+        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
+        if (!hoveredCompanyId) {
+            return null
+        }
+        const hoveredCompany = gameSession.gameState.companies.find(
+            (company) => company.id === hoveredCompanyId
+        )
+        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Production) {
+            return null
+        }
+        return hoveredCompany.id
+    })
+
+    const baseProductionZoneMarkers: ProductionZoneMarkerEntry[] = $derived.by(() => {
+        if (!hoveredProductionCompanyId) {
+            return productionZoneMarkers
+        }
+        return productionZoneMarkers.filter((marker) => marker.companyId !== hoveredProductionCompanyId)
+    })
+
+    const highlightedProductionZoneMarkers: ProductionZoneMarkerEntry[] = $derived.by(() => {
+        if (!hoveredProductionCompanyId) {
+            return []
+        }
+        return productionZoneMarkers.filter((marker) => marker.companyId === hoveredProductionCompanyId)
     })
 
     $effect(() => {
@@ -745,7 +777,7 @@
 </script>
 
 <g class="pointer-events-none select-none" aria-label="Production zone markers layer">
-    {#each productionZoneMarkers as marker (marker.key)}
+    {#each baseProductionZoneMarkers as marker (marker.key)}
         <CompanyZoneMarker
             x={marker.x}
             y={marker.y}
@@ -757,6 +789,25 @@
             hatchPatternId={marker.hatchPatternId}
             variant="pennant"
             direction={marker.direction}
+            highlighted={false}
         />
     {/each}
+
+    {#if hoveredProductionCompanyId}
+        {#each highlightedProductionZoneMarkers as marker (marker.key)}
+            <CompanyZoneMarker
+                x={marker.x}
+                y={marker.y}
+                targetX={marker.targetX}
+                targetY={marker.targetY}
+                playerColor={marker.ownerColor}
+                goodType={marker.goodType}
+                goodsCount={marker.goodsCount}
+                hatchPatternId={marker.hatchPatternId}
+                variant="pennant"
+                direction={marker.direction}
+                highlighted={true}
+            />
+        {/each}
+    {/if}
 </g>
