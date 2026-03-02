@@ -9,7 +9,6 @@
     type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
     type MarkerVariant = 'arch' | 'hex' | 'tab' | 'shield' | 'pennant'
     type MarkerDirection = 'north' | 'east' | 'south' | 'west'
-
     let {
         x,
         y,
@@ -40,7 +39,9 @@
         sampleLabel?: string | null
     } = $props()
 
-    const markerWidth = $derived(height * 1.36)
+    const isDoubleDigitCount = $derived(Math.abs(goodsCount) >= 10)
+    const markerBaseWidth = $derived(height * 1.36 + (variant === 'pennant' ? 4 : 0))
+    const markerWidth = $derived(markerBaseWidth + (isDoubleDigitCount ? 18 : 0))
     const markerHeight = $derived(height * 0.83)
     const halfWidth = $derived(markerWidth / 2)
     const halfHeight = $derived(markerHeight / 2)
@@ -48,65 +49,31 @@
     const right = $derived(x + halfWidth)
     const top = $derived(y - halfHeight)
     const bottom = $derived(y + halfHeight)
-    const baseCenterY = $derived(y + markerHeight * 0.02)
     const pairCenterX = $derived.by(() => {
         if (variant !== 'pennant') {
             return x
         }
         if (direction === 'east') {
-            return x - markerWidth * 0.085
+            return x - markerBaseWidth * 0.03 + 2 - (isDoubleDigitCount ? 2 : 0)
         }
         if (direction === 'west') {
-            return x + markerWidth * 0.085
+            return x + markerBaseWidth * 0.07 + 2
         }
         return x
     })
-    const pairCenterY = $derived.by(() => {
-        if (variant !== 'pennant') {
-            return baseCenterY
-        }
-        if (direction === 'north') {
-            return baseCenterY + markerHeight * 0.085
-        }
-        if (direction === 'south') {
-            return baseCenterY - markerHeight * 0.085
-        }
-        return baseCenterY
-    })
-    const pairHalfSeparation = $derived(markerWidth * 0.165)
-    const stackHalfSeparation = $derived(markerHeight * 0.195)
-    const verticalStackNudge = $derived(markerHeight * 0.07)
-    const iconCenterX = $derived.by(() => {
-        if (variant === 'pennant' && (direction === 'north' || direction === 'south')) {
-            return pairCenterX
-        }
-        return pairCenterX - pairHalfSeparation
-    })
-    const iconCenterY = $derived.by(() => {
-        if (variant === 'pennant' && (direction === 'north' || direction === 'south')) {
-            return pairCenterY - stackHalfSeparation - verticalStackNudge
-        }
-        return pairCenterY
-    })
+    const pairCenterY = $derived(y)
+    const pairHalfSeparation = $derived(markerWidth * 0.19)
+    const iconCenterX = $derived(pairCenterX - pairHalfSeparation)
+    const iconCenterY = $derived(pairCenterY)
+    const iconHeight = $derived(height * 0.56)
+    const spiceIconHeight = $derived(iconHeight * 0.92)
+    const siapSajiIconHeight = $derived(iconHeight * 0.94)
+    const countX = $derived(pairCenterX + pairHalfSeparation)
+    const countY = $derived(pairCenterY)
     const primaryVisualHeight = $derived(height * 0.46)
-    const iconHeight = $derived(primaryVisualHeight)
-    const siapSajiIconHeight = $derived(iconHeight * 1.5)
-    const countX = $derived.by(() => {
-        if (variant === 'pennant' && (direction === 'north' || direction === 'south')) {
-            return pairCenterX
-        }
-        return pairCenterX + pairHalfSeparation
-    })
-    const countY = $derived.by(() => {
-        if (variant === 'pennant' && (direction === 'north' || direction === 'south')) {
-            return pairCenterY + stackHalfSeparation + verticalStackNudge
-        }
-        return pairCenterY
-    })
     const countFontSize = $derived(Math.max(18, primaryVisualHeight))
     const borderColor = $derived(shadeHexColor(playerColor, 0.48))
     const shadowColor = $derived(shadeHexColor(playerColor, 0.74))
-    const numberStroke = $derived(shadeHexColor(playerColor, 0.64))
     const accentColor = $derived(shadeHexColor(playerColor, -0.16))
     const bodyRotationDegrees = $derived.by(() => {
         if (variant !== 'pennant') {
@@ -427,6 +394,14 @@
                 fill={`url(#${hatchPatternId})`}
                 stroke="none"
                 stroke-width="0"
+                opacity="0.9"
+            ></path>
+            <path
+                d={bodyPath}
+                fill={`url(#${hatchPatternId})`}
+                stroke="none"
+                stroke-width="0"
+                opacity="0.55"
             ></path>
         {/if}
         <path
@@ -442,7 +417,7 @@
 
     <g transform={contentScaleTransform}>
         {#if goodType === 'spice'}
-            <SpiceMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
+            <SpiceMarker x={iconCenterX} y={iconCenterY} height={spiceIconHeight} outline={false} />
         {:else if goodType === 'siapsaji'}
             <SiapSajiMarker x={iconCenterX} y={iconCenterY} height={siapSajiIconHeight} outline={false} />
         {:else if goodType === 'oil'}
@@ -454,18 +429,29 @@
         {/if}
 
         <text
-            x={countX}
-            y={countY}
-            fill="#ffffff"
-            stroke={numberStroke}
-            stroke-width="1"
-            paint-order="stroke fill"
+            x={countX + 1}
+            y={countY + 1}
+            fill="#000000"
+            opacity="0.5"
             font-size={countFontSize}
             font-weight="800"
             text-anchor="middle"
             dominant-baseline="central"
             font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
-            letter-spacing="0.3"
+            letter-spacing="-1.2"
+        >
+            {goodsCount}
+        </text>
+        <text
+            x={countX}
+            y={countY}
+            fill="#ffffff"
+            font-size={countFontSize}
+            font-weight="800"
+            text-anchor="middle"
+            dominant-baseline="central"
+            font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
+            letter-spacing="-1.2"
         >
             {goodsCount}
         </text>

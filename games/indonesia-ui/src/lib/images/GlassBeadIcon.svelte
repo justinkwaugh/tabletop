@@ -43,14 +43,14 @@
             shadow: '#1e0b0a',
         },
         green: {
-            baseHighlight: '#4f8f2d',
+            baseHighlight: '#5ca636',
             baseMid: '#2f5d19',
             baseDark: '#1a3510',
             baseDeep: '#0f1d09',
             rim: '#153011',
-            lowerBandLight: '#b8ee59',
-            lowerBandHot: '#74ca29',
-            caustic: '#93e03f',
+            lowerBandLight: '#c4f865',
+            lowerBandHot: '#83d934',
+            caustic: '#9dea48',
             cutShade: '#0d1d08',
             shadow: '#0c1709',
         }
