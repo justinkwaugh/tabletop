@@ -1,11 +1,11 @@
 <script lang="ts">
     import { companyCardKindFor, companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
-    import simpleOilIconUrl from '$lib/images/simple-oil.svg'
-    import simpleRiceIconUrl from '$lib/images/simple-rice.svg'
-    import simpleRubberIconUrl from '$lib/images/simple-rubber.svg'
-    import simpleShipIconUrl from '$lib/images/simple-ship.svg'
-    import simpleSiapSajiIconUrl from '$lib/images/simple-siapsaji.svg'
-    import simpleSpiceIconUrl from '$lib/images/simple-spice.svg'
+    import SimpleOilIcon from '$lib/images/SimpleOilIcon.svelte'
+    import SimpleRiceIcon from '$lib/images/SimpleRiceIcon.svelte'
+    import SimpleRubberIcon from '$lib/images/SimpleRubberIcon.svelte'
+    import SimpleShipIcon from '$lib/images/SimpleShipIcon.svelte'
+    import SimpleSiapSajiIcon from '$lib/images/SimpleSiapSajiIcon.svelte'
+    import SimpleSpiceIcon from '$lib/images/SimpleSpiceIcon.svelte'
     import type { CompanyCardType } from '$lib/types/companyCard.js'
     import { CompanyType, Era, Good } from '@tabletop/indonesia'
 
@@ -60,25 +60,6 @@
         return upcomingEraEntry
     })
 
-    const iconUrl = $derived.by(() => {
-        if (card.type === CompanyType.Shipping) {
-            return simpleShipIconUrl
-        }
-        if (card.good === Good.Rice) {
-            return simpleRiceIconUrl
-        }
-        if (card.good === Good.SiapSaji) {
-            return simpleSiapSajiIconUrl
-        }
-        if (card.good === Good.Spice) {
-            return simpleSpiceIconUrl
-        }
-        if (card.good === Good.Rubber) {
-            return simpleRubberIconUrl
-        }
-        return simpleOilIconUrl
-    })
-
     const hatchAngle = $derived.by(() => {
         if (card.hatchVariant === null) {
             return null
@@ -131,7 +112,10 @@
         >
             {#if card.type === CompanyType.Shipping}
                 <div class="company-mini-ship-unit">
-                    <img class="company-mini-icon company-mini-icon-shipping" src={iconUrl} alt="" />
+                    <SimpleShipIcon
+                        class="company-mini-icon company-mini-icon-shipping"
+                        fill={SIMPLE_SHIP_ICON_COLOR}
+                    />
                     <span
                         class="company-mini-hull-badge-on-icon"
                         style={`--hull-badge-fill:${SIMPLE_SHIP_ICON_COLOR};`}
@@ -148,7 +132,24 @@
                     </div>
                 {/if}
             {:else}
-                <img class="company-mini-icon" src={iconUrl} alt="" />
+                {#if isSiapSajiProductionCard}
+                    <SimpleSiapSajiIcon
+                        class="company-mini-icon company-mini-icon-siapsaji"
+                        fill={deedStyle.textColor}
+                    />
+                {:else if card.good === Good.Rice}
+                    <SimpleRiceIcon class="company-mini-icon" fill={deedStyle.textColor} />
+                {:else if card.good === Good.Spice}
+                    <SimpleSpiceIcon class="company-mini-icon" fill={deedStyle.textColor} />
+                {:else if card.good === Good.Rubber}
+                    <SimpleRubberIcon
+                        class="company-mini-icon"
+                        baseFill={deedStyle.textColor}
+                        coreFill={deedStyle.overlayFill}
+                    />
+                {:else}
+                    <SimpleOilIcon class="company-mini-icon" fill={deedStyle.textColor} />
+                {/if}
             {/if}
         </div>
 

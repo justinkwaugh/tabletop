@@ -1,46 +1,67 @@
 <script lang="ts">
-    import simpleOilIconUrl from '$lib/images/simple-oil.svg'
-    import simpleRiceIconUrl from '$lib/images/simple-rice.svg'
-    import simpleRubberIconUrl from '$lib/images/simple-rubber-strip.svg'
-    import simpleShipIconUrl from '$lib/images/simple-ship.svg'
-    import simpleSiapSajiIconUrl from '$lib/images/simple-siapsaji.svg'
-    import simpleSpiceIconUrl from '$lib/images/simple-spice.svg'
+    import SimpleOilIcon from '$lib/images/SimpleOilIcon.svelte'
+    import SimpleRiceIcon from '$lib/images/SimpleRiceIcon.svelte'
+    import SimpleRubberStripIcon from '$lib/images/SimpleRubberStripIcon.svelte'
+    import SimpleShipIcon from '$lib/images/SimpleShipIcon.svelte'
+    import SimpleSiapSajiIcon from '$lib/images/SimpleSiapSajiIcon.svelte'
+    import SimpleSpiceIcon from '$lib/images/SimpleSpiceIcon.svelte'
+
+    const STRIP_ICON_BROWN = '#7a5d3f'
+    const STRIP_ICON_BROWN_LIGHT = '#ddcebf'
 
     const valueEntries = [
         {
             key: 'ship',
             label: 'Ship',
-            iconUrl: simpleShipIconUrl,
+            iconComponent: SimpleShipIcon,
+            iconProps: { fill: STRIP_ICON_BROWN },
+            iconWidth: 22,
+            iconHeight: 18,
             value: 10
         },
         {
             key: 'rice',
             label: 'Rice',
-            iconUrl: simpleRiceIconUrl,
+            iconComponent: SimpleRiceIcon,
+            iconProps: { fill: STRIP_ICON_BROWN },
+            iconWidth: 20,
+            iconHeight: 20,
             value: 20
         },
         {
             key: 'spice',
             label: 'Spice',
-            iconUrl: simpleSpiceIconUrl,
+            iconComponent: SimpleSpiceIcon,
+            iconProps: { fill: STRIP_ICON_BROWN },
+            iconWidth: 20,
+            iconHeight: 20,
             value: 25
         },
         {
             key: 'rubber',
             label: 'Rubber',
-            iconUrl: simpleRubberIconUrl,
+            iconComponent: SimpleRubberStripIcon,
+            iconProps: { baseFill: STRIP_ICON_BROWN, coreFill: STRIP_ICON_BROWN_LIGHT },
+            iconWidth: 20,
+            iconHeight: 20,
             value: 30
         },
         {
             key: 'siap-saji',
             label: 'Siap Saji',
-            iconUrl: simpleSiapSajiIconUrl,
+            iconComponent: SimpleSiapSajiIcon,
+            iconProps: { fill: STRIP_ICON_BROWN },
+            iconWidth: 24,
+            iconHeight: 20,
             value: 35
         },
         {
             key: 'oil',
             label: 'Oil',
-            iconUrl: simpleOilIconUrl,
+            iconComponent: SimpleOilIcon,
+            iconProps: { fill: STRIP_ICON_BROWN },
+            iconWidth: 20,
+            iconHeight: 20,
             value: 40
         }
     ] as const
@@ -49,13 +70,14 @@
 <section class="goods-value-strip" aria-label="Goods and shipping values">
     {#each valueEntries as entry (entry.key)}
         <div class="goods-value-chip" title={`${entry.label}: ${entry.value}`}>
-            <img
-                class={`goods-value-icon ${entry.key === 'ship' ? 'goods-value-icon-ship' : ''} ${entry.key === 'siap-saji'
-                    ? 'goods-value-icon-siapsaji'
-                    : ''} ${entry.key === 'rubber' ? 'goods-value-icon-rubber' : ''}`}
-                src={entry.iconUrl}
-                alt=""
+            <svelte:component
+                this={entry.iconComponent}
+                class="goods-value-icon"
                 aria-hidden="true"
+                focusable="false"
+                width={entry.iconWidth}
+                height={entry.iconHeight}
+                {...entry.iconProps}
             />
             <span class="goods-value-number">{entry.value}</span>
         </div>
@@ -83,26 +105,7 @@
     }
 
     .goods-value-icon {
-        width: 20px;
-        height: 20px;
-        object-fit: contain;
         display: block;
-        filter: sepia(1) saturate(2.8) hue-rotate(342deg) brightness(0.56) contrast(0.95);
-        opacity: 0.94;
-    }
-
-    .goods-value-icon-ship {
-        width: 22px;
-        height: 18px;
-    }
-
-    .goods-value-icon-siapsaji {
-        width: 24px;
-        height: 20px;
-    }
-
-    .goods-value-icon-rubber {
-        filter: none;
     }
 
     .goods-value-number {
