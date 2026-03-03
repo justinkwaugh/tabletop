@@ -36,6 +36,10 @@
         return gameSession.hoveredDeliveryShippingChoice?.routeKey ?? null
     })
 
+    function pointDistance(a: Point, b: Point): number {
+        return Math.hypot(a.x - b.x, a.y - b.y)
+    }
+
     function firstShipWaypointCandidatesForChoice(
         choice: (typeof gameSession.deliveryShippingChoices)[number]
     ): readonly Point[] | undefined {
@@ -65,6 +69,54 @@
             return undefined
         }
         return companyMarkerPoints
+    }
+
+    function seaWaypointOverridesForChoice(
+        choice: (typeof gameSession.deliveryShippingChoices)[number]
+    ): Readonly<Record<string, Point>> | undefined {
+        const overrides: Record<string, Point> = {}
+        let previousPoint: Point | null = null
+
+        for (const seaAreaId of choice.candidate.seaAreaIds) {
+            const seaArea = gameSession.gameState.board.areas[seaAreaId]
+            if (!seaArea || !('ships' in seaArea) || seaArea.ships.length === 0) {
+                continue
+            }
+
+            const markerPoints = markerPointsForSeaAreaShipList(seaAreaId, seaArea.ships)
+            if (markerPoints.length === 0) {
+                continue
+            }
+
+            const companyMarkerPoints: Point[] = []
+            for (
+                let markerIndex = 0;
+                markerIndex < Math.min(markerPoints.length, seaArea.ships.length);
+                markerIndex += 1
+            ) {
+                if (seaArea.ships[markerIndex] !== choice.candidate.shippingCompanyId) {
+                    continue
+                }
+                companyMarkerPoints.push(markerPoints[markerIndex])
+            }
+            if (companyMarkerPoints.length === 0) {
+                continue
+            }
+
+            let selectedPoint = companyMarkerPoints[0]
+            if (previousPoint) {
+                for (const markerPoint of companyMarkerPoints) {
+                    if (pointDistance(markerPoint, previousPoint) < pointDistance(selectedPoint, previousPoint)) {
+                        selectedPoint = markerPoint
+                    }
+                }
+            }
+
+            overrides[seaAreaId] = selectedPoint
+            previousPoint = selectedPoint
+        }
+
+        return Object.keys(overrides).length > 0 ? overrides : undefined
     }
 
     const blockedShipPointsByShippingCompanyId: Map<string, Point[]> = $derived.by(() => {
@@ -182,7 +234,11 @@
     })
 
     const deliveryShippingRouteOverlays: readonly DeliveryShippingRouteOverlay[] = $derived.by(() => {
-        if (!routeOverlayReady || gameSession.deliverySelectionStage !== 'shipping') {
+        if (
+            !routeOverlayReady ||
+            gameSession.deliverySelectionStage !== 'shipping' ||
+            !hoveredDeliveryRouteKey
+        ) {
             return []
         }
 
@@ -202,6 +258,7 @@
                 cultivatedAreaId: choice.candidate.cultivatedAreaId,
                 cultivatedZoneAreaIds: cultivatedAreaIdsByZoneId.get(choice.candidate.zoneId),
                 firstSeaWaypointCandidates: firstShipWaypointCandidatesForChoice(choice),
+                seaWaypointOverridesByAreaId: seaWaypointOverridesForChoice(choice),
                 blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
                     choice.candidate.shippingCompanyId
                 ),
@@ -220,7 +277,7 @@
             })
         }
 
-        return overlays
+        return overlays.filter((overlay) => overlay.routeKey === hoveredDeliveryRouteKey)
     })
 
     const BASE_ROUTE_WIDTH = 7.65

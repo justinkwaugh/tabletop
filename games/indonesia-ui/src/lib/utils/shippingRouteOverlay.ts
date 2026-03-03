@@ -9,6 +9,7 @@ type DeliveryShippingRoutePathInput = {
     cultivatedZoneAreaIds?: readonly string[]
     firstSeaWaypointOverride?: Point
     firstSeaWaypointCandidates?: readonly Point[]
+    seaWaypointOverridesByAreaId?: Readonly<Record<string, Point>>
     blockedShipPoints?: readonly Point[]
     seaAreaIds: readonly string[]
     cityAreaId: string
@@ -49,13 +50,18 @@ const BOARD_WIDTH = 2646
 const BOARD_HEIGHT = 1280
 const DEFAULT_LAND_INFLATION_PIXELS = 15
 const LAND_INFLATION_RETRY_STEPS = [15, 12, 9, 6, 3, 0] as const
+const LONG_DETOUR_RATIO_TRIGGER = 1.45
+const LONG_DETOUR_MIN_EXTRA_PIXELS = 40
+const RELAXED_INFLATION_SCORE_PENALTY = 8
+const RETRY_SWITCH_MIN_RELATIVE_GAIN = 0.03
+const RETRY_SWITCH_MIN_ABSOLUTE_GAIN = 20
 const GRID_STEP = 12
 const GRID_COLS = Math.floor(BOARD_WIDTH / GRID_STEP) + 1
 const GRID_ROWS = Math.floor(BOARD_HEIGHT / GRID_STEP) + 1
 const MAX_SEARCH_STEPS = 200_000
 const SEGMENT_SAMPLE_STEP = 6
-const CURVE_CORNER_MAX_RADIUS = 14
-const CURVE_CORNER_RATIO = 0.34
+const CURVE_CORNER_MAX_RADIUS = 26
+const CURVE_CORNER_RATIO = 0.52
 const BLOCKED_SHIP_RADIUS = 26
 
 const EIGHT_WAY_NEIGHBORS = [
@@ -116,6 +122,17 @@ function resolveFirstSeaWaypoint(input: DeliveryShippingRoutePathInput): Point |
     }
 
     return seaWaypointForAreaId(firstSeaAreaId)
+}
+
+function resolveSeaWaypointForArea(
+    input: DeliveryShippingRoutePathInput,
+    seaAreaId: string
+): Point | null {
+    const overridePoint = input.seaWaypointOverridesByAreaId?.[seaAreaId]
+    if (overridePoint) {
+        return overridePoint
+    }
+    return seaWaypointForAreaId(seaAreaId)
 }
 
 function resolveRouteSourceCultivatedAreaId(input: DeliveryShippingRoutePathInput): string {
@@ -612,29 +629,101 @@ function landInflationRetrySteps(baseLandInflationPixels: number): readonly numb
     return steps
 }
 
+function routePathScore(pathLength: number, landInflationPixels: number): number {
+    const relaxedPixels = Math.max(0, DEFAULT_LAND_INFLATION_PIXELS - landInflationPixels)
+    return pathLength + relaxedPixels * relaxedPixels * RELAXED_INFLATION_SCORE_PENALTY
+}
+
+function shouldExploreRelaxedInflationForDetour(
+    path: readonly Point[],
+    start: Point,
+    end: Point
+): boolean {
+    const euclideanLength = pointDistance(start, end)
+    if (euclideanLength <= 0) {
+        return false
+    }
+
+    const pathLength = polylineLength(path)
+    const detourRatio = pathLength / Math.max(1, euclideanLength)
+    const extraDistance = pathLength - euclideanLength
+    return detourRatio >= LONG_DETOUR_RATIO_TRIGGER && extraDistance >= LONG_DETOUR_MIN_EXTRA_PIXELS
+}
+
 function routeThroughWaterWithAdaptiveLandInflation(
     start: Point,
     end: Point,
     baseRoutingContext: RoutingContext
 ): Point[] | null {
-    const firstAttempt = routeThroughWater(start, end, baseRoutingContext)
-    if (firstAttempt) {
-        return firstAttempt
+    type RouteCandidate = {
+        path: Point[]
+        inflation: number
+        length: number
+        score: number
     }
 
+    const baseAttempt = routeThroughWater(start, end, baseRoutingContext)
+    const baseAttemptLength = baseAttempt ? polylineLength(baseAttempt) : null
+    const baseCandidate: RouteCandidate | null = baseAttempt
+        ? {
+              path: baseAttempt,
+              inflation: baseRoutingContext.landInflationPixels,
+              length: baseAttemptLength ?? 0,
+              score: routePathScore(baseAttemptLength ?? 0, baseRoutingContext.landInflationPixels)
+          }
+        : null
+
+    const baseIsDetour = baseCandidate
+        ? shouldExploreRelaxedInflationForDetour(baseCandidate.path, start, end)
+        : false
+
+    let bestCandidate = baseCandidate
     const retryInflations = landInflationRetrySteps(baseRoutingContext.landInflationPixels)
     for (const landInflationPixels of retryInflations) {
         if (landInflationPixels === baseRoutingContext.landInflationPixels) {
             continue
         }
+
         const retryContext = routingContextWithLandInflation(baseRoutingContext, landInflationPixels)
         const attempt = routeThroughWater(start, end, retryContext)
-        if (attempt) {
-            return attempt
+        if (!attempt) {
+            continue
+        }
+
+        const attemptLength = polylineLength(attempt)
+        const candidate: RouteCandidate = {
+            path: attempt,
+            inflation: landInflationPixels,
+            length: attemptLength,
+            score: routePathScore(attemptLength, landInflationPixels)
+        }
+        if (!bestCandidate || candidate.score < bestCandidate.score) {
+            bestCandidate = candidate
         }
     }
 
-    return null
+    if (!bestCandidate) {
+        return null
+    }
+
+    if (!baseCandidate) {
+        return bestCandidate.path
+    }
+
+    if (bestCandidate.inflation === baseCandidate.inflation) {
+        return baseCandidate.path
+    }
+
+    if (baseIsDetour) {
+        return bestCandidate.path
+    }
+
+    const absoluteGain = baseCandidate.length - bestCandidate.length
+    const relativeGain = absoluteGain / Math.max(1, baseCandidate.length)
+    const shouldSwitch =
+        absoluteGain >= RETRY_SWITCH_MIN_ABSOLUTE_GAIN || relativeGain >= RETRY_SWITCH_MIN_RELATIVE_GAIN
+
+    return shouldSwitch ? bestCandidate.path : baseCandidate.path
 }
 
 function firstWaterPointAlongLineWithAdaptiveLandInflation(
@@ -846,7 +935,9 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
 
     for (const [seaAreaIndex, seaAreaId] of input.seaAreaIds.entries()) {
         const seaPoint =
-            seaAreaIndex === 0 ? resolveFirstSeaWaypoint(input) : seaWaypointForAreaId(seaAreaId)
+            seaAreaIndex === 0
+                ? resolveFirstSeaWaypoint(input) ?? resolveSeaWaypointForArea(input, seaAreaId)
+                : resolveSeaWaypointForArea(input, seaAreaId)
         if (!seaPoint) {
             return null
         }
@@ -879,7 +970,7 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
 
     const seaWaypoints: Point[] = [selectedStartLeg.firstSeaPoint]
     for (let index = 1; index < input.seaAreaIds.length; index += 1) {
-        const seaWaypoint = seaWaypointForAreaId(input.seaAreaIds[index])
+        const seaWaypoint = resolveSeaWaypointForArea(input, input.seaAreaIds[index])
         if (!seaWaypoint) {
             return null
         }

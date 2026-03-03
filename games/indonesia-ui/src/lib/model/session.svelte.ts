@@ -37,6 +37,7 @@ export class IndonesiaGameSession extends GameSession<
     hoveredAvailableDeedIdOverride: string | undefined = $state()
     selectedDeliveryCultivatedAreaIdOverride: string | undefined = $state()
     selectedDeliveryCityIdOverride: string | undefined = $state()
+    hoveredDeliveryCityAreaIdOverride: string | undefined = $state()
     hoveredDeliveryRouteKeyOverride: string | undefined = $state()
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
@@ -293,6 +294,17 @@ export class IndonesiaGameSession extends GameSession<
         return cityAreaIds
     })
 
+    hoveredDeliveryCityAreaId: string | null = $derived.by(() => {
+        const areaId = this.hoveredDeliveryCityAreaIdOverride
+        if (!areaId) {
+            return null
+        }
+        if (this.deliverySelectionStage !== 'city') {
+            return null
+        }
+        return this.deliveryAvailableCityAreaIds.includes(areaId) ? areaId : null
+    })
+
     deliveryShippingChoiceSeaAreaIds: string[] = $derived.by(() => {
         const seaAreaIdSet = new Set<string>()
         for (const choice of this.deliveryShippingChoices) {
@@ -320,6 +332,7 @@ export class IndonesiaGameSession extends GameSession<
         this.hoveredAvailableDeedIdOverride = undefined
         this.selectedDeliveryCultivatedAreaIdOverride = undefined
         this.selectedDeliveryCityIdOverride = undefined
+        this.hoveredDeliveryCityAreaIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
     }
 
@@ -425,6 +438,7 @@ export class IndonesiaGameSession extends GameSession<
 
         this.selectedDeliveryCultivatedAreaIdOverride = areaId
         this.selectedDeliveryCityIdOverride = undefined
+        this.hoveredDeliveryCityAreaIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
     }
 
@@ -440,7 +454,22 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         this.selectedDeliveryCityIdOverride = cityId
+        this.hoveredDeliveryCityAreaIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
+    }
+
+    setHoveredDeliveryCityArea(areaId: string | undefined): void {
+        if (!areaId) {
+            this.hoveredDeliveryCityAreaIdOverride = undefined
+            return
+        }
+        if (this.deliverySelectionStage !== 'city') {
+            return
+        }
+        if (!this.deliveryAvailableCityAreaIds.includes(areaId)) {
+            return
+        }
+        this.hoveredDeliveryCityAreaIdOverride = areaId
     }
 
     setHoveredDeliveryRoute(routeKey: string | undefined): void {

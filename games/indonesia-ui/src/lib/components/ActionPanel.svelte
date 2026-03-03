@@ -1253,7 +1253,6 @@
                             tabindex={deliveringGood ? -1 : 0}
                             aria-disabled={deliveringGood}
                             aria-label={`Deliver via shipping company ${choice.candidate.shippingCompanyId} using ${shipUseCount} ${shipUseLabel}`}
-                            title={`${choice.candidate.shippingCompanyId}: ${choice.candidate.seaAreaIds.join(' -> ')}`}
                             onmouseenter={() => {
                                 gameSession.setHoveredDeliveryRoute(choice.routeKey)
                             }}

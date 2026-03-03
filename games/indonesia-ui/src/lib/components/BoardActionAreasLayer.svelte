@@ -784,6 +784,7 @@
             }
 
             gameSession.selectDeliveryCity(city.id)
+            gameSession.setHoveredDeliveryCityArea(undefined)
             hoveredAreaId = null
             return
         }
@@ -942,6 +943,9 @@
                     cursor={applyingAreaAction ? 'default' : 'pointer'}
                     onmouseenter={() => {
                         hoveredAreaId = areaId
+                        if (activeAreaInteraction.action === 'select-delivery-city') {
+                            gameSession.setHoveredDeliveryCityArea(areaId)
+                        }
                         if (activeAreaInteraction.action === 'select-delivery-cultivated') {
                             const zone = deliveryZoneByAreaId.get(areaId)
                             hoveredDeliveryZoneKey = zone?.key ?? null
@@ -950,6 +954,9 @@
                     onmouseleave={() => {
                         if (hoveredAreaId === areaId) {
                             hoveredAreaId = null
+                        }
+                        if (activeAreaInteraction.action === 'select-delivery-city') {
+                            gameSession.setHoveredDeliveryCityArea(undefined)
                         }
                         if (activeAreaInteraction.action === 'select-delivery-cultivated') {
                             hoveredDeliveryZoneKey = null
@@ -1063,16 +1070,18 @@
                     {/if}
                 {/each}
             {:else}
-                {#each hoveredInteractiveAreaIds as areaId (areaId)}
-                    <Area
-                        areaId={areaId}
-                        fill="none"
-                        stroke={activeAreaInteraction.outlineColor}
-                        fillOpacity="0"
-                        strokeWidth="4"
-                        pointer-events="none"
-                    />
-                {/each}
+                {#if activeAreaInteraction.action !== 'select-delivery-city'}
+                    {#each hoveredInteractiveAreaIds as areaId (areaId)}
+                        <Area
+                            areaId={areaId}
+                            fill="none"
+                            stroke={activeAreaInteraction.outlineColor}
+                            fillOpacity="0"
+                            strokeWidth="4"
+                            pointer-events="none"
+                        />
+                    {/each}
+                {/if}
             {/if}
 
             {#if activeAreaInteraction.action === 'select-delivery-cultivated'}

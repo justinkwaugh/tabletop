@@ -25,6 +25,9 @@
         targetX,
         targetY,
         demandMet = false,
+        highlighted = false,
+        hovered = false,
+        darkened = false,
         demands
     }: {
         x: number
@@ -32,6 +35,9 @@
         targetX: number
         targetY: number
         demandMet?: boolean
+        highlighted?: boolean
+        hovered?: boolean
+        darkened?: boolean
         demands: readonly DemandEntry[]
     } = $props()
 
@@ -90,6 +96,12 @@
     const top = $derived(clampedY - halfHeight)
     const clipPathId = $derived(
         `city-demand-strip-clip-${Math.round(clampedX)}-${Math.round(clampedY)}-${demands.length}`
+    )
+    const hoverScale = $derived(hovered ? 1.08 : 1)
+    const rootTransform = $derived(
+        hoverScale === 1
+            ? undefined
+            : `translate(${clampedX} ${clampedY}) scale(${hoverScale}) translate(${-clampedX} ${-clampedY})`
     )
 
     const wirePath = $derived.by(() => {
@@ -155,7 +167,12 @@
     })
 </script>
 
-<g class="pointer-events-none select-none" aria-hidden="true">
+<g
+    class="pointer-events-none select-none"
+    aria-hidden="true"
+    transform={rootTransform}
+    style={`filter:${darkened ? 'brightness(0.34)' : 'none'}`}
+>
     {#if wirePath}
         <path d={wirePath} fill="none" stroke="#a99f93" stroke-width="1.25" stroke-linecap="round"></path>
     {/if}
@@ -224,6 +241,37 @@
         stroke="#2b2620"
         stroke-width="1"
     ></rect>
+
+    {#if highlighted}
+        <rect
+            x={left}
+            y={top}
+            width={markerWidth}
+            height={markerHeight}
+            rx={stripCornerRadius}
+            ry={stripCornerRadius}
+            fill="none"
+            stroke="#fff8d7"
+            stroke-width={hovered ? 5.1 : 4.2}
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            opacity="0.96"
+        ></rect>
+        <rect
+            x={left}
+            y={top}
+            width={markerWidth}
+            height={markerHeight}
+            rx={stripCornerRadius}
+            ry={stripCornerRadius}
+            fill="none"
+            stroke="#1f2937"
+            stroke-width={hovered ? 2.35 : 1.9}
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            opacity="0.92"
+        ></rect>
+    {/if}
 
     {#if isDemandMetMarker}
         <text

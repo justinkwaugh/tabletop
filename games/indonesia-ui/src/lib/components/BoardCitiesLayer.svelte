@@ -10,6 +10,7 @@
 
     type CityMarker = {
         key: string
+        areaId: string
         x: number
         y: number
         tone: BeadTone
@@ -17,6 +18,7 @@
 
     type CityDemandTag = {
         key: string
+        areaId: string
         x: number
         y: number
         targetX: number
@@ -29,7 +31,9 @@
     }
 
     const gameSession = getGameSession()
-    const CITY_MARKER_HEIGHT = 54
+    const CITY_MARKER_HEIGHT = 58
+    const CITY_SELECTION_BEAD_RING_STROKE = 6.2
+    const CITY_SELECTION_BEAD_RING_RADIUS = CITY_MARKER_HEIGHT * 0.38
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
     const BOARD_CENTER = { x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2 }
@@ -70,6 +74,7 @@
 
             markers.push({
                 key: city.id,
+                areaId: city.area,
                 x: markerPosition.x,
                 y: markerPosition.y,
                 tone: beadToneForCitySize(city.size)
@@ -150,6 +155,7 @@
 
             tags.push({
                 key: city.id,
+                areaId: city.area,
                 x,
                 y,
                 targetX: markerPosition.x,
@@ -161,21 +167,92 @@
 
         return tags
     })
+
+    const isSelectingDeliveryCity: boolean = $derived.by(() => {
+        return gameSession.deliverySelectionEnabled && gameSession.deliverySelectionStage === 'city'
+    })
+
+    const hoveredDeliveryCityAreaId: string | null = $derived.by(() => {
+        if (!isSelectingDeliveryCity) {
+            return null
+        }
+        return gameSession.hoveredDeliveryCityAreaId
+    })
+
+    const selectableDeliveryCityAreaIds: ReadonlySet<string> = $derived.by(() => {
+        if (!isSelectingDeliveryCity) {
+            return new Set()
+        }
+        return new Set(gameSession.deliveryAvailableCityAreaIds)
+    })
+
+    const shouldDimDemandTagsForCompanyHover: boolean = $derived.by(() => {
+        if (gameSession.hoveredCompanySpotlightCompanyIds.length > 0) {
+            return true
+        }
+        return !!gameSession.hoveredOperatingCompanyId
+    })
 </script>
 
 <g class="pointer-events-none select-none" aria-label="Cities layer">
     {#each cityMarkers as marker (marker.key)}
-        <GlassBeadMarker x={marker.x} y={marker.y} tone={marker.tone} height={CITY_MARKER_HEIGHT} />
+        {@const isSelectableDeliveryCity =
+            isSelectingDeliveryCity && selectableDeliveryCityAreaIds.has(marker.areaId)}
+        {@const isHoveredSelectableDeliveryCity =
+            isSelectableDeliveryCity && hoveredDeliveryCityAreaId === marker.areaId}
+        <GlassBeadMarker
+            x={marker.x}
+            y={marker.y}
+            tone={marker.tone}
+            height={isHoveredSelectableDeliveryCity ? CITY_MARKER_HEIGHT * 1.12 : CITY_MARKER_HEIGHT}
+        />
+        {#if isSelectableDeliveryCity}
+            <circle
+                cx={marker.x}
+                cy={marker.y}
+                r={isHoveredSelectableDeliveryCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.08 : CITY_SELECTION_BEAD_RING_RADIUS}
+                fill="none"
+                stroke="#fff8d7"
+                stroke-width={isHoveredSelectableDeliveryCity ? CITY_SELECTION_BEAD_RING_STROKE * 1.16 : CITY_SELECTION_BEAD_RING_STROKE}
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                opacity="0.94"
+            ></circle>
+            <circle
+                cx={marker.x}
+                cy={marker.y}
+                r={isHoveredSelectableDeliveryCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.08 : CITY_SELECTION_BEAD_RING_RADIUS}
+                fill="none"
+                stroke="#1f2937"
+                stroke-width={isHoveredSelectableDeliveryCity ? 3 : 2.4}
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                opacity="0.92"
+            ></circle>
+        {/if}
     {/each}
 
-    {#each cityDemandTags as tag (tag.key)}
-        <CityDemandMarker
-            x={tag.x}
-            y={tag.y}
-            targetX={tag.targetX}
-            targetY={tag.targetY}
-            demandMet={tag.isDemandMet}
-            demands={tag.demands}
-        />
-    {/each}
+    <g aria-label="City demand markers">
+        {#each cityDemandTags as tag (tag.key)}
+            {@const isSelectableDeliveryCity =
+                isSelectingDeliveryCity && selectableDeliveryCityAreaIds.has(tag.areaId)}
+            {@const isHoveredSelectableDeliveryCity =
+                isSelectableDeliveryCity && hoveredDeliveryCityAreaId === tag.areaId}
+            {@const darkened =
+                isSelectingDeliveryCity
+                    ? !isSelectableDeliveryCity
+                    : shouldDimDemandTagsForCompanyHover}
+            <CityDemandMarker
+                x={tag.x}
+                y={tag.y}
+                targetX={tag.targetX}
+                targetY={tag.targetY}
+                demandMet={tag.isDemandMet}
+                demands={tag.demands}
+                highlighted={isSelectableDeliveryCity}
+                hovered={isHoveredSelectableDeliveryCity}
+                darkened={darkened}
+            />
+        {/each}
+    </g>
 </g>

@@ -143,9 +143,20 @@
             return overlay.deedId === gameSession.hoveredAvailableDeedId
         })
     )
+
+    const shouldDarkenDeedMarkersForCompanyHover: boolean = $derived.by(() => {
+        if (gameSession.hoveredCompanySpotlightCompanyIds.length > 0) {
+            return true
+        }
+        return !!gameSession.hoveredOperatingCompanyId
+    })
 </script>
 
-<g class="select-none" aria-label="Available deeds layer">
+<g
+    class="select-none"
+    aria-label="Available deeds layer"
+    style={`filter:${shouldDarkenDeedMarkersForCompanyHover ? 'brightness(0.34)' : 'none'}`}
+>
     <defs>
         <pattern
             id="deed-hatch-shipping"
