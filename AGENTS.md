@@ -6,6 +6,11 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 
 - Follow the `bus-ui` pattern: initiate game actions centrally on the session class and call those session methods from components, rather than calling `createPlayerAction`/`applyAction` directly in component files.
 
+## City Demand UI Idea (Saved)
+
+- Alternative concept to revisit: demand rendered directly over city beads as a full-opacity segmented color ring/disc (no icons), with large centered numeric labels per segment.
+- Current implementation intentionally uses the strip-with-wire marker style instead.
+
 ## Indonesia Operations Rules Summary (Implementation Reference, 2026-02-26)
 
 - Operations phase runs in rounds, in turn order.

@@ -2,6 +2,7 @@
 import ShipMarker from '$lib/components/ShipMarker.svelte'
 import { getGameSession } from '$lib/model/sessionContext.svelte'
 import { shadeHexColor } from '$lib/utils/color.js'
+import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
 import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
 import { Color } from '@tabletop/common'
 import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
@@ -11,7 +12,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         companyId: string
         x: number
         y: number
-        style: 'a' | 'b'
+        style: ShippingStyle
         ownerColor: string
         ownerStrokeColor: string
         remainingCapacity?: number
@@ -42,6 +43,8 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         }
         return hoveredCompany.id
     })
+
+    const styleByShippingCompanyId = $derived.by(() => shippingStyleByCompanyId(gameSession.gameState))
 
     const shipMarkers: ShipMarkerEntry[] = $derived.by(() => {
         const markers: ShipMarkerEntry[] = []
@@ -88,7 +91,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
                     companyId,
                     x: markerPoint.x,
                     y: markerPoint.y,
-                    style: markerIndex % 2 === 0 ? 'a' : 'b',
+                    style: styleByShippingCompanyId.get(company.id) ?? 'a',
                     ownerColor,
                     remainingCapacity,
                     capacityBadgeTextColor:

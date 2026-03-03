@@ -108,6 +108,9 @@ export const IndonesiaGameState = Type.Evaluate(
             operatedCompanyIds: Type.Array(Type.String()), // Companies that have already operated this operations phase
             operationsIncomeByCompanyId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Company income accumulated during the current operations phase; settled to owner cash at operations end
             operationsEarningsByPlayerId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Net player earnings accumulated during the current operations phase; transferred to cash at operations end
+            operationsDeliveredCultivatedAreaIdsByCompanyId: Type.Optional(
+                Type.Record(Type.String(), Type.Array(Type.String()))
+            ), // Delivered cultivated area ids accumulated per company for the current operations phase
             mergedDeedIdsThisYear: Type.Array(Type.String()),
             mergerAnnouncementOrder: Type.Optional(Type.Array(Type.String())),
             mergerNextAnnouncerIndex: Type.Optional(Type.Number()),
@@ -164,6 +167,7 @@ export class HydratedIndonesiaGameState
     declare operatedCompanyIds: string[]
     declare operationsIncomeByCompanyId?: Record<string, number>
     declare operationsEarningsByPlayerId?: Record<string, number>
+    declare operationsDeliveredCultivatedAreaIdsByCompanyId?: Record<string, IndonesiaNodeId[]>
     declare mergedDeedIdsThisYear: string[]
     declare mergerAnnouncementOrder?: string[]
     declare mergerNextAnnouncerIndex?: number
@@ -300,6 +304,7 @@ export class HydratedIndonesiaGameState
         this.operatedCompanyIds = []
         this.operationsIncomeByCompanyId = undefined
         this.operationsEarningsByPlayerId = undefined
+        this.operationsDeliveredCultivatedAreaIdsByCompanyId = undefined
         this.clearOperatingCompany()
     }
 
@@ -337,6 +342,7 @@ export class HydratedIndonesiaGameState
 
         this.operationsEarningsByPlayerId = undefined
         this.operationsIncomeByCompanyId = undefined
+        this.operationsDeliveredCultivatedAreaIdsByCompanyId = undefined
     }
 
     public markOperatingCompanyAsOperated(): void {
@@ -453,6 +459,18 @@ export class HydratedIndonesiaGameState
         )
 
         deliveredAreaIds.push(cultivatedAreaId)
+
+        this.operationsDeliveredCultivatedAreaIdsByCompanyId =
+            this.operationsDeliveredCultivatedAreaIdsByCompanyId ?? {}
+        const deliveredByCompany =
+            this.operationsDeliveredCultivatedAreaIdsByCompanyId[operatingCompanyId] ?? []
+        assert(
+            !deliveredByCompany.includes(cultivatedAreaId),
+            `Operations delivered ledger already contains cultivated area ${cultivatedAreaId} for company ${operatingCompanyId}`
+        )
+        deliveredByCompany.push(cultivatedAreaId)
+        this.operationsDeliveredCultivatedAreaIdsByCompanyId[operatingCompanyId] =
+            deliveredByCompany
     }
 
     public canCurrentOperationExpandForPlayer(playerId: string): boolean {

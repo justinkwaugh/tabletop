@@ -136,6 +136,9 @@ describe('finishOperatingCompany', () => {
         state.machineState = MachineState.ShippingOperations
         state.beginCompanyOperation(companyId)
         state.addOperationsIncomeForCompany(companyId, 19)
+        state.operationsDeliveredCultivatedAreaIdsByCompanyId = {
+            [companyId]: ['A01']
+        }
 
         const cashBefore = state.getPlayerState(playerId).cash
         const nextState = finishOperatingCompany(state)
@@ -144,6 +147,7 @@ describe('finishOperatingCompany', () => {
         expect(state.getPlayerState(playerId).cash).toBe(cashBefore + 19)
         expect(state.operationsEarningsByPlayerId).toBeUndefined()
         expect(state.operationsIncomeByCompanyId).toBeUndefined()
+        expect(state.operationsDeliveredCultivatedAreaIdsByCompanyId).toBeUndefined()
     })
 
     it('applies negative operations earnings to player cash at operations end', () => {

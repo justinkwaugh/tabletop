@@ -53,7 +53,15 @@
     import type { CompanyCardType } from '$lib/types/companyCard.js'
     import type { Point } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { CompanyType, Deeds, Era, Good, INDONESIA_REGIONS, type AnyDeed } from '@tabletop/indonesia'
+    import {
+        CompanyType,
+        Deeds,
+        Era,
+        Good,
+        INDONESIA_REGIONS,
+        MachineState,
+        type AnyDeed
+    } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
 
@@ -155,7 +163,7 @@
 
     type ShipSeaMarker = {
         id: string
-        style: 'a' | 'b'
+        style: 'a' | 'b' | 'c'
     } & Point
 
     type SeaShipLayout = {
@@ -167,7 +175,7 @@
     type ShipTuneMarker = {
         id: string
         seaId: string
-        style: 'a' | 'b'
+        style: 'a' | 'b' | 'c'
         index: number
     } & Point
 
@@ -330,6 +338,11 @@
     const CITY_DEMAND_TUNE_TAG_DISTANCE = 62
     const CITY_DEMAND_TUNE_TAG_MAX_OFFSET = 14
     const CITY_DEMAND_TUNE_BOARD_CENTER = { x: 2646 / 2, y: 1280 / 2 }
+    const CITY_DEMAND_VISIBLE_MACHINE_STATES = new Set<MachineState>([
+        MachineState.Operations,
+        MachineState.ShippingOperations,
+        MachineState.ProductionOperations
+    ])
     const GLASS_BEAD_PREVIEW_MARKERS = [
         { x: 172, y: 90, tone: 'amber' },
         { x: 207, y: 103, tone: 'red' },
@@ -357,6 +370,17 @@
             hash = (hash * 31 + char.charCodeAt(0)) >>> 0
         }
         return hash
+    }
+
+    function shipStyleFromIndex(index: number): 'a' | 'b' | 'c' {
+        const normalized = ((index % 3) + 3) % 3
+        if (normalized === 0) {
+            return 'a'
+        }
+        if (normalized === 1) {
+            return 'b'
+        }
+        return 'c'
     }
 
     function extractDirectionalNeighbors(neighbors: unknown, direction: 'Land' | 'Sea'): string[] {
@@ -1824,7 +1848,7 @@
                     id: `${area.id}-${companyShipMarkerCount}-${markerIndex}`,
                     x: point.x,
                     y: point.y,
-                    style: (areaIndex + markerIndex) % 2 === 0 ? 'a' : 'b'
+                    style: shipStyleFromIndex(areaIndex + markerIndex)
                 })
             }
         }
@@ -1844,7 +1868,7 @@
                     seaId: seaArea.id,
                     x: point.x,
                     y: point.y,
-                    style: markerIndex % 2 === 0 ? 'a' : 'b',
+                    style: shipStyleFromIndex(markerIndex),
                     index: markerIndex
                 })
             }
@@ -1866,7 +1890,7 @@
                     seaId: seaArea.id,
                     x: point.x,
                     y: point.y,
-                    style: markerIndex % 2 === 0 ? 'a' : 'b',
+                    style: shipStyleFromIndex(markerIndex),
                     index: markerIndex
                 })
             }
@@ -2108,6 +2132,10 @@
     })
 
     const CITY_DEMAND_TUNE_MARKERS: CityDemandTuneMarker[] = $derived.by(() => {
+        if (!CITY_DEMAND_VISIBLE_MACHINE_STATES.has(gameSession.gameState.machineState)) {
+            return []
+        }
+
         if (
             colorMode !== 'citydemand' &&
             !(colorMode === 'layout' && layoutShowCityDemand)

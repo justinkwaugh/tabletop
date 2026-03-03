@@ -189,6 +189,9 @@ describe('HydratedDeliverGood', () => {
             [playerId]: 15,
             [shippingOwnerId]: 5
         })
+        expect(state.operationsDeliveredCultivatedAreaIdsByCompanyId).toEqual({
+            'prod-1': ['A01']
+        })
         expect(state.getPlayerState(playerId).cash).toBe(productionOwnerCashBefore)
         expect(state.getPlayerState(shippingOwnerId).cash).toBe(shippingOwnerCashBefore)
     })

@@ -94,6 +94,9 @@ describe('OperationsStateHandler', () => {
         state.operatedCompanyIds = ['legacy-company']
         state.operatingCompanyId = 'legacy-company'
         state.operatingCompanyExpansionCount = 2
+        state.operationsDeliveredCultivatedAreaIdsByCompanyId = {
+            'legacy-company': ['A01']
+        }
         state.board.addCity({
             id: 'city-1',
             area: 'A01',
@@ -111,6 +114,7 @@ describe('OperationsStateHandler', () => {
         expect(state.operatedCompanyIds).toEqual([])
         expect(state.operatingCompanyId).toBeUndefined()
         expect(state.operatingCompanyExpansionCount).toBeUndefined()
+        expect(state.operationsDeliveredCultivatedAreaIdsByCompanyId).toBeUndefined()
         expect(state.board.cities[0].demand).toEqual({})
     })
 
@@ -139,6 +143,9 @@ describe('OperationsStateHandler', () => {
         ]
         state.operatedCompanyIds = ['company-1']
         state.phaseManager.startPhase(PhaseName.Operations, state.actionCount)
+        state.operationsDeliveredCultivatedAreaIdsByCompanyId = {
+            'company-1': ['A01']
+        }
         state.board.addCity({
             id: 'city-1',
             area: 'A01',
@@ -154,6 +161,9 @@ describe('OperationsStateHandler', () => {
 
         expect(state.phaseManager.currentPhase?.name).toBe(PhaseName.Operations)
         expect(state.operatedCompanyIds).toEqual(['company-1'])
+        expect(state.operationsDeliveredCultivatedAreaIdsByCompanyId).toEqual({
+            'company-1': ['A01']
+        })
         expect(state.board.cities[0].demand).toEqual({
             [Good.Rice]: 1
         })

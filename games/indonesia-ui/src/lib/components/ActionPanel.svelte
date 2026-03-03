@@ -5,6 +5,7 @@
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import { shadeHexColor } from '$lib/utils/color.js'
     import { SHIPPING_ERA_ORDER, shippingSizeTotalsFromDeeds } from '$lib/utils/deeds.js'
+    import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
     import { Color } from '@tabletop/common'
     import {
         ActionType,
@@ -197,6 +198,7 @@
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
+    const styleByShippingCompanyId = $derived.by(() => shippingStyleByCompanyId(gameSession.gameState))
 
     const mergerOptions = $derived.by(() => {
         if (!canProposeMerger) {
@@ -631,7 +633,7 @@
     }
 
     function shippingMarkerVisualForCompany(shippingCompanyId: string): {
-        style: 'a' | 'b'
+        style: ShippingStyle
         hullFillColor: string
         hullStrokeColor: string
     } {
@@ -647,7 +649,7 @@
         const hullFillColor = gameSession.colors.getPlayerUiColor(company.owner)
         const ownerPlayerColor = gameSession.colors.getPlayerColor(company.owner)
         return {
-            style: shippingCompanyId.charCodeAt(0) % 2 === 0 ? 'a' : 'b',
+            style: styleByShippingCompanyId.get(shippingCompanyId) ?? 'a',
             hullFillColor,
             hullStrokeColor:
                 ownerPlayerColor === Color.Yellow ? shadeHexColor(hullFillColor, 0.35) : 'none'

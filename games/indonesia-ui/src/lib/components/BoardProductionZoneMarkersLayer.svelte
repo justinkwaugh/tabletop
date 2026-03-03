@@ -17,7 +17,6 @@
         INDONESIA_REGION_BY_AREA_ID,
         IndonesiaNeighborDirection,
         INDONESIA_REGIONS,
-        MachineState,
         isIndonesiaNodeId,
         type IndonesiaNodeId,
         type ProductionDeed
@@ -522,9 +521,12 @@
 
         const regionFallbackCenterById = new Map<string, Point>()
         const pendingMarkers: PendingProductionZoneMarker[] = []
-        const deliveredAreaIdSet = new Set(
-            gameSession.gameState.operatingCompanyDeliveredCultivatedAreaIds ?? []
-        )
+        const deliveredAreaIdSetByCompanyId = new Map<string, Set<string>>()
+        for (const [companyId, deliveredAreaIds] of Object.entries(
+            gameSession.gameState.operationsDeliveredCultivatedAreaIdsByCompanyId ?? {}
+        )) {
+            deliveredAreaIdSetByCompanyId.set(companyId, new Set(deliveredAreaIds))
+        }
         for (const company of gameSession.gameState.companies) {
             if (company.type !== CompanyType.Production) {
                 continue
@@ -618,12 +620,13 @@
                     ownerColor,
                     goodType: markerGood,
                     goodsCount:
-                        gameSession.gameState.machineState === MachineState.ProductionOperations &&
-                        gameSession.gameState.operatingCompanyId === company.id
-                            ? selectedZone.zone.areaIds.filter(
-                                  (areaId) => !deliveredAreaIdSet.has(areaId)
-                              ).length
-                            : selectedZone.zone.size,
+                        selectedZone.zone.areaIds.filter(
+                            (areaId) =>
+                                !(
+                                    deliveredAreaIdSetByCompanyId.get(company.id)?.has(areaId) ??
+                                    false
+                                )
+                        ).length,
                     hatchPatternId,
                     zoneAreaIds: selectedZone.zone.areaIds,
                     anchor: anchorPoint,
@@ -770,6 +773,10 @@
         )
     })
 
+    const maskAllZoneTagsDuringDeliveryCitySelection: boolean = $derived.by(() => {
+        return gameSession.deliverySelectionEnabled && gameSession.deliverySelectionStage === 'city'
+    })
+
     const selectableDeliveryZoneMarkerKeySet: ReadonlySet<string> = $derived.by(() => {
         if (!maskNonSelectableZoneTagsDuringDeliverySelection) {
             return new Set<string>()
@@ -808,6 +815,9 @@
     })
 
     function isMarkerMasked(marker: ProductionZoneMarkerEntry): boolean {
+        if (maskAllZoneTagsDuringDeliveryCitySelection) {
+            return true
+        }
         if (
             maskNonSelectableZoneTagsDuringDeliverySelection &&
             !selectableDeliveryZoneMarkerKeySet.has(marker.key)

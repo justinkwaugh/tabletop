@@ -3,11 +3,15 @@
     import ShipAMaskIcon from '$lib/images/ShipAMaskIcon.svelte'
     import ShipBIcon from '$lib/images/ShipBIcon.svelte'
     import ShipBMaskIcon from '$lib/images/ShipBMaskIcon.svelte'
+    import ShipCIcon from '$lib/images/ShipCIcon.svelte'
+    import ShipCMaskIcon from '$lib/images/ShipCMaskIcon.svelte'
 
     const SHIP_A_VIEWBOX_WIDTH = 386.08
     const SHIP_A_VIEWBOX_HEIGHT = 297.68
     const SHIP_B_VIEWBOX_WIDTH = 297.35
     const SHIP_B_VIEWBOX_HEIGHT = 270.18
+    const SHIP_C_VIEWBOX_WIDTH = 316.96
+    const SHIP_C_VIEWBOX_HEIGHT = 226.87
 
     let {
         x,
@@ -28,7 +32,7 @@
     }: {
         x: number
         y: number
-        style?: 'a' | 'b'
+        style?: 'a' | 'b' | 'c'
         height?: number
         hullFillColor?: string
         hullStrokeColor?: string
@@ -46,7 +50,9 @@
     const aspectRatio = $derived(
         style === 'a'
             ? SHIP_A_VIEWBOX_WIDTH / SHIP_A_VIEWBOX_HEIGHT
-            : SHIP_B_VIEWBOX_WIDTH / SHIP_B_VIEWBOX_HEIGHT
+            : style === 'b'
+              ? SHIP_B_VIEWBOX_WIDTH / SHIP_B_VIEWBOX_HEIGHT
+              : SHIP_C_VIEWBOX_WIDTH / SHIP_C_VIEWBOX_HEIGHT
     )
     const width = $derived(height * aspectRatio)
     const iconX = $derived(x - width / 2)
@@ -76,8 +82,18 @@
                 opacity={0.75}
                 aria-hidden="true"
             />
-        {:else}
+        {:else if style === 'b'}
             <ShipBMaskIcon
+                x={outlineX}
+                y={outlineY}
+                width={outlineWidth}
+                height={outlineHeight}
+                fill={outlineColor}
+                opacity={0.75}
+                aria-hidden="true"
+            />
+        {:else}
+            <ShipCMaskIcon
                 x={outlineX}
                 y={outlineY}
                 width={outlineWidth}
@@ -99,8 +115,18 @@
             hullStroke={hullStrokeColor}
             {hullStrokeWidth}
         />
-    {:else}
+    {:else if style === 'b'}
         <ShipBIcon
+            x={iconX}
+            y={iconY}
+            {width}
+            {height}
+            hullFill={hullFillColor}
+            hullStroke={hullStrokeColor}
+            {hullStrokeWidth}
+        />
+    {:else}
+        <ShipCIcon
             x={iconX}
             y={iconY}
             {width}
@@ -122,8 +148,18 @@
                 opacity={maskOpacity}
                 aria-hidden="true"
             />
-        {:else}
+        {:else if style === 'b'}
             <ShipBMaskIcon
+                x={iconX}
+                y={iconY}
+                {width}
+                {height}
+                fill={maskColor}
+                opacity={maskOpacity}
+                aria-hidden="true"
+            />
+        {:else}
+            <ShipCMaskIcon
                 x={iconX}
                 y={iconY}
                 {width}
