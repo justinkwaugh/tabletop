@@ -37,15 +37,18 @@ type LandShape = {
 
 type RoutingContext = {
     allowedLandAreaIds: ReadonlySet<string>
+    allowedLandAreaIdsSorted: readonly string[]
     blockedShipPoints: readonly Point[]
     blockedShipRadius: number
+    landInflationPixels: number
     cacheKey: string
 }
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 const BOARD_WIDTH = 2646
 const BOARD_HEIGHT = 1280
-const LAND_INFLATION_PIXELS = 15
+const DEFAULT_LAND_INFLATION_PIXELS = 15
+const LAND_INFLATION_RETRY_STEPS = [15, 12, 9, 6, 3, 0] as const
 const GRID_STEP = 12
 const GRID_COLS = Math.floor(BOARD_WIDTH / GRID_STEP) + 1
 const GRID_ROWS = Math.floor(BOARD_HEIGHT / GRID_STEP) + 1
@@ -67,7 +70,7 @@ const EIGHT_WAY_NEIGHBORS = [
 ]
 
 let hiddenSvgRoot: SVGSVGElement | null = null
-let cachedLandShapes: readonly LandShape[] | null = null
+const cachedLandShapesByInflation = new Map<number, readonly LandShape[]>()
 const blockedCellByKey = new Map<string, boolean>()
 const waterPathByCellPairKey = new Map<string, Point[]>()
 
@@ -207,11 +210,13 @@ function createRoutingContext(
     options?: {
         blockedShipPoints?: readonly Point[]
         blockedShipRadius?: number
+        landInflationPixels?: number
     }
 ): RoutingContext {
     const sortedAllowedAreaIds = [...allowedLandAreaIds].sort((a, b) => a.localeCompare(b))
     const blockedShipPoints = [...(options?.blockedShipPoints ?? [])]
     const blockedShipRadius = options?.blockedShipRadius ?? BLOCKED_SHIP_RADIUS
+    const landInflationPixels = options?.landInflationPixels ?? DEFAULT_LAND_INFLATION_PIXELS
     const blockedShipPointsKey = blockedShipPoints
         .map((point) => `${formatCoordinate(point.x)},${formatCoordinate(point.y)}`)
         .sort((left, right) => left.localeCompare(right))
@@ -219,11 +224,13 @@ function createRoutingContext(
 
     return {
         allowedLandAreaIds: new Set(sortedAllowedAreaIds),
+        allowedLandAreaIdsSorted: sortedAllowedAreaIds,
         blockedShipPoints,
         blockedShipRadius,
+        landInflationPixels,
         cacheKey: `${sortedAllowedAreaIds.join('|')}::ships:${blockedShipPointsKey}::r:${formatCoordinate(
             blockedShipRadius
-        )}`
+        )}::land:${formatCoordinate(landInflationPixels)}`
     }
 }
 
@@ -254,15 +261,16 @@ function ensureHiddenSvgRoot(): SVGSVGElement | null {
     return root
 }
 
-function ensureLandShapes(): readonly LandShape[] {
-    if (cachedLandShapes) {
-        return cachedLandShapes
+function ensureLandShapes(landInflationPixels: number): readonly LandShape[] {
+    const cachedShapes = cachedLandShapesByInflation.get(landInflationPixels)
+    if (cachedShapes) {
+        return cachedShapes
     }
 
     const root = ensureHiddenSvgRoot()
     if (!root) {
-        cachedLandShapes = []
-        return cachedLandShapes
+        cachedLandShapesByInflation.set(landInflationPixels, [])
+        return []
     }
 
     const shapes: LandShape[] = []
@@ -275,7 +283,7 @@ function ensureLandShapes(): readonly LandShape[] {
         path.setAttribute('d', area.path)
         path.setAttribute('fill', '#000')
         path.setAttribute('stroke', '#000')
-        path.setAttribute('stroke-width', `${LAND_INFLATION_PIXELS * 2}`)
+        path.setAttribute('stroke-width', `${Math.max(0, landInflationPixels * 2)}`)
         path.setAttribute('stroke-linejoin', 'round')
         root.appendChild(path)
 
@@ -284,20 +292,20 @@ function ensureLandShapes(): readonly LandShape[] {
             areaId: area.id,
             path,
             bbox: {
-                left: bbox.x - LAND_INFLATION_PIXELS,
-                right: bbox.x + bbox.width + LAND_INFLATION_PIXELS,
-                top: bbox.y - LAND_INFLATION_PIXELS,
-                bottom: bbox.y + bbox.height + LAND_INFLATION_PIXELS
+                left: bbox.x - landInflationPixels,
+                right: bbox.x + bbox.width + landInflationPixels,
+                top: bbox.y - landInflationPixels,
+                bottom: bbox.y + bbox.height + landInflationPixels
             }
         })
     }
 
-    cachedLandShapes = shapes
-    return cachedLandShapes
+    cachedLandShapesByInflation.set(landInflationPixels, shapes)
+    return shapes
 }
 
 function pointInLand(point: Point, routingContext: RoutingContext): boolean {
-    const landShapes = ensureLandShapes()
+    const landShapes = ensureLandShapes(routingContext.landInflationPixels)
     if (landShapes.length === 0 || typeof DOMPoint === 'undefined') {
         return false
     }
@@ -544,7 +552,11 @@ function routeThroughWater(
     end: Point,
     routingContext: RoutingContext
 ): Point[] | null {
-    if (typeof document === 'undefined' || cachedLandShapes?.length === 0) {
+    if (typeof document === 'undefined') {
+        return [start, end]
+    }
+
+    if (ensureLandShapes(routingContext.landInflationPixels).length === 0) {
         return [start, end]
     }
 
@@ -579,6 +591,84 @@ function routeThroughWater(
     waterPathByCellPairKey.set(forwardKey, simplifiedPath)
     waterPathByCellPairKey.set(reverseKey, [...simplifiedPath].reverse())
     return simplifiedPath
+}
+
+function routingContextWithLandInflation(
+    baseContext: RoutingContext,
+    landInflationPixels: number
+): RoutingContext {
+    return createRoutingContext(baseContext.allowedLandAreaIdsSorted, {
+        blockedShipPoints: baseContext.blockedShipPoints,
+        blockedShipRadius: baseContext.blockedShipRadius,
+        landInflationPixels
+    })
+}
+
+function landInflationRetrySteps(baseLandInflationPixels: number): readonly number[] {
+    const steps = LAND_INFLATION_RETRY_STEPS.filter((step) => step <= baseLandInflationPixels)
+    if (!steps.includes(baseLandInflationPixels)) {
+        return [baseLandInflationPixels, ...steps]
+    }
+    return steps
+}
+
+function routeThroughWaterWithAdaptiveLandInflation(
+    start: Point,
+    end: Point,
+    baseRoutingContext: RoutingContext
+): Point[] | null {
+    const firstAttempt = routeThroughWater(start, end, baseRoutingContext)
+    if (firstAttempt) {
+        return firstAttempt
+    }
+
+    const retryInflations = landInflationRetrySteps(baseRoutingContext.landInflationPixels)
+    for (const landInflationPixels of retryInflations) {
+        if (landInflationPixels === baseRoutingContext.landInflationPixels) {
+            continue
+        }
+        const retryContext = routingContextWithLandInflation(baseRoutingContext, landInflationPixels)
+        const attempt = routeThroughWater(start, end, retryContext)
+        if (attempt) {
+            return attempt
+        }
+    }
+
+    return null
+}
+
+function firstWaterPointAlongLineWithAdaptiveLandInflation(
+    landPoint: Point,
+    towardPoint: Point,
+    baseRoutingContext: RoutingContext
+): { point: Point; routingContext: RoutingContext } | null {
+    const firstAttempt = firstWaterPointAlongLine(landPoint, towardPoint, baseRoutingContext)
+    if (firstAttempt) {
+        return {
+            point: firstAttempt,
+            routingContext: baseRoutingContext
+        }
+    }
+
+    const retryInflations = landInflationRetrySteps(baseRoutingContext.landInflationPixels)
+    for (const landInflationPixels of retryInflations) {
+        if (landInflationPixels === baseRoutingContext.landInflationPixels) {
+            continue
+        }
+
+        const retryContext = routingContextWithLandInflation(baseRoutingContext, landInflationPixels)
+        const retryPoint = firstWaterPointAlongLine(landPoint, towardPoint, retryContext)
+        if (!retryPoint) {
+            continue
+        }
+
+        return {
+            point: retryPoint,
+            routingContext: retryContext
+        }
+    }
+
+    return null
 }
 
 function firstWaterPointAlongLine(
@@ -716,7 +806,7 @@ function pickStartLegByShortestRoute(
                 continue
             }
 
-            const startSegment = routeThroughWater(
+            const startSegment = routeThroughWaterWithAdaptiveLandInflation(
                 cultivatedPoint,
                 firstSeaPoint,
                 startRoutingContext
@@ -776,7 +866,7 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         return null
     }
 
-    const landShapes = ensureLandShapes()
+    const landShapes = ensureLandShapes(DEFAULT_LAND_INFLATION_PIXELS)
     if (landShapes.length === 0) {
         return buildStraightFallbackPath(input)
     }
@@ -808,7 +898,7 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
     for (let index = 1; index < seaWaypoints.length; index += 1) {
         const from = seaWaypoints[index - 1]
         const to = seaWaypoints[index]
-        const seaSegment = routeThroughWater(from, to, seaRoutingContext)
+        const seaSegment = routeThroughWaterWithAdaptiveLandInflation(from, to, seaRoutingContext)
         if (!seaSegment) {
             return null
         }
@@ -818,11 +908,19 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
     const cityPoint = resolveLandMarkerPosition(input.cityAreaId)
     const lastSeaPoint = seaWaypoints[seaWaypoints.length - 1]
     if (cityPoint) {
-        const cityWaterPoint = firstWaterPointAlongLine(cityPoint, lastSeaPoint, targetRoutingContext)
-        if (!cityWaterPoint) {
+        const cityWaterPointResult = firstWaterPointAlongLineWithAdaptiveLandInflation(
+            cityPoint,
+            lastSeaPoint,
+            targetRoutingContext
+        )
+        if (!cityWaterPointResult) {
             return null
         }
-        const endSegment = routeThroughWater(lastSeaPoint, cityWaterPoint, targetRoutingContext)
+        const endSegment = routeThroughWaterWithAdaptiveLandInflation(
+            lastSeaPoint,
+            cityWaterPointResult.point,
+            cityWaterPointResult.routingContext
+        )
         if (!endSegment) {
             return null
         }
