@@ -64,6 +64,21 @@
         direction: MarkerDirection
     }
 
+    type BoundaryProfile = {
+        pathElement: SVGPathElement
+        totalLength: number
+        sampleLengths: number[]
+        samplePoints: Point[]
+    }
+
+    type UiPerfAggregate = {
+        count: number
+        totalMs: number
+        maxMs: number
+        lastMs: number
+        lastMeta?: Record<string, number>
+    }
+
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
     const BOARD_CENTER: Point = { x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2 }
@@ -80,8 +95,14 @@
     const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
     const BOUNDARY_SAMPLE_SPACING = 12
     const BOUNDARY_REFINE_ITERATIONS = 8
+    const BOUNDARY_CACHE_DECIMALS = 1
+    const MAX_BOUNDARY_POINT_CACHE_ENTRIES = 4000
+    const MAX_ZONE_BOUNDARY_TARGET_CACHE_ENTRIES = 2500
+    const MAX_COMPANY_ZONE_CACHE_ENTRIES = 1200
     const PRODUCTION_ZONE_MARKER_OFFSETS_EVENT = 'indonesia-production-zone-marker-offsets-change'
     const ENABLE_NS_MARKER_DIRECTIONS = false
+    const UI_PERF_STORAGE_KEY = 'indonesia-ui-perf'
+    const UI_PERF_GLOBAL_KEY = '__indonesiaUiPerf'
 
     const productionDeedSlotById = (() => {
         const slotById = new Map<string, { index: number; count: number }>()
@@ -123,11 +144,104 @@
 
     const gameSession = getGameSession()
     let hiddenSvgRoot: SVGSVGElement | null = null
-    const boundaryPathByAreaId = new Map<string, SVGPathElement>()
+    const boundaryProfileByAreaId = new Map<string, BoundaryProfile>()
+    const boundaryPointCache = new Map<string, Point | null>()
+    const zoneBoundaryTargetCache = new Map<string, Point>()
+    const companyCultivatedZoneCache = new Map<string, CompanyCultivatedZone[]>()
     let runtimeProductionZoneMarkerOffsets: Record<string, Point> = {}
+    let uiPerfEnabled = false
 
     function clamp(value: number, min: number, max: number): number {
         return Math.max(min, Math.min(max, value))
+    }
+
+    function roundToCachePrecision(value: number): number {
+        const scale = 10 ** BOUNDARY_CACHE_DECIMALS
+        return Math.round(value * scale) / scale
+    }
+
+    function setBoundedMapValue<K, V>(map: Map<K, V>, key: K, value: V, maxEntries: number): void {
+        map.set(key, value)
+        if (map.size > maxEntries) {
+            const oldestKey = map.keys().next().value as K | undefined
+            if (oldestKey !== undefined) {
+                map.delete(oldestKey)
+            }
+        }
+    }
+
+    function readUiPerfEnabledFromEnvironment(): boolean {
+        if (typeof window === 'undefined') {
+            return false
+        }
+        const globalEnabled = (window as Window & { __indonesiaUiPerfEnabled?: unknown })
+            .__indonesiaUiPerfEnabled
+        if (globalEnabled === true) {
+            return true
+        }
+        return window.localStorage.getItem(UI_PERF_STORAGE_KEY) === '1'
+    }
+
+    function recordUiPerfSample(
+        label: string,
+        durationMs: number,
+        meta?: Record<string, number>
+    ): void {
+        if (!uiPerfEnabled || typeof window === 'undefined') {
+            return
+        }
+
+        const perfWindow = window as Window & {
+            [UI_PERF_GLOBAL_KEY]?: {
+                aggregates: Record<string, UiPerfAggregate>
+                lastSamples: Array<{
+                    label: string
+                    durationMs: number
+                    meta?: Record<string, number>
+                    at: number
+                }>
+            }
+        }
+        const existingState = perfWindow[UI_PERF_GLOBAL_KEY] ?? {
+            aggregates: {},
+            lastSamples: []
+        }
+        const existingAggregate = existingState.aggregates[label]
+        const nextAggregate: UiPerfAggregate = existingAggregate
+            ? {
+                  count: existingAggregate.count + 1,
+                  totalMs: existingAggregate.totalMs + durationMs,
+                  maxMs: Math.max(existingAggregate.maxMs, durationMs),
+                  lastMs: durationMs,
+                  lastMeta: meta
+              }
+            : {
+                  count: 1,
+                  totalMs: durationMs,
+                  maxMs: durationMs,
+                  lastMs: durationMs,
+                  lastMeta: meta
+              }
+        existingState.aggregates[label] = nextAggregate
+        existingState.lastSamples.push({
+            label,
+            durationMs,
+            meta,
+            at: Date.now()
+        })
+        if (existingState.lastSamples.length > 200) {
+            existingState.lastSamples.splice(0, existingState.lastSamples.length - 200)
+        }
+        perfWindow[UI_PERF_GLOBAL_KEY] = existingState
+
+        if (durationMs >= 8 || nextAggregate.count % 40 === 0) {
+            console.info(`[ui-perf] ${label}: ${durationMs.toFixed(2)}ms`, {
+                ...meta,
+                avgMs: nextAggregate.totalMs / nextAggregate.count,
+                maxMs: nextAggregate.maxMs,
+                count: nextAggregate.count
+            })
+        }
     }
 
     function parseProductionZoneMarkerOffsets(value: unknown): Record<string, Point> {
@@ -177,15 +291,29 @@
         }
 
         loadRuntimeProductionZoneMarkerOffsets()
+        uiPerfEnabled = readUiPerfEnabledFromEnvironment()
 
         const handleOffsetsChanged = (): void => {
             loadRuntimeProductionZoneMarkerOffsets()
         }
         const handleStorageChanged = (event: StorageEvent): void => {
-            if (event.key !== PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY) {
-                return
+            if (event.key === PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY) {
+                loadRuntimeProductionZoneMarkerOffsets()
+            } else if (event.key === UI_PERF_STORAGE_KEY) {
+                uiPerfEnabled = readUiPerfEnabledFromEnvironment()
             }
-            loadRuntimeProductionZoneMarkerOffsets()
+        }
+
+        const perfWindow = window as Window & {
+            __setIndonesiaUiPerf?: (enabled: boolean) => void
+        }
+        perfWindow.__setIndonesiaUiPerf = (enabled: boolean) => {
+            uiPerfEnabled = enabled
+            if (enabled) {
+                window.localStorage.setItem(UI_PERF_STORAGE_KEY, '1')
+            } else {
+                window.localStorage.removeItem(UI_PERF_STORAGE_KEY)
+            }
         }
 
         window.addEventListener(PRODUCTION_ZONE_MARKER_OFFSETS_EVENT, handleOffsetsChanged)
@@ -194,6 +322,7 @@
         return () => {
             window.removeEventListener(PRODUCTION_ZONE_MARKER_OFFSETS_EVENT, handleOffsetsChanged)
             window.removeEventListener('storage', handleStorageChanged)
+            delete perfWindow.__setIndonesiaUiPerf
         }
     })
 
@@ -237,8 +366,16 @@
         return root
     }
 
-    function ensureBoundaryPathForArea(areaId: string): SVGPathElement | null {
-        const cached = boundaryPathByAreaId.get(areaId)
+    function boundaryPointCacheKey(areaId: string, point: Point): string {
+        return `${areaId}|${roundToCachePrecision(point.x)}|${roundToCachePrecision(point.y)}`
+    }
+
+    function zoneBoundaryTargetCacheKey(markerPoint: Point, zoneAreaIds: readonly string[]): string {
+        return `${roundToCachePrecision(markerPoint.x)}|${roundToCachePrecision(markerPoint.y)}|${zoneAreaIds.join(',')}`
+    }
+
+    function ensureBoundaryProfileForArea(areaId: string): BoundaryProfile | null {
+        const cached = boundaryProfileByAreaId.get(areaId)
         if (cached) {
             return cached
         }
@@ -256,39 +393,90 @@
         const pathElement = document.createElementNS(SVG_NAMESPACE, 'path')
         pathElement.setAttribute('d', areaPath)
         root.appendChild(pathElement)
-        boundaryPathByAreaId.set(areaId, pathElement)
-        return pathElement
-    }
-
-    function nearestPointOnAreaBoundary(areaId: string, point: Point): Point | null {
-        const pathElement = ensureBoundaryPathForArea(areaId)
-        if (!pathElement) {
-            return null
-        }
 
         const totalLength = pathElement.getTotalLength()
         if (!Number.isFinite(totalLength) || totalLength <= 0) {
+            pathElement.remove()
             return null
         }
 
         const sampleCount = Math.max(8, Math.ceil(totalLength / BOUNDARY_SAMPLE_SPACING))
-        let bestLength = 0
-        let bestPoint = pathElement.getPointAtLength(0)
-        let bestDistance = pointDistance(point, { x: bestPoint.x, y: bestPoint.y })
-
-        for (let sampleIndex = 1; sampleIndex <= sampleCount; sampleIndex += 1) {
+        const sampleLengths: number[] = []
+        const samplePoints: Point[] = []
+        for (let sampleIndex = 0; sampleIndex <= sampleCount; sampleIndex += 1) {
             const sampleLength = (totalLength * sampleIndex) / sampleCount
             const samplePoint = pathElement.getPointAtLength(sampleLength)
-            const distance = pointDistance(point, { x: samplePoint.x, y: samplePoint.y })
+            sampleLengths.push(sampleLength)
+            samplePoints.push({
+                x: samplePoint.x,
+                y: samplePoint.y
+            })
+        }
+
+        const profile: BoundaryProfile = {
+            pathElement,
+            totalLength,
+            sampleLengths,
+            samplePoints
+        }
+        boundaryProfileByAreaId.set(areaId, profile)
+        return profile
+    }
+
+    function nearestPointOnAreaBoundary(areaId: string, point: Point): Point | null {
+        const cachedPoint = boundaryPointCache.get(boundaryPointCacheKey(areaId, point))
+        if (cachedPoint !== undefined) {
+            return cachedPoint
+        }
+
+        const profile = ensureBoundaryProfileForArea(areaId)
+        if (!profile) {
+            setBoundedMapValue(
+                boundaryPointCache,
+                boundaryPointCacheKey(areaId, point),
+                null,
+                MAX_BOUNDARY_POINT_CACHE_ENTRIES
+            )
+            return null
+        }
+
+        const { pathElement, totalLength, sampleLengths, samplePoints } = profile
+        if (samplePoints.length === 0) {
+            setBoundedMapValue(
+                boundaryPointCache,
+                boundaryPointCacheKey(areaId, point),
+                null,
+                MAX_BOUNDARY_POINT_CACHE_ENTRIES
+            )
+            return null
+        }
+
+        let bestIndex = 0
+        let bestPoint = samplePoints[0] as Point
+        let bestDistance = pointDistance(point, bestPoint)
+        let bestLength = sampleLengths[0] ?? 0
+        for (let sampleIndex = 1; sampleIndex < samplePoints.length; sampleIndex += 1) {
+            const samplePoint = samplePoints[sampleIndex] as Point
+            const distance = pointDistance(point, samplePoint)
             if (distance < bestDistance) {
                 bestDistance = distance
-                bestLength = sampleLength
+                bestIndex = sampleIndex
                 bestPoint = samplePoint
+                bestLength = sampleLengths[sampleIndex] ?? bestLength
             }
         }
 
-        let leftLength = Math.max(0, bestLength - totalLength / sampleCount)
-        let rightLength = Math.min(totalLength, bestLength + totalLength / sampleCount)
+        const leftNeighborLength = sampleLengths[Math.max(0, bestIndex - 1)] ?? bestLength
+        const rightNeighborLength =
+            sampleLengths[Math.min(sampleLengths.length - 1, bestIndex + 1)] ?? bestLength
+        let leftLength = Math.max(0, Math.min(leftNeighborLength, bestLength))
+        let rightLength = Math.min(totalLength, Math.max(rightNeighborLength, bestLength))
+        if (rightLength <= leftLength) {
+            const sampleSpan = totalLength / Math.max(1, samplePoints.length - 1)
+            leftLength = Math.max(0, bestLength - sampleSpan)
+            rightLength = Math.min(totalLength, bestLength + sampleSpan)
+        }
+
         for (let iteration = 0; iteration < BOUNDARY_REFINE_ITERATIONS; iteration += 1) {
             const span = rightLength - leftLength
             if (span < 0.0001) {
@@ -310,25 +498,37 @@
                 if (leftThirdDistance < bestDistance) {
                     bestDistance = leftThirdDistance
                     bestLength = leftThirdLength
-                    bestPoint = leftThirdPoint
+                    bestPoint = { x: leftThirdPoint.x, y: leftThirdPoint.y }
                 }
             } else {
                 leftLength = leftThirdLength
                 if (rightThirdDistance < bestDistance) {
                     bestDistance = rightThirdDistance
                     bestLength = rightThirdLength
-                    bestPoint = rightThirdPoint
+                    bestPoint = { x: rightThirdPoint.x, y: rightThirdPoint.y }
                 }
             }
         }
 
         const refinedPoint = pathElement.getPointAtLength(bestLength)
         const refinedDistance = pointDistance(point, { x: refinedPoint.x, y: refinedPoint.y })
-        if (refinedDistance < bestDistance) {
-            return { x: refinedPoint.x, y: refinedPoint.y }
-        }
-
-        return { x: bestPoint.x, y: bestPoint.y }
+        const resolvedPoint =
+            refinedDistance < bestDistance
+                ? {
+                      x: refinedPoint.x,
+                      y: refinedPoint.y
+                  }
+                : {
+                      x: bestPoint.x,
+                      y: bestPoint.y
+                  }
+        setBoundedMapValue(
+            boundaryPointCache,
+            boundaryPointCacheKey(areaId, point),
+            resolvedPoint,
+            MAX_BOUNDARY_POINT_CACHE_ENTRIES
+        )
+        return resolvedPoint
     }
 
     function resolveBoundaryTargetPoint(
@@ -338,6 +538,13 @@
     ): Point {
         if (zoneAreaIds.length === 0) {
             return fallbackTarget
+        }
+
+        const cachedBoundaryTarget = zoneBoundaryTargetCache.get(
+            zoneBoundaryTargetCacheKey(markerPoint, zoneAreaIds)
+        )
+        if (cachedBoundaryTarget) {
+            return cachedBoundaryTarget
         }
 
         let nearestPoint: Point | null = null
@@ -369,7 +576,14 @@
             }
         }
 
-        return nearestPoint ?? fallbackTarget
+        const resolvedTarget = nearestPoint ?? fallbackTarget
+        setBoundedMapValue(
+            zoneBoundaryTargetCache,
+            zoneBoundaryTargetCacheKey(markerPoint, zoneAreaIds),
+            resolvedTarget,
+            MAX_ZONE_BOUNDARY_TARGET_CACHE_ENTRIES
+        )
+        return resolvedTarget
     }
 
     function asMarkerGood(good: Good): MarkerGood {
@@ -406,19 +620,21 @@
         }
     }
 
-    function buildCompanyCultivatedZones(companyId: string): CompanyCultivatedZone[] {
-        const cultivatedAreaIdSet = new Set<IndonesiaNodeId>()
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!('companyId' in area) || area.companyId !== companyId) {
-                continue
-            }
-            if (!isIndonesiaNodeId(area.id)) {
-                continue
-            }
-            cultivatedAreaIdSet.add(area.id)
+    function buildCompanyCultivatedZones(
+        companyId: string,
+        cultivatedAreaIdsByCompanyId: ReadonlyMap<string, readonly IndonesiaNodeId[]>
+    ): CompanyCultivatedZone[] {
+        const cultivatedAreaIds = cultivatedAreaIdsByCompanyId.get(companyId) ?? []
+        if (cultivatedAreaIds.length === 0) {
+            return []
+        }
+        const cacheKey = `${companyId}|${cultivatedAreaIds.join(',')}`
+        const cachedZones = companyCultivatedZoneCache.get(cacheKey)
+        if (cachedZones) {
+            return cachedZones
         }
 
-        const unvisited = [...cultivatedAreaIdSet].sort((left, right) =>
+        const unvisited = [...cultivatedAreaIds].sort((left, right) =>
             left.localeCompare(right, undefined, { numeric: true })
         )
         const zoneAreaIdGroups: IndonesiaNodeId[][] = []
@@ -474,7 +690,7 @@
             (groupA[0] ?? '').localeCompare(groupB[0] ?? '', undefined, { numeric: true })
         )
 
-        return sortedZoneAreaGroups.map((areaIds) => {
+        const zones = sortedZoneAreaGroups.map((areaIds) => {
             const zonePoints = areaIds
                 .map((areaId) => resolveLandMarkerPosition(areaId))
                 .filter((point): point is Point => point !== null)
@@ -484,6 +700,13 @@
                 center: averagePoint(zonePoints)
             }
         })
+        setBoundedMapValue(
+            companyCultivatedZoneCache,
+            cacheKey,
+            zones,
+            MAX_COMPANY_ZONE_CACHE_ENTRIES
+        )
+        return zones
     }
 
     function directionTowardTarget(
@@ -511,12 +734,29 @@
     }
 
     const productionZoneMarkers: ProductionZoneMarkerEntry[] = $derived.by(() => {
-        const companyById = new Map(
-            gameSession.gameState.companies.map((company) => [company.id, company] as const)
-        )
+        const computationStartAt = uiPerfEnabled ? performance.now() : 0
+        let zoneBuildMs = 0
+        let boundaryResolveMs = 0
+
+        const cultivatedAreaIdsByCompanyId = new Map<string, IndonesiaNodeId[]>()
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!('companyId' in area) || !area.companyId || !isIndonesiaNodeId(area.id)) {
+                continue
+            }
+            const companyAreaIds = cultivatedAreaIdsByCompanyId.get(area.companyId) ?? []
+            companyAreaIds.push(area.id)
+            cultivatedAreaIdsByCompanyId.set(area.companyId, companyAreaIds)
+        }
+        for (const areaIds of cultivatedAreaIdsByCompanyId.values()) {
+            areaIds.sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+        }
+
         const hatchVariantByCompanyId = productionHatchVariantByCompanyId(
             gameSession.gameState,
-            HATCH_PATTERN_IDS.length
+            HATCH_PATTERN_IDS.length,
+            {
+                mode: gameSession.productionZoneRenderStyle
+            }
         )
 
         const regionFallbackCenterById = new Map<string, Point>()
@@ -544,7 +784,11 @@
             const hatchVariant = hatchVariantByCompanyId.get(company.id)
             const hatchPatternId =
                 hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
-            const companyZones = buildCompanyCultivatedZones(company.id)
+            const zoneBuildStartAt = uiPerfEnabled ? performance.now() : 0
+            const companyZones = buildCompanyCultivatedZones(company.id, cultivatedAreaIdsByCompanyId)
+            if (uiPerfEnabled) {
+                zoneBuildMs += performance.now() - zoneBuildStartAt
+            }
             for (const [deedIndex, deed] of productionDeeds.entries()) {
                 const matchingZones = companyZones
                     .map((zone) => {
@@ -686,11 +930,15 @@
                 const deedOffset = productionZoneMarkerOffsetsByDeedId[marker.deedId] ?? { x: 0, y: 0 }
                 const markerX = clamp(baseMarkerX + deedOffset.x, EDGE_PADDING, BOARD_WIDTH - EDGE_PADDING)
                 const markerY = clamp(baseMarkerY + deedOffset.y, EDGE_PADDING, BOARD_HEIGHT - EDGE_PADDING)
+                const boundaryResolveStartAt = uiPerfEnabled ? performance.now() : 0
                 const wireTarget = resolveBoundaryTargetPoint(
                     { x: markerX, y: markerY },
                     marker.zoneAreaIds,
                     marker.zoneTarget
                 )
+                if (uiPerfEnabled) {
+                    boundaryResolveMs += performance.now() - boundaryResolveStartAt
+                }
 
                 markerEntries.push({
                     key: `${regionId}|${marker.key}`,
@@ -711,6 +959,23 @@
                     direction: directionTowardTarget(markerX, markerY, wireTarget.x, wireTarget.y)
                 })
             }
+        }
+
+        if (uiPerfEnabled) {
+            recordUiPerfSample(
+                'board:production-zone-markers:derive',
+                performance.now() - computationStartAt,
+                {
+                    actionCount: gameSession.gameState.actionCount,
+                    markerCount: markerEntries.length,
+                    pendingCount: pendingMarkers.length,
+                    zoneBuildMs: Math.round(zoneBuildMs * 100) / 100,
+                    boundaryResolveMs: Math.round(boundaryResolveMs * 100) / 100,
+                    boundaryPointCacheSize: boundaryPointCache.size,
+                    zoneBoundaryTargetCacheSize: zoneBoundaryTargetCache.size,
+                    companyZoneCacheSize: companyCultivatedZoneCache.size
+                }
+            )
         }
 
         return markerEntries
@@ -836,6 +1101,10 @@
         return false
     }
 
+    function toggleProductionZoneRenderStyle(): void {
+        gameSession.toggleProductionZoneRenderStyle()
+    }
+
     $effect(() => {
         if (typeof window === 'undefined') {
             return
@@ -848,14 +1117,27 @@
     })
 
     onDestroy(() => {
+        boundaryProfileByAreaId.clear()
+        boundaryPointCache.clear()
+        zoneBoundaryTargetCache.clear()
+        companyCultivatedZoneCache.clear()
+        hiddenSvgRoot?.remove()
+        hiddenSvgRoot = null
+
         if (typeof window === 'undefined') {
             return
         }
         delete (
             window as Window & {
                 __indonesiaProductionZoneMarkerEntries?: ProductionZoneMarkerEntry[]
+                __setIndonesiaUiPerf?: (enabled: boolean) => void
             }
         ).__indonesiaProductionZoneMarkerEntries
+        delete (
+            window as Window & {
+                __setIndonesiaUiPerf?: (enabled: boolean) => void
+            }
+        ).__setIndonesiaUiPerf
     })
 </script>
 
@@ -873,6 +1155,7 @@
             direction={marker.direction}
             highlighted={false}
             masked={isMarkerMasked(marker)}
+            onClick={toggleProductionZoneRenderStyle}
         />
     {/each}
 
@@ -890,6 +1173,7 @@
                 direction={marker.direction}
                 highlighted={true}
                 masked={isMarkerMasked(marker)}
+                onClick={toggleProductionZoneRenderStyle}
             />
         {/each}
     {/if}

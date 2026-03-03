@@ -30,7 +30,8 @@
         hatchPatternId = null,
         highlighted = false,
         masked = false,
-        sampleLabel = null
+        sampleLabel = null,
+        onClick = null
     }: {
         x: number
         y: number
@@ -45,6 +46,7 @@
         highlighted?: boolean
         masked?: boolean
         sampleLabel?: string | null
+        onClick?: (() => void) | null
     } = $props()
 
     const markerBaseWidth = $derived(height * 1.52 + 6)
@@ -365,5 +367,34 @@
             ></circle>
         {/if}
         <path d={bodyPath} fill="#000000" opacity="0.42" transform={bodyScaleTransform}></path>
+    {/if}
+
+    {#if onClick}
+        <path
+            d={bodyPath}
+            fill="#000000"
+            fill-opacity="0.001"
+            stroke="none"
+            style="pointer-events: all; cursor: pointer;"
+            role="button"
+            tabindex="0"
+            aria-label="Toggle production zone render style"
+            onpointerdown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+            }}
+            onclick={(event) => {
+                event.stopPropagation()
+                onClick?.()
+            }}
+            onkeydown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                    return
+                }
+                event.preventDefault()
+                event.stopPropagation()
+                onClick?.()
+            }}
+        ></path>
     {/if}
 </g>

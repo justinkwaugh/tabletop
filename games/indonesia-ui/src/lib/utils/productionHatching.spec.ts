@@ -145,4 +145,76 @@ describe('productionConflictRankByCompanyId', () => {
         expect(hatchVariants.get('c-1')).toBeUndefined()
         expect(hatchVariants.get('c-2')).toBeUndefined()
     })
+
+    it('goods mode hatches adjacent same-good companies even across owners', () => {
+        const state = buildGameState({
+            players: [
+                { playerId: 'p1', ownedCompanies: ['c-1'] },
+                { playerId: 'p2', ownedCompanies: ['c-2'] }
+            ],
+            companies: [
+                { id: 'c-1', owner: 'p1', good: 'Rice' },
+                { id: 'c-2', owner: 'p2', good: 'Rice' }
+            ],
+            areaCompanyByAreaId: {
+                A01: 'c-1',
+                A02: 'c-2'
+            },
+            landAdjacencyPairs: [['A01', 'A02']]
+        })
+
+        const conflictRanks = productionConflictRankByCompanyId(state, { mode: 'goods' })
+        const hatchVariants = productionHatchVariantByCompanyId(state, 4, { mode: 'goods' })
+
+        expect(conflictRanks.get('c-1')).toBe(0)
+        expect(conflictRanks.get('c-2')).toBe(1)
+        expect(hatchVariants.get('c-1')).toBeUndefined()
+        expect(hatchVariants.get('c-2')).toBe(0)
+    })
+
+    it('goods mode does not hatch adjacent different-good companies', () => {
+        const state = buildGameState({
+            players: [
+                { playerId: 'p1', ownedCompanies: ['c-1'] },
+                { playerId: 'p2', ownedCompanies: ['c-2'] }
+            ],
+            companies: [
+                { id: 'c-1', owner: 'p1', good: 'Rice' },
+                { id: 'c-2', owner: 'p2', good: 'Spice' }
+            ],
+            areaCompanyByAreaId: {
+                A01: 'c-1',
+                A02: 'c-2'
+            },
+            landAdjacencyPairs: [['A01', 'A02']]
+        })
+
+        const hatchVariants = productionHatchVariantByCompanyId(state, 4, { mode: 'goods' })
+
+        expect(hatchVariants.get('c-1')).toBeUndefined()
+        expect(hatchVariants.get('c-2')).toBeUndefined()
+    })
+
+    it('goods mode does not hatch non-adjacent same-good companies', () => {
+        const state = buildGameState({
+            players: [
+                { playerId: 'p1', ownedCompanies: ['c-1'] },
+                { playerId: 'p2', ownedCompanies: ['c-2'] }
+            ],
+            companies: [
+                { id: 'c-1', owner: 'p1', good: 'Rice' },
+                { id: 'c-2', owner: 'p2', good: 'Rice' }
+            ],
+            areaCompanyByAreaId: {
+                A01: 'c-1',
+                A04: 'c-2'
+            },
+            landAdjacencyPairs: []
+        })
+
+        const hatchVariants = productionHatchVariantByCompanyId(state, 4, { mode: 'goods' })
+
+        expect(hatchVariants.get('c-1')).toBeUndefined()
+        expect(hatchVariants.get('c-2')).toBeUndefined()
+    })
 })

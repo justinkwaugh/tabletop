@@ -1,14 +1,15 @@
 <script lang="ts">
     import Area from '$lib/components/Area.svelte'
+    import { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { productionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
     import { shadeHexColor } from '$lib/utils/color.js'
-    import { CompanyType } from '@tabletop/indonesia'
+    import { CompanyType, Good } from '@tabletop/indonesia'
 
     type CultivatedRenderEntry = {
         key: string
         areaId: string
-        ownerColor: string
+        fillColor: string
         borderColor: string
         hatchPatternId: string | null
     }
@@ -23,6 +24,36 @@
         'cultivated-hatch-diag-2',
         'cultivated-hatch-diag-3'
     ] as const
+    const GOODS_OVERLAY_STYLE_BY_GOOD: Readonly<
+        Record<
+            Good,
+            {
+                fill: string
+                stroke: string
+            }
+        >
+    > = {
+        [Good.Rice]: {
+            fill: companyDeedStyleForType('rice').overlayFill,
+            stroke: companyDeedStyleForType('rice').overlayStroke
+        },
+        [Good.Spice]: {
+            fill: companyDeedStyleForType('spice').overlayFill,
+            stroke: companyDeedStyleForType('spice').overlayStroke
+        },
+        [Good.Rubber]: {
+            fill: companyDeedStyleForType('rubber').overlayFill,
+            stroke: companyDeedStyleForType('rubber').overlayStroke
+        },
+        [Good.Oil]: {
+            fill: companyDeedStyleForType('oil').overlayFill,
+            stroke: companyDeedStyleForType('oil').overlayStroke
+        },
+        [Good.SiapSaji]: {
+            fill: companyDeedStyleForType('siapsaji').overlayFill,
+            stroke: companyDeedStyleForType('siapsaji').overlayStroke
+        }
+    } as const
 
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
@@ -32,8 +63,12 @@
         const entries: CultivatedRenderEntry[] = []
         const hatchVariantByCompanyId = productionHatchVariantByCompanyId(
             gameSession.gameState,
-            HATCH_PATTERN_IDS.length
+            HATCH_PATTERN_IDS.length,
+            {
+                mode: gameSession.productionZoneRenderStyle
+            }
         )
+        const renderByGoods = gameSession.productionZoneRenderStyle === 'goods'
 
         for (const area of Object.values(gameSession.gameState.board.areas)) {
             if (!('companyId' in area)) {
@@ -46,12 +81,14 @@
             }
 
             const hatchVariant = hatchVariantByCompanyId.get(company.id)
+            const ownerColor = gameSession.colors.getPlayerUiColor(company.owner)
+            const goodsStyle = GOODS_OVERLAY_STYLE_BY_GOOD[company.good]
 
             entries.push({
                 key: area.id,
                 areaId: area.id,
-                ownerColor: gameSession.colors.getPlayerUiColor(company.owner),
-                borderColor: shadeHexColor(gameSession.colors.getPlayerUiColor(company.owner), 0.38),
+                fillColor: renderByGoods ? goodsStyle.fill : ownerColor,
+                borderColor: renderByGoods ? goodsStyle.stroke : shadeHexColor(ownerColor, 0.38),
                 hatchPatternId: hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
             })
         }
@@ -103,7 +140,7 @@
     {#each cultivatedEntries as cultivated (cultivated.key)}
         <Area
             areaId={cultivated.areaId}
-            fill={cultivated.ownerColor}
+            fill={cultivated.fillColor}
             stroke={cultivated.borderColor}
             fillOpacity={CULTIVATED_AREA_FILL_OPACITY}
             strokeWidth={CULTIVATED_AREA_STROKE_WIDTH}

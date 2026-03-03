@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
     import boardImg from '$lib/images/indo_map_sm.jpg'
     import BoardActionAreasLayer from '$lib/components/BoardActionAreasLayer.svelte'
     import BoardCitiesLayer from '$lib/components/BoardCitiesLayer.svelte'
@@ -14,10 +15,39 @@
 
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
-    const SHOW_DEBUG_GEOMETRY = true
+    const DEBUG_GEOMETRY_STORAGE_KEY = 'indonesia-debug-geometry'
 
     const gameSession = getGameSession()
     let debugOverlayActive = $state(false)
+    let debugOverlayEnabled = $state(false)
+
+    onMount(() => {
+        if (typeof window === 'undefined') {
+            return
+        }
+
+        const initialEnabled =
+            window.localStorage.getItem(DEBUG_GEOMETRY_STORAGE_KEY) === '1' ||
+            new URLSearchParams(window.location.search).get('debugGeometry') === '1'
+        debugOverlayEnabled = initialEnabled
+
+        const debugWindow = window as Window & {
+            __setIndonesiaDebugGeometry?: (enabled: boolean) => void
+        }
+        debugWindow.__setIndonesiaDebugGeometry = (enabled: boolean) => {
+            debugOverlayEnabled = enabled
+            if (enabled) {
+                window.localStorage.setItem(DEBUG_GEOMETRY_STORAGE_KEY, '1')
+            } else {
+                window.localStorage.removeItem(DEBUG_GEOMETRY_STORAGE_KEY)
+                debugOverlayActive = false
+            }
+        }
+
+        return () => {
+            delete debugWindow.__setIndonesiaDebugGeometry
+        }
+    })
 </script>
 
 <div class="board-shell">
@@ -57,7 +87,7 @@
                 />
             {/if}
         </svg>
-        {#if SHOW_DEBUG_GEOMETRY}
+        {#if debugOverlayEnabled}
             <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} bind:active={debugOverlayActive} />
         {/if}
     </div>

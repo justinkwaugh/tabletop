@@ -35,6 +35,7 @@ export class IndonesiaGameSession extends GameSession<
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
     hoveredCompanySpotlightCompanyIdsOverride: string[] | undefined = $state()
     hoveredAvailableDeedIdOverride: string | undefined = $state()
+    productionZoneRenderStyleOverride: 'player' | 'goods' | undefined = $state()
     selectedDeliveryCultivatedAreaIdOverride: string | undefined = $state()
     selectedDeliveryCityIdOverride: string | undefined = $state()
     hoveredDeliveryCityAreaIdOverride: string | undefined = $state()
@@ -111,6 +112,10 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         return deed.id
+    })
+
+    productionZoneRenderStyle: 'player' | 'goods' = $derived.by(() => {
+        return this.productionZoneRenderStyleOverride ?? 'player'
     })
 
     operableOwnedCompanyIds: string[] = $derived.by(() => {
@@ -426,6 +431,15 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         this.hoveredAvailableDeedIdOverride = deed.id
+    }
+
+    setProductionZoneRenderStyle(style: 'player' | 'goods'): void {
+        this.productionZoneRenderStyleOverride = style
+    }
+
+    toggleProductionZoneRenderStyle(): void {
+        this.productionZoneRenderStyleOverride =
+            this.productionZoneRenderStyle === 'player' ? 'goods' : 'player'
     }
 
     selectDeliveryCultivatedArea(areaId: string): void {

@@ -18,6 +18,93 @@ export type HistoryCallbacks = {
     onHistoryExit?: HistoryExitCallback
 }
 
+const UI_PERF_STORAGE_KEY = 'indonesia-ui-perf'
+const UI_PERF_GLOBAL_KEY = '__indonesiaUiPerf'
+
+type UiPerfAggregate = {
+    count: number
+    totalMs: number
+    maxMs: number
+    lastMs: number
+    lastMeta?: Record<string, number>
+}
+
+function uiPerfInstrumentationEnabled(): boolean {
+    if (typeof window === 'undefined') {
+        return false
+    }
+    const globalEnabled = (window as Window & { __indonesiaUiPerfEnabled?: unknown })
+        .__indonesiaUiPerfEnabled
+    if (globalEnabled === true) {
+        return true
+    }
+    return window.localStorage.getItem(UI_PERF_STORAGE_KEY) === '1'
+}
+
+function recordUiPerfSample(
+    label: string,
+    durationMs: number,
+    meta?: Record<string, number>
+): void {
+    if (typeof window === 'undefined' || !uiPerfInstrumentationEnabled()) {
+        return
+    }
+
+    const perfWindow = window as Window & {
+        [UI_PERF_GLOBAL_KEY]?: {
+            aggregates: Record<string, UiPerfAggregate>
+            lastSamples: Array<{
+                label: string
+                durationMs: number
+                meta?: Record<string, number>
+                at: number
+            }>
+        }
+    }
+
+    const perfState = perfWindow[UI_PERF_GLOBAL_KEY] ?? {
+        aggregates: {},
+        lastSamples: []
+    }
+    const previousAggregate = perfState.aggregates[label]
+    const nextAggregate: UiPerfAggregate = previousAggregate
+        ? {
+              count: previousAggregate.count + 1,
+              totalMs: previousAggregate.totalMs + durationMs,
+              maxMs: Math.max(previousAggregate.maxMs, durationMs),
+              lastMs: durationMs,
+              lastMeta: meta
+          }
+        : {
+              count: 1,
+              totalMs: durationMs,
+              maxMs: durationMs,
+              lastMs: durationMs,
+              lastMeta: meta
+          }
+
+    perfState.aggregates[label] = nextAggregate
+    perfState.lastSamples.push({
+        label,
+        durationMs,
+        meta,
+        at: Date.now()
+    })
+    if (perfState.lastSamples.length > 300) {
+        perfState.lastSamples.splice(0, perfState.lastSamples.length - 300)
+    }
+    perfWindow[UI_PERF_GLOBAL_KEY] = perfState
+
+    if (durationMs >= 8 || nextAggregate.count % 40 === 0) {
+        console.info(`[ui-perf] ${label}: ${durationMs.toFixed(2)}ms`, {
+            ...meta,
+            avgMs: nextAggregate.totalMs / nextAggregate.count,
+            maxMs: nextAggregate.maxMs,
+            count: nextAggregate.count
+        })
+    }
+}
+
 export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T> {
     private gameContext: GameContext<T, U>
 
@@ -172,6 +259,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         stopPlayback = true,
         predicate
     }: { toActionIndex?: number; stopPlayback?: boolean; predicate?: () => boolean } = {}) {
+        const perfEnabled = uiPerfInstrumentationEnabled() && typeof performance !== 'undefined'
+        const stepStartAt = perfEnabled ? performance.now() : 0
+        let steppedActions = 0
+
         if (
             (this.inHistory && this.actionIndex < 0) ||
             (!this.inHistory && this.gameContext.actions.length === 0) ||
@@ -193,6 +284,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             const updatedState = this.historyContext.engine.undoAction(stateSnapshot, lastAction)
             this.actionIndex -= 1
             stateSnapshot = updatedState
+            steppedActions += 1
         } while (
             (this.actionIndex >= 0 &&
                 ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
@@ -205,7 +297,28 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         this.onHistoryAction(
             this.actionIndex >= 0 ? this.historyContext.actions[this.actionIndex] : undefined
         )
+        const stateUpdateStartedAt = perfEnabled ? performance.now() : 0
         this.historyContext.updateGameState(stateSnapshot)
+        if (perfEnabled) {
+            const updateMs = performance.now() - stateUpdateStartedAt
+            const totalMs = performance.now() - stepStartAt
+            const meta = {
+                steppedActions,
+                actionIndex: this.actionIndex,
+                updateMs: Math.round(updateMs * 100) / 100
+            }
+            recordUiPerfSample('history:step-backward:total', totalMs, meta)
+            if (typeof requestAnimationFrame === 'function') {
+                const frameStartAt = performance.now()
+                requestAnimationFrame(() => {
+                    recordUiPerfSample(
+                        'history:step-backward:to-frame',
+                        performance.now() - frameStartAt,
+                        meta
+                    )
+                })
+            }
+        }
 
         if (stopPlayback) {
             this.stopHistoryPlayback()
@@ -223,6 +336,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         animated?: boolean
         predicate?: () => boolean
     } = {}) {
+        const perfEnabled = uiPerfInstrumentationEnabled() && typeof performance !== 'undefined'
+        const stepStartAt = perfEnabled ? performance.now() : 0
+        let steppedActions = 0
+
         if (!this.historyContext) {
             return
         }
@@ -252,6 +369,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             )
             stateSnapshot = updatedState
             this.actionIndex = nextActionIndex
+            steppedActions += 1
         } while (
             (this.actionIndex < this.historyContext.actions.length - 1 &&
                 ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
@@ -262,7 +380,28 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             (predicate && predicate() === false)
         )
         this.onHistoryAction(this.historyContext.actions[this.actionIndex], animated)
+        const stateUpdateStartedAt = perfEnabled ? performance.now() : 0
         this.historyContext.updateGameState(stateSnapshot)
+        if (perfEnabled) {
+            const updateMs = performance.now() - stateUpdateStartedAt
+            const totalMs = performance.now() - stepStartAt
+            const meta = {
+                steppedActions,
+                actionIndex: this.actionIndex,
+                updateMs: Math.round(updateMs * 100) / 100
+            }
+            recordUiPerfSample('history:step-forward:total', totalMs, meta)
+            if (typeof requestAnimationFrame === 'function') {
+                const frameStartAt = performance.now()
+                requestAnimationFrame(() => {
+                    recordUiPerfSample(
+                        'history:step-forward:to-frame',
+                        performance.now() - frameStartAt,
+                        meta
+                    )
+                })
+            }
+        }
 
         const skippableLastAction = this.shouldAutoStepAction(nextAction)
         if (stopPlayback || skippableLastAction) {

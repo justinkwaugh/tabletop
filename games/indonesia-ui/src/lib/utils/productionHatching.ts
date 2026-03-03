@@ -5,6 +5,16 @@ import {
     type HydratedIndonesiaGameState
 } from '@tabletop/indonesia'
 
+export type ProductionHatchMode = 'player' | 'goods'
+
+type ProductionHatchOptions = {
+    mode?: ProductionHatchMode
+}
+
+type ProductionCompany = (HydratedIndonesiaGameState['companies'][number] & { good: string }) & {
+    type: CompanyType.Production
+}
+
 function addConflictEdge(
     adjacencyByCompanyId: Map<string, Set<string>>,
     companyAId: string,
@@ -23,115 +33,105 @@ function addConflictEdge(
     adjacencyByCompanyId.set(companyBId, companyBConflicts)
 }
 
-export function productionConflictRankByCompanyId(
-    gameState: HydratedIndonesiaGameState
-): Map<string, number> {
-    const productionCompanyById = new Map(
+function productionCompanyById(gameState: HydratedIndonesiaGameState): Map<string, ProductionCompany> {
+    return new Map(
         gameState.companies
-            .filter((company): company is (typeof gameState.companies)[number] & { good: string } => {
+            .filter((company): company is ProductionCompany => {
                 return company.type === CompanyType.Production && 'good' in company
             })
             .map((company) => [company.id, company] as const)
     )
+}
 
-    // Use owned-companies order as the stable chronology for hatch precedence.
-    const companyIdsByOwner = new Map<string, string[]>()
+function productionCompanyOrderById(
+    gameState: HydratedIndonesiaGameState,
+    companyById: ReadonlyMap<string, ProductionCompany>
+): Map<string, number> {
+    const orderByCompanyId = new Map<string, number>()
+    let index = 0
+
     for (const player of gameState.players) {
         for (const companyId of player.ownedCompanies) {
-            const company = productionCompanyById.get(companyId)
-            if (!company) {
+            if (!companyById.has(companyId) || orderByCompanyId.has(companyId)) {
                 continue
             }
-
-            const companyIds = companyIdsByOwner.get(company.owner) ?? []
-            if (!companyIds.includes(company.id)) {
-                companyIds.push(company.id)
-                companyIdsByOwner.set(company.owner, companyIds)
-            }
+            orderByCompanyId.set(companyId, index)
+            index += 1
         }
     }
 
     for (const company of gameState.companies) {
-        if (company.type !== CompanyType.Production || !('good' in company)) {
+        if (!companyById.has(company.id) || orderByCompanyId.has(company.id)) {
             continue
         }
-
-        const companyIds = companyIdsByOwner.get(company.owner) ?? []
-        if (!companyIds.includes(company.id)) {
-            companyIds.push(company.id)
-            companyIdsByOwner.set(company.owner, companyIds)
-        }
+        orderByCompanyId.set(company.id, index)
+        index += 1
     }
 
+    return orderByCompanyId
+}
+
+function productionAreaCompanyIdByAreaId(
+    gameState: HydratedIndonesiaGameState,
+    companyById: ReadonlyMap<string, ProductionCompany>
+): Map<string, string> {
     const areaCompanyIdByAreaId = new Map<string, string>()
     for (const area of Object.values(gameState.board.areas)) {
-        if (!('companyId' in area)) {
-            continue
-        }
-        if (!productionCompanyById.has(area.companyId)) {
+        if (!('companyId' in area) || !companyById.has(area.companyId)) {
             continue
         }
         areaCompanyIdByAreaId.set(area.id, area.companyId)
     }
+    return areaCompanyIdByAreaId
+}
 
-    const adjacencyByOwnerAndCompanyId = new Map<string, Map<string, Set<string>>>()
-    for (const [owner, companyIds] of companyIdsByOwner.entries()) {
-        const adjacencyByCompanyId = new Map<string, Set<string>>()
-        for (const companyId of companyIds) {
-            adjacencyByCompanyId.set(companyId, new Set())
-        }
-        adjacencyByOwnerAndCompanyId.set(owner, adjacencyByCompanyId)
+function applyPlayerModeConflicts(
+    gameState: HydratedIndonesiaGameState,
+    companyById: ReadonlyMap<string, ProductionCompany>,
+    areaCompanyIdByAreaId: ReadonlyMap<string, string>,
+    adjacencyByCompanyId: Map<string, Set<string>>
+): void {
+    const companyIdsByOwner = new Map<string, string[]>()
+    for (const company of companyById.values()) {
+        const companyIds = companyIdsByOwner.get(company.owner) ?? []
+        companyIds.push(company.id)
+        companyIdsByOwner.set(company.owner, companyIds)
     }
 
-    // Existing behavior: production companies of the same owner/good conflict.
-    for (const [owner, companyIds] of companyIdsByOwner.entries()) {
-        const adjacencyByCompanyId = adjacencyByOwnerAndCompanyId.get(owner)
-        if (!adjacencyByCompanyId) {
-            continue
-        }
-
+    // Same-owner/same-good companies always conflict.
+    for (const companyIds of companyIdsByOwner.values()) {
         const companyIdsByGood = new Map<string, string[]>()
         for (const companyId of companyIds) {
-            const company = productionCompanyById.get(companyId)
+            const company = companyById.get(companyId)
             if (!company) {
                 continue
             }
-            const ids = companyIdsByGood.get(company.good) ?? []
-            ids.push(companyId)
-            companyIdsByGood.set(company.good, ids)
+            const sameGoodIds = companyIdsByGood.get(company.good) ?? []
+            sameGoodIds.push(companyId)
+            companyIdsByGood.set(company.good, sameGoodIds)
         }
 
-        for (const sameGoodCompanyIds of companyIdsByGood.values()) {
-            for (let leftIndex = 0; leftIndex < sameGoodCompanyIds.length; leftIndex += 1) {
-                for (
-                    let rightIndex = leftIndex + 1;
-                    rightIndex < sameGoodCompanyIds.length;
-                    rightIndex += 1
-                ) {
+        for (const sameGoodIds of companyIdsByGood.values()) {
+            for (let leftIndex = 0; leftIndex < sameGoodIds.length; leftIndex += 1) {
+                for (let rightIndex = leftIndex + 1; rightIndex < sameGoodIds.length; rightIndex += 1) {
                     addConflictEdge(
                         adjacencyByCompanyId,
-                        sameGoodCompanyIds[leftIndex],
-                        sameGoodCompanyIds[rightIndex]
+                        sameGoodIds[leftIndex],
+                        sameGoodIds[rightIndex]
                     )
                 }
             }
         }
     }
 
-    // New behavior: any same-owner production companies with land-adjacent cultivated
-    // areas also conflict, even across different goods.
+    // Same-owner cultivated areas that become land-adjacent also conflict.
     for (const [areaId, companyId] of areaCompanyIdByAreaId.entries()) {
         if (!isIndonesiaNodeId(areaId)) {
             continue
         }
 
-        const company = productionCompanyById.get(companyId)
+        const company = companyById.get(companyId)
         if (!company) {
-            continue
-        }
-
-        const adjacencyByCompanyId = adjacencyByOwnerAndCompanyId.get(company.owner)
-        if (!adjacencyByCompanyId) {
             continue
         }
 
@@ -149,7 +149,7 @@ export function productionConflictRankByCompanyId(
                 continue
             }
 
-            const neighborCompany = productionCompanyById.get(neighborCompanyId)
+            const neighborCompany = companyById.get(neighborCompanyId)
             if (!neighborCompany || neighborCompany.owner !== company.owner) {
                 continue
             }
@@ -157,63 +157,122 @@ export function productionConflictRankByCompanyId(
             addConflictEdge(adjacencyByCompanyId, companyId, neighborCompanyId)
         }
     }
+}
 
-    const companyOrderByOwnerAndId = new Map<string, number>()
-    for (const [owner, companyIds] of companyIdsByOwner.entries()) {
-        for (const [index, companyId] of companyIds.entries()) {
-            companyOrderByOwnerAndId.set(`${owner}|${companyId}`, index)
+function applyGoodsModeConflicts(
+    gameState: HydratedIndonesiaGameState,
+    companyById: ReadonlyMap<string, ProductionCompany>,
+    areaCompanyIdByAreaId: ReadonlyMap<string, string>,
+    adjacencyByCompanyId: Map<string, Set<string>>
+): void {
+    // In goods mode, only land-adjacent zones of the same good conflict.
+    for (const [areaId, companyId] of areaCompanyIdByAreaId.entries()) {
+        if (!isIndonesiaNodeId(areaId)) {
+            continue
+        }
+
+        const company = companyById.get(companyId)
+        if (!company) {
+            continue
+        }
+
+        const node = gameState.board.graph.nodeById(areaId)
+        if (!node) {
+            continue
+        }
+
+        for (const neighborNode of gameState.board.graph.neighborsOf(
+            node,
+            IndonesiaNeighborDirection.Land
+        )) {
+            const neighborCompanyId = areaCompanyIdByAreaId.get(neighborNode.id)
+            if (!neighborCompanyId || neighborCompanyId === companyId) {
+                continue
+            }
+
+            const neighborCompany = companyById.get(neighborCompanyId)
+            if (!neighborCompany || neighborCompany.good !== company.good) {
+                continue
+            }
+
+            addConflictEdge(adjacencyByCompanyId, companyId, neighborCompanyId)
         }
     }
+}
+
+export function productionConflictRankByCompanyId(
+    gameState: HydratedIndonesiaGameState,
+    options: ProductionHatchOptions = {}
+): Map<string, number> {
+    const mode: ProductionHatchMode = options.mode ?? 'player'
+    const companyById = productionCompanyById(gameState)
+    const areaCompanyIdByAreaId = productionAreaCompanyIdByAreaId(gameState, companyById)
+    const companyOrderById = productionCompanyOrderById(gameState, companyById)
+
+    const adjacencyByCompanyId = new Map<string, Set<string>>()
+    for (const companyId of companyById.keys()) {
+        adjacencyByCompanyId.set(companyId, new Set())
+    }
+
+    if (mode === 'goods') {
+        applyGoodsModeConflicts(gameState, companyById, areaCompanyIdByAreaId, adjacencyByCompanyId)
+    } else {
+        applyPlayerModeConflicts(gameState, companyById, areaCompanyIdByAreaId, adjacencyByCompanyId)
+    }
+
+    const orderedCompanyIds = [...companyById.keys()].sort((leftCompanyId, rightCompanyId) => {
+        const leftOrder = companyOrderById.get(leftCompanyId) ?? Number.MAX_SAFE_INTEGER
+        const rightOrder = companyOrderById.get(rightCompanyId) ?? Number.MAX_SAFE_INTEGER
+        if (leftOrder !== rightOrder) {
+            return leftOrder - rightOrder
+        }
+        return leftCompanyId.localeCompare(rightCompanyId)
+    })
 
     const conflictRankByCompanyId = new Map<string, number>()
-    for (const [owner, adjacencyByCompanyId] of adjacencyByOwnerAndCompanyId.entries()) {
-        const ownerCompanyIds = companyIdsByOwner.get(owner) ?? []
-        const visitedCompanyIds = new Set<string>()
+    const visitedCompanyIds = new Set<string>()
+    for (const startCompanyId of orderedCompanyIds) {
+        if (visitedCompanyIds.has(startCompanyId)) {
+            continue
+        }
 
-        for (const startCompanyId of ownerCompanyIds) {
-            if (visitedCompanyIds.has(startCompanyId)) {
+        const stack = [startCompanyId]
+        const connectedCompanyIds: string[] = []
+        while (stack.length > 0) {
+            const companyId = stack.pop()
+            if (!companyId || visitedCompanyIds.has(companyId)) {
                 continue
             }
 
-            const stack = [startCompanyId]
-            const connectedCompanyIds: string[] = []
-            while (stack.length > 0) {
-                const companyId = stack.pop()
-                if (!companyId || visitedCompanyIds.has(companyId)) {
-                    continue
-                }
+            visitedCompanyIds.add(companyId)
+            connectedCompanyIds.push(companyId)
 
-                visitedCompanyIds.add(companyId)
-                connectedCompanyIds.push(companyId)
-
-                const neighbors = adjacencyByCompanyId.get(companyId)
-                if (!neighbors) {
-                    continue
-                }
-
-                for (const neighborCompanyId of neighbors) {
-                    if (!visitedCompanyIds.has(neighborCompanyId)) {
-                        stack.push(neighborCompanyId)
-                    }
-                }
-            }
-
-            if (connectedCompanyIds.length <= 1) {
+            const neighborCompanyIds = adjacencyByCompanyId.get(companyId)
+            if (!neighborCompanyIds) {
                 continue
             }
-
-            connectedCompanyIds.sort((leftCompanyId, rightCompanyId) => {
-                const leftOrder = companyOrderByOwnerAndId.get(`${owner}|${leftCompanyId}`) ?? Number.MAX_SAFE_INTEGER
-                const rightOrder = companyOrderByOwnerAndId.get(`${owner}|${rightCompanyId}`) ?? Number.MAX_SAFE_INTEGER
-                if (leftOrder !== rightOrder) {
-                    return leftOrder - rightOrder
+            for (const neighborCompanyId of neighborCompanyIds) {
+                if (!visitedCompanyIds.has(neighborCompanyId)) {
+                    stack.push(neighborCompanyId)
                 }
-                return leftCompanyId.localeCompare(rightCompanyId)
-            })
-
-            for (const [index, companyId] of connectedCompanyIds.entries()) {
-                conflictRankByCompanyId.set(companyId, index)
             }
+        }
+
+        if (connectedCompanyIds.length <= 1) {
+            continue
+        }
+
+        connectedCompanyIds.sort((leftCompanyId, rightCompanyId) => {
+            const leftOrder = companyOrderById.get(leftCompanyId) ?? Number.MAX_SAFE_INTEGER
+            const rightOrder = companyOrderById.get(rightCompanyId) ?? Number.MAX_SAFE_INTEGER
+            if (leftOrder !== rightOrder) {
+                return leftOrder - rightOrder
+            }
+            return leftCompanyId.localeCompare(rightCompanyId)
+        })
+
+        for (const [index, companyId] of connectedCompanyIds.entries()) {
+            conflictRankByCompanyId.set(companyId, index)
         }
     }
 
@@ -222,14 +281,15 @@ export function productionConflictRankByCompanyId(
 
 export function productionHatchVariantByCompanyId(
     gameState: HydratedIndonesiaGameState,
-    hatchPatternCount: number
+    hatchPatternCount: number,
+    options: ProductionHatchOptions = {}
 ): Map<string, number> {
     const hatchVariantByCompanyId = new Map<string, number>()
     if (hatchPatternCount <= 0) {
         return hatchVariantByCompanyId
     }
 
-    for (const [companyId, conflictRank] of productionConflictRankByCompanyId(gameState)) {
+    for (const [companyId, conflictRank] of productionConflictRankByCompanyId(gameState, options)) {
         if (conflictRank <= 0) {
             continue
         }
