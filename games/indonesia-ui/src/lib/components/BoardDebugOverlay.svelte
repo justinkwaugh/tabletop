@@ -19,6 +19,7 @@
     import CubeMarker from '$lib/components/CubeMarker.svelte'
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
+    import CityDemandMarker from '$lib/components/CityDemandMarker.svelte'
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
     import CompanyDeed, { deedCardKindFor } from '$lib/components/CompanyDeed.svelte'
     import { DEED_CARD_POSITIONS, DEED_CARD_POSITIONS_STORAGE_KEY } from '$lib/definitions/deedCardPositions.js'
@@ -27,6 +28,7 @@
         PRODUCTION_ZONE_MARKER_OFFSETS,
         PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY
     } from '$lib/definitions/productionZoneMarkerOffsets.js'
+    import { CITY_DEMAND_MARKER_POSITIONS_BY_REGION } from '$lib/definitions/cityDemandMarkerPositions.js'
     import {
         RESEARCH_ROWS,
         RESEARCH_TRACK_CELLS,
@@ -51,7 +53,7 @@
     import type { CompanyCardType } from '$lib/types/companyCard.js'
     import type { Point } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { CompanyType, Deeds, Era, Good, type AnyDeed } from '@tabletop/indonesia'
+    import { CompanyType, Deeds, Era, Good, INDONESIA_REGIONS, type AnyDeed } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
 
@@ -74,6 +76,7 @@
         | 'research'
         | 'marker'
         | 'companymarkers'
+        | 'citydemand'
         | 'layout'
     type BeadTone = 'amber' | 'red' | 'green'
     let colorMode: OverlayMode = $state('none')
@@ -84,6 +87,11 @@
     let markerSelectedAreaId: string | null = $state(null)
     let markerDraggingAreaId: string | null = $state(null)
     let markerCopyStatus: string | null = $state(null)
+    let cityDemandMarkerOffsets: Record<string, Point> = $state({})
+    let cityDemandMarkerOffsetsLoaded = $state(false)
+    let cityDemandSelectedRegionId: string | null = $state(null)
+    let cityDemandDraggingRegionId: string | null = $state(null)
+    let cityDemandCopyStatus: string | null = $state(null)
     let shipMarkerCount: 1 | 2 | 3 = $state(1)
     let companyShipMarkerCount: 1 | 2 | 3 = $state(1)
     let shipMarkerPositions: Record<string, SeaShipLayout> = $state({})
@@ -106,6 +114,7 @@
     let layoutShowShips = $state(true)
     let layoutShowDeeds = $state(true)
     let layoutShowTags = $state(true)
+    let layoutShowCityDemand = $state(true)
     let layoutShipCountBySeaId: Record<string, 1 | 2 | 3> = $state({})
 
     type BoardNodeAreaType = 'Land' | 'Sea'
@@ -199,6 +208,20 @@
         rotationDegrees: number
     }
 
+    type CityDemandTuneMarker = {
+        key: string
+        regionId: string
+        areaId: string
+        x: number
+        y: number
+        targetX: number
+        targetY: number
+        demands: Array<{
+            good: Good
+            count: number
+        }>
+    }
+
     const DEBUG_PALETTE = ['#ff3b30', '#007aff', '#34c759', '#ffcc00', '#af52de', '#ff9500']
     const PRODUCTION_ICON_HEIGHT = 30
     const SHIP_MARKER_HEIGHT = 45
@@ -215,6 +238,7 @@
     const SHIP_OVERLAY_LIGHT = '#9fc4c5'
     const SHIP_OVERLAY_DARK = '#396c78'
     const MARKER_POSITIONS_STORAGE_KEY = 'indonesia-marker-positions-v1'
+    const CITY_DEMAND_MARKER_OFFSETS_STORAGE_KEY = 'indonesia-city-demand-marker-offsets-v1'
     const SHIP_MARKER_POSITIONS_STORAGE_KEY = 'indonesia-sea-ship-marker-positions-v1'
     const SEA_SHIP_MARKER_POSITION_LOOKUP = SEA_SHIP_MARKER_POSITIONS
     const LAND_MARKER_POSITION_LOOKUP = LAND_MARKER_POSITIONS
@@ -296,6 +320,16 @@
         'rice',
         'rubber'
     ]
+    const CITY_DEMAND_TUNE_GOOD_ORDER = [
+        Good.Rice,
+        Good.Spice,
+        Good.Rubber,
+        Good.SiapSaji,
+        Good.Oil
+    ] as const
+    const CITY_DEMAND_TUNE_TAG_DISTANCE = 62
+    const CITY_DEMAND_TUNE_TAG_MAX_OFFSET = 14
+    const CITY_DEMAND_TUNE_BOARD_CENTER = { x: 2646 / 2, y: 1280 / 2 }
     const GLASS_BEAD_PREVIEW_MARKERS = [
         { x: 172, y: 90, tone: 'amber' },
         { x: 207, y: 103, tone: 'red' },
@@ -315,6 +349,14 @@
 
     function pairKey(a: string, b: string): string {
         return a < b ? `${a}|${b}` : `${b}|${a}`
+    }
+
+    function hashStringToSeed(value: string): number {
+        let hash = 0
+        for (const char of value) {
+            hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+        }
+        return hash
     }
 
     function extractDirectionalNeighbors(neighbors: unknown, direction: 'Land' | 'Sea'): string[] {
@@ -415,14 +457,14 @@
         }
     }
 
-    function parseProductionZoneMarkerOffsets(value: unknown): Record<string, Point> {
+    function parsePointOffsetMap(value: unknown): Record<string, Point> {
         if (!value || typeof value !== 'object') {
             return {}
         }
 
         const parsed = value as Record<string, unknown>
         const nextOffsets: Record<string, Point> = {}
-        for (const [deedId, candidate] of Object.entries(parsed)) {
+        for (const [id, candidate] of Object.entries(parsed)) {
             if (!candidate || typeof candidate !== 'object') {
                 continue
             }
@@ -430,13 +472,17 @@
             if (typeof point.x !== 'number' || typeof point.y !== 'number') {
                 continue
             }
-            nextOffsets[deedId] = {
+            nextOffsets[id] = {
                 x: point.x,
                 y: point.y
             }
         }
 
         return nextOffsets
+    }
+
+    function parseProductionZoneMarkerOffsets(value: unknown): Record<string, Point> {
+        return parsePointOffsetMap(value)
     }
 
     function cloneShipLayout(layout: SeaShipLayout): SeaShipLayout {
@@ -680,11 +726,48 @@
         event.preventDefault()
     }
 
+    function setCityDemandMarkerOffsetForAbsolutePosition(
+        regionId: string,
+        absolutePoint: Point
+    ): void {
+        const marker = CITY_DEMAND_TUNE_BASE_MARKERS.find(
+            (candidate) => candidate.regionId === regionId
+        )
+        if (!marker) {
+            return
+        }
+
+        cityDemandMarkerOffsets = {
+            ...cityDemandMarkerOffsets,
+            [regionId]: {
+                x: roundToTenth(absolutePoint.x - marker.x),
+                y: roundToTenth(absolutePoint.y - marker.y)
+            }
+        }
+    }
+
+    function startCityDemandMarkerDrag(regionId: string, event: PointerEvent): void {
+        if (colorMode !== 'citydemand') {
+            return
+        }
+
+        cityDemandSelectedRegionId = regionId
+        cityDemandDraggingRegionId = regionId
+        const nextPoint = getSvgCoordinates(event)
+        if (nextPoint) {
+            setCityDemandMarkerOffsetForAbsolutePosition(regionId, nextPoint)
+        }
+        const target = event.currentTarget as Element | null
+        target?.setPointerCapture?.(event.pointerId)
+        event.preventDefault()
+    }
+
     function stopMarkerDrag(): void {
         markerDraggingAreaId = null
         shipMarkerDragging = null
         deedCardDraggingKey = null
         productionZoneMarkerDraggingDeedId = null
+        cityDemandDraggingRegionId = null
     }
 
     function handleMarkerPointerMove(event: PointerEvent): void {
@@ -716,6 +799,14 @@
                     productionZoneMarkerDraggingDeedId,
                     nextPoint
                 )
+                return
+            }
+            if (colorMode === 'citydemand' && cityDemandDraggingRegionId) {
+                const nextPoint = getSvgCoordinates(event)
+                if (!nextPoint) {
+                    return
+                }
+                setCityDemandMarkerOffsetForAbsolutePosition(cityDemandDraggingRegionId, nextPoint)
             }
             return
         }
@@ -791,6 +882,23 @@
         productionZoneMarkerOffsets = {}
     }
 
+    function clearSelectedCityDemandMarkerOverride(): void {
+        if (
+            !cityDemandSelectedRegionId ||
+            cityDemandMarkerOffsets[cityDemandSelectedRegionId] === undefined
+        ) {
+            return
+        }
+
+        const nextOffsets = { ...cityDemandMarkerOffsets }
+        delete nextOffsets[cityDemandSelectedRegionId]
+        cityDemandMarkerOffsets = nextOffsets
+    }
+
+    function clearAllCityDemandMarkerOverrides(): void {
+        cityDemandMarkerOffsets = {}
+    }
+
     function selectShipMarkerCount(nextCount: 1 | 2 | 3): void {
         shipMarkerCount = nextCount
         const maxMarkerIndex = nextCount - 1
@@ -824,7 +932,7 @@
 
     async function copyToClipboard(
         value: string,
-        target: 'marker' | 'ship' | 'deed' | 'companymarker' = 'marker'
+        target: 'marker' | 'ship' | 'deed' | 'companymarker' | 'citydemand' = 'marker'
     ): Promise<void> {
         if (typeof navigator === 'undefined' || !navigator.clipboard) {
             if (target === 'ship') {
@@ -833,6 +941,8 @@
                 deedCardCopyStatus = 'Clipboard unavailable'
             } else if (target === 'companymarker') {
                 productionZoneMarkerCopyStatus = 'Clipboard unavailable'
+            } else if (target === 'citydemand') {
+                cityDemandCopyStatus = 'Clipboard unavailable'
             } else {
                 markerCopyStatus = 'Clipboard unavailable'
             }
@@ -846,6 +956,8 @@
                 deedCardCopyStatus = 'Copied'
             } else if (target === 'companymarker') {
                 productionZoneMarkerCopyStatus = 'Copied'
+            } else if (target === 'citydemand') {
+                cityDemandCopyStatus = 'Copied'
             } else {
                 markerCopyStatus = 'Copied'
             }
@@ -856,6 +968,8 @@
                 deedCardCopyStatus = 'Copy failed'
             } else if (target === 'companymarker') {
                 productionZoneMarkerCopyStatus = 'Copy failed'
+            } else if (target === 'citydemand') {
+                cityDemandCopyStatus = 'Copy failed'
             } else {
                 markerCopyStatus = 'Copy failed'
             }
@@ -890,6 +1004,17 @@
             markerPositions = {}
         } finally {
             markerPositionsLoaded = true
+        }
+
+        try {
+            const stored = window.localStorage.getItem(CITY_DEMAND_MARKER_OFFSETS_STORAGE_KEY)
+            if (stored) {
+                cityDemandMarkerOffsets = parsePointOffsetMap(JSON.parse(stored))
+            }
+        } catch {
+            cityDemandMarkerOffsets = {}
+        } finally {
+            cityDemandMarkerOffsetsLoaded = true
         }
 
         try {
@@ -959,6 +1084,16 @@
             return
         }
         window.localStorage.setItem(MARKER_POSITIONS_STORAGE_KEY, JSON.stringify(markerPositions))
+    })
+
+    $effect(() => {
+        if (!cityDemandMarkerOffsetsLoaded || typeof window === 'undefined') {
+            return
+        }
+        window.localStorage.setItem(
+            CITY_DEMAND_MARKER_OFFSETS_STORAGE_KEY,
+            JSON.stringify(cityDemandMarkerOffsets)
+        )
     })
 
     $effect(() => {
@@ -1189,6 +1324,9 @@
             return []
         }
         if (colorMode === 'companymarkers') {
+            return []
+        }
+        if (colorMode === 'citydemand') {
             return []
         }
         if (colorMode === 'layout') {
@@ -1909,6 +2047,119 @@
         return PRODUCTION_MARKERS
     })
 
+    const CITY_DEMAND_TUNE_BASE_MARKERS: CityDemandTuneMarker[] = $derived.by(() => {
+        const regions = [...INDONESIA_REGIONS].sort((left, right) =>
+            left.id.localeCompare(right.id, undefined, { numeric: true })
+        )
+        const markers: CityDemandTuneMarker[] = []
+
+        for (const region of regions) {
+            const coastalAreas = Array.from(gameSession.gameState.board.coastalAreasForRegion(region.id))
+                .map((area) => LAND_DEBUG_AREAS_BY_ID.get(area.id))
+                .filter((area): area is DebugArea => area !== undefined)
+
+            if (coastalAreas.length === 0) {
+                continue
+            }
+
+            const anchorArea = coastalAreas[0]
+            if (!anchorArea) {
+                continue
+            }
+
+            const target = coastalAreas.reduce(
+                (accumulator, area) => {
+                    const position = getDefaultMarkerPositionForArea(area)
+                    accumulator.x += position.x
+                    accumulator.y += position.y
+                    return accumulator
+                },
+                { x: 0, y: 0 }
+            )
+            const targetX = target.x / coastalAreas.length
+            const targetY = target.y / coastalAreas.length
+
+            const dx = targetX - CITY_DEMAND_TUNE_BOARD_CENTER.x
+            const dy = targetY - CITY_DEMAND_TUNE_BOARD_CENTER.y
+            const magnitude = Math.hypot(dx, dy)
+            const ux = magnitude > 0.001 ? dx / magnitude : 0
+            const uy = magnitude > 0.001 ? dy / magnitude : -1
+            const tangentX = -uy
+            const tangentY = ux
+            const jitterSeed = hashStringToSeed(region.id)
+            const jitter = ((jitterSeed % 5) - 2) * (CITY_DEMAND_TUNE_TAG_MAX_OFFSET / 2)
+            const tunedPosition = CITY_DEMAND_MARKER_POSITIONS_BY_REGION[region.id]
+            const markerX = tunedPosition?.x ?? targetX + ux * CITY_DEMAND_TUNE_TAG_DISTANCE + tangentX * jitter
+            const markerY = tunedPosition?.y ?? targetY + uy * CITY_DEMAND_TUNE_TAG_DISTANCE + tangentY * jitter
+
+            markers.push({
+                key: region.id,
+                regionId: region.id,
+                areaId: anchorArea.id,
+                x: markerX,
+                y: markerY,
+                targetX,
+                targetY,
+                demands: CITY_DEMAND_TUNE_GOOD_ORDER.map((good) => ({ good, count: 3 }))
+            })
+        }
+
+        return markers
+    })
+
+    const CITY_DEMAND_TUNE_MARKERS: CityDemandTuneMarker[] = $derived.by(() => {
+        if (
+            colorMode !== 'citydemand' &&
+            !(colorMode === 'layout' && layoutShowCityDemand)
+        ) {
+            return []
+        }
+
+        return CITY_DEMAND_TUNE_BASE_MARKERS.map((marker) => {
+            const offset = cityDemandMarkerOffsets[marker.regionId] ?? { x: 0, y: 0 }
+            return {
+                ...marker,
+                x: marker.x + offset.x,
+                y: marker.y + offset.y
+            }
+        })
+    })
+
+    const SELECTED_CITY_DEMAND_TUNE_MARKER: CityDemandTuneMarker | null = $derived.by(() => {
+        if (!cityDemandSelectedRegionId) {
+            return null
+        }
+        return (
+            CITY_DEMAND_TUNE_MARKERS.find((marker) => marker.regionId === cityDemandSelectedRegionId) ??
+            null
+        )
+    })
+
+    const CITY_DEMAND_MARKER_OVERRIDES_EXPORT_TEXT: string = $derived.by(() => {
+        const regionIds = Object.keys(cityDemandMarkerOffsets).sort((left, right) =>
+            left.localeCompare(right, undefined, { numeric: true })
+        )
+        if (regionIds.length === 0) {
+            return '// No city demand marker overrides yet.'
+        }
+
+        const lines = regionIds.map((regionId) => {
+            const offset = cityDemandMarkerOffsets[regionId]
+            return `    '${regionId}': { x: ${offset.x.toFixed(1)}, y: ${offset.y.toFixed(1)} },`
+        })
+        return `export const CITY_DEMAND_MARKER_OFFSETS_BY_REGION = {\n${lines.join('\n')}\n} as const`
+    })
+
+    const CITY_DEMAND_MARKER_FULL_EXPORT_TEXT: string = $derived.by(() => {
+        const lines = CITY_DEMAND_TUNE_MARKERS.slice()
+            .sort((left, right) => left.regionId.localeCompare(right.regionId, undefined, { numeric: true }))
+            .map(
+                (marker) =>
+                    `    '${marker.regionId}': { x: ${marker.x.toFixed(1)}, y: ${marker.y.toFixed(1)} },`
+            )
+        return `export const CITY_DEMAND_MARKER_POSITIONS_BY_REGION = {\n${lines.join('\n')}\n} as const`
+    })
+
     const MARKER_OVERRIDES_EXPORT_TEXT: string = $derived.by(() => {
         const ids = Object.keys(markerPositions).sort(compareAreaIds)
         if (ids.length === 0) {
@@ -2049,6 +2300,9 @@
             return new Map()
         }
         if (colorMode === 'companymarkers') {
+            return new Map()
+        }
+        if (colorMode === 'citydemand') {
             return new Map()
         }
         if (colorMode === 'layout') {
@@ -2198,6 +2452,16 @@
             }}
         >
             Company Markers
+        </button>
+        <button
+            type="button"
+            class:active={colorMode === 'citydemand'}
+            onclick={() => {
+                hoveredSeaId = null
+                colorMode = 'citydemand'
+            }}
+        >
+            City Demand
         </button>
         <button
             type="button"
@@ -2487,6 +2751,73 @@
             ></textarea>
         </div>
     {/if}
+    {#if colorMode === 'citydemand'}
+        <div class="marker-tune-panel">
+            <div class="marker-tune-title">City Demand Tag Tuner</div>
+            <div class="marker-tune-row">
+                <span>Rendered Regions:</span>
+                <strong>{CITY_DEMAND_TUNE_MARKERS.length}</strong>
+            </div>
+            <div class="marker-tune-row">
+                <span>Selected:</span>
+                <strong>{cityDemandSelectedRegionId ?? 'None'}</strong>
+            </div>
+            {#if SELECTED_CITY_DEMAND_TUNE_MARKER}
+                <div class="marker-tune-row">
+                    <span>X:</span>
+                    <code>{SELECTED_CITY_DEMAND_TUNE_MARKER.x.toFixed(1)}</code>
+                    <span>Y:</span>
+                    <code>{SELECTED_CITY_DEMAND_TUNE_MARKER.y.toFixed(1)}</code>
+                </div>
+            {/if}
+            <div class="marker-tune-row marker-tune-buttons">
+                <button type="button" onclick={clearSelectedCityDemandMarkerOverride}
+                    >Clear Selected</button
+                >
+                <button type="button" onclick={clearAllCityDemandMarkerOverrides}>Clear All</button>
+            </div>
+            <div class="marker-tune-row marker-tune-buttons">
+                <button
+                    type="button"
+                    onclick={() =>
+                        copyToClipboard(CITY_DEMAND_MARKER_OVERRIDES_EXPORT_TEXT, 'citydemand')}
+                >
+                    Copy Overrides
+                </button>
+                <button
+                    type="button"
+                    onclick={() => copyToClipboard(CITY_DEMAND_MARKER_FULL_EXPORT_TEXT, 'citydemand')}
+                >
+                    Copy Full
+                </button>
+            </div>
+            <div class="marker-tune-row">
+                <span>Display:</span>
+                <strong>One demand strip per city-eligible region</strong>
+            </div>
+            <div class="marker-tune-row">
+                <span>Overrides:</span>
+                <strong>{Object.keys(cityDemandMarkerOffsets).length}</strong>
+                {#if cityDemandCopyStatus}
+                    <em>{cityDemandCopyStatus}</em>
+                {/if}
+            </div>
+            <label class="marker-tune-label" for="city-demand-overrides-export"
+                >Overrides Export</label
+            >
+            <textarea
+                id="city-demand-overrides-export"
+                readonly
+                value={CITY_DEMAND_MARKER_OVERRIDES_EXPORT_TEXT}
+            ></textarea>
+            <label class="marker-tune-label" for="city-demand-full-export">Full Export</label>
+            <textarea
+                id="city-demand-full-export"
+                readonly
+                value={CITY_DEMAND_MARKER_FULL_EXPORT_TEXT}
+            ></textarea>
+        </div>
+    {/if}
     {#if colorMode === 'layout'}
         <div class="marker-tune-panel layout-composite-panel">
             <div class="marker-tune-title">Composite Layout</div>
@@ -2499,6 +2830,13 @@
                 </button>
                 <button type="button" class:active={layoutShowTags} onclick={() => (layoutShowTags = !layoutShowTags)}>
                     Tags
+                </button>
+                <button
+                    type="button"
+                    class:active={layoutShowCityDemand}
+                    onclick={() => (layoutShowCityDemand = !layoutShowCityDemand)}
+                >
+                    City Demand
                 </button>
             </div>
             {#if layoutShowShips}
@@ -2554,6 +2892,10 @@
                     {layoutShowTags ? DEBUG_PRODUCTION_DEED_MARKERS.length : 0}
                 </strong>
                 <span>tags</span>
+                <strong>
+                    {layoutShowCityDemand ? CITY_DEMAND_TUNE_MARKERS.length : 0}
+                </strong>
+                <span>city-demand</span>
             </div>
         </div>
     {/if}
@@ -2852,6 +3194,45 @@
                         hatchPatternId={marker.hatchPatternId}
                         direction={marker.direction}
                     />
+                {/each}
+            {/if}
+            {#if colorMode === 'citydemand' || (colorMode === 'layout' && layoutShowCityDemand)}
+                {#each CITY_DEMAND_TUNE_MARKERS as marker (marker.key)}
+                    <CityDemandMarker
+                        x={marker.x}
+                        y={marker.y}
+                        targetX={marker.targetX}
+                        targetY={marker.targetY}
+                        demands={marker.demands}
+                    />
+                    {#if colorMode === 'citydemand'}
+                        <circle
+                            cx={marker.x}
+                            cy={marker.y}
+                            r={marker.regionId === cityDemandSelectedRegionId ? 8 : 6.5}
+                            fill={marker.regionId === cityDemandSelectedRegionId ? '#fef3c7' : '#ffffff'}
+                            fill-opacity="0.36"
+                            stroke={marker.regionId === cityDemandSelectedRegionId ? '#b45309' : '#1f2937'}
+                            stroke-width={marker.regionId === cityDemandSelectedRegionId ? 2.2 : 1.5}
+                            pointer-events="all"
+                            onpointerdown={(event) => startCityDemandMarkerDrag(marker.regionId, event)}
+                        ></circle>
+                        <text
+                            x={marker.targetX}
+                            y={marker.targetY - 14}
+                            fill="#111827"
+                            stroke="#ffffff"
+                            stroke-width="1.2"
+                            paint-order="stroke fill"
+                            font-size="11"
+                            font-weight="700"
+                            text-anchor="middle"
+                            dominant-baseline="middle"
+                            pointer-events="none"
+                        >
+                            {marker.regionId}
+                        </text>
+                    {/if}
                 {/each}
             {/if}
             {#if colorMode === 'deeds' || colorMode === 'ships' || (colorMode === 'layout' && layoutShowDeeds)}
