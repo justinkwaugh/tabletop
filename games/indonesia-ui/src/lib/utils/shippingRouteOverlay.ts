@@ -8,6 +8,7 @@ type DeliveryShippingRoutePathInput = {
     cultivatedAreaId: string
     cultivatedZoneAreaIds?: readonly string[]
     firstSeaWaypointOverride?: Point
+    firstSeaWaypointCandidates?: readonly Point[]
     blockedShipPoints?: readonly Point[]
     seaAreaIds: readonly string[]
     cityAreaId: string
@@ -84,9 +85,26 @@ function pointDistance(a: Point, b: Point): number {
     return Math.hypot(dx, dy)
 }
 
+function polylineLength(points: readonly Point[]): number {
+    if (points.length <= 1) {
+        return 0
+    }
+
+    let length = 0
+    for (let index = 1; index < points.length; index += 1) {
+        length += pointDistance(points[index - 1], points[index])
+    }
+    return length
+}
+
 function resolveFirstSeaWaypoint(input: DeliveryShippingRoutePathInput): Point | null {
     if (input.firstSeaWaypointOverride) {
         return input.firstSeaWaypointOverride
+    }
+
+    const candidateWaypoint = input.firstSeaWaypointCandidates?.[0]
+    if (candidateWaypoint) {
+        return candidateWaypoint
     }
 
     const firstSeaAreaId = input.seaAreaIds[0]
@@ -660,6 +678,70 @@ function appendPathSegment(target: Point[], segment: readonly Point[]): void {
     }
 }
 
+type StartLegSelection = {
+    cultivatedPoint: Point
+    firstSeaPoint: Point
+    startSegment: Point[]
+}
+
+function pickStartLegByShortestRoute(
+    input: DeliveryShippingRoutePathInput,
+    blockedShipPoints: readonly Point[]
+): StartLegSelection | null {
+    const firstSeaPointCandidates = (
+        input.firstSeaWaypointCandidates && input.firstSeaWaypointCandidates.length > 0
+            ? input.firstSeaWaypointCandidates
+            : [resolveFirstSeaWaypoint(input)].filter((point): point is Point => point !== null)
+    ).slice()
+    if (firstSeaPointCandidates.length === 0) {
+        return null
+    }
+
+    const zoneAreaIds = (
+        input.cultivatedZoneAreaIds && input.cultivatedZoneAreaIds.length > 0
+            ? input.cultivatedZoneAreaIds
+            : [input.cultivatedAreaId]
+    ).slice()
+    const startRoutingContext = createRoutingContext(zoneAreaIds, {
+        blockedShipPoints
+    })
+
+    let bestSelection: StartLegSelection | null = null
+    let bestDistance = Number.POSITIVE_INFINITY
+
+    for (const firstSeaPoint of firstSeaPointCandidates) {
+        for (const areaId of zoneAreaIds) {
+            const cultivatedPoint = resolveLandMarkerPosition(areaId)
+            if (!cultivatedPoint) {
+                continue
+            }
+
+            const startSegment = routeThroughWater(
+                cultivatedPoint,
+                firstSeaPoint,
+                startRoutingContext
+            )
+            if (!startSegment) {
+                continue
+            }
+
+            const routedDistance = polylineLength(startSegment)
+            if (routedDistance >= bestDistance) {
+                continue
+            }
+
+            bestDistance = routedDistance
+            bestSelection = {
+                cultivatedPoint,
+                firstSeaPoint,
+                startSegment
+            }
+        }
+    }
+
+    return bestSelection
+}
+
 function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): string | null {
     if (input.seaAreaIds.length === 0) {
         return null
@@ -694,55 +776,34 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         return null
     }
 
-    const seaWaypoints: Point[] = []
-    for (const [seaAreaIndex, seaAreaId] of input.seaAreaIds.entries()) {
-        const seaWaypoint =
-            seaAreaIndex === 0 ? resolveFirstSeaWaypoint(input) : seaWaypointForAreaId(seaAreaId)
-        if (!seaWaypoint) {
-            return null
-        }
-        seaWaypoints.push(seaWaypoint)
-    }
-
     const landShapes = ensureLandShapes()
     if (landShapes.length === 0) {
         return buildStraightFallbackPath(input)
     }
 
     const blockedShipPoints = input.blockedShipPoints ?? []
-    const sourceCultivatedAreaId = resolveRouteSourceCultivatedAreaId(input)
-    const sourceRoutingContext = createRoutingContext([sourceCultivatedAreaId], {
-        blockedShipPoints
-    })
+    const selectedStartLeg = pickStartLegByShortestRoute(input, blockedShipPoints)
+    if (!selectedStartLeg) {
+        return buildStraightFallbackPath(input)
+    }
+
+    const seaWaypoints: Point[] = [selectedStartLeg.firstSeaPoint]
+    for (let index = 1; index < input.seaAreaIds.length; index += 1) {
+        const seaWaypoint = seaWaypointForAreaId(input.seaAreaIds[index])
+        if (!seaWaypoint) {
+            return null
+        }
+        seaWaypoints.push(seaWaypoint)
+    }
+
     const seaRoutingContext = createRoutingContext([], { blockedShipPoints })
     const targetRoutingContext = createRoutingContext([input.cityAreaId], { blockedShipPoints })
 
     const fullRoutePoints: Point[] = []
 
-    const cultivatedPoint = resolveLandMarkerPosition(sourceCultivatedAreaId)
-    const firstSeaPoint = seaWaypoints[0]
-    if (cultivatedPoint) {
-        appendPointIfNeeded(fullRoutePoints, cultivatedPoint)
-        const startWaterPoint = firstWaterPointAlongLine(
-            cultivatedPoint,
-            firstSeaPoint,
-            sourceRoutingContext
-        )
-        if (!startWaterPoint) {
-            return null
-        }
-        const startSegment = routeThroughWater(
-            startWaterPoint,
-            firstSeaPoint,
-            sourceRoutingContext
-        )
-        if (!startSegment) {
-            return null
-        }
-        appendPathSegment(fullRoutePoints, startSegment)
-    } else {
-        appendPointIfNeeded(fullRoutePoints, firstSeaPoint)
-    }
+    const { cultivatedPoint, startSegment } = selectedStartLeg
+    appendPointIfNeeded(fullRoutePoints, cultivatedPoint)
+    appendPathSegment(fullRoutePoints, startSegment)
 
     for (let index = 1; index < seaWaypoints.length; index += 1) {
         const from = seaWaypoints[index - 1]

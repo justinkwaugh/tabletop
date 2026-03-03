@@ -24,12 +24,14 @@
         y,
         targetX,
         targetY,
+        demandMet = false,
         demands
     }: {
         x: number
         y: number
         targetX: number
         targetY: number
+        demandMet?: boolean
         demands: readonly DemandEntry[]
     } = $props()
 
@@ -56,8 +58,16 @@
     const entryGap = 0
     const boardWidth = 2646
     const boardHeight = 1280
+    const demandMetLabel = 'DEMAND MET'
+    const demandMetWidth = 94
+    const pageBackgroundFill = '#ede2dc'
+    const demandMetTextColor = '#55412d'
+    const isDemandMetMarker = $derived(demandMet || demands.length === 0)
 
     const totalEntriesWidth = $derived.by(() => {
+        if (isDemandMetMarker) {
+            return demandMetWidth
+        }
         if (demands.length === 0) {
             return 0
         }
@@ -163,30 +173,44 @@
         </clipPath>
     </defs>
 
-    <g clip-path={`url(#${clipPathId})`}>
-        {#each laidOutEntries.entries as entry (entry.good)}
-            <rect
-                x={entry.chipX}
-                y={entry.chipY}
-                width={entry.chipWidth}
-                height={markerHeight}
-                fill={entry.style.fill}
-            ></rect>
-        {/each}
+    {#if isDemandMetMarker}
+        <rect
+            x={left}
+            y={top}
+            width={markerWidth}
+            height={markerHeight}
+            rx={stripCornerRadius}
+            ry={stripCornerRadius}
+            fill={pageBackgroundFill}
+            fill-opacity="1"
+        ></rect>
+    {:else}
+        <g clip-path={`url(#${clipPathId})`}>
+            {#each laidOutEntries.entries as entry (entry.good)}
+                <rect
+                    x={entry.chipX}
+                    y={entry.chipY}
+                    width={entry.chipWidth}
+                    height={markerHeight}
+                    fill={entry.style.fill}
+                    fill-opacity="1"
+                ></rect>
+            {/each}
 
-        {#each laidOutEntries.entries as entry, entryIndex (entry.good)}
-            {#if entryIndex > 0}
-                <line
-                    x1={entry.chipX}
-                    y1={top}
-                    x2={entry.chipX}
-                    y2={top + markerHeight}
-                    stroke="rgba(28, 24, 19, 0.32)"
-                    stroke-width="0.9"
-                ></line>
-            {/if}
-        {/each}
-    </g>
+            {#each laidOutEntries.entries as entry, entryIndex (entry.good)}
+                {#if entryIndex > 0}
+                    <line
+                        x1={entry.chipX}
+                        y1={top}
+                        x2={entry.chipX}
+                        y2={top + markerHeight}
+                        stroke="rgba(28, 24, 19, 0.32)"
+                        stroke-width="0.9"
+                    ></line>
+                {/if}
+            {/each}
+        </g>
+    {/if}
 
     <rect
         x={left}
@@ -195,37 +219,55 @@
         height={markerHeight}
         rx={stripCornerRadius}
         ry={stripCornerRadius}
-        fill="none"
+        fill={isDemandMetMarker ? pageBackgroundFill : 'none'}
+        fill-opacity={isDemandMetMarker ? 1 : 0}
         stroke="#2b2620"
         stroke-width="1"
     ></rect>
 
-    {#each laidOutEntries.entries as entry (entry.good)}
-        {#if entry.good === Good.Rice}
-            <RiceMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
-        {:else if entry.good === Good.Spice}
-            <SpiceMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
-        {:else if entry.good === Good.Rubber}
-            <RubberMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
-        {:else if entry.good === Good.Oil}
-            <OilMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
-        {:else}
-            <SiapSajiMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={17} outline={false} />
-        {/if}
-
+    {#if isDemandMetMarker}
         <text
-            x={entry.countX}
+            x={clampedX}
             y={laidOutEntries.rowCenterY}
-            fill={entry.style.text}
-            font-size="16.8"
+            fill={demandMetTextColor}
+            font-size="12.4"
             font-weight="800"
             text-anchor="middle"
             dominant-baseline="central"
             font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
-            letter-spacing="-0.1"
+            letter-spacing="0.4"
             font-variant-numeric="tabular-nums"
         >
-            {entry.count}
+            {demandMetLabel}
         </text>
-    {/each}
+    {:else}
+        {#each laidOutEntries.entries as entry (entry.good)}
+            {#if entry.good === Good.Rice}
+                <RiceMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
+            {:else if entry.good === Good.Spice}
+                <SpiceMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
+            {:else if entry.good === Good.Rubber}
+                <RubberMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
+            {:else if entry.good === Good.Oil}
+                <OilMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
+            {:else}
+                <SiapSajiMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={17} outline={false} />
+            {/if}
+
+            <text
+                x={entry.countX}
+                y={laidOutEntries.rowCenterY}
+                fill={entry.style.text}
+                font-size="16.8"
+                font-weight="800"
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
+                letter-spacing="-0.1"
+                font-variant-numeric="tabular-nums"
+            >
+                {entry.count}
+            </text>
+        {/each}
+    {/if}
 </g>

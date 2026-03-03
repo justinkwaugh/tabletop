@@ -1245,12 +1245,14 @@
                         {@const markerVisual = shippingMarkerVisualForCompany(
                             choice.candidate.shippingCompanyId
                         )}
+                        {@const shipUseCount = choice.candidate.seaAreaIds.length}
+                        {@const shipUseLabel = shipUseCount === 1 ? 'ship' : 'ships'}
                         <div
                             class={`delivery-shipping-choice ${deliveringGood ? 'is-disabled' : ''}`}
                             role="button"
                             tabindex={deliveringGood ? -1 : 0}
                             aria-disabled={deliveringGood}
-                            aria-label={`Deliver via shipping company ${choice.candidate.shippingCompanyId}`}
+                            aria-label={`Deliver via shipping company ${choice.candidate.shippingCompanyId} using ${shipUseCount} ${shipUseLabel}`}
                             title={`${choice.candidate.shippingCompanyId}: ${choice.candidate.seaAreaIds.join(' -> ')}`}
                             onmouseenter={() => {
                                 gameSession.setHoveredDeliveryRoute(choice.routeKey)
@@ -1275,22 +1277,26 @@
                                 submitDeliveryShippingChoice(choice.routeKey)
                             }}
                         >
+                            <span class="delivery-route-count">
+                                {shipUseCount}
+                                <span class="delivery-route-times">x</span>
+                            </span>
                             <span class="delivery-route-icon-wrap" aria-hidden="true">
                                 <svg
                                     class="delivery-route-icon-svg"
-                                    viewBox="0 0 102 72"
-                                    width="102"
-                                    height="72"
+                                    viewBox="0 0 60 42"
+                                    width="60"
+                                    height="42"
                                 >
                                     <ShipMarker
-                                        x={51}
-                                        y={36}
+                                        x={30}
+                                        y={21}
                                         style={markerVisual.style}
-                                        height={54}
+                                        height={38}
                                         outline={false}
                                         hullFillColor={markerVisual.hullFillColor}
                                         hullStrokeColor={markerVisual.hullStrokeColor}
-                                        hullStrokeWidth={12}
+                                        hullStrokeWidth={11}
                                     />
                                 </svg>
                             </span>
@@ -1737,10 +1743,11 @@
 
     .delivery-shipping-choices {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 8px;
         width: 100%;
     }
 
@@ -1748,12 +1755,12 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0;
+        gap: 6px;
         max-width: 100%;
         border: none;
         border-radius: 8px;
         background: transparent;
-        padding: 2px 3px;
+        padding: 4px 8px;
         transition: opacity 120ms ease;
         cursor: pointer;
     }
@@ -1773,13 +1780,31 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 102px;
-        height: 72px;
+        width: 60px;
+        height: 42px;
         flex: 0 0 auto;
     }
 
     .delivery-route-icon-svg {
         display: block;
+    }
+
+    .delivery-route-count {
+        display: inline-flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 3px;
+        color: rgba(63, 46, 28, 0.92);
+        font-size: 18px;
+        line-height: 1;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .delivery-route-times {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
     }
 
     .bid-formula {
@@ -2135,6 +2160,8 @@
         display: inline-flex;
         align-items: center;
         line-height: 1;
+        padding-top: 0.1rem;
+        padding-bottom: 0.1rem;
         padding-left: 0.3rem;
         padding-right: 0.3rem;
     }

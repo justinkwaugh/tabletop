@@ -21,6 +21,7 @@
         y: number
         targetX: number
         targetY: number
+        isDemandMet: boolean
         demands: Array<{
             good: Good
             count: number
@@ -121,6 +122,11 @@
             return []
         }
 
+        const producedGoods = gameSession.gameState.producedGoodsOnBoard()
+        if (producedGoods.size === 0) {
+            return []
+        }
+
         const tags: CityDemandTag[] = []
 
         for (const city of gameSession.gameState.board.cities) {
@@ -133,10 +139,6 @@
                 good,
                 count: gameSession.gameState.remainingCityDemandForGood(city, good)
             })).filter((entry) => entry.count > 0)
-
-            if (demands.length === 0) {
-                continue
-            }
 
             const regionId = areaRegionById.get(city.area)
             const regionPosition = regionId
@@ -152,6 +154,7 @@
                 y,
                 targetX: markerPosition.x,
                 targetY: markerPosition.y,
+                isDemandMet: demands.length === 0,
                 demands
             })
         }
@@ -171,6 +174,7 @@
             y={tag.y}
             targetX={tag.targetX}
             targetY={tag.targetY}
+            demandMet={tag.isDemandMet}
             demands={tag.demands}
         />
     {/each}

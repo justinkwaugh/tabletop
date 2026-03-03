@@ -7,7 +7,6 @@
     } from '@tabletop/indonesia'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { buildDeliveryShippingRoutePath } from '$lib/utils/shippingRouteOverlay.js'
-    import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
     import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
     import type { Point } from '@tabletop/common'
 
@@ -37,16 +36,9 @@
         return gameSession.hoveredDeliveryShippingChoice?.routeKey ?? null
     })
 
-    function pointDistance(a: Point, b: Point): number {
-        const dx = a.x - b.x
-        const dy = a.y - b.y
-        return Math.hypot(dx, dy)
-    }
-
-    function firstShipWaypointForChoice(
-        choice: (typeof gameSession.deliveryShippingChoices)[number],
-        cultivatedAreaIdsByZoneId: Map<string, string[]>
-    ): Point | undefined {
+    function firstShipWaypointCandidatesForChoice(
+        choice: (typeof gameSession.deliveryShippingChoices)[number]
+    ): readonly Point[] | undefined {
         const firstSeaAreaId = choice.candidate.seaAreaIds[0]
         if (!firstSeaAreaId) {
             return undefined
@@ -72,28 +64,7 @@
         if (companyMarkerPoints.length === 0) {
             return undefined
         }
-
-        const zoneAreaIds = cultivatedAreaIdsByZoneId.get(choice.candidate.zoneId) ?? [
-            choice.candidate.cultivatedAreaId
-        ]
-        let nearestCompanyMarkerPoint: Point | undefined
-        let nearestDistance = Number.POSITIVE_INFINITY
-        for (const areaId of zoneAreaIds) {
-            const landPoint = resolveLandMarkerPosition(areaId)
-            if (!landPoint) {
-                continue
-            }
-
-            for (const markerPoint of companyMarkerPoints) {
-                const distance = pointDistance(landPoint, markerPoint)
-                if (distance < nearestDistance) {
-                    nearestDistance = distance
-                    nearestCompanyMarkerPoint = markerPoint
-                }
-            }
-        }
-
-        return nearestCompanyMarkerPoint ?? companyMarkerPoints[0]
+        return companyMarkerPoints
     }
 
     const blockedShipPointsByShippingCompanyId: Map<string, Point[]> = $derived.by(() => {
@@ -230,10 +201,7 @@
             const routePath = buildDeliveryShippingRoutePath({
                 cultivatedAreaId: choice.candidate.cultivatedAreaId,
                 cultivatedZoneAreaIds: cultivatedAreaIdsByZoneId.get(choice.candidate.zoneId),
-                firstSeaWaypointOverride: firstShipWaypointForChoice(
-                    choice,
-                    cultivatedAreaIdsByZoneId
-                ),
+                firstSeaWaypointCandidates: firstShipWaypointCandidatesForChoice(choice),
                 blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
                     choice.candidate.shippingCompanyId
                 ),
