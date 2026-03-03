@@ -52,8 +52,7 @@
                 areaId: area.id,
                 ownerColor: gameSession.colors.getPlayerUiColor(company.owner),
                 borderColor: shadeHexColor(gameSession.colors.getPlayerUiColor(company.owner), 0.38),
-                hatchPatternId:
-                    hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
+                hatchPatternId: hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
             })
         }
 

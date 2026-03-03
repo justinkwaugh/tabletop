@@ -26,7 +26,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     const DIMMED_SHIP_OPACITY = 0.32
     const HOVERED_OUTLINE_COLOR = '#fff7cc'
     const SHIP_MARKER_HULL_STROKE_WIDTH = 10
-    const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT = 0.35
+    const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT = 0.16
 
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))

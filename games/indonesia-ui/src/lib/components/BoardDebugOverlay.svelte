@@ -1491,7 +1491,7 @@
                     targetY: target.y,
                     ownerColor: DEBUG_COMPANY_MARKER_COLOR_BY_GOOD[markerGood],
                     goodType: markerGood,
-                    goodsCount: 1,
+                    goodsCount: 2,
                     hatchPatternId: null,
                     direction: companyMarkerDirectionTowardTarget(x, y, target.x, target.y)
                 })

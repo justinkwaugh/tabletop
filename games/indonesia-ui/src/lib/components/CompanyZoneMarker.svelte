@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import OilMarker from '$lib/components/OilMarker.svelte'
     import RiceMarker from '$lib/components/RiceMarker.svelte'
     import RubberMarker from '$lib/components/RubberMarker.svelte'
@@ -8,6 +9,14 @@
 
     type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
     type MarkerDirection = 'north' | 'east' | 'south' | 'west'
+    const TAG_FILL_BY_GOOD: Readonly<Record<MarkerGood, string>> = {
+        spice: companyDeedStyleForType('spice').overlayFill,
+        siapsaji: companyDeedStyleForType('siapsaji').overlayFill,
+        oil: companyDeedStyleForType('oil').overlayFill,
+        rice: companyDeedStyleForType('rice').overlayFill,
+        rubber: companyDeedStyleForType('rubber').overlayFill
+    } as const
+
     let {
         x,
         y,
@@ -38,9 +47,8 @@
         sampleLabel?: string | null
     } = $props()
 
-    const isDoubleDigitCount = $derived(Math.abs(goodsCount) >= 10)
-    const markerBaseWidth = $derived(height * 1.36 + 4)
-    const markerWidth = $derived(markerBaseWidth + (isDoubleDigitCount ? 18 : 0))
+    const markerBaseWidth = $derived(height * 1.52 + 6)
+    const markerWidth = $derived(markerBaseWidth + 18)
     const markerHeight = $derived(height * 0.83)
     const halfWidth = $derived(markerWidth / 2)
     const halfHeight = $derived(markerHeight / 2)
@@ -48,29 +56,42 @@
     const right = $derived(x + halfWidth)
     const top = $derived(y - halfHeight)
     const bottom = $derived(y + halfHeight)
-    const pairCenterX = $derived.by(() => {
-        if (direction === 'east') {
-            return x - markerBaseWidth * 0.03 + 2 - (isDoubleDigitCount ? 2 : 0)
-        }
+    const iconSquareSize = $derived(markerHeight)
+    const iconSquareX = $derived(left)
+    const iconSquareY = $derived(top)
+    const iconContentSquareX = $derived.by(() => {
         if (direction === 'west') {
-            return x + markerBaseWidth * 0.07 + 2
+            return right - iconSquareSize
         }
-        return x
+        return left
     })
-    const pairCenterY = $derived(y)
-    const pairHalfSeparation = $derived(markerWidth * 0.19)
-    const iconCenterX = $derived(pairCenterX - pairHalfSeparation)
-    const iconCenterY = $derived(pairCenterY)
-    const iconHeight = $derived(height * 0.56)
+    const iconCenterX = $derived(iconContentSquareX + iconSquareSize / 2)
+    const iconCenterY = $derived(y)
+    const iconHeight = $derived(iconSquareSize * 0.62)
     const spiceIconHeight = $derived(iconHeight * 0.92)
     const siapSajiIconHeight = $derived(iconHeight * 0.94)
-    const countX = $derived(pairCenterX + pairHalfSeparation)
-    const countY = $derived(pairCenterY)
+    const COUNT_CENTER_NUDGE_TOWARD_TAG_CENTER = 0.2
+    const countBaseOffsetFromCenter = $derived(iconSquareSize * 0.5)
+    const countOffsetFromCenter = $derived(
+        countBaseOffsetFromCenter * (1 - COUNT_CENTER_NUDGE_TOWARD_TAG_CENTER)
+    )
+    const countX = $derived.by(() => {
+        if (direction === 'west') {
+            return x - countOffsetFromCenter
+        }
+        return x + countOffsetFromCenter
+    })
+    const countY = $derived(y)
     const primaryVisualHeight = $derived(height * 0.46)
     const countFontSize = $derived(Math.max(18, primaryVisualHeight))
+    const goodsFillColor = $derived(TAG_FILL_BY_GOOD[goodType])
+    const bodyClipPathId = $derived.by(
+        () =>
+            `company-zone-body-clip-${goodType}-${direction}-${Math.round(x * 10)}-${Math.round(y * 10)}-${playerColor.replace('#', '')}`
+    )
     const borderColor = $derived(shadeHexColor(playerColor, 0.48))
     const shadowColor = $derived(shadeHexColor(playerColor, 0.74))
-    const accentColor = $derived(shadeHexColor(playerColor, -0.16))
+    const accentColor = $derived(shadeHexColor(playerColor, -0.12))
     const bodyRotationDegrees = $derived.by(() => {
         if (direction === 'north') {
             return -90
@@ -202,6 +223,11 @@
     {/if}
 
     <g transform={bodyScaleTransform}>
+        <defs>
+            <clipPath id={bodyClipPathId}>
+                <path d={bodyPath}></path>
+            </clipPath>
+        </defs>
         <path d={bodyPath} fill={shadowColor} opacity="0.28" transform="translate(1.8 2.1)"></path>
         {#if highlighted}
             <path
@@ -216,10 +242,16 @@
         <path
             d={bodyPath}
             fill={playerColor}
-            stroke={borderColor}
-            stroke-width="2.2"
-            stroke-linejoin="round"
+            stroke="none"
         ></path>
+        <rect
+            x={iconSquareX}
+            y={iconSquareY}
+            width={iconSquareSize}
+            height={iconSquareSize}
+            fill={goodsFillColor}
+            clip-path={`url(#${bodyClipPathId})`}
+        ></rect>
         {#if hatchPatternId}
             <path
                 d={bodyPath}
@@ -236,6 +268,13 @@
                 opacity="0.55"
             ></path>
         {/if}
+        <path
+            d={bodyPath}
+            fill="none"
+            stroke={borderColor}
+            stroke-width="2.2"
+            stroke-linejoin="round"
+        ></path>
         <path
             d={bodyPath}
             fill="none"
