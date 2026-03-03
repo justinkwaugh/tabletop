@@ -10,7 +10,9 @@ import {
 import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
+import { Good } from '../definition/goods.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
+import { GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedChooseOperatingCompany } from './chooseOperatingCompany.js'
 
@@ -102,7 +104,7 @@ describe('HydratedChooseOperatingCompany.canChooseSpecificCompany', () => {
         ).toBe(false)
     })
 
-    it('blocks choosing a production company that has no city demand', () => {
+    it('blocks choosing a production company that cannot deliver and cannot afford expansion', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const productionDeed = state.availableDeeds.find(
@@ -135,13 +137,102 @@ describe('HydratedChooseOperatingCompany.canChooseSpecificCompany', () => {
             id: 'city-1',
             area: 'A01',
             size: 1,
-            demand: {
-                [productionDeed.good]: 1
-            }
+            demand: {}
         })
+        state.players[0].cash = GOOD_REVENUE_BY_GOOD[productionDeed.good] - 1
+
+        expect(state.canCompanyExpand(companyId)).toBe(true)
 
         expect(
             HydratedChooseOperatingCompany.canChooseSpecificCompany(state, playerId, companyId)
         ).toBe(false)
+    })
+
+    it('allows choosing a production company that cannot deliver but can afford expansion', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+
+        expect(productionDeed).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production) {
+            return
+        }
+
+        const companyId = 'production-expand-only'
+        state.machineState = MachineState.Operations
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            }
+        ]
+        state.board.areas.A02 = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId,
+            good: productionDeed.good
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A01',
+            size: 1,
+            demand: {}
+        })
+        state.players[0].cash = GOOD_REVENUE_BY_GOOD[productionDeed.good]
+
+        expect(state.canCompanyExpand(companyId)).toBe(true)
+
+        expect(
+            HydratedChooseOperatingCompany.canChooseSpecificCompany(state, playerId, companyId)
+        ).toBe(true)
+    })
+
+    it('allows choosing a production company even when shipping would be unaffordable from cash-on-hand', () => {
+        const state = createTestState()
+        const productionOwnerId = state.players[0].playerId
+        const shippingOwnerId = state.players[1].playerId
+        state.machineState = MachineState.Operations
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: productionOwnerId,
+                deeds: [],
+                good: Good.Rice
+            },
+            {
+                id: 'ship-1',
+                type: CompanyType.Shipping,
+                owner: shippingOwnerId,
+                deeds: []
+            }
+        ]
+        state.board.areas.A01 = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas.S14 = {
+            id: 'S14',
+            type: AreaType.Sea,
+            ships: ['ship-1']
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A04',
+            size: 1,
+            demand: {}
+        })
+
+        state.getPlayerState(productionOwnerId).cash = 4
+        expect(
+            HydratedChooseOperatingCompany.canChooseSpecificCompany(state, productionOwnerId, 'prod-1')
+        ).toBe(true)
     })
 })

@@ -33,7 +33,6 @@
     let placingMergerBid = $state(false)
     let passingMergerBid = $state(false)
     let selectedMergerOptionKey = $state('')
-    let mergerOpeningBidInput = $state('')
     let mergerBidInput = $state('0')
 
     const showTurnOrderBidFormula = $derived.by(() => {
@@ -251,15 +250,118 @@
         return selectedRow.option
     })
 
+    function mergerCompanyOwnerId(
+        option: {
+            companies: {
+                companyId: string
+                ownerId: string
+            }[]
+        },
+        companyId: string
+    ): string | null {
+        const companySummary = option.companies.find((company) => company.companyId === companyId)
+        return companySummary?.ownerId ?? null
+    }
+
     const activeMergerProposal = $derived.by(() => gameSession.gameState.activeMergerProposal)
     const activeMergerAuction = $derived.by(() => gameSession.gameState.activeMergerAuction)
 
-    const mergerCurrentHighBid = $derived.by(() => {
+    const mergerCurrentHighBid: number | null = $derived.by(() => {
         const proposal = activeMergerProposal
         if (!proposal) {
-            return 0
+            return null
         }
-        return activeMergerAuction?.highBid ?? proposal.openingBid
+        return activeMergerAuction?.highBid ?? null
+    })
+
+    const mergerCurrentHighBidderId: string | null = $derived.by(() => {
+        const auction = activeMergerAuction
+        if (!auction) {
+            return null
+        }
+
+        const highBid = auction.highBid
+        if (highBid === undefined) {
+            return null
+        }
+
+        const participant = auction.participants.find((entry) => entry.bid === highBid)
+        return participant?.playerId ?? null
+    })
+
+    const activeMergerBidCompanyCards = $derived.by(() => {
+        const proposal = activeMergerProposal
+        if (!proposal) {
+            return null
+        }
+
+        const companyA = companyById.get(proposal.companyAId)
+        const companyB = companyById.get(proposal.companyBId)
+        if (!companyA || !companyB) {
+            return null
+        }
+
+        return {
+            companyAId: proposal.companyAId,
+            companyBId: proposal.companyBId,
+            companyACard: companyCardDataFor(companyA),
+            companyBCard: companyCardDataFor(companyB)
+        }
+    })
+
+    const activeMergerBidCompanyOwners = $derived.by(() => {
+        const proposal = activeMergerProposal
+        if (!proposal) {
+            return null
+        }
+
+        return {
+            companyAOwnerId: mergerCompanyOwnerId(proposal, proposal.companyAId),
+            companyBOwnerId: mergerCompanyOwnerId(proposal, proposal.companyBId)
+        }
+    })
+
+    const selectedMergerParticipantIds = $derived.by(() => selectedMergerOption?.eligibleBidderIds ?? [])
+
+    const selectedMergerOtherParticipantIds = $derived.by(() => {
+        const myPlayerId = gameSession.myPlayer?.id
+        if (!myPlayerId) {
+            return selectedMergerParticipantIds
+        }
+
+        return selectedMergerParticipantIds.filter((participantId) => participantId !== myPlayerId)
+    })
+
+    const activeMergerParticipantIds = $derived.by(() => {
+        const auction = activeMergerAuction
+        if (!auction) {
+            return []
+        }
+
+        return auction.participants
+            .filter((participant) => !participant.passed)
+            .map((participant) => participant.playerId)
+    })
+
+    const mergerSpotlightCompanyIds = $derived.by(() => {
+        if (!showMergersPanel) {
+            return []
+        }
+
+        if (canProposeMerger) {
+            const selectedRow = selectedMergerOptionRow
+            if (!selectedRow) {
+                return []
+            }
+            return [selectedRow.option.companyAId, selectedRow.option.companyBId]
+        }
+
+        const bidCompanies = activeMergerBidCompanyCards
+        if (!bidCompanies) {
+            return []
+        }
+
+        return [bidCompanies.companyAId, bidCompanies.companyBId]
     })
 
     const mergerMinimumNextBid = $derived.by(() => {
@@ -268,20 +370,13 @@
             return 0
         }
 
-        const currentHighBid = mergerCurrentHighBid
+        const currentHighBid = mergerCurrentHighBid ?? 0
         let minimumBid = Math.max(currentHighBid + 1, proposal.nominalValue)
         const offset = (minimumBid - proposal.nominalValue) % proposal.bidIncrement
         if (offset !== 0) {
             minimumBid += proposal.bidIncrement - offset
         }
         return minimumBid
-    })
-
-    const mergerOpeningBidAmount = $derived.by(() => {
-        if (mergerOpeningBidInput.length === 0) {
-            return Number.NaN
-        }
-        return Number.parseInt(mergerOpeningBidInput, 10)
     })
 
     const mergerBidAmount = $derived.by(() => {
@@ -294,30 +389,6 @@
     const mergerActionPending = $derived.by(
         () => proposingMerger || passingMergerAnnouncement || placingMergerBid || passingMergerBid
     )
-
-    const mergerOpeningBidInvalid = $derived.by(() => {
-        if (!canProposeMerger) {
-            return false
-        }
-
-        const option = selectedMergerOption
-        if (!option) {
-            return true
-        }
-
-        const openingBid = mergerOpeningBidAmount
-        if (!Number.isFinite(openingBid)) {
-            return true
-        }
-        if (openingBid < option.nominalValue) {
-            return true
-        }
-        if ((openingBid - option.nominalValue) % option.bidIncrement !== 0) {
-            return true
-        }
-
-        return openingBid > availableCash
-    })
 
     const mergerBidInvalid = $derived.by(() => {
         if (!canPlaceMergerBid) {
@@ -344,7 +415,7 @@
     })
 
     const canSubmitProposeMerger = $derived.by(
-        () => canProposeMerger && !mergerActionPending && !mergerOpeningBidInvalid
+        () => canProposeMerger && !mergerActionPending && !!selectedMergerOption
     )
 
     const canSubmitPassMergerAnnouncement = $derived.by(
@@ -362,6 +433,157 @@
         () => canPassMergerBid && !mergerActionPending
     )
 
+    const mergerBidIncrement = $derived.by(() => activeMergerProposal?.bidIncrement ?? 1)
+    const mergerBidNominalValue = $derived.by(() => activeMergerProposal?.nominalValue ?? 0)
+
+    function legalBidFloorAtOrBelow(limit: number, nominalValue: number, increment: number): number | null {
+        if (!Number.isFinite(limit) || !Number.isFinite(nominalValue) || !Number.isFinite(increment)) {
+            return null
+        }
+        if (increment <= 0) {
+            return null
+        }
+        if (limit < nominalValue) {
+            return null
+        }
+
+        const delta = limit - nominalValue
+        return nominalValue + Math.floor(delta / increment) * increment
+    }
+
+    function legalBidCeilAtOrAbove(value: number, nominalValue: number, increment: number): number {
+        const baseValue = Math.max(value, nominalValue)
+        const offset = (baseValue - nominalValue) % increment
+        if (offset === 0) {
+            return baseValue
+        }
+        return baseValue + (increment - offset)
+    }
+
+    const mergerBidMaxAmount = $derived.by(() => {
+        if (!canPlaceMergerBid) {
+            return null
+        }
+
+        const floorAtCash = legalBidFloorAtOrBelow(
+            availableCash,
+            mergerBidNominalValue,
+            mergerBidIncrement
+        )
+        if (floorAtCash === null || floorAtCash < mergerMinimumNextBid) {
+            return null
+        }
+        return floorAtCash
+    })
+
+    const mergerCurrentControlBid = $derived.by(() => {
+        if (!canPlaceMergerBid) {
+            return mergerMinimumNextBid
+        }
+
+        const maxBid = mergerBidMaxAmount
+        const rawBidAmount = Number.isFinite(mergerBidAmount) ? mergerBidAmount : mergerMinimumNextBid
+        const flooredBid =
+            legalBidFloorAtOrBelow(rawBidAmount, mergerBidNominalValue, mergerBidIncrement) ??
+            mergerBidNominalValue
+        let normalizedBid = flooredBid
+        normalizedBid = Math.max(normalizedBid, mergerMinimumNextBid)
+        if (maxBid !== null) {
+            normalizedBid = Math.min(normalizedBid, maxBid)
+        }
+        return normalizedBid
+    })
+
+    const mergerWinningBidAmount = $derived.by(() => {
+        if (!canPlaceMergerBid) {
+            return null
+        }
+
+        const proposal = activeMergerProposal
+        const auction = activeMergerAuction
+        if (!proposal || !auction) {
+            return null
+        }
+
+        const myPlayerId = gameSession.myPlayer?.id
+        if (!myPlayerId) {
+            return null
+        }
+
+        const highestOpponentMaximum = auction.participants
+            .filter((participant) => participant.playerId !== myPlayerId && !participant.passed)
+            .map((participant) =>
+                legalBidFloorAtOrBelow(
+                    gameSession.gameState.getPlayerState(participant.playerId).cash,
+                    proposal.nominalValue,
+                    proposal.bidIncrement
+                )
+            )
+            .reduce<number>((maximum, bid) => {
+                if (bid === null) {
+                    return maximum
+                }
+                return Math.max(maximum, bid)
+            }, proposal.nominalValue)
+
+        const myMaximumBid = mergerBidMaxAmount
+        if (myMaximumBid === null) {
+            return null
+        }
+
+        const requiredWinningBid = legalBidCeilAtOrAbove(
+            Math.max(mergerMinimumNextBid, highestOpponentMaximum),
+            proposal.nominalValue,
+            proposal.bidIncrement
+        )
+
+        if (requiredWinningBid > myMaximumBid) {
+            return null
+        }
+
+        return requiredWinningBid
+    })
+
+    const mergerMaxOrWinLabel = $derived.by(() => (mergerWinningBidAmount === null ? 'Max' : 'Win'))
+    const mergerMaxOrWinAmount = $derived.by(() => mergerWinningBidAmount ?? mergerBidMaxAmount)
+
+    const canDecrementMergerBid = $derived.by(
+        () =>
+            canPlaceMergerBid &&
+            !mergerActionPending &&
+            mergerCurrentControlBid - mergerBidIncrement >= mergerMinimumNextBid
+    )
+    const canSetMergerBidToMinimum = $derived.by(
+        () =>
+            canPlaceMergerBid &&
+            !mergerActionPending &&
+            mergerCurrentControlBid !== mergerMinimumNextBid
+    )
+    const canIncrementMergerBid = $derived.by(() => {
+        if (!canPlaceMergerBid || mergerActionPending) {
+            return false
+        }
+
+        const maxBid = mergerBidMaxAmount
+        if (maxBid === null) {
+            return false
+        }
+
+        return mergerCurrentControlBid + mergerBidIncrement <= maxBid
+    })
+    const canSetMergerBidToMaxOrWin = $derived.by(() => {
+        if (!canPlaceMergerBid || mergerActionPending) {
+            return false
+        }
+
+        const targetBid = mergerMaxOrWinAmount
+        if (targetBid === null) {
+            return false
+        }
+
+        return mergerCurrentControlBid !== targetBid
+    })
+
     $effect(() => {
         if (!showOperatingCompanyPicker) {
             gameSession.setHoveredOperatingCompany(undefined)
@@ -369,26 +591,12 @@
     })
 
     $effect(() => {
-        if (!canProposeMerger) {
-            gameSession.setHoveredCompanySpotlightCompanies(undefined)
-        }
-    })
-
-    $effect(() => {
-        if (!canProposeMerger) {
-            return
-        }
-
-        const selectedRow = selectedMergerOptionRow
-        if (!selectedRow) {
+        if (mergerSpotlightCompanyIds.length === 0) {
             gameSession.setHoveredCompanySpotlightCompanies(undefined)
             return
         }
 
-        gameSession.setHoveredCompanySpotlightCompanies([
-            selectedRow.option.companyAId,
-            selectedRow.option.companyBId
-        ])
+        gameSession.setHoveredCompanySpotlightCompanies(mergerSpotlightCompanyIds)
     })
 
     $effect(() => {
@@ -400,13 +608,11 @@
     $effect(() => {
         if (!canProposeMerger || mergerOptionRows.length === 0) {
             selectedMergerOptionKey = ''
-            mergerOpeningBidInput = ''
             return
         }
 
         if (!mergerOptionRows.some((row) => row.key === selectedMergerOptionKey)) {
             selectedMergerOptionKey = mergerOptionRows[0]?.key ?? ''
-            mergerOpeningBidInput = ''
         }
     })
 
@@ -635,7 +841,7 @@
                         : `Ship ${remainingGoodsToShip} ${goodsLabel}.`
 
                 if (gameSession.deliverySelectionStage === 'cultivated') {
-                    return `${baseMessage} Choose a cultivated area.`
+                    return `${baseMessage} Choose a production zone.`
                 }
                 if (gameSession.deliverySelectionStage === 'city') {
                     return `${baseMessage} Choose a destination city.`
@@ -697,7 +903,6 @@
         }
 
         selectedMergerOptionKey = selectedRow.key
-        mergerOpeningBidInput = ''
     }
 
     function selectNextMergerOption(): void {
@@ -742,15 +947,6 @@
         return digitsOnly.slice(0, 5).replace(/^0+(?=\d)/, '')
     }
 
-    function handleMergerOpeningBidInput(event: Event): void {
-        const target = event.currentTarget
-        if (!(target instanceof HTMLInputElement)) {
-            return
-        }
-
-        mergerOpeningBidInput = sanitizeNumericInput(target.value)
-    }
-
     function handleMergerBidInput(event: Event): void {
         const target = event.currentTarget
         if (!(target instanceof HTMLInputElement)) {
@@ -758,6 +954,52 @@
         }
 
         mergerBidInput = sanitizeNumericInput(target.value)
+    }
+
+    function handleMergerBidBlur(): void {
+        if (!canPlaceMergerBid) {
+            return
+        }
+        setMergerBidValue(mergerCurrentControlBid)
+    }
+
+    function setMergerBidValue(amount: number): void {
+        if (!Number.isFinite(amount) || amount < 0) {
+            return
+        }
+        mergerBidInput = String(Math.floor(amount))
+    }
+
+    function decrementMergerBid(): void {
+        if (!canDecrementMergerBid) {
+            return
+        }
+        setMergerBidValue(mergerCurrentControlBid - mergerBidIncrement)
+    }
+
+    function setMergerBidToMinimum(): void {
+        if (!canSetMergerBidToMinimum) {
+            return
+        }
+        setMergerBidValue(mergerMinimumNextBid)
+    }
+
+    function incrementMergerBid(): void {
+        if (!canIncrementMergerBid) {
+            return
+        }
+        setMergerBidValue(mergerCurrentControlBid + mergerBidIncrement)
+    }
+
+    function setMergerBidToMaxOrWin(): void {
+        if (!canSetMergerBidToMaxOrWin) {
+            return
+        }
+        const targetBid = mergerMaxOrWinAmount
+        if (targetBid === null) {
+            return
+        }
+        setMergerBidValue(targetBid)
     }
 
     async function submitTurnOrderBid(event: SubmitEvent): Promise<void> {
@@ -838,14 +1080,9 @@
             return
         }
 
-        const openingBid = mergerOpeningBidAmount
-        if (!Number.isFinite(openingBid)) {
-            return
-        }
-
         proposingMerger = true
         try {
-            await gameSession.proposeMerger(option.companyAId, option.companyBId, openingBid)
+            await gameSession.proposeMerger(option.companyAId, option.companyBId)
         } finally {
             proposingMerger = false
         }
@@ -1073,7 +1310,7 @@
         </div>
     {:else if showMergersPanel}
         <div class="production-delivery-panel">
-            <span class="operating-company-message">{message}</span>
+            <span class="operating-company-message merger-panel-message">{message}</span>
 
             {#if canProposeMerger}
                 <form class="merger-formula" onsubmit={submitProposeMerger}>
@@ -1099,13 +1336,39 @@
                                 style={`transform: translateX(-${mergerCarouselOffsetPx}px);`}
                             >
                                 {#each mergerOptionRows as row (row.key)}
+                                    {@const companyAOwnerId = mergerCompanyOwnerId(
+                                        row.option,
+                                        row.option.companyAId
+                                    )}
+                                    {@const companyBOwnerId = mergerCompanyOwnerId(
+                                        row.option,
+                                        row.option.companyBId
+                                    )}
                                     <div class="merger-carousel-slide">
-                                        <span class="merger-option-mini-card-wrap" aria-hidden="true">
-                                            <PlayerCompanyCompactCard card={row.companyACard} />
+                                        <span class="merger-option-company-stack">
+                                            {#if companyAOwnerId}
+                                                <PlayerName
+                                                    playerId={companyAOwnerId}
+                                                    capitalization="none"
+                                                    additionalClasses="text-[11px] leading-[1.1] py-[1px] tracking-[0.02em]"
+                                                />
+                                            {/if}
+                                            <span class="merger-option-mini-card-wrap" aria-hidden="true">
+                                                <PlayerCompanyCompactCard card={row.companyACard} />
+                                            </span>
                                         </span>
                                         <span class="merger-option-plus" aria-hidden="true">+</span>
-                                        <span class="merger-option-mini-card-wrap" aria-hidden="true">
-                                            <PlayerCompanyCompactCard card={row.companyBCard} />
+                                        <span class="merger-option-company-stack">
+                                            {#if companyBOwnerId}
+                                                <PlayerName
+                                                    playerId={companyBOwnerId}
+                                                    capitalization="none"
+                                                    additionalClasses="text-[11px] leading-[1.1] py-[1px] tracking-[0.02em]"
+                                                />
+                                            {/if}
+                                            <span class="merger-option-mini-card-wrap" aria-hidden="true">
+                                                <PlayerCompanyCompactCard card={row.companyBCard} />
+                                            </span>
                                         </span>
                                     </div>
                                 {/each}
@@ -1127,6 +1390,20 @@
                             </svg>
                         </button>
                     </div>
+                    {#if selectedMergerOtherParticipantIds.length > 0}
+                        <div class="merger-participants">
+                            <span>Other participants:</span>
+                            <div class="merger-participant-list">
+                                {#each selectedMergerOtherParticipantIds as participantId (participantId)}
+                                    <PlayerName
+                                        playerId={participantId}
+                                        capitalization="none"
+                                        additionalClasses="text-[12px] leading-[1.15] py-[2px] tracking-[0.02em]"
+                                    />
+                                {/each}
+                            </div>
+                        </div>
+                    {/if}
                     {#if mergerOptionRows.length > 1}
                         <div class="merger-carousel-dots" aria-label="Merger choices">
                             {#each mergerOptionRows as row, index (row.key)}
@@ -1148,21 +1425,6 @@
 
                     {#if selectedMergerOption}
                         <div class="merger-proposal-controls">
-                            <span class="merger-opening-prompt">Enter opening bid</span>
-                            <label class="sr-only" for="merger-opening-bid-input">Opening merger bid</label>
-                            <input
-                                id="merger-opening-bid-input"
-                                class={`bid-value-input indonesia-font ${mergerOpeningBidInvalid ? 'is-invalid' : ''}`}
-                                type="text"
-                                inputmode="numeric"
-                                pattern="[0-9]*"
-                                maxlength="5"
-                                autocomplete="off"
-                                spellcheck={false}
-                                value={mergerOpeningBidInput}
-                                onbeforeinput={handleBidBeforeInput}
-                                oninput={handleMergerOpeningBidInput}
-                            />
                             <button
                                 type="submit"
                                 class="commit-bid"
@@ -1206,48 +1468,141 @@
                     {/if}
                 </form>
             {:else if canPlaceMergerBid || canPassMergerBid}
-                <div class="merger-bid-summary">
-                    <span>High bid: {mergerCurrentHighBid}</span>
-                    <span>Next valid: {mergerMinimumNextBid}</span>
-                </div>
-                <form class="merger-formula" onsubmit={submitPlaceMergerBid}>
-                    <label class="sr-only" for="merger-bid-input">Merger bid amount</label>
-                    <input
-                        id="merger-bid-input"
-                        class={`bid-value-input indonesia-font ${mergerBidInvalid ? 'is-invalid' : ''}`}
-                        type="text"
-                        inputmode="numeric"
-                        pattern="[0-9]*"
-                        maxlength="5"
-                        autocomplete="off"
-                        spellcheck={false}
-                        value={mergerBidInput}
-                        onbeforeinput={handleBidBeforeInput}
-                        oninput={handleMergerBidInput}
-                    />
-                    {#if canPlaceMergerBid}
-                        <button type="submit" class="commit-bid" disabled={!canSubmitMergerBid}>
-                            {#if placingMergerBid}
-                                bidding...
-                            {:else}
-                                bid
+                {#if activeMergerBidCompanyCards}
+                    <div class="merger-bid-companies">
+                        <span class="merger-option-company-stack">
+                            {#if activeMergerBidCompanyOwners?.companyAOwnerId}
+                                <PlayerName
+                                    playerId={activeMergerBidCompanyOwners.companyAOwnerId}
+                                    capitalization="none"
+                                    additionalClasses="text-[11px] leading-[1.1] py-[1px] tracking-[0.02em]"
+                                />
                             {/if}
-                        </button>
-                    {/if}
-                    {#if canPassMergerBid}
+                            <span class="merger-option-mini-card-wrap">
+                                <PlayerCompanyCompactCard card={activeMergerBidCompanyCards.companyACard} />
+                            </span>
+                        </span>
+                        <span class="merger-option-plus">+</span>
+                        <span class="merger-option-company-stack">
+                            {#if activeMergerBidCompanyOwners?.companyBOwnerId}
+                                <PlayerName
+                                    playerId={activeMergerBidCompanyOwners.companyBOwnerId}
+                                    capitalization="none"
+                                    additionalClasses="text-[11px] leading-[1.1] py-[1px] tracking-[0.02em]"
+                                />
+                            {/if}
+                            <span class="merger-option-mini-card-wrap">
+                                <PlayerCompanyCompactCard card={activeMergerBidCompanyCards.companyBCard} />
+                            </span>
+                        </span>
+                    </div>
+                {/if}
+                {#if activeMergerParticipantIds.length > 0}
+                    <div class="merger-participants">
+                        <span>Participants:</span>
+                        <div class="merger-participant-list">
+                            {#each activeMergerParticipantIds as participantId (participantId)}
+                                <PlayerName
+                                    playerId={participantId}
+                                    capitalization="none"
+                                    additionalClasses="text-[12px] leading-[1.15] py-[2px] tracking-[0.02em]"
+                                />
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
+                <form class="merger-formula merger-bid-form" onsubmit={submitPlaceMergerBid}>
+                    <div class="merger-bid-controls">
                         <button
                             type="button"
-                            class="finish-production-expansion"
-                            disabled={!canSubmitPassMergerBid}
-                            onclick={submitPassMergerBid}
+                            class="merger-bid-stepper"
+                            disabled={!canSetMergerBidToMinimum}
+                            onclick={setMergerBidToMinimum}
                         >
-                            {#if passingMergerBid}
-                                passing...
-                            {:else}
-                                pass
-                            {/if}
+                            Min
                         </button>
+                        <button
+                            type="button"
+                            class="merger-bid-stepper"
+                            disabled={!canDecrementMergerBid}
+                            onclick={decrementMergerBid}
+                        >
+                            -
+                        </button>
+                        <label class="sr-only" for="merger-bid-input">Merger bid amount</label>
+                        <span class={`merger-bid-input-slot ${mergerBidInvalid ? 'is-invalid' : ''}`}>
+                            <input
+                                id="merger-bid-input"
+                                class="merger-bid-input indonesia-font"
+                                type="text"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                maxlength="5"
+                                autocomplete="off"
+                                spellcheck={false}
+                                disabled={!canPlaceMergerBid || mergerActionPending}
+                                value={mergerBidInput}
+                                onbeforeinput={handleBidBeforeInput}
+                                oninput={handleMergerBidInput}
+                                onblur={handleMergerBidBlur}
+                            />
+                        </span>
+                        <button
+                            type="button"
+                            class="merger-bid-stepper"
+                            disabled={!canIncrementMergerBid}
+                            onclick={incrementMergerBid}
+                        >
+                            +
+                        </button>
+                        <button
+                            type="button"
+                            class="merger-bid-stepper"
+                            disabled={!canSetMergerBidToMaxOrWin}
+                            onclick={setMergerBidToMaxOrWin}
+                        >
+                            {mergerMaxOrWinLabel}
+                        </button>
+                    </div>
+                    {#if mergerCurrentHighBidderId}
+                        <div class="merger-bid-summary">
+                            <span>High bidder:</span>
+                            <PlayerName
+                                playerId={mergerCurrentHighBidderId}
+                                capitalization="none"
+                                additionalClasses="text-[12px] leading-[1.15] py-[2px] tracking-[0.02em]"
+                            />
+                            {#if mergerCurrentHighBid !== null}
+                                <span class="merger-bid-summary-at">at</span>
+                                <span class="merger-bid-summary-value">{mergerCurrentHighBid}</span>
+                            {/if}
+                        </div>
                     {/if}
+                    <div class="merger-bid-action-buttons">
+                        {#if canPlaceMergerBid}
+                            <button type="submit" class="commit-bid" disabled={!canSubmitMergerBid}>
+                                {#if placingMergerBid}
+                                    bidding...
+                                {:else}
+                                    bid
+                                {/if}
+                            </button>
+                        {/if}
+                        {#if canPassMergerBid}
+                            <button
+                                type="button"
+                                class="finish-production-expansion"
+                                disabled={!canSubmitPassMergerBid}
+                                onclick={submitPassMergerBid}
+                            >
+                                {#if passingMergerBid}
+                                    passing...
+                                {:else}
+                                    pass
+                                {/if}
+                            </button>
+                        {/if}
+                    </div>
                 </form>
             {:else if canPassMergerAnnouncementOnly}
                 <button
@@ -1331,6 +1686,10 @@
         font-size: 16px;
         line-height: 1.15;
         letter-spacing: 0.02em;
+    }
+
+    .merger-panel-message {
+        margin-bottom: 4px;
     }
 
     .operating-company-cards {
@@ -1436,6 +1795,22 @@
         width: 100%;
     }
 
+    .merger-bid-form {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .merger-bid-action-buttons {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
     .merger-carousel {
         display: grid;
         grid-template-columns: auto 1fr auto;
@@ -1485,6 +1860,7 @@
         padding: 0;
         font-size: 28px;
         line-height: 1;
+        margin-top: 9px;
         transition:
             color 120ms ease,
             background 120ms ease,
@@ -1523,6 +1899,7 @@
         justify-content: center;
         gap: 7px;
         width: 100%;
+        margin-bottom: 4px;
     }
 
     .merger-carousel-dot {
@@ -1563,6 +1940,14 @@
         min-width: 164px;
     }
 
+    .merger-option-company-stack {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0;
+    }
+
     .merger-option-plus {
         font-size: 20px;
         font-weight: 700;
@@ -1591,10 +1976,130 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 12px;
+        gap: 6px;
+        margin-bottom: 4px;
         font-size: 12px;
         color: rgba(63, 46, 28, 0.92);
         letter-spacing: 0.02em;
+    }
+
+    .merger-bid-companies {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: auto;
+        max-width: 100%;
+    }
+
+    .merger-participants {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+        max-width: 100%;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: rgba(63, 46, 28, 0.9);
+    }
+
+    .merger-participant-list {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    .merger-bid-summary-value {
+        font-variant-numeric: tabular-nums;
+        color: rgba(51, 36, 19, 0.96);
+        font-weight: 600;
+    }
+
+    .merger-bid-summary-at {
+        margin-right: -2px;
+    }
+
+    .merger-bid-controls {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+        flex-wrap: wrap;
+        margin-top: 4px;
+        margin-bottom: 6px;
+    }
+
+    .merger-bid-stepper {
+        border: 1px solid rgba(96, 71, 43, 0.34);
+        border-radius: 999px;
+        background: rgba(241, 228, 207, 0.58);
+        color: #3d2d1d;
+        letter-spacing: 0.03em;
+        font-size: 11px;
+        min-width: 38px;
+        height: 28px;
+        padding: 0 10px;
+        transition: background 140ms ease, opacity 140ms ease;
+    }
+
+    .merger-bid-stepper:hover:enabled {
+        background: rgba(247, 234, 213, 0.82);
+    }
+
+    .merger-bid-stepper:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+
+    .merger-bid-input-slot {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 5ch;
+        padding: 0 0.24em 0.02em;
+    }
+
+    .merger-bid-input-slot::after {
+        content: '';
+        position: absolute;
+        left: 0.24em;
+        right: 0.24em;
+        bottom: -0.03em;
+        border-bottom: 2px solid rgba(93, 68, 40, 0.72);
+    }
+
+    .merger-bid-input-slot.is-invalid::after {
+        border-bottom-color: rgba(151, 50, 37, 0.9);
+    }
+
+    .merger-bid-input {
+        width: 5ch;
+        margin: 0;
+        padding: 0.04em 0.12em 0;
+        border: none;
+        background: transparent;
+        text-align: center;
+        line-height: 0.86;
+        height: 1.05em;
+        color: #352312;
+        font-size: 24px;
+        letter-spacing: 0.01em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .merger-bid-input:disabled {
+        opacity: 0.56;
+    }
+
+    .merger-bid-input:focus,
+    .merger-bid-input:focus-visible {
+        outline: none;
+        box-shadow: none;
     }
 
     .bid-tracker-message {

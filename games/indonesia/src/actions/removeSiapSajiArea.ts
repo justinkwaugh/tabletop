@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, assert, assertExists } from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { CompanyType } from '../definition/companyType.js'
 import { AreaType, isCultivatedArea } from '../components/area.js'
 import { Good } from '../definition/goods.js'
 import { validSiapSajiRemovalAreaIds } from '../operations/mergers.js'
@@ -109,6 +110,11 @@ export class HydratedRemoveSiapSajiArea
     }
 
     private finalizeSiapSajiReduction(state: HydratedIndonesiaGameState, companyId: string): void {
+        const company = state.companies.find((candidate) => candidate.id === companyId)
+        if (company && company.type === CompanyType.Production) {
+            company.good = Good.SiapSaji
+        }
+
         for (const area of Object.values(state.board.areas)) {
             if (!isCultivatedArea(area) || area.companyId !== companyId) {
                 continue

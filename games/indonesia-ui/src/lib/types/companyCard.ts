@@ -1,1 +1,1 @@
-export type CompanyCardType = 'rice' | 'spice' | 'rubber' | 'oil' | 'ship'
+export type CompanyCardType = 'rice' | 'spice' | 'siapsaji' | 'rubber' | 'oil' | 'ship'

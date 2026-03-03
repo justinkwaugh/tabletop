@@ -28,6 +28,16 @@
             overlayStroke: '#425735',
             overlayOpacity: 0.8
         },
+        siapsaji: {
+            icon: SpiceCompanyIcon,
+            outlineColor: '#b08fa0',
+            textColor: '#6f4c5f',
+            textXRatio: 0.45,
+            textYRatio: 0.45,
+            overlayFill: '#f3eeea',
+            overlayStroke: '#6f4c5f',
+            overlayOpacity: 0.8
+        },
         rubber: {
             icon: RubberCompanyIcon,
             outlineColor: '#9c9c9c',
@@ -67,7 +77,7 @@
         [Good.Spice]: 'spice',
         [Good.Rubber]: 'rubber',
         [Good.Oil]: 'oil',
-        [Good.SiapSaji]: 'spice'
+        [Good.SiapSaji]: 'siapsaji'
     }
 
     export function companyDeedStyleForType(type: CompanyCardType): CompanyDeedStyle {

@@ -30,6 +30,7 @@ import {
 import { isCultivatedArea, isSeaArea, type SeaArea } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good, isGood } from '../definition/goods.js'
+import { GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 import {
     IndonesiaAreaType,
     IndonesiaNeighborDirection,
@@ -65,7 +66,6 @@ export const ActiveMergerProposal = Type.Object({
     totalUnits: Type.Number(),
     nominalValue: Type.Number(),
     bidIncrement: Type.Number(),
-    openingBid: Type.Number(),
     companies: Type.Tuple([MergerCompanySummary, MergerCompanySummary])
 })
 
@@ -106,6 +106,8 @@ export const IndonesiaGameState = Type.Evaluate(
             operatingCompanyDeliveryPlan: Type.Optional(DeliveryPlanSchema), // Delivery plan for the currently operating production company
             operatingCompanyProducedGoodsCount: Type.Optional(Type.Number()), // Number of goods the operating production company had on board before expansion
             operatedCompanyIds: Type.Array(Type.String()), // Companies that have already operated this operations phase
+            operationsIncomeByCompanyId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Company income accumulated during the current operations phase; settled to owner cash at operations end
+            operationsEarningsByPlayerId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Net player earnings accumulated during the current operations phase; transferred to cash at operations end
             mergedDeedIdsThisYear: Type.Array(Type.String()),
             mergerAnnouncementOrder: Type.Optional(Type.Array(Type.String())),
             mergerNextAnnouncerIndex: Type.Optional(Type.Number()),
@@ -160,6 +162,8 @@ export class HydratedIndonesiaGameState
     declare operatingCompanyDeliveryPlan?: DeliveryPlan
     declare operatingCompanyProducedGoodsCount?: number
     declare operatedCompanyIds: string[]
+    declare operationsIncomeByCompanyId?: Record<string, number>
+    declare operationsEarningsByPlayerId?: Record<string, number>
     declare mergedDeedIdsThisYear: string[]
     declare mergerAnnouncementOrder?: string[]
     declare mergerNextAnnouncerIndex?: number
@@ -294,7 +298,45 @@ export class HydratedIndonesiaGameState
 
     public resetOperationsTracking(): void {
         this.operatedCompanyIds = []
+        this.operationsIncomeByCompanyId = undefined
+        this.operationsEarningsByPlayerId = undefined
         this.clearOperatingCompany()
+    }
+
+    public addOperationsIncomeForCompany(companyId: string, amount: number): void {
+        assert(Number.isFinite(amount), 'Operations income delta should be finite')
+        if (amount === 0) {
+            return
+        }
+
+        const company = this.companies.find((entry) => entry.id === companyId)
+        assertExists(company, `Company ${companyId} should exist before recording operations income`)
+
+        this.operationsIncomeByCompanyId = this.operationsIncomeByCompanyId ?? {}
+        this.operationsIncomeByCompanyId[companyId] =
+            (this.operationsIncomeByCompanyId[companyId] ?? 0) + amount
+
+        this.operationsEarningsByPlayerId = this.operationsEarningsByPlayerId ?? {}
+        this.operationsEarningsByPlayerId[company.owner] =
+            (this.operationsEarningsByPlayerId[company.owner] ?? 0) + amount
+    }
+
+    public settleOperationsIncomeToCash(): void {
+        const earningsByPlayerId = this.operationsEarningsByPlayerId
+        if (!earningsByPlayerId) {
+            return
+        }
+
+        for (const [playerId, earnings] of Object.entries(earningsByPlayerId)) {
+            if (earnings === 0) {
+                continue
+            }
+            const player = this.getPlayerState(playerId)
+            player.cash += earnings
+        }
+
+        this.operationsEarningsByPlayerId = undefined
+        this.operationsIncomeByCompanyId = undefined
     }
 
     public markOperatingCompanyAsOperated(): void {
@@ -703,25 +745,172 @@ export class HydratedIndonesiaGameState
     }
 
     private canProductionCompanyOperate(company: ProductionCompany): boolean {
-        const cultivatedAreaCount = this.cultivatedAreaCountForCompany(company.id)
-        if (cultivatedAreaCount === 0) {
+        const cultivatedAreaIds = this.cultivatedAreaIdsForCompany(company.id)
+        if (cultivatedAreaIds.length === 0) {
             return false
         }
 
-        return this.board.cities.some((city) => this.canCityAcceptGood(city, company.good))
+        if (this.canProductionCompanyDeliverAnyGood(company, cultivatedAreaIds)) {
+            return true
+        }
+
+        return this.canProductionCompanyAffordOptionalExpansion(company)
     }
 
-    private cultivatedAreaCountForCompany(companyId: string): number {
-        let count = 0
+    private canProductionCompanyDeliverAnyGood(
+        company: ProductionCompany,
+        cultivatedAreaIds: readonly IndonesiaNodeId[]
+    ): boolean {
+        const cityAreaIdsWithDemand: IndonesiaNodeId[] = this.board.cities
+            .filter((city) => this.canCityAcceptGood(city, company.good))
+            .map((city) => city.area)
+            .filter((areaId): areaId is IndonesiaNodeId => isIndonesiaNodeId(areaId))
+        if (cityAreaIdsWithDemand.length === 0) {
+            return false
+        }
+
+        const shippingSeaAreaIdsByCompanyId = new Map<string, Set<IndonesiaNodeId>>()
         for (const area of Object.values(this.board.areas)) {
-            if (!isCultivatedArea(area)) {
+            if (!isSeaArea(area) || !isIndonesiaNodeId(area.id)) {
                 continue
             }
-            if (area.companyId === companyId) {
-                count += 1
+
+            for (const shippingCompanyId of area.ships) {
+                const companySeaAreaIds =
+                    shippingSeaAreaIdsByCompanyId.get(shippingCompanyId) ?? new Set<IndonesiaNodeId>()
+                companySeaAreaIds.add(area.id)
+                shippingSeaAreaIdsByCompanyId.set(shippingCompanyId, companySeaAreaIds)
             }
         }
-        return count
+
+        for (const shippingSeaAreaIds of shippingSeaAreaIdsByCompanyId.values()) {
+            const adjacentZoneSeaAreaIds = new Set<IndonesiaNodeId>()
+            for (const cultivatedAreaId of cultivatedAreaIds) {
+                for (const adjacentSeaAreaId of this.adjacentSeaAreaIds(cultivatedAreaId)) {
+                    if (shippingSeaAreaIds.has(adjacentSeaAreaId)) {
+                        adjacentZoneSeaAreaIds.add(adjacentSeaAreaId)
+                    }
+                }
+            }
+            if (adjacentZoneSeaAreaIds.size === 0) {
+                continue
+            }
+
+            const adjacentCitySeaAreaIds = new Set<IndonesiaNodeId>()
+            for (const cityAreaId of cityAreaIdsWithDemand) {
+                for (const adjacentSeaAreaId of this.adjacentSeaAreaIds(cityAreaId)) {
+                    if (shippingSeaAreaIds.has(adjacentSeaAreaId)) {
+                        adjacentCitySeaAreaIds.add(adjacentSeaAreaId)
+                    }
+                }
+            }
+            if (adjacentCitySeaAreaIds.size === 0) {
+                continue
+            }
+
+            const minimumPathLength = this.shortestSeaPathLengthWithinSet(
+                adjacentZoneSeaAreaIds,
+                adjacentCitySeaAreaIds,
+                shippingSeaAreaIds
+            )
+            if (minimumPathLength === null) {
+                continue
+            }
+            return true
+        }
+
+        return false
+    }
+
+    private canProductionCompanyAffordOptionalExpansion(company: ProductionCompany): boolean {
+        if (!this.canProductionCompanyExpand(company)) {
+            return false
+        }
+
+        const owner = this.getPlayerState(company.owner)
+        return owner.cash >= GOOD_REVENUE_BY_GOOD[company.good]
+    }
+
+    private adjacentSeaAreaIds(areaId: IndonesiaNodeId): IndonesiaNodeId[] {
+        const node = this.board.graph.nodeById(areaId)
+        if (!node) {
+            return []
+        }
+
+        return node.neighbors[IndonesiaNeighborDirection.Sea].filter((neighborId) => {
+            const neighborNode = this.board.graph.nodeById(neighborId)
+            return !!neighborNode && neighborNode.type === IndonesiaAreaType.Sea
+        })
+    }
+
+    private shortestSeaPathLengthWithinSet(
+        startSeaAreaIds: ReadonlySet<IndonesiaNodeId>,
+        targetSeaAreaIds: ReadonlySet<IndonesiaNodeId>,
+        allowedSeaAreaIds: ReadonlySet<IndonesiaNodeId>
+    ): number | null {
+        if (startSeaAreaIds.size === 0 || targetSeaAreaIds.size === 0 || allowedSeaAreaIds.size === 0) {
+            return null
+        }
+
+        const queue: Array<{ seaAreaId: IndonesiaNodeId; pathLength: number }> = []
+        const visited = new Set<IndonesiaNodeId>()
+        for (const startSeaAreaId of startSeaAreaIds) {
+            if (!allowedSeaAreaIds.has(startSeaAreaId) || visited.has(startSeaAreaId)) {
+                continue
+            }
+
+            if (targetSeaAreaIds.has(startSeaAreaId)) {
+                return 1
+            }
+
+            visited.add(startSeaAreaId)
+            queue.push({
+                seaAreaId: startSeaAreaId,
+                pathLength: 1
+            })
+        }
+
+        while (queue.length > 0) {
+            const current = queue.shift()
+            assertExists(current, 'Sea queue should contain an entry while resolving sea path length')
+
+            const currentNode = this.board.graph.nodeById(current.seaAreaId)
+            if (!currentNode) {
+                continue
+            }
+
+            for (const neighborSeaAreaId of currentNode.neighbors[IndonesiaNeighborDirection.Sea]) {
+                if (!allowedSeaAreaIds.has(neighborSeaAreaId) || visited.has(neighborSeaAreaId)) {
+                    continue
+                }
+
+                if (targetSeaAreaIds.has(neighborSeaAreaId)) {
+                    return current.pathLength + 1
+                }
+
+                visited.add(neighborSeaAreaId)
+                queue.push({
+                    seaAreaId: neighborSeaAreaId,
+                    pathLength: current.pathLength + 1
+                })
+            }
+        }
+
+        return null
+    }
+
+    private cultivatedAreaIdsForCompany(companyId: string): IndonesiaNodeId[] {
+        const areaIds: IndonesiaNodeId[] = []
+        for (const area of Object.values(this.board.areas)) {
+            if (!isCultivatedArea(area) || area.companyId !== companyId) {
+                continue
+            }
+
+            assert(isIndonesiaNodeId(area.id), `Cultivated area ${area.id} should be a valid node id`)
+            areaIds.push(area.id)
+        }
+
+        return areaIds
     }
 
     private *productionExpansionAreaIds(

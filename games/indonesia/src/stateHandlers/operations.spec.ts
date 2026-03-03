@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
+import { GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 import { PhaseName } from '../definition/phases.js'
 import { Good } from '../definition/goods.js'
 import { OperationsStateHandler } from './operations.js'
@@ -215,7 +216,7 @@ describe('OperationsStateHandler', () => {
         expect(state.activePlayerIds).toEqual([player2Id])
     })
 
-    it('skips players whose only production companies have no city demand', () => {
+    it('skips players whose only production companies cannot deliver and cannot afford expansion', () => {
         const state = createTestState()
         const player1Id = state.players[0].playerId
         const player2Id = state.players[1].playerId
@@ -265,6 +266,15 @@ describe('OperationsStateHandler', () => {
             type: AreaType.Sea,
             ships: [shippingCompanyId]
         }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A01',
+            size: 1,
+            demand: {}
+        })
+        state.players[0].cash = GOOD_REVENUE_BY_GOOD[productionDeed.good] - 1
+
+        expect(state.canCompanyExpand(productionCompanyId)).toBe(true)
 
         const handler = new OperationsStateHandler()
         const context = createMachineContext(state)

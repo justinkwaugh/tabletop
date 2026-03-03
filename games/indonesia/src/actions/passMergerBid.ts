@@ -73,6 +73,10 @@ export class HydratedPassMergerBid
             return false
         }
 
+        if (auction.highBid === undefined) {
+            return false
+        }
+
         return !participant.passed
     }
 
@@ -86,6 +90,6 @@ export class HydratedPassMergerBid
         }
 
         const participant = auction.participants.find((entry) => entry.playerId === playerId)
-        return !!participant && !participant.passed
+        return !!participant && !participant.passed && auction.highBid !== undefined
     }
 }

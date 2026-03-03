@@ -155,6 +155,9 @@ describe('HydratedDeliverGood', () => {
     it('increments shipped goods count when applied', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
+        const shippingOwnerId = state.players[1].playerId
+        const productionOwnerCashBefore = state.getPlayerState(playerId).cash
+        const shippingOwnerCashBefore = state.getPlayerState(shippingOwnerId).cash
         setupProductionOperationWithPlan(state, playerId, 1)
         const action = createDeliverGoodAction(state, playerId)
 
@@ -173,11 +176,21 @@ describe('HydratedDeliverGood', () => {
             shippingPayments: [
                 {
                     shippingCompanyId: 'ship-1',
-                    ownerPlayerId: state.players[1]?.playerId,
+                    ownerPlayerId: shippingOwnerId,
                     amount: 5
                 }
             ]
         })
+        expect(state.operationsIncomeByCompanyId).toEqual({
+            'prod-1': 15,
+            'ship-1': 5
+        })
+        expect(state.operationsEarningsByPlayerId).toEqual({
+            [playerId]: 15,
+            [shippingOwnerId]: 5
+        })
+        expect(state.getPlayerState(playerId).cash).toBe(productionOwnerCashBefore)
+        expect(state.getPlayerState(shippingOwnerId).cash).toBe(shippingOwnerCashBefore)
     })
 
     it('cannot deliver more goods than the delivery plan allows', () => {
@@ -190,5 +203,16 @@ describe('HydratedDeliverGood', () => {
 
         expect(HydratedDeliverGood.canDeliverGood(state, playerId)).toBe(false)
         expect(() => action.apply(state)).toThrow('Invalid DeliverGood action')
+    })
+
+    it('can deliver even when the production owner cash is below shipping cost', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        setupProductionOperationWithPlan(state, playerId, 1)
+        state.getPlayerState(playerId).cash = 4
+        const action = createDeliverGoodAction(state, playerId)
+
+        expect(HydratedDeliverGood.canDeliverGood(state, playerId)).toBe(true)
+        expect(() => action.apply(state)).not.toThrow()
     })
 })

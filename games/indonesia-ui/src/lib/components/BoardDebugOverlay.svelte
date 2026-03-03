@@ -2789,7 +2789,6 @@
                         goodType={marker.goodType}
                         goodsCount={marker.goodsCount}
                         hatchPatternId={marker.hatchPatternId}
-                        variant="pennant"
                         direction={marker.direction}
                     />
                     <path
@@ -2851,7 +2850,6 @@
                         goodType={marker.goodType}
                         goodsCount={marker.goodsCount}
                         hatchPatternId={marker.hatchPatternId}
-                        variant="pennant"
                         direction={marker.direction}
                     />
                 {/each}

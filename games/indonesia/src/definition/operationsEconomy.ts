@@ -4,8 +4,8 @@ export const GOOD_REVENUE_BY_GOOD = {
     [Good.Rice]: 20,
     [Good.Spice]: 25,
     [Good.Rubber]: 30,
-    [Good.Oil]: 35,
-    [Good.SiapSaji]: 40
+    [Good.SiapSaji]: 35,
+    [Good.Oil]: 40
 } satisfies Record<Good, number>
 
 export const SHIPPING_FEE_PER_SHIP_USE = 5

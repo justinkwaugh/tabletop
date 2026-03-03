@@ -488,11 +488,8 @@ export class IndonesiaGameSession extends GameSession<
         await this.applyAction(action)
     }
 
-    async proposeMerger(companyAId: string, companyBId: string, openingBid: number): Promise<void> {
+    async proposeMerger(companyAId: string, companyBId: string): Promise<void> {
         if (!this.validActionTypes.includes(ActionType.ProposeMerger)) {
-            return
-        }
-        if (!Number.isFinite(openingBid) || !Number.isInteger(openingBid)) {
             return
         }
 
@@ -505,21 +502,14 @@ export class IndonesiaGameSession extends GameSession<
         if (!option) {
             return
         }
-        if (openingBid < option.nominalValue) {
-            return
-        }
-        if ((openingBid - option.nominalValue) % option.bidIncrement !== 0) {
-            return
-        }
-        if ((this.myPlayerState?.cash ?? 0) < openingBid) {
+        if ((this.myPlayerState?.cash ?? 0) < option.nominalValue) {
             return
         }
 
         const action = this.createPlayerAction(ProposeMerger, {
             type: ActionType.ProposeMerger,
             companyAId,
-            companyBId,
-            openingBid
+            companyBId
         })
         await this.applyAction(action)
     }
@@ -740,7 +730,7 @@ export class IndonesiaGameSession extends GameSession<
             return null
         }
 
-        const currentHighBid = this.gameState.activeMergerAuction?.highBid ?? proposal.openingBid
+        const currentHighBid = this.gameState.activeMergerAuction?.highBid ?? 0
         let minimumBid = Math.max(currentHighBid + 1, proposal.nominalValue)
         const offset = (minimumBid - proposal.nominalValue) % proposal.bidIncrement
         if (offset !== 0) {

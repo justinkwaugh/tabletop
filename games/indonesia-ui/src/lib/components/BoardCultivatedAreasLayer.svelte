@@ -1,6 +1,7 @@
 <script lang="ts">
     import Area from '$lib/components/Area.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { productionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
     import { shadeHexColor } from '$lib/utils/color.js'
     import { CompanyType } from '@tabletop/indonesia'
 
@@ -29,37 +30,10 @@
 
     const cultivatedEntries: CultivatedRenderEntry[] = $derived.by(() => {
         const entries: CultivatedRenderEntry[] = []
-
-        const companyIdsByOwnerAreaGood = new Map<string, Set<string>>()
-        const conflictRankByCompanyId = new Map<string, number>()
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!('companyId' in area)) {
-                continue
-            }
-            const company = companyById.get(area.companyId)
-            if (!company || company.type !== CompanyType.Production) {
-                continue
-            }
-
-            const ownerAreaGoodKey = `${company.owner}|${area.good}`
-            const companyIds = companyIdsByOwnerAreaGood.get(ownerAreaGoodKey) ?? new Set<string>()
-            companyIds.add(company.id)
-            companyIdsByOwnerAreaGood.set(ownerAreaGoodKey, companyIds)
-        }
-
-        for (const companyIds of companyIdsByOwnerAreaGood.values()) {
-            if (companyIds.size <= 1) {
-                continue
-            }
-
-            for (const [index, companyId] of [...companyIds]
-                .sort((left, right) =>
-                    left.localeCompare(right, undefined, { numeric: true })
-                )
-                .entries()) {
-                conflictRankByCompanyId.set(companyId, index)
-            }
-        }
+        const hatchVariantByCompanyId = productionHatchVariantByCompanyId(
+            gameSession.gameState,
+            HATCH_PATTERN_IDS.length
+        )
 
         for (const area of Object.values(gameSession.gameState.board.areas)) {
             if (!('companyId' in area)) {
@@ -71,7 +45,7 @@
                 continue
             }
 
-            const conflictRank = conflictRankByCompanyId.get(company.id)
+            const hatchVariant = hatchVariantByCompanyId.get(company.id)
 
             entries.push({
                 key: area.id,
@@ -79,9 +53,7 @@
                 ownerColor: gameSession.colors.getPlayerUiColor(company.owner),
                 borderColor: shadeHexColor(gameSession.colors.getPlayerUiColor(company.owner), 0.38),
                 hatchPatternId:
-                    conflictRank === undefined || conflictRank === 0
-                        ? null
-                        : HATCH_PATTERN_IDS[(conflictRank - 1) % HATCH_PATTERN_IDS.length]
+                    hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
             })
         }
 

@@ -20,6 +20,7 @@
         HydratedPlaceCity,
         HydratedStartCompany,
         IndonesiaAreaType,
+        IndonesiaNeighborDirection,
         MachineState
     } from '@tabletop/indonesia'
 
@@ -27,6 +28,9 @@
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
     const PRODUCTION_HOVER_SPOTLIGHT_MASK_ID = 'production-company-hover-spotlight-mask'
+    const DELIVERY_ZONE_OUTLINE_MASK_ID = 'delivery-zone-outline-mask'
+    const DELIVERY_ZONE_INNER_OUTLINE_MASK_ID = 'delivery-zone-inner-outline-mask'
+    const DELIVERY_ZONE_HOVER_OUTLINE_MASK_ID = 'delivery-zone-hover-outline-mask'
     const SHIPPING_HIGHLIGHT_STYLE = companyDeedStyleForType('ship')
 
     type AreaInteractionAction =
@@ -57,6 +61,7 @@
     type HoveredProductionZoneMarker = {
         key: string
         companyId: string
+        zoneAreaIds: readonly string[]
         x: number
         y: number
         targetX: number
@@ -68,6 +73,20 @@
         direction: MarkerDirection
     }
 
+    type DeliverySelectableZone = {
+        key: string
+        companyId: string
+        allAreaIds: readonly string[]
+        remainingAreaIds: readonly string[]
+    }
+
+    type DeliverySelectableZoneMarker = {
+        key: string
+        zoneKey: string
+        x: number
+        y: number
+    }
+
     function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
         ships: string[]
     } {
@@ -75,6 +94,7 @@
     }
 
     let hoveredAreaId: string | null = $state(null)
+    let hoveredDeliveryZoneKey: string | null = $state(null)
     let hoveredStartCompanyDeedId: string | null = $state(null)
     let selectedStartCompanyDeedId: string | null = $state(null)
     let applyingAreaAction = $state(false)
@@ -196,6 +216,131 @@
 
     const deliverySelectionEnabled: boolean = $derived.by(() => gameSession.deliverySelectionEnabled)
 
+    const deliverySelectableZones: DeliverySelectableZone[] = $derived.by(() => {
+        if (
+            !myPlayerId ||
+            !deliverySelectionEnabled ||
+            gameSession.deliverySelectionStage !== 'cultivated'
+        ) {
+            return []
+        }
+
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (!operatingCompanyId) {
+            return []
+        }
+
+        const operatingCompany = gameSession.gameState.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
+        if (!operatingCompany || operatingCompany.type !== CompanyType.Production) {
+            return []
+        }
+
+        const companyAreaIds = Object.values(gameSession.gameState.board.areas)
+            .filter((area) => 'companyId' in area && area.companyId === operatingCompanyId)
+            .map((area) => area.id)
+            .filter((areaId) => !!boardAreaPathById(areaId))
+            .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+
+        if (companyAreaIds.length === 0) {
+            return []
+        }
+
+        const companyAreaIdSet = new Set(companyAreaIds)
+        const remainingDeliverableAreaIdSet = new Set(gameSession.deliveryAvailableCultivatedAreaIds)
+        const unvisited = [...companyAreaIds]
+        const zones: DeliverySelectableZone[] = []
+
+        while (unvisited.length > 0) {
+            const seedAreaId = unvisited.shift()
+            if (!seedAreaId) {
+                continue
+            }
+
+            const queue: string[] = [seedAreaId]
+            const zoneAreaIds: string[] = []
+            companyAreaIdSet.delete(seedAreaId)
+
+            while (queue.length > 0) {
+                const currentAreaId = queue.shift()
+                if (!currentAreaId) {
+                    continue
+                }
+
+                zoneAreaIds.push(currentAreaId)
+                const currentNode = gameSession.gameState.board.graph.nodeById(currentAreaId)
+                if (!currentNode) {
+                    continue
+                }
+
+                for (const neighborNode of gameSession.gameState.board.graph.neighborsOf(
+                    currentNode,
+                    IndonesiaNeighborDirection.Land
+                )) {
+                    if (!companyAreaIdSet.has(neighborNode.id)) {
+                        continue
+                    }
+
+                    companyAreaIdSet.delete(neighborNode.id)
+                    queue.push(neighborNode.id)
+                    const remainingIndex = unvisited.indexOf(neighborNode.id)
+                    if (remainingIndex >= 0) {
+                        unvisited.splice(remainingIndex, 1)
+                    }
+                }
+            }
+
+            zoneAreaIds.sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+            const remainingAreaIds = zoneAreaIds.filter((areaId) =>
+                remainingDeliverableAreaIdSet.has(areaId)
+            )
+            if (remainingAreaIds.length === 0) {
+                continue
+            }
+
+            zones.push({
+                key: zoneAreaIds[0] ?? `zone-${zones.length}`,
+                companyId: operatingCompanyId,
+                allAreaIds: zoneAreaIds,
+                remainingAreaIds
+            })
+        }
+
+        return zones.sort((left, right) =>
+            left.key.localeCompare(right.key, undefined, { numeric: true })
+        )
+    })
+
+    const deliverySelectableAreaIds: readonly string[] = $derived.by(() => {
+        if (deliverySelectableZones.length === 0) {
+            return []
+        }
+
+        const areaIds = new Set<string>()
+        for (const zone of deliverySelectableZones) {
+            for (const areaId of zone.allAreaIds) {
+                areaIds.add(areaId)
+            }
+        }
+
+        return [...areaIds].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+    })
+
+    const deliveryZoneByAreaId: Map<string, DeliverySelectableZone> = $derived.by(() => {
+        const byAreaId = new Map<string, DeliverySelectableZone>()
+        for (const zone of deliverySelectableZones) {
+            for (const areaId of zone.allAreaIds) {
+                byAreaId.set(areaId, zone)
+            }
+        }
+        return byAreaId
+    })
+
+    const deliveryZoneByKey: Map<string, DeliverySelectableZone> = $derived.by(() => {
+        return new Map(deliverySelectableZones.map((zone) => [zone.key, zone]))
+    })
+
     $effect(() => {
         if (!startCompanySelectionEnabled) {
             selectedStartCompanyDeedId = null
@@ -212,6 +357,12 @@
 
         if (hoveredStartCompanyDeedId && !startCompanyDeedById.has(hoveredStartCompanyDeedId)) {
             hoveredStartCompanyDeedId = null
+        }
+    })
+
+    $effect(() => {
+        if (activeAreaInteraction?.action !== 'select-delivery-cultivated') {
+            hoveredDeliveryZoneKey = null
         }
     })
 
@@ -302,9 +453,7 @@
 
         if (myPlayerId && deliverySelectionEnabled) {
             if (gameSession.deliverySelectionStage === 'cultivated') {
-                const validAreaIds = gameSession.deliveryAvailableCultivatedAreaIds.filter((areaId) =>
-                    boardAreaPathById(areaId)
-                )
+                const validAreaIds = deliverySelectableAreaIds
                 if (validAreaIds.length === 0) {
                     return null
                 }
@@ -361,11 +510,39 @@
 
     const validAreaIdSet: Set<string> = $derived.by(() => new Set(interactiveValidAreaIds))
 
-    const hoveredValidAreaId: string | null = $derived.by(() => {
+    const hoveredDeliveryZone: DeliverySelectableZone | null = $derived.by(() => {
+        if (
+            activeAreaInteraction?.action !== 'select-delivery-cultivated' ||
+            deliverySelectableZones.length === 0
+        ) {
+            return null
+        }
+
+        if (hoveredDeliveryZoneKey) {
+            return deliveryZoneByKey.get(hoveredDeliveryZoneKey) ?? null
+        }
+
         if (!hoveredAreaId || !validAreaIdSet.has(hoveredAreaId)) {
             return null
         }
-        return hoveredAreaId
+
+        return deliveryZoneByAreaId.get(hoveredAreaId) ?? null
+    })
+
+    const hoveredInteractiveAreaIds: readonly string[] = $derived.by(() => {
+        if (!activeAreaInteraction) {
+            return []
+        }
+
+        if (activeAreaInteraction.action === 'select-delivery-cultivated') {
+            return hoveredDeliveryZone?.allAreaIds ?? []
+        }
+
+        if (!hoveredAreaId || !validAreaIdSet.has(hoveredAreaId)) {
+            return []
+        }
+
+        return [hoveredAreaId]
     })
 
     const maskedAreaIds: string[] = $derived.by(() => {
@@ -486,6 +663,102 @@
         return markerEntries.filter((marker) => hoveredProductionCompanyIdSet.has(marker.companyId))
     })
 
+    const deliverySelectableZoneMarkers: readonly DeliverySelectableZoneMarker[] = $derived.by(() => {
+        if (
+            activeAreaInteraction?.action !== 'select-delivery-cultivated' ||
+            deliverySelectableZones.length === 0 ||
+            typeof window === 'undefined'
+        ) {
+            return []
+        }
+
+        const selectableZoneKeySet = new Set(deliverySelectableZones.map((zone) => zone.key))
+        const markerEntries = (
+            window as Window & {
+                __indonesiaProductionZoneMarkerEntries?: HoveredProductionZoneMarker[]
+            }
+        ).__indonesiaProductionZoneMarkerEntries
+        if (!Array.isArray(markerEntries) || markerEntries.length === 0) {
+            return []
+        }
+
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (!operatingCompanyId) {
+            return []
+        }
+
+        return markerEntries
+            .filter((marker) => marker.companyId === operatingCompanyId)
+            .map((marker) => {
+                const zoneAreaIds = [...marker.zoneAreaIds].sort((left, right) =>
+                    left.localeCompare(right, undefined, { numeric: true })
+                )
+                const zoneKey = zoneAreaIds[0]
+                if (!zoneKey || !selectableZoneKeySet.has(zoneKey)) {
+                    return null
+                }
+                return {
+                    key: marker.key,
+                    zoneKey,
+                    x: marker.x,
+                    y: marker.y
+                } satisfies DeliverySelectableZoneMarker
+            })
+            .filter((entry): entry is DeliverySelectableZoneMarker => entry !== null)
+    })
+
+    function selectDeliveryCultivatedZone(zone: DeliverySelectableZone): void {
+        const selectedAreaId = [...zone.remainingAreaIds]
+            .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))[0]
+        if (!selectedAreaId) {
+            return
+        }
+
+        gameSession.selectDeliveryCultivatedArea(selectedAreaId)
+        hoveredAreaId = null
+        hoveredDeliveryZoneKey = null
+    }
+
+    function handleDeliveryZoneMarkerHover(zoneKey: string): void {
+        if (activeAreaInteraction?.action !== 'select-delivery-cultivated') {
+            return
+        }
+        hoveredDeliveryZoneKey = zoneKey
+    }
+
+    function handleDeliveryZoneMarkerLeave(zoneKey: string): void {
+        if (hoveredDeliveryZoneKey === zoneKey) {
+            hoveredDeliveryZoneKey = null
+        }
+    }
+
+    function handleDeliveryZoneMarkerClick(zoneKey: string): void {
+        if (activeAreaInteraction?.action !== 'select-delivery-cultivated' || applyingAreaAction) {
+            return
+        }
+        const zone = deliveryZoneByKey.get(zoneKey)
+        if (!zone) {
+            return
+        }
+
+        selectDeliveryCultivatedZone(zone)
+    }
+
+    function deliveryZoneOutlineMaskId(zoneKey: string): string {
+        const safeKey = zoneKey.replace(/[^a-zA-Z0-9_-]/g, '-')
+        return `${DELIVERY_ZONE_OUTLINE_MASK_ID}-${safeKey}`
+    }
+
+    function deliveryZoneInnerOutlineMaskId(zoneKey: string): string {
+        const safeKey = zoneKey.replace(/[^a-zA-Z0-9_-]/g, '-')
+        return `${DELIVERY_ZONE_INNER_OUTLINE_MASK_ID}-${safeKey}`
+    }
+
+    function deliveryZoneHoverOutlineMaskId(zoneKey: string): string {
+        const safeKey = zoneKey.replace(/[^a-zA-Z0-9_-]/g, '-')
+        return `${DELIVERY_ZONE_HOVER_OUTLINE_MASK_ID}-${safeKey}`
+    }
+
     async function handleAreaClick(areaId: string): Promise<void> {
         if (!activeAreaInteraction || applyingAreaAction || !myPlayerId) {
             return
@@ -495,8 +768,12 @@
         }
 
         if (activeAreaInteraction.action === 'select-delivery-cultivated') {
-            gameSession.selectDeliveryCultivatedArea(areaId)
-            hoveredAreaId = null
+            const zone = deliveryZoneByAreaId.get(areaId)
+            if (!zone) {
+                return
+            }
+
+            selectDeliveryCultivatedZone(zone)
             return
         }
 
@@ -584,7 +861,7 @@
                 pointer-events="none"
             />
 
-            {#each hoveredCompanySpotlightAreaIds as areaId (areaId)}
+            {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
                     fill="none"
@@ -619,7 +896,6 @@
                     goodType={marker.goodType}
                     goodsCount={marker.goodsCount}
                     hatchPatternId={marker.hatchPatternId}
-                    variant="pennant"
                     direction={marker.direction}
                     highlighted={true}
                 />
@@ -666,10 +942,17 @@
                     cursor={applyingAreaAction ? 'default' : 'pointer'}
                     onmouseenter={() => {
                         hoveredAreaId = areaId
+                        if (activeAreaInteraction.action === 'select-delivery-cultivated') {
+                            const zone = deliveryZoneByAreaId.get(areaId)
+                            hoveredDeliveryZoneKey = zone?.key ?? null
+                        }
                     }}
                     onmouseleave={() => {
                         if (hoveredAreaId === areaId) {
                             hoveredAreaId = null
+                        }
+                        if (activeAreaInteraction.action === 'select-delivery-cultivated') {
+                            hoveredDeliveryZoneKey = null
                         }
                     }}
                     onclick={() => {
@@ -678,15 +961,141 @@
                 />
             {/each}
 
-            {#if hoveredValidAreaId}
-                <Area
-                    areaId={hoveredValidAreaId}
-                    fill="none"
-                    stroke={activeAreaInteraction.outlineColor}
-                    fillOpacity="0"
-                    strokeWidth="4"
-                    pointer-events="none"
-                />
+            {#if activeAreaInteraction.action === 'select-delivery-cultivated'}
+                <defs>
+                    {#each deliverySelectableZones as zone (zone.key)}
+                        <mask id={deliveryZoneOutlineMaskId(zone.key)} maskUnits="userSpaceOnUse">
+                            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#000000"></rect>
+                            {#each zone.allAreaIds as areaId (areaId)}
+                                <Area
+                                    areaId={areaId}
+                                    fill="none"
+                                    stroke="#ffffff"
+                                    fillOpacity="0"
+                                    strokeWidth="7.2"
+                                    strokeLineJoin="round"
+                                    strokeLineCap="round"
+                                    pointer-events="none"
+                                />
+                            {/each}
+                            {#each zone.allAreaIds as areaId (areaId)}
+                                <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                            {/each}
+                        </mask>
+
+                        <mask id={deliveryZoneInnerOutlineMaskId(zone.key)} maskUnits="userSpaceOnUse">
+                            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#000000"></rect>
+                            {#each zone.allAreaIds as areaId (areaId)}
+                                <Area
+                                    areaId={areaId}
+                                    fill="none"
+                                    stroke="#ffffff"
+                                    fillOpacity="0"
+                                    strokeWidth="2.2"
+                                    strokeLineJoin="round"
+                                    strokeLineCap="round"
+                                    pointer-events="none"
+                                />
+                            {/each}
+                            {#each zone.allAreaIds as areaId (areaId)}
+                                <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                            {/each}
+                        </mask>
+
+                        <mask id={deliveryZoneHoverOutlineMaskId(zone.key)} maskUnits="userSpaceOnUse">
+                            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#000000"></rect>
+                            {#each zone.allAreaIds as areaId (areaId)}
+                                <Area
+                                    areaId={areaId}
+                                    fill="none"
+                                    stroke="#ffffff"
+                                    fillOpacity="0"
+                                    strokeWidth="9.2"
+                                    strokeLineJoin="round"
+                                    strokeLineCap="round"
+                                    pointer-events="none"
+                                />
+                            {/each}
+                            {#each zone.allAreaIds as areaId (areaId)}
+                                <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                            {/each}
+                        </mask>
+                    {/each}
+                </defs>
+
+                {#each deliverySelectableZones as zone (zone.key)}
+                    {@const isHoveredZone = hoveredDeliveryZoneKey === zone.key}
+                    {@const outerMask = deliveryZoneOutlineMaskId(zone.key)}
+                    {@const innerMask = deliveryZoneInnerOutlineMaskId(zone.key)}
+                    {@const hoverMask = deliveryZoneHoverOutlineMaskId(zone.key)}
+
+                    <rect
+                        x="0"
+                        y="0"
+                        width={BOARD_WIDTH}
+                        height={BOARD_HEIGHT}
+                        fill="#fff8d7"
+                        fillOpacity="0.9"
+                        mask={`url(#${outerMask})`}
+                        pointer-events="none"
+                    />
+                    <rect
+                        x="0"
+                        y="0"
+                        width={BOARD_WIDTH}
+                        height={BOARD_HEIGHT}
+                        fill="#1f2937"
+                        fillOpacity="0.88"
+                        mask={`url(#${innerMask})`}
+                        pointer-events="none"
+                    />
+                    {#if isHoveredZone}
+                        <rect
+                            x="0"
+                            y="0"
+                            width={BOARD_WIDTH}
+                            height={BOARD_HEIGHT}
+                            fill="#fff8d7"
+                            fillOpacity="0.32"
+                            mask={`url(#${hoverMask})`}
+                            pointer-events="none"
+                        />
+                    {/if}
+                {/each}
+            {:else}
+                {#each hoveredInteractiveAreaIds as areaId (areaId)}
+                    <Area
+                        areaId={areaId}
+                        fill="none"
+                        stroke={activeAreaInteraction.outlineColor}
+                        fillOpacity="0"
+                        strokeWidth="4"
+                        pointer-events="none"
+                    />
+                {/each}
+            {/if}
+
+            {#if activeAreaInteraction.action === 'select-delivery-cultivated'}
+                {#each deliverySelectableZoneMarkers as marker (marker.key)}
+                    <circle
+                        cx={marker.x}
+                        cy={marker.y}
+                        r="34"
+                        fill="#ffffff"
+                        fill-opacity="0.001"
+                        pointer-events={applyingAreaAction ? 'none' : 'all'}
+                        cursor={applyingAreaAction ? 'default' : 'pointer'}
+                        onmouseenter={() => {
+                            handleDeliveryZoneMarkerHover(marker.zoneKey)
+                        }}
+                        onmouseleave={() => {
+                            handleDeliveryZoneMarkerLeave(marker.zoneKey)
+                        }}
+                        onclick={() => {
+                            handleDeliveryZoneMarkerClick(marker.zoneKey)
+                        }}
+                    />
+                {/each}
             {/if}
         {/if}
 

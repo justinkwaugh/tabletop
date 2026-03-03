@@ -111,6 +111,9 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
 
         const revenue = GOOD_REVENUE_BY_GOOD[operatingCompany.good]
         const shippingCost = this.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+
+        state.addOperationsIncomeForCompany(operatingCompany.id, revenue - shippingCost)
+        state.addOperationsIncomeForCompany(shippingCompany.id, shippingCost)
         this.metadata = {
             revenue,
             shippingCost,

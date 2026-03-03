@@ -13,6 +13,7 @@ import { CompanyType } from '../definition/companyType.js'
 import { Era } from '../definition/eras.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { Good } from '../definition/goods.js'
+import { GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -251,7 +252,7 @@ describe('HydratedIndonesiaGameState company operation eligibility', () => {
         expect(state.canPlayerOperateAnyCompany(playerId)).toBe(false)
     })
 
-    it('does not count production companies with no city demand as operable', () => {
+    it('does not count production companies that cannot deliver and cannot afford expansion as operable', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const productionDeed = state.availableDeeds.find(
@@ -283,12 +284,54 @@ describe('HydratedIndonesiaGameState company operation eligibility', () => {
             id: 'city-1',
             area: 'A01',
             size: 1,
-            demand: {
-                [productionDeed.good]: 1
-            }
+            demand: {}
         })
+        state.players[0].cash = GOOD_REVENUE_BY_GOOD[productionDeed.good] - 1
+
+        expect(state.canCompanyExpand(companyId)).toBe(true)
 
         expect(state.canCompanyBeOperated(companyId)).toBe(false)
         expect(state.canPlayerOperateAnyCompany(playerId)).toBe(false)
+    })
+
+    it('counts production companies as operable even when shipping exceeds cash-on-hand', () => {
+        const state = createTestState()
+        const productionOwnerId = state.players[0].playerId
+        const shippingOwnerId = state.players[1].playerId
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: productionOwnerId,
+                deeds: [],
+                good: Good.Rice
+            },
+            {
+                id: 'ship-1',
+                type: CompanyType.Shipping,
+                owner: shippingOwnerId,
+                deeds: []
+            }
+        ]
+        state.board.areas.A01 = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas.S14 = {
+            id: 'S14',
+            type: AreaType.Sea,
+            ships: ['ship-1']
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A04',
+            size: 1,
+            demand: {}
+        })
+
+        state.getPlayerState(productionOwnerId).cash = 4
+        expect(state.canCompanyBeOperated('prod-1')).toBe(true)
     })
 })

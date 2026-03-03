@@ -14,7 +14,6 @@ import { MachineState } from '../definition/states.js'
 import {
     buildMergerBidOrder,
     listLegalMergerOptionsForAnnouncer,
-    nextMergerBidderId,
     type LegalMergerOption
 } from '../operations/mergers.js'
 
@@ -23,7 +22,6 @@ export const ProposeMergerMetadata = Type.Object({
     proposal: Type.Object({
         companyAId: Type.String(),
         companyBId: Type.String(),
-        openingBid: Type.Number(),
         nominalValue: Type.Number(),
         bidIncrement: Type.Number(),
         totalUnits: Type.Number(),
@@ -40,8 +38,7 @@ export const ProposeMerger = Type.Evaluate(
             playerId: Type.String(),
             metadata: Type.Optional(ProposeMergerMetadata),
             companyAId: Type.String(),
-            companyBId: Type.String(),
-            openingBid: Type.Number()
+            companyBId: Type.String()
         })
     ])
 )
@@ -52,20 +49,7 @@ export function isProposeMerger(action?: GameAction): action is ProposeMerger {
     return action?.type === ActionType.ProposeMerger
 }
 
-function isOpeningBidValid(openingBid: number, option: LegalMergerOption): boolean {
-    if (!Number.isFinite(openingBid) || !Number.isInteger(openingBid)) {
-        return false
-    }
-    if (openingBid < option.nominalValue) {
-        return false
-    }
-    if ((openingBid - option.nominalValue) % option.bidIncrement !== 0) {
-        return false
-    }
-    return true
-}
-
-function toActiveProposal(option: LegalMergerOption, openingBid: number): ActiveMergerProposal {
+function toActiveProposal(option: LegalMergerOption): ActiveMergerProposal {
     return {
         announcerId: option.announcerId,
         companyAId: option.companyAId,
@@ -76,7 +60,6 @@ function toActiveProposal(option: LegalMergerOption, openingBid: number): Active
         totalUnits: option.totalUnits,
         nominalValue: option.nominalValue,
         bidIncrement: option.bidIncrement,
-        openingBid,
         companies: option.companies
     }
 }
@@ -87,7 +70,6 @@ export class HydratedProposeMerger extends HydratableAction<typeof ProposeMerger
     declare metadata?: ProposeMergerMetadata
     declare companyAId: string
     declare companyBId: string
-    declare openingBid: number
 
     constructor(data: ProposeMerger) {
         super(data, ProposeMergerValidator)
@@ -117,20 +99,16 @@ export class HydratedProposeMerger extends HydratableAction<typeof ProposeMerger
             })),
             auctioneerId: this.playerId
         })
-        auction.placeBid(this.playerId, this.openingBid)
-        auction.highBid = this.openingBid
 
-        state.activeMergerProposal = toActiveProposal(option, this.openingBid)
+        state.activeMergerProposal = toActiveProposal(option)
         state.activeMergerAuction = auction
         state.mergerBidOrder = bidOrder
-        state.mergerCurrentBidderId =
-            nextMergerBidderId(bidOrder, this.playerId, auction) ?? undefined
+        state.mergerCurrentBidderId = this.playerId
 
         this.metadata = {
             proposal: {
                 companyAId: option.companyAId,
                 companyBId: option.companyBId,
-                openingBid: this.openingBid,
                 nominalValue: option.nominalValue,
                 bidIncrement: option.bidIncrement,
                 totalUnits: option.totalUnits,
@@ -168,11 +146,7 @@ export class HydratedProposeMerger extends HydratableAction<typeof ProposeMerger
             return false
         }
 
-        if (!isOpeningBidValid(this.openingBid, option)) {
-            return false
-        }
-
-        return state.getPlayerState(this.playerId).cash >= this.openingBid
+        return state.getPlayerState(this.playerId).cash >= option.nominalValue
     }
 
     static listProposableMergers(

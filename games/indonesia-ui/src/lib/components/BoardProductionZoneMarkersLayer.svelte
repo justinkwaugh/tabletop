@@ -7,6 +7,7 @@
         PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY
     } from '$lib/definitions/productionZoneMarkerOffsets.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { productionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
     import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
     import type { Point } from '@tabletop/common'
     import {
@@ -16,6 +17,7 @@
         INDONESIA_REGION_BY_AREA_ID,
         IndonesiaNeighborDirection,
         INDONESIA_REGIONS,
+        MachineState,
         isIndonesiaNodeId,
         type IndonesiaNodeId,
         type ProductionDeed
@@ -58,6 +60,7 @@
         ownerColor: string
         goodType: MarkerGood
         goodsCount: number
+        zoneAreaIds: readonly string[]
         hatchPatternId: string | null
         direction: MarkerDirection
     }
@@ -512,40 +515,16 @@
         const companyById = new Map(
             gameSession.gameState.companies.map((company) => [company.id, company] as const)
         )
-        const companyIdsByOwnerAreaGood = new Map<string, Set<string>>()
-        const conflictRankByCompanyId = new Map<string, number>()
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!('companyId' in area)) {
-                continue
-            }
-
-            const company = companyById.get(area.companyId)
-            if (!company || company.type !== CompanyType.Production) {
-                continue
-            }
-
-            const ownerAreaGoodKey = `${company.owner}|${area.good}`
-            const companyIds = companyIdsByOwnerAreaGood.get(ownerAreaGoodKey) ?? new Set<string>()
-            companyIds.add(company.id)
-            companyIdsByOwnerAreaGood.set(ownerAreaGoodKey, companyIds)
-        }
-
-        for (const companyIds of companyIdsByOwnerAreaGood.values()) {
-            if (companyIds.size <= 1) {
-                continue
-            }
-
-            for (const [index, companyId] of [...companyIds]
-                .sort((left, right) =>
-                    left.localeCompare(right, undefined, { numeric: true })
-                )
-                .entries()) {
-                conflictRankByCompanyId.set(companyId, index)
-            }
-        }
+        const hatchVariantByCompanyId = productionHatchVariantByCompanyId(
+            gameSession.gameState,
+            HATCH_PATTERN_IDS.length
+        )
 
         const regionFallbackCenterById = new Map<string, Point>()
         const pendingMarkers: PendingProductionZoneMarker[] = []
+        const deliveredAreaIdSet = new Set(
+            gameSession.gameState.operatingCompanyDeliveredCultivatedAreaIds ?? []
+        )
         for (const company of gameSession.gameState.companies) {
             if (company.type !== CompanyType.Production) {
                 continue
@@ -560,11 +539,9 @@
 
             const ownerColor = gameSession.colors.getPlayerUiColor(company.owner)
             const markerGood = asMarkerGood(company.good)
-            const conflictRank = conflictRankByCompanyId.get(company.id)
+            const hatchVariant = hatchVariantByCompanyId.get(company.id)
             const hatchPatternId =
-                conflictRank === undefined || conflictRank === 0
-                    ? null
-                    : HATCH_PATTERN_IDS[(conflictRank - 1) % HATCH_PATTERN_IDS.length]
+                hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
             const companyZones = buildCompanyCultivatedZones(company.id)
             for (const [deedIndex, deed] of productionDeeds.entries()) {
                 const matchingZones = companyZones
@@ -593,15 +570,19 @@
                     })
 
                 const selectedZone = matchingZones[0] ?? null
+                if (!selectedZone) {
+                    // Keep the deed in company state, but do not render a map tag when this deed
+                    // currently has no cultivated areas in its region.
+                    continue
+                }
                 const selectedZoneRegionPoints = selectedZone
-                    ? selectedZone.areaIdsInRegion
-                          .map((areaId) => resolveLandMarkerPosition(areaId))
-                          .filter((point): point is Point => point !== null)
-                    : []
+                    .areaIdsInRegion
+                    .map((areaId) => resolveLandMarkerPosition(areaId))
+                    .filter((point): point is Point => point !== null)
                 let targetPoint = averagePoint(selectedZoneRegionPoints)
 
                 if (!targetPoint) {
-                    targetPoint = selectedZone?.zone.center ?? null
+                    targetPoint = selectedZone.zone.center ?? null
                 }
 
                 if (!targetPoint) {
@@ -636,9 +617,15 @@
                     deedId: deed.id,
                     ownerColor,
                     goodType: markerGood,
-                    goodsCount: selectedZone?.zone.size ?? 0,
+                    goodsCount:
+                        gameSession.gameState.machineState === MachineState.ProductionOperations &&
+                        gameSession.gameState.operatingCompanyId === company.id
+                            ? selectedZone.zone.areaIds.filter(
+                                  (areaId) => !deliveredAreaIdSet.has(areaId)
+                              ).length
+                            : selectedZone.zone.size,
                     hatchPatternId,
-                    zoneAreaIds: selectedZone?.zone.areaIds ?? [],
+                    zoneAreaIds: selectedZone.zone.areaIds,
                     anchor: anchorPoint,
                     zoneTarget: targetPoint
                 })
@@ -716,6 +703,7 @@
                     ownerColor: marker.ownerColor,
                     goodType: marker.goodType,
                     goodsCount: marker.goodsCount,
+                    zoneAreaIds: marker.zoneAreaIds,
                     hatchPatternId: marker.hatchPatternId,
                     direction: directionTowardTarget(markerX, markerY, wireTarget.x, wireTarget.y)
                 })
@@ -739,19 +727,104 @@
         return hoveredCompany.id
     })
 
+    const spotlightedProductionCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
+        const productionCompanyIds = new Set<string>()
+
+        for (const companyId of gameSession.hoveredCompanySpotlightCompanyIds) {
+            const company = gameSession.gameState.companies.find((entry) => entry.id === companyId)
+            if (!company || company.type !== CompanyType.Production) {
+                continue
+            }
+            productionCompanyIds.add(company.id)
+        }
+
+        if (productionCompanyIds.size === 0 && hoveredProductionCompanyId) {
+            productionCompanyIds.add(hoveredProductionCompanyId)
+        }
+
+        return productionCompanyIds
+    })
+
     const baseProductionZoneMarkers: ProductionZoneMarkerEntry[] = $derived.by(() => {
-        if (!hoveredProductionCompanyId) {
+        if (spotlightedProductionCompanyIdSet.size === 0) {
             return productionZoneMarkers
         }
-        return productionZoneMarkers.filter((marker) => marker.companyId !== hoveredProductionCompanyId)
+        return productionZoneMarkers.filter(
+            (marker) => !spotlightedProductionCompanyIdSet.has(marker.companyId)
+        )
     })
 
     const highlightedProductionZoneMarkers: ProductionZoneMarkerEntry[] = $derived.by(() => {
-        if (!hoveredProductionCompanyId) {
+        if (spotlightedProductionCompanyIdSet.size === 0) {
             return []
         }
-        return productionZoneMarkers.filter((marker) => marker.companyId === hoveredProductionCompanyId)
+        return productionZoneMarkers.filter((marker) =>
+            spotlightedProductionCompanyIdSet.has(marker.companyId)
+        )
     })
+
+    const maskNonSelectableZoneTagsDuringDeliverySelection: boolean = $derived.by(() => {
+        return (
+            gameSession.deliverySelectionEnabled &&
+            gameSession.deliverySelectionStage === 'cultivated'
+        )
+    })
+
+    const selectableDeliveryZoneMarkerKeySet: ReadonlySet<string> = $derived.by(() => {
+        if (!maskNonSelectableZoneTagsDuringDeliverySelection) {
+            return new Set<string>()
+        }
+
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (!operatingCompanyId) {
+            return new Set<string>()
+        }
+
+        const remainingCultivatedAreaIdSet = new Set(gameSession.deliveryAvailableCultivatedAreaIds)
+        if (remainingCultivatedAreaIdSet.size === 0) {
+            return new Set<string>()
+        }
+
+        return new Set(
+            productionZoneMarkers
+                .filter(
+                    (marker) =>
+                        marker.companyId === operatingCompanyId &&
+                        marker.zoneAreaIds.some((areaId) => remainingCultivatedAreaIdSet.has(areaId))
+                )
+                .map((marker) => marker.key)
+        )
+    })
+
+    const maskNonSpotlightZoneTagsDuringCompanyHover: boolean = $derived.by(() => {
+        return spotlightedProductionCompanyIdSet.size > 0
+    })
+
+    const maskAllZoneTagsDuringNonProductionCompanyHover: boolean = $derived.by(() => {
+        const hasAnyCompanySpotlight =
+            gameSession.hoveredOperatingCompanyId !== null ||
+            gameSession.hoveredCompanySpotlightCompanyIds.length > 0
+        return hasAnyCompanySpotlight && spotlightedProductionCompanyIdSet.size === 0
+    })
+
+    function isMarkerMasked(marker: ProductionZoneMarkerEntry): boolean {
+        if (
+            maskNonSelectableZoneTagsDuringDeliverySelection &&
+            !selectableDeliveryZoneMarkerKeySet.has(marker.key)
+        ) {
+            return true
+        }
+        if (
+            maskNonSpotlightZoneTagsDuringCompanyHover &&
+            !spotlightedProductionCompanyIdSet.has(marker.companyId)
+        ) {
+            return true
+        }
+        if (maskAllZoneTagsDuringNonProductionCompanyHover) {
+            return true
+        }
+        return false
+    }
 
     $effect(() => {
         if (typeof window === 'undefined') {
@@ -787,13 +860,13 @@
             goodType={marker.goodType}
             goodsCount={marker.goodsCount}
             hatchPatternId={marker.hatchPatternId}
-            variant="pennant"
             direction={marker.direction}
             highlighted={false}
+            masked={isMarkerMasked(marker)}
         />
     {/each}
 
-    {#if hoveredProductionCompanyId}
+    {#if highlightedProductionZoneMarkers.length > 0}
         {#each highlightedProductionZoneMarkers as marker (marker.key)}
             <CompanyZoneMarker
                 x={marker.x}
@@ -804,9 +877,9 @@
                 goodType={marker.goodType}
                 goodsCount={marker.goodsCount}
                 hatchPatternId={marker.hatchPatternId}
-                variant="pennant"
                 direction={marker.direction}
                 highlighted={true}
+                masked={isMarkerMasked(marker)}
             />
         {/each}
     {/if}

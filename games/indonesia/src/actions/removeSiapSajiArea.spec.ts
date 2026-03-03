@@ -116,4 +116,39 @@ describe('HydratedRemoveSiapSajiArea', () => {
         })
         expect(state.pendingSiapSajiReduction).toBeUndefined()
     })
+
+    it('does not allow removing a middle cultivated area that would split a contiguous chain', () => {
+        const state = createTestState()
+
+        state.board.areas.A01 = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: 'merged-company',
+            good: Good.Spice
+        }
+        state.board.areas.A02 = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId: 'merged-company',
+            good: Good.Rice
+        }
+        state.board.areas.A03 = {
+            id: 'A03',
+            type: AreaType.Cultivated,
+            companyId: 'merged-company',
+            good: Good.Spice
+        }
+
+        state.pendingSiapSajiReduction = {
+            companyId: 'merged-company',
+            winnerId: 'p1',
+            removalsRemaining: 1,
+            totalRemovals: 1
+        }
+
+        const validAreaIds = HydratedRemoveSiapSajiArea.validAreaIds(state, 'p1')
+        expect(validAreaIds).toContain('A01')
+        expect(validAreaIds).toContain('A02')
+        expect(validAreaIds).not.toContain('A03')
+    })
 })

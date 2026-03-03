@@ -85,17 +85,17 @@ export class ProductionOperationsStateHandler
                     return MachineState.ProductionOperations
                 }
 
-                return finishOperatingCompany(state)
+                return finishOperatingCompany(state, context)
             }
             case isExpand(action): {
                 if (HydratedExpand.canExpand(state, action.playerId)) {
                     return MachineState.ProductionOperations
                 }
 
-                return finishOperatingCompany(state)
+                return finishOperatingCompany(state, context)
             }
             case isPass(action): {
-                return finishOperatingCompany(state)
+                return finishOperatingCompany(state, context)
             }
             case isRemoveCompanyDeed(action): {
                 return MachineState.ProductionOperations

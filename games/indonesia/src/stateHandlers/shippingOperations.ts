@@ -48,7 +48,7 @@ export class ShippingOperationsStateHandler
                     return MachineState.ShippingOperations
                 }
 
-                return finishOperatingCompany(state)
+                return finishOperatingCompany(state, context)
             }
             default: {
                 throw Error('Invalid action type')

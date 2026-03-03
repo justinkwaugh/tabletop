@@ -116,7 +116,7 @@ export class ResearchAndDevelopmentStateHandler implements MachineStateHandler<
                         if (state.canAnyCityGrow()) {
                             return MachineState.CityGrowth
                         }
-                        return resolvePostOperationsState(state)
+                        return resolvePostOperationsState(state, context)
                     }
                     return MachineState.Operations
                 }

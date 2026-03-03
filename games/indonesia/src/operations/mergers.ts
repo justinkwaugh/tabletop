@@ -426,6 +426,50 @@ export function companyCultivatedAreaIds(
     return areaIds
 }
 
+function connectedCultivatedComponentCount(
+    state: HydratedIndonesiaGameState,
+    cultivatedAreaIdSet: ReadonlySet<string>
+): number {
+    if (cultivatedAreaIdSet.size === 0) {
+        return 0
+    }
+
+    const visited = new Set<string>()
+    let componentCount = 0
+
+    for (const seedAreaId of cultivatedAreaIdSet) {
+        if (visited.has(seedAreaId)) {
+            continue
+        }
+
+        componentCount += 1
+        const queue = [seedAreaId]
+        visited.add(seedAreaId)
+
+        while (queue.length > 0) {
+            const currentAreaId = queue.shift()
+            if (!currentAreaId) {
+                continue
+            }
+
+            const currentNode = state.board.graph.nodeById(currentAreaId)
+            if (!currentNode) {
+                continue
+            }
+
+            for (const neighborId of currentNode.neighbors[IndonesiaNeighborDirection.Land]) {
+                if (!cultivatedAreaIdSet.has(neighborId) || visited.has(neighborId)) {
+                    continue
+                }
+                visited.add(neighborId)
+                queue.push(neighborId)
+            }
+        }
+    }
+
+    return componentCount
+}
+
 export function isSiapSajiRemovalAreaValid(
     state: HydratedIndonesiaGameState,
     companyId: string,
@@ -452,6 +496,17 @@ export function isSiapSajiRemovalAreaValid(
     )
     const hasSeaNeighbor = node.neighbors[IndonesiaNeighborDirection.Sea].length > 0
     if (!hasExternalLandNeighbor && !hasSeaNeighbor) {
+        return false
+    }
+
+    const componentCountBeforeRemoval = connectedCultivatedComponentCount(state, cultivatedAreaIdSet)
+    const remainingCultivatedAreaIds = new Set(cultivatedAreaIdSet)
+    remainingCultivatedAreaIds.delete(areaId)
+    const componentCountAfterRemoval = connectedCultivatedComponentCount(
+        state,
+        remainingCultivatedAreaIds
+    )
+    if (componentCountAfterRemoval > componentCountBeforeRemoval) {
         return false
     }
 

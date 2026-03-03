@@ -281,10 +281,13 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
         if (remainingParticipants > 1) {
             return
         }
+        if (auction.highBid === undefined) {
+            return
+        }
 
         const winnerId = highestBidderId(auction)
         assertExists(winnerId, 'Merger winner should be resolved when auction finalizes')
-        const winningBid = auction.highBid ?? proposal.openingBid
+        const winningBid = auction.highBid
 
         const companyA = state.companies.find((company) => company.id === proposal.companyAId)
         const companyB = state.companies.find((company) => company.id === proposal.companyBId)
@@ -316,6 +319,13 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
             assertExists(resultingGood, 'Production merger proposal must include resulting good')
         }
 
+        const mergedProductionGood =
+            proposal.companyType === CompanyType.Production
+                ? proposal.isSiapSaji
+                    ? Good.SiapSaji
+                    : resultingGood
+                : undefined
+
         const mergedCompany =
             proposal.companyType === CompanyType.Shipping
                 ? {
@@ -327,7 +337,7 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
                 : {
                       id: mergedCompanyId,
                       type: CompanyType.Production,
-                      good: resultingGood,
+                      good: mergedProductionGood as Good,
                       deeds: mergedDeeds,
                       owner: winnerId
                   }
@@ -358,6 +368,9 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
                     continue
                 }
                 area.companyId = mergedCompanyId
+                if (mergedProductionGood) {
+                    area.good = mergedProductionGood as Good
+                }
             }
         }
 
@@ -394,6 +407,11 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
     }
 
     private finalizeSiapSajiReduction(state: HydratedIndonesiaGameState, companyId: string): void {
+        const company = state.companies.find((candidate) => candidate.id === companyId)
+        if (company && company.type === CompanyType.Production) {
+            company.good = Good.SiapSaji
+        }
+
         for (const area of Object.values(state.board.areas)) {
             if (!isCultivatedArea(area) || area.companyId !== companyId) {
                 continue

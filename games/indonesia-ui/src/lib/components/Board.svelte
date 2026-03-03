@@ -36,10 +36,10 @@
                 <BoardDeedsLayer />
                 <BoardShippingRouteOverlayLayer />
                 <BoardCultivatedAreasLayer />
-                <BoardProductionZoneMarkersLayer />
                 <BoardShipsLayer />
                 <BoardCitiesLayer />
                 <BoardActionAreasLayer />
+                <BoardProductionZoneMarkersLayer />
                 <BoardTurnOrderLayer
                     selectedPlayerId={
                         gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null

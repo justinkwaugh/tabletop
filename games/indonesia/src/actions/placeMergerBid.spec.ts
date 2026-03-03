@@ -148,11 +148,47 @@ describe('HydratedPlaceMergerBid', () => {
                 source: ActionSource.User,
                 playerId: announcerId,
                 companyAId: option.companyAId,
-                companyBId: option.companyBId,
-                openingBid: option.nominalValue
+                companyBId: option.companyBId
             })
         )
         proposeAction.apply(state, context)
+
+        expect(state.mergerCurrentBidderId).toBe(announcerId)
+        state.activePlayerIds = [announcerId]
+
+        const belowNominalBidAction = new HydratedPlaceMergerBid(
+            createAction(PlaceMergerBid, {
+                id: 'below-nominal-bid',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: announcerId,
+                amount: option.nominalValue - option.bidIncrement
+            })
+        )
+        expect(belowNominalBidAction.isValidPlaceMergerBid(state)).toBe(false)
+
+        const misalignedOpeningBidAction = new HydratedPlaceMergerBid(
+            createAction(PlaceMergerBid, {
+                id: 'misaligned-opening-bid',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: announcerId,
+                amount: option.nominalValue + 1
+            })
+        )
+        expect(misalignedOpeningBidAction.isValidPlaceMergerBid(state)).toBe(false)
+
+        const validOpeningBidAction = new HydratedPlaceMergerBid(
+            createAction(PlaceMergerBid, {
+                id: 'valid-opening-bid',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: announcerId,
+                amount: option.nominalValue
+            })
+        )
+        expect(validOpeningBidAction.isValidPlaceMergerBid(state)).toBe(true)
+        validOpeningBidAction.apply(state, context)
 
         state.activePlayerIds = [bidderId]
 
@@ -173,7 +209,7 @@ describe('HydratedPlaceMergerBid', () => {
                 gameId: state.gameId,
                 source: ActionSource.User,
                 playerId: bidderId,
-                amount: option.nominalValue + 1
+                amount: option.nominalValue + option.bidIncrement + 1
             })
         )
         expect(misalignedBidAction.isValidPlaceMergerBid(state)).toBe(false)

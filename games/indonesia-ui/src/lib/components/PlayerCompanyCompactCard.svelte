@@ -4,6 +4,7 @@
     import simpleRiceIconUrl from '$lib/images/simple-rice.svg'
     import simpleRubberIconUrl from '$lib/images/simple-rubber.svg'
     import simpleShipIconUrl from '$lib/images/simple-ship.svg'
+    import simpleSiapSajiIconUrl from '$lib/images/simple-siapsaji.svg'
     import simpleSpiceIconUrl from '$lib/images/simple-spice.svg'
     import type { CompanyCardType } from '$lib/types/companyCard.js'
     import { CompanyType, Era, Good } from '@tabletop/indonesia'
@@ -66,7 +67,10 @@
         if (card.good === Good.Rice) {
             return simpleRiceIconUrl
         }
-        if (card.good === Good.Spice || card.good === Good.SiapSaji) {
+        if (card.good === Good.SiapSaji) {
+            return simpleSiapSajiIconUrl
+        }
+        if (card.good === Good.Spice) {
             return simpleSpiceIconUrl
         }
         if (card.good === Good.Rubber) {
@@ -82,6 +86,10 @@
         const normalizedIndex = ((card.hatchVariant % HATCH_ANGLES.length) + HATCH_ANGLES.length) % HATCH_ANGLES.length
         return HATCH_ANGLES[normalizedIndex]
     })
+
+    const isSiapSajiProductionCard = $derived(
+        card.type === CompanyType.Production && card.good === Good.SiapSaji
+    )
 
     const cardStyle = $derived.by(() => {
         let style = `--company-outline:${deedStyle.outlineColor}; --company-fill:${deedStyle.overlayFill}; --company-text:${deedStyle.textColor};`
@@ -111,6 +119,7 @@
 <article
     class="company-mini-card"
     class:company-mini-card-hatched={hatchAngle !== null}
+    class:company-mini-card-siapsaji={isSiapSajiProductionCard}
     style={cardStyle}
 >
     <div class="company-mini-layout">
@@ -183,6 +192,10 @@
                 transparent 6px 12px
             ),
             var(--company-fill);
+    }
+
+    .company-mini-card-siapsaji {
+        box-shadow: inset 0 0 0 1px rgb(111 76 95 / 0.45);
     }
 
     .company-mini-layout {

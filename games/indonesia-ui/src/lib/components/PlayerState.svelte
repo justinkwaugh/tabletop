@@ -4,12 +4,12 @@
         type PlayerCompanyCardData
     } from '$lib/components/PlayerCompanyCompactCard.svelte'
     import { SHIPPING_ERA_ORDER, shippingSizeTotalsFromDeeds } from '$lib/utils/deeds.js'
+    import { productionHatchVariantByCompanyId as computeProductionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
     import {
         GOOD_REVENUE_BY_GOOD,
         type HydratedIndonesiaPlayerState,
         CompanyType,
         Era,
-        Good,
     } from '@tabletop/indonesia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -34,17 +34,16 @@
         return Array.isArray(area.ships)
     }
 
-    function areaHasCompanyIdAndGood(area: Record<string, unknown>): area is Record<string, unknown> & {
-        companyId: string
-        good: Good
-    } {
-        return typeof area.companyId === 'string' && typeof area.good === 'string'
-    }
-
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
-    const lastOperationsEarnings: number | null = null
-    let earningsDisplay = $derived(lastOperationsEarnings === null ? '\u2014' : String(lastOperationsEarnings))
+    let operationsEarnings = $derived.by(() => {
+        const earningsByPlayerId = gameSession.gameState.operationsEarningsByPlayerId
+        if (!earningsByPlayerId) {
+            return 0
+        }
+        return earningsByPlayerId[playerState.playerId] ?? 0
+    })
+    let earningsDisplay = $derived(String(operationsEarnings))
     let ownedCompanies = $derived.by(() =>
         gameSession.gameState.companies
             .filter((company) => company.owner === playerState.playerId)
@@ -76,54 +75,7 @@
     })
 
     let productionHatchVariantByCompanyId = $derived.by(() => {
-        const ownedProductionCompanies = ownedCompanies.filter(
-            (company): company is (typeof ownedCompanies)[number] & {
-                type: CompanyType.Production
-                good: Good
-            } => company.type === CompanyType.Production && 'good' in company
-        )
-        const ownedProductionCompanyById = new Map(
-            ownedProductionCompanies.map((company) => [company.id, company] as const)
-        )
-        const companyIdsByOwnerAndGood = new Map<string, Set<string>>()
-        const conflictRankByCompanyId = new Map<string, number>()
-
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!areaHasCompanyIdAndGood(area)) {
-                continue
-            }
-
-            const company = ownedProductionCompanyById.get(area.companyId)
-            if (!company) {
-                continue
-            }
-
-            const ownerAndGoodKey = `${company.owner}|${area.good}`
-            const companyIds = companyIdsByOwnerAndGood.get(ownerAndGoodKey) ?? new Set<string>()
-            companyIds.add(company.id)
-            companyIdsByOwnerAndGood.set(ownerAndGoodKey, companyIds)
-        }
-
-        for (const companyIds of companyIdsByOwnerAndGood.values()) {
-            if (companyIds.size <= 1) {
-                continue
-            }
-
-            for (const [index, companyId] of [...companyIds]
-                .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
-                .entries()) {
-                conflictRankByCompanyId.set(companyId, index)
-            }
-        }
-
-        const hatchVariantByCompanyId = new Map<string, number>()
-        for (const [companyId, conflictRank] of conflictRankByCompanyId.entries()) {
-            if (conflictRank <= 0) {
-                continue
-            }
-            hatchVariantByCompanyId.set(companyId, (conflictRank - 1) % 4)
-        }
-        return hatchVariantByCompanyId
+        return computeProductionHatchVariantByCompanyId(gameSession.gameState, 4)
     })
 
     let companyCards: PlayerCompanyCardData[] = $derived.by(() => {
@@ -308,7 +260,8 @@
     }
 
     .player-state-shell {
-        background: #f7f3ef;
+        --player-state-bg-color: #f7f3ef;
+        background: var(--player-state-bg-color);
         padding: 8px;
     }
 
@@ -385,7 +338,7 @@
         justify-content: center;
         gap: 5px;
         letter-spacing: 0.02em;
-        color: #f6ecdc;
+        color: var(--player-state-bg-color);
     }
 
     .player-name-core {
@@ -412,7 +365,7 @@
 
     .player-turn-arrow {
         line-height: 1;
-        color: color-mix(in srgb, #f6ecdc 92%, #c8a277);
+        color: var(--player-state-bg-color);
     }
 
     .player-state-body {

@@ -156,8 +156,7 @@ describe('HydratedProposeMerger', () => {
                 source: ActionSource.User,
                 playerId: setup.announcerId,
                 companyAId: setup.proposal.companyAId,
-                companyBId: setup.proposal.companyBId,
-                openingBid: setup.proposal.nominalValue
+                companyBId: setup.proposal.companyBId
             })
         )
         expect(firstProposal.isValidProposeMerger(state)).toBe(true)
@@ -170,8 +169,7 @@ describe('HydratedProposeMerger', () => {
                 source: ActionSource.User,
                 playerId: setup.announcerId,
                 companyAId: setup.proposal.companyAId,
-                companyBId: setup.proposal.companyBId,
-                openingBid: setup.proposal.nominalValue
+                companyBId: setup.proposal.companyBId
             })
         )
         expect(secondProposal.isValidProposeMerger(state)).toBe(false)
@@ -200,8 +198,7 @@ describe('HydratedProposeMerger', () => {
                 source: ActionSource.User,
                 playerId: setup.announcerId,
                 companyAId: setup.proposal.companyAId,
-                companyBId: setup.proposal.companyBId,
-                openingBid: setup.proposal.nominalValue
+                companyBId: setup.proposal.companyBId
             })
         )
         expect(action.isValidProposeMerger(state)).toBe(false)

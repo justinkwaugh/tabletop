@@ -90,6 +90,9 @@ export class HydratedPlaceMergerBid
         if (this.amount <= currentHighBid) {
             return false
         }
+        if (this.amount < proposal.nominalValue) {
+            return false
+        }
 
         if ((this.amount - proposal.nominalValue) % proposal.bidIncrement !== 0) {
             return false

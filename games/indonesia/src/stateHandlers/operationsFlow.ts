@@ -1,11 +1,45 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, type MachineContext } from '@tabletop/common'
+import { CompanyType } from '../definition/companyType.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { HydratedStartCompany } from '../actions/startCompany.js'
+import { queueRemovalForUnstartableAvailableDeeds } from '../operations/deedAvailability.js'
 
-export function resolvePostOperationsState(state: HydratedIndonesiaGameState): MachineState {
-    if (state.shouldStartNewEra()) {
+function shouldStartNewEraAfterRemovingUnstartableDeeds(state: HydratedIndonesiaGameState): boolean {
+    const startableDeeds = state.availableDeeds.filter((deed) =>
+        HydratedStartCompany.canDeedBeStarted(state, deed.id)
+    )
+
+    if (startableDeeds.length === 0) {
+        return true
+    }
+
+    const allShipping = startableDeeds.every((deed) => deed.type === CompanyType.Shipping)
+    if (allShipping) {
+        return true
+    }
+
+    const productionDeeds = startableDeeds.filter((deed) => deed.type === CompanyType.Production)
+    if (productionDeeds.length !== startableDeeds.length) {
+        return false
+    }
+
+    const firstGood = productionDeeds[0]?.good
+    if (!firstGood) {
+        return false
+    }
+
+    return productionDeeds.every((deed) => deed.good === firstGood)
+}
+
+export function resolvePostOperationsState(
+    state: HydratedIndonesiaGameState,
+    context?: MachineContext<HydratedIndonesiaGameState>
+): MachineState {
+    queueRemovalForUnstartableAvailableDeeds(state, context)
+
+    if (shouldStartNewEraAfterRemovingUnstartableDeeds(state)) {
         state.incrementEra()
         return MachineState.NewEra
     }
@@ -24,7 +58,10 @@ export function resolvePostMergersState(state: HydratedIndonesiaGameState): Mach
     return MachineState.Acquisitions
 }
 
-export function finishOperatingCompany(state: HydratedIndonesiaGameState): MachineState {
+export function finishOperatingCompany(
+    state: HydratedIndonesiaGameState,
+    context?: MachineContext<HydratedIndonesiaGameState>
+): MachineState {
     const currentPhase = state.phaseManager.currentPhase
     assertExists(currentPhase, 'Current phase should exist while finishing company operation')
     assert(
@@ -39,12 +76,13 @@ export function finishOperatingCompany(state: HydratedIndonesiaGameState): Machi
         state.canPlayerOperateAnyCompany(playerId)
     )
     if (playersWhoCanOperate.length === 0) {
+        state.settleOperationsIncomeToCash()
         state.phaseManager.endPhase(state.actionCount)
         state.activePlayerIds = []
         if (state.canAnyCityGrow()) {
             return MachineState.CityGrowth
         }
-        return resolvePostOperationsState(state)
+        return resolvePostOperationsState(state, context)
     }
 
     return MachineState.Operations

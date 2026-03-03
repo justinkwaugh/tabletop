@@ -82,7 +82,7 @@ export class CityGrowthStateHandler
                 }
 
                 this.completeCityGrowth(state)
-                return resolvePostOperationsState(state)
+                return resolvePostOperationsState(state, context)
             }
             case isRemoveCompanyDeed(action): {
                 return MachineState.CityGrowth
