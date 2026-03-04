@@ -27,6 +27,7 @@ import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
+import { IndonesiaNeighborDirection } from '../utils/indonesiaNodes.js'
 import {
     activeAuctionParticipantCount,
     canAnyPlayerAnnounceMerger,
@@ -34,7 +35,7 @@ import {
     mergerAnnouncementOrder,
     validSiapSajiRemovalAreaIds
 } from '../operations/mergers.js'
-import { isCultivatedArea, isSeaArea } from '../components/area.js'
+import { AreaType, isCultivatedArea, isSeaArea } from '../components/area.js'
 import { resolvePostMergersState } from './operationsFlow.js'
 
 type MergersAction =
@@ -331,6 +332,7 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
                     ? Good.SiapSaji
                     : resultingGood
                 : undefined
+        let autoRemovedTouchingSiapSajiCount = 0
 
         const mergedCompany =
             proposal.companyType === CompanyType.Shipping
@@ -369,14 +371,23 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
                 )
             }
         } else {
+            const mergedCultivatedAreaIds: string[] = []
             for (const area of Object.values(state.board.areas)) {
                 if (!isCultivatedArea(area) || !oldCompanyIds.has(area.companyId)) {
                     continue
                 }
                 area.companyId = mergedCompanyId
+                mergedCultivatedAreaIds.push(area.id)
                 if (mergedProductionGood) {
                     area.good = mergedProductionGood as Good
                 }
+            }
+            if (proposal.isSiapSaji) {
+                autoRemovedTouchingSiapSajiCount = this.autoRemoveMergedAreasTouchingExistingSiapSaji(
+                    state,
+                    mergedCompanyId,
+                    mergedCultivatedAreaIds
+                )
             }
         }
 
@@ -393,11 +404,15 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
 
         if (proposal.isSiapSaji) {
             const removalsRequired = Math.ceil(totalUnits / 2)
-            if (removalsRequired > 0) {
+            const removalsRemaining = Math.max(
+                0,
+                removalsRequired - autoRemovedTouchingSiapSajiCount
+            )
+            if (removalsRemaining > 0) {
                 state.pendingSiapSajiReduction = {
                     companyId: mergedCompanyId,
                     winnerId,
-                    removalsRemaining: removalsRequired,
+                    removalsRemaining,
                     totalRemovals: removalsRequired
                 }
                 const validAreaIds = validSiapSajiRemovalAreaIds(state, mergedCompanyId)
@@ -410,6 +425,62 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
 
             this.finalizeSiapSajiReduction(state, mergedCompanyId)
         }
+    }
+
+    private autoRemoveMergedAreasTouchingExistingSiapSaji(
+        state: HydratedIndonesiaGameState,
+        mergedCompanyId: string,
+        mergedCultivatedAreaIds: readonly string[]
+    ): number {
+        const existingSiapSajiCompanyIdSet = new Set(
+            state.companies
+                .filter(
+                    (company) =>
+                        company.id !== mergedCompanyId &&
+                        company.type === CompanyType.Production &&
+                        company.good === Good.SiapSaji
+                )
+                .map((company) => company.id)
+        )
+        if (existingSiapSajiCompanyIdSet.size <= 0) {
+            return 0
+        }
+
+        const areaIdsToAutoRemove = new Set<string>()
+        for (const areaId of mergedCultivatedAreaIds) {
+            const area = state.board.areas[areaId]
+            if (!area || !isCultivatedArea(area) || area.companyId !== mergedCompanyId) {
+                continue
+            }
+
+            const node = state.board.graph.nodeById(areaId)
+            if (!node) {
+                continue
+            }
+
+            const touchesExistingSiapSajiCompany = node.neighbors[
+                IndonesiaNeighborDirection.Land
+            ].some((neighborAreaId) => {
+                const neighborArea = state.board.areas[neighborAreaId]
+                return (
+                    !!neighborArea &&
+                    isCultivatedArea(neighborArea) &&
+                    existingSiapSajiCompanyIdSet.has(neighborArea.companyId)
+                )
+            })
+            if (touchesExistingSiapSajiCompany) {
+                areaIdsToAutoRemove.add(areaId)
+            }
+        }
+
+        for (const areaId of areaIdsToAutoRemove) {
+            state.board.areas[areaId] = {
+                id: areaId,
+                type: AreaType.EmptyLand
+            }
+        }
+
+        return areaIdsToAutoRemove.size
     }
 
     private queueAutoPassForIneligibleCurrentBidder(

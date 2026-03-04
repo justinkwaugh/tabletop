@@ -531,4 +531,156 @@ describe('MergersStateHandler', () => {
             expect(area.good).toBe(Good.SiapSaji)
         }
     })
+
+    it('auto-removes newly merged areas that touch existing siap saji companies before manual halving removals', () => {
+        const state = createTestState()
+        const context = createMachineContext(state)
+        const handler = new MergersStateHandler()
+
+        state.era = Era.B
+
+        const [announcerId, otherPlayerId] = state.turnManager.turnOrder
+        expect(announcerId).toBeDefined()
+        expect(otherPlayerId).toBeDefined()
+        if (!announcerId || !otherPlayerId) {
+            return
+        }
+
+        const mergedAreaAId = 'A01'
+        const mergedAreaBId = 'A04'
+        const existingSiapAreaId = 'A03'
+
+        state.getPlayerState(announcerId).research.mergers = 1
+
+        const riceDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production && deed.good === Good.Rice
+        )
+        const spiceDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production && deed.good === Good.Spice
+        )
+        expect(riceDeed).toBeDefined()
+        expect(spiceDeed).toBeDefined()
+        if (
+            !riceDeed ||
+            !spiceDeed ||
+            riceDeed.type !== CompanyType.Production ||
+            spiceDeed.type !== CompanyType.Production
+        ) {
+            return
+        }
+
+        const siapSeedDeed = state.availableDeeds.find(
+            (deed) =>
+                deed.type === CompanyType.Production &&
+                deed.id !== riceDeed.id &&
+                deed.id !== spiceDeed.id
+        )
+        expect(siapSeedDeed).toBeDefined()
+        if (!siapSeedDeed || siapSeedDeed.type !== CompanyType.Production) {
+            return
+        }
+
+        const riceCompanyId = 'auto-siap-rice-company'
+        const spiceCompanyId = 'auto-siap-spice-company'
+        const existingSiapCompanyId = 'existing-siap-company'
+        state.companies = [
+            {
+                id: riceCompanyId,
+                type: CompanyType.Production,
+                owner: announcerId,
+                deeds: [riceDeed],
+                good: Good.Rice
+            },
+            {
+                id: spiceCompanyId,
+                type: CompanyType.Production,
+                owner: announcerId,
+                deeds: [spiceDeed],
+                good: Good.Spice
+            },
+            {
+                id: existingSiapCompanyId,
+                type: CompanyType.Production,
+                owner: otherPlayerId,
+                deeds: [siapSeedDeed],
+                good: Good.SiapSaji
+            }
+        ]
+        state.getPlayerState(announcerId).ownedCompanies = [riceCompanyId, spiceCompanyId]
+        state.getPlayerState(otherPlayerId).ownedCompanies = [existingSiapCompanyId]
+
+        state.board.areas[mergedAreaAId] = {
+            id: mergedAreaAId,
+            type: AreaType.Cultivated,
+            companyId: riceCompanyId,
+            good: Good.Rice
+        }
+        state.board.areas[mergedAreaBId] = {
+            id: mergedAreaBId,
+            type: AreaType.Cultivated,
+            companyId: spiceCompanyId,
+            good: Good.Spice
+        }
+        state.board.areas[existingSiapAreaId] = {
+            id: existingSiapAreaId,
+            type: AreaType.Cultivated,
+            companyId: existingSiapCompanyId,
+            good: Good.SiapSaji
+        }
+
+        handler.enter(context)
+
+        const option = HydratedProposeMerger.listProposableMergers(state, announcerId).find(
+            (entry) =>
+                (entry.companyAId === riceCompanyId && entry.companyBId === spiceCompanyId) ||
+                (entry.companyAId === spiceCompanyId && entry.companyBId === riceCompanyId)
+        )
+        expect(option?.isSiapSaji).toBe(true)
+        if (!option) {
+            return
+        }
+
+        const proposeAction = new HydratedProposeMerger(
+            createAction(ProposeMerger, {
+                id: 'propose-auto-siap-saji-merger',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: announcerId,
+                companyAId: riceCompanyId,
+                companyBId: spiceCompanyId
+            })
+        )
+        proposeAction.apply(state, context)
+        handler.onAction(proposeAction, context)
+
+        state.activePlayerIds = [announcerId]
+        const openingBidAction = new HydratedPlaceMergerBid(
+            createAction(PlaceMergerBid, {
+                id: 'opening-bid-auto-siap-saji',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: announcerId,
+                amount: option.nominalValue
+            })
+        )
+        openingBidAction.apply(state, context)
+        handler.onAction(openingBidAction, context)
+
+        const mergedCompany = state.companies.find(
+            (company) => company.id !== existingSiapCompanyId
+        )
+        expect(mergedCompany).toBeDefined()
+        expect(mergedCompany?.type).toBe(CompanyType.Production)
+        if (!mergedCompany || mergedCompany.type !== CompanyType.Production) {
+            return
+        }
+        expect(mergedCompany.good).toBe(Good.SiapSaji)
+
+        expect(state.board.areas[mergedAreaAId]?.type).toBe(AreaType.EmptyLand)
+        expect(state.board.areas[mergedAreaBId]?.type).toBe(AreaType.EmptyLand)
+        expect(state.pendingSiapSajiReduction).toBeUndefined()
+
+        const existingArea = state.board.areas[existingSiapAreaId]
+        expect(existingArea?.type).toBe(AreaType.Cultivated)
+    })
 })

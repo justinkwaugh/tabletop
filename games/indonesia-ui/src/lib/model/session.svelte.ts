@@ -126,7 +126,7 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     productionZoneRenderStyle: 'player' | 'goods' = $derived.by(() => {
-        return this.productionZoneRenderStyleOverride ?? 'player'
+        return this.productionZoneRenderStyleOverride ?? 'goods'
     })
 
     operableOwnedCompanyIds: string[] = $derived.by(() => {
