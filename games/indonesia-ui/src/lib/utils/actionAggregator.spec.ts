@@ -3,13 +3,14 @@ import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType } from '@tabletop/indonesia'
 import { aggregateActions, isAggregatedIndonesiaAction } from './actionAggregator.js'
 
-function expandAction(id: string, playerId: string, areaId: string): GameAction {
+function expandAction(id: string, playerId: string, areaId: string, index?: number): GameAction {
     return {
         id,
         gameId: 'g1',
         source: ActionSource.User,
         type: ActionType.Expand,
         playerId,
+        index,
         areaId
     } as unknown as GameAction
 }
@@ -27,9 +28,9 @@ function passAction(id: string, playerId: string): GameAction {
 describe('aggregateActions', () => {
     it('aggregates consecutive expand actions by the same player', () => {
         const actions = [
-            expandAction('a1', 'p1', 'A01'),
-            expandAction('a2', 'p1', 'A02'),
-            expandAction('a3', 'p1', 'A03')
+            expandAction('a1', 'p1', 'A01', 10),
+            expandAction('a2', 'p1', 'A02', 11),
+            expandAction('a3', 'p1', 'A03', 12)
         ]
 
         const aggregated = Array.from(aggregateActions(actions))
@@ -39,7 +40,8 @@ describe('aggregateActions', () => {
         expect(aggregated[0]).toMatchObject({
             playerId: 'p1',
             aggregatedType: ActionType.Expand,
-            count: 3
+            count: 3,
+            index: 12
         })
     })
 

@@ -2,6 +2,7 @@
     import PlayerCompanyCompactCard, {
         type PlayerCompanyCardData
     } from '$lib/components/PlayerCompanyCompactCard.svelte'
+    import LastHistoryDescription from '$lib/components/LastHistoryDescription.svelte'
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import { shadeHexColor } from '$lib/utils/color.js'
     import { SHIPPING_ERA_ORDER, shippingSizeTotalsFromDeeds } from '$lib/utils/deeds.js'
@@ -1146,7 +1147,9 @@
 <div
     class="action-panel flex min-h-[50px] items-center justify-center px-0 py-2 text-center text-[18px] tracking-[0.02em] text-[#333]"
 >
-    {#if showTurnOrderBidTracker}
+    {#if gameSession.isViewingHistory}
+        <LastHistoryDescription />
+    {:else if showTurnOrderBidTracker}
         <div class="bid-tracker-panel">
             {#if showTurnOrderBidFormula}
                 <form class="bid-formula" onsubmit={submitTurnOrderBid}>

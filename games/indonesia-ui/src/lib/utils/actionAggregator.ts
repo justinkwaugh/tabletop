@@ -27,6 +27,7 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
     }
 
     const first = actions[0]
+    const last = actions[actions.length - 1]
     if (!first.playerId) {
         return first
     }
@@ -37,6 +38,7 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
         source: first.source,
         type: 'AggregatedIndonesiaAction',
         playerId: first.playerId,
+        index: last?.index,
         aggregatedType: ActionType.Expand,
         count: actions.length,
         createdAt: first.createdAt

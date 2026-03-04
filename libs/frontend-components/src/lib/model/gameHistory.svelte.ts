@@ -254,6 +254,20 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    public async goToActionIndex(actionIndex: number) {
+        if (this.stepping || this.disabled || !Number.isFinite(actionIndex)) {
+            return
+        }
+        this.stepping = true
+        try {
+            await this.gotoAction(Math.trunc(actionIndex), { ensureHistory: true })
+        } finally {
+            setTimeout(() => {
+                this.stepping = false
+            })
+        }
+    }
+
     private async stepBackward({
         toActionIndex,
         stopPlayback = true,
@@ -413,9 +427,15 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
-    private async gotoAction(actionIndex: number) {
+    private async gotoAction(
+        actionIndex: number,
+        { ensureHistory = false }: { ensureHistory?: boolean } = {}
+    ) {
         if (!this.historyContext) {
-            if (actionIndex >= this.gameContext.actions.length - 1) {
+            if (this.gameContext.actions.length === 0) {
+                return
+            }
+            if (actionIndex >= this.gameContext.actions.length - 1 && !ensureHistory) {
                 return
             }
             this.enterHistory()

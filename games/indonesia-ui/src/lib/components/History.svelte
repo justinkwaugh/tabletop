@@ -1,12 +1,14 @@
 <script lang="ts">
+    import { tick } from 'svelte'
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { type GameAction } from '@tabletop/common'
+    import { ActionSource, type GameAction } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import { INDONESIA_REGION_BY_AREA_ID, isGrowCity } from '@tabletop/indonesia'
+    import { ClockSolid } from 'flowbite-svelte-icons'
     import { getRegionName } from '$lib/definitions/regions.js'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
     import ActionDescription from './ActionDescription.svelte'
@@ -15,6 +17,7 @@
     const timeAgo = new TimeAgo('en-US')
 
     let gameSession = getGameSession()
+    let scrollContainer: HTMLDivElement | undefined = $state()
 
     let reversedActions = $derived.by(() => {
         const aggregated = Array.from(aggregateActions(gameSession.actions))
@@ -44,12 +47,29 @@
 
         return getRegionName(regionId)
     }
+
+    function actionTimeLabel(action: GameAction): string {
+        return action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'
+    }
+
+    function canJumpToHistoryAction(action: GameAction): boolean {
+        return action.source !== ActionSource.System && typeof action.index === 'number'
+    }
+
+    async function jumpToHistoryAction(action: GameAction) {
+        if (!canJumpToHistoryAction(action)) {
+            return
+        }
+        await gameSession.history.goToActionIndex(action.index as number)
+        await tick()
+        scrollContainer?.scrollTo({ top: 0, behavior: 'auto' })
+    }
 </script>
 
 <div
     class="rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
 >
-    <div class="overflow-auto h-full w-full">
+    <div class="overflow-auto h-full w-full" bind:this={scrollContainer}>
         <Timeline class="ms-2 dark:border-[#ad9c80]">
             {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
                 <div
@@ -83,8 +103,39 @@
                         timeClass="dark:text-[#ad9c80]"
                         title=""
                         class="timeline-item text-left mb-5"
-                        date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
+                        date=""
                     >
+                        <span class="group mb-1 inline-flex items-center gap-2 text-xs text-[#ad9c80]">
+                            <span>{actionTimeLabel(action)}</span>
+                            {#if canJumpToHistoryAction(action)}
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-0 rounded px-0 py-0 text-[#ad9c80] invisible opacity-0 transition-colors transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 hover:bg-[#ad9c80]/10 hover:text-[#f5ebd7] focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad9c80]/70"
+                                    aria-label="Jump to this action in history"
+                                    title="Jump to this action in history"
+                                    onclick={async () => await jumpToHistoryAction(action)}
+                                >
+                                    <svg
+                                        class="w-[12px] h-[12px]"
+                                        aria-hidden="true"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke="currentColor"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="m9 5 7 7-7 7"
+                                        ></path>
+                                    </svg>
+                                    <ClockSolid class="w-[12px] h-[12px] -ml-[2px]" />
+                                </button>
+                            {/if}
+                        </span>
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                             {#if action.playerId}
                                 <PlayerName playerId={action.playerId} />

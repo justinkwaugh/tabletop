@@ -30,12 +30,14 @@
         action,
         justify = 'start',
         history = true,
-        cityRegionName
+        cityRegionName,
+        fullWidth = true
     }: {
         action: GameAction
         justify?: 'start' | 'center' | 'end'
         history?: boolean
         cityRegionName?: string
+        fullWidth?: boolean
     } = $props()
 
     const justifyClasses: Record<'start' | 'center' | 'end', string> = {
@@ -92,7 +94,7 @@
     const casingClass = $derived(history ? 'normal-case' : 'uppercase')
 </script>
 
-<span class={`inline-flex w-full items-center ${justifyClass} ${casingClass}`}>
+<span class={`inline-flex ${fullWidth ? 'w-full' : ''} items-center ${justifyClass} ${casingClass}`}>
     {#if isAggregatedIndonesiaAction(action)}
         {#if action.aggregatedType === ActionType.Expand}
             expanded into {action.count} {action.count === 1 ? 'area' : 'areas'}
