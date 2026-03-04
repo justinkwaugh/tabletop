@@ -1,20 +1,23 @@
 import {
+    ActionSource,
     GameCategory,
     GameStatus,
     GameStorage,
     PlayerStatus,
+    createAction,
     type Game,
     type Player,
     type UninitializedGameState
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
+import { ActionType } from '../definition/actions.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 import { MachineState } from '../definition/states.js'
-import { HydratedChooseOperatingCompany } from './chooseOperatingCompany.js'
+import { ChooseOperatingCompany, HydratedChooseOperatingCompany } from './chooseOperatingCompany.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -234,5 +237,63 @@ describe('HydratedChooseOperatingCompany.canChooseSpecificCompany', () => {
         expect(
             HydratedChooseOperatingCompany.canChooseSpecificCompany(state, productionOwnerId, 'prod-1')
         ).toBe(true)
+    })
+
+    it('records production company goods metadata when operation begins', () => {
+        const state = createTestState()
+        const productionOwnerId = state.players[0].playerId
+        const shippingOwnerId = state.players[1].playerId
+        state.machineState = MachineState.Operations
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: productionOwnerId,
+                deeds: [],
+                good: Good.Rice
+            },
+            {
+                id: 'ship-1',
+                type: CompanyType.Shipping,
+                owner: shippingOwnerId,
+                deeds: []
+            }
+        ]
+        state.board.areas.A01 = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas.S14 = {
+            id: 'S14',
+            type: AreaType.Sea,
+            ships: ['ship-1']
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A04',
+            size: 1,
+            demand: {}
+        })
+
+        const action = new HydratedChooseOperatingCompany(
+            createAction(ChooseOperatingCompany, {
+                id: `choose-operating-${state.actionCount}`,
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: productionOwnerId,
+                type: ActionType.ChooseOperatingCompany,
+                companyId: 'prod-1'
+            })
+        )
+
+        action.apply(state)
+
+        expect(state.operatingCompanyId).toBe('prod-1')
+        expect(action.metadata).toEqual({
+            companyType: CompanyType.Production,
+            good: Good.Rice
+        })
     })
 })

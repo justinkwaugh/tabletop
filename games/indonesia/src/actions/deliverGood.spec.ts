@@ -170,6 +170,7 @@ describe('HydratedDeliverGood', () => {
         expect(state.operatingCompanyShipUseCount('ship-1', 'S14')).toBe(1)
         expect(state.board.cities[0]?.demand[Good.Rice]).toBe(1)
         expect(action.metadata).toEqual({
+            good: Good.Rice,
             revenue: 20,
             shippingCost: 5,
             netProfit: 15,

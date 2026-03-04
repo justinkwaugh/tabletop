@@ -68,6 +68,15 @@ export type ShippingPayment = {
     amount: number
 }
 
+export type CriticalDelivery = {
+    zoneId: ProductionZoneId
+    cityId: CityId
+    shippingCompanyId: CompanyId
+    seaPathAreaIds: IndonesiaNodeId[]
+    plannedQuantity: number
+    requiredQuantity: number
+}
+
 export type DeliveryTieBreakResult = {
     policy: DeliveryTieBreakPolicy
     deliveredGoods: number
@@ -85,6 +94,7 @@ export type DeliveryPlan = {
     shippingCost: number
     netIncome: number
     tieBreakResult: DeliveryTieBreakResult
+    criticalDeliveries?: CriticalDelivery[]
 }
 
 export type DeliverySolutionMetadata = {
@@ -117,6 +127,15 @@ export const DeliveryTieBreakResultSchema = Type.Object({
     shippingCost: Type.Number()
 })
 
+export const CriticalDeliverySchema = Type.Object({
+    zoneId: Type.String(),
+    cityId: Type.String(),
+    shippingCompanyId: Type.String(),
+    seaPathAreaIds: Type.Array(Type.String()),
+    plannedQuantity: Type.Number(),
+    requiredQuantity: Type.Number()
+})
+
 export const DeliveryPlanSchema = Type.Object({
     operatingCompanyId: Type.String(),
     good: Type.Enum(Good),
@@ -127,5 +146,6 @@ export const DeliveryPlanSchema = Type.Object({
     revenue: Type.Number(),
     shippingCost: Type.Number(),
     netIncome: Type.Number(),
-    tieBreakResult: DeliveryTieBreakResultSchema
+    tieBreakResult: DeliveryTieBreakResultSchema,
+    criticalDeliveries: Type.Optional(Type.Array(CriticalDeliverySchema))
 })

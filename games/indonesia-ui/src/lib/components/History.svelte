@@ -4,7 +4,11 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
+    import { type GameAction } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { INDONESIA_REGION_BY_AREA_ID, isGrowCity } from '@tabletop/indonesia'
+    import { getRegionName } from '$lib/definitions/regions.js'
+    import { aggregateActions } from '$lib/utils/actionAggregator.js'
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -13,7 +17,8 @@
     let gameSession = getGameSession()
 
     let reversedActions = $derived.by(() => {
-        const reversed = gameSession.actions
+        const aggregated = Array.from(aggregateActions(gameSession.actions))
+        const reversed = aggregated
             .toReversed()
             .toSorted(
                 (a, b) =>
@@ -21,6 +26,24 @@
             )
         return reversed
     })
+
+    function cityRegionNameForAction(action: GameAction): string | undefined {
+        if (!isGrowCity(action)) {
+            return undefined
+        }
+
+        const city = gameSession.gameState.board.cities.find((entry) => entry.id === action.cityId)
+        if (!city) {
+            return undefined
+        }
+
+        const regionId = INDONESIA_REGION_BY_AREA_ID[city.area]
+        if (!regionId) {
+            return undefined
+        }
+
+        return getRegionName(regionId)
+    }
 </script>
 
 <div
@@ -66,7 +89,11 @@
                             {#if action.playerId}
                                 <PlayerName playerId={action.playerId} />
                             {/if}
-                            <ActionDescription {action} justify="start" />
+                            <ActionDescription
+                                {action}
+                                justify="start"
+                                cityRegionName={cityRegionNameForAction(action)}
+                            />
                         </p>
                     </TimelineItem>
                 </div>

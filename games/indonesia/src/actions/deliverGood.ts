@@ -6,6 +6,7 @@ import {
     GOOD_REVENUE_BY_GOOD,
     SHIPPING_FEE_PER_SHIP_USE
 } from '../definition/operationsEconomy.js'
+import { Good } from '../definition/goods.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
@@ -18,6 +19,7 @@ import { isIndonesiaNodeId } from '../utils/indonesiaNodes.js'
 
 export type DeliverGoodMetadata = Type.Static<typeof DeliverGoodMetadata>
 export const DeliverGoodMetadata = Type.Object({
+    good: Type.Enum(Good),
     revenue: Type.Number(),
     shippingCost: Type.Number(),
     netProfit: Type.Number(),
@@ -115,6 +117,7 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
         state.addOperationsIncomeForCompany(operatingCompany.id, revenue - shippingCost)
         state.addOperationsIncomeForCompany(shippingCompany.id, shippingCost)
         this.metadata = {
+            good: operatingCompany.good,
             revenue,
             shippingCost,
             netProfit: revenue - shippingCost,

@@ -73,6 +73,16 @@ describe('solveDeliveryProblem', () => {
         expect(plan.revenue).toBe(40)
         expect(plan.shippingCost).toBe(10)
         expect(plan.netIncome).toBe(30)
+        expect(plan.criticalDeliveries).toEqual([
+            {
+                zoneId: 'prod-1:zone:1',
+                cityId: 'city-a',
+                shippingCompanyId: 'ship-a',
+                seaPathAreaIds: ['S01'],
+                plannedQuantity: 2,
+                requiredQuantity: 2
+            }
+        ])
     })
 
     it('uses min-shipping-cost tie-break when multiple max-delivery solutions exist', () => {
@@ -396,6 +406,133 @@ describe('solveDeliveryProblem', () => {
                 shippingCompanyId: 'ship-owned-short',
                 quantity: 1,
                 seaPathAreaIds: ['S01']
+            }
+        ])
+    })
+
+    it('does not mark a delivery critical when an alternate path can replace it', () => {
+        const problem: DeliveryProblem = {
+            operatingCompanyId: 'prod-1',
+            operatingCompanyOwnerId: 'p1',
+            ownedShippingCompanyIds: ['ship-a'],
+            good: Good.Rice,
+            shippingFeePerShipUse: 5,
+            tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
+            zoneSupplies: [
+                {
+                    zoneId: 'prod-1:zone:1',
+                    areaIds: ['A01'],
+                    adjacentSeaAreaIds: ['S01', 'S02'],
+                    supply: 1
+                }
+            ],
+            cityDemands: [
+                {
+                    cityId: 'city-a',
+                    cityAreaId: 'A04',
+                    adjacentSeaAreaIds: ['S03', 'S04'],
+                    remainingDemand: 1
+                }
+            ],
+            shippingCompanyNetworks: [
+                {
+                    shippingCompanyId: 'ship-a',
+                    seaLanes: [
+                        {
+                            fromSeaAreaId: 'S01',
+                            toSeaAreaId: 'S03'
+                        },
+                        {
+                            fromSeaAreaId: 'S02',
+                            toSeaAreaId: 'S04'
+                        }
+                    ],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S01',
+                            capacity: 1
+                        },
+                        {
+                            seaAreaId: 'S02',
+                            capacity: 1
+                        },
+                        {
+                            seaAreaId: 'S03',
+                            capacity: 1
+                        },
+                        {
+                            seaAreaId: 'S04',
+                            capacity: 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        const plan = solveDeliveryProblem(problem)
+
+        expect(plan.totalDelivered).toBe(1)
+        expect(plan.criticalDeliveries).toBeUndefined()
+    })
+
+    it('marks a delivery critical when no alternate path can replace it', () => {
+        const problem: DeliveryProblem = {
+            operatingCompanyId: 'prod-1',
+            operatingCompanyOwnerId: 'p1',
+            ownedShippingCompanyIds: ['ship-a'],
+            good: Good.Rice,
+            shippingFeePerShipUse: 5,
+            tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
+            zoneSupplies: [
+                {
+                    zoneId: 'prod-1:zone:1',
+                    areaIds: ['A01'],
+                    adjacentSeaAreaIds: ['S01'],
+                    supply: 1
+                }
+            ],
+            cityDemands: [
+                {
+                    cityId: 'city-a',
+                    cityAreaId: 'A04',
+                    adjacentSeaAreaIds: ['S03'],
+                    remainingDemand: 1
+                }
+            ],
+            shippingCompanyNetworks: [
+                {
+                    shippingCompanyId: 'ship-a',
+                    seaLanes: [
+                        {
+                            fromSeaAreaId: 'S01',
+                            toSeaAreaId: 'S03'
+                        }
+                    ],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S01',
+                            capacity: 1
+                        },
+                        {
+                            seaAreaId: 'S03',
+                            capacity: 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        const plan = solveDeliveryProblem(problem)
+
+        expect(plan.totalDelivered).toBe(1)
+        expect(plan.criticalDeliveries).toEqual([
+            {
+                zoneId: 'prod-1:zone:1',
+                cityId: 'city-a',
+                shippingCompanyId: 'ship-a',
+                seaPathAreaIds: ['S01', 'S03'],
+                plannedQuantity: 1,
+                requiredQuantity: 1
             }
         ])
     })

@@ -1,7 +1,14 @@
 import { assert, assertExists } from '@tabletop/common'
 import { DeliveryTieBreakPolicy, GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 import type { IndonesiaNodeId } from '../utils/indonesiaNodes.js'
-import type { CityDelivery, DeliveryPlan, DeliveryProblem, ShipUse, ShippingPayment } from './deliveryPlan.js'
+import type {
+    CityDelivery,
+    CriticalDelivery,
+    DeliveryPlan,
+    DeliveryProblem,
+    ShipUse,
+    ShippingPayment
+} from './deliveryPlan.js'
 
 type NetworkNode =
     | { kind: 'source' }
@@ -615,18 +622,159 @@ function solveFromAugmentations(
     }
 }
 
-export function solveDeliveryProblem(problem: DeliveryProblem): DeliveryPlan {
-    return solveDeliveryProblemWithStats(problem).plan
+function cloneDeliveryProblem(problem: DeliveryProblem): DeliveryProblem {
+    return {
+        ...problem,
+        zoneSupplies: problem.zoneSupplies.map((zoneSupply) => ({
+            ...zoneSupply,
+            areaIds: [...zoneSupply.areaIds],
+            adjacentSeaAreaIds: [...zoneSupply.adjacentSeaAreaIds]
+        })),
+        cityDemands: problem.cityDemands.map((cityDemand) => ({
+            ...cityDemand,
+            adjacentSeaAreaIds: [...cityDemand.adjacentSeaAreaIds]
+        })),
+        shippingCompanyNetworks: problem.shippingCompanyNetworks.map((shippingNetwork) => ({
+            ...shippingNetwork,
+            seaLanes: shippingNetwork.seaLanes.map((seaLane) => ({ ...seaLane })),
+            seaAreaCapacities: shippingNetwork.seaAreaCapacities.map((seaAreaCapacity) => ({
+                ...seaAreaCapacity
+            }))
+        }))
+    }
 }
 
-export function solveDeliveryProblemWithStats(problem: DeliveryProblem): DeliverySolveResult {
+function reducePathCapacityForDelivery(problem: DeliveryProblem, delivery: CityDelivery): DeliveryProblem {
+    const reduced = cloneDeliveryProblem(problem)
+    const pathSeaAreaIds = new Set(delivery.seaPathAreaIds)
+
+    reduced.shippingCompanyNetworks = reduced.shippingCompanyNetworks.map((shippingNetwork) => {
+        if (shippingNetwork.shippingCompanyId !== delivery.shippingCompanyId) {
+            return shippingNetwork
+        }
+
+        const seaAreaCapacities = shippingNetwork.seaAreaCapacities
+            .map((seaAreaCapacity) => {
+                if (!pathSeaAreaIds.has(seaAreaCapacity.seaAreaId)) {
+                    return seaAreaCapacity
+                }
+
+                return {
+                    ...seaAreaCapacity,
+                    capacity: Math.max(0, seaAreaCapacity.capacity - delivery.quantity)
+                }
+            })
+            .filter((seaAreaCapacity) => seaAreaCapacity.capacity > 0)
+
+        const remainingSeaAreaIdSet = new Set<IndonesiaNodeId>(
+            seaAreaCapacities.map((seaAreaCapacity) => seaAreaCapacity.seaAreaId)
+        )
+        const seaLanes = shippingNetwork.seaLanes.filter(
+            (seaLane) =>
+                remainingSeaAreaIdSet.has(seaLane.fromSeaAreaId) &&
+                remainingSeaAreaIdSet.has(seaLane.toSeaAreaId)
+        )
+
+        return {
+            ...shippingNetwork,
+            seaAreaCapacities,
+            seaLanes
+        }
+    })
+
+    reduced.shippingCompanyNetworks = reduced.shippingCompanyNetworks.filter(
+        (shippingNetwork) => shippingNetwork.seaAreaCapacities.length > 0
+    )
+
+    return reduced
+}
+
+function computeCriticalDeliveries(problem: DeliveryProblem, plan: DeliveryPlan): CriticalDelivery[] {
+    if (plan.deliveries.length === 0) {
+        return []
+    }
+
+    const criticalDeliveries: CriticalDelivery[] = []
+    for (const delivery of plan.deliveries) {
+        // Conservative criticality pass:
+        // remove the solved delivery path's sea-capacity footprint and re-solve.
+        // If the plan can no longer deliver the same quantity for this route, that quantity is required.
+        const problemWithoutDeliveryPath = reducePathCapacityForDelivery(problem, delivery)
+        const replacementPlan = solveDeliveryProblem(problemWithoutDeliveryPath, {
+            includeCriticalDeliveries: false
+        })
+        const replaceableQuantity = Math.min(delivery.quantity, replacementPlan.totalDelivered)
+        const requiredQuantity = Math.max(0, delivery.quantity - replaceableQuantity)
+        if (requiredQuantity <= 0) {
+            continue
+        }
+
+        criticalDeliveries.push({
+            zoneId: delivery.zoneId,
+            cityId: delivery.cityId,
+            shippingCompanyId: delivery.shippingCompanyId,
+            seaPathAreaIds: [...delivery.seaPathAreaIds],
+            plannedQuantity: delivery.quantity,
+            requiredQuantity
+        })
+    }
+
+    return criticalDeliveries.sort((criticalDeliveryA, criticalDeliveryB) => {
+        const zoneComparison = criticalDeliveryA.zoneId.localeCompare(criticalDeliveryB.zoneId)
+        if (zoneComparison !== 0) {
+            return zoneComparison
+        }
+
+        const cityComparison = criticalDeliveryA.cityId.localeCompare(criticalDeliveryB.cityId)
+        if (cityComparison !== 0) {
+            return cityComparison
+        }
+
+        const shippingComparison = criticalDeliveryA.shippingCompanyId.localeCompare(
+            criticalDeliveryB.shippingCompanyId
+        )
+        if (shippingComparison !== 0) {
+            return shippingComparison
+        }
+
+        return criticalDeliveryA.seaPathAreaIds
+            .join('>')
+            .localeCompare(criticalDeliveryB.seaPathAreaIds.join('>'))
+    })
+}
+
+type SolveDeliveryProblemOptions = {
+    includeCriticalDeliveries?: boolean
+}
+
+export function solveDeliveryProblem(
+    problem: DeliveryProblem,
+    options?: SolveDeliveryProblemOptions
+): DeliveryPlan {
+    return solveDeliveryProblemWithStats(problem, options).plan
+}
+
+export function solveDeliveryProblemWithStats(
+    problem: DeliveryProblem,
+    options?: SolveDeliveryProblemOptions
+): DeliverySolveResult {
     const built = buildFlowNetwork(problem)
     const startedAtMilliseconds = Date.now()
     const solved = runMinCostMaxFlow(built.network, built.sourceIndex, built.sinkIndex)
     const endedAtMilliseconds = Date.now()
+    const planWithoutCritical = solveFromAugmentations(problem, solved)
+    const includeCriticalDeliveries = options?.includeCriticalDeliveries ?? true
+    const criticalDeliveries = includeCriticalDeliveries
+        ? computeCriticalDeliveries(problem, planWithoutCritical)
+        : undefined
 
     return {
-        plan: solveFromAugmentations(problem, solved),
+        plan: {
+            ...planWithoutCritical,
+            ...(criticalDeliveries && criticalDeliveries.length > 0
+                ? { criticalDeliveries }
+                : {})
+        },
         stats: {
             iterations: solved.augmentations.length,
             elapsedMilliseconds: endedAtMilliseconds - startedAtMilliseconds,

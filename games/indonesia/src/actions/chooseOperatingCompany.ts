@@ -1,12 +1,17 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { CompanyType } from '../definition/companyType.js'
+import { Good } from '../definition/goods.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 
 export type ChooseOperatingCompanyMetadata = Type.Static<typeof ChooseOperatingCompanyMetadata>
-export const ChooseOperatingCompanyMetadata = Type.Object({})
+export const ChooseOperatingCompanyMetadata = Type.Object({
+    companyType: Type.Enum(CompanyType),
+    good: Type.Optional(Type.Enum(Good))
+})
 
 export type ChooseOperatingCompany = Type.Static<typeof ChooseOperatingCompany>
 export const ChooseOperatingCompany = Type.Evaluate(
@@ -45,8 +50,14 @@ export class HydratedChooseOperatingCompany
             throw Error('Invalid ChooseOperatingCompany action')
         }
 
+        const company = state.companies.find((entry) => entry.id === this.companyId)
+        assertExists(company, `Operating company ${this.companyId} should exist`)
+
         state.beginCompanyOperation(this.companyId)
-        this.metadata = {}
+        this.metadata = {
+            companyType: company.type,
+            ...(company.type === CompanyType.Production ? { good: company.good } : {})
+        }
     }
 
     isValidChooseOperatingCompany(state: HydratedIndonesiaGameState): boolean {

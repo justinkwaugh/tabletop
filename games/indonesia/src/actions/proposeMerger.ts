@@ -10,6 +10,8 @@ import {
 } from '@tabletop/common'
 import { HydratedIndonesiaGameState, type ActiveMergerProposal } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { CompanyType } from '../definition/companyType.js'
+import { Good } from '../definition/goods.js'
 import { MachineState } from '../definition/states.js'
 import {
     buildMergerBidOrder,
@@ -26,6 +28,18 @@ export const ProposeMergerMetadata = Type.Object({
         bidIncrement: Type.Number(),
         totalUnits: Type.Number(),
         eligibleBidderIds: Type.Array(Type.String())
+    }),
+    display: Type.Object({
+        companyA: Type.Object({
+            ownerId: Type.String(),
+            companyType: Type.Enum(CompanyType),
+            good: Type.Optional(Type.Enum(Good))
+        }),
+        companyB: Type.Object({
+            ownerId: Type.String(),
+            companyType: Type.Enum(CompanyType),
+            good: Type.Optional(Type.Enum(Good))
+        })
     })
 })
 
@@ -113,6 +127,18 @@ export class HydratedProposeMerger extends HydratableAction<typeof ProposeMerger
                 bidIncrement: option.bidIncrement,
                 totalUnits: option.totalUnits,
                 eligibleBidderIds
+            },
+            display: {
+                companyA: {
+                    ownerId: option.companies[0].ownerId,
+                    companyType: option.companyType,
+                    good: option.companies[0].good
+                },
+                companyB: {
+                    ownerId: option.companies[1].ownerId,
+                    companyType: option.companyType,
+                    good: option.companies[1].good
+                }
             }
         }
     }
