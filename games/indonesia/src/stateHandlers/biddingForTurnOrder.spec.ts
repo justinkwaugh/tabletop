@@ -18,6 +18,7 @@ import { HydratedSetTurnOrder, SetTurnOrder } from '../actions/setTurnOrder.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
 import { AreaType } from '../components/area.js'
+import { PhaseName } from '../definition/phases.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -151,11 +152,12 @@ describe('BiddingForTurnOrderStateHandler', () => {
             })
         )
 
+        state.phaseManager.startPhase(PhaseName.BidForTurnOrder, state.actionCount)
         const nextState = handler.onAction(setTurnOrderAction, context)
         expect(nextState).toBe(MachineState.Mergers)
     })
 
-    it('skips mergers when no legal announcement exists and proceeds to acquisitions', () => {
+    it('skips mergers when no legal announcement exists and proceeds to research and development', () => {
         const state = createTestState()
         const context = createMachineContext(state)
         const handler = new BiddingForTurnOrderStateHandler()
@@ -210,6 +212,7 @@ describe('BiddingForTurnOrderStateHandler', () => {
             companyId: 'company-b',
             good: Good.Rice
         }
+        state.availableDeeds = []
 
         const setTurnOrderAction = new HydratedSetTurnOrder(
             createAction(SetTurnOrder, {
@@ -219,7 +222,8 @@ describe('BiddingForTurnOrderStateHandler', () => {
             })
         )
 
+        state.phaseManager.startPhase(PhaseName.BidForTurnOrder, state.actionCount)
         const nextState = handler.onAction(setTurnOrderAction, context)
-        expect(nextState).toBe(MachineState.Acquisitions)
+        expect(nextState).toBe(MachineState.ResearchAndDevelopment)
     })
 })

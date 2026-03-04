@@ -18,6 +18,7 @@ import { HydratedPass, Pass, PassReason } from '../actions/pass.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
 import { Era } from '../definition/eras.js'
+import { PhaseName } from '../definition/phases.js'
 import { AreaType } from '../components/area.js'
 import { HydratedProposeMerger, ProposeMerger } from '../actions/proposeMerger.js'
 import { HydratedPlaceMergerBid, PlaceMergerBid } from '../actions/placeMergerBid.js'
@@ -155,12 +156,53 @@ describe('MergersStateHandler', () => {
         const handler = new MergersStateHandler()
 
         const announcerId = state.turnManager.turnOrder[0]
+        const otherPlayerId = state.turnManager.turnOrder[1]
         expect(announcerId).toBeDefined()
-        if (!announcerId) {
+        expect(otherPlayerId).toBeDefined()
+        if (!announcerId || !otherPlayerId) {
             return
         }
 
         state.getPlayerState(announcerId).research.mergers = 1
+        const riceDeeds = state.availableDeeds.filter(
+            (deed) => deed.type === CompanyType.Production && deed.good === Good.Rice
+        )
+        expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
+        const [deedA, deedB] = riceDeeds
+        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+            return
+        }
+        state.companies = [
+            {
+                id: 'pass-cycle-company-a',
+                type: CompanyType.Production,
+                owner: announcerId,
+                deeds: [deedA],
+                good: Good.Rice
+            },
+            {
+                id: 'pass-cycle-company-b',
+                type: CompanyType.Production,
+                owner: otherPlayerId,
+                deeds: [deedB],
+                good: Good.Rice
+            }
+        ]
+        state.getPlayerState(announcerId).ownedCompanies = ['pass-cycle-company-a']
+        state.getPlayerState(otherPlayerId).ownedCompanies = ['pass-cycle-company-b']
+        state.board.areas.A01 = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: 'pass-cycle-company-a',
+            good: Good.Rice
+        }
+        state.board.areas.A02 = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId: 'pass-cycle-company-b',
+            good: Good.Rice
+        }
+        state.availableDeeds = []
         handler.enter(context)
 
         expect(state.activePlayerIds).toEqual([announcerId])
@@ -178,7 +220,8 @@ describe('MergersStateHandler', () => {
         passAction.apply(state, context)
         const nextState = handler.onAction(passAction, context)
 
-        expect(nextState).toBe(MachineState.Acquisitions)
+        expect(nextState).toBe(MachineState.ResearchAndDevelopment)
+        expect(state.phaseManager.currentPhase?.name).not.toBe(PhaseName.Mergers)
     })
 
     it('resolves a merger immediately when only one bidder is eligible', () => {
@@ -269,6 +312,7 @@ describe('MergersStateHandler', () => {
         expect(afterProposeState).toBe(MachineState.Mergers)
         expect(state.activeMergerProposal).toBeDefined()
         expect(state.activeMergerAuction).toBeDefined()
+        state.availableDeeds = []
 
         state.activePlayerIds = [announcerId]
         const openingBidAction = new HydratedPlaceMergerBid(
@@ -284,7 +328,8 @@ describe('MergersStateHandler', () => {
         openingBidAction.apply(state, context)
         const afterOpeningBidState = handler.onAction(openingBidAction, context)
 
-        expect(afterOpeningBidState).toBe(MachineState.Mergers)
+        expect(afterOpeningBidState).toBe(MachineState.ResearchAndDevelopment)
+        expect(state.phaseManager.currentPhase?.name).not.toBe(PhaseName.Mergers)
         expect(state.activeMergerProposal).toBeUndefined()
         expect(state.activeMergerAuction).toBeUndefined()
         expect(state.companies).toHaveLength(1)

@@ -69,7 +69,11 @@ export class HydratedPlaceTurnOrderBid
 
     isValidPlaceTurnOrderBid(state: HydratedIndonesiaGameState): boolean {
         const playerState = state.getPlayerState(this.playerId)
-        return this.amount <= playerState.cash && this.amount >= 0
+        return (
+            Number.isInteger(this.amount) &&
+            this.amount >= 0 &&
+            this.amount <= playerState.cash
+        )
     }
 
     static canPlaceTurnOrderBid(state: HydratedIndonesiaGameState, playerId: string): boolean {

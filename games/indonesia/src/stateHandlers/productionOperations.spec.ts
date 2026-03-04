@@ -241,7 +241,7 @@ describe('ProductionOperationsStateHandler', () => {
         })
     })
 
-    it('finishes operating company when player passes optional production expansion', () => {
+    it('finishes operations phase when no players can operate after optional production expansion pass', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const otherPlayerId = state.players[1].playerId
@@ -308,7 +308,7 @@ describe('ProductionOperationsStateHandler', () => {
         action.apply(state, context)
         const nextState = handler.onAction(action, context)
 
-        expect(nextState).toBe(MachineState.Operations)
+        expect(nextState).toBe(MachineState.BiddingForTurnOrder)
         expect(state.operatedCompanyIds).toEqual(['prod-1'])
         expect(state.operatingCompanyId).toBeUndefined()
     })

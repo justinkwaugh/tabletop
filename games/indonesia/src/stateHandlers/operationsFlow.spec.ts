@@ -109,7 +109,33 @@ describe('finishOperatingCompany', () => {
         ).toBe(true)
     })
 
-    it('settles company operations income to owner cash when operations phase ends', () => {
+    it('transitions to end-of-game when era C would start a new era', () => {
+        const state = createTestState()
+        const context = new MachineContext({
+            gameConfig: {},
+            gameState: state
+        })
+        const playerId = state.players[0].playerId
+        state.getPlayerState(playerId).cash = 40
+        state.operationsEarningsByPlayerId = {
+            [playerId]: 12
+        }
+        state.era = Era.C
+        state.availableDeeds = []
+
+        const nextState = resolvePostOperationsState(state, context)
+
+        expect(nextState).toBe(MachineState.EndOfGame)
+        expect(state.era).toBe(Era.C)
+        expect(state.phaseManager.currentPhase?.name).toBe(PhaseName.NewEra)
+        expect(state.getPlayerState(playerId).cash).toBe(64)
+        expect(state.operationsEarningsByPlayerId).toBeUndefined()
+        expect(context.getPendingActions().some((pendingAction) => isRemoveCompanyDeed(pendingAction))).toBe(
+            false
+        )
+    })
+
+    it('settles operations earnings into cash when operations phase ends', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const shippingDeed = state.availableDeeds.find(
@@ -150,7 +176,7 @@ describe('finishOperatingCompany', () => {
         expect(state.operationsDeliveredCultivatedAreaIdsByCompanyId).toBeUndefined()
     })
 
-    it('applies negative operations earnings to player cash at operations end', () => {
+    it('settles negative operations earnings into cash when operations phase ends', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const shippingDeed = state.availableDeeds.find(
@@ -185,5 +211,47 @@ describe('finishOperatingCompany', () => {
         expect(state.getPlayerState(playerId).cash).toBe(cashBefore - 11)
         expect(state.operationsEarningsByPlayerId).toBeUndefined()
         expect(state.operationsIncomeByCompanyId).toBeUndefined()
+    })
+
+    it('clears delivered city demand immediately when skipping city growth', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const shippingDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Shipping && (deed.sizes[state.era] ?? 0) > 0
+        )
+
+        expect(shippingDeed).toBeDefined()
+        if (!shippingDeed || shippingDeed.type !== CompanyType.Shipping) {
+            return
+        }
+
+        const companyId = 'company-1'
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Shipping,
+                owner: playerId,
+                deeds: [shippingDeed]
+            }
+        ]
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A01',
+            size: 1,
+            demand: {
+                [Good.Rice]: 1
+            }
+        })
+        state.availableCities.size2 = 0
+        state.phaseManager.startPhase(PhaseName.Operations, state.actionCount)
+        state.turnManager.startTurn(playerId, state.actionCount)
+        state.activePlayerIds = [playerId]
+        state.machineState = MachineState.ShippingOperations
+        state.beginCompanyOperation(companyId)
+
+        const nextState = finishOperatingCompany(state)
+
+        expect(nextState).toBe(MachineState.BiddingForTurnOrder)
+        expect(state.board.cities[0]?.demand).toEqual({})
     })
 })

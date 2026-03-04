@@ -253,13 +253,13 @@ describe('Recorded Scenario Delivery Solver', () => {
             J: {
                 delivered: 12,
                 shippingCost: 130,
-                netIncome: 350,
+                netIncome: 290,
                 deliveries: 10
             },
             K: {
                 delivered: 3,
                 shippingCost: 15,
-                netIncome: 105,
+                netIncome: 90,
                 deliveries: 3
             },
             L: {
@@ -271,7 +271,7 @@ describe('Recorded Scenario Delivery Solver', () => {
             M: {
                 delivered: 1,
                 shippingCost: 10,
-                netIncome: 25,
+                netIncome: 30,
                 deliveries: 1
             },
             N: {
@@ -283,7 +283,7 @@ describe('Recorded Scenario Delivery Solver', () => {
             O: {
                 delivered: 2,
                 shippingCost: 10,
-                netIncome: 60,
+                netIncome: 70,
                 deliveries: 2
             },
             P: {
@@ -295,13 +295,13 @@ describe('Recorded Scenario Delivery Solver', () => {
             Q: {
                 delivered: 7,
                 shippingCost: 55,
-                netIncome: 190,
+                netIncome: 225,
                 deliveries: 6
             },
             R: {
                 delivered: 7,
                 shippingCost: 75,
-                netIncome: 205,
+                netIncome: 170,
                 deliveries: 6
             }
         })

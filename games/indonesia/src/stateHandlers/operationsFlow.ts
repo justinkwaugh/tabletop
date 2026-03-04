@@ -1,5 +1,6 @@
 import { assert, assertExists, type MachineContext } from '@tabletop/common'
 import { CompanyType } from '../definition/companyType.js'
+import { Era } from '../definition/eras.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
@@ -37,9 +38,19 @@ export function resolvePostOperationsState(
     state: HydratedIndonesiaGameState,
     context?: MachineContext<HydratedIndonesiaGameState>
 ): MachineState {
+    const shouldStartNewEra = shouldStartNewEraAfterRemovingUnstartableDeeds(state)
+    const payoutMultiplier = shouldStartNewEra && state.era === Era.C ? 2 : 1
+    state.settleOperationsIncomeToCash(payoutMultiplier)
+    if (shouldStartNewEra && state.era === Era.C) {
+        if (state.phaseManager.currentPhase?.name !== PhaseName.NewEra) {
+            state.phaseManager.startPhase(PhaseName.NewEra, state.actionCount)
+        }
+        return MachineState.EndOfGame
+    }
+
     queueRemovalForUnstartableAvailableDeeds(state, context)
 
-    if (shouldStartNewEraAfterRemovingUnstartableDeeds(state)) {
+    if (shouldStartNewEra) {
         state.incrementEra()
         return MachineState.NewEra
     }
@@ -76,12 +87,15 @@ export function finishOperatingCompany(
         state.canPlayerOperateAnyCompany(playerId)
     )
     if (playersWhoCanOperate.length === 0) {
-        state.settleOperationsIncomeToCash()
+        state.clearOperationsPhaseCompanyTracking()
+        const anyCityCanGrow = state.canAnyCityGrow()
         state.phaseManager.endPhase(state.actionCount)
         state.activePlayerIds = []
-        if (state.canAnyCityGrow()) {
+        if (anyCityCanGrow) {
             return MachineState.CityGrowth
         }
+
+        state.resetCityDemandsForOperationsPhase()
         return resolvePostOperationsState(state, context)
     }
 

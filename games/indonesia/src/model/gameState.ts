@@ -106,8 +106,8 @@ export const IndonesiaGameState = Type.Evaluate(
             operatingCompanyDeliveryPlan: Type.Optional(DeliveryPlanSchema), // Delivery plan for the currently operating production company
             operatingCompanyProducedGoodsCount: Type.Optional(Type.Number()), // Number of goods the operating production company had on board before expansion
             operatedCompanyIds: Type.Array(Type.String()), // Companies that have already operated this operations phase
-            operationsIncomeByCompanyId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Company income accumulated during the current operations phase; settled to owner cash at operations end
-            operationsEarningsByPlayerId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Net player earnings accumulated during the current operations phase; transferred to cash at operations end
+            operationsIncomeByCompanyId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Company income accumulated during the current operations phase
+            operationsEarningsByPlayerId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Operations earnings stack accumulated during an operations phase; settled at operations end (doubled only when operations end triggers end-of-game)
             operationsDeliveredCultivatedAreaIdsByCompanyId: Type.Optional(
                 Type.Record(Type.String(), Type.Array(Type.String()))
             ), // Delivered cultivated area ids accumulated per company for the current operations phase
@@ -303,7 +303,6 @@ export class HydratedIndonesiaGameState
     public resetOperationsTracking(): void {
         this.operatedCompanyIds = []
         this.operationsIncomeByCompanyId = undefined
-        this.operationsEarningsByPlayerId = undefined
         this.operationsDeliveredCultivatedAreaIdsByCompanyId = undefined
         this.clearOperatingCompany()
     }
@@ -326,9 +325,18 @@ export class HydratedIndonesiaGameState
             (this.operationsEarningsByPlayerId[company.owner] ?? 0) + amount
     }
 
-    public settleOperationsIncomeToCash(): void {
+    public clearOperationsPhaseCompanyTracking(): void {
+        this.operationsIncomeByCompanyId = undefined
+        this.operationsDeliveredCultivatedAreaIdsByCompanyId = undefined
+    }
+
+    public settleOperationsIncomeToCash(multiplier = 1): void {
+        assert(Number.isFinite(multiplier), 'Operations earnings multiplier should be finite')
+        assert(multiplier >= 0, 'Operations earnings multiplier should be non-negative')
+
         const earningsByPlayerId = this.operationsEarningsByPlayerId
         if (!earningsByPlayerId) {
+            this.clearOperationsPhaseCompanyTracking()
             return
         }
 
@@ -337,12 +345,11 @@ export class HydratedIndonesiaGameState
                 continue
             }
             const player = this.getPlayerState(playerId)
-            player.cash += earnings
+            player.cash += earnings * multiplier
         }
 
         this.operationsEarningsByPlayerId = undefined
-        this.operationsIncomeByCompanyId = undefined
-        this.operationsDeliveredCultivatedAreaIdsByCompanyId = undefined
+        this.clearOperationsPhaseCompanyTracking()
     }
 
     public markOperatingCompanyAsOperated(): void {
@@ -712,7 +719,7 @@ export class HydratedIndonesiaGameState
             return false
         }
         if (this.seaAreaHasCompanyShip(candidateArea, company.id)) {
-            return false
+            return true
         }
 
         const candidateNode = this.board.getNodeForArea(candidateArea)
@@ -772,7 +779,7 @@ export class HydratedIndonesiaGameState
             return true
         }
 
-        return this.canProductionCompanyAffordOptionalExpansion(company)
+        return this.canProductionCompanyApplyOptionalExpansion(company)
     }
 
     private canProductionCompanyDeliverAnyGood(
@@ -840,7 +847,7 @@ export class HydratedIndonesiaGameState
         return false
     }
 
-    private canProductionCompanyAffordOptionalExpansion(company: ProductionCompany): boolean {
+    private canProductionCompanyApplyOptionalExpansion(company: ProductionCompany): boolean {
         if (!this.canProductionCompanyExpand(company)) {
             return false
         }

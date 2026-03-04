@@ -1,7 +1,13 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    GameResult,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
+import { PhaseName } from '../definition/phases.js'
 
 type EndOfGameAction = HydratedAction
 
@@ -21,16 +27,37 @@ export class EndOfGameStateHandler implements MachineStateHandler<
         playerId: string,
         context: MachineContext<HydratedIndonesiaGameState>
     ): ActionType[] {
-        const gameState = context.gameState
-
-        const validActions: ActionType[] = []
-
-        // Leave this comment if you want the template to generate code for valid actions
-
-        return validActions
+        return []
     }
 
-    enter(context: MachineContext<HydratedIndonesiaGameState>) {}
+    enter(context: MachineContext<HydratedIndonesiaGameState>) {
+        const gameState = context.gameState
+        gameState.activePlayerIds = []
+
+        if (gameState.phaseManager.currentPhase?.name !== PhaseName.NewEra) {
+            gameState.phaseManager.startPhase(PhaseName.NewEra, gameState.actionCount)
+        }
+
+        let winnerId: string | undefined
+        let winnerTotal = Number.NEGATIVE_INFINITY
+        for (const playerId of gameState.turnManager.turnOrder) {
+            const player = gameState.getPlayerState(playerId)
+            const total = player.cash + player.bank
+            if (total > winnerTotal) {
+                winnerTotal = total
+                winnerId = playerId
+            }
+        }
+
+        if (!winnerId) {
+            gameState.result = GameResult.Draw
+            gameState.winningPlayerIds = []
+            return
+        }
+
+        gameState.result = GameResult.Win
+        gameState.winningPlayerIds = [winnerId]
+    }
 
     onAction(
         action: EndOfGameAction,

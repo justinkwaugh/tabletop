@@ -87,6 +87,30 @@ describe('NewEraStateHandler', () => {
         expect(pendingPlaceCompanyDeedsActions).toHaveLength(1)
     })
 
+    it('does not settle last-earnings stack when entering a new era', () => {
+        const state = createTestState()
+        state.era = Era.B
+        const playerId = state.turnManager.turnOrder[0]
+        expect(playerId).toBeDefined()
+        if (!playerId) {
+            return
+        }
+
+        state.operationsEarningsByPlayerId = {
+            [playerId]: 23
+        }
+        const cashBefore = state.getPlayerState(playerId).cash
+
+        const handler = new NewEraStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        expect(state.getPlayerState(playerId).cash).toBe(cashBefore)
+        expect(state.operationsEarningsByPlayerId).toEqual({
+            [playerId]: 23
+        })
+    })
+
     it('does not queue place-company-deeds in era A', () => {
         const state = createTestState()
         state.era = Era.A
@@ -106,6 +130,12 @@ describe('NewEraStateHandler', () => {
         const state = createTestState()
         state.era = Era.B
         state.phaseManager.startPhase(PhaseName.NewEra, state.actionCount)
+        const nextPlayerId = state.turnManager.turnOrder[0]
+        expect(nextPlayerId).toBeDefined()
+        if (!nextPlayerId) {
+            return
+        }
+        state.placingCities = [nextPlayerId]
 
         const handler = new NewEraStateHandler()
         const context = createMachineContext(state)

@@ -280,7 +280,7 @@ describe('HydratedExpand.canExpand', () => {
         expect(HydratedExpand.canExpand(state, playerId, fixture.nonAdjacentAreaId)).toBe(false)
     })
 
-    it('blocks shipping expansion when target sea area already has the company ship', () => {
+    it('allows shipping expansion when target sea area already has the company ship', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const shippingDeed = state.availableDeeds.find(
@@ -312,7 +312,7 @@ describe('HydratedExpand.canExpand', () => {
         }
 
         expect(HydratedExpand.canExpand(state, playerId)).toBe(true)
-        expect(HydratedExpand.canExpand(state, playerId, fixture.originAreaId)).toBe(false)
+        expect(HydratedExpand.canExpand(state, playerId, fixture.originAreaId)).toBe(true)
         expect(HydratedExpand.canExpand(state, playerId, fixture.adjacentAreaId)).toBe(true)
     })
 

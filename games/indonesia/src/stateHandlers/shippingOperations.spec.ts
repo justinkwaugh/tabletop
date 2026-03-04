@@ -174,7 +174,7 @@ describe('ShippingOperationsStateHandler', () => {
         expect(state.operatedCompanyIds).toEqual([])
     })
 
-    it('marks the company as operated and returns to operations when it can no longer expand', () => {
+    it('marks the company as operated and finishes operations phase when no players can operate', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const otherPlayerId = state.players[1].playerId
@@ -221,10 +221,10 @@ describe('ShippingOperationsStateHandler', () => {
         const context = createMachineContext(state)
         const nextState = handler.onAction(action, context)
 
-        expect(nextState).toBe(MachineState.Operations)
+        expect(nextState).toBe(MachineState.BiddingForTurnOrder)
         expect(state.operatedCompanyIds).toEqual([companyId])
         expect(state.operatingCompanyId).toBeUndefined()
         expect(state.operatingCompanyExpansionCount).toBeUndefined()
-        expect(state.phaseManager.currentPhase?.name).toBe(PhaseName.Operations)
+        expect(state.phaseManager.currentPhase).toBeUndefined()
     })
 })

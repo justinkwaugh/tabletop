@@ -335,3 +335,34 @@ describe('HydratedIndonesiaGameState company operation eligibility', () => {
         expect(state.canCompanyBeOperated('prod-1')).toBe(true)
     })
 })
+
+describe('HydratedIndonesiaGameState operations earnings tracking', () => {
+    it('keeps the operations earnings stack when resetting per-phase operations tracking', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const companyId = 'ops-company'
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Shipping,
+                owner: playerId,
+                deeds: []
+            }
+        ]
+
+        state.addOperationsIncomeForCompany(companyId, 17)
+        state.operatedCompanyIds = [companyId]
+        state.operationsDeliveredCultivatedAreaIdsByCompanyId = {
+            [companyId]: ['S01']
+        }
+
+        state.resetOperationsTracking()
+
+        expect(state.operatedCompanyIds).toEqual([])
+        expect(state.operationsIncomeByCompanyId).toBeUndefined()
+        expect(state.operationsDeliveredCultivatedAreaIdsByCompanyId).toBeUndefined()
+        expect(state.operationsEarningsByPlayerId).toEqual({
+            [playerId]: 17
+        })
+    })
+})
