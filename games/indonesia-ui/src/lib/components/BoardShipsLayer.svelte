@@ -26,7 +26,8 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     const DIMMED_SHIP_OPACITY = 0.32
     const HOVERED_OUTLINE_COLOR = '#fff7cc'
     const SHIP_MARKER_HULL_STROKE_WIDTH = 10
-    const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT = 0.16
+    const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW = 0.16
+    const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE = 0.12
 
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
@@ -127,7 +128,15 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
                         ownerPlayerColor === Color.Yellow ? '#111827' : '#f8fafc',
                     ownerStrokeColor:
                         ownerPlayerColor === Color.Yellow
-                            ? shadeHexColor(ownerColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT)
+                            ? shadeHexColor(
+                                  ownerColor,
+                                  SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW
+                              )
+                            : ownerPlayerColor === Color.Blue
+                              ? shadeHexColor(
+                                    ownerColor,
+                                    SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE
+                                )
                             : 'none'
                 })
             }

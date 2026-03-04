@@ -58,8 +58,9 @@
     }
     const DEED_SPICE_BASE_TINT_PATTERN_ID = 'deed-hatch-spice-base-tint'
     const DEED_SIAPSAJI_BASE_TINT_PATTERN_ID = 'deed-hatch-siapsaji-base-tint'
+    const DEED_SIAPSAJI_HATCH_PATTERN_ID = 'deed-hatch-siapsaji'
     const DEED_SPICE_PRIMARY_TINT = companyDeedStyleForType('spice').textColor
-    const DEED_SIAPSAJI_PRIMARY_TINT = companyDeedStyleForType('siapsaji').textColor
+    const DEED_SIAPSAJI_PRIMARY_TINT = '#8a5067'
     const DEED_LAYER_DATA: {
         cards: DeedCardEntry[]
         overlays: OverlayArea[]
@@ -114,6 +115,10 @@
             })
 
             for (const areaId of overlayAreaIds) {
+                const resolvedHatchPatternId =
+                    cardKind === 'siapsaji' && hatchPatternId === 'deed-hatch-production'
+                        ? DEED_SIAPSAJI_HATCH_PATTERN_ID
+                        : hatchPatternId
                 overlays.push({
                     key: `${deed.id}-${areaId}`,
                     deedId: deed.id,
@@ -128,7 +133,7 @@
                             : cardKind === 'siapsaji'
                               ? DEED_SIAPSAJI_BASE_TINT_PATTERN_ID
                               : null,
-                    hatchPatternId
+                    hatchPatternId: resolvedHatchPatternId
                 })
             }
         }
@@ -212,6 +217,22 @@
                 patternTransform="rotate(35)"
             >
                 <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.24"></rect>
+            </pattern>
+            <pattern
+                id={DEED_SIAPSAJI_HATCH_PATTERN_ID}
+                patternUnits="userSpaceOnUse"
+                width="24"
+                height="24"
+                patternTransform="rotate(35)"
+            >
+                <rect
+                    x="0"
+                    y="0"
+                    width="12"
+                    height="24"
+                    fill={DEED_SIAPSAJI_PRIMARY_TINT}
+                    fill-opacity="0.32"
+                ></rect>
             </pattern>
             <pattern
                 id={DEED_SPICE_BASE_TINT_PATTERN_ID}

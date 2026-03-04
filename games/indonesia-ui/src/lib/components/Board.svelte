@@ -20,6 +20,7 @@
     const gameSession = getGameSession()
     let debugOverlayActive = $state(false)
     let debugOverlayEnabled = $state(false)
+    let hoveredTurnOrderPlayerId = $state<string | null>(null)
 
     onMount(() => {
         if (typeof window === 'undefined') {
@@ -75,6 +76,9 @@
                         gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
                     }
                     selectable={gameSession.researchSelectionEnabled}
+                    onHoverPlayer={(playerId) => {
+                        hoveredTurnOrderPlayerId = playerId
+                    }}
                     onSelectPlayer={(playerId) => {
                         gameSession.selectResearchPlayer(playerId)
                     }}
@@ -84,6 +88,7 @@
                         gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
                     }
                     currentPlayerId={gameSession.currentResearchPlayerId}
+                    hoveredPlayerId={hoveredTurnOrderPlayerId}
                 />
             {/if}
         </svg>

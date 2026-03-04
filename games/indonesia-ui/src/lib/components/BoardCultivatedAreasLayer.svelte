@@ -25,10 +25,16 @@
         'cultivated-hatch-diag-2',
         'cultivated-hatch-diag-3'
     ] as const
+    const SIAP_SAJI_HATCH_PATTERN_IDS = [
+        'cultivated-siapsaji-hatch-diag-0',
+        'cultivated-siapsaji-hatch-diag-1',
+        'cultivated-siapsaji-hatch-diag-2',
+        'cultivated-siapsaji-hatch-diag-3'
+    ] as const
     const SPICE_BASE_TINT_PATTERN_ID = 'cultivated-spice-base-tint'
     const SIAP_SAJI_BASE_TINT_PATTERN_ID = 'cultivated-siapsaji-base-tint'
     const SPICE_PRIMARY_TINT = companyDeedStyleForType('spice').textColor
-    const SIAP_SAJI_PRIMARY_TINT = companyDeedStyleForType('siapsaji').textColor
+    const SIAP_SAJI_PRIMARY_TINT = '#8a5067'
     const GOODS_OVERLAY_STYLE_BY_GOOD: Readonly<
         Record<
             Good,
@@ -102,7 +108,12 @@
                               ? SPICE_BASE_TINT_PATTERN_ID
                               : null
                         : null,
-                hatchPatternId: hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
+                hatchPatternId:
+                    hatchVariant === undefined
+                        ? null
+                        : company.good === Good.SiapSaji
+                          ? SIAP_SAJI_HATCH_PATTERN_IDS[hatchVariant]
+                          : HATCH_PATTERN_IDS[hatchVariant]
             })
         }
 
@@ -147,6 +158,42 @@
             patternTransform="rotate(-35)"
         >
             <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.18"></rect>
+        </pattern>
+        <pattern
+            id="cultivated-siapsaji-hatch-diag-0"
+            patternUnits="userSpaceOnUse"
+            width="24"
+            height="24"
+            patternTransform="rotate(25)"
+        >
+            <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.3"></rect>
+        </pattern>
+        <pattern
+            id="cultivated-siapsaji-hatch-diag-1"
+            patternUnits="userSpaceOnUse"
+            width="24"
+            height="24"
+            patternTransform="rotate(-25)"
+        >
+            <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.3"></rect>
+        </pattern>
+        <pattern
+            id="cultivated-siapsaji-hatch-diag-2"
+            patternUnits="userSpaceOnUse"
+            width="24"
+            height="24"
+            patternTransform="rotate(35)"
+        >
+            <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.26"></rect>
+        </pattern>
+        <pattern
+            id="cultivated-siapsaji-hatch-diag-3"
+            patternUnits="userSpaceOnUse"
+            width="24"
+            height="24"
+            patternTransform="rotate(-35)"
+        >
+            <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.26"></rect>
         </pattern>
         <pattern
             id={SIAP_SAJI_BASE_TINT_PATTERN_ID}

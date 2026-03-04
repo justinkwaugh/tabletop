@@ -16,10 +16,12 @@
 
     let {
         selectedPlayerId = null,
-        currentPlayerId = null
+        currentPlayerId = null,
+        hoveredPlayerId = null
     }: {
         selectedPlayerId?: string | null
         currentPlayerId?: string | null
+        hoveredPlayerId?: string | null
     } = $props()
 
     type ResearchCubeEntry = {
@@ -42,7 +44,7 @@
     const gameSession = getGameSession()
 
     const RESEARCH_COLUMN_COUNT = 5
-    const RESEARCH_CUBE_SIZE = 18
+    const RESEARCH_CUBE_SIZE = 23.96
     const RESEARCH_CUBE_GAP = 0.5
     const RESEARCH_CUBE_SPACING = RESEARCH_CUBE_SIZE + RESEARCH_CUBE_GAP
     const SHOW_RESEARCH_SLOT_OUTLINES = true
@@ -89,6 +91,15 @@
                 : null
     )
 
+    const hoveredResearchPlayerState: (typeof gameSession.gameState.players)[number] | null = $derived.by(
+        () =>
+            hoveredPlayerId
+                ? gameSession.gameState.players.find(
+                      (playerState) => playerState.playerId === hoveredPlayerId
+                  ) ?? null
+                : null
+    )
+
     const researchNextCellHighlightColor: string = $derived.by(() => {
         if (!selectedPlayerId) {
             return '#475569'
@@ -100,6 +111,43 @@
     const researchNextCellHighlightStrokeColor: string = $derived.by(() =>
         shadeHexColor(researchNextCellHighlightColor, 0.48)
     )
+
+    const hoveredTrackHighlightColor: string = $derived.by(() => {
+        if (!hoveredPlayerId) {
+            return '#475569'
+        }
+        return gameSession.colors.getPlayerUiColor(hoveredPlayerId)
+    })
+
+    const hoveredTrackHighlightStrokeColor: string = $derived.by(() =>
+        shadeHexColor(hoveredTrackHighlightColor, 0.48)
+    )
+
+    const hoveredResearchCellHighlights: ResearchNextCellHighlight[] = $derived.by(() => {
+        if (!hoveredResearchPlayerState) {
+            return []
+        }
+
+        const highlights: ResearchNextCellHighlight[] = []
+        for (const row of RESEARCH_ROWS) {
+            const currentColumnIndex = clampResearchColumnIndex(hoveredResearchPlayerState.research[row])
+            const currentCell = researchCellsByRow[row][currentColumnIndex]
+            if (!currentCell) {
+                continue
+            }
+
+            highlights.push({
+                key: `hover-${row}-${currentColumnIndex}`,
+                row,
+                left: currentCell.left,
+                top: currentCell.top,
+                width: currentCell.width,
+                height: currentCell.height
+            })
+        }
+
+        return highlights
+    })
 
     const nextResearchCellHighlights: ResearchNextCellHighlight[] = $derived.by(() => {
         if (!showResearchAdvanceHighlights || !selectedResearchPlayerState) {
@@ -164,6 +212,9 @@
                 )
                 for (let offsetIndex = 0; offsetIndex < playerIds.length; offsetIndex += 1) {
                     const playerId = playerIds[offsetIndex]
+                    if (hoveredPlayerId && playerId !== hoveredPlayerId) {
+                        continue
+                    }
                     const offset = offsets[offsetIndex]
                     if (!offset) {
                         continue
@@ -253,6 +304,22 @@
             onpointerdown={() => {
                 handleResearchHighlightPointerDown(highlight)
             }}
+        ></rect>
+    {/each}
+
+    {#each hoveredResearchCellHighlights as highlight (highlight.key)}
+        <rect
+            x={highlight.left}
+            y={highlight.top}
+            width={highlight.width}
+            height={highlight.height}
+            fill={hoveredTrackHighlightColor}
+            fill-opacity={RESEARCH_NEXT_CELL_HIGHLIGHT_FILL_OPACITY}
+            stroke={hoveredTrackHighlightStrokeColor}
+            stroke-width={RESEARCH_NEXT_CELL_HIGHLIGHT_STROKE_WIDTH}
+            stroke-opacity={RESEARCH_NEXT_CELL_HIGHLIGHT_STROKE_OPACITY}
+            stroke-linejoin="round"
+            pointer-events="none"
         ></rect>
     {/each}
 

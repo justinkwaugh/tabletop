@@ -26,15 +26,16 @@ export function researchCubeOffsets(
     layoutSeed?: string
 ): readonly Point[] {
     const yBias = -cubeSpacing * 0.08
+    const layoutRadiusScale = 0.92
 
     if (cubeCount === 1) {
-        return [{ x: 0, y: -cubeSpacing * 0.38 }]
+        return [{ x: -cubeSpacing * 0.6, y: -cubeSpacing * 0.38 }]
     }
 
     if (cubeCount === 2) {
         const seed = layoutSeed ?? `pair-${cubeCount}`
         const axisDegrees = twoCubeAxisDegrees(seed, rowSeed ?? '')
-        const radius = cubeSpacing * 0.9
+        const radius = cubeSpacing * 0.9 * layoutRadiusScale
         const first = rotatePoint({ x: radius, y: 0 }, axisDegrees)
         const second = rotatePoint({ x: -radius, y: 0 }, axisDegrees)
         return [
@@ -45,9 +46,15 @@ export function researchCubeOffsets(
 
     if (cubeCount === 3) {
         const baseTriangle: Point[] = [
-            { x: -cubeSpacing * 0.76, y: cubeSpacing * 0.62 + yBias },
-            { x: cubeSpacing * 0.76, y: cubeSpacing * 0.62 + yBias },
-            { x: 0, y: -cubeSpacing * 0.8 + yBias }
+            {
+                x: -cubeSpacing * 0.76 * layoutRadiusScale,
+                y: cubeSpacing * 0.62 * layoutRadiusScale + yBias
+            },
+            {
+                x: cubeSpacing * 0.76 * layoutRadiusScale,
+                y: cubeSpacing * 0.62 * layoutRadiusScale + yBias
+            },
+            { x: 0, y: -cubeSpacing * 0.8 * layoutRadiusScale + yBias }
         ]
         if (rowSeed === 'bid') {
             return baseTriangle
@@ -59,18 +66,18 @@ export function researchCubeOffsets(
     }
 
     if (cubeCount === 4) {
-        const topRowY = -cubeSpacing * 0.76 + yBias
-        const bottomRowY = cubeSpacing * 0.88 + yBias
+        const topRowY = -cubeSpacing * 0.76 * layoutRadiusScale + yBias
+        const bottomRowY = cubeSpacing * 0.88 * layoutRadiusScale + yBias
         return [
-            { x: -cubeSpacing * 0.76, y: topRowY },
-            { x: cubeSpacing * 0.76, y: topRowY },
-            { x: -cubeSpacing * 0.76, y: bottomRowY },
-            { x: cubeSpacing * 0.76, y: bottomRowY }
+            { x: -cubeSpacing * 0.76 * layoutRadiusScale, y: topRowY },
+            { x: cubeSpacing * 0.76 * layoutRadiusScale, y: topRowY },
+            { x: -cubeSpacing * 0.76 * layoutRadiusScale, y: bottomRowY },
+            { x: cubeSpacing * 0.76 * layoutRadiusScale, y: bottomRowY }
         ]
     }
 
     if (cubeCount === 5) {
-        const radius = cubeSpacing * 1
+        const radius = cubeSpacing * 1 * layoutRadiusScale
         const downwardShift = cubeSpacing / 6
         const points: Point[] = []
         for (let index = 0; index < cubeCount; index += 1) {

@@ -631,7 +631,8 @@
         company: (typeof gameSession.gameState.companies)[number]
         cardData: PlayerCompanyCardData
     }
-    const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT = 0.16
+    const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW = 0.16
+    const SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE = 0.12
 
     function shippingMarkerVisualForCompany(shippingCompanyId: string): {
         style: ShippingStyle
@@ -654,7 +655,9 @@
             hullFillColor,
             hullStrokeColor:
                 ownerPlayerColor === Color.Yellow
-                    ? shadeHexColor(hullFillColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT)
+                    ? shadeHexColor(hullFillColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW)
+                    : ownerPlayerColor === Color.Blue
+                      ? shadeHexColor(hullFillColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE)
                     : 'none'
         }
     }
