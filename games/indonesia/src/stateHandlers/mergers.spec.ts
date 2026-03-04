@@ -224,6 +224,107 @@ describe('MergersStateHandler', () => {
         expect(state.phaseManager.currentPhase?.name).not.toBe(PhaseName.Mergers)
     })
 
+    it('ends immediately once passes are consecutive across all announcers', () => {
+        const state = createTestState()
+        const context = createMachineContext(state)
+        const handler = new MergersStateHandler()
+
+        const [firstPlayerId, secondPlayerId] = state.turnManager.turnOrder
+        expect(firstPlayerId).toBeDefined()
+        expect(secondPlayerId).toBeDefined()
+        if (!firstPlayerId || !secondPlayerId) {
+            return
+        }
+
+        state.getPlayerState(firstPlayerId).research.mergers = 1
+        state.getPlayerState(secondPlayerId).research.mergers = 1
+
+        const riceDeeds = state.availableDeeds.filter(
+            (deed) => deed.type === CompanyType.Production && deed.good === Good.Rice
+        )
+        expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
+        const [deedA, deedB] = riceDeeds
+        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+            return
+        }
+
+        const companyAId = 'consecutive-pass-company-a'
+        const companyBId = 'consecutive-pass-company-b'
+        state.companies = [
+            {
+                id: companyAId,
+                type: CompanyType.Production,
+                owner: firstPlayerId,
+                deeds: [deedA],
+                good: Good.Rice
+            },
+            {
+                id: companyBId,
+                type: CompanyType.Production,
+                owner: secondPlayerId,
+                deeds: [deedB],
+                good: Good.Rice
+            }
+        ]
+        state.getPlayerState(firstPlayerId).ownedCompanies = [companyAId]
+        state.getPlayerState(secondPlayerId).ownedCompanies = [companyBId]
+        state.board.areas.A01 = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: companyAId,
+            good: Good.Rice
+        }
+        state.board.areas.A02 = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId: companyBId,
+            good: Good.Rice
+        }
+
+        // Keep post-merger transition deterministic once the phase ends.
+        state.availableDeeds = []
+
+        handler.enter(context)
+        expect(state.activePlayerIds).toEqual([firstPlayerId])
+
+        // Simulate that a merger was announced earlier in the cycle.
+        state.mergerVisitedAnnouncersInCycle = 0
+        state.mergerAnnouncementsInCycle = 1
+        state.mergerNextAnnouncerIndex = 0
+
+        const firstPassAction = new HydratedPass(
+            createAction(Pass, {
+                id: 'first-consecutive-pass',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: firstPlayerId,
+                reason: PassReason.DeclineMergerAnnouncement
+            })
+        )
+        firstPassAction.apply(state, context)
+        const stateAfterFirstPass = handler.onAction(firstPassAction, context)
+        expect(stateAfterFirstPass).toBe(MachineState.Mergers)
+
+        state.machineState = stateAfterFirstPass
+        handler.enter(context)
+        expect(state.activePlayerIds).toEqual([secondPlayerId])
+
+        const secondPassAction = new HydratedPass(
+            createAction(Pass, {
+                id: 'second-consecutive-pass',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: secondPlayerId,
+                reason: PassReason.DeclineMergerAnnouncement
+            })
+        )
+        secondPassAction.apply(state, context)
+        const stateAfterSecondPass = handler.onAction(secondPassAction, context)
+
+        expect(stateAfterSecondPass).toBe(MachineState.ResearchAndDevelopment)
+        expect(state.phaseManager.currentPhase?.name).not.toBe(PhaseName.Mergers)
+    })
+
     it('resolves a merger immediately when only one bidder is eligible', () => {
         const state = createTestState()
         const context = createMachineContext(state)

@@ -205,25 +205,21 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
         const order = state.mergerAnnouncementOrder ?? []
         assert(order.length > 0, 'Merger announcement order should contain at least one player')
 
-        const visited = (state.mergerVisitedAnnouncersInCycle ?? 0) + 1
-        const announcements = (state.mergerAnnouncementsInCycle ?? 0) + (announcedMerger ? 1 : 0)
         const nextAnnouncerIndex = ((state.mergerNextAnnouncerIndex ?? 0) + 1) % order.length
-
         state.mergerNextAnnouncerIndex = nextAnnouncerIndex
-        state.mergerVisitedAnnouncersInCycle = visited
-        state.mergerAnnouncementsInCycle = announcements
 
-        if (visited < order.length) {
+        if (announcedMerger) {
+            // Any announced merger resets the consecutive pass streak.
+            state.mergerVisitedAnnouncersInCycle = 0
+            state.mergerAnnouncementsInCycle = 0
             return false
         }
 
-        if (announcements <= 0) {
-            return true
-        }
-
-        state.mergerVisitedAnnouncersInCycle = 0
+        const consecutivePasses = (state.mergerVisitedAnnouncersInCycle ?? 0) + 1
+        state.mergerVisitedAnnouncersInCycle = Math.min(consecutivePasses, order.length)
         state.mergerAnnouncementsInCycle = 0
-        return false
+
+        return consecutivePasses >= order.length
     }
 
     private refreshAnnouncementOrder(state: HydratedIndonesiaGameState): void {
