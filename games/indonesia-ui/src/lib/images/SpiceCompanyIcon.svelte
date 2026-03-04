@@ -15,10 +15,10 @@
     <g id="c" data-name="Layer 1">
         <g>
             <g>
-                <rect fill="#d5e1b1" width="832.24" height="551.63" rx="67.48" ry="67.48"></rect>
+                <rect fill="#c6da90" width="832.24" height="551.63" rx="67.48" ry="67.48"></rect>
                 <line
                     fill="none"
-                    stroke="#94a982"
+                    stroke="#8ea76d"
                     stroke-miterlimit="10"
                     stroke-width="12"
                     x1="832.24"

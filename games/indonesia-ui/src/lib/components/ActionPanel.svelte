@@ -1367,7 +1367,7 @@
                                                 <PlayerCompanyCompactCard card={row.companyACard} />
                                             </span>
                                         </span>
-                                        <span class="merger-option-plus" aria-hidden="true">+</span>
+                                        <span class="merger-option-plus merger-option-plus-proposal" aria-hidden="true">+</span>
                                         <span class="merger-option-company-stack">
                                             {#if companyBOwnerId}
                                                 <PlayerName
@@ -1492,7 +1492,7 @@
                                 <PlayerCompanyCompactCard card={activeMergerBidCompanyCards.companyACard} />
                             </span>
                         </span>
-                        <span class="merger-option-plus">+</span>
+                        <span class="merger-option-plus merger-option-plus-bid">+</span>
                         <span class="merger-option-company-stack">
                             {#if activeMergerBidCompanyOwners?.companyBOwnerId}
                                 <PlayerName
@@ -1984,6 +1984,14 @@
         color: rgba(67, 48, 27, 0.9);
         padding: 0 4px;
         user-select: none;
+    }
+
+    .merger-option-plus-proposal {
+        transform: translateY(6px);
+    }
+
+    .merger-option-plus-bid {
+        transform: translateY(6px);
     }
 
     .merger-proposal-controls {

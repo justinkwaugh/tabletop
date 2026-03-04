@@ -11,19 +11,24 @@
         areaId: string
         fillColor: string
         borderColor: string
+        baseTintPatternId: string | null
         hatchPatternId: string | null
     }
 
     const gameSession = getGameSession()
 
     const CULTIVATED_AREA_FILL_OPACITY = 1
-    const CULTIVATED_AREA_STROKE_WIDTH = 2.2
+    const CULTIVATED_AREA_STROKE_WIDTH = 3
     const HATCH_PATTERN_IDS = [
         'cultivated-hatch-diag-0',
         'cultivated-hatch-diag-1',
         'cultivated-hatch-diag-2',
         'cultivated-hatch-diag-3'
     ] as const
+    const SPICE_BASE_TINT_PATTERN_ID = 'cultivated-spice-base-tint'
+    const SIAP_SAJI_BASE_TINT_PATTERN_ID = 'cultivated-siapsaji-base-tint'
+    const SPICE_PRIMARY_TINT = companyDeedStyleForType('spice').textColor
+    const SIAP_SAJI_PRIMARY_TINT = companyDeedStyleForType('siapsaji').textColor
     const GOODS_OVERLAY_STYLE_BY_GOOD: Readonly<
         Record<
             Good,
@@ -89,6 +94,14 @@
                 areaId: area.id,
                 fillColor: renderByGoods ? goodsStyle.fill : ownerColor,
                 borderColor: renderByGoods ? goodsStyle.stroke : shadeHexColor(ownerColor, 0.38),
+                baseTintPatternId:
+                    renderByGoods
+                        ? company.good === Good.SiapSaji
+                            ? SIAP_SAJI_BASE_TINT_PATTERN_ID
+                            : company.good === Good.Spice
+                              ? SPICE_BASE_TINT_PATTERN_ID
+                              : null
+                        : null,
                 hatchPatternId: hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
             })
         }
@@ -135,6 +148,31 @@
         >
             <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.18"></rect>
         </pattern>
+        <pattern
+            id={SIAP_SAJI_BASE_TINT_PATTERN_ID}
+            patternUnits="userSpaceOnUse"
+            width="24"
+            height="24"
+            patternTransform="rotate(-32)"
+        >
+            <rect
+                x="0"
+                y="0"
+                width="12"
+                height="24"
+                fill={SIAP_SAJI_PRIMARY_TINT}
+                fill-opacity="0.14"
+            ></rect>
+        </pattern>
+        <pattern
+            id={SPICE_BASE_TINT_PATTERN_ID}
+            patternUnits="userSpaceOnUse"
+            width="24"
+            height="24"
+            patternTransform="rotate(-32)"
+        >
+            <rect x="0" y="0" width="12" height="24" fill={SPICE_PRIMARY_TINT} fill-opacity="0.14"></rect>
+        </pattern>
     </defs>
 
     {#each cultivatedEntries as cultivated (cultivated.key)}
@@ -145,6 +183,15 @@
             fillOpacity={CULTIVATED_AREA_FILL_OPACITY}
             strokeWidth={CULTIVATED_AREA_STROKE_WIDTH}
         />
+        {#if cultivated.baseTintPatternId}
+            <Area
+                areaId={cultivated.areaId}
+                fill={`url(#${cultivated.baseTintPatternId})`}
+                stroke="transparent"
+                fillOpacity={1}
+                strokeWidth={0}
+            />
+        {/if}
         {#if cultivated.hatchPatternId}
             <Area
                 areaId={cultivated.areaId}

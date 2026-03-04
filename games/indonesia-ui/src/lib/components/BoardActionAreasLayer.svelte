@@ -366,6 +366,27 @@
         }
     })
 
+    $effect(() => {
+        if (
+            !deliverySelectionEnabled ||
+            gameSession.deliverySelectionStage !== 'cultivated' ||
+            activeAreaInteraction?.action !== 'select-delivery-cultivated'
+        ) {
+            return
+        }
+
+        if (deliverySelectableZones.length !== 1) {
+            return
+        }
+
+        const onlyZone = deliverySelectableZones[0]
+        if (!onlyZone) {
+            return
+        }
+
+        selectDeliveryCultivatedZone(onlyZone, { source: 'auto' })
+    })
+
     const activeAreaInteraction: ActiveAreaInteraction | null = $derived.by(() => {
         if (
             myPlayerId &&
@@ -638,6 +659,35 @@
         return [...new Set([...hoveredProductionCompanyAreaIds, ...hoveredShippingCompanyAreaIds])]
     })
 
+    const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
+        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        if (!hoveredDeedId) {
+            return []
+        }
+
+        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        if (!deed) {
+            return []
+        }
+
+        if (deed.type === CompanyType.Shipping) {
+            return gameSession.gameState.board
+                .seaAreasForRegion(deed.region)
+                .map((seaArea) => seaArea.id)
+                .filter((areaId) => !!boardAreaPathById(areaId))
+        }
+
+        if (deed.type === CompanyType.Production) {
+            return gameSession.gameState.board
+                .areasForRegion(deed.region)
+                .filter((area) => gameSession.gameState.board.canBeNewlyCultivated(area, deed.good))
+                .map((area) => area.id)
+                .filter((areaId) => !!boardAreaPathById(areaId))
+        }
+
+        return []
+    })
+
     const hoveredProductionCompanyIds: readonly string[] = $derived.by(() => {
         return hoveredSpotlightCompanyIds.filter((companyId) => {
             const hoveredCompany = gameSession.gameState.companies.find(
@@ -707,14 +757,19 @@
             .filter((entry): entry is DeliverySelectableZoneMarker => entry !== null)
     })
 
-    function selectDeliveryCultivatedZone(zone: DeliverySelectableZone): void {
+    function selectDeliveryCultivatedZone(
+        zone: DeliverySelectableZone,
+        options?: {
+            source?: 'auto' | 'manual'
+        }
+    ): void {
         const selectedAreaId = [...zone.remainingAreaIds]
             .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))[0]
         if (!selectedAreaId) {
             return
         }
 
-        gameSession.selectDeliveryCultivatedArea(selectedAreaId)
+        gameSession.selectDeliveryCultivatedArea(selectedAreaId, options)
         hoveredAreaId = null
         hoveredDeliveryZoneKey = null
     }
@@ -846,6 +901,9 @@
                 <mask id={PRODUCTION_HOVER_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
                     <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
                     {#each hoveredCompanySpotlightAreaIds as areaId (areaId)}
+                        <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                    {/each}
+                    {#each hoveredAvailableDeedOverlayAreaIds as areaId (areaId)}
                         <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
                     {/each}
                 </mask>

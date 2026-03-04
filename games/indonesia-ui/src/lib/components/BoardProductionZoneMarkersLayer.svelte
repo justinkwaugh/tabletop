@@ -101,6 +101,8 @@
     const MAX_COMPANY_ZONE_CACHE_ENTRIES = 1200
     const PRODUCTION_ZONE_MARKER_OFFSETS_EVENT = 'indonesia-production-zone-marker-offsets-change'
     const ENABLE_NS_MARKER_DIRECTIONS = false
+    const HOVER_COMPANY_ZONE_TAG_MASK_OPACITY = 0.26
+    const SELECTION_ZONE_TAG_MASK_OPACITY = 0.42
     const UI_PERF_STORAGE_KEY = 'indonesia-ui-perf'
     const UI_PERF_GLOBAL_KEY = '__indonesiaUiPerf'
 
@@ -1101,6 +1103,38 @@
         return false
     }
 
+    function isMarkerMaskedByCompanyHover(marker: ProductionZoneMarkerEntry): boolean {
+        if (
+            maskNonSpotlightZoneTagsDuringCompanyHover &&
+            !spotlightedProductionCompanyIdSet.has(marker.companyId)
+        ) {
+            return true
+        }
+        if (maskAllZoneTagsDuringNonProductionCompanyHover) {
+            return true
+        }
+        return false
+    }
+
+    function maskedOpacityForMarker(marker: ProductionZoneMarkerEntry): number {
+        if (!isMarkerMasked(marker)) {
+            return 0
+        }
+        if (maskAllZoneTagsDuringDeliveryCitySelection) {
+            return SELECTION_ZONE_TAG_MASK_OPACITY
+        }
+        if (
+            maskNonSelectableZoneTagsDuringDeliverySelection &&
+            !selectableDeliveryZoneMarkerKeySet.has(marker.key)
+        ) {
+            return SELECTION_ZONE_TAG_MASK_OPACITY
+        }
+        if (isMarkerMaskedByCompanyHover(marker)) {
+            return HOVER_COMPANY_ZONE_TAG_MASK_OPACITY
+        }
+        return SELECTION_ZONE_TAG_MASK_OPACITY
+    }
+
     function toggleProductionZoneRenderStyle(): void {
         gameSession.toggleProductionZoneRenderStyle()
     }
@@ -1155,6 +1189,7 @@
             direction={marker.direction}
             highlighted={false}
             masked={isMarkerMasked(marker)}
+            maskedOpacity={maskedOpacityForMarker(marker)}
             onClick={toggleProductionZoneRenderStyle}
         />
     {/each}
@@ -1173,6 +1208,7 @@
                 direction={marker.direction}
                 highlighted={true}
                 masked={isMarkerMasked(marker)}
+                maskedOpacity={maskedOpacityForMarker(marker)}
                 onClick={toggleProductionZoneRenderStyle}
             />
         {/each}

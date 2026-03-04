@@ -10,22 +10,22 @@
     const COMPANY_DEED_STYLE_BY_TYPE = {
         rice: {
             icon: RiceCompanyIcon,
-            outlineColor: '#b2a38c',
+            outlineColor: '#b5a086',
             textColor: '#6c5a46',
             textXRatio: 0.45,
             textYRatio: 0.4,
-            overlayFill: '#e3d8c0',
+            overlayFill: '#e8d2b7',
             overlayStroke: '#6c5a46',
             overlayOpacity: 0.8
         },
         spice: {
             icon: SpiceCompanyIcon,
-            outlineColor: '#94a982',
+            outlineColor: '#8ea76d',
             textColor: '#425735',
             textXRatio: 0.45,
             textYRatio: 0.45,
-            overlayFill: '#d5e1b1',
-            overlayStroke: '#425735',
+            overlayFill: '#c6da90',
+            overlayStroke: '#3f552f',
             overlayOpacity: 0.8
         },
         siapsaji: {

@@ -2,6 +2,11 @@
 
 This document describes the overall design of how games are organized and implemented.
 
+## Related Docs
+
+- `docs/agent-coding-policy.md` for cross-project coding policies.
+- `docs/user-interactions.md` for staged selection, back/undo behavior, and UI interaction patterns.
+
 ## General Concepts
 
 ### Separation of UI and Game Logic

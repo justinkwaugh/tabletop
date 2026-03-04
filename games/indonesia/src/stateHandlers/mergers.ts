@@ -10,7 +10,11 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedProposeMerger, isProposeMerger } from '../actions/proposeMerger.js'
 import { HydratedPass, isPass, PassReason } from '../actions/pass.js'
 import { HydratedPlaceMergerBid, isPlaceMergerBid } from '../actions/placeMergerBid.js'
-import { HydratedPassMergerBid, isPassMergerBid } from '../actions/passMergerBid.js'
+import {
+    HydratedPassMergerBid,
+    isPassMergerBid,
+    PassMergerBid
+} from '../actions/passMergerBid.js'
 import {
     HydratedRemoveSiapSajiArea,
     isRemoveSiapSajiArea
@@ -173,10 +177,12 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
             }
             case isPlaceMergerBid(action): {
                 this.maybeFinalizeMergerAuction(state)
+                this.queueAutoPassForIneligibleCurrentBidder(state, context)
                 return this.maybeResolveNoFurtherMergerAnnouncements(state)
             }
             case isPassMergerBid(action): {
                 this.maybeFinalizeMergerAuction(state)
+                this.queueAutoPassForIneligibleCurrentBidder(state, context)
                 return this.maybeResolveNoFurtherMergerAnnouncements(state)
             }
             case isRemoveSiapSajiArea(action): {
@@ -404,6 +410,38 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
 
             this.finalizeSiapSajiReduction(state, mergedCompanyId)
         }
+    }
+
+    private queueAutoPassForIneligibleCurrentBidder(
+        state: HydratedIndonesiaGameState,
+        context: MachineContext<HydratedIndonesiaGameState>
+    ): void {
+        const currentBidderId = state.mergerCurrentBidderId
+        if (!currentBidderId || !state.activeMergerProposal || !state.activeMergerAuction) {
+            return
+        }
+        if (HydratedPlaceMergerBid.canPlaceMergerBid(state, currentBidderId)) {
+            return
+        }
+        if (!HydratedPassMergerBid.canPassMergerBid(state, currentBidderId)) {
+            return
+        }
+        if (this.hasPendingAutoPassMergerBid(context, currentBidderId)) {
+            return
+        }
+
+        context.addSystemAction(PassMergerBid, {
+            playerId: currentBidderId
+        })
+    }
+
+    private hasPendingAutoPassMergerBid(
+        context: MachineContext<HydratedIndonesiaGameState>,
+        playerId: string
+    ): boolean {
+        return context
+            .getPendingActions()
+            .some((pendingAction) => isPassMergerBid(pendingAction) && pendingAction.playerId === playerId)
     }
 
     private finalizeSiapSajiReduction(state: HydratedIndonesiaGameState, companyId: string): void {

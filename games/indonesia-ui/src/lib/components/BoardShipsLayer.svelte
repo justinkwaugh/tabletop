@@ -44,6 +44,35 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         return hoveredCompany.id
     })
 
+    const spotlightedShippingCompanyIds: string[] = $derived.by(() => {
+        const spotlightIds: string[] = []
+        for (const companyId of gameSession.hoveredCompanySpotlightCompanyIds) {
+            const company = companyById.get(companyId)
+            if (!company || company.type !== CompanyType.Shipping) {
+                continue
+            }
+            if (spotlightIds.includes(company.id)) {
+                continue
+            }
+            spotlightIds.push(company.id)
+        }
+        return spotlightIds
+    })
+
+    const activeShipSpotlightCompanyIds: string[] = $derived.by(() => {
+        if (spotlightedShippingCompanyIds.length > 0) {
+            return spotlightedShippingCompanyIds
+        }
+        if (hoveredShippingCompanyId) {
+            return [hoveredShippingCompanyId]
+        }
+        return []
+    })
+
+    const activeShipSpotlightCompanyIdSet: ReadonlySet<string> = $derived.by(
+        () => new Set(activeShipSpotlightCompanyIds)
+    )
+
     const styleByShippingCompanyId = $derived.by(() => shippingStyleByCompanyId(gameSession.gameState))
 
     const shipMarkers: ShipMarkerEntry[] = $derived.by(() => {
@@ -108,23 +137,23 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     })
 
     const dimmedShipMarkers: ShipMarkerEntry[] = $derived.by(() => {
-        if (!hoveredShippingCompanyId) {
+        if (activeShipSpotlightCompanyIdSet.size === 0) {
             return shipMarkers
         }
-        return shipMarkers.filter((ship) => ship.companyId !== hoveredShippingCompanyId)
+        return shipMarkers.filter((ship) => !activeShipSpotlightCompanyIdSet.has(ship.companyId))
     })
 
     const emphasizedShipMarkers: ShipMarkerEntry[] = $derived.by(() => {
-        if (!hoveredShippingCompanyId) {
+        if (activeShipSpotlightCompanyIdSet.size === 0) {
             return []
         }
-        return shipMarkers.filter((ship) => ship.companyId === hoveredShippingCompanyId)
+        return shipMarkers.filter((ship) => activeShipSpotlightCompanyIdSet.has(ship.companyId))
     })
 </script>
 
 <g class="pointer-events-none select-none" aria-label="Ships layer">
     {#each dimmedShipMarkers as ship (ship.key)}
-        <g opacity={hoveredShippingCompanyId ? DIMMED_SHIP_OPACITY : 1}>
+        <g opacity={activeShipSpotlightCompanyIdSet.size > 0 ? DIMMED_SHIP_OPACITY : 1}>
             <ShipMarker
                 x={ship.x}
                 y={ship.y}
@@ -141,7 +170,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         </g>
     {/each}
 
-    {#if hoveredShippingCompanyId}
+    {#if activeShipSpotlightCompanyIdSet.size > 0}
         {#each emphasizedShipMarkers as ship (ship.key)}
             <ShipMarker
                 x={ship.x}

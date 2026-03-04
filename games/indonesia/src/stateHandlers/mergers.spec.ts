@@ -21,6 +21,7 @@ import { Era } from '../definition/eras.js'
 import { AreaType } from '../components/area.js'
 import { HydratedProposeMerger, ProposeMerger } from '../actions/proposeMerger.js'
 import { HydratedPlaceMergerBid, PlaceMergerBid } from '../actions/placeMergerBid.js'
+import { HydratedPassMergerBid, isPassMergerBid } from '../actions/passMergerBid.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -289,6 +290,122 @@ describe('MergersStateHandler', () => {
         expect(state.companies).toHaveLength(1)
         expect(state.companies[0]?.deeds).toHaveLength(2)
         expect(state.mergedDeedIdsThisYear).toEqual(expect.arrayContaining([deedA.id, deedB.id]))
+    })
+
+    it('auto-applies a system pass when the next bidder cannot place a valid bid', () => {
+        const state = createTestState()
+        const context = createMachineContext(state)
+        const handler = new MergersStateHandler()
+
+        const [announcerId, otherPlayerId] = state.turnManager.turnOrder
+        expect(announcerId).toBeDefined()
+        expect(otherPlayerId).toBeDefined()
+        if (!announcerId || !otherPlayerId) {
+            return
+        }
+
+        state.getPlayerState(announcerId).research.mergers = 1
+
+        const riceDeeds = state.availableDeeds.filter(
+            (deed) => deed.type === CompanyType.Production && deed.good === Good.Rice
+        )
+        expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
+        const [deedA, deedB] = riceDeeds
+        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+            return
+        }
+
+        const companyAId = 'auto-pass-company-a'
+        const companyBId = 'auto-pass-company-b'
+        state.companies = [
+            {
+                id: companyAId,
+                type: CompanyType.Production,
+                owner: announcerId,
+                deeds: [deedA],
+                good: Good.Rice
+            },
+            {
+                id: companyBId,
+                type: CompanyType.Production,
+                owner: otherPlayerId,
+                deeds: [deedB],
+                good: Good.Rice
+            }
+        ]
+        state.getPlayerState(announcerId).ownedCompanies = [companyAId]
+        state.getPlayerState(otherPlayerId).ownedCompanies = [companyBId]
+
+        state.board.areas.A01 = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: companyAId,
+            good: Good.Rice
+        }
+        state.board.areas.A02 = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId: companyBId,
+            good: Good.Rice
+        }
+
+        handler.enter(context)
+        const option = HydratedProposeMerger.listProposableMergers(state, announcerId)[0]
+        expect(option).toBeDefined()
+        if (!option) {
+            return
+        }
+
+        // Ensure bidder can open, but next bidder cannot legally outbid.
+        state.getPlayerState(otherPlayerId).cash = option.nominalValue
+
+        const proposeAction = new HydratedProposeMerger(
+            createAction(ProposeMerger, {
+                id: 'propose-auto-pass',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: announcerId,
+                companyAId: option.companyAId,
+                companyBId: option.companyBId
+            })
+        )
+        proposeAction.apply(state, context)
+        handler.onAction(proposeAction, context)
+
+        state.activePlayerIds = [announcerId]
+        const openingBidAction = new HydratedPlaceMergerBid(
+            createAction(PlaceMergerBid, {
+                id: 'opening-bid-auto-pass',
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: announcerId,
+                amount: option.nominalValue
+            })
+        )
+        openingBidAction.apply(state, context)
+        const stateAfterOpeningBid = handler.onAction(openingBidAction, context)
+
+        const queuedAutoPass = context.nextPendingAction()
+        expect(queuedAutoPass).toBeDefined()
+        expect(isPassMergerBid(queuedAutoPass)).toBe(true)
+        if (!queuedAutoPass || !isPassMergerBid(queuedAutoPass)) {
+            return
+        }
+        expect(queuedAutoPass.playerId).toBe(otherPlayerId)
+        expect(queuedAutoPass.source).toBe(ActionSource.System)
+
+        // Mirror GameEngine sequencing: next state enters before the pending system action applies.
+        state.machineState = stateAfterOpeningBid
+        handler.enter(context)
+
+        const systemPassAction = new HydratedPassMergerBid(queuedAutoPass)
+        systemPassAction.apply(state, context)
+        handler.onAction(systemPassAction, context)
+
+        expect(state.activeMergerProposal).toBeUndefined()
+        expect(state.activeMergerAuction).toBeUndefined()
+        expect(state.companies).toHaveLength(1)
+        expect(state.companies[0]?.deeds).toHaveLength(2)
     })
 
     it('sets merged company and cultivated areas to siap saji when rice and spice merge', () => {

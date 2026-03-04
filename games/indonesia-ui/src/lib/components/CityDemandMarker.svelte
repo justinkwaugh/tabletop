@@ -28,6 +28,7 @@
         highlighted = false,
         hovered = false,
         darkened = false,
+        darkenedBrightness = 0.34,
         demands
     }: {
         x: number
@@ -38,6 +39,7 @@
         highlighted?: boolean
         hovered?: boolean
         darkened?: boolean
+        darkenedBrightness?: number
         demands: readonly DemandEntry[]
     } = $props()
 
@@ -171,7 +173,7 @@
     class="pointer-events-none select-none"
     aria-hidden="true"
     transform={rootTransform}
-    style={`filter:${darkened ? 'brightness(0.34)' : 'none'}`}
+    style={`filter:${darkened ? `brightness(${darkenedBrightness})` : 'none'}`}
 >
     {#if wirePath}
         <path d={wirePath} fill="none" stroke="#a99f93" stroke-width="1.25" stroke-linecap="round"></path>

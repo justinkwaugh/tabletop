@@ -34,6 +34,8 @@
     const CITY_MARKER_HEIGHT = 58
     const CITY_SELECTION_BEAD_RING_STROKE = 6.2
     const CITY_SELECTION_BEAD_RING_RADIUS = CITY_MARKER_HEIGHT * 0.38
+    const HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS = 0.74
+    const CITY_SELECTION_DEMAND_TAG_BRIGHTNESS = 0.34
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
     const BOARD_CENTER = { x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2 }
@@ -242,6 +244,9 @@
                 isSelectingDeliveryCity
                     ? !isSelectableDeliveryCity
                     : shouldDimDemandTagsForCompanyHover}
+            {@const darkenedBrightness = isSelectingDeliveryCity
+                ? CITY_SELECTION_DEMAND_TAG_BRIGHTNESS
+                : HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS}
             <CityDemandMarker
                 x={tag.x}
                 y={tag.y}
@@ -252,6 +257,7 @@
                 highlighted={isSelectableDeliveryCity}
                 hovered={isHoveredSelectableDeliveryCity}
                 darkened={darkened}
+                {darkenedBrightness}
             />
         {/each}
     </g>

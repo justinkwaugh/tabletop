@@ -21,9 +21,10 @@
     } from '$lib/utils/deeds.js'
     import type { CompanyCardType } from '$lib/types/companyCard.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { CompanyType, MachineState } from '@tabletop/indonesia'
+    import { ActionType, CompanyType, MachineState } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
+    const HOVER_COMPANY_DEEDS_BRIGHTNESS = 0.74
 
     type DeedCardEntry = {
         key: string
@@ -44,6 +45,7 @@
         fill: string
         stroke: string
         opacity: number
+        baseTintPatternId: string | null
         hatchPatternId: string | null
     }
 
@@ -54,6 +56,10 @@
         'R04:Production': 'deed-hatch-production',
         'R24:Production': 'deed-hatch-production'
     }
+    const DEED_SPICE_BASE_TINT_PATTERN_ID = 'deed-hatch-spice-base-tint'
+    const DEED_SIAPSAJI_BASE_TINT_PATTERN_ID = 'deed-hatch-siapsaji-base-tint'
+    const DEED_SPICE_PRIMARY_TINT = companyDeedStyleForType('spice').textColor
+    const DEED_SIAPSAJI_PRIMARY_TINT = companyDeedStyleForType('siapsaji').textColor
     const DEED_LAYER_DATA: {
         cards: DeedCardEntry[]
         overlays: OverlayArea[]
@@ -116,6 +122,12 @@
                     fill: overlayFill,
                     stroke: overlayStroke,
                     opacity: isShipping ? baseStyle.overlayOpacity : 1,
+                    baseTintPatternId:
+                        cardKind === 'spice'
+                            ? DEED_SPICE_BASE_TINT_PATTERN_ID
+                            : cardKind === 'siapsaji'
+                              ? DEED_SIAPSAJI_BASE_TINT_PATTERN_ID
+                              : null,
                     hatchPatternId
                 })
             }
@@ -129,20 +141,45 @@
 
     const DEED_CARD_ENTRIES: DeedCardEntry[] = $derived(DEED_LAYER_DATA.cards)
     const DEED_OVERLAY_AREAS: OverlayArea[] = $derived(DEED_LAYER_DATA.overlays)
-    const showAllShippingOverlays: boolean = $derived(
+    const showAllDeedOverlays: boolean = $derived(
         gameSession.gameState.machineState === MachineState.Acquisitions
     )
+    const showDeedsDuringExpansionSelection: boolean = $derived.by(() => {
+        const state = gameSession.gameState.machineState
+        const inExpansionSubstate =
+            state === MachineState.ShippingOperations || state === MachineState.ProductionOperations
+        return inExpansionSubstate && gameSession.validActionTypes.includes(ActionType.Expand)
+    })
+    const hideDeedsDuringOperations: boolean = $derived.by(() => {
+        const state = gameSession.gameState.machineState
+        const inOperationsState =
+            state === MachineState.Operations ||
+            state === MachineState.ShippingOperations ||
+            state === MachineState.ProductionOperations
+        return inOperationsState && !showDeedsDuringExpansionSelection
+    })
     const visibleDeedOverlayAreas: OverlayArea[] = $derived.by(() =>
         DEED_OVERLAY_AREAS.filter((overlay) => {
-            if (!overlay.isShipping) {
-                return true
-            }
-            if (showAllShippingOverlays) {
+            if (showAllDeedOverlays) {
                 return true
             }
             return overlay.deedId === gameSession.hoveredAvailableDeedId
         })
     )
+    const hoveredAvailableDeedOverlayAreas: OverlayArea[] = $derived.by(() => {
+        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        if (!hoveredDeedId) {
+            return []
+        }
+        return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId === hoveredDeedId)
+    })
+    const nonHoveredVisibleDeedOverlayAreas: OverlayArea[] = $derived.by(() => {
+        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        if (!hoveredDeedId) {
+            return visibleDeedOverlayAreas
+        }
+        return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId !== hoveredDeedId)
+    })
 
     const shouldDarkenDeedMarkersForCompanyHover: boolean = $derived.by(() => {
         if (gameSession.hoveredCompanySpotlightCompanyIds.length > 0) {
@@ -152,88 +189,173 @@
     })
 </script>
 
-<g
-    class="select-none"
-    aria-label="Available deeds layer"
-    style={`filter:${shouldDarkenDeedMarkersForCompanyHover ? 'brightness(0.34)' : 'none'}`}
->
-    <defs>
-        <pattern
-            id="deed-hatch-shipping"
-            patternUnits="userSpaceOnUse"
-            width="24"
-            height="24"
-            patternTransform="rotate(-35)"
-        >
-            <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.25"></rect>
-        </pattern>
-        <pattern
-            id="deed-hatch-production"
-            patternUnits="userSpaceOnUse"
-            width="24"
-            height="24"
-            patternTransform="rotate(35)"
-        >
-            <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.24"></rect>
-        </pattern>
-    </defs>
+{#if !hideDeedsDuringOperations}
+    <g
+        class="select-none"
+        aria-label="Available deeds layer"
+    >
+        <defs>
+            <pattern
+                id="deed-hatch-shipping"
+                patternUnits="userSpaceOnUse"
+                width="24"
+                height="24"
+                patternTransform="rotate(-35)"
+            >
+                <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.25"></rect>
+            </pattern>
+            <pattern
+                id="deed-hatch-production"
+                patternUnits="userSpaceOnUse"
+                width="24"
+                height="24"
+                patternTransform="rotate(35)"
+            >
+                <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.24"></rect>
+            </pattern>
+            <pattern
+                id={DEED_SPICE_BASE_TINT_PATTERN_ID}
+                patternUnits="userSpaceOnUse"
+                width="24"
+                height="24"
+                patternTransform="rotate(-32)"
+            >
+                <rect
+                    x="0"
+                    y="0"
+                    width="12"
+                    height="24"
+                    fill={DEED_SPICE_PRIMARY_TINT}
+                    fill-opacity="0.14"
+                ></rect>
+            </pattern>
+            <pattern
+                id={DEED_SIAPSAJI_BASE_TINT_PATTERN_ID}
+                patternUnits="userSpaceOnUse"
+                width="24"
+                height="24"
+                patternTransform="rotate(-32)"
+            >
+                <rect
+                    x="0"
+                    y="0"
+                    width="12"
+                    height="24"
+                    fill={DEED_SIAPSAJI_PRIMARY_TINT}
+                    fill-opacity="0.14"
+                ></rect>
+            </pattern>
+        </defs>
 
-    {#each visibleDeedOverlayAreas as overlay (overlay.key)}
-        <Area
-            areaId={overlay.areaId}
-            fill={overlay.fill}
-            stroke={overlay.stroke}
-            fillOpacity="1"
-            fillRule="evenodd"
-            strokeWidth="1.9"
-            strokeLineJoin="round"
-            strokeLineCap="round"
-            opacity={overlay.opacity}
-            pointer-events="none"
-        />
-        {#if overlay.hatchPatternId}
+        <g
+            style={`filter:${shouldDarkenDeedMarkersForCompanyHover ? `brightness(${HOVER_COMPANY_DEEDS_BRIGHTNESS})` : 'none'}`}
+        >
+            {#each nonHoveredVisibleDeedOverlayAreas as overlay (overlay.key)}
+                <Area
+                    areaId={overlay.areaId}
+                    fill={overlay.fill}
+                    stroke={overlay.stroke}
+                    fillOpacity="1"
+                    fillRule="evenodd"
+                    strokeWidth="1.9"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
+                    opacity={overlay.opacity}
+                    pointer-events="none"
+                />
+                {#if overlay.baseTintPatternId}
+                    <Area
+                        areaId={overlay.areaId}
+                        fill={`url(#${overlay.baseTintPatternId})`}
+                        stroke="transparent"
+                        fillOpacity={1}
+                        strokeWidth={0}
+                        opacity={overlay.opacity}
+                        pointer-events="none"
+                    />
+                {/if}
+                {#if overlay.hatchPatternId}
+                    <Area
+                        areaId={overlay.areaId}
+                        fill={`url(#${overlay.hatchPatternId})`}
+                        stroke="transparent"
+                        fillOpacity={1}
+                        strokeWidth={0}
+                        opacity={overlay.opacity}
+                        pointer-events="none"
+                    />
+                {/if}
+            {/each}
+
+            {#each DEED_CARD_ENTRIES as deed (deed.key)}
+                <g>
+                    <CompanyDeed
+                        type={deed.cardKind}
+                        x={deed.cardX}
+                        y={deed.cardY}
+                        height={BOARD_DEED_CARD_HEIGHT}
+                        text={deed.text}
+                        shippingSizes={deed.shippingSizes}
+                    />
+                    <rect
+                        x={deed.cardX - BOARD_DEED_CARD_WIDTH / 2}
+                        y={deed.cardY - BOARD_DEED_CARD_HEIGHT / 2}
+                        width={BOARD_DEED_CARD_WIDTH}
+                        height={BOARD_DEED_CARD_HEIGHT}
+                        rx={BOARD_DEED_CARD_CORNER_RX}
+                        ry={BOARD_DEED_CARD_CORNER_RY}
+                        fill="#ffffff"
+                        fill-opacity="0.001"
+                        stroke="none"
+                        pointer-events="all"
+                        onmouseenter={() => {
+                            gameSession.setHoveredAvailableDeed(deed.deedId)
+                        }}
+                        onmouseleave={() => {
+                            if (gameSession.hoveredAvailableDeedId === deed.deedId) {
+                                gameSession.setHoveredAvailableDeed(undefined)
+                            }
+                        }}
+                    />
+                </g>
+            {/each}
+        </g>
+
+        {#each hoveredAvailableDeedOverlayAreas as overlay (overlay.key)}
             <Area
                 areaId={overlay.areaId}
-                fill={`url(#${overlay.hatchPatternId})`}
-                stroke="transparent"
-                fillOpacity={1}
-                strokeWidth={0}
+                fill={overlay.fill}
+                stroke={overlay.stroke}
+                fillOpacity="1"
+                fillRule="evenodd"
+                strokeWidth="1.9"
+                strokeLineJoin="round"
+                strokeLineCap="round"
                 opacity={overlay.opacity}
                 pointer-events="none"
             />
-        {/if}
-    {/each}
-
-    {#each DEED_CARD_ENTRIES as deed (deed.key)}
-        <g>
-            <CompanyDeed
-                type={deed.cardKind}
-                x={deed.cardX}
-                y={deed.cardY}
-                height={BOARD_DEED_CARD_HEIGHT}
-                text={deed.text}
-                shippingSizes={deed.shippingSizes}
-            />
-            <rect
-                x={deed.cardX - BOARD_DEED_CARD_WIDTH / 2}
-                y={deed.cardY - BOARD_DEED_CARD_HEIGHT / 2}
-                width={BOARD_DEED_CARD_WIDTH}
-                height={BOARD_DEED_CARD_HEIGHT}
-                rx={BOARD_DEED_CARD_CORNER_RX}
-                ry={BOARD_DEED_CARD_CORNER_RY}
-                fill="#ffffff"
-                fill-opacity="0.001"
-                stroke="none"
-                pointer-events="all"
-                onmouseenter={() => {
-                    gameSession.setHoveredAvailableDeed(deed.deedId)
-                }}
-                onmouseleave={() => {
-                    if (gameSession.hoveredAvailableDeedId === deed.deedId) {
-                        gameSession.setHoveredAvailableDeed(undefined)
-                    }
-                }}
-            />
-        </g>
-    {/each}
-</g>
+            {#if overlay.baseTintPatternId}
+                <Area
+                    areaId={overlay.areaId}
+                    fill={`url(#${overlay.baseTintPatternId})`}
+                    stroke="transparent"
+                    fillOpacity={1}
+                    strokeWidth={0}
+                    opacity={overlay.opacity}
+                    pointer-events="none"
+                />
+            {/if}
+            {#if overlay.hatchPatternId}
+                <Area
+                    areaId={overlay.areaId}
+                    fill={`url(#${overlay.hatchPatternId})`}
+                    stroke="transparent"
+                    fillOpacity={1}
+                    strokeWidth={0}
+                    opacity={overlay.opacity}
+                    pointer-events="none"
+                />
+            {/if}
+        {/each}
+    </g>
+{/if}

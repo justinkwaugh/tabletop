@@ -19,4 +19,9 @@
 17. Centralize UI action initiation in the game session object. Components should call session methods (for example `session.placeCity(...)`) instead of constructing/applying actions directly via `createPlayerAction` + `applyAction`.
 18. In files that define a class, if a helper is only used by that class, implement it as a private class method instead of a top-level function. Use top-level helpers only when shared across classes/functions.
 19. For invariant conditions that are expected to always hold (for example required IDs passed from trusted game flow), use `assert`/`assertExists` with clear messages instead of silently returning fallback values like `false`.
-20. In staged/multi-step UI flows, `undo` must clear in-progress local UI selection state first; only when no staged local state exists should it invoke action-history undo. Follow the same interaction pattern used in Bus/Sol.
+20. In staged/multi-step UI flows, model UI progress as one of: `manual local selection`, `auto-selected transient selection`, or `committed game action`.
+21. `Back` is only for manual local selection steps. It must never consume a committed game action.
+22. `Undo` must undo committed game actions. It may clear manual local selection first, but must skip auto-selected transient steps (for example, auto-picked single options) and proceed to action-history undo.
+23. Auto-selected transient state must be source-tracked (`auto` vs `manual`) so Undo/Back can behave deterministically.
+24. Do not rely on reactive/effect suppression hacks to control Undo/Back behavior. Effects may trigger on load/replay and create non-deterministic loops.
+25. Keep auto-selection idempotent and stage-gated: run only when in the exact stage that owns the choice, and only when choice cardinality is exactly one.

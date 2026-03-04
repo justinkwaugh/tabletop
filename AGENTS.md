@@ -5,6 +5,10 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 ## Indonesia UI Action Pattern Note
 
 - Follow the `bus-ui` pattern: initiate game actions centrally on the session class and call those session methods from components, rather than calling `createPlayerAction`/`applyAction` directly in component files.
+- For staged UI selection flows (delivery, pickers, etc), distinguish `manual local selection` from `auto transient selection`.
+  - `Back` should only unwind manual local selection.
+  - `Undo` should undo committed actions and must skip auto transient selections.
+  - Avoid effect-based suppression loops for Undo behavior; source-tag selection (`auto`/`manual`) and decide deterministically.
 
 ## City Demand UI Idea (Saved)
 

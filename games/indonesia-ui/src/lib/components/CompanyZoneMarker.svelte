@@ -30,6 +30,7 @@
         hatchPatternId = null,
         highlighted = false,
         masked = false,
+        maskedOpacity = 0.42,
         sampleLabel = null,
         onClick = null
     }: {
@@ -45,6 +46,7 @@
         hatchPatternId?: string | null
         highlighted?: boolean
         masked?: boolean
+        maskedOpacity?: number
         sampleLabel?: string | null
         onClick?: (() => void) | null
     } = $props()
@@ -125,6 +127,8 @@
     const connectorTargetStrokeWidth = $derived(highlighted ? 2 : 1.6)
     const connectorHaloOpacity = $derived(highlighted ? 0.82 : 0.24)
     const bodyHaloStrokeWidth = $derived(highlighted ? 5.4 : 0)
+    const maskedConnectorOpacity = $derived(Math.max(0, Math.min(1, maskedOpacity * 0.8)))
+    const maskedTargetOpacity = $derived(Math.max(0, Math.min(1, maskedOpacity * 0.86)))
 
     function rotatePointAroundCenter(
         pointX: number,
@@ -356,17 +360,17 @@
                 fill="none"
                 stroke="#000000"
                 stroke-width={connectorHaloStrokeWidth + 0.8}
-                opacity="0.34"
+                opacity={maskedConnectorOpacity}
             ></path>
             <circle
                 cx={targetX}
                 cy={targetY}
                 r={connectorTargetRadius + 0.8}
                 fill="#000000"
-                opacity="0.36"
+                opacity={maskedTargetOpacity}
             ></circle>
         {/if}
-        <path d={bodyPath} fill="#000000" opacity="0.42" transform={bodyScaleTransform}></path>
+        <path d={bodyPath} fill="#000000" opacity={maskedOpacity} transform={bodyScaleTransform}></path>
     {/if}
 
     {#if onClick}

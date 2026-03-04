@@ -1,4 +1,9 @@
-import { GameSession } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    getStagedSelectionValue,
+    type StagedSelectionSource,
+    type StagedSelectionState
+} from '@tabletop/frontend-components'
 import {
     ActionType,
     type AtomicDeliveryCandidate,
@@ -26,6 +31,13 @@ import {
     type HydratedIndonesiaGameState,
     type IndonesiaGameState
 } from '@tabletop/indonesia'
+import {
+    hasManualDeliverySelection,
+    popHighestManualDeliverySelection,
+    setDeliveryCitySelection,
+    setDeliveryCultivatedSelection,
+    type DeliverySelectionValueByStage
+} from './deliverySelection.js'
 
 export class IndonesiaGameSession extends GameSession<
     IndonesiaGameState,
@@ -36,8 +48,7 @@ export class IndonesiaGameSession extends GameSession<
     hoveredCompanySpotlightCompanyIdsOverride: string[] | undefined = $state()
     hoveredAvailableDeedIdOverride: string | undefined = $state()
     productionZoneRenderStyleOverride: 'player' | 'goods' | undefined = $state()
-    selectedDeliveryCultivatedAreaIdOverride: string | undefined = $state()
-    selectedDeliveryCityIdOverride: string | undefined = $state()
+    deliverySelectionOverrides: StagedSelectionState<DeliverySelectionValueByStage> = $state({})
     hoveredDeliveryCityAreaIdOverride: string | undefined = $state()
     hoveredDeliveryRouteKeyOverride: string | undefined = $state()
 
@@ -150,12 +161,9 @@ export class IndonesiaGameSession extends GameSession<
             this.validActionTypes.includes(ActionType.DeliverGood)
     )
 
-    midAction = $derived.by(
-        () =>
-            !!this.selectedDeliveryCultivatedAreaIdOverride ||
-            !!this.selectedDeliveryCityIdOverride ||
-            !!this.selectedResearchPlayerIdOverride
-    )
+    midAction = $derived.by(() => {
+        return hasManualDeliverySelection(this.deliverySelectionOverrides) || !!this.selectedResearchPlayerIdOverride
+    })
 
     safeDeliveryCandidates: AtomicDeliveryCandidate[] = $derived.by(() => {
         if (!this.deliverySelectionEnabled) {
@@ -180,7 +188,10 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     selectedDeliveryCultivatedAreaId: string | null = $derived.by(() => {
-        const selectedAreaId = this.selectedDeliveryCultivatedAreaIdOverride
+        const selectedAreaId = getStagedSelectionValue(
+            this.deliverySelectionOverrides,
+            'cultivated'
+        )
         if (!selectedAreaId) {
             return null
         }
@@ -208,7 +219,7 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     selectedDeliveryCityId: string | null = $derived.by(() => {
-        const selectedCityId = this.selectedDeliveryCityIdOverride
+        const selectedCityId = getStagedSelectionValue(this.deliverySelectionOverrides, 'city')
         if (!selectedCityId) {
             return null
         }
@@ -335,8 +346,7 @@ export class IndonesiaGameSession extends GameSession<
         this.hoveredOperatingCompanyIdOverride = undefined
         this.hoveredCompanySpotlightCompanyIdsOverride = undefined
         this.hoveredAvailableDeedIdOverride = undefined
-        this.selectedDeliveryCultivatedAreaIdOverride = undefined
-        this.selectedDeliveryCityIdOverride = undefined
+        this.deliverySelectionOverrides = {}
         this.hoveredDeliveryCityAreaIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
     }
@@ -346,15 +356,12 @@ export class IndonesiaGameSession extends GameSession<
     }
 
     back(): void {
-        if (this.selectedDeliveryCityIdOverride) {
-            this.selectedDeliveryCityIdOverride = undefined
-            this.hoveredDeliveryRouteKeyOverride = undefined
-            return
-        }
-
-        if (this.selectedDeliveryCultivatedAreaIdOverride) {
-            this.selectedDeliveryCultivatedAreaIdOverride = undefined
-            this.selectedDeliveryCityIdOverride = undefined
+        const { nextState, poppedStage } = popHighestManualDeliverySelection(
+            this.deliverySelectionOverrides
+        )
+        if (poppedStage) {
+            this.deliverySelectionOverrides = nextState
+            this.hoveredDeliveryCityAreaIdOverride = undefined
             this.hoveredDeliveryRouteKeyOverride = undefined
             return
         }
@@ -442,7 +449,12 @@ export class IndonesiaGameSession extends GameSession<
             this.productionZoneRenderStyle === 'player' ? 'goods' : 'player'
     }
 
-    selectDeliveryCultivatedArea(areaId: string): void {
+    selectDeliveryCultivatedArea(
+        areaId: string,
+        options?: {
+            source?: StagedSelectionSource
+        }
+    ): void {
         if (!this.deliverySelectionEnabled) {
             return
         }
@@ -450,8 +462,11 @@ export class IndonesiaGameSession extends GameSession<
             return
         }
 
-        this.selectedDeliveryCultivatedAreaIdOverride = areaId
-        this.selectedDeliveryCityIdOverride = undefined
+        this.deliverySelectionOverrides = setDeliveryCultivatedSelection(
+            this.deliverySelectionOverrides,
+            areaId,
+            options?.source ?? 'manual'
+        )
         this.hoveredDeliveryCityAreaIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
     }
@@ -467,7 +482,10 @@ export class IndonesiaGameSession extends GameSession<
             return
         }
 
-        this.selectedDeliveryCityIdOverride = cityId
+        this.deliverySelectionOverrides = setDeliveryCitySelection(
+            this.deliverySelectionOverrides,
+            cityId
+        )
         this.hoveredDeliveryCityAreaIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
     }
