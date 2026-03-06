@@ -50,10 +50,7 @@ export function getNextActionState(state: HydratedBusGameState): MachineState {
                 break
             }
             case MachineState.SettingFirstPlayer: {
-                if (state.startingPlayerAction) {
-                    return MachineState.SettingFirstPlayer
-                }
-                break
+                return MachineState.SettingFirstPlayer
             }
         }
 
