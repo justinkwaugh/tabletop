@@ -131,6 +131,7 @@
     const maxCompanySlots = $derived(1 + playerState.research.slots)
     const openCompanySlots = $derived(Math.max(0, maxCompanySlots - ownedCompanies.length))
     const openSlotsLabel = $derived(openCompanySlots === 1 ? 'OPEN SLOT' : 'OPEN SLOTS')
+    const openSlotCardLabel = $derived(openCompanySlots === 1 ? 'OPEN SLOT' : 'OPEN SLOTS')
     // Temporary preview toggle for the empty companies treatment.
     const showNoCompaniesPreview = false
 </script>
@@ -198,11 +199,12 @@
                 </div>
             </div>
 
-            {#if !showNoCompaniesPreview && companyCards.length > 0}
-                <div class="player-section-header player-section-header-companies" aria-hidden="true">
-                    <span class="player-section-dash" aria-hidden="true"></span>
-                    <span class="player-section-title-meta">{openCompanySlots} {openSlotsLabel}</span>
-                </div>
+            <div class="player-section-header player-section-header-companies" aria-hidden="true">
+                <span class="player-section-dash" aria-hidden="true"></span>
+                <span class="player-section-title-meta">{openCompanySlots} {openSlotsLabel}</span>
+            </div>
+
+            {#if !showNoCompaniesPreview && (companyCards.length > 0 || openCompanySlots > 0)}
                 <div class="player-company-cards" aria-label={`${player.name} companies`}>
                     {#each companyCards as card (card.id)}
                         <div
@@ -217,12 +219,18 @@
                             <PlayerCompanyCompactCard {card} />
                         </div>
                     {/each}
+
+                    {#if openCompanySlots > 0}
+                        <div
+                            class="player-company-slot-card"
+                            aria-label={`${openCompanySlots} open ${openSlotCardLabel.toLowerCase()}`}
+                        >
+                            <span class="player-company-slot-value">{openCompanySlots}</span>
+                            <span class="player-company-slot-label">{openSlotCardLabel}</span>
+                        </div>
+                    {/if}
                 </div>
             {:else}
-                <div class="player-section-header player-section-header-companies" aria-hidden="true">
-                    <span class="player-section-dash" aria-hidden="true"></span>
-                    <span class="player-section-title-meta">{openCompanySlots} {openSlotsLabel}</span>
-                </div>
                 <div class="player-company-empty" aria-label={`${player.name} has no companies`}>
                     NO COMPANIES
                 </div>
@@ -470,6 +478,35 @@
     .player-company-card-hover-target {
         width: 100%;
         height: 100%;
+    }
+
+    .player-company-slot-card {
+        min-height: 46px;
+        border-radius: 8px;
+        border: 1.5px dashed rgba(122, 93, 63, 0.52);
+        background: rgba(247, 243, 239, 0.38);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        color: rgba(97, 69, 44, 0.82);
+    }
+
+    .player-company-slot-value {
+        font-size: 14px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .player-company-slot-label {
+        font-size: 8px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(97, 69, 44, 0.64);
     }
 
     .player-company-empty {
