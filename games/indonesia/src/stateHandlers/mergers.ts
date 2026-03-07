@@ -27,7 +27,11 @@ import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
-import { IndonesiaNeighborDirection } from '../utils/indonesiaNodes.js'
+import {
+    IndonesiaNeighborDirection,
+    isIndonesiaNodeId,
+    type IndonesiaNodeId
+} from '../utils/indonesiaNodes.js'
 import {
     activeAuctionParticipantCount,
     canAnyPlayerAnnounceMerger,
@@ -36,6 +40,7 @@ import {
     validSiapSajiRemovalAreaIds
 } from '../operations/mergers.js'
 import { AreaType, isCultivatedArea, isSeaArea } from '../components/area.js'
+import { type Company } from '../components/company.js'
 import { resolvePostMergersState } from './operationsFlow.js'
 
 type MergersAction =
@@ -330,21 +335,27 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
                 : undefined
         let autoRemovedTouchingSiapSajiCount = 0
 
-        const mergedCompany =
-            proposal.companyType === CompanyType.Shipping
-                ? {
-                      id: mergedCompanyId,
-                      type: CompanyType.Shipping,
-                      deeds: mergedDeeds,
-                      owner: winnerId
-                  }
-                : {
-                      id: mergedCompanyId,
-                      type: CompanyType.Production,
-                      good: mergedProductionGood as Good,
-                      deeds: mergedDeeds,
-                      owner: winnerId
-                  }
+        let mergedCompany: Company
+        if (proposal.companyType === CompanyType.Shipping) {
+            mergedCompany = {
+                id: mergedCompanyId,
+                type: CompanyType.Shipping,
+                deeds: mergedDeeds,
+                owner: winnerId
+            }
+        } else {
+            assertExists(
+                mergedProductionGood,
+                'Production mergers must resolve a resulting good before company creation'
+            )
+            mergedCompany = {
+                id: mergedCompanyId,
+                type: CompanyType.Production,
+                good: mergedProductionGood,
+                deeds: mergedDeeds,
+                owner: winnerId
+            }
+        }
 
         const oldCompanyIds = new Set([companyA.id, companyB.id])
         state.companies = state.companies.filter((company) => !oldCompanyIds.has(company.id))
@@ -367,9 +378,12 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
                 )
             }
         } else {
-            const mergedCultivatedAreaIds: string[] = []
+            const mergedCultivatedAreaIds: IndonesiaNodeId[] = []
             for (const area of Object.values(state.board.areas)) {
                 if (!isCultivatedArea(area) || !oldCompanyIds.has(area.companyId)) {
+                    continue
+                }
+                if (!isIndonesiaNodeId(area.id)) {
                     continue
                 }
                 area.companyId = mergedCompanyId
@@ -426,7 +440,7 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
     private autoRemoveMergedAreasTouchingExistingSiapSaji(
         state: HydratedIndonesiaGameState,
         mergedCompanyId: string,
-        mergedCultivatedAreaIds: readonly string[]
+        mergedCultivatedAreaIds: readonly IndonesiaNodeId[]
     ): number {
         const existingSiapSajiCompanyIdSet = new Set(
             state.companies
@@ -442,7 +456,7 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
             return 0
         }
 
-        const areaIdsToAutoRemove = new Set<string>()
+        const areaIdsToAutoRemove = new Set<IndonesiaNodeId>()
         for (const areaId of mergedCultivatedAreaIds) {
             const area = state.board.areas[areaId]
             if (!area || !isCultivatedArea(area) || area.companyId !== mergedCompanyId) {

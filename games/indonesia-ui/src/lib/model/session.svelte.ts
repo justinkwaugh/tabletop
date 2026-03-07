@@ -1,6 +1,5 @@
 import {
     GameSession,
-    getStagedSelectionValue,
     type StagedSelectionSource,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
@@ -8,7 +7,6 @@ import {
     ActionType,
     type AtomicDeliveryCandidate,
     ChooseOperatingCompany,
-    CompanyType,
     DeliverGood,
     Expand,
     GrowCity,
@@ -33,6 +31,7 @@ import {
 } from '@tabletop/indonesia'
 import {
     hasManualDeliverySelection,
+    getDeliverySelectionValue,
     popHighestManualDeliverySelection,
     setDeliveryCitySelection,
     setDeliveryCultivatedSelection,
@@ -188,7 +187,7 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     selectedDeliveryCultivatedAreaId: string | null = $derived.by(() => {
-        const selectedAreaId = getStagedSelectionValue(
+        const selectedAreaId = getDeliverySelectionValue(
             this.deliverySelectionOverrides,
             'cultivated'
         )
@@ -219,7 +218,7 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     selectedDeliveryCityId: string | null = $derived.by(() => {
-        const selectedCityId = getStagedSelectionValue(this.deliverySelectionOverrides, 'city')
+        const selectedCityId = getDeliverySelectionValue(this.deliverySelectionOverrides, 'city')
         if (!selectedCityId) {
             return null
         }

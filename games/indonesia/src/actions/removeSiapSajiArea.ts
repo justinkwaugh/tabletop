@@ -7,6 +7,7 @@ import { CompanyType } from '../definition/companyType.js'
 import { AreaType, isCultivatedArea } from '../components/area.js'
 import { Good } from '../definition/goods.js'
 import { validSiapSajiRemovalAreaIds } from '../operations/mergers.js'
+import { isIndonesiaNodeId } from '../utils/indonesiaNodes.js'
 
 export type RemoveSiapSajiAreaMetadata = Type.Static<typeof RemoveSiapSajiAreaMetadata>
 export const RemoveSiapSajiAreaMetadata = Type.Object({
@@ -90,6 +91,10 @@ export class HydratedRemoveSiapSajiArea
         }
 
         if (reduction.winnerId !== this.playerId || reduction.removalsRemaining <= 0) {
+            return false
+        }
+
+        if (!isIndonesiaNodeId(this.areaId)) {
             return false
         }
 

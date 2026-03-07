@@ -15,7 +15,7 @@
         "test": "pnpm run test:integration && pnpm run test:unit",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-        "lint": "eslint .",
+        "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.svelte",
         "test:integration": "playwright test",
         "test:unit": "vitest"
     },

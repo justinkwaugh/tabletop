@@ -19,7 +19,7 @@ import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
 import { Era } from '../definition/eras.js'
 import { PhaseName } from '../definition/phases.js'
-import { AreaType } from '../components/area.js'
+import { AreaType, isCultivatedArea } from '../components/area.js'
 import { HydratedProposeMerger, ProposeMerger } from '../actions/proposeMerger.js'
 import { HydratedPlaceMergerBid, PlaceMergerBid } from '../actions/placeMergerBid.js'
 import { HydratedPassMergerBid, isPassMergerBid } from '../actions/passMergerBid.js'
@@ -668,10 +668,9 @@ describe('MergersStateHandler', () => {
         expect(mergedCompany.good).toBe(Good.SiapSaji)
         expect(state.pendingSiapSajiReduction?.companyId).toBe(mergedCompany.id)
 
-        const cultivatedAreas = Object.values(state.board.areas).filter(
-            (area): area is Extract<(typeof state.board.areas)[string], { type: AreaType.Cultivated }> =>
-                area.type === AreaType.Cultivated && area.companyId === mergedCompany.id
-        )
+        const cultivatedAreas = Object.values(state.board.areas)
+            .filter(isCultivatedArea)
+            .filter((area) => area.companyId === mergedCompany.id)
         expect(cultivatedAreas.length).toBe(2)
         for (const area of cultivatedAreas) {
             expect(area.good).toBe(Good.SiapSaji)

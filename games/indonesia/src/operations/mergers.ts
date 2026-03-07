@@ -9,7 +9,11 @@ import { isCultivatedArea, isSeaArea } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Era } from '../definition/eras.js'
 import { Good } from '../definition/goods.js'
-import { IndonesiaNeighborDirection } from '../utils/indonesiaNodes.js'
+import {
+    IndonesiaNeighborDirection,
+    isIndonesiaNodeId,
+    type IndonesiaNodeId
+} from '../utils/indonesiaNodes.js'
 import {
     type HydratedIndonesiaGameState,
     type MergerCompanySummary
@@ -412,13 +416,16 @@ export function nextMergerBidderId(
 export function companyCultivatedAreaIds(
     state: HydratedIndonesiaGameState,
     companyId: string
-): string[] {
-    const areaIds: string[] = []
+): IndonesiaNodeId[] {
+    const areaIds: IndonesiaNodeId[] = []
     for (const area of Object.values(state.board.areas)) {
         if (!isCultivatedArea(area)) {
             continue
         }
         if (area.companyId !== companyId) {
+            continue
+        }
+        if (!isIndonesiaNodeId(area.id)) {
             continue
         }
         areaIds.push(area.id)
@@ -428,13 +435,13 @@ export function companyCultivatedAreaIds(
 
 function connectedCultivatedComponentCount(
     state: HydratedIndonesiaGameState,
-    cultivatedAreaIdSet: ReadonlySet<string>
+    cultivatedAreaIdSet: ReadonlySet<IndonesiaNodeId>
 ): number {
     if (cultivatedAreaIdSet.size === 0) {
         return 0
     }
 
-    const visited = new Set<string>()
+    const visited = new Set<IndonesiaNodeId>()
     let componentCount = 0
 
     for (const seedAreaId of cultivatedAreaIdSet) {
@@ -443,7 +450,7 @@ function connectedCultivatedComponentCount(
         }
 
         componentCount += 1
-        const queue = [seedAreaId]
+        const queue: IndonesiaNodeId[] = [seedAreaId]
         visited.add(seedAreaId)
 
         while (queue.length > 0) {
@@ -480,12 +487,16 @@ export function isSiapSajiRemovalAreaValid(
         return false
     }
 
+    if (!isIndonesiaNodeId(areaId)) {
+        return false
+    }
+
     const cultivatedAreaIds = companyCultivatedAreaIds(state, companyId)
     if (!cultivatedAreaIds.includes(areaId)) {
         return false
     }
 
-    const cultivatedAreaIdSet = new Set(cultivatedAreaIds)
+    const cultivatedAreaIdSet = new Set<IndonesiaNodeId>(cultivatedAreaIds)
     const node = state.board.graph.nodeById(areaId)
     if (!node) {
         return false
@@ -516,7 +527,7 @@ export function isSiapSajiRemovalAreaValid(
 export function validSiapSajiRemovalAreaIds(
     state: HydratedIndonesiaGameState,
     companyId: string
-): string[] {
+): IndonesiaNodeId[] {
     return companyCultivatedAreaIds(state, companyId).filter((areaId) =>
         isSiapSajiRemovalAreaValid(state, companyId, areaId)
     )

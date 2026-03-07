@@ -286,7 +286,7 @@
             dominant-baseline="central"
             font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
             letter-spacing="0.4"
-            font-variant-numeric="tabular-nums"
+            style="font-variant-numeric: tabular-nums;"
         >
             {demandMetLabel}
         </text>
@@ -314,7 +314,7 @@
                 dominant-baseline="central"
                 font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
                 letter-spacing="-0.1"
-                font-variant-numeric="tabular-nums"
+                style="font-variant-numeric: tabular-nums;"
             >
                 {entry.count}
             </text>

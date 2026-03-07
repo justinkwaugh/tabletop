@@ -21,6 +21,7 @@
         HydratedStartCompany,
         IndonesiaAreaType,
         IndonesiaNeighborDirection,
+        isIndonesiaNodeId,
         MachineState
     } from '@tabletop/indonesia'
 
@@ -269,6 +270,9 @@
                 }
 
                 zoneAreaIds.push(currentAreaId)
+                if (!isIndonesiaNodeId(currentAreaId)) {
+                    continue
+                }
                 const currentNode = gameSession.gameState.board.graph.nodeById(currentAreaId)
                 if (!currentNode) {
                     continue
@@ -1100,7 +1104,7 @@
                         width={BOARD_WIDTH}
                         height={BOARD_HEIGHT}
                         fill="#fff8d7"
-                        fillOpacity="0.9"
+                        fill-opacity="0.9"
                         mask={`url(#${outerMask})`}
                         pointer-events="none"
                     />
@@ -1110,7 +1114,7 @@
                         width={BOARD_WIDTH}
                         height={BOARD_HEIGHT}
                         fill="#1f2937"
-                        fillOpacity="0.88"
+                        fill-opacity="0.88"
                         mask={`url(#${innerMask})`}
                         pointer-events="none"
                     />
@@ -1121,7 +1125,7 @@
                             width={BOARD_WIDTH}
                             height={BOARD_HEIGHT}
                             fill="#fff8d7"
-                            fillOpacity="0.32"
+                            fill-opacity="0.32"
                             mask={`url(#${hoverMask})`}
                             pointer-events="none"
                         />

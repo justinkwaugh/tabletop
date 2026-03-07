@@ -623,7 +623,7 @@ function routingContextWithLandInflation(
 
 function landInflationRetrySteps(baseLandInflationPixels: number): readonly number[] {
     const steps = LAND_INFLATION_RETRY_STEPS.filter((step) => step <= baseLandInflationPixels)
-    if (!steps.includes(baseLandInflationPixels)) {
+    if (!steps.some((step) => step === baseLandInflationPixels)) {
         return [baseLandInflationPixels, ...steps]
     }
     return steps

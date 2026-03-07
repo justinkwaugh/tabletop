@@ -154,7 +154,7 @@
                 dominant-baseline="middle"
                 dy="0.55"
                 font-family="'Arial Black', 'Trebuchet MS', 'Verdana', sans-serif"
-                font-variant-numeric="tabular-nums"
+                style="font-variant-numeric: tabular-nums;"
             >
                 {only.count}
             </text>
@@ -188,7 +188,7 @@
                 dominant-baseline="middle"
                 dy="0.55"
                 font-family="'Arial Black', 'Trebuchet MS', 'Verdana', sans-serif"
-                font-variant-numeric="tabular-nums"
+                style="font-variant-numeric: tabular-nums;"
             >
                 {segment.count}
             </text>

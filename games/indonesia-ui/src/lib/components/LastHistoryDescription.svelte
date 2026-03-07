@@ -1,7 +1,7 @@
 <script lang="ts">
     import { type GameAction } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { INDONESIA_REGION_BY_AREA_ID, isGrowCity } from '@tabletop/indonesia'
+    import { INDONESIA_REGION_BY_AREA_ID, isGrowCity, isIndonesiaNodeId } from '@tabletop/indonesia'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
     import { getRegionName } from '$lib/definitions/regions.js'
     import ActionDescription from './ActionDescription.svelte'
@@ -21,6 +21,10 @@
 
         const city = gameSession.gameState.board.cities.find((entry) => entry.id === action.cityId)
         if (!city) {
+            return undefined
+        }
+
+        if (!isIndonesiaNodeId(city.area)) {
             return undefined
         }
 

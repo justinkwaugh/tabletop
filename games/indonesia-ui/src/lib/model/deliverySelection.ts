@@ -1,4 +1,5 @@
 import {
+    getStagedSelectionValue,
     hasManualStagedSelection,
     popHighestManualStagedSelection,
     setStagedSelectionValue,
@@ -15,6 +16,7 @@ export const DELIVERY_SELECTION_STAGE_ORDER = [
     'cultivated',
     'city'
 ] as const satisfies readonly (keyof DeliverySelectionValueByStage)[]
+type DeliverySelectionStage = (typeof DELIVERY_SELECTION_STAGE_ORDER)[number]
 
 type MissingDeliverySelectionStages = Exclude<
     keyof DeliverySelectionValueByStage,
@@ -28,16 +30,29 @@ void _assertDeliverySelectionStageCoverage
 export function hasManualDeliverySelection(
     state: StagedSelectionState<DeliverySelectionValueByStage>
 ): boolean {
-    return hasManualStagedSelection(state, DELIVERY_SELECTION_STAGE_ORDER)
+    return hasManualStagedSelection<DeliverySelectionValueByStage>(
+        state,
+        DELIVERY_SELECTION_STAGE_ORDER
+    )
 }
 
 export function popHighestManualDeliverySelection(
     state: StagedSelectionState<DeliverySelectionValueByStage>
 ): {
     nextState: StagedSelectionState<DeliverySelectionValueByStage>
-    poppedStage?: (typeof DELIVERY_SELECTION_STAGE_ORDER)[number]
+    poppedStage?: DeliverySelectionStage
 } {
-    return popHighestManualStagedSelection(state, DELIVERY_SELECTION_STAGE_ORDER)
+    return popHighestManualStagedSelection<DeliverySelectionValueByStage>(
+        state,
+        DELIVERY_SELECTION_STAGE_ORDER
+    )
+}
+
+export function getDeliverySelectionValue<TStage extends DeliverySelectionStage>(
+    state: StagedSelectionState<DeliverySelectionValueByStage>,
+    stage: TStage
+): DeliverySelectionValueByStage[TStage] | undefined {
+    return getStagedSelectionValue<DeliverySelectionValueByStage, TStage>(state, stage)
 }
 
 export function setDeliveryCultivatedSelection(
@@ -45,7 +60,7 @@ export function setDeliveryCultivatedSelection(
     areaId: string,
     source: StagedSelectionSource
 ): StagedSelectionState<DeliverySelectionValueByStage> {
-    return setStagedSelectionValue(
+    return setStagedSelectionValue<DeliverySelectionValueByStage, 'cultivated'>(
         state,
         DELIVERY_SELECTION_STAGE_ORDER,
         'cultivated',
@@ -58,5 +73,11 @@ export function setDeliveryCitySelection(
     state: StagedSelectionState<DeliverySelectionValueByStage>,
     cityId: string
 ): StagedSelectionState<DeliverySelectionValueByStage> {
-    return setStagedSelectionValue(state, DELIVERY_SELECTION_STAGE_ORDER, 'city', cityId, 'manual')
+    return setStagedSelectionValue<DeliverySelectionValueByStage, 'city'>(
+        state,
+        DELIVERY_SELECTION_STAGE_ORDER,
+        'city',
+        cityId,
+        'manual'
+    )
 }

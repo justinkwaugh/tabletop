@@ -7,7 +7,7 @@
     import { quartIn } from 'svelte/easing'
     import { ActionSource, type GameAction } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { INDONESIA_REGION_BY_AREA_ID, isGrowCity } from '@tabletop/indonesia'
+    import { INDONESIA_REGION_BY_AREA_ID, isGrowCity, isIndonesiaNodeId } from '@tabletop/indonesia'
     import { ClockSolid } from 'flowbite-svelte-icons'
     import { getRegionName } from '$lib/definitions/regions.js'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
@@ -37,6 +37,10 @@
 
         const city = gameSession.gameState.board.cities.find((entry) => entry.id === action.cityId)
         if (!city) {
+            return undefined
+        }
+
+        if (!isIndonesiaNodeId(city.area)) {
             return undefined
         }
 
