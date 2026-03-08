@@ -776,6 +776,10 @@ export class IndonesiaGameSession extends GameSession<
         await this.pass(PassReason.FinishOptionalProductionExpansion)
     }
 
+    async finishOptionalShippingExpansion(): Promise<void> {
+        await this.pass(PassReason.FinishOptionalShippingExpansion)
+    }
+
     siapSajiRemovalAreaIds: string[] = $derived.by(() => {
         const myPlayerId = this.myPlayer?.id
         if (!myPlayerId) {

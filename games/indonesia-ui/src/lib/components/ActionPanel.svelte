@@ -27,6 +27,7 @@
     let bidInput = $state('0')
     let placingTurnOrderBid = $state(false)
     let choosingOperatingCompany = $state(false)
+    let finishingOptionalShippingExpansion = $state(false)
     let deliveringGood = $state(false)
     let finishingOptionalProductionExpansion = $state(false)
     let passingAcquisitions = $state(false)
@@ -131,6 +132,14 @@
         )
     })
 
+    const showShippingOperationsPanel = $derived.by(() => {
+        return (
+            gameSession.isMyTurn &&
+            gameSession.gameState.machineState === MachineState.ShippingOperations &&
+            !gameSession.gameState.result
+        )
+    })
+
     const showDeliveryShippingChoices = $derived.by(() => {
         return (
             showProductionOperationsPanel &&
@@ -143,6 +152,13 @@
         return (
             showProductionOperationsPanel &&
             gameSession.productionOperationStage === 'optional-expansion' &&
+            gameSession.validActionTypes.includes(ActionType.Pass)
+        )
+    })
+
+    const showOptionalShippingExpansionDoneButton = $derived.by(() => {
+        return (
+            showShippingOperationsPanel &&
             gameSession.validActionTypes.includes(ActionType.Pass)
         )
     })
@@ -828,7 +844,7 @@
             case MachineState.Operations:
                 return 'Choose a company to operate.'
             case MachineState.ShippingOperations:
-                return 'Operate shipping company.'
+                return 'You may expand the shipping company or finish.'
             case MachineState.ProductionOperations: {
                 if (gameSession.productionOperationStage === 'mandatory-expansion') {
                     const remainingExpansions = remainingProductionExpansionCount
@@ -1065,6 +1081,19 @@
         }
     }
 
+    async function submitFinishOptionalShippingExpansion(): Promise<void> {
+        if (!showOptionalShippingExpansionDoneButton || finishingOptionalShippingExpansion) {
+            return
+        }
+
+        finishingOptionalShippingExpansion = true
+        try {
+            await gameSession.finishOptionalShippingExpansion()
+        } finally {
+            finishingOptionalShippingExpansion = false
+        }
+    }
+
     async function submitAcquisitionsPass(): Promise<void> {
         if (!showAcquisitionsPassButton || passingAcquisitions) {
             return
@@ -1241,6 +1270,24 @@
                     </button>
                 {/each}
             </div>
+        </div>
+    {:else if showShippingOperationsPanel}
+        <div class="production-delivery-panel">
+            <span class="operating-company-message">{message}</span>
+            {#if showOptionalShippingExpansionDoneButton}
+                <button
+                    type="button"
+                    class="finish-production-expansion"
+                    disabled={finishingOptionalShippingExpansion}
+                    onclick={submitFinishOptionalShippingExpansion}
+                >
+                    {#if finishingOptionalShippingExpansion}
+                        finishing...
+                    {:else}
+                        finish operation
+                    {/if}
+                </button>
+            {/if}
         </div>
     {:else if showProductionOperationsPanel}
         <div class="production-delivery-panel">

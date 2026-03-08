@@ -17,6 +17,8 @@ export enum PassReason {
     CannotPlaceCity = 'CannotPlaceCity',
     DeclineStartCompany = 'DeclineStartCompany',
     DeclineMergerAnnouncement = 'DeclineMergerAnnouncement',
+    FinishOptionalShippingExpansion = 'FinishOptionalShippingExpansion',
+    SkipShippingExpansion = 'SkipShippingExpansion',
     FinishOptionalProductionExpansion = 'FinishOptionalProductionExpansion',
     SkipProductionExpansion = 'SkipProductionExpansion'
 }
@@ -96,6 +98,31 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
             }
 
             return mergerAnnouncementOrder(state).includes(playerId)
+        }
+
+        if (state.machineState === MachineState.ShippingOperations) {
+            const operatingCompanyId = state.operatingCompanyId
+            if (!operatingCompanyId) {
+                return false
+            }
+
+            const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+            if (!operatingCompany || operatingCompany.owner !== playerId) {
+                return false
+            }
+
+            if (
+                reason === PassReason.FinishOptionalShippingExpansion ||
+                (reason === undefined && HydratedExpand.canExpand(state, playerId))
+            ) {
+                return true
+            }
+
+            if (reason === PassReason.SkipShippingExpansion) {
+                return !HydratedExpand.canExpand(state, playerId)
+            }
+
+            return false
         }
 
         if (state.machineState !== MachineState.ProductionOperations) {
