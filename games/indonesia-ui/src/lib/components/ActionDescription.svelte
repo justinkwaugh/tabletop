@@ -8,16 +8,19 @@
     import simpleSiapSajiImg from '$lib/images/simple-siapsaji.svg'
     import simpleSpiceImg from '$lib/images/simple-spice.svg'
     import {
+        BID_RESEARCH_MULTIPLIERS,
         PassReason,
         ResearchArea,
         ActionType,
         CompanyType,
         GOOD_REVENUE_BY_GOOD,
         Good,
+        INDONESIA_REGION_BY_AREA_ID,
         isChooseOperatingCompany,
         isDeliverGood,
         isExpand,
         isGrowCity,
+        isIndonesiaNodeId,
         isMergeCompanies,
         isPass,
         isPassMergerBid,
@@ -34,6 +37,7 @@
     } from '@tabletop/indonesia'
     import { isAggregatedIndonesiaAction } from '$lib/utils/actionAggregator.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { getRegionName } from '$lib/definitions/regions.js'
 
     let {
         action,
@@ -104,6 +108,16 @@
             good?: Good
             shippingCost?: number
             shippingPayments?: ShippingPaymentSummary[]
+        }
+    }
+
+    type StartCompanyHistoryAction = GameAction & {
+        areaId: string
+        metadata?: {
+            company?: {
+                type: CompanyType
+                good?: Good
+            }
         }
     }
 
@@ -192,6 +206,78 @@
         }
 
         return action.metadata?.proposal.isSiapSaji ? goodLabels[Good.SiapSaji] : 'company'
+    }
+
+    function startCompanyTypeLabel(action: GameAction): string {
+        if (!isStartCompany(action)) {
+            return 'company'
+        }
+
+        const company = (action as StartCompanyHistoryAction).metadata?.company
+        if (company?.type === CompanyType.Production) {
+            return `${company.good ? goodLabels[company.good] : 'production'} company`
+        }
+
+        if (company?.type === CompanyType.Shipping) {
+            return 'shipping company'
+        }
+
+        return 'company'
+    }
+
+    function startCompanyRegionName(action: GameAction): string {
+        if (!isStartCompany(action)) {
+            return 'unknown region'
+        }
+
+        const startCompanyAction = action as StartCompanyHistoryAction
+        if (!isIndonesiaNodeId(startCompanyAction.areaId)) {
+            return startCompanyAction.areaId ?? 'unknown region'
+        }
+
+        const regionId = INDONESIA_REGION_BY_AREA_ID[startCompanyAction.areaId]
+        return regionId ? getRegionName(regionId) : startCompanyAction.areaId
+    }
+
+    function cityPlacementRegionName(action: GameAction): string {
+        if (!isPlaceCity(action) || !isIndonesiaNodeId(action.areaId)) {
+            return isPlaceCity(action) ? action.areaId : 'unknown region'
+        }
+
+        const regionId = INDONESIA_REGION_BY_AREA_ID[action.areaId]
+        return regionId ? getRegionName(regionId) : action.areaId
+    }
+
+    function turnOrderBidDisplay(action: GameAction): {
+        total: number
+        base: number
+        multiplier: number
+    } | null {
+        if (!isPlaceTurnOrderBid(action)) {
+            return null
+        }
+
+        const base = action.amount
+        const total = action.metadata?.multipliedAmount ?? base
+        const multiplier = base > 0 ? Math.round(total / base) : 1
+
+        return {
+            total,
+            base,
+            multiplier: Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1
+        }
+    }
+
+    function researchLevelDisplay(researchArea: ResearchArea, level?: number): string {
+        if (level === undefined) {
+            return '?'
+        }
+
+        if (researchArea === ResearchArea.bid) {
+            return `x${BID_RESEARCH_MULTIPLIERS[level] ?? 1}`
+        }
+
+        return String(level + 1)
     }
 
     function aggregatedDeliverGoodActions(action: GameAction): DeliverGoodHistoryAction[] {
@@ -468,16 +554,17 @@
     {:else if isPlaceCompanyDeeds(action)}
         refreshed company deeds
     {:else if isPlaceCity(action)}
-        placed a city at {action.areaId}
+        placed a city in {cityPlacementRegionName(action)}
     {:else if isPass(action)}
         passed
         {#if action.reason}
             ({passReasonLabels[action.reason] ?? action.reason})
         {/if}
     {:else if isPlaceTurnOrderBid(action)}
-        bid {action.amount} for turn order
-        {#if action.metadata?.multipliedAmount !== undefined}
-            (total {action.metadata.multipliedAmount})
+        {@const bidDisplay = turnOrderBidDisplay(action)}
+        bid {bidDisplay?.total ?? action.amount}
+        {#if bidDisplay && bidDisplay.multiplier > 1}
+            ({bidDisplay.base} x {bidDisplay.multiplier})
         {/if}
     {:else if isSetTurnOrder(action)}
         <span class="inline-flex flex-col items-start gap-0.5">
@@ -491,7 +578,7 @@
             {/if}
         </span>
     {:else if isStartCompany(action)}
-        started company from {action.deedId} at {action.areaId}
+        started the {startCompanyTypeLabel(action)} in {startCompanyRegionName(action)}
     {:else if isProposeMerger(action)}
         <span>
             proposed a merger between
@@ -552,12 +639,12 @@
     {:else if isRemoveSiapSajiArea(action)}
         removed Siap Saji area {action.areaId}
     {:else if isResearch(action)}
-        researched {researchAreaLabels[action.researchArea]}
+        increased {researchAreaLabels[action.researchArea]} to {researchLevelDisplay(
+            action.researchArea,
+            action.metadata?.newLevel
+        )}
         {#if action.targetPlayerId !== action.playerId}
             for <PlayerName playerId={action.targetPlayerId} />
-        {/if}
-        {#if action.metadata}
-            ({action.metadata.oldLevel} to {action.metadata.newLevel})
         {/if}
     {:else if isDeliverGood(action)}
         delivered {action.metadata?.good ? goodLabels[action.metadata.good] : 'goods'} using {action.seaAreaIds.length}
