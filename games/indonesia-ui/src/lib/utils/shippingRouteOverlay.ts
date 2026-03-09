@@ -73,6 +73,7 @@ const RETRY_SWITCH_MIN_ABSOLUTE_GAIN = 20
 const GRID_STEP = 12
 const GRID_COLS = Math.floor(BOARD_WIDTH / GRID_STEP) + 1
 const GRID_ROWS = Math.floor(BOARD_HEIGHT / GRID_STEP) + 1
+const GRID_CELL_COUNT = GRID_COLS * GRID_ROWS
 const MAX_SEARCH_STEPS = 200_000
 const SEGMENT_SAMPLE_STEP = 6
 const CURVE_CORNER_MAX_RADIUS = 26
@@ -591,7 +592,7 @@ function blockedCellStatesForRoutingContext(routingContext: RoutingContext): Uin
         return cachedStates
     }
 
-    const states = new Uint8Array(GRID_COLS * GRID_ROWS)
+    const states = new Uint8Array(GRID_CELL_COUNT)
     blockedCellStatesByRoutingKey.set(routingContext.cacheKey, states)
     return states
 }
@@ -628,6 +629,7 @@ function isWaterCell(cell: GridCell, routingContext: RoutingContext): boolean {
 
     const point = cellToPoint(cell)
     const blocked = pointIsBlocked(point, routingContext) || pointViolatesSeaInset(point, routingContext)
+
     blockedCellStates[cellKey] = blocked ? CELL_STATE_BLOCKED : CELL_STATE_WATER
     return !blocked
 }
