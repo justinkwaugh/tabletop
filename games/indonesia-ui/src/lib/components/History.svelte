@@ -141,12 +141,11 @@
                             {/if}
                         </span>
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
-                            {#if action.playerId}
-                                <PlayerName playerId={action.playerId} />
-                            {/if}
                             <ActionDescription
                                 {action}
                                 justify="start"
+                                fullWidth={false}
+                                showActor={true}
                                 cityRegionName={cityRegionNameForAction(action)}
                             />
                         </p>

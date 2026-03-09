@@ -23,6 +23,10 @@ import { AreaType, isCultivatedArea } from '../components/area.js'
 import { HydratedProposeMerger, ProposeMerger } from '../actions/proposeMerger.js'
 import { HydratedPlaceMergerBid, PlaceMergerBid } from '../actions/placeMergerBid.js'
 import { HydratedPassMergerBid, isPassMergerBid } from '../actions/passMergerBid.js'
+import {
+    HydratedMergeCompanies,
+    isMergeCompanies
+} from '../actions/mergeCompanies.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -428,14 +432,47 @@ describe('MergersStateHandler', () => {
 
         openingBidAction.apply(state, context)
         const afterOpeningBidState = handler.onAction(openingBidAction, context)
+        expect(afterOpeningBidState).toBe(MachineState.Mergers)
 
-        expect(afterOpeningBidState).toBe(MachineState.ResearchAndDevelopment)
+        state.machineState = afterOpeningBidState
+        handler.enter(context)
+
+        const queuedMergeAction = context.nextPendingAction()
+        expect(queuedMergeAction).toBeDefined()
+        expect(isMergeCompanies(queuedMergeAction)).toBe(true)
+        if (!queuedMergeAction || !isMergeCompanies(queuedMergeAction)) {
+            return
+        }
+        expect(queuedMergeAction.source).toBe(ActionSource.System)
+        expect(queuedMergeAction.playerId).toBeUndefined()
+
+        const mergeAction = new HydratedMergeCompanies(queuedMergeAction)
+        mergeAction.apply(state, context)
+        const afterMergeState = handler.onAction(mergeAction, context)
+
+        expect(afterMergeState).toBe(MachineState.ResearchAndDevelopment)
         expect(state.phaseManager.currentPhase?.name).not.toBe(PhaseName.Mergers)
         expect(state.activeMergerProposal).toBeUndefined()
         expect(state.activeMergerAuction).toBeUndefined()
         expect(state.companies).toHaveLength(1)
         expect(state.companies[0]?.deeds).toHaveLength(2)
         expect(state.mergedDeedIdsThisYear).toEqual(expect.arrayContaining([deedA.id, deedB.id]))
+        expect(mergeAction.metadata).toMatchObject({
+            auctionResult: {
+                winnerId: announcerId,
+                highBid: option.nominalValue
+            },
+            ownerPayments: [
+                {
+                    ownerId: announcerId,
+                    payout: Math.floor(option.nominalValue / 2)
+                },
+                {
+                    ownerId: announcerId,
+                    payout: Math.floor(option.nominalValue / 2)
+                }
+            ]
+        })
     })
 
     it('auto-applies a system pass when the next bidder cannot place a valid bid', () => {
@@ -546,7 +583,23 @@ describe('MergersStateHandler', () => {
 
         const systemPassAction = new HydratedPassMergerBid(queuedAutoPass)
         systemPassAction.apply(state, context)
-        handler.onAction(systemPassAction, context)
+        const stateAfterSystemPass = handler.onAction(systemPassAction, context)
+        expect(stateAfterSystemPass).toBe(MachineState.Mergers)
+
+        state.machineState = stateAfterSystemPass
+        handler.enter(context)
+
+        const queuedMergeAction = context.nextPendingAction()
+        expect(queuedMergeAction).toBeDefined()
+        expect(isMergeCompanies(queuedMergeAction)).toBe(true)
+        if (!queuedMergeAction || !isMergeCompanies(queuedMergeAction)) {
+            return
+        }
+        expect(queuedMergeAction.playerId).toBeUndefined()
+
+        const mergeAction = new HydratedMergeCompanies(queuedMergeAction)
+        mergeAction.apply(state, context)
+        handler.onAction(mergeAction, context)
 
         expect(state.activeMergerProposal).toBeUndefined()
         expect(state.activeMergerAuction).toBeUndefined()
@@ -657,7 +710,22 @@ describe('MergersStateHandler', () => {
             })
         )
         openingBidAction.apply(state, context)
-        handler.onAction(openingBidAction, context)
+        const stateAfterOpeningBid = handler.onAction(openingBidAction, context)
+        expect(stateAfterOpeningBid).toBe(MachineState.Mergers)
+
+        state.machineState = stateAfterOpeningBid
+        handler.enter(context)
+
+        const queuedMergeAction = context.nextPendingAction()
+        expect(queuedMergeAction).toBeDefined()
+        expect(isMergeCompanies(queuedMergeAction)).toBe(true)
+        if (!queuedMergeAction || !isMergeCompanies(queuedMergeAction)) {
+            return
+        }
+
+        const mergeAction = new HydratedMergeCompanies(queuedMergeAction)
+        mergeAction.apply(state, context)
+        handler.onAction(mergeAction, context)
 
         expect(state.companies).toHaveLength(1)
         const mergedCompany = state.companies[0]
@@ -809,7 +877,22 @@ describe('MergersStateHandler', () => {
             })
         )
         openingBidAction.apply(state, context)
-        handler.onAction(openingBidAction, context)
+        const stateAfterOpeningBid = handler.onAction(openingBidAction, context)
+        expect(stateAfterOpeningBid).toBe(MachineState.Mergers)
+
+        state.machineState = stateAfterOpeningBid
+        handler.enter(context)
+
+        const queuedMergeAction = context.nextPendingAction()
+        expect(queuedMergeAction).toBeDefined()
+        expect(isMergeCompanies(queuedMergeAction)).toBe(true)
+        if (!queuedMergeAction || !isMergeCompanies(queuedMergeAction)) {
+            return
+        }
+
+        const mergeAction = new HydratedMergeCompanies(queuedMergeAction)
+        mergeAction.apply(state, context)
+        handler.onAction(mergeAction, context)
 
         const mergedCompany = state.companies.find(
             (company) => company.id !== existingSiapCompanyId

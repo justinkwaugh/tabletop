@@ -11,6 +11,7 @@ export enum ActionType {
     ProposeMerger = 'proposeMerger',
     PlaceMergerBid = 'placeMergerBid',
     PassMergerBid = 'passMergerBid',
+    MergeCompanies = 'mergeCompanies',
     RemoveSiapSajiArea = 'removeSiapSajiArea',
     SetTurnOrder = 'setTurnOrder',
     PlaceTurnOrderBid = 'placeTurnOrderBid',

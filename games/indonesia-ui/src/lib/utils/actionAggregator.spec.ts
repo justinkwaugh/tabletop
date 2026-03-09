@@ -25,6 +25,17 @@ function passAction(id: string, playerId: string): GameAction {
     } as unknown as GameAction
 }
 
+function removeSiapSajiAreaAction(id: string, playerId: string, areaId: string): GameAction {
+    return {
+        id,
+        gameId: 'g1',
+        source: ActionSource.User,
+        type: ActionType.RemoveSiapSajiArea,
+        playerId,
+        areaId
+    } as unknown as GameAction
+}
+
 describe('aggregateActions', () => {
     it('aggregates consecutive expand actions by the same player', () => {
         const actions = [
@@ -73,5 +84,44 @@ describe('aggregateActions', () => {
         expect(aggregated[0]).toMatchObject({ type: 'AggregatedIndonesiaAction', count: 2 })
         expect(aggregated[1]?.type).toBe(ActionType.Pass)
         expect(aggregated[2]).toMatchObject({ type: 'AggregatedIndonesiaAction', count: 1 })
+    })
+
+    it('aggregates consecutive siap saji removals by the same player', () => {
+        const actions = [
+            removeSiapSajiAreaAction('a1', 'p1', 'A01'),
+            removeSiapSajiAreaAction('a2', 'p1', 'A02'),
+            removeSiapSajiAreaAction('a3', 'p1', 'A03')
+        ]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(1)
+        expect(isAggregatedIndonesiaAction(aggregated[0])).toBe(true)
+        expect(aggregated[0]).toMatchObject({
+            playerId: 'p1',
+            aggregatedType: ActionType.RemoveSiapSajiArea,
+            count: 3
+        })
+    })
+
+    it('does not mix expand and siap saji removal aggregates', () => {
+        const actions = [
+            expandAction('a1', 'p1', 'A01'),
+            removeSiapSajiAreaAction('a2', 'p1', 'A02')
+        ]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(2)
+        expect(aggregated[0]).toMatchObject({
+            type: 'AggregatedIndonesiaAction',
+            aggregatedType: ActionType.Expand,
+            count: 1
+        })
+        expect(aggregated[1]).toMatchObject({
+            type: 'AggregatedIndonesiaAction',
+            aggregatedType: ActionType.RemoveSiapSajiArea,
+            count: 1
+        })
     })
 })

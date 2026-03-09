@@ -40,18 +40,12 @@
 <div class="history-last-action">
     {#if lastAction}
         <h1 class="history-last-action-line">
-            {#if lastAction.playerId}
-                <PlayerName
-                    playerId={lastAction.playerId}
-                    additionalClasses="tracking-[0.08em]"
-                    capitalization="none"
-                />
-            {/if}
             <ActionDescription
                 action={lastAction}
                 justify="center"
                 history={true}
                 fullWidth={false}
+                showActor={true}
                 cityRegionName={cityRegionNameForAction(lastAction)}
             />
         </h1>

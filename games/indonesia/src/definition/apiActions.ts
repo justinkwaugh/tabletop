@@ -4,6 +4,7 @@ import { StartCompany } from '../actions/startCompany.js'
 import { ProposeMerger } from '../actions/proposeMerger.js'
 import { PlaceMergerBid } from '../actions/placeMergerBid.js'
 import { PassMergerBid } from '../actions/passMergerBid.js'
+import { MergeCompanies } from '../actions/mergeCompanies.js'
 import { RemoveSiapSajiArea } from '../actions/removeSiapSajiArea.js'
 import { SetTurnOrder } from '../actions/setTurnOrder.js'
 import { PlaceTurnOrderBid } from '../actions/placeTurnOrderBid.js'
@@ -30,6 +31,7 @@ export const IndonesiaApiActions = {
     [ActionType.ProposeMerger]: ProposeMerger,
     [ActionType.PlaceMergerBid]: PlaceMergerBid,
     [ActionType.PassMergerBid]: PassMergerBid,
+    [ActionType.MergeCompanies]: MergeCompanies,
     [ActionType.RemoveSiapSajiArea]: RemoveSiapSajiArea,
     [ActionType.SetTurnOrder]: SetTurnOrder,
     [ActionType.PlaceTurnOrderBid]: PlaceTurnOrderBid,

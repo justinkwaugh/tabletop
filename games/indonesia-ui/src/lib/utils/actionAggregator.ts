@@ -1,8 +1,8 @@
 import type { GameAction } from '@tabletop/common'
-import { ActionType, isExpand } from '@tabletop/indonesia'
+import { ActionType, isExpand, isRemoveSiapSajiArea } from '@tabletop/indonesia'
 import { nanoid } from 'nanoid'
 
-export type AggregatedIndonesiaActionType = ActionType.Expand
+export type AggregatedIndonesiaActionType = ActionType.Expand | ActionType.RemoveSiapSajiArea
 
 export type AggregatedIndonesiaAction = GameAction & {
     type: 'AggregatedIndonesiaAction'
@@ -17,8 +17,14 @@ export function isAggregatedIndonesiaAction(
     return action?.type === 'AggregatedIndonesiaAction'
 }
 
-function isAggregatableIndonesiaAction(action: GameAction): boolean {
-    return isExpand(action)
+function aggregatedTypeForAction(action: GameAction): AggregatedIndonesiaActionType | null {
+    if (isExpand(action)) {
+        return ActionType.Expand
+    }
+    if (isRemoveSiapSajiArea(action)) {
+        return ActionType.RemoveSiapSajiArea
+    }
+    return null
 }
 
 function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAction | GameAction {
@@ -28,7 +34,11 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
 
     const first = actions[0]
     const last = actions[actions.length - 1]
+    const aggregatedType = aggregatedTypeForAction(first)
     if (!first.playerId) {
+        return first
+    }
+    if (!aggregatedType) {
         return first
     }
 
@@ -39,7 +49,7 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
         type: 'AggregatedIndonesiaAction',
         playerId: first.playerId,
         index: last?.index,
-        aggregatedType: ActionType.Expand,
+        aggregatedType,
         count: actions.length,
         createdAt: first.createdAt
     }
@@ -47,19 +57,23 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
 
 export function* aggregateActions(actions: GameAction[]) {
     let currentPlayerId: string | undefined
+    let currentAggregatedType: AggregatedIndonesiaActionType | null = null
     let aggregatedGroup: GameAction[] = []
 
     for (const action of actions) {
-        if (isAggregatableIndonesiaAction(action) && action.playerId) {
+        const aggregatedType = aggregatedTypeForAction(action)
+        if (aggregatedType && action.playerId) {
             if (aggregatedGroup.length === 0) {
                 aggregatedGroup = [action]
                 currentPlayerId = action.playerId
-            } else if (action.playerId === currentPlayerId) {
+                currentAggregatedType = aggregatedType
+            } else if (action.playerId === currentPlayerId && aggregatedType === currentAggregatedType) {
                 aggregatedGroup.push(action)
             } else {
                 yield aggregateIndonesiaActions(aggregatedGroup)
                 aggregatedGroup = [action]
                 currentPlayerId = action.playerId
+                currentAggregatedType = aggregatedType
             }
             continue
         }
@@ -68,6 +82,7 @@ export function* aggregateActions(actions: GameAction[]) {
             yield aggregateIndonesiaActions(aggregatedGroup)
             aggregatedGroup = []
             currentPlayerId = undefined
+            currentAggregatedType = null
         }
         yield action
     }
