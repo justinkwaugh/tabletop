@@ -241,21 +241,7 @@ describe('aggregateActions', () => {
         expect(aggregated[0]).toMatchObject({
             playerId: 'p1',
             aggregatedType: ActionType.DeliverGood,
-            count: 3,
-            metadata: {
-                shippingPayouts: [
-                    {
-                        ownerPlayerId: 'ship-owner-a',
-                        shipCount: 5,
-                        amount: 25
-                    },
-                    {
-                        ownerPlayerId: 'ship-owner-b',
-                        shipCount: 1,
-                        amount: 5
-                    }
-                ]
-            }
+            count: 3
         })
     })
 })

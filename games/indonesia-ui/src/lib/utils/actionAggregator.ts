@@ -26,9 +26,6 @@ export type AggregatedIndonesiaAction = GameAction & {
     playerId: string
     aggregatedType: AggregatedIndonesiaActionType
     count: number
-    metadata?: {
-        shippingPayouts?: AggregatedDeliverGoodPayout[]
-    }
 }
 
 export function isAggregatedIndonesiaAction(
@@ -65,34 +62,6 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
         return first
     }
 
-    let metadata: AggregatedIndonesiaAction['metadata'] | undefined
-    if (aggregatedType === ActionType.DeliverGood) {
-        const payoutByOwnerPlayerId = new Map<string, AggregatedDeliverGoodPayout>()
-        for (const action of actions) {
-            if (!isDeliverGood(action)) {
-                continue
-            }
-
-            const ownerPlayerId = action.metadata?.shippingPayments?.[0]?.ownerPlayerId
-            if (!ownerPlayerId) {
-                continue
-            }
-
-            const current = payoutByOwnerPlayerId.get(ownerPlayerId) ?? {
-                ownerPlayerId,
-                shipCount: 0,
-                amount: 0
-            }
-            current.shipCount += action.seaAreaIds.length
-            current.amount += action.metadata?.shippingCost ?? 0
-            payoutByOwnerPlayerId.set(ownerPlayerId, current)
-        }
-
-        metadata = {
-            shippingPayouts: [...payoutByOwnerPlayerId.values()]
-        }
-    }
-
     return {
         id: nanoid(),
         gameId: first.gameId,
@@ -102,8 +71,7 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
         index: last?.index,
         aggregatedType,
         count: actions.length,
-        createdAt: first.createdAt,
-        metadata
+        createdAt: first.createdAt
     }
 }
 

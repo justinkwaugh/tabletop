@@ -12,6 +12,7 @@
         ResearchArea,
         ActionType,
         CompanyType,
+        GOOD_REVENUE_BY_GOOD,
         Good,
         isChooseOperatingCompany,
         isDeliverGood,
@@ -32,6 +33,7 @@
         isStartCompany
     } from '@tabletop/indonesia'
     import { isAggregatedIndonesiaAction } from '$lib/utils/actionAggregator.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let {
         action,
@@ -48,6 +50,8 @@
         fullWidth?: boolean
         showActor?: boolean
     } = $props()
+
+    let gameSession = getGameSession()
 
     const justifyClasses: Record<'start' | 'center' | 'end', string> = {
         start: 'justify-start',
@@ -79,6 +83,28 @@
         [Good.Rubber]: 'rubber',
         [Good.Oil]: 'oil',
         [Good.SiapSaji]: 'siap saji'
+    }
+
+    type ShippingPaymentSummary = {
+        ownerPlayerId: string
+        amount: number
+    }
+
+    type ChooseOperatingCompanyHistoryAction = GameAction & {
+        companyId: string
+        metadata?: {
+            companyType?: CompanyType
+            good?: Good
+        }
+    }
+
+    type DeliverGoodHistoryAction = GameAction & {
+        seaAreaIds: string[]
+        metadata?: {
+            good?: Good
+            shippingCost?: number
+            shippingPayments?: ShippingPaymentSummary[]
+        }
     }
 
     function companyLabel(companyType?: CompanyType, good?: Good): string {
@@ -126,6 +152,23 @@
         }
     }
 
+    function simpleGoodIconSrc(good?: Good): string | null {
+        switch (good) {
+            case Good.Rice:
+                return simpleRiceImg
+            case Good.Spice:
+                return simpleSpiceImg
+            case Good.Rubber:
+                return simpleRubberImg
+            case Good.Oil:
+                return simpleOilImg
+            case Good.SiapSaji:
+                return simpleSiapSajiImg
+            default:
+                return null
+        }
+    }
+
     function mergeUnitLabel(action: GameAction): string {
         if (!isMergeCompanies(action)) {
             return 'units'
@@ -151,16 +194,75 @@
         return action.metadata?.proposal.isSiapSaji ? goodLabels[Good.SiapSaji] : 'company'
     }
 
+    function aggregatedDeliverGoodActions(action: GameAction): DeliverGoodHistoryAction[] {
+        if (!isAggregatedIndonesiaAction(action) || action.aggregatedType !== ActionType.DeliverGood) {
+            return []
+        }
+
+        if (typeof action.index !== 'number' || !action.playerId) {
+            return []
+        }
+
+        const lastActionPosition = gameSession.actions.findLastIndex(
+            (candidate) =>
+                candidate.index === action.index &&
+                candidate.playerId === action.playerId &&
+                isDeliverGood(candidate)
+        )
+        if (lastActionPosition === -1) {
+            return []
+        }
+
+        const deliveries: DeliverGoodHistoryAction[] = []
+        for (let position = lastActionPosition; position >= 0; position -= 1) {
+            const candidate = gameSession.actions[position]
+            if (!isDeliverGood(candidate) || candidate.playerId !== action.playerId) {
+                break
+            }
+
+            deliveries.unshift(candidate as DeliverGoodHistoryAction)
+            if (deliveries.length === action.count) {
+                break
+            }
+        }
+
+        return deliveries
+    }
+
     function aggregatedShippingPayouts(action: GameAction): {
         ownerPlayerId: string
         shipCount: number
         amount: number
     }[] {
-        if (!isAggregatedIndonesiaAction(action) || action.aggregatedType !== ActionType.DeliverGood) {
-            return []
+        const payoutsByOwnerPlayerId = new Map<
+            string,
+            {
+                ownerPlayerId: string
+                shipCount: number
+                amount: number
+            }
+        >()
+
+        for (const delivery of aggregatedDeliverGoodActions(action)) {
+            const ownerPlayerId = delivery.metadata?.shippingPayments?.[0]?.ownerPlayerId
+            if (!ownerPlayerId) {
+                continue
+            }
+
+            const current = payoutsByOwnerPlayerId.get(ownerPlayerId) ?? {
+                ownerPlayerId,
+                shipCount: 0,
+                amount: 0
+            }
+            current.shipCount += delivery.seaAreaIds.length
+            current.amount +=
+                delivery.metadata?.shippingCost ??
+                delivery.metadata?.shippingPayments?.reduce((sum, payment) => sum + payment.amount, 0) ??
+                0
+            payoutsByOwnerPlayerId.set(ownerPlayerId, current)
         }
 
-        return action.metadata?.shippingPayouts ?? []
+        return [...payoutsByOwnerPlayerId.values()]
     }
 
     function aggregatedShippingTotals(
@@ -177,6 +279,77 @@
             }),
             { shipCount: 0, amount: 0 }
         )
+    }
+
+    function aggregatedDeliveryProfitSummary(
+        action: GameAction,
+        shippingCostTotal: number
+    ): {
+        good?: Good
+        unitPrice: number | null
+        revenue: number | null
+        shippingCost: number
+        profit: number | null
+    } {
+        if (!isAggregatedIndonesiaAction(action) || action.aggregatedType !== ActionType.DeliverGood) {
+            return {
+                unitPrice: null,
+                revenue: null,
+                shippingCost: shippingCostTotal,
+                profit: null
+            }
+        }
+
+        const deliveries = aggregatedDeliverGoodActions(action)
+        const firstDelivery = deliveries[0]
+
+        let resolvedGood: Good | undefined = firstDelivery?.metadata?.good
+        if (!resolvedGood && firstDelivery) {
+            const firstDeliveryPosition = gameSession.actions.findIndex(
+                (candidate) => candidate.id === firstDelivery.id
+            )
+            for (let position = firstDeliveryPosition - 1; position >= 0; position -= 1) {
+                const candidate = gameSession.actions[position]
+                if (isChooseOperatingCompany(candidate) && candidate.playerId === action.playerId) {
+                    const chooseAction = candidate as ChooseOperatingCompanyHistoryAction
+                    if (chooseAction.metadata?.companyType === CompanyType.Production) {
+                        resolvedGood = chooseAction.metadata?.good
+                    }
+                    if (!resolvedGood && typeof chooseAction.companyId === 'string') {
+                        const company = gameSession.gameState.companies.find(
+                            (entry) => entry.id === chooseAction.companyId
+                        )
+                        if (company?.type === CompanyType.Production) {
+                            resolvedGood = company.good
+                        }
+                    }
+                    break
+                }
+            }
+        }
+
+        if (!resolvedGood) {
+            const operatingCompanyId = gameSession.gameState.operatingCompanyId
+            const company = operatingCompanyId
+                ? gameSession.gameState.companies.find((entry) => entry.id === operatingCompanyId)
+                : undefined
+            if (company?.type === CompanyType.Production) {
+                resolvedGood = company.good
+            }
+        }
+
+        const unitPrice = resolvedGood ? GOOD_REVENUE_BY_GOOD[resolvedGood] : null
+        const revenue = unitPrice === null ? null : action.count * unitPrice
+        const shippingCost = shippingCostTotal
+        const profit = revenue === null ? null : revenue - shippingCost
+
+        return {
+            good: resolvedGood,
+            unitPrice,
+            revenue,
+            shippingCost,
+            profit
+        }
     }
 
     function rendersOwnActor(action: GameAction): boolean {
@@ -202,6 +375,7 @@
         {#if action.aggregatedType === ActionType.DeliverGood}
             {@const shippingPayouts = aggregatedShippingPayouts(action)}
             {@const shippingTotals = aggregatedShippingTotals(shippingPayouts)}
+            {@const profitSummary = aggregatedDeliveryProfitSummary(action, shippingTotals.amount)}
             <span class="inline-flex flex-col items-start gap-1 text-left align-top">
                 <span>
                     {#if showActor && action.playerId}
@@ -210,34 +384,77 @@
                     sold {action.count} {action.count === 1 ? 'good' : 'goods'}
                 </span>
                 {#if shippingPayouts.length > 0}
-                    <span class="mt-0.5 flex w-fit self-start flex-col items-start gap-1 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
-                        <span class="text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Shipping Costs</span>
-                        <span class="grid grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5">
-                            <span></span>
-                            <span class="flex items-center justify-center">
-                                <img
-                                    src={simpleShipImg}
-                                    alt="ships"
-                                    class="h-[16px] w-[16px] object-contain"
-                                />
-                            </span>
-                            <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Cost</span>
-                            {#each shippingPayouts as payout}
-                                <span class="flex items-center">
-                                    <PlayerName playerId={payout.ownerPlayerId} />
+                    <span class="mt-0.5 flex w-full self-stretch flex-col items-start gap-1 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
+                        <span class="mt-1 mb-[0.0625rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Sale Details</span>
+                        <span class="flex w-full flex-col items-start gap-1">
+                            <span class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
+                                <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3 justify-items-center">
+                                    <span class="flex items-center justify-center">
+                                        {#if simpleGoodIconSrc(profitSummary.good)}
+                                            <img
+                                                src={simpleGoodIconSrc(profitSummary.good) ?? undefined}
+                                                alt={profitSummary.good ? goodLabels[profitSummary.good] : 'goods'}
+                                                class="h-[16px] w-[16px] object-contain"
+                                            />
+                                        {/if}
+                                    </span>
+                                    <span class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Price</span>
+                                    <span class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Income</span>
                                 </span>
-                                <span class="text-center tabular-nums text-[#5e3f27]">{payout.shipCount}</span>
-                                <span class="text-right tabular-nums text-[#5e3f27]">{payout.amount}</span>
-                            {/each}
-                            <span class="col-span-3 mt-0.5 h-px bg-[#ad9c80]/40"></span>
-                            <span class="font-medium text-[#5e3f27]">Total</span>
-                            <span class="text-center font-medium tabular-nums text-[#5e3f27]">
-                                {shippingTotals.shipCount}
-                            </span>
-                            <span class="text-right font-medium tabular-nums text-[#5e3f27]">
-                                {shippingTotals.amount}
+                                <span class="flex items-center justify-center">
+                                    <img
+                                        src={simpleShipImg}
+                                        alt="shipping"
+                                        class="h-[16px] w-[16px] object-contain"
+                                    />
+                                </span>
+                                <span class="text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Profit</span>
+                                <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3">
+                                    <span class="text-center tabular-nums text-[#5e3f27]">{action.count}</span>
+                                    <span class="text-center tabular-nums text-[#5e3f27]">
+                                        {profitSummary.unitPrice ?? '?'}
+                                    </span>
+                                    <span class="text-center tabular-nums text-[#5e3f27]">
+                                        {profitSummary.revenue ?? '?'}
+                                    </span>
+                                </span>
+                                <span class="text-center tabular-nums text-[#5e3f27]">
+                                    -{profitSummary.shippingCost}
+                                </span>
+                                <span class="text-right tabular-nums text-[#5e3f27]">
+                                    {profitSummary.profit ?? '?'}
+                                </span>
                             </span>
                         </span>
+                        {#if shippingPayouts.length > 0}
+                            <span class="mt-3 mb-[-0.125rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Shipping Details</span>
+                            <span class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
+                                <span></span>
+                                <span class="flex items-center justify-center">
+                                    <img
+                                        src={simpleShipImg}
+                                        alt="ships"
+                                        class="h-[16px] w-[16px] object-contain"
+                                    />
+                                </span>
+                                <span class="text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Cost</span>
+                                {#each shippingPayouts as payout}
+                                    <span class="min-w-0 flex items-center">
+                                        <PlayerName playerId={payout.ownerPlayerId} />
+                                    </span>
+                                    <span class="text-center tabular-nums text-[#5e3f27]">{payout.shipCount}</span>
+                                    <span class="text-right tabular-nums text-[#5e3f27]">{payout.amount}</span>
+                                {/each}
+                                <span class="col-span-3 mt-0.5 h-px bg-[#ad9c80]/40"></span>
+                                <span></span>
+                                <span class="text-center tabular-nums text-[#5e3f27]">
+                                    {shippingTotals.shipCount}
+                                </span>
+                                <span class="text-right tabular-nums text-[#5e3f27]">
+                                    {shippingTotals.amount}
+                                </span>
+                            </span>
+                        {/if}
                     </span>
                 {/if}
             </span>

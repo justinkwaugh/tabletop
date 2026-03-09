@@ -71,21 +71,21 @@
 </script>
 
 <div
-    class="rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
+    class="border-y-2 border-[#7a5d3f] bg-[#f7f3ef] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px]"
 >
     <div class="overflow-auto h-full w-full" bind:this={scrollContainer}>
-        <Timeline class="ms-2 dark:border-[#ad9c80]">
+        <Timeline class="history-timeline ms-2 border-[#ad9c80]">
             {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
                 <div
                     class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
                 ></div>
                 <TimelineItem
-                    timeClass="dark:text-[#ad9c80]"
+                    timeClass="text-[#7a5d3f]"
                     title=""
                     class="timeline-item text-left mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
-                    <p class="mt-1 text-left text-sm text-base font-normal text-[#ad9c80">
+                    <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
                         The game has ended.
                     </p>
                 </TimelineItem>
@@ -104,17 +104,17 @@
                         class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
                     ></div>
                     <TimelineItem
-                        timeClass="dark:text-[#ad9c80]"
+                        timeClass="text-[#7a5d3f]"
                         title=""
                         class="timeline-item text-left mb-5"
                         date=""
                     >
-                        <span class="group mb-1 inline-flex items-center gap-2 text-xs text-[#ad9c80]">
+                        <span class="group mb-1 inline-flex items-center gap-2 text-xs text-[#7a5d3f]">
                             <span>{actionTimeLabel(action)}</span>
                             {#if canJumpToHistoryAction(action)}
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-0 rounded px-0 py-0 text-[#ad9c80] opacity-100 transition-colors hover:bg-[#ad9c80]/10 hover:text-[#f5ebd7] focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad9c80]/70"
+                                    class="inline-flex items-center gap-0 rounded px-0 py-0 text-[#7a5d3f] opacity-100 transition-colors hover:bg-[#ad9c80]/12 hover:text-[#5e3f27] focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad9c80]/70"
                                     aria-label="Jump to this action in history"
                                     title="Jump to this action in history"
                                     onclick={async () => await jumpToHistoryAction(action)}
@@ -140,7 +140,7 @@
                                 </button>
                             {/if}
                         </span>
-                        <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
+                        <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
                             <ActionDescription
                                 {action}
                                 justify="start"
@@ -156,12 +156,12 @@
                 class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
             ></div>
             <TimelineItem
-                timeClass="dark:text-[#ad9c80]"
+                timeClass="text-[#7a5d3f]"
                 title=""
                 class="timeline-item text-left mb-5"
                 date={timeAgo.format(gameSession.game.createdAt)}
             >
-                <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
+                <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
                     The game was started
                 </p>
             </TimelineItem>
@@ -173,5 +173,9 @@
 <style>
     :global(.timeline-item > div) {
         display: none;
+    }
+
+    :global(.history-timeline > ol) {
+        border-color: #ad9c80;
     }
 </style>
