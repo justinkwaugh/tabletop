@@ -776,8 +776,16 @@ export class IndonesiaGameSession extends GameSession<
         await this.pass(PassReason.FinishOptionalProductionExpansion)
     }
 
+    async finishProductionOperationWithoutExpansion(): Promise<void> {
+        await this.pass(PassReason.SkipProductionExpansion)
+    }
+
     async finishOptionalShippingExpansion(): Promise<void> {
         await this.pass(PassReason.FinishOptionalShippingExpansion)
+    }
+
+    async finishShippingOperationWithoutExpansion(): Promise<void> {
+        await this.pass(PassReason.SkipShippingExpansion)
     }
 
     siapSajiRemovalAreaIds: string[] = $derived.by(() => {

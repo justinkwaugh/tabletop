@@ -58,7 +58,7 @@
         [PassReason.CannotPlaceCity]: 'cannot place city',
         [PassReason.DeclineStartCompany]: 'declined company start',
         [PassReason.DeclineMergerAnnouncement]: 'declined merger announcement',
-        [PassReason.FinishOptionalShippingExpansion]: 'finished shipping expansion',
+        [PassReason.FinishOptionalShippingExpansion]: 'finished shipping operation',
         [PassReason.SkipShippingExpansion]: 'skipped shipping expansion',
         [PassReason.FinishOptionalProductionExpansion]: 'finished optional expansion',
         [PassReason.SkipProductionExpansion]: 'skipped production expansion'

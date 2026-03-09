@@ -284,7 +284,7 @@ describe('ShippingOperationsStateHandler', () => {
         expect(state.operatingCompanyExpansionCount).toBeUndefined()
     })
 
-    it('queues a skip pass when the shipping company has no legal expansion', () => {
+    it('offers pass when the shipping company has no legal expansion', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const shippingDeed = state.availableDeeds.find(
@@ -314,15 +314,10 @@ describe('ShippingOperationsStateHandler', () => {
         const context = createMachineContext(state)
         handler.enter(context)
 
-        expect(context.getPendingActions()).toHaveLength(1)
-        expect(context.getPendingActions()[0]).toMatchObject({
-            type: ActionType.Pass,
-            playerId,
-            reason: PassReason.SkipShippingExpansion
-        })
+        expect(handler.validActionsForPlayer(playerId, context)).toEqual([ActionType.Pass])
     })
 
-    it('marks the company as operated and finishes operations phase when no players can operate', () => {
+    it('marks the company as operated and returns to operations when other players still have companies', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const otherPlayerId = state.players[1].playerId
@@ -369,10 +364,10 @@ describe('ShippingOperationsStateHandler', () => {
         const context = createMachineContext(state)
         const nextState = handler.onAction(action, context)
 
-        expect(nextState).toBe(MachineState.BiddingForTurnOrder)
+        expect(nextState).toBe(MachineState.Operations)
         expect(state.operatedCompanyIds).toEqual([companyId])
         expect(state.operatingCompanyId).toBeUndefined()
         expect(state.operatingCompanyExpansionCount).toBeUndefined()
-        expect(state.phaseManager.currentPhase).toBeUndefined()
+        expect(state.phaseManager.currentPhase?.name).toBe(PhaseName.Operations)
     })
 })

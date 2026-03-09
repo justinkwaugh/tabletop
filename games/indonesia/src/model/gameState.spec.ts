@@ -193,7 +193,7 @@ describe('HydratedIndonesiaGameState era transition helpers', () => {
 })
 
 describe('HydratedIndonesiaGameState company operation eligibility', () => {
-    it('does not count full-capacity shipping companies as operable', () => {
+    it('counts full-capacity shipping companies as operable until they have operated', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const shippingDeed = state.availableDeeds.find(
@@ -221,11 +221,11 @@ describe('HydratedIndonesiaGameState company operation eligibility', () => {
             ships: Array.from({ length: shippingCapacity }, () => companyId)
         }
 
-        expect(state.canCompanyBeOperated(companyId)).toBe(false)
-        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(false)
+        expect(state.canCompanyBeOperated(companyId)).toBe(true)
+        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(true)
     })
 
-    it('does not count production companies with no cultivated areas as operable', () => {
+    it('counts production companies with no cultivated areas as operable until they have operated', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const productionDeed = state.availableDeeds.find(
@@ -248,11 +248,11 @@ describe('HydratedIndonesiaGameState company operation eligibility', () => {
             }
         ]
 
-        expect(state.canCompanyBeOperated(companyId)).toBe(false)
-        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(false)
+        expect(state.canCompanyBeOperated(companyId)).toBe(true)
+        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(true)
     })
 
-    it('does not count production companies that cannot deliver and cannot afford expansion as operable', () => {
+    it('counts production companies that cannot deliver and cannot afford expansion as operable', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const productionDeed = state.availableDeeds.find(
@@ -290,8 +290,8 @@ describe('HydratedIndonesiaGameState company operation eligibility', () => {
 
         expect(state.canCompanyExpand(companyId)).toBe(true)
 
-        expect(state.canCompanyBeOperated(companyId)).toBe(false)
-        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(false)
+        expect(state.canCompanyBeOperated(companyId)).toBe(true)
+        expect(state.canPlayerOperateAnyCompany(playerId)).toBe(true)
     })
 
     it('counts production companies as operable even when shipping exceeds cash-on-hand', () => {

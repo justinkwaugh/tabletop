@@ -6,7 +6,7 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
-import { HydratedPass, Pass, PassReason, isPass } from '../actions/pass.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { finishOperatingCompany } from './operationsFlow.js'
 
@@ -39,9 +39,7 @@ export class ShippingOperationsStateHandler
         return validActions
     }
 
-    enter(context: MachineContext<HydratedIndonesiaGameState>) {
-        this.queueSkipExpansionIfNeeded(context)
-    }
+    enter(_context: MachineContext<HydratedIndonesiaGameState>) {}
 
     onAction(
         action: ShippingOperationsAction,
@@ -63,41 +61,5 @@ export class ShippingOperationsStateHandler
                 throw Error('Invalid action type')
             }
         }
-    }
-
-    private queueSkipExpansionIfNeeded(context: MachineContext<HydratedIndonesiaGameState>): void {
-        const state = context.gameState
-        const operatingCompanyId = state.operatingCompanyId
-        if (!operatingCompanyId) {
-            return
-        }
-
-        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
-        if (!operatingCompany) {
-            return
-        }
-        if (HydratedExpand.canExpand(state, operatingCompany.owner)) {
-            return
-        }
-        if (this.hasPendingSkipExpansionPass(context, operatingCompany.owner)) {
-            return
-        }
-
-        context.addSystemAction(Pass, {
-            playerId: operatingCompany.owner,
-            reason: PassReason.SkipShippingExpansion
-        })
-    }
-
-    private hasPendingSkipExpansionPass(
-        context: MachineContext<HydratedIndonesiaGameState>,
-        playerId: string
-    ): boolean {
-        return context.getPendingActions().some(
-            (pendingAction) =>
-                isPass(pendingAction) &&
-                pendingAction.playerId === playerId &&
-                pendingAction.reason === PassReason.SkipShippingExpansion
-        )
     }
 }

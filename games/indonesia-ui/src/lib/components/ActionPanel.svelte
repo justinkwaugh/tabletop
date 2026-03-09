@@ -151,7 +151,6 @@
     const showOptionalProductionExpansionDoneButton = $derived.by(() => {
         return (
             showProductionOperationsPanel &&
-            gameSession.productionOperationStage === 'optional-expansion' &&
             gameSession.validActionTypes.includes(ActionType.Pass)
         )
     })
@@ -162,6 +161,18 @@
             gameSession.validActionTypes.includes(ActionType.Pass)
         )
     })
+
+    const productionOperationCanExpand = $derived.by(
+        () =>
+            showProductionOperationsPanel &&
+            gameSession.validActionTypes.includes(ActionType.Expand)
+    )
+
+    const shippingOperationCanExpand = $derived.by(
+        () =>
+            showShippingOperationsPanel &&
+            gameSession.validActionTypes.includes(ActionType.Expand)
+    )
 
     const showAcquisitionsPassButton = $derived.by(() => {
         return (
@@ -844,15 +855,32 @@
             case MachineState.Operations:
                 return 'Choose a company to operate.'
             case MachineState.ShippingOperations:
+                if (!shippingOperationCanExpand && gameSession.validActionTypes.includes(ActionType.Pass)) {
+                    return 'No legal shipping expansion available. Finish operation.'
+                }
                 return 'You may expand the shipping company or finish.'
             case MachineState.ProductionOperations: {
                 if (gameSession.productionOperationStage === 'mandatory-expansion') {
+                    if (
+                        !productionOperationCanExpand &&
+                        gameSession.validActionTypes.includes(ActionType.Pass)
+                    ) {
+                        return 'No legal expansion available. Finish operation.'
+                    }
+
                     const remainingExpansions = remainingProductionExpansionCount
                     const areasLabel = remainingExpansions === 1 ? 'area' : 'areas'
                     return `Expand ${remainingExpansions} ${areasLabel} for free.`
                 }
 
                 if (gameSession.productionOperationStage === 'optional-expansion') {
+                    if (
+                        !productionOperationCanExpand &&
+                        gameSession.validActionTypes.includes(ActionType.Pass)
+                    ) {
+                        return 'No legal expansion available. Finish operation.'
+                    }
+
                     const remainingExpansions = remainingProductionExpansionCount
                     const areasLabel = remainingExpansions === 1 ? 'area' : 'areas'
                     return `You may expand up to ${remainingExpansions} ${areasLabel} or finish.`
@@ -1075,7 +1103,11 @@
 
         finishingOptionalProductionExpansion = true
         try {
-            await gameSession.finishOptionalProductionExpansion()
+            if (productionOperationCanExpand) {
+                await gameSession.finishOptionalProductionExpansion()
+            } else {
+                await gameSession.finishProductionOperationWithoutExpansion()
+            }
         } finally {
             finishingOptionalProductionExpansion = false
         }
@@ -1088,7 +1120,11 @@
 
         finishingOptionalShippingExpansion = true
         try {
-            await gameSession.finishOptionalShippingExpansion()
+            if (shippingOperationCanExpand) {
+                await gameSession.finishOptionalShippingExpansion()
+            } else {
+                await gameSession.finishShippingOperationWithoutExpansion()
+            }
         } finally {
             finishingOptionalShippingExpansion = false
         }
@@ -1284,7 +1320,7 @@
                     {#if finishingOptionalShippingExpansion}
                         finishing...
                     {:else}
-                        finish operation
+                        {shippingOperationCanExpand ? 'done expanding' : 'finish operation'}
                     {/if}
                 </button>
             {/if}
@@ -1366,7 +1402,7 @@
                     {#if finishingOptionalProductionExpansion}
                         finishing...
                     {:else}
-                        done expanding
+                        {productionOperationCanExpand ? 'done expanding' : 'finish operation'}
                     {/if}
                 </button>
             {/if}

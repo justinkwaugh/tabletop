@@ -69,7 +69,7 @@ function createTestState() {
 }
 
 describe('HydratedChooseOperatingCompany.canChooseSpecificCompany', () => {
-    it('blocks choosing a shipping company that cannot expand', () => {
+    it('allows choosing a shipping company that cannot expand', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const shippingDeed = state.availableDeeds.find(
@@ -104,10 +104,10 @@ describe('HydratedChooseOperatingCompany.canChooseSpecificCompany', () => {
                 playerId,
                 shippingCompanyId
             )
-        ).toBe(false)
+        ).toBe(true)
     })
 
-    it('blocks choosing a production company that cannot deliver and cannot afford expansion', () => {
+    it('allows choosing a production company that cannot deliver and cannot afford expansion', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const productionDeed = state.availableDeeds.find(
@@ -148,7 +148,7 @@ describe('HydratedChooseOperatingCompany.canChooseSpecificCompany', () => {
 
         expect(
             HydratedChooseOperatingCompany.canChooseSpecificCompany(state, playerId, companyId)
-        ).toBe(false)
+        ).toBe(true)
     })
 
     it('allows choosing a production company that cannot deliver but can afford expansion', () => {

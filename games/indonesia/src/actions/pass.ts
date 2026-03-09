@@ -111,10 +111,7 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
                 return false
             }
 
-            if (
-                reason === PassReason.FinishOptionalShippingExpansion ||
-                (reason === undefined && HydratedExpand.canExpand(state, playerId))
-            ) {
+            if (reason === PassReason.FinishOptionalShippingExpansion || reason === undefined) {
                 return true
             }
 
@@ -137,19 +134,27 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
             return false
         }
 
+        const canExpand = HydratedExpand.canExpand(state, playerId)
+
         if (
             reason === PassReason.FinishOptionalProductionExpansion ||
             (reason === undefined &&
-                productionProgress.stage === ProductionOperationStage.OptionalExpansion)
+                productionProgress.stage === ProductionOperationStage.OptionalExpansion &&
+                canExpand)
         ) {
             return productionProgress.stage === ProductionOperationStage.OptionalExpansion
         }
 
-        if (reason === PassReason.SkipProductionExpansion) {
+        if (
+            reason === PassReason.SkipProductionExpansion ||
+            (reason === undefined &&
+                productionProgress.stage !== ProductionOperationStage.Delivery &&
+                !canExpand)
+        ) {
             if (productionProgress.stage === ProductionOperationStage.Delivery) {
                 return false
             }
-            return !HydratedExpand.canExpand(state, playerId)
+            return !canExpand
         }
 
         return false

@@ -169,7 +169,7 @@ describe('OperationsStateHandler', () => {
         })
     })
 
-    it('skips players whose only shipping companies cannot expand', () => {
+    it('does not skip players whose only shipping companies cannot expand', () => {
         const state = createTestState()
         const player1Id = state.players[0].playerId
         const player2Id = state.players[1].playerId
@@ -223,10 +223,10 @@ describe('OperationsStateHandler', () => {
         const context = createMachineContext(state)
         handler.enter(context)
 
-        expect(state.activePlayerIds).toEqual([player2Id])
+        expect(state.activePlayerIds).toEqual([player1Id])
     })
 
-    it('skips players whose only production companies cannot deliver and cannot afford expansion', () => {
+    it('does not skip players whose only production companies cannot deliver and cannot afford expansion', () => {
         const state = createTestState()
         const player1Id = state.players[0].playerId
         const player2Id = state.players[1].playerId
@@ -290,6 +290,6 @@ describe('OperationsStateHandler', () => {
         const context = createMachineContext(state)
         handler.enter(context)
 
-        expect(state.activePlayerIds).toEqual([player2Id])
+        expect(state.activePlayerIds).toEqual([player1Id])
     })
 })

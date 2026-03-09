@@ -233,14 +233,7 @@ export class HydratedIndonesiaGameState
         if (this.hasCompanyOperated(company.id)) {
             return false
         }
-        if (isShippingCompany(company)) {
-            return this.canCompanyExpand(company.id)
-        }
-        if (isProductionCompany(company)) {
-            return this.canProductionCompanyOperate(company)
-        }
-
-        return false
+        return isShippingCompany(company) || isProductionCompany(company)
     }
 
     public canPlayerOperateAnyCompany(playerId: string): boolean {

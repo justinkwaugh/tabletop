@@ -9,7 +9,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
-import { HydratedPass, Pass, PassReason, isPass } from '../actions/pass.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
 import {
     HydratedRemoveCompanyDeed,
     isRemoveCompanyDeed
@@ -67,7 +67,6 @@ export class ProductionOperationsStateHandler
 
     enter(context: MachineContext<HydratedIndonesiaGameState>) {
         this.solveAndStoreOperatingCompanyDeliveryPlan(context.gameState)
-        this.queueSkipExpansionIfNeeded(context)
     }
 
     onAction(
@@ -139,39 +138,5 @@ export class ProductionOperationsStateHandler
 
         state.setOperatingCompanyDeliveryPlan(deliveryPlan)
         state.setOperatingCompanyProducedGoodsCount(producedGoodsCount)
-    }
-
-    private queueSkipExpansionIfNeeded(context: MachineContext<HydratedIndonesiaGameState>): void {
-        const state = context.gameState
-        const productionProgress = describeProductionOperation(state)
-        if (!productionProgress) {
-            return
-        }
-        if (productionProgress.stage === ProductionOperationStage.Delivery) {
-            return
-        }
-        if (HydratedExpand.canExpand(state, productionProgress.ownerPlayerId)) {
-            return
-        }
-        if (this.hasPendingSkipExpansionPass(context, productionProgress.ownerPlayerId)) {
-            return
-        }
-
-        context.addSystemAction(Pass, {
-            playerId: productionProgress.ownerPlayerId,
-            reason: PassReason.SkipProductionExpansion
-        })
-    }
-
-    private hasPendingSkipExpansionPass(
-        context: MachineContext<HydratedIndonesiaGameState>,
-        playerId: string
-    ): boolean {
-        return context.getPendingActions().some(
-            (pendingAction) =>
-                isPass(pendingAction) &&
-                pendingAction.playerId === playerId &&
-                pendingAction.reason === PassReason.SkipProductionExpansion
-        )
     }
 }

@@ -211,7 +211,7 @@ describe('ProductionOperationsStateHandler', () => {
         expect(state.operatingCompanyShippedGoodsCount).toBe(1)
     })
 
-    it('queues skip expansion when production operation has no deliveries and no valid expansion', () => {
+    it('offers pass when production operation has no deliveries and no valid expansion', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
 
@@ -232,16 +232,10 @@ describe('ProductionOperationsStateHandler', () => {
         const context = createMachineContext(state)
         handler.enter(context)
 
-        const pendingActions = context.getPendingActions()
-        expect(pendingActions).toHaveLength(1)
-        expect(pendingActions[0]).toMatchObject({
-            type: ActionType.Pass,
-            playerId,
-            reason: PassReason.SkipProductionExpansion
-        })
+        expect(handler.validActionsForPlayer(playerId, context)).toEqual([ActionType.Pass])
     })
 
-    it('finishes operations phase when no players can operate after optional production expansion pass', () => {
+    it('returns to operations when other players still have companies after production pass', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
         const otherPlayerId = state.players[1].playerId
@@ -308,7 +302,7 @@ describe('ProductionOperationsStateHandler', () => {
         action.apply(state, context)
         const nextState = handler.onAction(action, context)
 
-        expect(nextState).toBe(MachineState.BiddingForTurnOrder)
+        expect(nextState).toBe(MachineState.Operations)
         expect(state.operatedCompanyIds).toEqual(['prod-1'])
         expect(state.operatingCompanyId).toBeUndefined()
     })
