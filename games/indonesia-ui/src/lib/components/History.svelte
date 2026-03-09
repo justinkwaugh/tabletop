@@ -124,7 +124,7 @@
 </script>
 
 <div
-    class="border-y-2 border-[#7a5d3f] bg-[#f7f3ef] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px]"
+    class="border-y-2 border-[#7a5d3f] bg-[#f7f3ef] text-center py-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px]"
 >
     <div class="overflow-auto h-full w-full" bind:this={scrollContainer}>
         <Timeline class="history-timeline ms-2 border-[#ad9c80]">
@@ -135,7 +135,7 @@
                 <TimelineItem
                     timeClass="text-[#7a5d3f]"
                     title=""
-                    class="timeline-item text-left mb-5"
+                    class="timeline-item px-2 text-left mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
                     <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
@@ -148,7 +148,7 @@
                     <div
                         in:fade={{ duration: 200, easing: quartIn }}
                         out:fade={{ duration: 50 }}
-                        class="mb-4 py-1.5 flex w-full items-center justify-center"
+                        class="relative left-[calc(-0.5rem-1px)] mb-4 flex w-[calc(100%+0.5rem+1px)] items-center justify-center border-y-2 border-[#7a5d3f] bg-[#ede2dc] py-2"
                     >
                         <div class="w-full text-center text-sm font-medium uppercase tracking-[0.08em] text-[#7a5d3f]">
                             ↑ {item.phaseName} ↑
@@ -162,6 +162,7 @@
                     onkeypress={() => {}}
                     in:fade={{ duration: 200, easing: quartIn }}
                     out:fade={{ duration: 50 }}
+                    class="px-2"
                 >
                     <div
                         class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
@@ -199,7 +200,7 @@
                                             d="m9 5 7 7-7 7"
                                         ></path>
                                     </svg>
-                                    <ClockSolid class="w-[12px] h-[12px] -ml-[2px]" />
+                                    <ClockSolid class="w-[12px] h-[12px] -ml-[2px] text-current" />
                                 </button>
                             {/if}
                         </span>
@@ -222,7 +223,7 @@
             <TimelineItem
                 timeClass="text-[#7a5d3f]"
                 title=""
-                class="timeline-item text-left mb-5"
+                class="timeline-item px-2 text-left mb-5"
                 date={timeAgo.format(gameSession.game.createdAt)}
             >
                 <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
