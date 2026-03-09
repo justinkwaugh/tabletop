@@ -530,7 +530,46 @@ function pointInAllowedSea(point: Point, routingContext: RoutingContext): boolea
             continue
         }
 
-        if (shape.path.isPointInFill(domPoint)) {
+        if (!shape.path.isPointInFill(domPoint)) {
+            continue
+        }
+
+        return true
+    }
+
+    return false
+}
+
+function pointViolatesSeaInset(point: Point, routingContext: RoutingContext): boolean {
+    if (
+        routingContext.seaInsetPixels <= 0 ||
+        routingContext.allowedSeaAreaIdsSorted.length === 0 ||
+        typeof DOMPoint === 'undefined'
+    ) {
+        return false
+    }
+
+    const seaShapes = ensureSeaShapes(routingContext.seaInsetPixels)
+    if (seaShapes.length === 0) {
+        return false
+    }
+
+    const domPoint = new DOMPoint(point.x, point.y)
+    for (const shape of seaShapes) {
+        if (!routingContext.allowedSeaAreaIds.has(shape.areaId)) {
+            continue
+        }
+
+        if (
+            point.x < shape.bbox.left ||
+            point.x > shape.bbox.right ||
+            point.y < shape.bbox.top ||
+            point.y > shape.bbox.bottom
+        ) {
+            continue
+        }
+
+        if (shape.path.isPointInFill(domPoint) && shape.path.isPointInStroke(domPoint)) {
             return true
         }
     }
@@ -588,7 +627,7 @@ function isWaterCell(cell: GridCell, routingContext: RoutingContext): boolean {
     }
 
     const point = cellToPoint(cell)
-    const blocked = pointIsBlocked(point, routingContext)
+    const blocked = pointIsBlocked(point, routingContext) || pointViolatesSeaInset(point, routingContext)
     blockedCellStates[cellKey] = blocked ? CELL_STATE_BLOCKED : CELL_STATE_WATER
     return !blocked
 }
@@ -1436,6 +1475,17 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
 }
 
 export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathInput): string | null {
+    const timingStart =
+        typeof performance !== 'undefined' && typeof performance.now === 'function'
+            ? performance.now()
+            : Date.now()
+    const timingLabel = [
+        input.cultivatedAreaId,
+        ...input.seaAreaIds,
+        input.cityAreaId
+    ].join(' -> ')
+
+    try {
     if (input.seaAreaIds.length === 0) {
         return null
     }
@@ -1528,4 +1578,13 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         shipWaypointPoints: seaWaypoints,
         routingContext: smoothingRoutingContext
     })
+    } finally {
+        const timingEnd =
+            typeof performance !== 'undefined' && typeof performance.now === 'function'
+                ? performance.now()
+                : Date.now()
+        console.debug(
+            `[shipping-route] ${timingLabel}: ${(timingEnd - timingStart).toFixed(1)}ms`
+        )
+    }
 }
