@@ -111,12 +111,26 @@
         }
     }
 
+    type ExpandHistoryAction = GameAction & {
+        areaId: string
+        metadata?: {
+            cost?: number
+        }
+    }
+
+    type PassHistoryAction = GameAction & {
+        reason?: PassReason
+    }
+
     type StartCompanyHistoryAction = GameAction & {
         areaId: string
         metadata?: {
             company?: {
                 type: CompanyType
                 good?: Good
+                deeds?: Array<{
+                    region?: string
+                }>
             }
         }
     }
@@ -231,12 +245,31 @@
         }
 
         const startCompanyAction = action as StartCompanyHistoryAction
+        const deedRegion = startCompanyAction.metadata?.company?.deeds?.[0]?.region
+        if (deedRegion) {
+            return getRegionName(deedRegion)
+        }
+
         if (!isIndonesiaNodeId(startCompanyAction.areaId)) {
             return startCompanyAction.areaId ?? 'unknown region'
         }
 
         const regionId = INDONESIA_REGION_BY_AREA_ID[startCompanyAction.areaId]
         return regionId ? getRegionName(regionId) : startCompanyAction.areaId
+    }
+
+    function startCompanyLocationLabel(action: GameAction): string {
+        if (!isStartCompany(action)) {
+            return 'in unknown region'
+        }
+
+        const company = (action as StartCompanyHistoryAction).metadata?.company
+        const regionName = startCompanyRegionName(action)
+        if (company?.type === CompanyType.Shipping) {
+            return `in the seas surrounding ${regionName}`
+        }
+
+        return `in ${regionName}`
     }
 
     function cityPlacementRegionName(action: GameAction): string {
@@ -280,8 +313,11 @@
         return String(level + 1)
     }
 
-    function aggregatedDeliverGoodActions(action: GameAction): DeliverGoodHistoryAction[] {
-        if (!isAggregatedIndonesiaAction(action) || action.aggregatedType !== ActionType.DeliverGood) {
+    function aggregatedCompanyOperationActions(action: GameAction): GameAction[] {
+        if (
+            !isAggregatedIndonesiaAction(action) ||
+            action.aggregatedType !== ActionType.ChooseOperatingCompany
+        ) {
             return []
         }
 
@@ -293,26 +329,63 @@
             (candidate) =>
                 candidate.index === action.index &&
                 candidate.playerId === action.playerId &&
-                isDeliverGood(candidate)
+                (isChooseOperatingCompany(candidate) ||
+                    isDeliverGood(candidate) ||
+                    isExpand(candidate) ||
+                    isPass(candidate))
         )
         if (lastActionPosition === -1) {
             return []
         }
 
-        const deliveries: DeliverGoodHistoryAction[] = []
+        const operationActions: GameAction[] = []
         for (let position = lastActionPosition; position >= 0; position -= 1) {
             const candidate = gameSession.actions[position]
-            if (!isDeliverGood(candidate) || candidate.playerId !== action.playerId) {
+            if (
+                candidate.playerId !== action.playerId ||
+                (!isDeliverGood(candidate) &&
+                    !isChooseOperatingCompany(candidate) &&
+                    !isExpand(candidate) &&
+                    !isPass(candidate))
+            ) {
                 break
             }
 
-            deliveries.unshift(candidate as DeliverGoodHistoryAction)
-            if (deliveries.length === action.count) {
+            operationActions.unshift(candidate)
+            if (isChooseOperatingCompany(candidate)) {
                 break
             }
         }
 
-        return deliveries
+        return operationActions
+    }
+
+    function aggregatedDeliverGoodActions(action: GameAction): DeliverGoodHistoryAction[] {
+        return aggregatedCompanyOperationActions(action).filter((candidate) =>
+            isDeliverGood(candidate)
+        ) as DeliverGoodHistoryAction[]
+    }
+
+    function aggregatedExpandActions(action: GameAction): ExpandHistoryAction[] {
+        return aggregatedCompanyOperationActions(action).filter((candidate) =>
+            isExpand(candidate)
+        ) as ExpandHistoryAction[]
+    }
+
+    function aggregatedPassActions(action: GameAction): PassHistoryAction[] {
+        return aggregatedCompanyOperationActions(action).filter((candidate) =>
+            isPass(candidate)
+        ) as PassHistoryAction[]
+    }
+
+    function aggregatedChooseOperatingCompanyAction(
+        action: GameAction
+    ): ChooseOperatingCompanyHistoryAction | null {
+        return (
+            (aggregatedCompanyOperationActions(action).find((candidate) =>
+                isChooseOperatingCompany(candidate)
+            ) as ChooseOperatingCompanyHistoryAction | undefined) ?? null
+        )
     }
 
     function aggregatedShippingPayouts(action: GameAction): {
@@ -377,7 +450,10 @@
         shippingCost: number
         profit: number | null
     } {
-        if (!isAggregatedIndonesiaAction(action) || action.aggregatedType !== ActionType.DeliverGood) {
+        if (
+            !isAggregatedIndonesiaAction(action) ||
+            action.aggregatedType !== ActionType.ChooseOperatingCompany
+        ) {
             return {
                 unitPrice: null,
                 revenue: null,
@@ -387,9 +463,10 @@
         }
 
         const deliveries = aggregatedDeliverGoodActions(action)
+        const chooseAction = aggregatedChooseOperatingCompanyAction(action)
         const firstDelivery = deliveries[0]
 
-        let resolvedGood: Good | undefined = firstDelivery?.metadata?.good
+        let resolvedGood: Good | undefined = firstDelivery?.metadata?.good ?? chooseAction?.metadata?.good
         if (!resolvedGood && firstDelivery) {
             const firstDeliveryPosition = gameSession.actions.findIndex(
                 (candidate) => candidate.id === firstDelivery.id
@@ -438,8 +515,122 @@
         }
     }
 
+    function aggregatedProducedGoodsCount(action: GameAction): number | null {
+        if (
+            !isAggregatedIndonesiaAction(action) ||
+            action.aggregatedType !== ActionType.ChooseOperatingCompany
+        ) {
+            return null
+        }
+
+        const chooseAction = aggregatedChooseOperatingCompanyAction(action)
+        if (!chooseAction?.companyId) {
+            return null
+        }
+
+        const company = gameSession.gameState.companies.find(
+            (entry) => entry.id === chooseAction.companyId
+        )
+        if (company?.type !== CompanyType.Production) {
+            return null
+        }
+
+        const currentCultivatedCount = Object.values(gameSession.gameState.board.areas).filter(
+            (area) => area.type === 'Cultivated' && 'companyId' in area && area.companyId === company.id
+        ).length
+
+        if (currentCultivatedCount === 0) {
+            return null
+        }
+
+        return Math.max(action.count, currentCultivatedCount - aggregatedExpandActions(action).length)
+    }
+
+    function aggregatedSoldAllGoods(action: GameAction): boolean {
+        if (
+            !isAggregatedIndonesiaAction(action) ||
+            action.aggregatedType !== ActionType.ChooseOperatingCompany ||
+            action.count === 0
+        ) {
+            return false
+        }
+
+        const expandActions = aggregatedExpandActions(action)
+        if (expandActions.length > 0) {
+            return expandActions.every((expandAction) => (expandAction.metadata?.cost ?? 0) === 0)
+        }
+
+        const producedGoodsCount = aggregatedProducedGoodsCount(action)
+        return producedGoodsCount !== null && action.count >= producedGoodsCount
+    }
+
+    function aggregatedExpansionSummary(action: GameAction): {
+        count: number
+        isFree: boolean
+        totalCost: number
+    } | null {
+        const expandActions = aggregatedExpandActions(action)
+        if (expandActions.length === 0) {
+            return null
+        }
+
+        return {
+            count: expandActions.length,
+            isFree: expandActions.every((expandAction) => (expandAction.metadata?.cost ?? 0) === 0),
+            totalCost: expandActions.reduce(
+                (sum, expandAction) => sum + (expandAction.metadata?.cost ?? 0),
+                0
+            )
+        }
+    }
+
+    function operationSummaryIsInProgress(action: GameAction): boolean {
+        const operationActions = aggregatedCompanyOperationActions(action)
+        const lastOperationAction = operationActions.at(-1)
+        const chooseAction = aggregatedChooseOperatingCompanyAction(action)
+        if (!lastOperationAction || !chooseAction?.companyId) {
+            return false
+        }
+
+        return (
+            gameSession.actions.at(-1)?.id === lastOperationAction.id &&
+            gameSession.gameState.operatingCompanyId === chooseAction.companyId
+        )
+    }
+
+    function operationSummaryHasSkipExpandPass(action: GameAction): boolean {
+        return aggregatedPassActions(action).some(
+            (passAction) =>
+                passAction.reason === PassReason.SkipShippingExpansion ||
+                passAction.reason === PassReason.FinishOptionalShippingExpansion ||
+                passAction.reason === PassReason.SkipProductionExpansion ||
+                passAction.reason === PassReason.FinishOptionalProductionExpansion
+        )
+    }
+
+    function aggregatedMergerPassPlayerIds(action: GameAction): string[] {
+        if (
+            !isAggregatedIndonesiaAction(action) ||
+            (action.aggregatedType !== ActionType.PassMergerBid &&
+                action.aggregatedType !== ActionType.Pass)
+        ) {
+            return []
+        }
+
+        return action.playerIds ?? []
+    }
+
+    function rendersPlayerList(action: GameAction): boolean {
+        return (
+            isAggregatedIndonesiaAction(action) &&
+            (action.aggregatedType === ActionType.ChooseOperatingCompany ||
+                action.aggregatedType === ActionType.Pass ||
+                action.aggregatedType === ActionType.PassMergerBid)
+        )
+    }
+
     function rendersOwnActor(action: GameAction): boolean {
-        return isAggregatedIndonesiaAction(action) && action.aggregatedType === ActionType.DeliverGood
+        return rendersPlayerList(action)
     }
 
     const justifyClass = $derived(justifyClasses[justify] ?? justifyClasses.start)
@@ -458,18 +649,57 @@
         ></span>
     {/if}
     {#if isAggregatedIndonesiaAction(action)}
-        {#if action.aggregatedType === ActionType.DeliverGood}
+        {#if action.aggregatedType === ActionType.ChooseOperatingCompany}
             {@const shippingPayouts = aggregatedShippingPayouts(action)}
             {@const shippingTotals = aggregatedShippingTotals(shippingPayouts)}
             {@const profitSummary = aggregatedDeliveryProfitSummary(action, shippingTotals.amount)}
+            {@const expansionSummary = aggregatedExpansionSummary(action)}
+            {@const chooseAction = aggregatedChooseOperatingCompanyAction(action)}
+            {@const operationInProgress = operationSummaryIsInProgress(action)}
+            {@const skippedExpansion = operationSummaryHasSkipExpandPass(action)}
             <span class="inline-flex flex-col items-start gap-1 text-left align-top">
-                <span>
-                    {#if showActor && action.playerId}
-                        <PlayerName playerId={action.playerId} additionalClasses="px-1.5" />
-                    {/if}
-                    sold {action.count} {action.count === 1 ? 'good' : 'goods'}
-                </span>
-                {#if shippingPayouts.length > 0}
+                {#if chooseAction?.metadata?.companyType === CompanyType.Shipping}
+                    <span>
+                        {#if showActor && action.playerId}
+                            <PlayerName playerId={action.playerId} possessive={true} additionalClasses="px-1.5" />
+                        {/if}
+                        shipping company
+                        {#if action.count > 0}
+                            expanded into {action.count} {action.count === 1 ? 'area' : 'areas'}
+                        {:else if skippedExpansion || !operationInProgress}
+                            chose not to expand
+                        {:else}
+                            began operating
+                        {/if}
+                    </span>
+                {:else if action.count === 0}
+                    <span>
+                        {#if showActor && action.playerId}
+                            <PlayerName playerId={action.playerId} possessive={true} additionalClasses="px-1.5" />
+                        {/if}
+                        began operating a {profitSummary.good ? `${goodLabels[profitSummary.good]} ` : ''}company
+                    </span>
+                {:else}
+                    <span>
+                        {#if showActor && action.playerId}
+                            <PlayerName playerId={action.playerId} possessive={true} additionalClasses="px-1.5" />
+                        {/if}
+                        {profitSummary.good ? `${goodLabels[profitSummary.good]} ` : ''}company
+                        {#if aggregatedSoldAllGoods(action)}
+                            sold all {action.count}
+                        {:else}
+                            sold {action.count}
+                        {/if}
+                        {action.count === 1 ? ' good ' : ' goods '}for {profitSummary.profit ?? '?'} profit
+                        {#if expansionSummary}
+                            and expanded into {expansionSummary.count} {expansionSummary.count === 1 ? 'area' : 'areas'}
+                            {expansionSummary.isFree ? 'for free' : `for ${expansionSummary.totalCost}`}
+                        {:else if skippedExpansion || !operationInProgress}
+                            but did not expand
+                        {/if}
+                    </span>
+                {/if}
+                {#if chooseAction?.metadata?.companyType === CompanyType.Production && action.count > 0 && shippingPayouts.length > 0}
                     <span class="mt-0.5 flex w-full self-stretch flex-col items-start gap-1 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
                         <span class="mt-1 mb-[0.0625rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Sale Details</span>
                         <span class="flex w-full flex-col items-start gap-1">
@@ -546,13 +776,31 @@
             </span>
         {:else if action.aggregatedType === ActionType.Expand}
             expanded into {action.count} {action.count === 1 ? 'area' : 'areas'}
+        {:else if action.aggregatedType === ActionType.PassMergerBid}
+            {@const playerIds = aggregatedMergerPassPlayerIds(action)}
+            {#each playerIds as playerId, index (playerId)}
+                {#if index > 0}
+                    {index === playerIds.length - 1 ? ' and ' : ', '}
+                {/if}
+                <PlayerName {playerId} additionalClasses="px-1.5" />
+            {/each}
+            {' passed'}
+        {:else if action.aggregatedType === ActionType.Pass}
+            {@const playerIds = aggregatedMergerPassPlayerIds(action)}
+            {#each playerIds as playerId, index (playerId)}
+                {#if index > 0}
+                    {index === playerIds.length - 1 ? ' and ' : ', '}
+                {/if}
+                <PlayerName {playerId} additionalClasses="px-1.5" />
+            {/each}
+            {' declined to propose a merger'}
         {:else if action.aggregatedType === ActionType.RemoveSiapSajiArea}
             removed {action.count} Siap Saji {action.count === 1 ? 'area' : 'areas'}
         {:else}
             performed {action.aggregatedType}
         {/if}
     {:else if isPlaceCompanyDeeds(action)}
-        refreshed company deeds
+        Added new company deeds to the board
     {:else if isPlaceCity(action)}
         placed a city in {cityPlacementRegionName(action)}
     {:else if isPass(action)}
@@ -578,7 +826,7 @@
             {/if}
         </span>
     {:else if isStartCompany(action)}
-        started the {startCompanyTypeLabel(action)} in {startCompanyRegionName(action)}
+        started the {startCompanyTypeLabel(action)} {startCompanyLocationLabel(action)}
     {:else if isProposeMerger(action)}
         <span>
             proposed a merger between

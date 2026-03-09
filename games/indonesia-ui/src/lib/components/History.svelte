@@ -6,7 +6,12 @@
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
     import { ActionSource, type GameAction } from '@tabletop/common'
-    import { INDONESIA_REGION_BY_AREA_ID, isGrowCity, isIndonesiaNodeId } from '@tabletop/indonesia'
+    import {
+        Era,
+        INDONESIA_REGION_BY_AREA_ID,
+        isGrowCity,
+        isIndonesiaNodeId
+    } from '@tabletop/indonesia'
     import { ClockSolid } from 'flowbite-svelte-icons'
     import { getRegionName } from '$lib/definitions/regions.js'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
@@ -49,6 +54,8 @@
 
         const items: HistoryItem[] = []
         let nextPhaseIndex = 0
+        let newEraCount = 0
+        const eraOrder: Era[] = [Era.A, Era.B, Era.C]
 
         for (const action of aggregatedActions) {
             const actionIndex = action.index ?? Number.MAX_SAFE_INTEGER
@@ -58,12 +65,19 @@
                 phaseSeries[nextPhaseIndex].start <= actionIndex
             ) {
                 const phase = phaseSeries[nextPhaseIndex]
+                const phaseName =
+                    phase.name === 'NewEra'
+                        ? `${phaseLabels[phase.name] ?? phase.name} (${eraOrder[Math.min(newEraCount, eraOrder.length - 1)]})`
+                        : (phaseLabels[phase.name] ?? phase.name)
                 items.push({
                     type: 'phase-marker',
                     id: `phase-${phase.name}-${phase.start}`,
-                    phaseName: phaseLabels[phase.name] ?? phase.name,
+                    phaseName,
                     start: phase.start
                 })
+                if (phase.name === 'NewEra') {
+                    newEraCount += 1
+                }
                 nextPhaseIndex += 1
             }
             items.push(action)
@@ -71,12 +85,19 @@
 
         while (nextPhaseIndex < phaseSeries.length) {
             const phase = phaseSeries[nextPhaseIndex]
+            const phaseName =
+                phase.name === 'NewEra'
+                    ? `${phaseLabels[phase.name] ?? phase.name} (${eraOrder[Math.min(newEraCount, eraOrder.length - 1)]})`
+                    : (phaseLabels[phase.name] ?? phase.name)
             items.push({
                 type: 'phase-marker',
                 id: `phase-${phase.name}-${phase.start}`,
-                phaseName: phaseLabels[phase.name] ?? phase.name,
+                phaseName,
                 start: phase.start
             })
+            if (phase.name === 'NewEra') {
+                newEraCount += 1
+            }
             nextPhaseIndex += 1
         }
 

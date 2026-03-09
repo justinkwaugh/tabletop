@@ -1,8 +1,12 @@
 import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
+    CompanyType,
+    PassReason,
+    isChooseOperatingCompany,
     isDeliverGood,
     isExpand,
+    isPass,
     isPassMergerBid,
     isPlaceMergerBid,
     isProposeMerger,
@@ -11,19 +15,16 @@ import {
 import { nanoid } from 'nanoid'
 
 export type AggregatedIndonesiaActionType =
-    | ActionType.DeliverGood
+    | ActionType.ChooseOperatingCompany
     | ActionType.Expand
+    | ActionType.Pass
+    | ActionType.PassMergerBid
     | ActionType.RemoveSiapSajiArea
-
-type AggregatedDeliverGoodPayout = {
-    ownerPlayerId: string
-    shipCount: number
-    amount: number
-}
 
 export type AggregatedIndonesiaAction = GameAction & {
     type: 'AggregatedIndonesiaAction'
     playerId: string
+    playerIds?: string[]
     aggregatedType: AggregatedIndonesiaActionType
     count: number
 }
@@ -35,11 +36,17 @@ export function isAggregatedIndonesiaAction(
 }
 
 function aggregatedTypeForAction(action: GameAction): AggregatedIndonesiaActionType | null {
-    if (isDeliverGood(action)) {
-        return ActionType.DeliverGood
+    if (isChooseOperatingCompany(action)) {
+        return ActionType.ChooseOperatingCompany
     }
     if (isExpand(action)) {
         return ActionType.Expand
+    }
+    if (isDeclineMergerAnnouncementPassAction(action)) {
+        return ActionType.Pass
+    }
+    if (isPassMergerBid(action)) {
+        return ActionType.PassMergerBid
     }
     if (isRemoveSiapSajiArea(action)) {
         return ActionType.RemoveSiapSajiArea
@@ -62,15 +69,34 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
         return first
     }
 
+    let aggregatedCount = actions.length
+    if (aggregatedType === ActionType.ChooseOperatingCompany) {
+        const chooseAction = actions.find((action) => isChooseOperatingCompany(action))
+        if (chooseAction?.metadata?.companyType === CompanyType.Production) {
+            aggregatedCount = actions.filter((action) => isDeliverGood(action)).length
+        } else if (chooseAction?.metadata?.companyType === CompanyType.Shipping) {
+            aggregatedCount = actions.filter((action) => isExpand(action)).length
+        } else {
+            aggregatedCount = actions.filter((action) => !isChooseOperatingCompany(action)).length
+        }
+    }
+
     return {
         id: nanoid(),
         gameId: first.gameId,
         source: first.source,
         type: 'AggregatedIndonesiaAction',
         playerId: first.playerId,
+        ...(aggregatedType === ActionType.PassMergerBid || aggregatedType === ActionType.Pass
+            ? {
+                  playerIds: actions
+                      .map((action) => action.playerId)
+                      .filter((playerId): playerId is string => typeof playerId === 'string')
+              }
+            : {}),
         index: last?.index,
         aggregatedType,
-        count: actions.length,
+        count: aggregatedCount,
         createdAt: first.createdAt
     }
 }
@@ -119,6 +145,20 @@ function collapseMergerAuctionActions(actions: GameAction[]): GameAction[] {
     return collapsed
 }
 
+function isOperationPassAction(action: GameAction): boolean {
+    return (
+        isPass(action) &&
+        (action.reason === PassReason.FinishOptionalShippingExpansion ||
+            action.reason === PassReason.SkipShippingExpansion ||
+            action.reason === PassReason.FinishOptionalProductionExpansion ||
+            action.reason === PassReason.SkipProductionExpansion)
+    )
+}
+
+function isDeclineMergerAnnouncementPassAction(action: GameAction): boolean {
+    return isPass(action) && action.reason === PassReason.DeclineMergerAnnouncement
+}
+
 export function* aggregateActions(actions: GameAction[]) {
     const collapsedAuctionActions = collapseMergerAuctionActions(actions)
     let currentPlayerId: string | undefined
@@ -126,13 +166,30 @@ export function* aggregateActions(actions: GameAction[]) {
     let aggregatedGroup: GameAction[] = []
 
     for (const action of collapsedAuctionActions) {
+        if (
+            aggregatedGroup.length > 0 &&
+            currentAggregatedType === ActionType.ChooseOperatingCompany &&
+            currentPlayerId &&
+            (isDeliverGood(action) || isExpand(action) || isOperationPassAction(action)) &&
+            action.playerId === currentPlayerId
+        ) {
+            aggregatedGroup.push(action)
+            continue
+        }
+
         const aggregatedType = aggregatedTypeForAction(action)
         if (aggregatedType && action.playerId) {
             if (aggregatedGroup.length === 0) {
                 aggregatedGroup = [action]
                 currentPlayerId = action.playerId
                 currentAggregatedType = aggregatedType
-            } else if (action.playerId === currentPlayerId && aggregatedType === currentAggregatedType) {
+            } else if (
+                currentAggregatedType !== ActionType.ChooseOperatingCompany &&
+                aggregatedType === currentAggregatedType &&
+                ((aggregatedType === ActionType.PassMergerBid ||
+                    aggregatedType === ActionType.Pass) ||
+                    action.playerId === currentPlayerId)
+            ) {
                 aggregatedGroup.push(action)
             } else {
                 yield aggregateIndonesiaActions(aggregatedGroup)

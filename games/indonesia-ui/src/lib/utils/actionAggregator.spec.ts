@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { ActionType } from '@tabletop/indonesia'
+import { ActionType, CompanyType, PassReason } from '@tabletop/indonesia'
 import { aggregateActions, isAggregatedIndonesiaAction } from './actionAggregator.js'
 
-function expandAction(id: string, playerId: string, areaId: string, index?: number): GameAction {
+function expandAction(
+    id: string,
+    playerId: string,
+    areaId: string,
+    index?: number,
+    cost?: number
+): GameAction {
     return {
         id,
         gameId: 'g1',
@@ -11,17 +17,19 @@ function expandAction(id: string, playerId: string, areaId: string, index?: numb
         type: ActionType.Expand,
         playerId,
         index,
-        areaId
+        areaId,
+        ...(cost === undefined ? {} : { metadata: { cost } })
     } as unknown as GameAction
 }
 
-function passAction(id: string, playerId: string): GameAction {
+function passAction(id: string, playerId: string, reason?: PassReason): GameAction {
     return {
         id,
         gameId: 'g1',
         source: ActionSource.User,
         type: ActionType.Pass,
-        playerId
+        playerId,
+        ...(reason ? { reason } : {})
     } as unknown as GameAction
 }
 
@@ -108,6 +116,42 @@ function deliverGoodAction(
                     amount: seaAreaIds.length * 5
                 }
             ]
+        }
+    } as unknown as GameAction
+}
+
+function chooseOperatingCompanyAction(
+    id: string,
+    playerId: string,
+    good: 'Rice' | 'Spice' | 'Rubber' | 'Oil' | 'SiapSaji',
+    index?: number
+): GameAction {
+    return {
+        id,
+        gameId: 'g1',
+        source: ActionSource.User,
+        type: ActionType.ChooseOperatingCompany,
+        playerId,
+        companyId: 'prod-1',
+        index,
+        metadata: {
+            companyType: CompanyType.Production,
+            good
+        }
+    } as unknown as GameAction
+}
+
+function chooseShippingCompanyAction(id: string, playerId: string, index?: number): GameAction {
+    return {
+        id,
+        gameId: 'g1',
+        source: ActionSource.User,
+        type: ActionType.ChooseOperatingCompany,
+        playerId,
+        companyId: 'ship-1',
+        index,
+        metadata: {
+            companyType: CompanyType.Shipping
         }
     } as unknown as GameAction
 }
@@ -221,14 +265,66 @@ describe('aggregateActions', () => {
             index: 4
         })
         expect(aggregated[2]).toMatchObject({
-            type: ActionType.PassMergerBid,
+            type: 'AggregatedIndonesiaAction',
+            aggregatedType: ActionType.PassMergerBid,
             playerId: 'p2',
+            playerIds: ['p2'],
+            count: 1,
             index: 5
         })
     })
 
-    it('aggregates consecutive deliveries into one production shipping summary', () => {
+    it('aggregates consecutive merger passes across players', () => {
         const actions = [
+            proposeMergerAction('a1', 'p1', 'C1', 'C2', 1),
+            placeMergerBidAction('a2', 'p1', 100, 2),
+            passMergerBidAction('a3', 'p2', 3),
+            passMergerBidAction('a4', 'p3', 4),
+            passMergerBidAction('a5', 'p4', 5)
+        ]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(3)
+        expect(aggregated[0]?.type).toBe(ActionType.ProposeMerger)
+        expect(aggregated[1]).toMatchObject({
+            type: ActionType.PlaceMergerBid,
+            playerId: 'p1',
+            amount: 100,
+            index: 2
+        })
+        expect(aggregated[2]).toMatchObject({
+            type: 'AggregatedIndonesiaAction',
+            aggregatedType: ActionType.PassMergerBid,
+            playerId: 'p2',
+            playerIds: ['p2', 'p3', 'p4'],
+            count: 3,
+            index: 5
+        })
+    })
+
+    it('aggregates consecutive merger-announcement declines across players', () => {
+        const actions = [
+            passAction('a1', 'p1', PassReason.DeclineMergerAnnouncement),
+            passAction('a2', 'p2', PassReason.DeclineMergerAnnouncement),
+            passAction('a3', 'p3', PassReason.DeclineMergerAnnouncement)
+        ]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(1)
+        expect(aggregated[0]).toMatchObject({
+            type: 'AggregatedIndonesiaAction',
+            aggregatedType: ActionType.Pass,
+            playerId: 'p1',
+            playerIds: ['p1', 'p2', 'p3'],
+            count: 3
+        })
+    })
+
+    it('aggregates a production operation choice with its deliveries', () => {
+        const actions = [
+            chooseOperatingCompanyAction('a0', 'p1', 'Rice', 0),
             deliverGoodAction('a1', 'p1', 'ship-owner-a', ['S01', 'S02'], 1),
             deliverGoodAction('a2', 'p1', 'ship-owner-b', ['S03'], 2),
             deliverGoodAction('a3', 'p1', 'ship-owner-a', ['S04', 'S05', 'S06'], 3)
@@ -240,8 +336,79 @@ describe('aggregateActions', () => {
         expect(isAggregatedIndonesiaAction(aggregated[0])).toBe(true)
         expect(aggregated[0]).toMatchObject({
             playerId: 'p1',
-            aggregatedType: ActionType.DeliverGood,
+            aggregatedType: ActionType.ChooseOperatingCompany,
             count: 3
+        })
+    })
+
+    it('aggregates production deliveries together with following expansion', () => {
+        const actions = [
+            chooseOperatingCompanyAction('a0', 'p1', 'Rice', 0),
+            deliverGoodAction('a1', 'p1', 'ship-owner-a', ['S01', 'S02'], 1),
+            deliverGoodAction('a2', 'p1', 'ship-owner-b', ['S03'], 2),
+            expandAction('a3', 'p1', 'A02', 3, 0),
+            expandAction('a4', 'p1', 'A03', 4, 0)
+        ]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(1)
+        expect(isAggregatedIndonesiaAction(aggregated[0])).toBe(true)
+        expect(aggregated[0]).toMatchObject({
+            playerId: 'p1',
+            aggregatedType: ActionType.ChooseOperatingCompany,
+            count: 2,
+            index: 4
+        })
+    })
+
+    it('aggregates a lone production operation choice with zero sold goods', () => {
+        const actions = [chooseOperatingCompanyAction('a0', 'p1', 'Rice', 0)]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(1)
+        expect(isAggregatedIndonesiaAction(aggregated[0])).toBe(true)
+        expect(aggregated[0]).toMatchObject({
+            playerId: 'p1',
+            aggregatedType: ActionType.ChooseOperatingCompany,
+            count: 0
+        })
+    })
+
+    it('aggregates a shipping operation choice with its expansions', () => {
+        const actions = [
+            chooseShippingCompanyAction('a0', 'p1', 0),
+            expandAction('a1', 'p1', 'S01', 1, 0),
+            expandAction('a2', 'p1', 'S02', 2, 0)
+        ]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(1)
+        expect(isAggregatedIndonesiaAction(aggregated[0])).toBe(true)
+        expect(aggregated[0]).toMatchObject({
+            playerId: 'p1',
+            aggregatedType: ActionType.ChooseOperatingCompany,
+            count: 2,
+            index: 2
+        })
+    })
+
+    it('aggregates a shipping operation choice with a skip-expansion pass', () => {
+        const actions = [
+            chooseShippingCompanyAction('a0', 'p1', 0),
+            passAction('a1', 'p1', PassReason.SkipShippingExpansion)
+        ]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(1)
+        expect(isAggregatedIndonesiaAction(aggregated[0])).toBe(true)
+        expect(aggregated[0]).toMatchObject({
+            playerId: 'p1',
+            aggregatedType: ActionType.ChooseOperatingCompany,
+            count: 0
         })
     })
 })
