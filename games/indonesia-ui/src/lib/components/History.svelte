@@ -114,13 +114,13 @@
                             {#if canJumpToHistoryAction(action)}
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-0 rounded px-0 py-0 text-[#ad9c80] invisible opacity-0 transition-colors transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 hover:bg-[#ad9c80]/10 hover:text-[#f5ebd7] focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad9c80]/70"
+                                    class="inline-flex items-center gap-0 rounded px-0 py-0 text-[#ad9c80] opacity-100 transition-colors hover:bg-[#ad9c80]/10 hover:text-[#f5ebd7] focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad9c80]/70"
                                     aria-label="Jump to this action in history"
                                     title="Jump to this action in history"
                                     onclick={async () => await jumpToHistoryAction(action)}
                                 >
                                     <svg
-                                        class="w-[12px] h-[12px]"
+                                        class="w-[8px] h-[8px] self-center"
                                         aria-hidden="true"
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="24"
