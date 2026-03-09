@@ -505,7 +505,7 @@
                     validAreaIds,
                     outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
                     maskedAreaType: IndonesiaAreaType.Land,
-                    maskInvalidAreas: true
+                    maskInvalidAreas: false
                 }
             }
         }

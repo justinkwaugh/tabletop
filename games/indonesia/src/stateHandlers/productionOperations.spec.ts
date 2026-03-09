@@ -211,6 +211,83 @@ describe('ProductionOperationsStateHandler', () => {
         expect(state.operatingCompanyShippedGoodsCount).toBe(1)
     })
 
+    it('refreshes the stored delivery plan after each delivery', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        state.getPlayerState(playerId).research.hull = 0
+
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [],
+                good: Good.Rice
+            },
+            {
+                id: 'ship-1',
+                type: CompanyType.Shipping,
+                owner: playerId,
+                deeds: []
+            }
+        ]
+
+        state.board.areas['A01'] = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas['A02'] = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas['S14'] = {
+            id: 'S14',
+            type: AreaType.Sea,
+            ships: ['ship-1', 'ship-1']
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A04',
+            size: 2,
+            demand: {}
+        })
+
+        state.machineState = MachineState.ProductionOperations
+        state.beginCompanyOperation('prod-1')
+
+        const handler = new ProductionOperationsStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        expect(state.operatingCompanyDeliveryPlan?.deliveries).toHaveLength(2)
+        expect(state.operatingCompanyDeliveryPlan?.totalDelivered).toBe(2)
+
+        const action = new HydratedDeliverGood(
+            createAction(DeliverGood, {
+                id: `deliver-good-${state.actionCount}`,
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId,
+                type: ActionType.DeliverGood,
+                cultivatedAreaId: 'A01',
+                shippingCompanyId: 'ship-1',
+                seaAreaIds: ['S14'],
+                cityId: 'city-1'
+            })
+        )
+
+        action.apply(state, context)
+        handler.onAction(action, context)
+
+        expect(state.operatingCompanyShippedGoodsCount).toBe(1)
+        expect(state.operatingCompanyDeliveryPlan?.deliveries).toHaveLength(1)
+        expect(state.operatingCompanyDeliveryPlan?.totalDelivered).toBe(2)
+    })
+
     it('offers pass when production operation has no deliveries and no valid expansion', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId

@@ -15,13 +15,20 @@ import {
     isRemoveCompanyDeed
 } from '../actions/removeCompanyDeed.js'
 import { isProductionCompany } from '../components/company.js'
+import {
+    GOOD_REVENUE_BY_GOOD,
+    SHIPPING_FEE_PER_SHIP_USE
+} from '../definition/operationsEconomy.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { buildDeliveryProblem } from '../operations/deliveryProblemBuilder.js'
+import { buildResidualDeliveryProblem } from '../operations/deliveryCandidateContext.js'
+import type { DeliveryPlan, ShipUse, ShippingPayment } from '../operations/deliveryPlan.js'
 import {
     describeProductionOperation,
     ProductionOperationStage
 } from '../operations/productionOperationProgress.js'
 import { solveDeliveryProblem } from '../operations/deliverySolver.js'
+import { isIndonesiaNodeId } from '../utils/indonesiaNodes.js'
 import { finishOperatingCompany } from './operationsFlow.js'
 
 type ProductionOperationsAction =
@@ -76,6 +83,8 @@ export class ProductionOperationsStateHandler
         const state = context.gameState
         switch (true) {
             case isDeliverGood(action): {
+                this.solveAndStoreOperatingCompanyDeliveryPlan(state, { force: true })
+
                 if (HydratedDeliverGood.canDeliverGood(state, action.playerId)) {
                     return MachineState.ProductionOperations
                 }
@@ -105,7 +114,10 @@ export class ProductionOperationsStateHandler
         }
     }
 
-    private solveAndStoreOperatingCompanyDeliveryPlan(state: HydratedIndonesiaGameState): void {
+    private solveAndStoreOperatingCompanyDeliveryPlan(
+        state: HydratedIndonesiaGameState,
+        options?: { force?: boolean }
+    ): void {
         const operatingCompanyId = state.operatingCompanyId
         assertExists(
             operatingCompanyId,
@@ -113,6 +125,7 @@ export class ProductionOperationsStateHandler
         )
 
         if (
+            !options?.force &&
             state.operatingCompanyDeliveryPlan?.operatingCompanyId === operatingCompanyId &&
             state.operatingCompanyProducedGoodsCount !== undefined
         ) {
@@ -129,14 +142,150 @@ export class ProductionOperationsStateHandler
             `Operating company ${operatingCompanyId} should be a production company in ProductionOperations`
         )
 
+        const existingPlan = state.operatingCompanyDeliveryPlan
+        const shippedGoodsCount = state.operatingCompanyShippedGoodsCount ?? 0
+
+        if (options?.force && existingPlan?.operatingCompanyId === operatingCompanyId) {
+            const residual = buildResidualDeliveryProblem(state, operatingCompanyId)
+            const nextPlan = solveDeliveryProblem(residual.problem)
+            state.setOperatingCompanyDeliveryPlan(
+                this.mergeProgressIntoDeliveryPlan(state, existingPlan, nextPlan, shippedGoodsCount)
+            )
+            return
+        }
+
         const problem = buildDeliveryProblem(state, operatingCompanyId)
-        const deliveryPlan = solveDeliveryProblem(problem)
+        const nextPlan = solveDeliveryProblem(problem)
         const producedGoodsCount = problem.zoneSupplies.reduce(
             (total, zoneSupply) => total + zoneSupply.supply,
             0
         )
 
-        state.setOperatingCompanyDeliveryPlan(deliveryPlan)
+        state.setOperatingCompanyDeliveryPlan(nextPlan)
         state.setOperatingCompanyProducedGoodsCount(producedGoodsCount)
+    }
+
+    private mergeProgressIntoDeliveryPlan(
+        state: HydratedIndonesiaGameState,
+        existingPlan: DeliveryPlan,
+        residualPlan: DeliveryPlan,
+        shippedGoodsCount: number
+    ): DeliveryPlan {
+        const actualRevenue = shippedGoodsCount * GOOD_REVENUE_BY_GOOD[existingPlan.good]
+        const actualShipUses = this.actualShipUsesSoFar(state)
+        const actualShippingCost = actualShipUses.reduce((sum, shipUse) => sum + shipUse.uses, 0) *
+            SHIPPING_FEE_PER_SHIP_USE
+        const actualShippingPayments = this.actualShippingPaymentsSoFar(actualShipUses)
+
+        const shipUses = this.mergeShipUses(actualShipUses, residualPlan.shipUses)
+        const shippingPayments = this.mergeShippingPayments(
+            actualShippingPayments,
+            residualPlan.shippingPayments
+        )
+        const totalDelivered = shippedGoodsCount + residualPlan.totalDelivered
+        const revenue = actualRevenue + residualPlan.revenue
+        const shippingCost = actualShippingCost + residualPlan.shippingCost
+
+        return {
+            ...residualPlan,
+            operatingCompanyId: existingPlan.operatingCompanyId,
+            good: existingPlan.good,
+            shipUses,
+            shippingPayments,
+            totalDelivered,
+            revenue,
+            shippingCost,
+            netIncome: revenue - shippingCost,
+            tieBreakResult: {
+                ...residualPlan.tieBreakResult,
+                deliveredGoods: totalDelivered,
+                shippingCost
+            }
+        }
+    }
+
+    private actualShipUsesSoFar(state: HydratedIndonesiaGameState): ShipUse[] {
+        const shipUseCounts = state.operatingCompanyShipUseCounts ?? {}
+        return Object.entries(shipUseCounts)
+            .map(([key, uses]) => {
+                const separatorIndex = key.indexOf('|')
+                if (separatorIndex <= 0 || separatorIndex >= key.length - 1) {
+                    return null
+                }
+
+                const seaAreaId = key.slice(separatorIndex + 1)
+                if (!isIndonesiaNodeId(seaAreaId)) {
+                    return null
+                }
+
+                return {
+                    shippingCompanyId: key.slice(0, separatorIndex),
+                    seaAreaId,
+                    uses
+                } satisfies ShipUse
+            })
+            .filter((shipUse): shipUse is ShipUse => shipUse !== null)
+            .sort((left, right) =>
+                `${left.shippingCompanyId}|${left.seaAreaId}`.localeCompare(
+                    `${right.shippingCompanyId}|${right.seaAreaId}`
+                )
+            )
+    }
+
+    private actualShippingPaymentsSoFar(shipUses: readonly ShipUse[]): ShippingPayment[] {
+        const amountByShippingCompanyId = new Map<string, number>()
+        for (const shipUse of shipUses) {
+            amountByShippingCompanyId.set(
+                shipUse.shippingCompanyId,
+                (amountByShippingCompanyId.get(shipUse.shippingCompanyId) ?? 0) +
+                    shipUse.uses * SHIPPING_FEE_PER_SHIP_USE
+            )
+        }
+
+        return [...amountByShippingCompanyId.entries()]
+            .map(([shippingCompanyId, amount]) => ({
+                shippingCompanyId,
+                amount
+            }))
+            .sort((left, right) => left.shippingCompanyId.localeCompare(right.shippingCompanyId))
+    }
+
+    private mergeShipUses(actualShipUses: readonly ShipUse[], residualShipUses: readonly ShipUse[]): ShipUse[] {
+        const usesByKey = new Map<string, ShipUse>()
+        for (const shipUse of [...actualShipUses, ...residualShipUses]) {
+            const key = `${shipUse.shippingCompanyId}|${shipUse.seaAreaId}`
+            const current = usesByKey.get(key)
+            if (current) {
+                current.uses += shipUse.uses
+                continue
+            }
+            usesByKey.set(key, { ...shipUse })
+        }
+
+        return [...usesByKey.values()].sort((left, right) =>
+            `${left.shippingCompanyId}|${left.seaAreaId}`.localeCompare(
+                `${right.shippingCompanyId}|${right.seaAreaId}`
+            )
+        )
+    }
+
+    private mergeShippingPayments(
+        actualPayments: readonly ShippingPayment[],
+        residualPayments: readonly ShippingPayment[]
+    ): ShippingPayment[] {
+        const amountByShippingCompanyId = new Map<string, number>()
+        for (const payment of [...actualPayments, ...residualPayments]) {
+            amountByShippingCompanyId.set(
+                payment.shippingCompanyId,
+                (amountByShippingCompanyId.get(payment.shippingCompanyId) ?? 0) + payment.amount
+            )
+        }
+
+        return [...amountByShippingCompanyId.entries()]
+            .map(([shippingCompanyId, amount]) => ({
+                shippingCompanyId,
+                amount
+            }))
+            .sort((left, right) => left.shippingCompanyId.localeCompare(right.shippingCompanyId))
     }
 }

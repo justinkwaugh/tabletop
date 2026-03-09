@@ -1040,10 +1040,6 @@
         )
     })
 
-    const maskAllZoneTagsDuringDeliveryCitySelection: boolean = $derived.by(() => {
-        return gameSession.deliverySelectionEnabled && gameSession.deliverySelectionStage === 'city'
-    })
-
     const selectableDeliveryZoneMarkerKeySet: ReadonlySet<string> = $derived.by(() => {
         if (!maskNonSelectableZoneTagsDuringDeliverySelection) {
             return new Set<string>()
@@ -1082,9 +1078,6 @@
     })
 
     function isMarkerMasked(marker: ProductionZoneMarkerEntry): boolean {
-        if (maskAllZoneTagsDuringDeliveryCitySelection) {
-            return true
-        }
         if (
             maskNonSelectableZoneTagsDuringDeliverySelection &&
             !selectableDeliveryZoneMarkerKeySet.has(marker.key)
@@ -1119,9 +1112,6 @@
     function maskedOpacityForMarker(marker: ProductionZoneMarkerEntry): number {
         if (!isMarkerMasked(marker)) {
             return 0
-        }
-        if (maskAllZoneTagsDuringDeliveryCitySelection) {
-            return SELECTION_ZONE_TAG_MASK_OPACITY
         }
         if (
             maskNonSelectableZoneTagsDuringDeliverySelection &&

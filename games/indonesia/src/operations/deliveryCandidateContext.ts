@@ -14,7 +14,7 @@ import type {
     DeliveryOperationContext
 } from './deliveryCandidateTypes.js'
 
-function buildResidualDeliveryProblem(
+export function buildResidualDeliveryProblem(
     state: HydratedIndonesiaGameState,
     operatingCompanyId: string
 ): { problem: DeliveryProblem; deliveredCultivatedAreaIdSet: Set<IndonesiaNodeId> } {

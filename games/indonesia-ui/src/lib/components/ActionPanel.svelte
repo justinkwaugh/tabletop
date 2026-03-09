@@ -16,12 +16,18 @@
         GOOD_REVENUE_BY_GOOD,
         Good,
         HydratedProposeMerger,
+        INDONESIA_REGION_BY_AREA_ID,
+        isChooseOperatingCompany,
+        isDeliverGood,
+        isIndonesiaNodeId,
         MachineState,
         PassReason,
+        SHIPPING_FEE_PER_SHIP_USE,
         type TurnOrderBid
     } from '@tabletop/indonesia'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { getRegionName } from '$lib/definitions/regions.js'
 
     const gameSession = getGameSession()
     let bidInput = $state('0')
@@ -101,6 +107,36 @@
         companyACard: PlayerCompanyCardData
         companyBCard: PlayerCompanyCardData
     }
+
+    type PlannedDeliveryRouteOption = {
+        key: string
+        zoneId: string
+        cityId: string
+        shippingCompanyId: string
+        seaAreaIds: readonly string[]
+        shipCount: number
+        shippingCost: number
+    }
+
+    type PlannedDeliveryRow = {
+        key: string
+        zoneId: string
+        cityId: string
+        shippingCompanyId: string
+        seaAreaIds: readonly string[]
+        quantity: number
+        shipCount: number
+        shippingCost: number
+        profit: number
+        destinationLabel: string
+        required: boolean
+        requiredQuantity: number
+        shipped: boolean
+        routeOptions: PlannedDeliveryRouteOption[]
+        selectedRoute: PlannedDeliveryRouteOption
+    }
+
+    let selectedPlannedRouteOptionKeyByRowKey = $state<Record<string, string>>({})
 
     const turnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() => {
         const bidByPlayerId = gameSession.gameState.turnOrderBids ?? {}
@@ -227,6 +263,22 @@
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
     const styleByShippingCompanyId = $derived.by(() => shippingStyleByCompanyId(gameSession.gameState))
+    const cityAreaByCityId: Map<string, string> = $derived.by(
+        () => new Map(gameSession.gameState.board.cities.map((city) => [city.id, city.area]))
+    )
+
+    function cityDestinationLabel(cityId: string): string {
+        const cityAreaId = cityAreaByCityId.get(cityId)
+        if (!cityAreaId) {
+            return cityId
+        }
+        if (!isIndonesiaNodeId(cityAreaId)) {
+            return cityAreaId
+        }
+
+        const regionId = INDONESIA_REGION_BY_AREA_ID[cityAreaId]
+        return regionId ? getRegionName(regionId) : cityAreaId
+    }
 
     const mergerOptions = $derived.by(() => {
         if (!canProposeMerger) {
@@ -636,6 +688,12 @@
     })
 
     $effect(() => {
+        if (!showProductionOperationsPanel) {
+            gameSession.setHoveredPlannedDeliveryRoute(undefined)
+        }
+    })
+
+    $effect(() => {
         if (!canProposeMerger || mergerOptionRows.length === 0) {
             selectedMergerOptionKey = ''
             return
@@ -777,6 +835,281 @@
             0,
             maxGoodsToShipForCurrentProductionOperation - shippedGoodsCountForCurrentProductionOperation
         )
+    })
+
+    function plannedDeliveryRowKey(delivery: {
+        zoneId: string
+        cityId: string
+        shippingCompanyId: string
+        seaPathAreaIds: readonly string[]
+    }): string {
+        return `${delivery.zoneId}|${delivery.cityId}|${delivery.shippingCompanyId}|${delivery.seaPathAreaIds.join('>')}`
+    }
+
+    function plannedDeliveryRouteOptionKey(route: {
+        shippingCompanyId: string
+        seaAreaIds: readonly string[]
+    }): string {
+        return `${route.shippingCompanyId}|${route.seaAreaIds.join('>')}`
+    }
+
+    const plannedDeliveryRows: PlannedDeliveryRow[] = $derived.by(() => {
+        if (!showProductionOperationsPanel) {
+            return []
+        }
+
+        const deliveryPlan = gameSession.gameState.operatingCompanyDeliveryPlan
+        const completedRows: PlannedDeliveryRow[] = []
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (operatingCompanyId) {
+            let operationStartIndex = -1
+            for (let index = gameSession.actions.length - 1; index >= 0; index -= 1) {
+                const action = gameSession.actions[index]
+                if (!isChooseOperatingCompany(action)) {
+                    continue
+                }
+                if (action.companyId !== operatingCompanyId) {
+                    break
+                }
+                operationStartIndex = index
+                break
+            }
+
+            if (operationStartIndex >= 0) {
+                for (let index = operationStartIndex + 1; index < gameSession.actions.length; index += 1) {
+                    const action = gameSession.actions[index]
+                    if (isChooseOperatingCompany(action)) {
+                        break
+                    }
+                    if (!isDeliverGood(action)) {
+                        continue
+                    }
+
+                    completedRows.push({
+                        key: `shipped:${index}`,
+                        zoneId: '',
+                        cityId: action.cityId,
+                        shippingCompanyId: action.shippingCompanyId,
+                        seaAreaIds: action.seaAreaIds,
+                        quantity: 1,
+                        shipCount: action.seaAreaIds.length,
+                        shippingCost:
+                            action.metadata?.shippingCost ??
+                            action.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE,
+                        profit:
+                            action.metadata?.netProfit ??
+                            (action.metadata
+                                ? action.metadata.revenue - action.metadata.shippingCost
+                                : 0),
+                        destinationLabel: cityDestinationLabel(action.cityId),
+                        required: false,
+                        requiredQuantity: 0,
+                        shipped: true,
+                        routeOptions: [
+                            {
+                                key: plannedDeliveryRouteOptionKey({
+                                    shippingCompanyId: action.shippingCompanyId,
+                                    seaAreaIds: action.seaAreaIds
+                                }),
+                                zoneId: '',
+                                cityId: action.cityId,
+                                shippingCompanyId: action.shippingCompanyId,
+                                seaAreaIds: action.seaAreaIds,
+                                shipCount: action.seaAreaIds.length,
+                                shippingCost:
+                                    action.metadata?.shippingCost ??
+                                    action.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+                            }
+                        ],
+                        selectedRoute: {
+                            key: plannedDeliveryRouteOptionKey({
+                                shippingCompanyId: action.shippingCompanyId,
+                                seaAreaIds: action.seaAreaIds
+                            }),
+                            zoneId: '',
+                            cityId: action.cityId,
+                            shippingCompanyId: action.shippingCompanyId,
+                            seaAreaIds: action.seaAreaIds,
+                            shipCount: action.seaAreaIds.length,
+                            shippingCost:
+                                action.metadata?.shippingCost ??
+                                action.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+                        }
+                    })
+                }
+            }
+        }
+
+        if (!deliveryPlan || deliveryPlan.deliveries.length === 0) {
+            return completedRows
+        }
+
+        const requiredQuantityByKey = new Map<string, number>()
+        for (const criticalDelivery of deliveryPlan.criticalDeliveries ?? []) {
+            requiredQuantityByKey.set(
+                plannedDeliveryRowKey({
+                    zoneId: criticalDelivery.zoneId,
+                    cityId: criticalDelivery.cityId,
+                    shippingCompanyId: criticalDelivery.shippingCompanyId,
+                    seaPathAreaIds: criticalDelivery.seaPathAreaIds
+                }),
+                criticalDelivery.requiredQuantity
+            )
+        }
+
+        const remainingRows = deliveryPlan.deliveries
+            .map((delivery, index) => {
+                const rowKey = plannedDeliveryRowKey({
+                    zoneId: delivery.zoneId,
+                    cityId: delivery.cityId,
+                    shippingCompanyId: delivery.shippingCompanyId,
+                    seaPathAreaIds: delivery.seaPathAreaIds
+                })
+                const requiredQuantity = requiredQuantityByKey.get(rowKey) ?? 0
+                const plannedRouteOptionKey = plannedDeliveryRouteOptionKey({
+                    shippingCompanyId: delivery.shippingCompanyId,
+                    seaAreaIds: delivery.seaPathAreaIds
+                })
+                const alternativeCandidates = gameSession.safeDeliveryCandidates
+                    .filter(
+                        (candidate) =>
+                            candidate.zoneId === delivery.zoneId &&
+                            candidate.cityId === delivery.cityId &&
+                            candidate.seaAreaIds.length === delivery.seaPathAreaIds.length
+                    )
+                    .sort((left, right) => {
+                        const leftIsPlanned =
+                            left.shippingCompanyId === delivery.shippingCompanyId &&
+                            left.seaAreaIds.length === delivery.seaPathAreaIds.length &&
+                            left.seaAreaIds.every(
+                                (seaAreaId, candidateIndex) =>
+                                    seaAreaId === delivery.seaPathAreaIds[candidateIndex]
+                            )
+                        const rightIsPlanned =
+                            right.shippingCompanyId === delivery.shippingCompanyId &&
+                            right.seaAreaIds.length === delivery.seaPathAreaIds.length &&
+                            right.seaAreaIds.every(
+                                (seaAreaId, candidateIndex) =>
+                                    seaAreaId === delivery.seaPathAreaIds[candidateIndex]
+                            )
+                        if (leftIsPlanned !== rightIsPlanned) {
+                            return leftIsPlanned ? -1 : 1
+                        }
+                        if (left.shippingCompanyId !== right.shippingCompanyId) {
+                            return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
+                        }
+                        return left.seaAreaIds.join('>').localeCompare(right.seaAreaIds.join('>'))
+                    })
+
+                const routeOptionByShippingCompanyId = new Map<string, PlannedDeliveryRouteOption>()
+                for (const candidate of alternativeCandidates) {
+                    if (routeOptionByShippingCompanyId.has(candidate.shippingCompanyId)) {
+                        continue
+                    }
+                    routeOptionByShippingCompanyId.set(candidate.shippingCompanyId, {
+                        key: plannedDeliveryRouteOptionKey({
+                            shippingCompanyId: candidate.shippingCompanyId,
+                            seaAreaIds: candidate.seaAreaIds
+                        }),
+                        zoneId: candidate.zoneId,
+                        cityId: candidate.cityId,
+                        shippingCompanyId: candidate.shippingCompanyId,
+                        seaAreaIds: candidate.seaAreaIds,
+                        shipCount: candidate.seaAreaIds.length,
+                        shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+                    })
+                }
+
+                if (!routeOptionByShippingCompanyId.has(delivery.shippingCompanyId)) {
+                    routeOptionByShippingCompanyId.set(delivery.shippingCompanyId, {
+                        key: plannedRouteOptionKey,
+                        zoneId: delivery.zoneId,
+                        cityId: delivery.cityId,
+                        shippingCompanyId: delivery.shippingCompanyId,
+                        seaAreaIds: delivery.seaPathAreaIds,
+                        shipCount: delivery.seaPathAreaIds.length,
+                        shippingCost:
+                            delivery.seaPathAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+                    })
+                }
+
+                const routeOptions = [...routeOptionByShippingCompanyId.values()].sort((left, right) => {
+                    const leftIsPlanned = left.key === plannedRouteOptionKey
+                    const rightIsPlanned = right.key === plannedRouteOptionKey
+                    if (leftIsPlanned !== rightIsPlanned) {
+                        return leftIsPlanned ? -1 : 1
+                    }
+                    return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
+                })
+                const selectedRoute =
+                    routeOptions.find(
+                        (option) =>
+                            option.key === selectedPlannedRouteOptionKeyByRowKey[rowKey]
+                    ) ??
+                    routeOptions.find((option) => option.key === plannedRouteOptionKey) ??
+                    routeOptions[0]
+
+                return {
+                    key: rowKey,
+                    zoneId: delivery.zoneId,
+                    cityId: delivery.cityId,
+                    shippingCompanyId: selectedRoute.shippingCompanyId,
+                    seaAreaIds: selectedRoute.seaAreaIds,
+                    quantity: delivery.quantity,
+                    shipCount: selectedRoute.shipCount,
+                    shippingCost: selectedRoute.shippingCost,
+                    profit:
+                        delivery.quantity * GOOD_REVENUE_BY_GOOD[deliveryPlan.good] -
+                        selectedRoute.shippingCost,
+                    destinationLabel: cityDestinationLabel(delivery.cityId),
+                    required: requiredQuantity > 0,
+                    requiredQuantity,
+                    shipped: false,
+                    routeOptions,
+                    selectedRoute,
+                    index
+                }
+            })
+            .sort((left, right) => {
+                if (left.required !== right.required) {
+                    return left.required ? -1 : 1
+                }
+                if (left.shippingCost !== right.shippingCost) {
+                    return left.shippingCost - right.shippingCost
+                }
+                return left.index - right.index
+            })
+            .map(({ index: _index, ...row }) => row)
+
+        return [...completedRows, ...remainingRows]
+    })
+
+    $effect(() => {
+        if (!showProductionOperationsPanel) {
+            if (Object.keys(selectedPlannedRouteOptionKeyByRowKey).length > 0) {
+                selectedPlannedRouteOptionKeyByRowKey = {}
+            }
+            return
+        }
+
+        const nextSelections: Record<string, string> = {}
+        let changed = false
+        for (const [rowKey, routeKey] of Object.entries(selectedPlannedRouteOptionKeyByRowKey)) {
+            const row = plannedDeliveryRows.find((entry) => entry.key === rowKey && !entry.shipped)
+            if (!row) {
+                changed = true
+                continue
+            }
+            if (!row.routeOptions.some((option) => option.key === routeKey)) {
+                changed = true
+                continue
+            }
+            nextSelections[rowKey] = routeKey
+        }
+
+        if (changed || Object.keys(nextSelections).length !== Object.keys(selectedPlannedRouteOptionKeyByRowKey).length) {
+            selectedPlannedRouteOptionKeyByRowKey = nextSelections
+        }
     })
 
     const remainingProductionExpansionCount = $derived.by(() => {
@@ -1328,6 +1661,221 @@
     {:else if showProductionOperationsPanel}
         <div class="production-delivery-panel">
             <span class="operating-company-message">{message}</span>
+            {#if plannedDeliveryRows.length > 0}
+                <div class="planned-delivery-panel" aria-label="Operating company delivery plan">
+                    <div class="planned-delivery-header" aria-hidden="true">
+                        <span class="planned-delivery-header-spacer"></span>
+                        <span class="planned-delivery-title">Delivery Plan</span>
+                        <span class="planned-delivery-header-spacer"></span>
+                        <span class="planned-delivery-column-title">Ships</span>
+                        <span class="planned-delivery-column-title planned-delivery-column-title-profit">
+                            Profit
+                        </span>
+                    </div>
+                    <div class="planned-delivery-table">
+                        {#each plannedDeliveryRows as row (row.key)}
+                            <div
+                                class={`planned-delivery-row ${row.required ? 'is-required' : ''} ${row.shipped ? 'is-shipped' : ''}`}
+                                onmouseenter={() => {
+                                    if (row.shipped) {
+                                        return
+                                    }
+                                    gameSession.setHoveredPlannedDeliveryRoute({
+                                        zoneId: row.zoneId,
+                                        cityId: row.cityId,
+                                        shippingCompanyId: row.shippingCompanyId,
+                                        seaAreaIds: row.seaAreaIds
+                                    })
+                                }}
+                                onmouseleave={() => {
+                                    gameSession.setHoveredPlannedDeliveryRoute(undefined)
+                                }}
+                                onfocus={() => {
+                                    if (row.shipped) {
+                                        return
+                                    }
+                                    gameSession.setHoveredPlannedDeliveryRoute({
+                                        zoneId: row.zoneId,
+                                        cityId: row.cityId,
+                                        shippingCompanyId: row.shippingCompanyId,
+                                        seaAreaIds: row.seaAreaIds
+                                    })
+                                }}
+                                onblur={() => {
+                                    gameSession.setHoveredPlannedDeliveryRoute(undefined)
+                                }}
+                            >
+                                {#if row.shipped}
+                                    <span class="planned-delivery-shipped-label">shipped</span>
+                                {:else}
+                                    <button
+                                        type="button"
+                                        class="planned-delivery-ship-button"
+                                        disabled={deliveringGood}
+                                        aria-label={`Ship recommended delivery to ${row.destinationLabel}`}
+                                        onmouseenter={() => {
+                                            gameSession.setHoveredPlannedDeliveryRoute({
+                                                zoneId: row.zoneId,
+                                                cityId: row.cityId,
+                                                shippingCompanyId: row.shippingCompanyId,
+                                                seaAreaIds: row.seaAreaIds
+                                            })
+                                        }}
+                                        onfocus={() => {
+                                            gameSession.setHoveredPlannedDeliveryRoute({
+                                                zoneId: row.zoneId,
+                                                cityId: row.cityId,
+                                                shippingCompanyId: row.shippingCompanyId,
+                                                seaAreaIds: row.seaAreaIds
+                                            })
+                                        }}
+                                        onclick={async () => {
+                                            if (deliveringGood) {
+                                                return
+                                            }
+                                            deliveringGood = true
+                                            try {
+                                                await gameSession.deliverGoodForPlannedRoute({
+                                                    zoneId: row.zoneId,
+                                                    cityId: row.cityId,
+                                                    shippingCompanyId: row.shippingCompanyId,
+                                                    seaAreaIds: row.seaAreaIds
+                                                })
+                                            } finally {
+                                                deliveringGood = false
+                                            }
+                                        }}
+                                    >
+                                        {deliveringGood ? '...' : 'Ship'}
+                                    </button>
+                                {/if}
+                                <span class="planned-delivery-city">
+                                    <span class="planned-delivery-city-name">{row.destinationLabel}</span>
+                                    {#if row.required && !row.shipped}
+                                        <span class="planned-delivery-city-required">required</span>
+                                    {/if}
+                                </span>
+                                {#if row.quantity > 1}
+                                    <span class="planned-delivery-quantity">{row.quantity} goods</span>
+                                {:else}
+                                    <span></span>
+                                {/if}
+                                <span class="planned-delivery-ships">
+                                    <span class="planned-delivery-ships-count">{row.shipCount}x</span>
+                                    <span class="planned-delivery-ship-options">
+                                        {#each row.routeOptions as routeOption, routeOptionIndex (routeOption.key)}
+                                            {@const routeMarkerVisual = shippingMarkerVisualForCompany(
+                                                routeOption.shippingCompanyId
+                                            )}
+                                            {@const isSelectedRouteOption = routeOption.key === row.selectedRoute.key}
+                                            {#if row.shipped}
+                                                <span
+                                                    class="planned-delivery-ship-option is-static"
+                                                    aria-hidden="true"
+                                                >
+                                                    <span class="planned-delivery-ship-icon-wrap">
+                                                        <svg
+                                                            class="planned-delivery-ship-icon-svg"
+                                                            viewBox="0 0 60 42"
+                                                            width="50"
+                                                            height="36"
+                                                        >
+                                                            <ShipMarker
+                                                                x={30}
+                                                                y={21}
+                                                                style={routeMarkerVisual.style}
+                                                                height={32}
+                                                                outline={false}
+                                                                hullFillColor={routeMarkerVisual.hullFillColor}
+                                                                hullStrokeColor={routeMarkerVisual.hullStrokeColor}
+                                                                hullStrokeWidth={8}
+                                                            />
+                                                        </svg>
+                                                    </span>
+                                                </span>
+                                            {:else}
+                                                <button
+                                                    type="button"
+                                                    class={`planned-delivery-ship-option ${isSelectedRouteOption ? 'is-selected' : ''}`}
+                                                    aria-label={`Use ${companyById.get(routeOption.shippingCompanyId)?.owner ?? 'alternate'} shipping for ${row.destinationLabel}`}
+                                                    onmouseenter={() => {
+                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                            zoneId: routeOption.zoneId,
+                                                            cityId: routeOption.cityId,
+                                                            shippingCompanyId: routeOption.shippingCompanyId,
+                                                            seaAreaIds: routeOption.seaAreaIds
+                                                        })
+                                                    }}
+                                                    onmouseleave={() => {
+                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                            zoneId: row.selectedRoute.zoneId,
+                                                            cityId: row.selectedRoute.cityId,
+                                                            shippingCompanyId: row.selectedRoute.shippingCompanyId,
+                                                            seaAreaIds: row.selectedRoute.seaAreaIds
+                                                        })
+                                                    }}
+                                                    onfocus={() => {
+                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                            zoneId: routeOption.zoneId,
+                                                            cityId: routeOption.cityId,
+                                                            shippingCompanyId: routeOption.shippingCompanyId,
+                                                            seaAreaIds: routeOption.seaAreaIds
+                                                        })
+                                                    }}
+                                                    onblur={() => {
+                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                            zoneId: row.selectedRoute.zoneId,
+                                                            cityId: row.selectedRoute.cityId,
+                                                            shippingCompanyId: row.selectedRoute.shippingCompanyId,
+                                                            seaAreaIds: row.selectedRoute.seaAreaIds
+                                                        })
+                                                    }}
+                                                    onclick={() => {
+                                                        selectedPlannedRouteOptionKeyByRowKey = {
+                                                            ...selectedPlannedRouteOptionKeyByRowKey,
+                                                            [row.key]: routeOption.key
+                                                        }
+                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                            zoneId: routeOption.zoneId,
+                                                            cityId: routeOption.cityId,
+                                                            shippingCompanyId: routeOption.shippingCompanyId,
+                                                            seaAreaIds: routeOption.seaAreaIds
+                                                        })
+                                                    }}
+                                                >
+                                                    <span class={`planned-delivery-ship-icon-wrap ${isSelectedRouteOption ? 'is-selected' : ''}`} aria-hidden="true">
+                                                        <svg
+                                                            class={`planned-delivery-ship-icon-svg ${isSelectedRouteOption ? 'is-selected' : ''}`}
+                                                            viewBox="0 0 60 42"
+                                                            width={isSelectedRouteOption ? 54 : 50}
+                                                            height={isSelectedRouteOption ? 38 : 36}
+                                                        >
+                                                            <ShipMarker
+                                                                x={30}
+                                                                y={21}
+                                                                style={routeMarkerVisual.style}
+                                                                height={isSelectedRouteOption ? 34 : 32}
+                                                                outline={false}
+                                                                hullFillColor={routeMarkerVisual.hullFillColor}
+                                                                hullStrokeColor={routeMarkerVisual.hullStrokeColor}
+                                                                hullStrokeWidth={isSelectedRouteOption ? 10 : 8}
+                                                            />
+                                                        </svg>
+                                                    </span>
+                                                </button>
+                                            {/if}
+                                            {#if routeOptionIndex < row.routeOptions.length - 1}
+                                                <span class="planned-delivery-ship-option-separator">/</span>
+                                            {/if}
+                                        {/each}
+                                    </span>
+                                </span>
+                                <span class="planned-delivery-profit">{row.profit}</span>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
             {#if showDeliveryShippingChoices}
                 <div class="delivery-shipping-choices" aria-label="Delivery shipping choices">
                     {#each gameSession.deliveryShippingChoices as choice (choice.routeKey)}
@@ -1779,6 +2327,283 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
+    }
+
+    .planned-delivery-panel {
+        width: min(100%, 520px);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        padding: 2px 0 0;
+    }
+
+    .planned-delivery-title {
+        justify-self: start;
+        font-size: 11px;
+        line-height: 1;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: rgba(94, 63, 39, 0.74);
+    }
+
+    .planned-delivery-header {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        align-items: end;
+        gap: 10px;
+        width: 100%;
+        padding: 0 10px 2px;
+    }
+
+    .planned-delivery-header-spacer {
+        display: block;
+    }
+
+    .planned-delivery-column-title {
+        font-size: 11px;
+        line-height: 1;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: rgba(94, 63, 39, 0.74);
+        text-align: center;
+    }
+
+    .planned-delivery-column-title-profit {
+        text-align: right;
+    }
+
+    .planned-delivery-table {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 100%;
+    }
+
+    .planned-delivery-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        border: 1px solid rgba(93, 68, 40, 0.14);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.38);
+        padding: 2px 10px;
+        overflow: hidden;
+        text-align: left;
+        color: inherit;
+        transition:
+            background-color 120ms ease,
+            border-color 120ms ease,
+            transform 120ms ease;
+    }
+
+    .planned-delivery-row:hover,
+    .planned-delivery-row:focus-visible {
+        background: rgba(255, 255, 255, 0.62);
+        border-color: rgba(93, 68, 40, 0.26);
+        outline: none;
+    }
+
+    .planned-delivery-row.is-required {
+        border-color: rgba(116, 78, 44, 0.26);
+        background: rgba(255, 250, 240, 0.62);
+    }
+
+    .planned-delivery-row.is-shipped {
+        border-color: transparent;
+        border-radius: 0;
+        background: transparent;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .planned-delivery-row.is-shipped:hover,
+    .planned-delivery-row.is-shipped:focus-visible {
+        background: transparent;
+        border-color: transparent;
+        transform: none;
+    }
+
+    .planned-delivery-ship-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 46px;
+        align-self: stretch;
+        margin: -2px 0 -2px -10px;
+        padding: 0 12px;
+        border: 0;
+        border-right: 1px solid rgba(94, 63, 39, 0.18);
+        border-radius: 10px 0 0 10px;
+        background: rgba(255, 255, 255, 0.72);
+        color: rgba(71, 53, 33, 0.92);
+        font-size: 12px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        transition:
+            background-color 120ms ease,
+            border-color 120ms ease;
+    }
+
+    .planned-delivery-ship-button:hover:enabled,
+    .planned-delivery-ship-button:focus-visible {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(94, 63, 39, 0.34);
+        outline: none;
+    }
+
+    .planned-delivery-ship-button:disabled {
+        opacity: 0.55;
+        cursor: default;
+    }
+
+    .planned-delivery-shipped-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        min-width: 46px;
+        margin-left: -10px;
+        padding-left: 12px;
+        font-size: 10px;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        text-transform: lowercase;
+        color: rgba(94, 63, 39, 0.62);
+        white-space: nowrap;
+    }
+
+    .planned-delivery-ships {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-width: 92px;
+        height: 40px;
+        color: rgba(71, 53, 33, 0.9);
+        padding: 0 8px;
+        font-size: 13px;
+        line-height: 1;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .planned-delivery-row.is-shipped .planned-delivery-ships {
+        height: 28px;
+    }
+
+    .planned-delivery-ships-count {
+        letter-spacing: 0.01em;
+    }
+
+    .planned-delivery-ship-options {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .planned-delivery-ship-option {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        opacity: 0.42;
+        transition:
+            opacity 120ms ease,
+            transform 120ms ease;
+    }
+
+    .planned-delivery-ship-option:hover,
+    .planned-delivery-ship-option:focus-visible {
+        opacity: 0.82;
+        outline: none;
+    }
+
+    .planned-delivery-ship-option.is-selected {
+        opacity: 1;
+    }
+
+    .planned-delivery-ship-option.is-static {
+        background: transparent;
+        transform: none;
+    }
+
+    .planned-delivery-ship-option-separator {
+        font-size: 11px;
+        line-height: 1;
+        color: rgba(94, 63, 39, 0.48);
+    }
+
+    .planned-delivery-ship-icon-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 36px;
+        flex: 0 0 auto;
+    }
+
+    .planned-delivery-ship-icon-wrap.is-selected {
+        transform: scale(1.06);
+        transform-origin: center;
+    }
+
+    .planned-delivery-row.is-shipped .planned-delivery-ship-icon-wrap {
+        height: 28px;
+    }
+
+    .planned-delivery-ship-icon-svg {
+        display: block;
+        overflow: visible;
+    }
+
+    .planned-delivery-city {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 1px;
+        min-width: 0;
+    }
+
+    .planned-delivery-city-name {
+        font-size: 14px;
+        line-height: 1.1;
+        color: rgba(51, 35, 20, 0.94);
+    }
+
+    .planned-delivery-city-required {
+        font-size: 10px;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        text-transform: lowercase;
+        color: rgba(110, 63, 20, 0.78);
+    }
+
+    .planned-delivery-quantity {
+        font-size: 11px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgba(94, 63, 39, 0.66);
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .planned-delivery-profit {
+        font-size: 13px;
+        line-height: 1;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: rgba(71, 53, 33, 0.88);
+        white-space: nowrap;
     }
 
     .operating-company-message {

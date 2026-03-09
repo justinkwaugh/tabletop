@@ -17,6 +17,15 @@
         hovered: boolean
     }
 
+    type HoveredDeliveryRoute = {
+        routeKey: string
+        shippingCompanyId: string
+        cityId: string
+        zoneId: string
+        cultivatedAreaId: string
+        seaAreaIds: readonly string[]
+    }
+
     const gameSession = getGameSession()
     let routeOverlayReady = $state(false)
 
@@ -32,18 +41,14 @@
         return new Map(gameSession.gameState.board.cities.map((city) => [city.id, city.area]))
     })
 
-    const hoveredDeliveryRouteKey: string | null = $derived.by(() => {
-        return gameSession.hoveredDeliveryShippingChoice?.routeKey ?? null
-    })
-
     function pointDistance(a: Point, b: Point): number {
         return Math.hypot(a.x - b.x, a.y - b.y)
     }
 
-    function firstShipWaypointCandidatesForChoice(
-        choice: (typeof gameSession.deliveryShippingChoices)[number]
+    function firstShipWaypointCandidatesForRoute(
+        route: Pick<HoveredDeliveryRoute, 'shippingCompanyId' | 'seaAreaIds'>
     ): readonly Point[] | undefined {
-        const firstSeaAreaId = choice.candidate.seaAreaIds[0]
+        const firstSeaAreaId = route.seaAreaIds[0]
         if (!firstSeaAreaId) {
             return undefined
         }
@@ -60,7 +65,7 @@
 
         const companyMarkerPoints: Point[] = []
         for (let markerIndex = 0; markerIndex < markerPoints.length; markerIndex += 1) {
-            if (firstSeaArea.ships[markerIndex] !== choice.candidate.shippingCompanyId) {
+            if (firstSeaArea.ships[markerIndex] !== route.shippingCompanyId) {
                 continue
             }
             companyMarkerPoints.push(markerPoints[markerIndex])
@@ -71,13 +76,13 @@
         return companyMarkerPoints
     }
 
-    function seaWaypointOverridesForChoice(
-        choice: (typeof gameSession.deliveryShippingChoices)[number]
+    function seaWaypointOverridesForRoute(
+        route: Pick<HoveredDeliveryRoute, 'shippingCompanyId' | 'seaAreaIds'>
     ): Readonly<Record<string, Point>> | undefined {
         const overrides: Record<string, Point> = {}
         let previousPoint: Point | null = null
 
-        for (const seaAreaId of choice.candidate.seaAreaIds) {
+        for (const seaAreaId of route.seaAreaIds) {
             const seaArea = gameSession.gameState.board.areas[seaAreaId]
             if (!seaArea || !('ships' in seaArea) || seaArea.ships.length === 0) {
                 continue
@@ -94,7 +99,7 @@
                 markerIndex < Math.min(markerPoints.length, seaArea.ships.length);
                 markerIndex += 1
             ) {
-                if (seaArea.ships[markerIndex] !== choice.candidate.shippingCompanyId) {
+                if (seaArea.ships[markerIndex] !== route.shippingCompanyId) {
                     continue
                 }
                 companyMarkerPoints.push(markerPoints[markerIndex])
@@ -233,39 +238,59 @@
         return areaIdsByZoneId
     })
 
-    const deliveryShippingRouteOverlays: readonly DeliveryShippingRouteOverlay[] = $derived.by(() => {
-        if (
-            !routeOverlayReady ||
-            gameSession.deliverySelectionStage !== 'shipping' ||
-            !hoveredDeliveryRouteKey
-        ) {
-            return []
+    const hoveredDeliveryRoute: HoveredDeliveryRoute | null = $derived.by(() => {
+        const plannedRoute = gameSession.hoveredPlannedDeliveryRoute
+        if (plannedRoute) {
+            const zoneAreaIds = cultivatedAreaIdsByZoneId.get(plannedRoute.zoneId)
+            return {
+                routeKey: `planned:${plannedRoute.shippingCompanyId}|${plannedRoute.cityId}|${plannedRoute.zoneId}|${plannedRoute.seaAreaIds.join('>')}`,
+                shippingCompanyId: plannedRoute.shippingCompanyId,
+                cityId: plannedRoute.cityId,
+                zoneId: plannedRoute.zoneId,
+                cultivatedAreaId: zoneAreaIds?.[0] ?? plannedRoute.zoneId,
+                seaAreaIds: plannedRoute.seaAreaIds
+            }
         }
 
         const hoveredChoice = gameSession.hoveredDeliveryShippingChoice
-        if (!hoveredChoice || hoveredChoice.routeKey !== hoveredDeliveryRouteKey) {
+        if (hoveredChoice) {
+            return {
+                routeKey: hoveredChoice.routeKey,
+                shippingCompanyId: hoveredChoice.candidate.shippingCompanyId,
+                cityId: hoveredChoice.candidate.cityId,
+                zoneId: hoveredChoice.candidate.zoneId,
+                cultivatedAreaId: hoveredChoice.candidate.cultivatedAreaId,
+                seaAreaIds: hoveredChoice.candidate.seaAreaIds
+            }
+        }
+
+        return null
+    })
+
+    const deliveryShippingRouteOverlays: readonly DeliveryShippingRouteOverlay[] = $derived.by(() => {
+        if (!routeOverlayReady || !hoveredDeliveryRoute) {
             return []
         }
 
-        const company = companyById.get(hoveredChoice.candidate.shippingCompanyId)
+        const company = companyById.get(hoveredDeliveryRoute.shippingCompanyId)
         if (!company) {
             return []
         }
 
-        const cityAreaId = cityAreaByCityId.get(hoveredChoice.candidate.cityId)
+        const cityAreaId = cityAreaByCityId.get(hoveredDeliveryRoute.cityId)
         if (!cityAreaId) {
             return []
         }
 
         const routePath = buildDeliveryShippingRoutePath({
-            cultivatedAreaId: hoveredChoice.candidate.cultivatedAreaId,
-            cultivatedZoneAreaIds: cultivatedAreaIdsByZoneId.get(hoveredChoice.candidate.zoneId),
-            firstSeaWaypointCandidates: firstShipWaypointCandidatesForChoice(hoveredChoice),
-            seaWaypointOverridesByAreaId: seaWaypointOverridesForChoice(hoveredChoice),
+            cultivatedAreaId: hoveredDeliveryRoute.cultivatedAreaId,
+            cultivatedZoneAreaIds: cultivatedAreaIdsByZoneId.get(hoveredDeliveryRoute.zoneId),
+            firstSeaWaypointCandidates: firstShipWaypointCandidatesForRoute(hoveredDeliveryRoute),
+            seaWaypointOverridesByAreaId: seaWaypointOverridesForRoute(hoveredDeliveryRoute),
             blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
-                hoveredChoice.candidate.shippingCompanyId
+                hoveredDeliveryRoute.shippingCompanyId
             ),
-            seaAreaIds: hoveredChoice.candidate.seaAreaIds,
+            seaAreaIds: hoveredDeliveryRoute.seaAreaIds,
             cityAreaId
         })
         if (!routePath) {
@@ -274,7 +299,7 @@
 
         return [
             {
-                routeKey: hoveredChoice.routeKey,
+                routeKey: hoveredDeliveryRoute.routeKey,
                 path: routePath,
                 color: gameSession.colors.getPlayerUiColor(company.owner),
                 hovered: true

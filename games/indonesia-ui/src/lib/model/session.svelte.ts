@@ -38,6 +38,13 @@ import {
     type DeliverySelectionValueByStage
 } from './deliverySelection.js'
 
+type PlannedDeliveryRouteHover = {
+    zoneId: string
+    cityId: string
+    shippingCompanyId: string
+    seaAreaIds: string[]
+}
+
 export class IndonesiaGameSession extends GameSession<
     IndonesiaGameState,
     HydratedIndonesiaGameState
@@ -50,6 +57,7 @@ export class IndonesiaGameSession extends GameSession<
     deliverySelectionOverrides: StagedSelectionState<DeliverySelectionValueByStage> = $state({})
     hoveredDeliveryCityAreaIdOverride: string | undefined = $state()
     hoveredDeliveryRouteKeyOverride: string | undefined = $state()
+    hoveredPlannedDeliveryRouteOverride: PlannedDeliveryRouteHover | undefined = $state()
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
     researchSelectionEnabled = $derived.by(
@@ -342,6 +350,35 @@ export class IndonesiaGameSession extends GameSession<
         return hoveredChoice.candidate.seaAreaIds
     })
 
+    hoveredPlannedDeliveryRoute: PlannedDeliveryRouteHover | null = $derived.by(() => {
+        const hoveredRoute = this.hoveredPlannedDeliveryRouteOverride
+        if (!hoveredRoute || this.gameState.machineState !== MachineState.ProductionOperations) {
+            return null
+        }
+
+        const matchingCandidate = this.safeDeliveryCandidates.find(
+            (candidate) =>
+                candidate.zoneId === hoveredRoute.zoneId &&
+                candidate.cityId === hoveredRoute.cityId &&
+                candidate.shippingCompanyId === hoveredRoute.shippingCompanyId &&
+                candidate.seaAreaIds.length === hoveredRoute.seaAreaIds.length &&
+                candidate.seaAreaIds.every(
+                    (seaAreaId, index) => seaAreaId === hoveredRoute.seaAreaIds[index]
+                )
+        )
+
+        if (!matchingCandidate) {
+            return null
+        }
+
+        return {
+            zoneId: hoveredRoute.zoneId,
+            cityId: hoveredRoute.cityId,
+            shippingCompanyId: hoveredRoute.shippingCompanyId,
+            seaAreaIds: [...hoveredRoute.seaAreaIds]
+        }
+    })
+
     resetAction(): void {
         this.selectedResearchPlayerIdOverride = undefined
         this.hoveredOperatingCompanyIdOverride = undefined
@@ -350,6 +387,7 @@ export class IndonesiaGameSession extends GameSession<
         this.deliverySelectionOverrides = {}
         this.hoveredDeliveryCityAreaIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
+        this.hoveredPlannedDeliveryRouteOverride = undefined
     }
 
     override beforeNewState(): void {
@@ -520,6 +558,29 @@ export class IndonesiaGameSession extends GameSession<
         this.hoveredDeliveryRouteKeyOverride = routeKey
     }
 
+    setHoveredPlannedDeliveryRoute(
+        route:
+            | {
+                  zoneId: string
+                  cityId: string
+                  shippingCompanyId: string
+                  seaAreaIds: readonly string[]
+              }
+            | undefined
+    ): void {
+        if (!route) {
+            this.hoveredPlannedDeliveryRouteOverride = undefined
+            return
+        }
+
+        this.hoveredPlannedDeliveryRouteOverride = {
+            zoneId: route.zoneId,
+            cityId: route.cityId,
+            shippingCompanyId: route.shippingCompanyId,
+            seaAreaIds: [...route.seaAreaIds]
+        }
+    }
+
     async deliverGoodForRoute(routeKey: string): Promise<void> {
         if (!this.deliverySelectionEnabled) {
             return
@@ -535,6 +596,36 @@ export class IndonesiaGameSession extends GameSession<
             choice.candidate.shippingCompanyId,
             choice.candidate.seaAreaIds,
             choice.candidate.cityId
+        )
+    }
+
+    async deliverGoodForPlannedRoute(route: {
+        zoneId: string
+        cityId: string
+        shippingCompanyId: string
+        seaAreaIds: readonly string[]
+    }): Promise<void> {
+        if (!this.deliverySelectionEnabled) {
+            return
+        }
+
+        const candidate = this.safeDeliveryCandidates.find(
+            (entry) =>
+                entry.zoneId === route.zoneId &&
+                entry.cityId === route.cityId &&
+                entry.shippingCompanyId === route.shippingCompanyId &&
+                entry.seaAreaIds.length === route.seaAreaIds.length &&
+                entry.seaAreaIds.every((seaAreaId, index) => seaAreaId === route.seaAreaIds[index])
+        )
+        if (!candidate) {
+            return
+        }
+
+        await this.deliverGood(
+            candidate.cultivatedAreaId,
+            candidate.shippingCompanyId,
+            candidate.seaAreaIds,
+            candidate.cityId
         )
     }
 
