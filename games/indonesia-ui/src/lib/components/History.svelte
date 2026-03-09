@@ -6,7 +6,6 @@
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
     import { ActionSource, type GameAction } from '@tabletop/common'
-    import { PlayerName } from '@tabletop/frontend-components'
     import { INDONESIA_REGION_BY_AREA_ID, isGrowCity, isIndonesiaNodeId } from '@tabletop/indonesia'
     import { ClockSolid } from 'flowbite-svelte-icons'
     import { getRegionName } from '$lib/definitions/regions.js'
@@ -19,15 +18,69 @@
     let gameSession = getGameSession()
     let scrollContainer: HTMLDivElement | undefined = $state()
 
-    let reversedActions = $derived.by(() => {
-        const aggregated = Array.from(aggregateActions(gameSession.actions))
-        const reversed = aggregated
-            .toReversed()
-            .toSorted(
-                (a, b) =>
-                    (b.createdAt?.getTime() ?? Date.now()) - (a.createdAt?.getTime() ?? Date.now())
-            )
-        return reversed
+    type PhaseHistoryMarker = {
+        type: 'phase-marker'
+        id: string
+        phaseName: string
+        start: number
+    }
+
+    type HistoryItem = GameAction | PhaseHistoryMarker
+
+    const phaseLabels: Record<string, string> = {
+        NewEra: 'New Era',
+        BidForTurnOrder: 'Bid For Turn Order',
+        Mergers: 'Mergers',
+        Acquisitions: 'Acquisitions',
+        ResearchAndDevelopment: 'Research and Development',
+        Operations: 'Operations',
+        CityGrowth: 'City Growth'
+    }
+
+    function isPhaseHistoryMarker(item: HistoryItem): item is PhaseHistoryMarker {
+        return item.type === 'phase-marker'
+    }
+
+    let historyItems = $derived.by(() => {
+        const aggregatedActions = Array.from(aggregateActions(gameSession.actions))
+        const phaseSeries = [...gameSession.gameState.phaseManager.series].sort(
+            (left, right) => left.start - right.start
+        )
+
+        const items: HistoryItem[] = []
+        let nextPhaseIndex = 0
+
+        for (const action of aggregatedActions) {
+            const actionIndex = action.index ?? Number.MAX_SAFE_INTEGER
+            while (
+                nextPhaseIndex < phaseSeries.length &&
+                phaseSeries[nextPhaseIndex] &&
+                phaseSeries[nextPhaseIndex].start <= actionIndex
+            ) {
+                const phase = phaseSeries[nextPhaseIndex]
+                items.push({
+                    type: 'phase-marker',
+                    id: `phase-${phase.name}-${phase.start}`,
+                    phaseName: phaseLabels[phase.name] ?? phase.name,
+                    start: phase.start
+                })
+                nextPhaseIndex += 1
+            }
+            items.push(action)
+        }
+
+        while (nextPhaseIndex < phaseSeries.length) {
+            const phase = phaseSeries[nextPhaseIndex]
+            items.push({
+                type: 'phase-marker',
+                id: `phase-${phase.name}-${phase.start}`,
+                phaseName: phaseLabels[phase.name] ?? phase.name,
+                start: phase.start
+            })
+            nextPhaseIndex += 1
+        }
+
+        return items.toReversed()
     })
 
     function cityRegionNameForAction(action: GameAction): string | undefined {
@@ -90,7 +143,18 @@
                     </p>
                 </TimelineItem>
             {/if}
-            {#each reversedActions as action, i (action.id)}
+            {#each historyItems as item (item.id)}
+                {#if isPhaseHistoryMarker(item)}
+                    <div
+                        in:fade={{ duration: 200, easing: quartIn }}
+                        out:fade={{ duration: 50 }}
+                        class="mb-4 py-1.5 flex w-full items-center justify-center"
+                    >
+                        <div class="w-full text-center text-sm font-medium uppercase tracking-[0.08em] text-[#7a5d3f]">
+                            ↑ {item.phaseName} ↑
+                        </div>
+                    </div>
+                {:else}
                 <div
                     role="button"
                     tabindex={-1}
@@ -98,7 +162,6 @@
                     onkeypress={() => {}}
                     in:fade={{ duration: 200, easing: quartIn }}
                     out:fade={{ duration: 50 }}
-                    animate:flip={{ duration: 100 }}
                 >
                     <div
                         class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
@@ -110,14 +173,14 @@
                         date=""
                     >
                         <span class="group mb-1 inline-flex items-center gap-2 text-xs text-[#7a5d3f]">
-                            <span>{actionTimeLabel(action)}</span>
-                            {#if canJumpToHistoryAction(action)}
+                            <span>{actionTimeLabel(item)}</span>
+                            {#if canJumpToHistoryAction(item)}
                                 <button
                                     type="button"
                                     class="inline-flex items-center gap-0 rounded px-0 py-0 text-[#7a5d3f] opacity-100 transition-colors hover:bg-[#ad9c80]/12 hover:text-[#5e3f27] focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad9c80]/70"
                                     aria-label="Jump to this action in history"
                                     title="Jump to this action in history"
-                                    onclick={async () => await jumpToHistoryAction(action)}
+                                    onclick={async () => await jumpToHistoryAction(item)}
                                 >
                                     <svg
                                         class="w-[8px] h-[8px] self-center"
@@ -142,15 +205,16 @@
                         </span>
                         <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
                             <ActionDescription
-                                {action}
+                                action={item}
                                 justify="start"
                                 fullWidth={false}
                                 showActor={true}
-                                cityRegionName={cityRegionNameForAction(action)}
+                                cityRegionName={cityRegionNameForAction(item)}
                             />
                         </p>
                     </TimelineItem>
                 </div>
+                {/if}
             {/each}
             <div
                 class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
