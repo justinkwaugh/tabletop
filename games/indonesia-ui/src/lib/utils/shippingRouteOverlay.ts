@@ -634,20 +634,71 @@ function reconstructPath(goalKey: number, parentByKey: ReadonlyMap<number, numbe
     return path.reverse()
 }
 
+function openNodeComesBefore(left: OpenNode, right: OpenNode): boolean {
+    if (left.score !== right.score) {
+        return left.score < right.score
+    }
+
+    return left.key < right.key
+}
+
+function pushOpenNode(openNodes: OpenNode[], node: OpenNode): void {
+    openNodes.push(node)
+
+    let index = openNodes.length - 1
+    while (index > 0) {
+        const parentIndex = Math.floor((index - 1) / 2)
+        if (!openNodeComesBefore(openNodes[index], openNodes[parentIndex])) {
+            break
+        }
+
+        ;[openNodes[index], openNodes[parentIndex]] = [openNodes[parentIndex], openNodes[index]]
+        index = parentIndex
+    }
+}
+
 function popLowestScoreNode(openNodes: OpenNode[]): OpenNode | null {
     if (openNodes.length === 0) {
         return null
     }
 
-    let minIndex = 0
-    for (let index = 1; index < openNodes.length; index += 1) {
-        if (openNodes[index].score < openNodes[minIndex].score) {
-            minIndex = index
-        }
+    const firstNode = openNodes[0] ?? null
+    const lastNode = openNodes.pop()
+    if (openNodes.length === 0 || !lastNode) {
+        return firstNode
     }
 
-    const [node] = openNodes.splice(minIndex, 1)
-    return node ?? null
+    openNodes[0] = lastNode
+
+    let index = 0
+    while (true) {
+        const leftChildIndex = index * 2 + 1
+        const rightChildIndex = leftChildIndex + 1
+        let nextIndex = index
+
+        if (
+            leftChildIndex < openNodes.length &&
+            openNodeComesBefore(openNodes[leftChildIndex], openNodes[nextIndex])
+        ) {
+            nextIndex = leftChildIndex
+        }
+
+        if (
+            rightChildIndex < openNodes.length &&
+            openNodeComesBefore(openNodes[rightChildIndex], openNodes[nextIndex])
+        ) {
+            nextIndex = rightChildIndex
+        }
+
+        if (nextIndex === index) {
+            break
+        }
+
+        ;[openNodes[index], openNodes[nextIndex]] = [openNodes[nextIndex], openNodes[index]]
+        index = nextIndex
+    }
+
+    return firstNode
 }
 
 function findWaterGridPath(
@@ -664,12 +715,11 @@ function findWaterGridPath(
     const startKey = cellToKey(startCell)
     const endKey = cellToKey(endCell)
 
-    const openNodes: OpenNode[] = [
-        {
-            key: startKey,
-            score: heuristicDistance(startCell, endCell)
-        }
-    ]
+    const openNodes: OpenNode[] = []
+    pushOpenNode(openNodes, {
+        key: startKey,
+        score: heuristicDistance(startCell, endCell)
+    })
     const gScoreByKey = new Map<number, number>([[startKey, 0]])
     const parentByKey = new Map<number, number>()
 
@@ -710,7 +760,7 @@ function findWaterGridPath(
             parentByKey.set(neighborKey, node.key)
             gScoreByKey.set(neighborKey, nextGScore)
             const nextScore = nextGScore + heuristicDistance(neighborCell, endCell)
-            openNodes.push({
+            pushOpenNode(openNodes, {
                 key: neighborKey,
                 score: nextScore
             })
