@@ -322,6 +322,50 @@ describe('aggregateActions', () => {
         })
     })
 
+    it('aggregates consecutive turn order bids in sequence', () => {
+        const actions = [
+            {
+                id: 'a1',
+                gameId: 'g1',
+                source: ActionSource.User,
+                type: ActionType.PlaceTurnOrderBid,
+                playerId: 'p1',
+                amount: 4,
+                index: 1
+            } as unknown as GameAction,
+            {
+                id: 'a2',
+                gameId: 'g1',
+                source: ActionSource.User,
+                type: ActionType.PlaceTurnOrderBid,
+                playerId: 'p2',
+                amount: 6,
+                index: 2
+            } as unknown as GameAction,
+            {
+                id: 'a3',
+                gameId: 'g1',
+                source: ActionSource.User,
+                type: ActionType.PlaceTurnOrderBid,
+                playerId: 'p3',
+                amount: 8,
+                index: 3
+            } as unknown as GameAction
+        ]
+
+        const aggregated = Array.from(aggregateActions(actions))
+
+        expect(aggregated).toHaveLength(1)
+        expect(aggregated[0]).toMatchObject({
+            type: 'AggregatedIndonesiaAction',
+            aggregatedType: ActionType.PlaceTurnOrderBid,
+            playerId: 'p1',
+            playerIds: ['p1', 'p2', 'p3'],
+            count: 3,
+            index: 3
+        })
+    })
+
     it('aggregates a production operation choice with its deliveries', () => {
         const actions = [
             chooseOperatingCompanyAction('a0', 'p1', 'Rice', 0),

@@ -8,6 +8,7 @@ import {
     isExpand,
     isPass,
     isPassMergerBid,
+    isPlaceTurnOrderBid,
     isPlaceMergerBid,
     isProposeMerger,
     isRemoveSiapSajiArea
@@ -19,6 +20,7 @@ export type AggregatedIndonesiaActionType =
     | ActionType.Expand
     | ActionType.Pass
     | ActionType.PassMergerBid
+    | ActionType.PlaceTurnOrderBid
     | ActionType.RemoveSiapSajiArea
 
 export type AggregatedIndonesiaAction = GameAction & {
@@ -47,6 +49,9 @@ function aggregatedTypeForAction(action: GameAction): AggregatedIndonesiaActionT
     }
     if (isPassMergerBid(action)) {
         return ActionType.PassMergerBid
+    }
+    if (isPlaceTurnOrderBid(action)) {
+        return ActionType.PlaceTurnOrderBid
     }
     if (isRemoveSiapSajiArea(action)) {
         return ActionType.RemoveSiapSajiArea
@@ -87,7 +92,9 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
         source: first.source,
         type: 'AggregatedIndonesiaAction',
         playerId: first.playerId,
-        ...(aggregatedType === ActionType.PassMergerBid || aggregatedType === ActionType.Pass
+        ...(aggregatedType === ActionType.PassMergerBid ||
+        aggregatedType === ActionType.Pass ||
+        aggregatedType === ActionType.PlaceTurnOrderBid
             ? {
                   playerIds: actions
                       .map((action) => action.playerId)
@@ -187,7 +194,8 @@ export function* aggregateActions(actions: GameAction[]) {
                 currentAggregatedType !== ActionType.ChooseOperatingCompany &&
                 aggregatedType === currentAggregatedType &&
                 ((aggregatedType === ActionType.PassMergerBid ||
-                    aggregatedType === ActionType.Pass) ||
+                    aggregatedType === ActionType.Pass ||
+                    aggregatedType === ActionType.PlaceTurnOrderBid) ||
                     action.playerId === currentPlayerId)
             ) {
                 aggregatedGroup.push(action)

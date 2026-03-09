@@ -128,7 +128,9 @@
                     stroke: overlayStroke,
                     opacity: isShipping ? baseStyle.overlayOpacity : 1,
                     baseTintPatternId:
-                        cardKind === 'spice'
+                        resolvedHatchPatternId
+                            ? null
+                            : cardKind === 'spice'
                             ? DEED_SPICE_BASE_TINT_PATTERN_ID
                             : cardKind === 'siapsaji'
                               ? DEED_SIAPSAJI_BASE_TINT_PATTERN_ID

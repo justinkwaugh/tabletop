@@ -301,6 +301,17 @@
         }
     }
 
+    function turnOrderBidDescription(action: GameAction): string {
+        const bidDisplay = turnOrderBidDisplay(action)
+        if (!bidDisplay) {
+            return 'bid ?'
+        }
+
+        return bidDisplay.multiplier > 1
+            ? `bid ${bidDisplay.total} (${bidDisplay.base} x ${bidDisplay.multiplier})`
+            : `bid ${bidDisplay.total}`
+    }
+
     function researchLevelDisplay(researchArea: ResearchArea, level?: number): string {
         if (level === undefined) {
             return '?'
@@ -608,11 +619,24 @@
         )
     }
 
+    function productionOperationSkippedExpansion(action: GameAction): boolean {
+        return aggregatedPassActions(action).some(
+            (passAction) => passAction.reason === PassReason.FinishOptionalProductionExpansion
+        )
+    }
+
+    function productionOperationHadNoEffect(action: GameAction): boolean {
+        return aggregatedPassActions(action).some(
+            (passAction) => passAction.reason === PassReason.SkipProductionExpansion
+        )
+    }
+
     function aggregatedMergerPassPlayerIds(action: GameAction): string[] {
         if (
             !isAggregatedIndonesiaAction(action) ||
             (action.aggregatedType !== ActionType.PassMergerBid &&
-                action.aggregatedType !== ActionType.Pass)
+                action.aggregatedType !== ActionType.Pass &&
+                action.aggregatedType !== ActionType.PlaceTurnOrderBid)
         ) {
             return []
         }
@@ -620,11 +644,46 @@
         return action.playerIds ?? []
     }
 
+    function aggregatedTurnOrderBidActions(
+        action: GameAction
+    ): Array<{ id: string; playerId: string; description: string }> {
+        if (
+            !isAggregatedIndonesiaAction(action) ||
+            action.aggregatedType !== ActionType.PlaceTurnOrderBid ||
+            typeof action.index !== 'number'
+        ) {
+            return []
+        }
+
+        const lastActionPosition = gameSession.actions.findLastIndex(
+            (candidate) => candidate.index === action.index && isPlaceTurnOrderBid(candidate)
+        )
+        if (lastActionPosition === -1) {
+            return []
+        }
+
+        const bidActions: Array<{ id: string; playerId: string; description: string }> = []
+        for (let position = lastActionPosition; position >= 0; position -= 1) {
+            const candidate = gameSession.actions[position]
+            if (!isPlaceTurnOrderBid(candidate)) {
+                break
+            }
+            bidActions.unshift({
+                id: candidate.id,
+                playerId: candidate.playerId,
+                description: turnOrderBidDescription(candidate)
+            })
+        }
+
+        return bidActions
+    }
+
     function rendersPlayerList(action: GameAction): boolean {
         return (
             isAggregatedIndonesiaAction(action) &&
             (action.aggregatedType === ActionType.ChooseOperatingCompany ||
                 action.aggregatedType === ActionType.Pass ||
+                action.aggregatedType === ActionType.PlaceTurnOrderBid ||
                 action.aggregatedType === ActionType.PassMergerBid)
         )
     }
@@ -677,7 +736,20 @@
                         {#if showActor && action.playerId}
                             <PlayerName playerId={action.playerId} possessive={true} additionalClasses="px-1.5" />
                         {/if}
-                        began operating a {profitSummary.good ? `${goodLabels[profitSummary.good]} ` : ''}company
+                        {profitSummary.good ? `${goodLabels[profitSummary.good]} ` : ''}company
+                        {#if operationInProgress}
+                            began operating
+                        {:else}
+                            operated
+                            {#if expansionSummary}
+                                and expanded into {expansionSummary.count} {expansionSummary.count === 1 ? 'area' : 'areas'}
+                                {expansionSummary.isFree ? 'for free' : `for ${expansionSummary.totalCost}`}
+                            {:else if productionOperationSkippedExpansion(action)}
+                                but chose not to expand
+                            {:else if productionOperationHadNoEffect(action)}
+                                to no effect
+                            {/if}
+                        {/if}
                     </span>
                 {:else}
                     <span>
@@ -794,6 +866,16 @@
                 <PlayerName {playerId} additionalClasses="px-1.5" />
             {/each}
             {' declined to propose a merger'}
+        {:else if action.aggregatedType === ActionType.PlaceTurnOrderBid}
+            <span class="inline-flex flex-col items-start gap-0.5">
+                {#each aggregatedTurnOrderBidActions(action) as bidAction (bidAction.id)}
+                    <span>
+                        <PlayerName playerId={bidAction.playerId} additionalClasses="px-1.5" />
+                        <span class="inline-block w-[2px]"></span>
+                        {bidAction.description}
+                    </span>
+                {/each}
+            </span>
         {:else if action.aggregatedType === ActionType.RemoveSiapSajiArea}
             removed {action.count} Siap Saji {action.count === 1 ? 'area' : 'areas'}
         {:else}
@@ -817,8 +899,8 @@
     {:else if isSetTurnOrder(action)}
         <span class="inline-flex flex-col items-start gap-0.5">
             <span>New turn order</span>
-            {#if action.metadata?.newOrder?.length}
-                <span class="mt-1 inline-flex flex-col items-start gap-0.5 text-[0.78em] leading-tight">
+        {#if action.metadata?.newOrder?.length}
+                <span class="mt-1 inline-flex flex-col items-start gap-0.5 leading-tight">
                     {#each action.metadata.newOrder as playerId}
                         <span><PlayerName {playerId} /></span>
                     {/each}
