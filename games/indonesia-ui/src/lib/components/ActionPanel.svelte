@@ -820,7 +820,7 @@
             }
             case MachineState.BiddingForTurnOrder: {
                 if (gameSession.validActionTypes.includes(ActionType.PlaceTurnOrderBid)) {
-                    return 'Place your turn-order bid.'
+                    return 'Bid for turn order.'
                 }
                 if (gameSession.validActionTypes.includes(ActionType.SetTurnOrder)) {
                     return 'Set the new turn order.'
@@ -1216,64 +1216,64 @@
         <LastHistoryDescription />
     {:else if showTurnOrderBidTracker}
         <div class="bid-tracker-panel">
-            {#if showTurnOrderBidFormula}
-                <form class="bid-formula" onsubmit={submitTurnOrderBid}>
-                    <label class="sr-only" for="turn-order-bid-input">Turn order bid amount</label>
-                    <span class="formula-equation">
-                        <span class={`bid-slot ${bidInputInvalid ? 'is-invalid' : ''}`}>
-                            <input
-                                id="turn-order-bid-input"
-                                class="bid-value-input indonesia-font"
-                                type="text"
-                                inputmode="numeric"
-                                pattern="[0-9]*"
-                                maxlength="4"
-                                autocomplete="off"
-                                spellcheck={false}
-                                value={bidInput}
-                                onbeforeinput={handleBidBeforeInput}
-                                oninput={handleBidInput}
-                            />
-                        </span>
-                        <span class="formula-token">x</span>
-                        <span class="formula-number">{bidResearchMultiplier}</span>
-                        <span class="formula-token">=</span>
-                        <span class="formula-total">{multipliedBidAmount}</span>
-                    </span>
-                    <button type="submit" class="commit-bid" disabled={!canSubmitTurnOrderBid}>
-                        {#if placingTurnOrderBid}
-                            placing...
-                        {:else}
-                            place bid
-                        {/if}
-                    </button>
-                </form>
-            {:else}
-                <span class="bid-tracker-message">{message}</span>
-            {/if}
-
-            {#if submittedTurnOrderBidEntries.length > 0}
-                <div class="bid-tracker-columns" aria-label="Turn order bids">
-                    {#each submittedTurnOrderBidEntries as entry (entry.playerId)}
-                        <div class="bid-player-cell">
-                            <PlayerName
-                                playerId={entry.playerId}
-                                capitalization="none"
-                                additionalClasses="text-[11px] leading-none tracking-[0.02em]"
-                            />
-                        </div>
-                        <div class="bid-value-cell">
-                            <span class="bid-value-text">
-                                <span class="bid-eq-number">{entry.turnOrderBid?.bid}</span>
-                                <span class="bid-eq-token">x</span>
-                                <span class="bid-eq-number">{entry.turnOrderBid?.multiplier}</span>
-                                <span class="bid-eq-token">=</span>
-                                <span class="bid-eq-total">{entry.turnOrderBid?.total}</span>
+            <span class="bid-tracker-message">{message}</span>
+            <div class="bid-tracker-content">
+                {#if showTurnOrderBidFormula}
+                    <form class="bid-formula" onsubmit={submitTurnOrderBid}>
+                        <label class="sr-only" for="turn-order-bid-input">Turn order bid amount</label>
+                        <span class="formula-equation">
+                            <span class={`bid-slot ${bidInputInvalid ? 'is-invalid' : ''}`}>
+                                <input
+                                    id="turn-order-bid-input"
+                                    class="bid-value-input indonesia-font"
+                                    type="text"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                    maxlength="4"
+                                    autocomplete="off"
+                                    spellcheck={false}
+                                    value={bidInput}
+                                    onbeforeinput={handleBidBeforeInput}
+                                    oninput={handleBidInput}
+                                />
                             </span>
-                        </div>
-                    {/each}
-                </div>
-            {/if}
+                            <span class="formula-token">x</span>
+                            <span class="formula-number">{bidResearchMultiplier}</span>
+                            <span class="formula-token">=</span>
+                            <span class="formula-total">{multipliedBidAmount}</span>
+                        </span>
+                        <button type="submit" class="commit-bid" disabled={!canSubmitTurnOrderBid}>
+                            {#if placingTurnOrderBid}
+                                placing...
+                            {:else}
+                                place bid
+                            {/if}
+                        </button>
+                    </form>
+                {/if}
+                {#if submittedTurnOrderBidEntries.length > 0}
+                    <div class="bid-tracker-columns" aria-label="Turn order bids">
+                        {#each submittedTurnOrderBidEntries as entry (entry.playerId)}
+                            <div class="bid-player-cell">
+                                <PlayerName
+                                    playerId={entry.playerId}
+                                    capitalization="none"
+                                    additionalClasses="text-[11px] leading-none tracking-[0.02em]"
+                                />
+                            </div>
+                            <div class="bid-value-cell">
+                                <span class="bid-value-text">
+                                    <span class="bid-eq-number">{entry.turnOrderBid?.bid}</span>
+                                    <span class="bid-eq-token">x</span>
+                                    <span class="bid-eq-number">{entry.turnOrderBid?.multiplier}</span>
+                                    <span class="bid-eq-token">=</span>
+                                    <span class="bid-eq-total">{entry.turnOrderBid?.total}</span>
+                                </span>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
         </div>
     {:else if showOperatingCompanyPicker}
         <div class="operating-company-panel">
@@ -2229,8 +2229,18 @@
     }
 
     .bid-tracker-message {
+        width: 100%;
         font-size: 16px;
         letter-spacing: 0.02em;
+    }
+
+    .bid-tracker-content {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px 30px;
+        width: 100%;
     }
 
     .bid-tracker-columns {
