@@ -242,42 +242,44 @@
             return []
         }
 
-        const overlays: DeliveryShippingRouteOverlay[] = []
-        for (const choice of gameSession.deliveryShippingChoices) {
-            const company = companyById.get(choice.candidate.shippingCompanyId)
-            if (!company) {
-                continue
-            }
-
-            const cityAreaId = cityAreaByCityId.get(choice.candidate.cityId)
-            if (!cityAreaId) {
-                continue
-            }
-
-            const routePath = buildDeliveryShippingRoutePath({
-                cultivatedAreaId: choice.candidate.cultivatedAreaId,
-                cultivatedZoneAreaIds: cultivatedAreaIdsByZoneId.get(choice.candidate.zoneId),
-                firstSeaWaypointCandidates: firstShipWaypointCandidatesForChoice(choice),
-                seaWaypointOverridesByAreaId: seaWaypointOverridesForChoice(choice),
-                blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
-                    choice.candidate.shippingCompanyId
-                ),
-                seaAreaIds: choice.candidate.seaAreaIds,
-                cityAreaId
-            })
-            if (!routePath) {
-                continue
-            }
-
-            overlays.push({
-                routeKey: choice.routeKey,
-                path: routePath,
-                color: gameSession.colors.getPlayerUiColor(company.owner),
-                hovered: choice.routeKey === hoveredDeliveryRouteKey
-            })
+        const hoveredChoice = gameSession.hoveredDeliveryShippingChoice
+        if (!hoveredChoice || hoveredChoice.routeKey !== hoveredDeliveryRouteKey) {
+            return []
         }
 
-        return overlays.filter((overlay) => overlay.routeKey === hoveredDeliveryRouteKey)
+        const company = companyById.get(hoveredChoice.candidate.shippingCompanyId)
+        if (!company) {
+            return []
+        }
+
+        const cityAreaId = cityAreaByCityId.get(hoveredChoice.candidate.cityId)
+        if (!cityAreaId) {
+            return []
+        }
+
+        const routePath = buildDeliveryShippingRoutePath({
+            cultivatedAreaId: hoveredChoice.candidate.cultivatedAreaId,
+            cultivatedZoneAreaIds: cultivatedAreaIdsByZoneId.get(hoveredChoice.candidate.zoneId),
+            firstSeaWaypointCandidates: firstShipWaypointCandidatesForChoice(hoveredChoice),
+            seaWaypointOverridesByAreaId: seaWaypointOverridesForChoice(hoveredChoice),
+            blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
+                hoveredChoice.candidate.shippingCompanyId
+            ),
+            seaAreaIds: hoveredChoice.candidate.seaAreaIds,
+            cityAreaId
+        })
+        if (!routePath) {
+            return []
+        }
+
+        return [
+            {
+                routeKey: hoveredChoice.routeKey,
+                path: routePath,
+                color: gameSession.colors.getPlayerUiColor(company.owner),
+                hovered: true
+            }
+        ]
     })
 
     const BASE_ROUTE_WIDTH = 7.65
