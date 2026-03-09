@@ -36,12 +36,26 @@ type LandShape = {
     }
 }
 
+type SeaShape = {
+    areaId: string
+    path: SVGPathElement
+    bbox: {
+        left: number
+        right: number
+        top: number
+        bottom: number
+    }
+}
+
 type RoutingContext = {
     allowedLandAreaIds: ReadonlySet<string>
     allowedLandAreaIdsSorted: readonly string[]
+    allowedSeaAreaIds: ReadonlySet<string>
+    allowedSeaAreaIdsSorted: readonly string[]
     blockedShipPoints: readonly Point[]
     blockedShipRadius: number
     landInflationPixels: number
+    seaInsetPixels: number
     cacheKey: string
 }
 
@@ -49,6 +63,7 @@ const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 const BOARD_WIDTH = 2646
 const BOARD_HEIGHT = 1280
 const DEFAULT_LAND_INFLATION_PIXELS = 15
+const DEFAULT_SEA_INSET_PIXELS = 0
 const LAND_INFLATION_RETRY_STEPS = [15, 12, 9, 6, 3, 0] as const
 const LONG_DETOUR_RATIO_TRIGGER = 1.45
 const LONG_DETOUR_MIN_EXTRA_PIXELS = 40
@@ -84,6 +99,7 @@ const EIGHT_WAY_NEIGHBORS = [
 
 let hiddenSvgRoot: SVGSVGElement | null = null
 const cachedLandShapesByInflation = new Map<number, readonly LandShape[]>()
+const cachedSeaShapesByInset = new Map<number, readonly SeaShape[]>()
 const blockedCellByKey = new Map<string, boolean>()
 const waterPathByCellPairKey = new Map<string, Point[]>()
 
@@ -277,15 +293,21 @@ function pointToward(from: Point, to: Point, distance: number): Point {
 function createRoutingContext(
     allowedLandAreaIds: readonly string[],
     options?: {
+        allowedSeaAreaIds?: readonly string[]
         blockedShipPoints?: readonly Point[]
         blockedShipRadius?: number
         landInflationPixels?: number
+        seaInsetPixels?: number
     }
 ): RoutingContext {
     const sortedAllowedAreaIds = [...allowedLandAreaIds].sort((a, b) => a.localeCompare(b))
+    const sortedAllowedSeaAreaIds = [...(options?.allowedSeaAreaIds ?? [])].sort((a, b) =>
+        a.localeCompare(b)
+    )
     const blockedShipPoints = [...(options?.blockedShipPoints ?? [])]
     const blockedShipRadius = options?.blockedShipRadius ?? BLOCKED_SHIP_RADIUS
     const landInflationPixels = options?.landInflationPixels ?? DEFAULT_LAND_INFLATION_PIXELS
+    const seaInsetPixels = options?.seaInsetPixels ?? DEFAULT_SEA_INSET_PIXELS
     const blockedShipPointsKey = blockedShipPoints
         .map((point) => `${formatCoordinate(point.x)},${formatCoordinate(point.y)}`)
         .sort((left, right) => left.localeCompare(right))
@@ -294,12 +316,13 @@ function createRoutingContext(
     return {
         allowedLandAreaIds: new Set(sortedAllowedAreaIds),
         allowedLandAreaIdsSorted: sortedAllowedAreaIds,
+        allowedSeaAreaIds: new Set(sortedAllowedSeaAreaIds),
+        allowedSeaAreaIdsSorted: sortedAllowedSeaAreaIds,
         blockedShipPoints,
         blockedShipRadius,
         landInflationPixels,
-        cacheKey: `${sortedAllowedAreaIds.join('|')}::ships:${blockedShipPointsKey}::r:${formatCoordinate(
-            blockedShipRadius
-        )}::land:${formatCoordinate(landInflationPixels)}`
+        seaInsetPixels,
+        cacheKey: `${sortedAllowedAreaIds.join('|')}::sea:${sortedAllowedSeaAreaIds.join('|')}::ships:${blockedShipPointsKey}::r:${formatCoordinate(blockedShipRadius)}::land:${formatCoordinate(landInflationPixels)}::seaInset:${formatCoordinate(seaInsetPixels)}`
     }
 }
 
@@ -373,6 +396,49 @@ function ensureLandShapes(landInflationPixels: number): readonly LandShape[] {
     return shapes
 }
 
+function ensureSeaShapes(seaInsetPixels: number): readonly SeaShape[] {
+    const cachedShapes = cachedSeaShapesByInset.get(seaInsetPixels)
+    if (cachedShapes) {
+        return cachedShapes
+    }
+
+    const root = ensureHiddenSvgRoot()
+    if (!root) {
+        cachedSeaShapesByInset.set(seaInsetPixels, [])
+        return []
+    }
+
+    const shapes: SeaShape[] = []
+    for (const area of ALL_BOARD_AREAS) {
+        if (!area.id.startsWith('S')) {
+            continue
+        }
+
+        const path = document.createElementNS(SVG_NAMESPACE, 'path')
+        path.setAttribute('d', area.path)
+        path.setAttribute('fill', '#000')
+        path.setAttribute('stroke', seaInsetPixels > 0 ? '#000' : 'none')
+        path.setAttribute('stroke-width', `${Math.max(0, seaInsetPixels * 2)}`)
+        path.setAttribute('stroke-linejoin', 'round')
+        root.appendChild(path)
+
+        const bbox = path.getBBox()
+        shapes.push({
+            areaId: area.id,
+            path,
+            bbox: {
+                left: bbox.x,
+                right: bbox.x + bbox.width,
+                top: bbox.y,
+                bottom: bbox.y + bbox.height
+            }
+        })
+    }
+
+    cachedSeaShapesByInset.set(seaInsetPixels, shapes)
+    return shapes
+}
+
 function pointInLand(point: Point, routingContext: RoutingContext): boolean {
     const landShapes = ensureLandShapes(routingContext.landInflationPixels)
     if (landShapes.length === 0 || typeof DOMPoint === 'undefined') {
@@ -402,6 +468,80 @@ function pointInLand(point: Point, routingContext: RoutingContext): boolean {
     return false
 }
 
+function pointInAllowedLand(point: Point, routingContext: RoutingContext): boolean {
+    if (routingContext.allowedLandAreaIdsSorted.length === 0 || typeof DOMPoint === 'undefined') {
+        return false
+    }
+
+    const landShapes = ensureLandShapes(0)
+    if (landShapes.length === 0) {
+        return false
+    }
+
+    const domPoint = new DOMPoint(point.x, point.y)
+    for (const shape of landShapes) {
+        if (!routingContext.allowedLandAreaIds.has(shape.areaId)) {
+            continue
+        }
+
+        if (
+            point.x < shape.bbox.left ||
+            point.x > shape.bbox.right ||
+            point.y < shape.bbox.top ||
+            point.y > shape.bbox.bottom
+        ) {
+            continue
+        }
+
+        if (shape.path.isPointInFill(domPoint) || shape.path.isPointInStroke(domPoint)) {
+            return true
+        }
+    }
+
+    return false
+}
+
+function pointInAllowedSea(point: Point, routingContext: RoutingContext): boolean {
+    if (routingContext.allowedSeaAreaIdsSorted.length === 0 || typeof DOMPoint === 'undefined') {
+        return false
+    }
+
+    const seaShapes = ensureSeaShapes(0)
+    if (seaShapes.length === 0) {
+        return false
+    }
+
+    const domPoint = new DOMPoint(point.x, point.y)
+    for (const shape of seaShapes) {
+        if (!routingContext.allowedSeaAreaIds.has(shape.areaId)) {
+            continue
+        }
+
+        if (
+            point.x < shape.bbox.left ||
+            point.x > shape.bbox.right ||
+            point.y < shape.bbox.top ||
+            point.y > shape.bbox.bottom
+        ) {
+            continue
+        }
+
+        if (shape.path.isPointInFill(domPoint)) {
+            return true
+        }
+    }
+
+    return false
+}
+
+function pointOutsideAllowedSeaSpace(point: Point, routingContext: RoutingContext): boolean {
+    if (routingContext.allowedSeaAreaIdsSorted.length === 0) {
+        return false
+    }
+
+    return !pointInAllowedSea(point, routingContext) && !pointInAllowedLand(point, routingContext)
+}
+
 function pointHitsBlockedShip(point: Point, routingContext: RoutingContext): boolean {
     for (const shipPoint of routingContext.blockedShipPoints) {
         if (pointDistance(point, shipPoint) <= routingContext.blockedShipRadius) {
@@ -413,7 +553,11 @@ function pointHitsBlockedShip(point: Point, routingContext: RoutingContext): boo
 }
 
 function pointIsBlocked(point: Point, routingContext: RoutingContext): boolean {
-    return pointInLand(point, routingContext) || pointHitsBlockedShip(point, routingContext)
+    return (
+        pointInLand(point, routingContext) ||
+        pointHitsBlockedShip(point, routingContext) ||
+        pointOutsideAllowedSeaSpace(point, routingContext)
+    )
 }
 
 function isWaterCell(cell: GridCell, routingContext: RoutingContext): boolean {
@@ -667,9 +811,11 @@ function routingContextWithLandInflation(
     landInflationPixels: number
 ): RoutingContext {
     return createRoutingContext(baseContext.allowedLandAreaIdsSorted, {
+        allowedSeaAreaIds: baseContext.allowedSeaAreaIdsSorted,
         blockedShipPoints: baseContext.blockedShipPoints,
         blockedShipRadius: baseContext.blockedShipRadius,
-        landInflationPixels
+        landInflationPixels,
+        seaInsetPixels: baseContext.seaInsetPixels
     })
 }
 
@@ -1124,6 +1270,7 @@ function pickStartLegByShortestRoute(
             : [input.cultivatedAreaId]
     ).slice()
     const startRoutingContext = createRoutingContext(zoneAreaIds, {
+        allowedSeaAreaIds: input.seaAreaIds.slice(0, 1),
         blockedShipPoints
     })
 
@@ -1201,7 +1348,10 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
 
     const smoothingRoutingContext = createRoutingContext(
         [...(input.cultivatedZoneAreaIds ?? [input.cultivatedAreaId]), input.cityAreaId],
-        { blockedShipPoints: input.blockedShipPoints ?? [] }
+        {
+            allowedSeaAreaIds: input.seaAreaIds,
+            blockedShipPoints: input.blockedShipPoints ?? []
+        }
     )
 
     return pointsToSvgPath(points, {
@@ -1235,8 +1385,14 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         seaWaypoints.push(seaWaypoint)
     }
 
-    const seaRoutingContext = createRoutingContext([], { blockedShipPoints })
-    const targetRoutingContext = createRoutingContext([input.cityAreaId], { blockedShipPoints })
+    const seaRoutingContext = createRoutingContext([], {
+        allowedSeaAreaIds: input.seaAreaIds,
+        blockedShipPoints
+    })
+    const targetRoutingContext = createRoutingContext([input.cityAreaId], {
+        allowedSeaAreaIds: input.seaAreaIds.slice(-1),
+        blockedShipPoints
+    })
 
     const fullRoutePoints: Point[] = []
 
@@ -1287,7 +1443,10 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
 
     const smoothingRoutingContext = createRoutingContext(
         [...(input.cultivatedZoneAreaIds ?? [input.cultivatedAreaId]), input.cityAreaId],
-        { blockedShipPoints }
+        {
+            allowedSeaAreaIds: input.seaAreaIds,
+            blockedShipPoints
+        }
     )
 
     return pointsToSvgPath(fullRoutePoints, {
