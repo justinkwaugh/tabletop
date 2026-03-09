@@ -100,8 +100,12 @@ const EIGHT_WAY_NEIGHBORS = [
 let hiddenSvgRoot: SVGSVGElement | null = null
 const cachedLandShapesByInflation = new Map<number, readonly LandShape[]>()
 const cachedSeaShapesByInset = new Map<number, readonly SeaShape[]>()
-const blockedCellByKey = new Map<string, boolean>()
+const blockedCellStatesByRoutingKey = new Map<string, Uint8Array>()
 const waterPathByCellPairKey = new Map<string, Point[]>()
+
+const CELL_STATE_UNKNOWN = 0
+const CELL_STATE_BLOCKED = 1
+const CELL_STATE_WATER = 2
 
 function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value))
@@ -542,6 +546,17 @@ function pointOutsideAllowedSeaSpace(point: Point, routingContext: RoutingContex
     return !pointInAllowedSea(point, routingContext) && !pointInAllowedLand(point, routingContext)
 }
 
+function blockedCellStatesForRoutingContext(routingContext: RoutingContext): Uint8Array {
+    const cachedStates = blockedCellStatesByRoutingKey.get(routingContext.cacheKey)
+    if (cachedStates) {
+        return cachedStates
+    }
+
+    const states = new Uint8Array(GRID_COLS * GRID_ROWS)
+    blockedCellStatesByRoutingKey.set(routingContext.cacheKey, states)
+    return states
+}
+
 function pointHitsBlockedShip(point: Point, routingContext: RoutingContext): boolean {
     for (const shipPoint of routingContext.blockedShipPoints) {
         if (pointDistance(point, shipPoint) <= routingContext.blockedShipRadius) {
@@ -565,15 +580,16 @@ function isWaterCell(cell: GridCell, routingContext: RoutingContext): boolean {
         return false
     }
 
-    const key = `${routingContext.cacheKey}:${cellToKey(cell)}`
-    const cachedBlocked = blockedCellByKey.get(key)
-    if (cachedBlocked !== undefined) {
-        return !cachedBlocked
+    const cellKey = cellToKey(cell)
+    const blockedCellStates = blockedCellStatesForRoutingContext(routingContext)
+    const cachedState = blockedCellStates[cellKey]
+    if (cachedState !== CELL_STATE_UNKNOWN) {
+        return cachedState === CELL_STATE_WATER
     }
 
     const point = cellToPoint(cell)
     const blocked = pointIsBlocked(point, routingContext)
-    blockedCellByKey.set(key, blocked)
+    blockedCellStates[cellKey] = blocked ? CELL_STATE_BLOCKED : CELL_STATE_WATER
     return !blocked
 }
 
@@ -776,12 +792,21 @@ function segmentStaysOnWater(start: Point, end: Point, routingContext: RoutingCo
         return !pointIsBlocked(start, routingContext)
     }
 
-    const sampleCount = Math.max(1, Math.ceil(segmentLength / SEGMENT_SAMPLE_STEP))
+    const sampleCount = Math.max(1, Math.ceil(segmentLength / Math.max(1, GRID_STEP / 2)))
+    let lastCellKey: number | null = null
     for (let sampleIndex = 0; sampleIndex <= sampleCount; sampleIndex += 1) {
         const samplePoint = pointLerp(start, end, sampleIndex / sampleCount)
-        if (pointIsBlocked(samplePoint, routingContext)) {
+        const sampleCell = pointToCell(samplePoint)
+        const sampleCellKey = cellToKey(sampleCell)
+        if (sampleCellKey === lastCellKey) {
+            continue
+        }
+
+        if (!isWaterCell(sampleCell, routingContext)) {
             return false
         }
+
+        lastCellKey = sampleCellKey
     }
 
     return true
