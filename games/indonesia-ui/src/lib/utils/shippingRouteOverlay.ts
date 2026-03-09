@@ -62,19 +62,13 @@ const MAX_SEARCH_STEPS = 200_000
 const SEGMENT_SAMPLE_STEP = 6
 const CURVE_CORNER_MAX_RADIUS = 26
 const CURVE_CORNER_RATIO = 0.52
-const ACUTE_SHIP_CORNER_MAX_RADIUS = 34
-const ACUTE_SHIP_CORNER_DEGREES = 78
-const ACUTE_SHIP_CORNER_RADIUS_BOOST = 1.35
-const ACUTE_SHIP_CORNER_TRIM_RATIO = 0.72
-const ACUTE_SHIP_CORNER_TRIM_SKEW_ATTEMPTS = [0.4, 0.22, 0] as const
-const ACUTE_SHIP_CORNER_HANDLE_RATIO = 0.74
-const ACUTE_SHIP_CORNER_BIAS_RATIO = 0.62
-const ACUTE_SHIP_CORNER_BIAS_ATTEMPTS = [1, 0.72, 0.45] as const
+const SHIP_WAYPOINT_CENTER_PASS_MAX_RADIUS = 34
+const SHIP_WAYPOINT_CENTER_PASS_RATIO = 0.68
+const SHIP_WAYPOINT_CENTER_PASS_MAX_DEGREES = 125
+const SHIP_WAYPOINT_CENTER_PASS_ENTRY_HANDLE_RATIO = 0.84
+const SHIP_WAYPOINT_CENTER_PASS_CENTER_HANDLE_RATIO = 0.46
+const SHIP_WAYPOINT_ANCHOR_RADIUS = 26
 const CURVE_COLLISION_SAMPLE_STEP = 5
-const CURVE_CLEARANCE_SAMPLE_STEP = 4
-const POINT_CLEARANCE_MAX_RADIUS = 42
-const POINT_CLEARANCE_RADIUS_STEP = 3
-const POINT_CLEARANCE_ANGLE_STEPS = 12
 const BLOCKED_SHIP_RADIUS = 26
 
 const EIGHT_WAY_NEIGHBORS = [
@@ -117,6 +111,51 @@ function polylineLength(points: readonly Point[]): number {
         length += pointDistance(points[index - 1], points[index])
     }
     return length
+}
+
+function cornerAngleDegrees(previous: Point, corner: Point, next: Point): number {
+    const ax = previous.x - corner.x
+    const ay = previous.y - corner.y
+    const bx = next.x - corner.x
+    const by = next.y - corner.y
+    const aLength = Math.hypot(ax, ay)
+    const bLength = Math.hypot(bx, by)
+    if (aLength <= 0 || bLength <= 0) {
+        return 180
+    }
+
+    const cosine = clamp((ax * bx + ay * by) / (aLength * bLength), -1, 1)
+    return (Math.acos(cosine) * 180) / Math.PI
+}
+
+function pointOffset(point: Point, dx: number, dy: number): Point {
+    return {
+        x: point.x + dx,
+        y: point.y + dy
+    }
+}
+
+function normalizeVector(dx: number, dy: number): { x: number; y: number } | null {
+    const length = Math.hypot(dx, dy)
+    if (length <= 0) {
+        return null
+    }
+
+    return {
+        x: dx / length,
+        y: dy / length
+    }
+}
+
+function perpendicularLeft(vector: { x: number; y: number }): { x: number; y: number } {
+    return {
+        x: -vector.y,
+        y: vector.x
+    }
+}
+
+function dotProduct(a: { x: number; y: number }, b: { x: number; y: number }): number {
+    return a.x * b.x + a.y * b.y
 }
 
 function resolveFirstSeaWaypoint(input: DeliveryShippingRoutePathInput): Point | null {
@@ -233,51 +272,6 @@ function pointToward(from: Point, to: Point, distance: number): Point {
         x: from.x + (to.x - from.x) * t,
         y: from.y + (to.y - from.y) * t
     }
-}
-
-function pointOffset(point: Point, dx: number, dy: number): Point {
-    return {
-        x: point.x + dx,
-        y: point.y + dy
-    }
-}
-
-function normalizeVector(dx: number, dy: number): { x: number; y: number } | null {
-    const length = Math.hypot(dx, dy)
-    if (length <= 0) {
-        return null
-    }
-
-    return {
-        x: dx / length,
-        y: dy / length
-    }
-}
-
-function perpendicularLeft(vector: { x: number; y: number }): { x: number; y: number } {
-    return {
-        x: -vector.y,
-        y: vector.x
-    }
-}
-
-function pointEqualsAny(point: Point, candidates: readonly Point[], epsilon = 0.5): boolean {
-    return candidates.some((candidate) => pointsAreNear(point, candidate, epsilon))
-}
-
-function cornerAngleDegrees(previous: Point, corner: Point, next: Point): number {
-    const ax = previous.x - corner.x
-    const ay = previous.y - corner.y
-    const bx = next.x - corner.x
-    const by = next.y - corner.y
-    const aLength = Math.hypot(ax, ay)
-    const bLength = Math.hypot(bx, by)
-    if (aLength <= 0 || bLength <= 0) {
-        return 180
-    }
-
-    const cosine = clamp((ax * bx + ay * by) / (aLength * bLength), -1, 1)
-    return (Math.acos(cosine) * 180) / Math.PI
 }
 
 function createRoutingContext(
@@ -890,176 +884,30 @@ function cubicCurveStaysOnWater(
     return true
 }
 
-function pointWaterClearance(point: Point, routingContext: RoutingContext): number {
-    if (pointIsBlocked(point, routingContext)) {
-        return -1
-    }
-
-    let bestClearance = POINT_CLEARANCE_MAX_RADIUS
-    for (const shipPoint of routingContext.blockedShipPoints) {
-        bestClearance = Math.min(
-            bestClearance,
-            Math.max(0, pointDistance(point, shipPoint) - routingContext.blockedShipRadius)
-        )
-    }
-
-    for (
-        let radius = POINT_CLEARANCE_RADIUS_STEP;
-        radius <= POINT_CLEARANCE_MAX_RADIUS;
-        radius += POINT_CLEARANCE_RADIUS_STEP
-    ) {
-        for (let angleIndex = 0; angleIndex < POINT_CLEARANCE_ANGLE_STEPS; angleIndex += 1) {
-            const angle = (Math.PI * 2 * angleIndex) / POINT_CLEARANCE_ANGLE_STEPS
-            const samplePoint = pointOffset(point, Math.cos(angle) * radius, Math.sin(angle) * radius)
-            if (!pointIsBlocked(samplePoint, routingContext)) {
-                continue
-            }
-
-            return Math.min(bestClearance, Math.max(0, radius - POINT_CLEARANCE_RADIUS_STEP))
+function shipWaypointAnchorPoints(
+    shipCenter: Point,
+    towardPoint: Point
+): { entryPoint: Point; exitPoint: Point } {
+    const direction = normalizeVector(towardPoint.x - shipCenter.x, towardPoint.y - shipCenter.y)
+    if (!direction) {
+        return {
+            entryPoint: shipCenter,
+            exitPoint: shipCenter
         }
-    }
-
-    return bestClearance
-}
-
-type CubicCurveClearance = {
-    average: number
-    minimum: number
-}
-
-function evaluateCubicCurveClearance(
-    start: Point,
-    control1: Point,
-    control2: Point,
-    end: Point,
-    routingContext: RoutingContext
-): CubicCurveClearance | null {
-    const controlPolygonLength =
-        pointDistance(start, control1) +
-        pointDistance(control1, control2) +
-        pointDistance(control2, end)
-    const sampleCount = Math.max(10, Math.ceil(controlPolygonLength / CURVE_CLEARANCE_SAMPLE_STEP))
-
-    let minimumClearance = Number.POSITIVE_INFINITY
-    let totalClearance = 0
-    let sampledPoints = 0
-    for (let sampleIndex = 1; sampleIndex < sampleCount; sampleIndex += 1) {
-        const samplePoint = cubicBezierPoint(
-            start,
-            control1,
-            control2,
-            end,
-            sampleIndex / sampleCount
-        )
-        const clearance = pointWaterClearance(samplePoint, routingContext)
-        if (clearance < 0) {
-            return null
-        }
-
-        minimumClearance = Math.min(minimumClearance, clearance)
-        totalClearance += clearance
-        sampledPoints += 1
     }
 
     return {
-        average: sampledPoints > 0 ? totalClearance / sampledPoints : 0,
-        minimum: Number.isFinite(minimumClearance) ? minimumClearance : 0
+        entryPoint: pointOffset(
+            shipCenter,
+            -direction.x * SHIP_WAYPOINT_ANCHOR_RADIUS,
+            -direction.y * SHIP_WAYPOINT_ANCHOR_RADIUS
+        ),
+        exitPoint: pointOffset(
+            shipCenter,
+            direction.x * SHIP_WAYPOINT_ANCHOR_RADIUS,
+            direction.y * SHIP_WAYPOINT_ANCHOR_RADIUS
+        )
     }
-}
-
-type AcuteCornerCurveCandidate = {
-    biasScore: number
-    trimScore: number
-    entryPoint: Point
-    exitPoint: Point
-    control1: Point
-    control2: Point
-}
-
-function buildAcuteShipCornerCurveCandidates(
-    previous: Point,
-    corner: Point,
-    next: Point,
-    cornerRadius: number,
-    maxEntryDistance: number,
-    maxExitDistance: number
-): AcuteCornerCurveCandidate[] {
-    const candidates: AcuteCornerCurveCandidate[] = []
-
-    for (const trimSkew of ACUTE_SHIP_CORNER_TRIM_SKEW_ATTEMPTS) {
-        const trimPairs =
-            trimSkew > 0
-                ? ([
-                      [1 + trimSkew, 1 - trimSkew],
-                      [1 - trimSkew, 1 + trimSkew]
-                  ] as const)
-                : ([[1, 1]] as const)
-
-        for (const [entryMultiplier, exitMultiplier] of trimPairs) {
-            const entryDistance = Math.min(cornerRadius * entryMultiplier, maxEntryDistance)
-            const exitDistance = Math.min(cornerRadius * exitMultiplier, maxExitDistance)
-            const entryPoint = pointToward(corner, previous, entryDistance)
-            const exitPoint = pointToward(corner, next, exitDistance)
-            const handleDistance =
-                ((entryDistance + exitDistance) / 2) * ACUTE_SHIP_CORNER_HANDLE_RATIO
-            const baseControl1 = pointToward(entryPoint, corner, handleDistance)
-            const baseControl2 = pointToward(exitPoint, corner, handleDistance)
-
-            const incomingDirection = normalizeVector(
-                corner.x - entryPoint.x,
-                corner.y - entryPoint.y
-            )
-            const outgoingDirection = normalizeVector(corner.x - exitPoint.x, corner.y - exitPoint.y)
-            if (!incomingDirection || !outgoingDirection) {
-                candidates.push({
-                    biasScore: 0,
-                    trimScore: Math.abs(entryDistance - exitDistance),
-                    entryPoint,
-                    exitPoint,
-                    control1: baseControl1,
-                    control2: baseControl2
-                })
-                continue
-            }
-
-            const incomingPerpendicular = perpendicularLeft(incomingDirection)
-            const outgoingPerpendicular = perpendicularLeft(outgoingDirection)
-            const biasDistance = Math.max(entryDistance, exitDistance) * ACUTE_SHIP_CORNER_BIAS_RATIO
-
-            for (const biasSign of [-1, 1] as const) {
-                for (const biasScale of ACUTE_SHIP_CORNER_BIAS_ATTEMPTS) {
-                    const scaledBias = biasDistance * biasScale * biasSign
-                    candidates.push({
-                        biasScore: Math.abs(scaledBias),
-                        trimScore: Math.abs(entryDistance - exitDistance),
-                        entryPoint,
-                        exitPoint,
-                        control1: pointOffset(
-                            baseControl1,
-                            incomingPerpendicular.x * scaledBias,
-                            incomingPerpendicular.y * scaledBias
-                        ),
-                        control2: pointOffset(
-                            baseControl2,
-                            outgoingPerpendicular.x * scaledBias,
-                            outgoingPerpendicular.y * scaledBias
-                        )
-                    })
-                }
-            }
-
-            candidates.push({
-                biasScore: 0,
-                trimScore: Math.abs(entryDistance - exitDistance),
-                entryPoint,
-                exitPoint,
-                control1: baseControl1,
-                control2: baseControl2
-            })
-        }
-    }
-
-    return candidates
 }
 
 function seaWaypointForAreaId(seaAreaId: string): Point | null {
@@ -1076,11 +924,15 @@ function seaWaypointForAreaId(seaAreaId: string): Point | null {
     return getPathCenter(areaPath)
 }
 
+function pointEqualsAny(point: Point, candidates: readonly Point[], epsilon = 0.5): boolean {
+    return candidates.some((candidate) => pointsAreNear(point, candidate, epsilon))
+}
+
 function pointsToSvgPath(
     points: readonly Point[],
     options?: {
+        shipWaypointPoints?: readonly Point[]
         routingContext?: RoutingContext
-        acuteCornerPoints?: readonly Point[]
     }
 ): string | null {
     if (points.length === 0) {
@@ -1091,8 +943,8 @@ function pointsToSvgPath(
         return `M ${formatCoordinate(points[0].x)} ${formatCoordinate(points[0].y)}`
     }
 
+    const shipWaypointPoints = options?.shipWaypointPoints ?? []
     const routingContext = options?.routingContext
-    const acuteCornerPoints = options?.acuteCornerPoints ?? []
     const pathCommands: string[] = [`M ${formatCoordinate(points[0].x)} ${formatCoordinate(points[0].y)}`]
     let currentPoint = points[0]
 
@@ -1101,7 +953,8 @@ function pointsToSvgPath(
         const corner = points[index]
         const next = points[index + 1]
 
-        const incomingLength = pointDistance(previous, corner)
+        const visibleIncomingPoint = currentPoint
+        const incomingLength = pointDistance(visibleIncomingPoint, corner)
         const outgoingLength = pointDistance(corner, next)
         if (incomingLength <= 0 || outgoingLength <= 0) {
             if (!pointsAreNear(currentPoint, corner)) {
@@ -1111,22 +964,15 @@ function pointsToSvgPath(
             continue
         }
 
-        const baseCornerRadius = Math.min(
+        const isShipWaypoint = pointEqualsAny(corner, shipWaypointPoints)
+        const shouldUseShipCenterPass =
+            isShipWaypoint &&
+            cornerAngleDegrees(visibleIncomingPoint, corner, next) <= SHIP_WAYPOINT_CENTER_PASS_MAX_DEGREES
+        const cornerRadius = Math.min(
             CURVE_CORNER_MAX_RADIUS,
             incomingLength * CURVE_CORNER_RATIO,
             outgoingLength * CURVE_CORNER_RATIO
         )
-        const isAcuteShipCorner =
-            pointEqualsAny(corner, acuteCornerPoints) &&
-            cornerAngleDegrees(previous, corner, next) <= ACUTE_SHIP_CORNER_DEGREES
-        const cornerRadius = isAcuteShipCorner
-            ? Math.min(
-                  ACUTE_SHIP_CORNER_MAX_RADIUS,
-                  baseCornerRadius * ACUTE_SHIP_CORNER_RADIUS_BOOST,
-                  incomingLength * ACUTE_SHIP_CORNER_TRIM_RATIO,
-                  outgoingLength * ACUTE_SHIP_CORNER_TRIM_RATIO
-              )
-            : baseCornerRadius
         if (cornerRadius <= 0) {
             if (!pointsAreNear(currentPoint, corner)) {
                 pathCommands.push(`L ${formatCoordinate(corner.x)} ${formatCoordinate(corner.y)}`)
@@ -1135,81 +981,99 @@ function pointsToSvgPath(
             continue
         }
 
-        const entryPoint = pointToward(corner, previous, cornerRadius)
-        const exitPoint = pointToward(corner, next, cornerRadius)
-
-        if (isAcuteShipCorner && routingContext) {
-            let bestCandidate:
-                | (AcuteCornerCurveCandidate & {
-                      averageClearance: number
-                      minimumClearance: number
-                  })
-                | null = null
-            for (const candidate of buildAcuteShipCornerCurveCandidates(
-                previous,
-                corner,
-                next,
-                cornerRadius,
-                incomingLength * ACUTE_SHIP_CORNER_TRIM_RATIO,
-                outgoingLength * ACUTE_SHIP_CORNER_TRIM_RATIO
-            )) {
-                if (
-                    !cubicCurveStaysOnWater(
-                        candidate.entryPoint,
-                        candidate.control1,
-                        candidate.control2,
-                        candidate.exitPoint,
-                        routingContext
-                    )
-                ) {
-                    continue
-                }
-
-                const clearance = evaluateCubicCurveClearance(
-                    candidate.entryPoint,
-                    candidate.control1,
-                    candidate.control2,
-                    candidate.exitPoint,
-                    routingContext
-                )
-                if (!clearance) {
-                    continue
-                }
-
-                if (
-                    !bestCandidate ||
-                    clearance.minimum > bestCandidate.minimumClearance + 0.25 ||
-                    (Math.abs(clearance.minimum - bestCandidate.minimumClearance) <= 0.25 &&
-                        clearance.average > bestCandidate.averageClearance + 0.25) ||
-                    (Math.abs(clearance.minimum - bestCandidate.minimumClearance) <= 0.25 &&
-                        Math.abs(clearance.average - bestCandidate.averageClearance) <= 0.25 &&
-                        candidate.trimScore > bestCandidate.trimScore) ||
-                    (Math.abs(clearance.minimum - bestCandidate.minimumClearance) <= 0.25 &&
-                        Math.abs(clearance.average - bestCandidate.averageClearance) <= 0.25 &&
-                        candidate.trimScore === bestCandidate.trimScore &&
-                        candidate.biasScore > bestCandidate.biasScore)
-                ) {
-                    bestCandidate = {
-                        ...candidate,
-                        averageClearance: clearance.average,
-                        minimumClearance: clearance.minimum
-                    }
+        if (shouldUseShipCenterPass) {
+            const centerPassRadius = Math.min(
+                SHIP_WAYPOINT_CENTER_PASS_MAX_RADIUS,
+                incomingLength * SHIP_WAYPOINT_CENTER_PASS_RATIO,
+                outgoingLength * SHIP_WAYPOINT_CENTER_PASS_RATIO
+            )
+            const entryPoint = pointToward(corner, visibleIncomingPoint, centerPassRadius)
+            const exitPoint = pointToward(corner, next, centerPassRadius)
+            const previousFromCorner = normalizeVector(
+                visibleIncomingPoint.x - corner.x,
+                visibleIncomingPoint.y - corner.y
+            )
+            const nextFromCorner = normalizeVector(next.x - corner.x, next.y - corner.y)
+            const interiorBisector =
+                previousFromCorner && nextFromCorner
+                    ? normalizeVector(
+                          previousFromCorner.x + nextFromCorner.x,
+                          previousFromCorner.y + nextFromCorner.y
+                      )
+                    : null
+            const overallDirection = normalizeVector(next.x - previous.x, next.y - previous.y)
+            let centerTangent =
+                interiorBisector !== null
+                    ? perpendicularLeft(interiorBisector)
+                    : overallDirection
+            if (centerTangent && overallDirection && dotProduct(centerTangent, overallDirection) < 0) {
+                centerTangent = {
+                    x: -centerTangent.x,
+                    y: -centerTangent.y
                 }
             }
 
-            if (bestCandidate) {
-                if (!pointsAreNear(currentPoint, bestCandidate.entryPoint)) {
-                    pathCommands.push(
-                        `L ${formatCoordinate(bestCandidate.entryPoint.x)} ${formatCoordinate(bestCandidate.entryPoint.y)}`
-                    )
-                }
-                pathCommands.push(
-                    `C ${formatCoordinate(bestCandidate.control1.x)} ${formatCoordinate(bestCandidate.control1.y)} ${formatCoordinate(bestCandidate.control2.x)} ${formatCoordinate(bestCandidate.control2.y)} ${formatCoordinate(bestCandidate.exitPoint.x)} ${formatCoordinate(bestCandidate.exitPoint.y)}`
+            if (centerTangent && centerPassRadius > 0) {
+                const entryHandle = pointToward(
+                    entryPoint,
+                    corner,
+                    centerPassRadius * SHIP_WAYPOINT_CENTER_PASS_ENTRY_HANDLE_RATIO
                 )
-                currentPoint = bestCandidate.exitPoint
-                continue
+                const exitHandle = pointToward(
+                    exitPoint,
+                    corner,
+                    centerPassRadius * SHIP_WAYPOINT_CENTER_PASS_ENTRY_HANDLE_RATIO
+                )
+                const centerHandleDistance =
+                    centerPassRadius * SHIP_WAYPOINT_CENTER_PASS_CENTER_HANDLE_RATIO
+                const centerIncomingHandle = pointOffset(
+                    corner,
+                    -centerTangent.x * centerHandleDistance,
+                    -centerTangent.y * centerHandleDistance
+                )
+                const centerOutgoingHandle = pointOffset(
+                    corner,
+                    centerTangent.x * centerHandleDistance,
+                    centerTangent.y * centerHandleDistance
+                )
+
+                const centerPassIsValid =
+                    !routingContext ||
+                    (cubicCurveStaysOnWater(
+                        entryPoint,
+                        entryHandle,
+                        centerIncomingHandle,
+                        corner,
+                        routingContext
+                    ) &&
+                        cubicCurveStaysOnWater(
+                            corner,
+                            centerOutgoingHandle,
+                            exitHandle,
+                            exitPoint,
+                            routingContext
+                        ))
+
+                if (centerPassIsValid) {
+                    if (!pointsAreNear(currentPoint, entryPoint)) {
+                        pathCommands.push(
+                            `L ${formatCoordinate(entryPoint.x)} ${formatCoordinate(entryPoint.y)}`
+                        )
+                    }
+                    pathCommands.push(
+                        `C ${formatCoordinate(entryHandle.x)} ${formatCoordinate(entryHandle.y)} ${formatCoordinate(centerIncomingHandle.x)} ${formatCoordinate(centerIncomingHandle.y)} ${formatCoordinate(corner.x)} ${formatCoordinate(corner.y)}`
+                    )
+                    pathCommands.push(
+                        `C ${formatCoordinate(centerOutgoingHandle.x)} ${formatCoordinate(centerOutgoingHandle.y)} ${formatCoordinate(exitHandle.x)} ${formatCoordinate(exitHandle.y)} ${formatCoordinate(exitPoint.x)} ${formatCoordinate(exitPoint.y)}`
+                    )
+                    currentPoint = exitPoint
+                    continue
+                }
             }
         }
+
+        const entryPoint = pointToward(corner, visibleIncomingPoint, cornerRadius)
+        const exitPoint = pointToward(corner, next, cornerRadius)
 
         if (!pointsAreNear(currentPoint, entryPoint)) {
             pathCommands.push(`L ${formatCoordinate(entryPoint.x)} ${formatCoordinate(entryPoint.y)}`)
@@ -1327,7 +1191,23 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
         appendPointIfNeeded(points, cityPoint)
     }
 
-    return pointsToSvgPath(points)
+    const seaWaypoints = input.seaAreaIds
+        .map((seaAreaId, seaAreaIndex) =>
+            seaAreaIndex === 0
+                ? resolveFirstSeaWaypoint(input) ?? resolveSeaWaypointForArea(input, seaAreaId)
+                : resolveSeaWaypointForArea(input, seaAreaId)
+        )
+        .filter((point): point is Point => point !== null)
+
+    const smoothingRoutingContext = createRoutingContext(
+        [...(input.cultivatedZoneAreaIds ?? [input.cultivatedAreaId]), input.cityAreaId],
+        { blockedShipPoints: input.blockedShipPoints ?? [] }
+    )
+
+    return pointsToSvgPath(points, {
+        shipWaypointPoints: seaWaypoints,
+        routingContext: smoothingRoutingContext
+    })
 }
 
 export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathInput): string | null {
@@ -1365,13 +1245,21 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
     appendPathSegment(fullRoutePoints, startSegment)
 
     for (let index = 1; index < seaWaypoints.length; index += 1) {
-        const from = seaWaypoints[index - 1]
-        const to = seaWaypoints[index]
-        const seaSegment = routeThroughWaterWithAdaptiveLandInflation(from, to, seaRoutingContext)
+        const fromCenter = seaWaypoints[index - 1]
+        const toCenter = seaWaypoints[index]
+        const fromAnchors = shipWaypointAnchorPoints(fromCenter, toCenter)
+        const toAnchors = shipWaypointAnchorPoints(toCenter, fromCenter)
+        const seaSegment = routeThroughWaterWithAdaptiveLandInflation(
+            fromAnchors.exitPoint,
+            toAnchors.entryPoint,
+            seaRoutingContext
+        )
         if (!seaSegment) {
             return null
         }
+        appendPointIfNeeded(fullRoutePoints, fromCenter)
         appendPathSegment(fullRoutePoints, seaSegment)
+        appendPointIfNeeded(fullRoutePoints, toCenter)
     }
 
     const cityPoint = resolveLandMarkerPosition(input.cityAreaId)
@@ -1403,7 +1291,7 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
     )
 
     return pointsToSvgPath(fullRoutePoints, {
-        routingContext: smoothingRoutingContext,
-        acuteCornerPoints: seaWaypoints
+        shipWaypointPoints: seaWaypoints,
+        routingContext: smoothingRoutingContext
     })
 }
