@@ -2463,7 +2463,7 @@
         column-gap: 7px;
         row-gap: 0;
         width: 100%;
-        border: 1px solid rgba(93, 68, 40, 0.14);
+        border: 1px solid rgba(96, 71, 43, 0.44);
         border-radius: 10px;
         background: rgba(255, 255, 255, 0.38);
         padding: 2px 10px;
@@ -2512,29 +2512,37 @@
         margin: -2px 0 -2px -10px;
         padding: 0 12px;
         border: 0;
-        border-right: 1px solid rgba(94, 63, 39, 0.18);
-        border-radius: 10px 0 0 10px;
-        background: rgba(255, 255, 255, 0.72);
-        color: rgba(71, 53, 33, 0.92);
+        border-right: 1px solid rgba(96, 71, 43, 0.44);
+        border-radius: 0;
+        background: linear-gradient(
+            180deg,
+            rgba(250, 241, 220, 0.86),
+            rgba(219, 198, 163, 0.78)
+        );
+        box-shadow: inset 0 1px 0 rgba(255, 251, 242, 0.7);
+        color: #3d2d1d;
         font-size: 12px;
         line-height: 1;
         font-weight: 700;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         transition:
-            background-color 120ms ease,
-            border-color 120ms ease;
+            background 140ms ease,
+            opacity 140ms ease;
     }
 
     .planned-delivery-ship-button:hover:enabled,
     .planned-delivery-ship-button:focus-visible {
-        background: rgba(255, 255, 255, 0.9);
-        border-color: rgba(94, 63, 39, 0.34);
+        background: linear-gradient(
+            180deg,
+            rgba(255, 246, 226, 0.92),
+            rgba(228, 208, 174, 0.82)
+        );
         outline: none;
     }
 
     .planned-delivery-ship-button:disabled {
-        opacity: 0.55;
+        opacity: 0.45;
         cursor: default;
     }
 
