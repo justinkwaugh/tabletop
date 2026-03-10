@@ -25,6 +25,17 @@
 
     const gameSession = getGameSession()
     const HOVER_COMPANY_DEEDS_BRIGHTNESS = 0.74
+    const GROUPED_ISLAND_OVERLAY_AREA_IDS = new Set([
+        'A05',
+        'A09',
+        'A26',
+        'D13',
+        'C18',
+        'C19',
+        'C20',
+        'F06',
+        'F07'
+    ])
 
     type DeedCardEntry = {
         key: string
@@ -117,8 +128,9 @@
                         ? DEED_UNSTARTED_PRODUCTION_DENSE_DOT_PATTERN_ID
                         : DEED_UNSTARTED_PRODUCTION_DOT_PATTERN_ID
                     : legacyHatchPatternId
-                const hasAdjacentConflict =
-                    !isShipping && legacyHatchPatternId === 'deed-hatch-production'
+                const overlayOpacity =
+                    (GROUPED_ISLAND_OVERLAY_AREA_IDS.has(areaId) ? 0.7 : 1) *
+                    (isShipping ? baseStyle.overlayOpacity : 1)
                 overlays.push({
                     key: `${deed.id}-${areaId}`,
                     deedId: deed.id,
@@ -126,7 +138,7 @@
                     areaId,
                     fill: overlayFill,
                     stroke: overlayStroke,
-                    opacity: isShipping ? baseStyle.overlayOpacity : 1,
+                    opacity: overlayOpacity,
                     hatchPatternId: resolvedHatchPatternId
                 })
             }

@@ -12,12 +12,24 @@
         fillColor: string
         borderColor: string
         overlayPatternId: string | null
+        opacity: number
     }
 
     const gameSession = getGameSession()
 
     const CULTIVATED_AREA_FILL_OPACITY = 1
     const CULTIVATED_AREA_STROKE_WIDTH = 3
+    const GROUPED_ISLAND_OVERLAY_AREA_IDS = new Set([
+        'A05',
+        'A09',
+        'A26',
+        'D13',
+        'C18',
+        'C19',
+        'C20',
+        'F06',
+        'F07'
+    ])
     const HATCH_PATTERN_IDS = [
         'cultivated-hatch-diag-0',
         'cultivated-hatch-diag-1',
@@ -118,7 +130,8 @@
                 areaId: area.id,
                 fillColor: renderByGoods ? goodsStyle.fill : ownerColor,
                 borderColor: renderByGoods ? goodsStyle.stroke : shadeHexColor(ownerColor, 0.38),
-                overlayPatternId: conflictHatchPatternId ?? baseGoodsPatternId
+                overlayPatternId: conflictHatchPatternId ?? baseGoodsPatternId,
+                opacity: GROUPED_ISLAND_OVERLAY_AREA_IDS.has(area.id) ? 0.7 : 1
             })
         }
 
@@ -268,6 +281,7 @@
             stroke={cultivated.borderColor}
             fillOpacity={CULTIVATED_AREA_FILL_OPACITY}
             strokeWidth={CULTIVATED_AREA_STROKE_WIDTH}
+            opacity={cultivated.opacity}
         />
         {#if cultivated.overlayPatternId}
             <Area
@@ -276,6 +290,7 @@
                 stroke="transparent"
                 fillOpacity={1}
                 strokeWidth={0}
+                opacity={cultivated.opacity}
             />
         {/if}
     {/each}
