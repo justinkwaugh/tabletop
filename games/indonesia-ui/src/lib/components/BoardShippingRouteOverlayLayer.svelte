@@ -238,6 +238,16 @@
         return areaIdsByZoneId
     })
 
+    const cultivatedZoneAreaIdsByCultivatedAreaId: Map<string, string[]> = $derived.by(() => {
+        const areaIdsByCultivatedAreaId = new Map<string, string[]>()
+        for (const areaIds of cultivatedAreaIdsByZoneId.values()) {
+            for (const areaId of areaIds) {
+                areaIdsByCultivatedAreaId.set(areaId, areaIds)
+            }
+        }
+        return areaIdsByCultivatedAreaId
+    })
+
     const hoveredDeliveryRoute: HoveredDeliveryRoute | null = $derived.by(() => {
         const plannedRoute = gameSession.hoveredPlannedDeliveryRoute
         if (plannedRoute) {
@@ -285,7 +295,9 @@
 
         const routePath = buildDeliveryShippingRoutePath({
             cultivatedAreaId: hoveredDeliveryRoute.cultivatedAreaId,
-            cultivatedZoneAreaIds: cultivatedAreaIdsByZoneId.get(hoveredDeliveryRoute.zoneId),
+            cultivatedZoneAreaIds:
+                cultivatedZoneAreaIdsByCultivatedAreaId.get(hoveredDeliveryRoute.cultivatedAreaId) ??
+                cultivatedAreaIdsByZoneId.get(hoveredDeliveryRoute.zoneId),
             firstSeaWaypointCandidates: firstShipWaypointCandidatesForRoute(hoveredDeliveryRoute),
             seaWaypointOverridesByAreaId: seaWaypointOverridesForRoute(hoveredDeliveryRoute),
             blockedShipPoints: blockedShipPointsByShippingCompanyId.get(

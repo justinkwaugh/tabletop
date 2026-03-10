@@ -135,6 +135,32 @@
         }
     }
 
+    function removedDeedLabel(action: GameAction): string {
+        if (!isRemoveCompanyDeed(action)) {
+            return 'company'
+        }
+
+        const deed = action.metadata?.deed
+        if (!deed) {
+            return 'company'
+        }
+
+        if (deed.type === CompanyType.Shipping) {
+            return 'shipping'
+        }
+
+        return deed.good ? goodLabels[deed.good] : 'company'
+    }
+
+    function removedDeedRegionName(action: GameAction): string {
+        if (!isRemoveCompanyDeed(action)) {
+            return 'unknown region'
+        }
+
+        const regionId = action.metadata?.deed?.region
+        return regionId ? getRegionName(regionId) : 'unknown region'
+    }
+
     function companyLabel(companyType?: CompanyType, good?: Good): string {
         if (companyType === CompanyType.Production) {
             return `${good ? `${goodLabels[good]} ` : ''}company`
@@ -996,9 +1022,9 @@
     {:else if isGrowCity(action)}
         The city in {cityRegionName ?? 'unknown region'} grew to size {action.metadata?.newSize ?? '?'}
     {:else if isRemoveCompanyDeed(action)}
-        removed unavailable deed {action.deedId}
+        Removed {removedDeedLabel(action)} deed from {removedDeedRegionName(action)}
     {:else if action.type === ActionType.RemoveCompanyDeed}
-        removed unavailable deed
+        Removed company deed
     {:else}
         performed {action.type}
     {/if}

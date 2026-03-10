@@ -4,7 +4,7 @@
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
-    import { Good, MachineState } from '@tabletop/indonesia'
+    import { ActionType, Good, MachineState } from '@tabletop/indonesia'
 
     type BeadTone = 'amber' | 'green' | 'red'
 
@@ -194,7 +194,15 @@
     const hasHoveredRouteCity: boolean = $derived.by(() => hoveredRouteCityAreaId !== null)
 
     const shouldDimDemandTagsForCompanyHover: boolean = $derived.by(() => {
-        return gameSession.activeCompanySpotlightCompanyIds.length > 0
+        if (gameSession.activeCompanySpotlightCompanyIds.length > 0) {
+            return true
+        }
+
+        return (
+            gameSession.validActionTypes.includes(ActionType.Expand) &&
+            (gameSession.gameState.machineState === MachineState.ShippingOperations ||
+                gameSession.gameState.machineState === MachineState.ProductionOperations)
+        )
     })
 </script>
 

@@ -1,7 +1,6 @@
 <script lang="ts">
     import Area from '$lib/components/Area.svelte'
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
-    import { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
     import {
         BOARD_DEED_CARD_CORNER_RX,
@@ -29,10 +28,11 @@
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
     const PRODUCTION_HOVER_SPOTLIGHT_MASK_ID = 'production-company-hover-spotlight-mask'
+    const EXPANSION_SELECTION_SPOTLIGHT_MASK_ID = 'expansion-selection-spotlight-mask'
+    const CITY_PLACEMENT_SPOTLIGHT_MASK_ID = 'city-placement-spotlight-mask'
     const DELIVERY_ZONE_OUTLINE_MASK_ID = 'delivery-zone-outline-mask'
     const DELIVERY_ZONE_INNER_OUTLINE_MASK_ID = 'delivery-zone-inner-outline-mask'
     const DELIVERY_ZONE_HOVER_OUTLINE_MASK_ID = 'delivery-zone-hover-outline-mask'
-    const SHIPPING_HIGHLIGHT_STYLE = companyDeedStyleForType('ship')
 
     type AreaInteractionAction =
         | 'place-city'
@@ -596,6 +596,10 @@
         return gameSession.activeCompanySpotlightCompanyIds
     })
 
+    const hasActiveCompanySpotlight: boolean = $derived.by(() => {
+        return hoveredSpotlightCompanyIds.length > 0
+    })
+
     const hoveredProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
         if (hoveredSpotlightCompanyIds.length === 0) {
             return []
@@ -719,6 +723,24 @@
         return (
             hoveredCompanySpotlightAreaIds.length > 0 ||
             hoveredAvailableDeedOverlayAreaIds.length > 0
+        )
+    })
+
+    const shouldRenderExpansionSelectionSpotlightMask: boolean = $derived.by(() => {
+        return (
+            activeAreaInteraction?.action === 'expand' &&
+            interactiveValidAreaIds.length > 0 &&
+            !hasHoveredRoutePreview &&
+            !hasActiveCompanySpotlight
+        )
+    })
+
+    const shouldRenderCityPlacementSpotlightMask: boolean = $derived.by(() => {
+        return (
+            activeAreaInteraction?.action === 'place-city' &&
+            interactiveValidAreaIds.length > 0 &&
+            !hasHoveredRoutePreview &&
+            !hasActiveCompanySpotlight
         )
     })
 
@@ -957,7 +979,12 @@
     }
 </script>
 
-{#if activeAreaInteraction || startCompanySelectionEnabled || shouldRenderBoardSpotlightMask || hasHoveredRoutePreview}
+{#if activeAreaInteraction ||
+    startCompanySelectionEnabled ||
+    shouldRenderBoardSpotlightMask ||
+    shouldRenderExpansionSelectionSpotlightMask ||
+    shouldRenderCityPlacementSpotlightMask ||
+    hasHoveredRoutePreview}
     <g class="select-none" aria-label="Board action areas layer">
         {#if shouldRenderBoardSpotlightMask}
             <defs>
@@ -1021,6 +1048,50 @@
             {/each}
         {/if}
 
+        {#if shouldRenderExpansionSelectionSpotlightMask}
+            <defs>
+                <mask id={EXPANSION_SELECTION_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
+                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
+                    {#each interactiveValidAreaIds as areaId (areaId)}
+                        <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                    {/each}
+                </mask>
+            </defs>
+
+            <rect
+                x="0"
+                y="0"
+                width={BOARD_WIDTH}
+                height={BOARD_HEIGHT}
+                fill="#000000"
+                fill-opacity="0.34"
+                mask={`url(#${EXPANSION_SELECTION_SPOTLIGHT_MASK_ID})`}
+                pointer-events="none"
+            />
+        {/if}
+
+        {#if shouldRenderCityPlacementSpotlightMask}
+            <defs>
+                <mask id={CITY_PLACEMENT_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
+                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
+                    {#each interactiveValidAreaIds as areaId (areaId)}
+                        <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                    {/each}
+                </mask>
+            </defs>
+
+            <rect
+                x="0"
+                y="0"
+                width={BOARD_WIDTH}
+                height={BOARD_HEIGHT}
+                fill="#000000"
+                fill-opacity="0.34"
+                mask={`url(#${CITY_PLACEMENT_SPOTLIGHT_MASK_ID})`}
+                pointer-events="none"
+            />
+        {/if}
+
         {#if hasHoveredRoutePreview}
             {#each hoveredRoutePreviewDimmedLandAreaIds as areaId (areaId)}
                 <Area
@@ -1035,26 +1106,68 @@
 
         {#if activeAreaInteraction}
             {#if activeAreaInteraction.action === 'expand' &&
-                activeAreaInteraction.maskedAreaType === IndonesiaAreaType.Sea &&
-                !hasHoveredRoutePreview}
+                !hasHoveredRoutePreview &&
+                !hasActiveCompanySpotlight}
                 {#each interactiveValidAreaIds as areaId (areaId)}
                     <Area
                         areaId={areaId}
-                        fill={SHIPPING_HIGHLIGHT_STYLE.overlayFill}
-                        stroke={SHIPPING_HIGHLIGHT_STYLE.overlayStroke}
-                        fillOpacity="1"
-                        fillRule="evenodd"
-                        strokeWidth="1.9"
+                        fill="none"
+                        stroke="#fff8d7"
+                        fillOpacity="0"
+                        strokeWidth="6.2"
                         strokeLineJoin="round"
                         strokeLineCap="round"
-                        opacity={SHIPPING_HIGHLIGHT_STYLE.overlayOpacity}
+                        opacity="0.9"
+                        pointer-events="none"
+                    />
+                    <Area
+                        areaId={areaId}
+                        fill="none"
+                        stroke="#1f2937"
+                        fillOpacity="0"
+                        strokeWidth="2.1"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
+                        opacity="0.88"
+                        pointer-events="none"
+                    />
+                {/each}
+            {/if}
+
+            {#if activeAreaInteraction.action === 'place-city' &&
+                !hasHoveredRoutePreview &&
+                !hasActiveCompanySpotlight}
+                {#each interactiveValidAreaIds as areaId (areaId)}
+                    <Area
+                        areaId={areaId}
+                        fill="none"
+                        stroke="#fff8d7"
+                        fillOpacity="0"
+                        strokeWidth="6.2"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
+                        opacity="0.9"
+                        pointer-events="none"
+                    />
+                    <Area
+                        areaId={areaId}
+                        fill="none"
+                        stroke="#1f2937"
+                        fillOpacity="0"
+                        strokeWidth="2.1"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
+                        opacity="0.88"
                         pointer-events="none"
                     />
                 {/each}
             {/if}
 
             {#if !hasHoveredRoutePreview &&
-                activeAreaInteraction.action !== 'select-delivery-cultivated'}
+                !hasActiveCompanySpotlight &&
+                activeAreaInteraction.action !== 'select-delivery-cultivated' &&
+                activeAreaInteraction.action !== 'expand' &&
+                activeAreaInteraction.action !== 'place-city'}
                 {#each maskedAreaIds as areaId (areaId)}
                     <Area
                         areaId={areaId}
