@@ -160,6 +160,8 @@
     }
 
     let selectedPlannedRouteOptionKeyByRowKey = $state<Record<string, string>>({})
+    let selectedPlannedRouteOptionOrderByRowKey = $state<Record<string, number>>({})
+    let nextPlannedRouteOptionOrder = $state(0)
 
     const turnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() => {
         const bidByPlayerId = gameSession.gameState.turnOrderBids ?? {}
@@ -930,6 +932,29 @@
         return `${route.shippingCompanyId}|${route.seaAreaIds.join('>')}`
     }
 
+    function canUsePlannedDeliveryRouteOption(
+        remainingCapacityByShipUseKey: ReadonlyMap<string, number>,
+        routeOption: PlannedDeliveryRouteOption,
+        quantity: number
+    ): boolean {
+        return routeOption.seaAreaIds.every((seaAreaId) => {
+            const shipUseKey = `${routeOption.shippingCompanyId}|${seaAreaId}`
+            return (remainingCapacityByShipUseKey.get(shipUseKey) ?? 0) >= quantity
+        })
+    }
+
+    function applyPlannedDeliveryRouteOptionUsage(
+        remainingCapacityByShipUseKey: Map<string, number>,
+        routeOption: PlannedDeliveryRouteOption,
+        quantity: number
+    ): void {
+        for (const seaAreaId of routeOption.seaAreaIds) {
+            const shipUseKey = `${routeOption.shippingCompanyId}|${seaAreaId}`
+            const currentRemainingCapacity = remainingCapacityByShipUseKey.get(shipUseKey) ?? 0
+            remainingCapacityByShipUseKey.set(shipUseKey, currentRemainingCapacity - quantity)
+        }
+    }
+
     const plannedDeliveryRows: PlannedDeliveryRow[] = $derived.by(() => {
         if (!showProductionOperationsPanel) {
             return []
@@ -1036,7 +1061,46 @@
             )
         }
 
-        const remainingRows = deliveryPlan.deliveries
+        const remainingShipCapacityByShipUseKey = new Map<string, number>()
+        for (const area of Object.values(gameSession.gameState.board.areas)) {
+            if (!('ships' in area) || area.ships.length === 0 || !isIndonesiaNodeId(area.id)) {
+                continue
+            }
+
+            const shipCountByCompanyId = new Map<string, number>()
+            for (const shippingCompanyId of area.ships) {
+                shipCountByCompanyId.set(
+                    shippingCompanyId,
+                    (shipCountByCompanyId.get(shippingCompanyId) ?? 0) + 1
+                )
+            }
+
+            for (const [shippingCompanyId, shipCount] of shipCountByCompanyId.entries()) {
+                const shippingCompany = companyById.get(shippingCompanyId)
+                if (!shippingCompany) {
+                    continue
+                }
+
+                const capacityPerShip =
+                    1 + gameSession.gameState.getPlayerState(shippingCompany.owner).research.hull
+                const totalCapacity = shipCount * capacityPerShip
+                const usedCapacity = gameSession.gameState.operatingCompanyShipUseCount(
+                    shippingCompanyId,
+                    area.id
+                )
+                const remainingCapacity = Math.max(0, totalCapacity - usedCapacity)
+                if (remainingCapacity <= 0) {
+                    continue
+                }
+
+                remainingShipCapacityByShipUseKey.set(
+                    `${shippingCompanyId}|${area.id}`,
+                    remainingCapacity
+                )
+            }
+        }
+
+        const baseRemainingRows = deliveryPlan.deliveries
             .map((delivery, index) => {
                 const rowKey = plannedDeliveryRowKey({
                     zoneId: delivery.zoneId,
@@ -1114,43 +1178,140 @@
                     })
                 }
 
-                const routeOptions = [...routeOptionByShippingCompanyId.values()].sort((left, right) => {
-                    const leftIsPlanned = left.key === plannedRouteOptionKey
-                    const rightIsPlanned = right.key === plannedRouteOptionKey
-                    if (leftIsPlanned !== rightIsPlanned) {
-                        return leftIsPlanned ? -1 : 1
-                    }
-                    return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
-                })
-                const selectedRoute =
-                    routeOptions.find(
-                        (option) =>
-                            option.key === selectedPlannedRouteOptionKeyByRowKey[rowKey]
-                    ) ??
-                    routeOptions.find((option) => option.key === plannedRouteOptionKey) ??
-                    routeOptions[0]
-
                 return {
                     key: rowKey,
                     zoneId: delivery.zoneId,
                     cityId: delivery.cityId,
-                    shippingCompanyId: selectedRoute.shippingCompanyId,
-                    seaAreaIds: selectedRoute.seaAreaIds,
                     quantity: delivery.quantity,
-                    shipCount: selectedRoute.shipCount,
-                    shippingCost: selectedRoute.shippingCost,
-                    profit:
-                        delivery.quantity * GOOD_REVENUE_BY_GOOD[deliveryPlan.good] -
-                        selectedRoute.shippingCost,
                     destinationLabel: cityDestinationLabel(delivery.cityId),
                     required: requiredQuantity > 0,
                     requiredQuantity,
-                    shipped: false,
-                    routeOptions,
-                    selectedRoute,
+                    plannedRouteOptionKey,
+                    routeOptions: [...routeOptionByShippingCompanyId.values()].sort((left, right) => {
+                        const leftIsPlanned = left.key === plannedRouteOptionKey
+                        const rightIsPlanned = right.key === plannedRouteOptionKey
+                        if (leftIsPlanned !== rightIsPlanned) {
+                            return leftIsPlanned ? -1 : 1
+                        }
+                        return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
+                    }),
                     index
                 }
             })
+
+        const baseRemainingRowByKey = new Map(baseRemainingRows.map((row) => [row.key, row]))
+        const acceptedTentativeRouteOptionByRowKey = new Map<string, PlannedDeliveryRouteOption>()
+        const explicitlySelectedRouteOptions = Object.entries(selectedPlannedRouteOptionKeyByRowKey)
+            .map(([rowKey, routeOptionKey]) => {
+                const row = baseRemainingRowByKey.get(rowKey)
+                if (!row) {
+                    return null
+                }
+
+                const routeOption = row.routeOptions.find((option) => option.key === routeOptionKey)
+                if (!routeOption) {
+                    return null
+                }
+
+                return {
+                    rowKey,
+                    routeOption,
+                    quantity: row.quantity,
+                    order: selectedPlannedRouteOptionOrderByRowKey[rowKey] ?? 0
+                }
+            })
+            .filter(
+                (
+                    selection
+                ): selection is {
+                    rowKey: string
+                    routeOption: PlannedDeliveryRouteOption
+                    quantity: number
+                    order: number
+                } => selection !== null
+            )
+            .sort((left, right) => right.order - left.order)
+
+        const remainingCapacityAfterTentativeSelections = new Map(remainingShipCapacityByShipUseKey)
+        for (const selection of explicitlySelectedRouteOptions) {
+            if (
+                !canUsePlannedDeliveryRouteOption(
+                    remainingCapacityAfterTentativeSelections,
+                    selection.routeOption,
+                    selection.quantity
+                )
+            ) {
+                continue
+            }
+
+            acceptedTentativeRouteOptionByRowKey.set(selection.rowKey, selection.routeOption)
+            applyPlannedDeliveryRouteOptionUsage(
+                remainingCapacityAfterTentativeSelections,
+                selection.routeOption,
+                selection.quantity
+            )
+        }
+
+        const remainingRows = baseRemainingRows
+            .map((baseRow) => {
+                const remainingCapacityForRow = new Map(remainingShipCapacityByShipUseKey)
+                for (const [selectedRowKey, selectedRouteOption] of acceptedTentativeRouteOptionByRowKey) {
+                    if (selectedRowKey === baseRow.key) {
+                        continue
+                    }
+
+                    const selectedRow = baseRemainingRowByKey.get(selectedRowKey)
+                    if (!selectedRow) {
+                        continue
+                    }
+
+                    applyPlannedDeliveryRouteOptionUsage(
+                        remainingCapacityForRow,
+                        selectedRouteOption,
+                        selectedRow.quantity
+                    )
+                }
+
+                const routeOptions = baseRow.routeOptions.filter((routeOption) =>
+                    canUsePlannedDeliveryRouteOption(
+                        remainingCapacityForRow,
+                        routeOption,
+                        baseRow.quantity
+                    )
+                )
+                const selectedRoute =
+                    acceptedTentativeRouteOptionByRowKey.get(baseRow.key) ??
+                    routeOptions.find(
+                        (option) => option.key === baseRow.plannedRouteOptionKey
+                    ) ??
+                    routeOptions[0]
+
+                if (!selectedRoute) {
+                    return null
+                }
+
+                return {
+                    key: baseRow.key,
+                    zoneId: baseRow.zoneId,
+                    cityId: baseRow.cityId,
+                    shippingCompanyId: selectedRoute.shippingCompanyId,
+                    seaAreaIds: selectedRoute.seaAreaIds,
+                    quantity: baseRow.quantity,
+                    shipCount: selectedRoute.shipCount,
+                    shippingCost: selectedRoute.shippingCost,
+                    profit:
+                        baseRow.quantity * GOOD_REVENUE_BY_GOOD[deliveryPlan.good] -
+                        selectedRoute.shippingCost,
+                    destinationLabel: baseRow.destinationLabel,
+                    required: baseRow.required,
+                    requiredQuantity: baseRow.requiredQuantity,
+                    shipped: false,
+                    routeOptions,
+                    selectedRoute,
+                    index: baseRow.index
+                }
+            })
+            .filter((row): row is PlannedDeliveryRow & { index: number } => row !== null)
             .sort((left, right) => {
                 if (left.required !== right.required) {
                     return left.required ? -1 : 1
@@ -1170,10 +1331,14 @@
             if (Object.keys(selectedPlannedRouteOptionKeyByRowKey).length > 0) {
                 selectedPlannedRouteOptionKeyByRowKey = {}
             }
+            if (Object.keys(selectedPlannedRouteOptionOrderByRowKey).length > 0) {
+                selectedPlannedRouteOptionOrderByRowKey = {}
+            }
             return
         }
 
         const nextSelections: Record<string, string> = {}
+        const nextSelectionOrders: Record<string, number> = {}
         let changed = false
         for (const [rowKey, routeKey] of Object.entries(selectedPlannedRouteOptionKeyByRowKey)) {
             const row = plannedDeliveryRows.find((entry) => entry.key === rowKey && !entry.shipped)
@@ -1186,10 +1351,18 @@
                 continue
             }
             nextSelections[rowKey] = routeKey
+            nextSelectionOrders[rowKey] = selectedPlannedRouteOptionOrderByRowKey[rowKey] ?? 0
         }
 
         if (changed || Object.keys(nextSelections).length !== Object.keys(selectedPlannedRouteOptionKeyByRowKey).length) {
             selectedPlannedRouteOptionKeyByRowKey = nextSelections
+        }
+        if (
+            changed ||
+            Object.keys(nextSelectionOrders).length !==
+                Object.keys(selectedPlannedRouteOptionOrderByRowKey).length
+        ) {
+            selectedPlannedRouteOptionOrderByRowKey = nextSelectionOrders
         }
     })
 
@@ -1912,9 +2085,15 @@
                                                         })
                                                     }}
                                                     onclick={() => {
+                                                        const nextOrder = nextPlannedRouteOptionOrder + 1
+                                                        nextPlannedRouteOptionOrder = nextOrder
                                                         selectedPlannedRouteOptionKeyByRowKey = {
                                                             ...selectedPlannedRouteOptionKeyByRowKey,
                                                             [row.key]: routeOption.key
+                                                        }
+                                                        selectedPlannedRouteOptionOrderByRowKey = {
+                                                            ...selectedPlannedRouteOptionOrderByRowKey,
+                                                            [row.key]: nextOrder
                                                         }
                                                         setPlannedDeliveryHover({
                                                             zoneId: routeOption.zoneId,
