@@ -60,7 +60,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0 10px;
+        padding: 12px 10px;
     }
 
     .history-last-action-line {

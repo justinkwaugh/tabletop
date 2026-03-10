@@ -104,6 +104,7 @@
 
     const startCompanySelectionEnabled: boolean = $derived.by(() => {
         return (
+            !gameSession.suppressBoardEffectsForHistory &&
             !!myPlayerId &&
             gameSession.isMyTurn &&
             gameSession.gameState.machineState === MachineState.Acquisitions &&
@@ -113,6 +114,7 @@
 
     const canApplyStartCompanyAction: boolean = $derived.by(() => {
         return (
+            !gameSession.suppressBoardEffectsForHistory &&
             !!myPlayerId &&
             gameSession.isMyTurn &&
             gameSession.gameState.machineState === MachineState.Acquisitions
@@ -392,6 +394,10 @@
     })
 
     const activeAreaInteraction: ActiveAreaInteraction | null = $derived.by(() => {
+        if (gameSession.suppressBoardEffectsForHistory) {
+            return null
+        }
+
         if (
             myPlayerId &&
             gameSession.isMyTurn &&

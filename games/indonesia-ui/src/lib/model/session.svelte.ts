@@ -70,6 +70,7 @@ export class IndonesiaGameSession extends GameSession<
     hoveredDeliveryCityAreaIdOverride: string | undefined = $state()
     hoveredDeliveryRouteKeyOverride: string | undefined = $state()
     hoveredPlannedDeliveryRouteOverride: PlannedDeliveryRouteHover | undefined = $state()
+    suppressBoardEffectsForHistory = $derived(this.isViewingHistory)
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
     researchSelectionEnabled = $derived.by(
@@ -131,6 +132,10 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     activeCompanySpotlightCompanyIds: string[] = $derived.by(() => {
+        if (this.suppressBoardEffectsForHistory) {
+            return []
+        }
+
         if (this.hoveredCompanySpotlightCompanyIds.length > 0) {
             return this.hoveredCompanySpotlightCompanyIds
         }
@@ -158,6 +163,10 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     hoveredAvailableDeedId: string | null = $derived.by(() => {
+        if (this.suppressBoardEffectsForHistory) {
+            return null
+        }
+
         const hoveredDeedId = this.hoveredAvailableDeedIdOverride
         if (!hoveredDeedId) {
             return null
@@ -202,6 +211,7 @@ export class IndonesiaGameSession extends GameSession<
 
     deliverySelectionEnabled = $derived.by(
         () =>
+            !this.suppressBoardEffectsForHistory &&
             this.isMyTurn &&
             this.gameState.machineState === MachineState.ProductionOperations &&
             this.validActionTypes.includes(ActionType.DeliverGood)
@@ -390,6 +400,10 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     hoveredPlannedDeliveryRoute: PlannedDeliveryRouteHover | null = $derived.by(() => {
+        if (this.suppressBoardEffectsForHistory) {
+            return null
+        }
+
         const hoveredRoute = this.hoveredPlannedDeliveryRouteOverride
         if (!hoveredRoute || this.gameState.machineState !== MachineState.ProductionOperations) {
             return null
@@ -430,6 +444,10 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     hoveredRoutePreview: HoveredRoutePreviewState | null = $derived.by(() => {
+        if (this.suppressBoardEffectsForHistory) {
+            return null
+        }
+
         const cityAreaByCityId = new Map(
             this.gameState.board.cities.map((city) => [city.id, city.area] as const)
         )

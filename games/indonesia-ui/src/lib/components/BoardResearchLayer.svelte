@@ -79,7 +79,9 @@
     }
 
     const showResearchAdvanceHighlights: boolean = $derived.by(
-        () => gameSession.gameState.machineState === MachineState.ResearchAndDevelopment
+        () =>
+            !gameSession.suppressBoardEffectsForHistory &&
+            gameSession.gameState.machineState === MachineState.ResearchAndDevelopment
     )
 
     const selectedResearchPlayerState: (typeof gameSession.gameState.players)[number] | null = $derived.by(
@@ -124,6 +126,10 @@
     )
 
     const hoveredResearchCellHighlights: ResearchNextCellHighlight[] = $derived.by(() => {
+        if (gameSession.suppressBoardEffectsForHistory) {
+            return []
+        }
+
         if (!hoveredResearchPlayerState) {
             return []
         }

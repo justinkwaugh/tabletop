@@ -170,7 +170,11 @@
     })
 
     const isSelectingDeliveryCity: boolean = $derived.by(() => {
-        return gameSession.deliverySelectionEnabled && gameSession.deliverySelectionStage === 'city'
+        return (
+            !gameSession.suppressBoardEffectsForHistory &&
+            gameSession.deliverySelectionEnabled &&
+            gameSession.deliverySelectionStage === 'city'
+        )
     })
 
     const hoveredDeliveryCityAreaId: string | null = $derived.by(() => {
@@ -194,6 +198,10 @@
     const hasHoveredRouteCity: boolean = $derived.by(() => hoveredRouteCityAreaId !== null)
 
     const shouldDimDemandTagsForCompanyHover: boolean = $derived.by(() => {
+        if (gameSession.suppressBoardEffectsForHistory) {
+            return false
+        }
+
         if (gameSession.activeCompanySpotlightCompanyIds.length > 0) {
             return true
         }

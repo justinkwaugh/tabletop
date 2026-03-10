@@ -156,9 +156,14 @@
     const DEED_CARD_ENTRIES: DeedCardEntry[] = $derived(DEED_LAYER_DATA.cards)
     const DEED_OVERLAY_AREAS: OverlayArea[] = $derived(DEED_LAYER_DATA.overlays)
     const showAllDeedOverlays: boolean = $derived(
-        gameSession.gameState.machineState === MachineState.Acquisitions
+        !gameSession.suppressBoardEffectsForHistory &&
+            gameSession.gameState.machineState === MachineState.Acquisitions
     )
     const showDeedsDuringExpansionSelection: boolean = $derived.by(() => {
+        if (gameSession.suppressBoardEffectsForHistory) {
+            return false
+        }
+
         const state = gameSession.gameState.machineState
         const inExpansionSubstate =
             state === MachineState.ShippingOperations || state === MachineState.ProductionOperations
@@ -174,6 +179,9 @@
     })
     const visibleDeedOverlayAreas: OverlayArea[] = $derived.by(() =>
         DEED_OVERLAY_AREAS.filter((overlay) => {
+            if (gameSession.suppressBoardEffectsForHistory) {
+                return false
+            }
             if (showAllDeedOverlays) {
                 return true
             }
@@ -196,6 +204,9 @@
     })
 
     const shouldDarkenDeedMarkersForCompanyHover: boolean = $derived.by(() => {
+        if (gameSession.suppressBoardEffectsForHistory) {
+            return false
+        }
         return gameSession.activeCompanySpotlightCompanyIds.length > 0
     })
 </script>

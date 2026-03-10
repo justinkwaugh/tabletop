@@ -723,6 +723,8 @@
     const containerClass = $derived(
         fullWidth ? `inline-flex w-full items-center ${justifyClass}` : 'inline'
     )
+    const operationSummaryAlignClass = $derived(justify === 'center' ? 'items-center' : 'items-start')
+    const operationSummaryCardAlignClass = $derived(justify === 'center' ? 'self-center' : 'self-start')
 </script>
 
 <span class={`${containerClass} ${casingClass}`}>
@@ -742,7 +744,7 @@
             {@const chooseAction = aggregatedChooseOperatingCompanyAction(action)}
             {@const operationInProgress = operationSummaryIsInProgress(action)}
             {@const skippedExpansion = operationSummaryHasSkipExpandPass(action)}
-            <span class="inline-flex flex-col items-start gap-1 text-left align-top">
+            <span class={`inline-flex flex-col gap-1 text-left align-top ${operationSummaryAlignClass}`}>
                 {#if chooseAction?.metadata?.companyType === CompanyType.Shipping}
                     <span>
                         {#if showActor && action.playerId}
@@ -798,10 +800,12 @@
                     </span>
                 {/if}
                 {#if chooseAction?.metadata?.companyType === CompanyType.Production && action.count > 0 && shippingPayouts.length > 0}
-                    <span class="mt-0.5 flex w-full self-stretch flex-col items-start gap-1 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
+                    <span
+                        class={`mt-2.5 flex w-fit max-w-[25rem] flex-col items-start gap-1 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${operationSummaryCardAlignClass}`}
+                    >
                         <span class="mt-1 mb-[0.0625rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Sale Details</span>
-                        <span class="flex w-full flex-col items-start gap-1">
-                            <span class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
+                        <span class="flex flex-col items-start gap-1">
+                            <span class="grid grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
                                 <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3 justify-items-center">
                                     <span class="flex items-center justify-center">
                                         {#if simpleGoodIconSrc(profitSummary.good)}
@@ -842,7 +846,7 @@
                         </span>
                         {#if shippingPayouts.length > 0}
                             <span class="mt-3 mb-[-0.125rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Shipping Details</span>
-                            <span class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
+                            <span class="grid grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
                                 <span></span>
                                 <span class="flex items-center justify-center">
                                     <img
