@@ -136,7 +136,6 @@
     const maxCompanySlots = $derived(1 + playerState.research.slots)
     const openCompanySlots = $derived(Math.max(0, maxCompanySlots - ownedCompanies.length))
     const openCompanySlotIndexes = $derived(Array.from({ length: openCompanySlots }, (_, index) => index))
-    const openSlotsLabel = $derived(openCompanySlots === 1 ? 'OPEN SLOT' : 'OPEN SLOTS')
     // Temporary preview toggle for the empty companies treatment.
     const showNoCompaniesPreview = false
 </script>
@@ -206,7 +205,6 @@
 
             <div class="player-section-header player-section-header-companies" aria-hidden="true">
                 <span class="player-section-dash" aria-hidden="true"></span>
-                <span class="player-section-title-meta">{openCompanySlots} {openSlotsLabel}</span>
             </div>
 
             {#if !showNoCompaniesPreview && (companyCards.length > 0 || openCompanySlots > 0)}
@@ -465,6 +463,7 @@
     .player-section-header-companies {
         width: 100%;
         column-gap: 6px;
+        margin-bottom: 8px;
     }
 
     .player-section-dash {
