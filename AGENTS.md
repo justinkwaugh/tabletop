@@ -9,6 +9,9 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
   - `Back` should only unwind manual local selection.
   - `Undo` should undo committed actions and must skip auto transient selections.
   - Avoid effect-based suppression loops for Undo behavior; source-tag selection (`auto`/`manual`) and decide deterministically.
+- Auto gameplay steps are system/backend actions, not client behavior.
+  - Do not trigger committed game actions from Svelte `$effect`s or other reactive UI loops.
+  - UI may preselect, preview, or stage a recommended action locally, but only explicit user input or a server/system action should commit it.
 
 ## City Demand UI Idea (Saved)
 

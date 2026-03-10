@@ -114,6 +114,7 @@
         cityId: string
         shippingCompanyId: string
         seaAreaIds: readonly string[]
+        cultivatedAreaId?: string
         shipCount: number
         shippingCost: number
     }
@@ -915,6 +916,7 @@
                                 cityId: action.cityId,
                                 shippingCompanyId: action.shippingCompanyId,
                                 seaAreaIds: action.seaAreaIds,
+                                cultivatedAreaId: action.cultivatedAreaId,
                                 shipCount: action.seaAreaIds.length,
                                 shippingCost:
                                     action.metadata?.shippingCost ??
@@ -930,6 +932,7 @@
                             cityId: action.cityId,
                             shippingCompanyId: action.shippingCompanyId,
                             seaAreaIds: action.seaAreaIds,
+                            cultivatedAreaId: action.cultivatedAreaId,
                             shipCount: action.seaAreaIds.length,
                             shippingCost:
                                 action.metadata?.shippingCost ??
@@ -1015,6 +1018,7 @@
                         cityId: candidate.cityId,
                         shippingCompanyId: candidate.shippingCompanyId,
                         seaAreaIds: candidate.seaAreaIds,
+                        cultivatedAreaId: candidate.cultivatedAreaId,
                         shipCount: candidate.seaAreaIds.length,
                         shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
                     })
@@ -1027,6 +1031,7 @@
                         cityId: delivery.cityId,
                         shippingCompanyId: delivery.shippingCompanyId,
                         seaAreaIds: delivery.seaPathAreaIds,
+                        cultivatedAreaId: undefined,
                         shipCount: delivery.seaPathAreaIds.length,
                         shippingCost:
                             delivery.seaPathAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
@@ -1677,28 +1682,24 @@
                             <div
                                 class={`planned-delivery-row ${row.required ? 'is-required' : ''} ${row.shipped ? 'is-shipped' : ''}`}
                                 onmouseenter={() => {
-                                    if (row.shipped) {
-                                        return
-                                    }
                                     gameSession.setHoveredPlannedDeliveryRoute({
                                         zoneId: row.zoneId,
                                         cityId: row.cityId,
                                         shippingCompanyId: row.shippingCompanyId,
-                                        seaAreaIds: row.seaAreaIds
+                                        seaAreaIds: row.seaAreaIds,
+                                        cultivatedAreaId: row.selectedRoute.cultivatedAreaId
                                     })
                                 }}
                                 onmouseleave={() => {
                                     gameSession.setHoveredPlannedDeliveryRoute(undefined)
                                 }}
                                 onfocus={() => {
-                                    if (row.shipped) {
-                                        return
-                                    }
                                     gameSession.setHoveredPlannedDeliveryRoute({
                                         zoneId: row.zoneId,
                                         cityId: row.cityId,
                                         shippingCompanyId: row.shippingCompanyId,
-                                        seaAreaIds: row.seaAreaIds
+                                        seaAreaIds: row.seaAreaIds,
+                                        cultivatedAreaId: row.selectedRoute.cultivatedAreaId
                                     })
                                 }}
                                 onblur={() => {
@@ -1803,7 +1804,8 @@
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
                                                             shippingCompanyId: routeOption.shippingCompanyId,
-                                                            seaAreaIds: routeOption.seaAreaIds
+                                                            seaAreaIds: routeOption.seaAreaIds,
+                                                            cultivatedAreaId: routeOption.cultivatedAreaId
                                                         })
                                                     }}
                                                     onmouseleave={() => {
@@ -1811,7 +1813,8 @@
                                                             zoneId: row.selectedRoute.zoneId,
                                                             cityId: row.selectedRoute.cityId,
                                                             shippingCompanyId: row.selectedRoute.shippingCompanyId,
-                                                            seaAreaIds: row.selectedRoute.seaAreaIds
+                                                            seaAreaIds: row.selectedRoute.seaAreaIds,
+                                                            cultivatedAreaId: row.selectedRoute.cultivatedAreaId
                                                         })
                                                     }}
                                                     onfocus={() => {
@@ -1819,7 +1822,8 @@
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
                                                             shippingCompanyId: routeOption.shippingCompanyId,
-                                                            seaAreaIds: routeOption.seaAreaIds
+                                                            seaAreaIds: routeOption.seaAreaIds,
+                                                            cultivatedAreaId: routeOption.cultivatedAreaId
                                                         })
                                                     }}
                                                     onblur={() => {
@@ -1827,7 +1831,8 @@
                                                             zoneId: row.selectedRoute.zoneId,
                                                             cityId: row.selectedRoute.cityId,
                                                             shippingCompanyId: row.selectedRoute.shippingCompanyId,
-                                                            seaAreaIds: row.selectedRoute.seaAreaIds
+                                                            seaAreaIds: row.selectedRoute.seaAreaIds,
+                                                            cultivatedAreaId: row.selectedRoute.cultivatedAreaId
                                                         })
                                                     }}
                                                     onclick={() => {
@@ -1839,7 +1844,8 @@
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
                                                             shippingCompanyId: routeOption.shippingCompanyId,
-                                                            seaAreaIds: routeOption.seaAreaIds
+                                                            seaAreaIds: routeOption.seaAreaIds,
+                                                            cultivatedAreaId: routeOption.cultivatedAreaId
                                                         })
                                                     }}
                                                 >
@@ -2480,7 +2486,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
+        gap: 0;
         min-width: 92px;
         height: 40px;
         color: rgba(71, 53, 33, 0.9);

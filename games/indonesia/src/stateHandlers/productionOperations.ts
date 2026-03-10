@@ -7,7 +7,7 @@ import {
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
+import { DeliverGood, HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import {
@@ -74,6 +74,7 @@ export class ProductionOperationsStateHandler
 
     enter(context: MachineContext<HydratedIndonesiaGameState>) {
         this.solveAndStoreOperatingCompanyDeliveryPlan(context.gameState)
+        this.queueRequiredDeliveryIfNeeded(context)
     }
 
     onAction(
@@ -84,12 +85,23 @@ export class ProductionOperationsStateHandler
         switch (true) {
             case isDeliverGood(action): {
                 this.solveAndStoreOperatingCompanyDeliveryPlan(state, { force: true })
+                this.queueRequiredDeliveryIfNeeded(context)
 
-                if (HydratedDeliverGood.canDeliverGood(state, action.playerId)) {
+                const actingPlayerId = this.operatingCompanyOwnerId(state)
+                assertExists(
+                    actingPlayerId,
+                    'Operating company owner should exist after a delivery in ProductionOperations'
+                )
+
+                if (HydratedDeliverGood.requiredSystemCandidate(state)) {
                     return MachineState.ProductionOperations
                 }
 
-                if (HydratedExpand.canExpand(state, action.playerId)) {
+                if (HydratedDeliverGood.canDeliverGood(state, actingPlayerId)) {
+                    return MachineState.ProductionOperations
+                }
+
+                if (HydratedExpand.canExpand(state, actingPlayerId)) {
                     return MachineState.ProductionOperations
                 }
 
@@ -163,6 +175,64 @@ export class ProductionOperationsStateHandler
 
         state.setOperatingCompanyDeliveryPlan(nextPlan)
         state.setOperatingCompanyProducedGoodsCount(producedGoodsCount)
+    }
+
+    private queueRequiredDeliveryIfNeeded(
+        context: MachineContext<HydratedIndonesiaGameState>
+    ): void {
+        const ownerPlayerId = this.operatingCompanyOwnerId(context.gameState)
+        if (!ownerPlayerId) {
+            return
+        }
+
+        const requiredCandidate = HydratedDeliverGood.requiredSystemCandidate(context.gameState)
+        if (!requiredCandidate) {
+            return
+        }
+
+        if (this.hasPendingRequiredDelivery(context, requiredCandidate, ownerPlayerId)) {
+            return
+        }
+
+        context.addSystemAction(DeliverGood, {
+            playerId: ownerPlayerId,
+            cultivatedAreaId: requiredCandidate.cultivatedAreaId,
+            shippingCompanyId: requiredCandidate.shippingCompanyId,
+            seaAreaIds: requiredCandidate.seaAreaIds,
+            cityId: requiredCandidate.cityId
+        })
+    }
+
+    private hasPendingRequiredDelivery(
+        context: MachineContext<HydratedIndonesiaGameState>,
+        requiredCandidate: ReturnType<typeof HydratedDeliverGood.requiredSystemCandidate>,
+        ownerPlayerId: string
+    ): boolean {
+        if (!requiredCandidate) {
+            return false
+        }
+
+        return context.getPendingActions().some(
+            (pendingAction) =>
+                isDeliverGood(pendingAction) &&
+                pendingAction.playerId === ownerPlayerId &&
+                pendingAction.cultivatedAreaId === requiredCandidate.cultivatedAreaId &&
+                pendingAction.shippingCompanyId === requiredCandidate.shippingCompanyId &&
+                pendingAction.cityId === requiredCandidate.cityId &&
+                pendingAction.seaAreaIds.length === requiredCandidate.seaAreaIds.length &&
+                pendingAction.seaAreaIds.every(
+                    (seaAreaId, index) => seaAreaId === requiredCandidate.seaAreaIds[index]
+                )
+        )
+    }
+
+    private operatingCompanyOwnerId(state: HydratedIndonesiaGameState): string | undefined {
+        const operatingCompanyId = state.operatingCompanyId
+        if (!operatingCompanyId) {
+            return undefined
+        }
+
+        return state.companies.find((company) => company.id === operatingCompanyId)?.owner
     }
 
     private mergeProgressIntoDeliveryPlan(

@@ -13,6 +13,7 @@ import { MachineState } from '../definition/states.js'
 import {
     isSafeAtomicDeliveryChoiceForPlayer,
     listSafeAtomicDeliveryCandidatesForPlayer,
+    type AtomicDeliveryCandidate,
     type AtomicDeliveryChoice
 } from '../operations/deliveryCandidates.js'
 import { isIndonesiaNodeId } from '../utils/indonesiaNodes.js'
@@ -38,7 +39,7 @@ export const DeliverGood = Type.Evaluate(
         Type.Omit(GameAction, ['playerId']),
         Type.Object({
             type: Type.Literal(ActionType.DeliverGood),
-            playerId: Type.String(),
+            playerId: Type.Optional(Type.String()),
             metadata: Type.Optional(DeliverGoodMetadata),
             cultivatedAreaId: Type.String(),
             shippingCompanyId: Type.String(),
@@ -56,7 +57,7 @@ export function isDeliverGood(action?: GameAction): action is DeliverGood {
 
 export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> implements DeliverGood {
     declare type: ActionType.DeliverGood
-    declare playerId: string
+    declare playerId?: string
     declare metadata?: DeliverGoodMetadata
     declare cultivatedAreaId: string
     declare shippingCompanyId: string
@@ -132,12 +133,29 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
     }
 
     isValidDeliverGood(state: HydratedIndonesiaGameState): boolean {
-        return isSafeAtomicDeliveryChoiceForPlayer(state, this.playerId, {
-            cultivatedAreaId: this.cultivatedAreaId,
-            shippingCompanyId: this.shippingCompanyId,
-            seaAreaIds: this.seaAreaIds,
-            cityId: this.cityId
-        })
+        if (this.playerId) {
+            return isSafeAtomicDeliveryChoiceForPlayer(state, this.playerId, {
+                cultivatedAreaId: this.cultivatedAreaId,
+                shippingCompanyId: this.shippingCompanyId,
+                seaAreaIds: this.seaAreaIds,
+                cityId: this.cityId
+            })
+        }
+
+        const requiredCandidate = HydratedDeliverGood.requiredSystemCandidate(state)
+        if (!requiredCandidate) {
+            return false
+        }
+
+        return (
+            requiredCandidate.cultivatedAreaId === this.cultivatedAreaId &&
+            requiredCandidate.shippingCompanyId === this.shippingCompanyId &&
+            requiredCandidate.cityId === this.cityId &&
+            requiredCandidate.seaAreaIds.length === this.seaAreaIds.length &&
+            requiredCandidate.seaAreaIds.every(
+                (seaAreaId: string, index: number) => seaAreaId === this.seaAreaIds[index]
+            )
+        )
     }
 
     static canDeliverGood(state: HydratedIndonesiaGameState, playerId: string): boolean {
@@ -178,5 +196,51 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
         choice: AtomicDeliveryChoice
     ): boolean {
         return isSafeAtomicDeliveryChoiceForPlayer(state, playerId, choice)
+    }
+
+    static requiredSystemCandidate(
+        state: HydratedIndonesiaGameState
+    ): AtomicDeliveryCandidate | null {
+        if (state.machineState !== MachineState.ProductionOperations) {
+            return null
+        }
+
+        const operatingCompanyId = state.operatingCompanyId
+        if (!operatingCompanyId) {
+            return null
+        }
+
+        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        if (!operatingCompany || !isProductionCompany(operatingCompany)) {
+            return null
+        }
+
+        const criticalDeliveries = state.operatingCompanyDeliveryPlan?.criticalDeliveries ?? []
+        if (criticalDeliveries.length === 0) {
+            return null
+        }
+
+        const safeCandidates = listSafeAtomicDeliveryCandidatesForPlayer(
+            state,
+            operatingCompany.owner
+        )
+        for (const criticalDelivery of criticalDeliveries) {
+            const matchingCandidate = safeCandidates.find(
+                (candidate) =>
+                    candidate.zoneId === criticalDelivery.zoneId &&
+                    candidate.cityId === criticalDelivery.cityId &&
+                    candidate.shippingCompanyId === criticalDelivery.shippingCompanyId &&
+                    candidate.seaAreaIds.length === criticalDelivery.seaPathAreaIds.length &&
+                    candidate.seaAreaIds.every(
+                        (seaAreaId: string, index: number) =>
+                            seaAreaId === criticalDelivery.seaPathAreaIds[index]
+                    )
+            )
+            if (matchingCandidate) {
+                return matchingCandidate
+            }
+        }
+
+        return null
     }
 }

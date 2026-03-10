@@ -247,7 +247,8 @@
                 shippingCompanyId: plannedRoute.shippingCompanyId,
                 cityId: plannedRoute.cityId,
                 zoneId: plannedRoute.zoneId,
-                cultivatedAreaId: zoneAreaIds?.[0] ?? plannedRoute.zoneId,
+                cultivatedAreaId:
+                    plannedRoute.cultivatedAreaId ?? zoneAreaIds?.[0] ?? plannedRoute.zoneId,
                 seaAreaIds: plannedRoute.seaAreaIds
             }
         }

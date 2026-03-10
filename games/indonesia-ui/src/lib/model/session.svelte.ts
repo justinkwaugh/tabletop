@@ -43,6 +43,7 @@ type PlannedDeliveryRouteHover = {
     cityId: string
     shippingCompanyId: string
     seaAreaIds: string[]
+    cultivatedAreaId?: string
 }
 
 export class IndonesiaGameSession extends GameSession<
@@ -356,6 +357,16 @@ export class IndonesiaGameSession extends GameSession<
             return null
         }
 
+        if (hoveredRoute.cultivatedAreaId) {
+            return {
+                zoneId: hoveredRoute.zoneId,
+                cityId: hoveredRoute.cityId,
+                shippingCompanyId: hoveredRoute.shippingCompanyId,
+                seaAreaIds: [...hoveredRoute.seaAreaIds],
+                cultivatedAreaId: hoveredRoute.cultivatedAreaId
+            }
+        }
+
         const matchingCandidate = this.safeDeliveryCandidates.find(
             (candidate) =>
                 candidate.zoneId === hoveredRoute.zoneId &&
@@ -375,7 +386,8 @@ export class IndonesiaGameSession extends GameSession<
             zoneId: hoveredRoute.zoneId,
             cityId: hoveredRoute.cityId,
             shippingCompanyId: hoveredRoute.shippingCompanyId,
-            seaAreaIds: [...hoveredRoute.seaAreaIds]
+            seaAreaIds: [...hoveredRoute.seaAreaIds],
+            cultivatedAreaId: matchingCandidate.cultivatedAreaId
         }
     })
 
@@ -565,6 +577,7 @@ export class IndonesiaGameSession extends GameSession<
                   cityId: string
                   shippingCompanyId: string
                   seaAreaIds: readonly string[]
+                  cultivatedAreaId?: string
               }
             | undefined
     ): void {
@@ -577,7 +590,8 @@ export class IndonesiaGameSession extends GameSession<
             zoneId: route.zoneId,
             cityId: route.cityId,
             shippingCompanyId: route.shippingCompanyId,
-            seaAreaIds: [...route.seaAreaIds]
+            seaAreaIds: [...route.seaAreaIds],
+            ...(route.cultivatedAreaId ? { cultivatedAreaId: route.cultivatedAreaId } : {})
         }
     }
 

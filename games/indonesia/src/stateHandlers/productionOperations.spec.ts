@@ -138,6 +138,64 @@ describe('ProductionOperationsStateHandler', () => {
         })
     })
 
+    it('queues a required delivery as a system action attributed to the operating player', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        state.getPlayerState(playerId).research.hull = 0
+
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [],
+                good: Good.Rice
+            },
+            {
+                id: 'ship-1',
+                type: CompanyType.Shipping,
+                owner: playerId,
+                deeds: []
+            }
+        ]
+
+        state.board.areas['A01'] = {
+            id: 'A01',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas['S14'] = {
+            id: 'S14',
+            type: AreaType.Sea,
+            ships: ['ship-1']
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A04',
+            size: 1,
+            demand: {}
+        })
+
+        state.machineState = MachineState.ProductionOperations
+        state.beginCompanyOperation('prod-1')
+
+        const handler = new ProductionOperationsStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        expect(context.getPendingActions()).toHaveLength(1)
+        expect(context.getPendingActions()[0]).toMatchObject({
+            source: ActionSource.System,
+            playerId,
+            type: ActionType.DeliverGood,
+            cultivatedAreaId: 'A01',
+            shippingCompanyId: 'ship-1',
+            seaAreaIds: ['S14'],
+            cityId: 'city-1'
+        })
+    })
+
     it('stays in production operations after a delivery when more safe deliveries remain', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
