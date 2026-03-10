@@ -1012,7 +1012,7 @@
                             shipCount: action.seaAreaIds.length,
                             shippingCost:
                                 action.metadata?.shippingCost ??
-                                action.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+                                    action.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
                         }
                     })
                 }

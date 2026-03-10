@@ -410,6 +410,106 @@ describe('solveDeliveryProblem', () => {
         ])
     })
 
+    it('decodes the final flow after rerouting earlier augmentations', () => {
+        const problem: DeliveryProblem = {
+            operatingCompanyId: 'prod-1',
+            operatingCompanyOwnerId: 'p1',
+            ownedShippingCompanyIds: ['ship-blue'],
+            good: Good.SiapSaji,
+            shippingFeePerShipUse: 5,
+            tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
+            zoneSupplies: [
+                {
+                    zoneId: 'prod-1:zone:1',
+                    areaIds: ['C02', 'C03'],
+                    adjacentSeaAreaIds: ['S03'],
+                    supply: 2
+                }
+            ],
+            cityDemands: [
+                {
+                    cityId: 'lampung',
+                    cityAreaId: 'A22',
+                    adjacentSeaAreaIds: ['S03'],
+                    remainingDemand: 1
+                },
+                {
+                    cityId: 'remote',
+                    cityAreaId: 'A10',
+                    adjacentSeaAreaIds: ['S06'],
+                    remainingDemand: 1
+                }
+            ],
+            shippingCompanyNetworks: [
+                {
+                    shippingCompanyId: 'ship-blue',
+                    seaLanes: [
+                        {
+                            fromSeaAreaId: 'S03',
+                            toSeaAreaId: 'S06'
+                        }
+                    ],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S03',
+                            capacity: 1
+                        },
+                        {
+                            seaAreaId: 'S06',
+                            capacity: 1
+                        }
+                    ]
+                },
+                {
+                    shippingCompanyId: 'ship-orange',
+                    seaLanes: [],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S03',
+                            capacity: 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        const plan = solveDeliveryProblem(problem)
+
+        expect(plan.deliveries).toEqual([
+            {
+                zoneId: 'prod-1:zone:1',
+                cityId: 'lampung',
+                shippingCompanyId: 'ship-orange',
+                quantity: 1,
+                seaPathAreaIds: ['S03']
+            },
+            {
+                zoneId: 'prod-1:zone:1',
+                cityId: 'remote',
+                shippingCompanyId: 'ship-blue',
+                quantity: 1,
+                seaPathAreaIds: ['S03', 'S06']
+            }
+        ])
+        expect(plan.shipUses).toEqual([
+            {
+                shippingCompanyId: 'ship-blue',
+                seaAreaId: 'S03',
+                uses: 1
+            },
+            {
+                shippingCompanyId: 'ship-blue',
+                seaAreaId: 'S06',
+                uses: 1
+            },
+            {
+                shippingCompanyId: 'ship-orange',
+                seaAreaId: 'S03',
+                uses: 1
+            }
+        ])
+    })
+
     it('does not mark a delivery critical when an alternate path can replace it', () => {
         const problem: DeliveryProblem = {
             operatingCompanyId: 'prod-1',

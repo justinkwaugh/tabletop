@@ -69,6 +69,14 @@ type MinCostMaxFlowResult = {
     augmentations: AugmentationPath[]
 }
 
+type FlowPath = {
+    amount: number
+    edges: {
+        from: number
+        edge: FlowEdge
+    }[]
+}
+
 export type DeliverySolveStats = {
     iterations: number
     elapsedMilliseconds: number
@@ -510,20 +518,94 @@ function sortShipUses(shipUses: readonly ShipUse[]): ShipUse[] {
     })
 }
 
-function solveFromAugmentations(
+function decomposeFinalFlowIntoPaths(
+    network: FlowNetwork,
+    sourceIndex: number,
+    sinkIndex: number
+): FlowPath[] {
+    const remainingFlowByEdge = network.adjacency.map((edges) =>
+        edges.map((edge) => (edge.capacity > 0 && edge.flow > 0 ? edge.flow : 0))
+    )
+    const paths: FlowPath[] = []
+
+    while (true) {
+        const visited = new Set<number>()
+        const pathEdges: { from: number; edgeIndex: number; edge: FlowEdge }[] = []
+
+        function dfs(nodeIndex: number): boolean {
+            if (nodeIndex === sinkIndex) {
+                return true
+            }
+
+            visited.add(nodeIndex)
+            const edges = network.adjacency[nodeIndex] ?? []
+            for (let edgeIndex = 0; edgeIndex < edges.length; edgeIndex += 1) {
+                const edge = edges[edgeIndex]
+                const remainingFlow = remainingFlowByEdge[nodeIndex]?.[edgeIndex] ?? 0
+                if (remainingFlow <= 0) {
+                    continue
+                }
+                if (visited.has(edge.to)) {
+                    continue
+                }
+
+                pathEdges.push({ from: nodeIndex, edgeIndex, edge })
+                if (dfs(edge.to)) {
+                    return true
+                }
+                pathEdges.pop()
+            }
+
+            return false
+        }
+
+        if (!dfs(sourceIndex)) {
+            break
+        }
+
+        const amount = pathEdges.reduce((minimum, pathEdge) => {
+            const remainingFlow = remainingFlowByEdge[pathEdge.from]?.[pathEdge.edgeIndex] ?? 0
+            return Math.min(minimum, remainingFlow)
+        }, Number.POSITIVE_INFINITY)
+        assert(
+            Number.isFinite(amount) && amount > 0,
+            'Final-flow path decomposition should find a positive path amount'
+        )
+
+        for (const pathEdge of pathEdges) {
+            const currentRemainingFlow = remainingFlowByEdge[pathEdge.from]?.[pathEdge.edgeIndex] ?? 0
+            remainingFlowByEdge[pathEdge.from]![pathEdge.edgeIndex] = currentRemainingFlow - amount
+        }
+
+        paths.push({
+            amount,
+            edges: pathEdges.map(({ from, edge }) => ({
+                from,
+                edge
+            }))
+        })
+    }
+
+    return paths
+}
+
+function solveFromFinalFlow(
     problem: DeliveryProblem,
-    result: MinCostMaxFlowResult
+    network: FlowNetwork,
+    sourceIndex: number,
+    sinkIndex: number,
+    totalFlow: number
 ): DeliveryPlan {
     const deliveryByKey = new Map<string, CityDelivery>()
     const shipUseByKey = new Map<string, ShipUse>()
 
-    for (const augmentation of result.augmentations) {
+    for (const flowPath of decomposeFinalFlowIntoPaths(network, sourceIndex, sinkIndex)) {
         let zoneId: string | null = null
         let cityId: string | null = null
         let shippingCompanyId: string | null = null
         const seaPathAreaIds: IndonesiaNodeId[] = []
 
-        for (const pathEdge of augmentation.edges) {
+        for (const pathEdge of flowPath.edges) {
             const edgeMeta = pathEdge.edge.meta
             if (!edgeMeta) {
                 continue
@@ -542,12 +624,12 @@ function solveFromAugmentations(
                 const shipUseKey = `${edgeMeta.shippingCompanyId}|${edgeMeta.seaAreaId}`
                 const existingShipUse = shipUseByKey.get(shipUseKey)
                 if (existingShipUse) {
-                    existingShipUse.uses += augmentation.amount
+                    existingShipUse.uses += flowPath.amount
                 } else {
                     shipUseByKey.set(shipUseKey, {
                         shippingCompanyId: edgeMeta.shippingCompanyId,
                         seaAreaId: edgeMeta.seaAreaId,
-                        uses: augmentation.amount
+                        uses: flowPath.amount
                     })
                 }
                 continue
@@ -566,7 +648,7 @@ function solveFromAugmentations(
         const deliveryKey = `${zoneId}|${cityId}|${shippingCompanyId}|${seaPathAreaIds.join('>')}`
         const existingDelivery = deliveryByKey.get(deliveryKey)
         if (existingDelivery) {
-            existingDelivery.quantity += augmentation.amount
+            existingDelivery.quantity += flowPath.amount
             continue
         }
 
@@ -574,7 +656,7 @@ function solveFromAugmentations(
             zoneId,
             cityId,
             shippingCompanyId,
-            quantity: augmentation.amount,
+            quantity: flowPath.amount,
             seaPathAreaIds
         })
     }
@@ -599,7 +681,7 @@ function solveFromAugmentations(
             amount: entry[1]
         }))
 
-    const totalDelivered = result.flow
+    const totalDelivered = totalFlow
     const revenue = totalDelivered * GOOD_REVENUE_BY_GOOD[problem.good]
     const shippingCost = shippingPayments.reduce((sum, payment) => sum + payment.amount, 0)
     const netIncome = revenue - shippingCost
@@ -762,7 +844,13 @@ export function solveDeliveryProblemWithStats(
     const startedAtMilliseconds = Date.now()
     const solved = runMinCostMaxFlow(built.network, built.sourceIndex, built.sinkIndex)
     const endedAtMilliseconds = Date.now()
-    const planWithoutCritical = solveFromAugmentations(problem, solved)
+    const planWithoutCritical = solveFromFinalFlow(
+        problem,
+        built.network,
+        built.sourceIndex,
+        built.sinkIndex,
+        solved.flow
+    )
     const includeCriticalDeliveries = options?.includeCriticalDeliveries ?? true
     const criticalDeliveries = includeCriticalDeliveries
         ? computeCriticalDeliveries(problem, planWithoutCritical)
