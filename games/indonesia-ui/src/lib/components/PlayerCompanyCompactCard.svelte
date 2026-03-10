@@ -79,9 +79,6 @@
         }
         return style
     })
-
-    const deedLabel = $derived(card.deedCount === 1 ? 'DEED' : 'DEEDS')
-
     const middleMetric = $derived.by(() => {
         if (card.type === CompanyType.Production) {
             return {
@@ -103,6 +100,7 @@
     class:company-mini-card-siapsaji={isSiapSajiProductionCard}
     style={cardStyle}
 >
+    <span class="company-mini-deed-watermark" aria-hidden="true">{card.deedCount}</span>
     <div class="company-mini-layout">
         <div
             class="company-mini-icon-wrap {card.type === CompanyType.Shipping
@@ -156,10 +154,6 @@
         <div class="company-mini-content">
             <div class="company-mini-metrics">
                 <div class="company-mini-metric">
-                    <span class="company-mini-value">{card.deedCount}</span>
-                    <span class="company-mini-label">{deedLabel}</span>
-                </div>
-                <div class="company-mini-metric">
                     <span class="company-mini-value">{middleMetric.value}</span>
                     <span class="company-mini-label">{middleMetric.label}</span>
                 </div>
@@ -178,6 +172,8 @@
         border-radius: 8px;
         padding: 4px 4px 4px 6px;
         display: flex;
+        position: relative;
+        overflow: hidden;
         align-items: center;
         background: var(--company-fill);
         min-height: 46px;
@@ -208,6 +204,23 @@
         min-height: 28px;
         width: 100%;
         height: 100%;
+        position: relative;
+        z-index: 1;
+    }
+
+    .company-mini-deed-watermark {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-52%);
+        font-size: 40px;
+        line-height: 0.82;
+        font-weight: 700;
+        letter-spacing: -0.06em;
+        color: color-mix(in srgb, var(--company-text) 18%, transparent);
+        pointer-events: none;
+        user-select: none;
+        z-index: 0;
     }
 
     .company-mini-icon-wrap {
@@ -259,12 +272,15 @@
         flex-direction: column;
         justify-content: center;
         min-width: 0;
+        width: 100%;
+        padding-right: 32px;
     }
 
     .company-mini-metrics {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        column-gap: 4px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 6px;
+        width: 100%;
     }
 
     .company-mini-metric {
