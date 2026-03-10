@@ -69,7 +69,7 @@ export const Deeds: AnyDeed[] = [
         type: CompanyType.Shipping,
         era: Era.A,
         region: 'R14',
-        sizes: { [Era.A]: 2, [Era.B]: 3, [Era.C]: 4 }
+        sizes: { [Era.A]: 3, [Era.B]: 3, [Era.C]: 4 }
     },
     {
         id: 'D08',

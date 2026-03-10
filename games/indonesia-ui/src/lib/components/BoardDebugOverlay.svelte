@@ -59,7 +59,6 @@
         Era,
         Good,
         INDONESIA_REGIONS,
-        MachineState,
         type AnyDeed
     } from '@tabletop/indonesia'
 
@@ -224,6 +223,7 @@
         y: number
         targetX: number
         targetY: number
+        isDemandMet: boolean
         demands: Array<{
             good: Good
             count: number
@@ -338,11 +338,6 @@
     const CITY_DEMAND_TUNE_TAG_DISTANCE = 62
     const CITY_DEMAND_TUNE_TAG_MAX_OFFSET = 14
     const CITY_DEMAND_TUNE_BOARD_CENTER = { x: 2646 / 2, y: 1280 / 2 }
-    const CITY_DEMAND_VISIBLE_MACHINE_STATES = new Set<MachineState>([
-        MachineState.Operations,
-        MachineState.ShippingOperations,
-        MachineState.ProductionOperations
-    ])
     const GLASS_BEAD_PREVIEW_MARKERS = [
         { x: 172, y: 90, tone: 'amber' },
         { x: 207, y: 103, tone: 'red' },
@@ -1366,6 +1361,17 @@
         () => new Map(LAND_DEBUG_MAP_AREAS.map((area) => [area.id, area]))
     )
 
+    const AREA_REGION_BY_ID: Map<string, string> = $derived.by(() => {
+        const byId = new Map<string, string>()
+        for (const node of gameSession.gameState.board) {
+            if (!node.region) {
+                continue
+            }
+            byId.set(node.id, node.region)
+        }
+        return byId
+    })
+
     const REGION_CENTER_BY_ID: Map<string, Point> = $derived.by(() => {
         const areasByRegion = new Map<string, DebugArea[]>()
         for (const area of LAND_DEBUG_MAP_AREAS) {
@@ -2072,36 +2078,22 @@
     })
 
     const CITY_DEMAND_TUNE_BASE_MARKERS: CityDemandTuneMarker[] = $derived.by(() => {
-        const regions = [...INDONESIA_REGIONS].sort((left, right) =>
-            left.id.localeCompare(right.id, undefined, { numeric: true })
-        )
         const markers: CityDemandTuneMarker[] = []
 
-        for (const region of regions) {
-            const coastalAreas = Array.from(gameSession.gameState.board.coastalAreasForRegion(region.id))
-                .map((area) => LAND_DEBUG_AREAS_BY_ID.get(area.id))
-                .filter((area): area is DebugArea => area !== undefined)
-
-            if (coastalAreas.length === 0) {
+        for (const city of gameSession.gameState.board.cities) {
+            const area = LAND_DEBUG_AREAS_BY_ID.get(city.area)
+            if (!area) {
                 continue
             }
 
-            const anchorArea = coastalAreas[0]
-            if (!anchorArea) {
+            const regionId = AREA_REGION_BY_ID.get(city.area)
+            if (!regionId) {
                 continue
             }
 
-            const target = coastalAreas.reduce(
-                (accumulator, area) => {
-                    const position = getDefaultMarkerPositionForArea(area)
-                    accumulator.x += position.x
-                    accumulator.y += position.y
-                    return accumulator
-                },
-                { x: 0, y: 0 }
-            )
-            const targetX = target.x / coastalAreas.length
-            const targetY = target.y / coastalAreas.length
+            const markerPosition = getDefaultMarkerPositionForArea(area)
+            const targetX = markerPosition.x
+            const targetY = markerPosition.y
 
             const dx = targetX - CITY_DEMAND_TUNE_BOARD_CENTER.x
             const dy = targetY - CITY_DEMAND_TUNE_BOARD_CENTER.y
@@ -2110,21 +2102,23 @@
             const uy = magnitude > 0.001 ? dy / magnitude : -1
             const tangentX = -uy
             const tangentY = ux
-            const jitterSeed = hashStringToSeed(region.id)
+            const jitterSeed = hashStringToSeed(city.id)
             const jitter = ((jitterSeed % 5) - 2) * (CITY_DEMAND_TUNE_TAG_MAX_OFFSET / 2)
-            const tunedPosition = CITY_DEMAND_MARKER_POSITIONS_BY_REGION[region.id]
+            const tunedPosition = CITY_DEMAND_MARKER_POSITIONS_BY_REGION[regionId]
             const markerX = tunedPosition?.x ?? targetX + ux * CITY_DEMAND_TUNE_TAG_DISTANCE + tangentX * jitter
             const markerY = tunedPosition?.y ?? targetY + uy * CITY_DEMAND_TUNE_TAG_DISTANCE + tangentY * jitter
+            const demands = CITY_DEMAND_TUNE_GOOD_ORDER.map((good) => ({ good, count: 3 }))
 
             markers.push({
-                key: region.id,
-                regionId: region.id,
-                areaId: anchorArea.id,
+                key: city.id,
+                regionId,
+                areaId: city.area,
                 x: markerX,
                 y: markerY,
                 targetX,
                 targetY,
-                demands: CITY_DEMAND_TUNE_GOOD_ORDER.map((good) => ({ good, count: 3 }))
+                isDemandMet: false,
+                demands
             })
         }
 
@@ -2132,10 +2126,6 @@
     })
 
     const CITY_DEMAND_TUNE_MARKERS: CityDemandTuneMarker[] = $derived.by(() => {
-        if (!CITY_DEMAND_VISIBLE_MACHINE_STATES.has(gameSession.gameState.machineState)) {
-            return []
-        }
-
         if (
             colorMode !== 'citydemand' &&
             !(colorMode === 'layout' && layoutShowCityDemand)
@@ -3231,6 +3221,7 @@
                         y={marker.y}
                         targetX={marker.targetX}
                         targetY={marker.targetY}
+                        demandMet={marker.isDemandMet}
                         demands={marker.demands}
                     />
                     {#if colorMode === 'citydemand'}
