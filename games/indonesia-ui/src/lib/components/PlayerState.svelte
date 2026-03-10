@@ -130,8 +130,8 @@
 
     const maxCompanySlots = $derived(1 + playerState.research.slots)
     const openCompanySlots = $derived(Math.max(0, maxCompanySlots - ownedCompanies.length))
+    const openCompanySlotIndexes = $derived(Array.from({ length: openCompanySlots }, (_, index) => index))
     const openSlotsLabel = $derived(openCompanySlots === 1 ? 'OPEN SLOT' : 'OPEN SLOTS')
-    const openSlotCardLabel = $derived(openCompanySlots === 1 ? 'OPEN SLOT' : 'OPEN SLOTS')
     // Temporary preview toggle for the empty companies treatment.
     const showNoCompaniesPreview = false
 </script>
@@ -220,15 +220,14 @@
                         </div>
                     {/each}
 
-                    {#if openCompanySlots > 0}
+                    {#each openCompanySlotIndexes as openSlotIndex (openSlotIndex)}
                         <div
                             class="player-company-slot-card"
-                            aria-label={`${openCompanySlots} open ${openSlotCardLabel.toLowerCase()}`}
+                            aria-label="open slot"
                         >
-                            <span class="player-company-slot-value">{openCompanySlots}</span>
-                            <span class="player-company-slot-label">{openSlotCardLabel}</span>
+                            <span class="player-company-slot-label">open slot</span>
                         </div>
-                    {/if}
+                    {/each}
                 </div>
             {:else}
                 <div class="player-company-empty" aria-label={`${player.name} has no companies`}>
@@ -486,24 +485,15 @@
         border: 1.5px dashed rgba(122, 93, 63, 0.52);
         background: rgba(247, 243, 239, 0.38);
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 1px;
         color: rgba(97, 69, 44, 0.82);
     }
 
-    .player-company-slot-value {
-        font-size: 14px;
-        line-height: 1;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-    }
-
     .player-company-slot-label {
-        font-size: 8px;
+        font-size: 9px;
         line-height: 1;
-        font-weight: 700;
+        font-weight: 400;
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: rgba(97, 69, 44, 0.64);
