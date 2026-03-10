@@ -801,52 +801,50 @@
                 {/if}
                 {#if chooseAction?.metadata?.companyType === CompanyType.Production && action.count > 0 && shippingPayouts.length > 0}
                     <span
-                        class={`mt-2.5 flex w-fit max-w-[25rem] flex-col items-start gap-1 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${operationSummaryCardAlignClass}`}
+                        class={`mt-2.5 flex w-full max-w-[25rem] flex-col items-start gap-1 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${operationSummaryCardAlignClass}`}
                     >
-                        <span class="mt-1 mb-[0.0625rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Sale Details</span>
-                        <span class="flex flex-col items-start gap-1">
-                            <span class="grid grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
-                                <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3 justify-items-center">
-                                    <span class="flex items-center justify-center">
-                                        {#if simpleGoodIconSrc(profitSummary.good)}
-                                            <img
-                                                src={simpleGoodIconSrc(profitSummary.good) ?? undefined}
-                                                alt={profitSummary.good ? goodLabels[profitSummary.good] : 'goods'}
-                                                class="h-[16px] w-[16px] object-contain"
-                                            />
-                                        {/if}
-                                    </span>
-                                    <span class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Price</span>
-                                    <span class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Income</span>
-                                </span>
+                        <span class="mt-1 mb-[0.1875rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Sale Details</span>
+                        <span class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
+                            <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3 justify-items-center">
                                 <span class="flex items-center justify-center">
-                                    <img
-                                        src={simpleShipImg}
-                                        alt="shipping"
-                                        class="h-[16px] w-[16px] object-contain"
-                                    />
+                                    {#if simpleGoodIconSrc(profitSummary.good)}
+                                        <img
+                                            src={simpleGoodIconSrc(profitSummary.good) ?? undefined}
+                                            alt={profitSummary.good ? goodLabels[profitSummary.good] : 'goods'}
+                                            class="h-[16px] w-[16px] object-contain"
+                                        />
+                                    {/if}
                                 </span>
-                                <span class="text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Profit</span>
-                                <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3">
-                                    <span class="text-center tabular-nums text-[#5e3f27]">{action.count}</span>
-                                    <span class="text-center tabular-nums text-[#5e3f27]">
-                                        {profitSummary.unitPrice ?? '?'}
-                                    </span>
-                                    <span class="text-center tabular-nums text-[#5e3f27]">
-                                        {profitSummary.revenue ?? '?'}
-                                    </span>
+                                <span class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Price</span>
+                                <span class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Income</span>
+                            </span>
+                            <span class="flex items-center justify-center">
+                                <img
+                                    src={simpleShipImg}
+                                    alt="shipping"
+                                    class="h-[16px] w-[16px] object-contain"
+                                />
+                            </span>
+                            <span class="justify-self-end text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Profit</span>
+                            <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3">
+                                <span class="text-center tabular-nums text-[#5e3f27]">{action.count}</span>
+                                <span class="text-center tabular-nums text-[#5e3f27]">
+                                    {profitSummary.unitPrice ?? '?'}
                                 </span>
                                 <span class="text-center tabular-nums text-[#5e3f27]">
-                                    -{profitSummary.shippingCost}
+                                    {profitSummary.revenue ?? '?'}
                                 </span>
-                                <span class="text-right tabular-nums text-[#5e3f27]">
-                                    {profitSummary.profit ?? '?'}
-                                </span>
+                            </span>
+                            <span class="text-center tabular-nums text-[#5e3f27]">
+                                -{profitSummary.shippingCost}
+                            </span>
+                            <span class="text-right tabular-nums text-[#5e3f27]">
+                                {profitSummary.profit ?? '?'}
                             </span>
                         </span>
                         {#if shippingPayouts.length > 0}
                             <span class="mt-3 mb-[-0.125rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Shipping Details</span>
-                            <span class="grid grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
+                            <span class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
                                 <span></span>
                                 <span class="flex items-center justify-center">
                                     <img
@@ -855,7 +853,7 @@
                                         class="h-[16px] w-[16px] object-contain"
                                     />
                                 </span>
-                                <span class="text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Cost</span>
+                                <span class="justify-self-end text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Cost</span>
                                 {#each shippingPayouts as payout}
                                     <span class="min-w-0 flex items-center">
                                         <PlayerName playerId={payout.ownerPlayerId} />
