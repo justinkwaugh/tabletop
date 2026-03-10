@@ -16,6 +16,7 @@
         deedCount: number
         goodsProduced: number
         value: number
+        lastOperationProfit: number | null
         hatchVariant: number | null
     }
 
@@ -26,6 +27,7 @@
         ships: number
         maxShips: number
         value: number
+        lastOperationProfit: number | null
         hullSize: number
         remainingEraMaximums: readonly { era: Era; max: number }[]
         hatchVariant: null
@@ -90,6 +92,14 @@
             label: 'SHIPS',
             value: `${card.ships}/${card.maxShips}`
         }
+    })
+
+    const lastOperationProfitLabel = $derived.by(() => {
+        if (card.lastOperationProfit === null) {
+            return 'profit ---'
+        }
+
+        return `profit ${card.lastOperationProfit}`
     })
 
 </script>
@@ -162,6 +172,7 @@
                     <span class="company-mini-label">VALUE</span>
                 </div>
             </div>
+            <div class="company-mini-secondary-metric">{lastOperationProfitLabel}</div>
         </div>
     </div>
 </article>
@@ -274,6 +285,7 @@
         min-width: 0;
         width: 100%;
         padding-right: 32px;
+        gap: 4px;
     }
 
     .company-mini-metrics {
@@ -299,6 +311,18 @@
         letter-spacing: 0.015em;
         color: color-mix(in srgb, var(--company-text) 86%, #111827);
         white-space: nowrap;
+    }
+
+    .company-mini-secondary-metric {
+        font-size: 8px;
+        line-height: 1;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-align: center;
+        color: color-mix(in srgb, var(--company-text) 76%, transparent);
+        white-space: nowrap;
+        margin-top: 2px;
     }
 
     .company-mini-upcoming-era-limit {

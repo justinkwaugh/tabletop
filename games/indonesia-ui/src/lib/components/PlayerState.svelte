@@ -43,6 +43,9 @@
         }
         return earningsByPlayerId[playerState.playerId] ?? 0
     })
+    let operationsIncomeByCompanyId = $derived(
+        gameSession.gameState.operationsIncomeByCompanyId ?? {}
+    )
     let earningsDisplay = $derived(String(operationsEarnings))
     let ownedCompanies = $derived.by(() =>
         gameSession.gameState.companies
@@ -95,6 +98,7 @@
                     deedCount,
                     goodsProduced,
                     value: goodsProduced * GOOD_REVENUE_BY_GOOD[company.good],
+                    lastOperationProfit: operationsIncomeByCompanyId[company.id] ?? null,
                     hatchVariant: productionHatchVariantByCompanyId.get(company.id) ?? null
                 }
                 cards.push(productionCard)
@@ -112,6 +116,7 @@
                     ships,
                     maxShips: maxByEra.get(currentEra) ?? 0,
                     value: ships * 10,
+                    lastOperationProfit: operationsIncomeByCompanyId[company.id] ?? null,
                     hullSize: playerState.research.hull + 1,
                     remainingEraMaximums: SHIPPING_ERA_ORDER.filter(
                         (era) => ERA_ORDER_INDEX[era] >= currentEraIndex

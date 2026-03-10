@@ -882,6 +882,8 @@
                 deedCount: company.deeds.length,
                 goodsProduced: producedGoodsCount,
                 value: producedGoodsCount * GOOD_REVENUE_BY_GOOD[company.good],
+                lastOperationProfit:
+                    gameSession.gameState.operationsIncomeByCompanyId?.[company.id] ?? null,
                 hatchVariant: null
             } satisfies PlayerCompanyCardData
         }
@@ -907,6 +909,8 @@
             ships: shipCount,
             maxShips: maxByEra.get(currentEra) ?? 0,
             value: shipCount * 10,
+            lastOperationProfit:
+                gameSession.gameState.operationsIncomeByCompanyId?.[company.id] ?? null,
             hullSize: ownerHullSize,
             remainingEraMaximums: SHIPPING_ERA_ORDER.filter(
                 (era) => ERA_ORDER_INDEX[era] >= currentEraIndex

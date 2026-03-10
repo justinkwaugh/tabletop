@@ -172,7 +172,9 @@ describe('finishOperatingCompany', () => {
         expect(nextState).toBe(MachineState.BiddingForTurnOrder)
         expect(state.getPlayerState(playerId).cash).toBe(cashBefore + 19)
         expect(state.operationsEarningsByPlayerId).toBeUndefined()
-        expect(state.operationsIncomeByCompanyId).toBeUndefined()
+        expect(state.operationsIncomeByCompanyId).toEqual({
+            [companyId]: 19
+        })
         expect(state.operationsDeliveredCultivatedAreaIdsByCompanyId).toBeUndefined()
     })
 
@@ -210,7 +212,9 @@ describe('finishOperatingCompany', () => {
         expect(nextState).toBe(MachineState.BiddingForTurnOrder)
         expect(state.getPlayerState(playerId).cash).toBe(cashBefore - 11)
         expect(state.operationsEarningsByPlayerId).toBeUndefined()
-        expect(state.operationsIncomeByCompanyId).toBeUndefined()
+        expect(state.operationsIncomeByCompanyId).toEqual({
+            [companyId]: -11
+        })
     })
 
     it('clears delivered city demand immediately when skipping city growth', () => {

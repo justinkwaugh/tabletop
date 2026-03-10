@@ -106,7 +106,7 @@ export const IndonesiaGameState = Type.Evaluate(
             operatingCompanyDeliveryPlan: Type.Optional(DeliveryPlanSchema), // Delivery plan for the currently operating production company
             operatingCompanyProducedGoodsCount: Type.Optional(Type.Number()), // Number of goods the operating production company had on board before expansion
             operatedCompanyIds: Type.Array(Type.String()), // Companies that have already operated this operations phase
-            operationsIncomeByCompanyId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Company income accumulated during the current operations phase
+            operationsIncomeByCompanyId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Most recent per-company operations income snapshot; refreshed during operations and reset when the next operations phase begins
             operationsEarningsByPlayerId: Type.Optional(Type.Record(Type.String(), Type.Number())), // Operations earnings stack accumulated during an operations phase; settled at operations end (doubled only when operations end triggers end-of-game)
             operationsDeliveredCultivatedAreaIdsByCompanyId: Type.Optional(
                 Type.Record(Type.String(), Type.Array(Type.String()))
@@ -319,7 +319,6 @@ export class HydratedIndonesiaGameState
     }
 
     public clearOperationsPhaseCompanyTracking(): void {
-        this.operationsIncomeByCompanyId = undefined
         this.operationsDeliveredCultivatedAreaIdsByCompanyId = undefined
     }
 
