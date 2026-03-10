@@ -167,6 +167,7 @@
     let selectedPlannedRouteOptionKeyByRowKey = $state<Record<string, string>>({})
     let selectedPlannedRouteOptionOrderByRowKey = $state<Record<string, number>>({})
     let nextPlannedRouteOptionOrder = $state(0)
+    let selectedCustomDeliveryRouteKey = $state<string>('')
 
     const turnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() => {
         const bidByPlayerId = gameSession.gameState.turnOrderBids ?? {}
@@ -1358,6 +1359,50 @@
         return [...completedRows, ...remainingRows]
     })
 
+    const customDeliveryRow = $derived.by(() => {
+        if (!showDeliveryShippingChoices) {
+            return null
+        }
+
+        const routeOptions = gameSession.deliveryShippingChoices.map(({ routeKey, candidate }) => ({
+            key: routeKey,
+            zoneId: candidate.zoneId,
+            cityId: candidate.cityId,
+            shippingCompanyId: candidate.shippingCompanyId,
+            seaAreaIds: candidate.seaAreaIds,
+            cultivatedAreaId: candidate.cultivatedAreaId,
+            shipCount: candidate.seaAreaIds.length,
+            shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+        }))
+        if (routeOptions.length === 0) {
+            return null
+        }
+
+        const selectedRoute =
+            routeOptions.find((option) => option.key === selectedCustomDeliveryRouteKey) ??
+            routeOptions[0]
+        const good =
+            gameSession.gameState.operatingCompanyDeliveryPlan?.good ??
+            (() => {
+                const operatingCompanyId = gameSession.gameState.operatingCompanyId
+                if (!operatingCompanyId) {
+                    return null
+                }
+                const operatingCompany = companyById.get(operatingCompanyId)
+                return operatingCompany?.type === CompanyType.Production &&
+                    'good' in operatingCompany
+                    ? operatingCompany.good
+                    : null
+            })()
+
+        return {
+            destinationLabel: cityDestinationLabel(selectedRoute.cityId),
+            selectedRoute,
+            routeOptions,
+            profit: good ? GOOD_REVENUE_BY_GOOD[good] - selectedRoute.shippingCost : 0
+        }
+    })
+
     $effect(() => {
         if (!showProductionOperationsPanel) {
             if (Object.keys(selectedPlannedRouteOptionKeyByRowKey).length > 0) {
@@ -1422,6 +1467,26 @@
         ) {
             selectedPlannedRouteOptionOrderByRowKey = nextSelectionOrders
         }
+    })
+
+    $effect(() => {
+        if (!showDeliveryShippingChoices) {
+            if (selectedCustomDeliveryRouteKey) {
+                selectedCustomDeliveryRouteKey = ''
+            }
+            return
+        }
+
+        if (
+            selectedCustomDeliveryRouteKey &&
+            gameSession.deliveryShippingChoices.some(
+                (choice) => choice.routeKey === selectedCustomDeliveryRouteKey
+            )
+        ) {
+            return
+        }
+
+        selectedCustomDeliveryRouteKey = gameSession.deliveryShippingChoices[0]?.routeKey ?? ''
     })
 
     const remainingProductionExpansionCount = $derived.by(() => {
@@ -2200,68 +2265,133 @@
                     {productionDeliveryRequirementMessage}
                 </span>
             {/if}
-            {#if showDeliveryShippingChoices}
-                <div class="delivery-shipping-choices" aria-label="Delivery shipping choices">
-                    {#each gameSession.deliveryShippingChoices as choice (choice.routeKey)}
-                        {@const markerVisual = shippingMarkerVisualForCompany(
-                            choice.candidate.shippingCompanyId
-                        )}
-                        {@const shipUseCount = choice.candidate.seaAreaIds.length}
-                        {@const shipUseLabel = shipUseCount === 1 ? 'ship' : 'ships'}
+            {#if customDeliveryRow}
+                <div class="planned-delivery-panel custom-delivery-panel">
+                    <div class="planned-delivery-header" aria-hidden="true">
+                        <span class="planned-delivery-header-spacer"></span>
+                        <span class="planned-delivery-title">Custom Delivery</span>
+                        <span class="planned-delivery-header-spacer"></span>
+                        <span class="planned-delivery-header-spacer"></span>
+                        <span class="planned-delivery-column-title planned-delivery-column-title-profit">
+                            Profit
+                        </span>
+                    </div>
+                    <div class="planned-delivery-table" aria-label="Custom delivery choice">
                         <div
-                            class={`delivery-shipping-choice ${deliveringGood ? 'is-disabled' : ''}`}
-                            role="button"
-                            tabindex={deliveringGood ? -1 : 0}
-                            aria-disabled={deliveringGood}
-                            aria-label={`Deliver via shipping company ${choice.candidate.shippingCompanyId} using ${shipUseCount} ${shipUseLabel}`}
+                            class="planned-delivery-row"
+                            role="presentation"
                             onmouseenter={() => {
-                                gameSession.setHoveredDeliveryRoute(choice.routeKey)
+                                gameSession.setHoveredDeliveryRoute(customDeliveryRow.selectedRoute.key)
                             }}
                             onmouseleave={() => {
                                 gameSession.setHoveredDeliveryRoute(undefined)
                             }}
-                            onfocus={() => {
-                                gameSession.setHoveredDeliveryRoute(choice.routeKey)
-                            }}
-                            onblur={() => {
-                                gameSession.setHoveredDeliveryRoute(undefined)
-                            }}
-                            onclick={() => {
-                                submitDeliveryShippingChoice(choice.routeKey)
-                            }}
-                            onkeydown={(event) => {
-                                if (event.key !== 'Enter' && event.key !== ' ') {
-                                    return
-                                }
-                                event.preventDefault()
-                                submitDeliveryShippingChoice(choice.routeKey)
-                            }}
                         >
-                            <span class="delivery-route-count">
-                                {shipUseCount}
-                                <span class="delivery-route-times">x</span>
+                            <button
+                                type="button"
+                                class="planned-delivery-ship-button"
+                                disabled={deliveringGood}
+                                onclick={() => {
+                                    submitDeliveryShippingChoice(customDeliveryRow.selectedRoute.key)
+                                }}
+                            >
+                                Ship
+                            </button>
+                            <span class="planned-delivery-city">
+                                <span class="planned-delivery-city-name">
+                                    {customDeliveryRow.destinationLabel}
+                                </span>
                             </span>
-                            <span class="delivery-route-icon-wrap" aria-hidden="true">
-                                <svg
-                                    class="delivery-route-icon-svg"
-                                    viewBox="0 0 60 42"
-                                    width="60"
-                                    height="42"
-                                >
-                                    <ShipMarker
-                                        x={30}
-                                        y={21}
-                                        style={markerVisual.style}
-                                        height={38}
-                                        outline={false}
-                                        hullFillColor={markerVisual.hullFillColor}
-                                        hullStrokeColor={markerVisual.hullStrokeColor}
-                                        hullStrokeWidth={11}
-                                    />
-                                </svg>
+                            <span class="planned-delivery-quantity"></span>
+                            <span class="planned-delivery-ships">
+                                <span class="planned-delivery-ships-count">
+                                    {customDeliveryRow.selectedRoute.shipCount}x
+                                </span>
+                                <span class="planned-delivery-ship-options">
+                                    {#each customDeliveryRow.routeOptions as routeOption, routeOptionIndex (routeOption.key)}
+                                        {@const routeMarkerVisual = shippingMarkerVisualForCompany(
+                                            routeOption.shippingCompanyId
+                                        )}
+                                        {@const isSelectedRouteOption =
+                                            routeOption.key === customDeliveryRow.selectedRoute.key}
+                                        {#if customDeliveryRow.routeOptions.length === 1}
+                                            <span class="planned-delivery-ship-option is-static">
+                                                <span class="planned-delivery-ship-icon-wrap">
+                                                    <svg
+                                                        class="planned-delivery-ship-icon-svg"
+                                                        viewBox="0 0 60 42"
+                                                        width="50"
+                                                        height="36"
+                                                    >
+                                                        <ShipMarker
+                                                            x={30}
+                                                            y={21}
+                                                            style={routeMarkerVisual.style}
+                                                            height={32}
+                                                            outline={false}
+                                                            hullFillColor={routeMarkerVisual.hullFillColor}
+                                                            hullStrokeColor={routeMarkerVisual.hullStrokeColor}
+                                                            hullStrokeWidth={8}
+                                                        />
+                                                    </svg>
+                                                </span>
+                                            </span>
+                                        {:else}
+                                            <button
+                                                type="button"
+                                                class={`planned-delivery-ship-option ${isSelectedRouteOption ? 'is-selected' : ''}`}
+                                                aria-label={`Use ${routeOption.shipCount} ships from shipping company ${routeOption.shippingCompanyId}`}
+                                                aria-pressed={isSelectedRouteOption}
+                                                onclick={() => {
+                                                    selectedCustomDeliveryRouteKey = routeOption.key
+                                                }}
+                                                onmouseenter={() => {
+                                                    gameSession.setHoveredDeliveryRoute(routeOption.key)
+                                                }}
+                                                onmouseleave={() => {
+                                                    gameSession.setHoveredDeliveryRoute(
+                                                        customDeliveryRow.selectedRoute.key
+                                                    )
+                                                }}
+                                                onfocus={() => {
+                                                    gameSession.setHoveredDeliveryRoute(routeOption.key)
+                                                }}
+                                                onblur={() => {
+                                                    gameSession.setHoveredDeliveryRoute(
+                                                        customDeliveryRow.selectedRoute.key
+                                                    )
+                                                }}
+                                            >
+                                                <span class={`planned-delivery-ship-icon-wrap ${isSelectedRouteOption ? 'is-selected' : ''}`} aria-hidden="true">
+                                                    <svg
+                                                        class={`planned-delivery-ship-icon-svg ${isSelectedRouteOption ? 'is-selected' : ''}`}
+                                                        viewBox="0 0 60 42"
+                                                        width={isSelectedRouteOption ? 54 : 50}
+                                                        height={isSelectedRouteOption ? 38 : 36}
+                                                    >
+                                                        <ShipMarker
+                                                            x={30}
+                                                            y={21}
+                                                            style={routeMarkerVisual.style}
+                                                            height={isSelectedRouteOption ? 34 : 32}
+                                                            outline={false}
+                                                            hullFillColor={routeMarkerVisual.hullFillColor}
+                                                            hullStrokeColor={routeMarkerVisual.hullStrokeColor}
+                                                            hullStrokeWidth={isSelectedRouteOption ? 10 : 8}
+                                                        />
+                                                    </svg>
+                                                </span>
+                                            </button>
+                                        {/if}
+                                        {#if routeOptionIndex < customDeliveryRow.routeOptions.length - 1}
+                                            <span class="planned-delivery-ship-option-separator">/</span>
+                                        {/if}
+                                    {/each}
+                                </span>
                             </span>
+                            <span class="planned-delivery-profit">{customDeliveryRow.profit}</span>
                         </div>
-                    {/each}
+                    </div>
                 </div>
             {/if}
             {#if showOptionalProductionExpansionDoneButton}
@@ -2968,6 +3098,10 @@
         color: rgba(71, 53, 33, 0.88);
     }
 
+    .custom-delivery-panel {
+        padding-top: 0;
+    }
+
     .operating-company-message {
         font-size: 16px;
         line-height: 1.15;
@@ -3014,72 +3148,6 @@
     .operating-company-mini-card-wrap {
         display: block;
         width: 164px;
-    }
-
-    .delivery-shipping-choices {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        width: 100%;
-    }
-
-    .delivery-shipping-choice {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        max-width: 100%;
-        border: none;
-        border-radius: 8px;
-        background: transparent;
-        padding: 4px 8px;
-        transition: opacity 120ms ease;
-        cursor: pointer;
-    }
-
-    .delivery-shipping-choice:hover,
-    .delivery-shipping-choice:focus-visible {
-        opacity: 0.9;
-        outline: none;
-    }
-
-    .delivery-shipping-choice.is-disabled {
-        opacity: 0.45;
-        cursor: default;
-    }
-
-    .delivery-route-icon-wrap {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 60px;
-        height: 42px;
-        flex: 0 0 auto;
-    }
-
-    .delivery-route-icon-svg {
-        display: block;
-    }
-
-    .delivery-route-count {
-        display: inline-flex;
-        align-items: baseline;
-        justify-content: center;
-        gap: 3px;
-        color: rgba(63, 46, 28, 0.92);
-        font-size: 18px;
-        line-height: 1;
-        font-weight: 700;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .delivery-route-times {
-        font-size: 14px;
-        font-weight: 600;
-        letter-spacing: 0.01em;
     }
 
     .bid-formula {
