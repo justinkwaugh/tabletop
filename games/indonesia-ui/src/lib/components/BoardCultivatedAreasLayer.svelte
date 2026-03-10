@@ -92,7 +92,6 @@
             }
         )
         const renderByGoods = gameSession.productionZoneRenderStyle === 'goods'
-
         for (const area of Object.values(gameSession.gameState.board.areas)) {
             if (!('companyId' in area)) {
                 continue

@@ -187,6 +187,12 @@
         return new Set(gameSession.deliveryAvailableCityAreaIds)
     })
 
+    const hoveredRouteCityAreaId: string | null = $derived.by(() => {
+        return gameSession.hoveredRoutePreview?.cityAreaId ?? null
+    })
+
+    const hasHoveredRouteCity: boolean = $derived.by(() => hoveredRouteCityAreaId !== null)
+
     const shouldDimDemandTagsForCompanyHover: boolean = $derived.by(() => {
         if (gameSession.hoveredCompanySpotlightCompanyIds.length > 0) {
             return true
@@ -201,20 +207,23 @@
             isSelectingDeliveryCity && selectableDeliveryCityAreaIds.has(marker.areaId)}
         {@const isHoveredSelectableDeliveryCity =
             isSelectableDeliveryCity && hoveredDeliveryCityAreaId === marker.areaId}
-        <GlassBeadMarker
-            x={marker.x}
-            y={marker.y}
-            tone={marker.tone}
-            height={isHoveredSelectableDeliveryCity ? CITY_MARKER_HEIGHT * 1.12 : CITY_MARKER_HEIGHT}
-        />
-        {#if isSelectableDeliveryCity}
+        {@const isHoveredRouteCity = hoveredRouteCityAreaId === marker.areaId}
+        <g opacity={hasHoveredRouteCity && !isHoveredRouteCity ? 0.34 : 1}>
+            <GlassBeadMarker
+                x={marker.x}
+                y={marker.y}
+                tone={marker.tone}
+                height={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_MARKER_HEIGHT * 1.12 : CITY_MARKER_HEIGHT}
+            />
+        </g>
+        {#if isSelectableDeliveryCity || isHoveredRouteCity}
             <circle
                 cx={marker.x}
                 cy={marker.y}
-                r={isHoveredSelectableDeliveryCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.08 : CITY_SELECTION_BEAD_RING_RADIUS}
+                r={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.08 : CITY_SELECTION_BEAD_RING_RADIUS}
                 fill="none"
                 stroke="#fff8d7"
-                stroke-width={isHoveredSelectableDeliveryCity ? CITY_SELECTION_BEAD_RING_STROKE * 1.16 : CITY_SELECTION_BEAD_RING_STROKE}
+                stroke-width={(isHoveredSelectableDeliveryCity || isHoveredRouteCity) ? CITY_SELECTION_BEAD_RING_STROKE * 1.16 : CITY_SELECTION_BEAD_RING_STROKE}
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 opacity="0.94"
@@ -222,10 +231,10 @@
             <circle
                 cx={marker.x}
                 cy={marker.y}
-                r={isHoveredSelectableDeliveryCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.08 : CITY_SELECTION_BEAD_RING_RADIUS}
+                r={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.08 : CITY_SELECTION_BEAD_RING_RADIUS}
                 fill="none"
                 stroke="#1f2937"
-                stroke-width={isHoveredSelectableDeliveryCity ? 3 : 2.4}
+                stroke-width={(isHoveredSelectableDeliveryCity || isHoveredRouteCity) ? 3 : 2.4}
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 opacity="0.92"
@@ -239,8 +248,13 @@
                 isSelectingDeliveryCity && selectableDeliveryCityAreaIds.has(tag.areaId)}
             {@const isHoveredSelectableDeliveryCity =
                 isSelectableDeliveryCity && hoveredDeliveryCityAreaId === tag.areaId}
+            {@const isHoveredRouteCity = hoveredRouteCityAreaId === tag.areaId}
             {@const darkened =
-                isSelectingDeliveryCity ? false : shouldDimDemandTagsForCompanyHover}
+                hasHoveredRouteCity
+                    ? !isHoveredRouteCity
+                    : isSelectingDeliveryCity
+                      ? false
+                      : shouldDimDemandTagsForCompanyHover}
             {@const darkenedBrightness = HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS}
             <CityDemandMarker
                 x={tag.x}
@@ -249,8 +263,8 @@
                 targetY={tag.targetY}
                 demandMet={tag.isDemandMet}
                 demands={tag.demands}
-                highlighted={isSelectableDeliveryCity}
-                hovered={isHoveredSelectableDeliveryCity}
+                highlighted={isSelectableDeliveryCity || isHoveredRouteCity}
+                hovered={isHoveredSelectableDeliveryCity || isHoveredRouteCity}
                 darkened={darkened}
                 {darkenedBrightness}
             />

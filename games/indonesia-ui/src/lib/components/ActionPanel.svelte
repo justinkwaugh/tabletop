@@ -43,6 +43,28 @@
     let passingMergerBid = $state(false)
     let selectedMergerOptionKey = $state('')
     let mergerBidInput = $state('0')
+    type PlannedDeliveryHoverTarget = Parameters<typeof gameSession.setHoveredPlannedDeliveryRoute>[0]
+    let pendingPlannedDeliveryHoverTimeout: ReturnType<typeof setTimeout> | undefined
+
+    function clearPendingPlannedDeliveryHoverTimeout(): void {
+        if (pendingPlannedDeliveryHoverTimeout !== undefined) {
+            clearTimeout(pendingPlannedDeliveryHoverTimeout)
+            pendingPlannedDeliveryHoverTimeout = undefined
+        }
+    }
+
+    function setPlannedDeliveryHover(route: PlannedDeliveryHoverTarget): void {
+        clearPendingPlannedDeliveryHoverTimeout()
+        gameSession.setHoveredPlannedDeliveryRoute(route)
+    }
+
+    function schedulePlannedDeliveryHover(route: PlannedDeliveryHoverTarget): void {
+        clearPendingPlannedDeliveryHoverTimeout()
+        pendingPlannedDeliveryHoverTimeout = setTimeout(() => {
+            pendingPlannedDeliveryHoverTimeout = undefined
+            gameSession.setHoveredPlannedDeliveryRoute(route)
+        }, 24)
+    }
 
     const showTurnOrderBidFormula = $derived.by(() => {
         return (
@@ -721,6 +743,7 @@
 
     $effect(() => {
         if (!showProductionOperationsPanel) {
+            clearPendingPlannedDeliveryHoverTimeout()
             gameSession.setHoveredPlannedDeliveryRoute(undefined)
         }
     })
@@ -1723,12 +1746,18 @@
                             Profit
                         </span>
                     </div>
-                    <div class="planned-delivery-table">
+                    <div
+                        class="planned-delivery-table"
+                        role="presentation"
+                        onmouseleave={() => {
+                            schedulePlannedDeliveryHover(undefined)
+                        }}
+                    >
                         {#each plannedDeliveryRows as row (row.key)}
                             <div
                                 class={`planned-delivery-row ${row.required ? 'is-required' : ''} ${row.shipped ? 'is-shipped' : ''}`}
                                 onmouseenter={() => {
-                                    gameSession.setHoveredPlannedDeliveryRoute({
+                                    setPlannedDeliveryHover({
                                         zoneId: row.zoneId,
                                         cityId: row.cityId,
                                         shippingCompanyId: row.shippingCompanyId,
@@ -1736,11 +1765,8 @@
                                         cultivatedAreaId: row.selectedRoute.cultivatedAreaId
                                     })
                                 }}
-                                onmouseleave={() => {
-                                    gameSession.setHoveredPlannedDeliveryRoute(undefined)
-                                }}
                                 onfocus={() => {
-                                    gameSession.setHoveredPlannedDeliveryRoute({
+                                    setPlannedDeliveryHover({
                                         zoneId: row.zoneId,
                                         cityId: row.cityId,
                                         shippingCompanyId: row.shippingCompanyId,
@@ -1749,7 +1775,7 @@
                                     })
                                 }}
                                 onblur={() => {
-                                    gameSession.setHoveredPlannedDeliveryRoute(undefined)
+                                    schedulePlannedDeliveryHover(undefined)
                                 }}
                             >
                                 {#if row.shipped}
@@ -1761,19 +1787,21 @@
                                         disabled={deliveringGood}
                                         aria-label={`Ship recommended delivery to ${row.destinationLabel}`}
                                         onmouseenter={() => {
-                                            gameSession.setHoveredPlannedDeliveryRoute({
+                                            setPlannedDeliveryHover({
                                                 zoneId: row.zoneId,
                                                 cityId: row.cityId,
                                                 shippingCompanyId: row.shippingCompanyId,
-                                                seaAreaIds: row.seaAreaIds
+                                                seaAreaIds: row.seaAreaIds,
+                                                cultivatedAreaId: row.selectedRoute.cultivatedAreaId
                                             })
                                         }}
                                         onfocus={() => {
-                                            gameSession.setHoveredPlannedDeliveryRoute({
+                                            setPlannedDeliveryHover({
                                                 zoneId: row.zoneId,
                                                 cityId: row.cityId,
                                                 shippingCompanyId: row.shippingCompanyId,
-                                                seaAreaIds: row.seaAreaIds
+                                                seaAreaIds: row.seaAreaIds,
+                                                cultivatedAreaId: row.selectedRoute.cultivatedAreaId
                                             })
                                         }}
                                         onclick={async () => {
@@ -1848,7 +1876,7 @@
                                                     class={`planned-delivery-ship-option ${isSelectedRouteOption ? 'is-selected' : ''}`}
                                                     aria-label={`Use ${companyById.get(routeOption.shippingCompanyId)?.owner ?? 'alternate'} shipping for ${row.destinationLabel}`}
                                                     onmouseenter={() => {
-                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                        setPlannedDeliveryHover({
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
                                                             shippingCompanyId: routeOption.shippingCompanyId,
@@ -1857,7 +1885,7 @@
                                                         })
                                                     }}
                                                     onmouseleave={() => {
-                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                        schedulePlannedDeliveryHover({
                                                             zoneId: row.selectedRoute.zoneId,
                                                             cityId: row.selectedRoute.cityId,
                                                             shippingCompanyId: row.selectedRoute.shippingCompanyId,
@@ -1866,7 +1894,7 @@
                                                         })
                                                     }}
                                                     onfocus={() => {
-                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                        setPlannedDeliveryHover({
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
                                                             shippingCompanyId: routeOption.shippingCompanyId,
@@ -1875,7 +1903,7 @@
                                                         })
                                                     }}
                                                     onblur={() => {
-                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                        schedulePlannedDeliveryHover({
                                                             zoneId: row.selectedRoute.zoneId,
                                                             cityId: row.selectedRoute.cityId,
                                                             shippingCompanyId: row.selectedRoute.shippingCompanyId,
@@ -1888,7 +1916,7 @@
                                                             ...selectedPlannedRouteOptionKeyByRowKey,
                                                             [row.key]: routeOption.key
                                                         }
-                                                        gameSession.setHoveredPlannedDeliveryRoute({
+                                                        setPlannedDeliveryHover({
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
                                                             shippingCompanyId: routeOption.shippingCompanyId,

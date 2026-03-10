@@ -1077,7 +1077,25 @@
         return hasAnyCompanySpotlight && spotlightedProductionCompanyIdSet.size === 0
     })
 
+    const hoveredRoutePreviewSourceAreaIdSet: ReadonlySet<string> = $derived.by(() => {
+        return new Set(gameSession.hoveredRoutePreview?.sourceAreaIds ?? [])
+    })
+
+    const hasHoveredRoutePreview: boolean = $derived.by(() => {
+        return gameSession.hoveredRoutePreview !== null
+    })
+
+    function isMarkerMaskedByRoutePreview(marker: ProductionZoneMarkerEntry): boolean {
+        if (!hasHoveredRoutePreview) {
+            return false
+        }
+        return !marker.zoneAreaIds.some((areaId) => hoveredRoutePreviewSourceAreaIdSet.has(areaId))
+    }
+
     function isMarkerMasked(marker: ProductionZoneMarkerEntry): boolean {
+        if (isMarkerMaskedByRoutePreview(marker)) {
+            return true
+        }
         if (
             maskNonSelectableZoneTagsDuringDeliverySelection &&
             !selectableDeliveryZoneMarkerKeySet.has(marker.key)
@@ -1112,6 +1130,9 @@
     function maskedOpacityForMarker(marker: ProductionZoneMarkerEntry): number {
         if (!isMarkerMasked(marker)) {
             return 0
+        }
+        if (isMarkerMaskedByRoutePreview(marker)) {
+            return HOVER_COMPANY_ZONE_TAG_MASK_OPACITY
         }
         if (
             maskNonSelectableZoneTagsDuringDeliverySelection &&

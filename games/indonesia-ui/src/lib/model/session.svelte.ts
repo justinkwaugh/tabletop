@@ -27,7 +27,9 @@ import {
     StartCompany,
     HydratedChooseOperatingCompany,
     type HydratedIndonesiaGameState,
-    type IndonesiaGameState
+    type IndonesiaGameState,
+    IndonesiaNeighborDirection,
+    isIndonesiaNodeId
 } from '@tabletop/indonesia'
 import {
     hasManualDeliverySelection,
@@ -44,6 +46,15 @@ type PlannedDeliveryRouteHover = {
     shippingCompanyId: string
     seaAreaIds: string[]
     cultivatedAreaId?: string
+}
+
+type HoveredRoutePreviewState = {
+    zoneId: string
+    cityId: string
+    cityAreaId: string | null
+    shippingCompanyId: string
+    seaAreaIds: string[]
+    sourceAreaIds: string[]
 }
 
 export class IndonesiaGameSession extends GameSession<
@@ -389,6 +400,130 @@ export class IndonesiaGameSession extends GameSession<
             seaAreaIds: [...hoveredRoute.seaAreaIds],
             cultivatedAreaId: matchingCandidate.cultivatedAreaId
         }
+    })
+
+    hoveredRoutePreview: HoveredRoutePreviewState | null = $derived.by(() => {
+        const cityAreaByCityId = new Map(
+            this.gameState.board.cities.map((city) => [city.id, city.area] as const)
+        )
+
+        const operatingCompanyId = this.gameState.operatingCompanyId
+        const cultivatedAreaIdsByZoneId = new Map<string, string[]>()
+        const cultivatedZoneAreaIdsByCultivatedAreaId = new Map<string, string[]>()
+        if (operatingCompanyId) {
+            const cultivatedAreaIdSet = new Set<string>()
+            for (const area of Object.values(this.gameState.board.areas)) {
+                if (!('companyId' in area)) {
+                    continue
+                }
+                if (area.companyId !== operatingCompanyId) {
+                    continue
+                }
+                cultivatedAreaIdSet.add(area.id)
+            }
+
+            const unvisited = [...cultivatedAreaIdSet].sort((left, right) =>
+                left.localeCompare(right)
+            )
+            const zoneAreaIdGroups: string[][] = []
+            while (unvisited.length > 0) {
+                const seedAreaId = unvisited.shift()
+                if (!seedAreaId) {
+                    continue
+                }
+
+                const remaining = new Set(unvisited)
+                remaining.delete(seedAreaId)
+
+                const queue: string[] = [seedAreaId]
+                const zoneAreaIds: string[] = []
+                while (queue.length > 0) {
+                    const areaId = queue.shift()
+                    if (!areaId) {
+                        continue
+                    }
+                    zoneAreaIds.push(areaId)
+                    if (!isIndonesiaNodeId(areaId)) {
+                        continue
+                    }
+
+                    const node = this.gameState.board.graph.nodeById(areaId)
+                    if (!node) {
+                        continue
+                    }
+
+                    for (const neighborNode of this.gameState.board.graph.neighborsOf(
+                        node,
+                        IndonesiaNeighborDirection.Land
+                    )) {
+                        if (!remaining.has(neighborNode.id)) {
+                            continue
+                        }
+                        remaining.delete(neighborNode.id)
+                        queue.push(neighborNode.id)
+                    }
+                }
+
+                unvisited.splice(
+                    0,
+                    unvisited.length,
+                    ...[...remaining].sort((left, right) => left.localeCompare(right))
+                )
+                zoneAreaIdGroups.push(zoneAreaIds.sort((left, right) => left.localeCompare(right)))
+            }
+
+            const sortedZoneAreaGroups = [...zoneAreaIdGroups].sort((left, right) =>
+                (left[0] ?? '').localeCompare(right[0] ?? '')
+            )
+            sortedZoneAreaGroups.forEach((areaIds, index) => {
+                cultivatedAreaIdsByZoneId.set(`${operatingCompanyId}:zone:${index + 1}`, areaIds)
+                for (const areaId of areaIds) {
+                    cultivatedZoneAreaIdsByCultivatedAreaId.set(areaId, areaIds)
+                }
+            })
+        }
+
+        const plannedRoute = this.hoveredPlannedDeliveryRoute
+        if (plannedRoute) {
+            const sourceAreaIds =
+                (plannedRoute.cultivatedAreaId
+                    ? cultivatedZoneAreaIdsByCultivatedAreaId.get(plannedRoute.cultivatedAreaId)
+                    : undefined) ??
+                cultivatedAreaIdsByZoneId.get(plannedRoute.zoneId) ??
+                (plannedRoute.cultivatedAreaId !== undefined
+                    ? [plannedRoute.cultivatedAreaId]
+                    : [])
+
+            return {
+                zoneId: plannedRoute.zoneId,
+                cityId: plannedRoute.cityId,
+                cityAreaId: cityAreaByCityId.get(plannedRoute.cityId) ?? null,
+                shippingCompanyId: plannedRoute.shippingCompanyId,
+                seaAreaIds: [...plannedRoute.seaAreaIds],
+                sourceAreaIds
+            }
+        }
+
+        const hoveredChoice = this.hoveredDeliveryShippingChoice
+        if (hoveredChoice) {
+            const sourceAreaIds =
+                cultivatedZoneAreaIdsByCultivatedAreaId.get(
+                    hoveredChoice.candidate.cultivatedAreaId
+                ) ??
+                cultivatedAreaIdsByZoneId.get(hoveredChoice.candidate.zoneId) ??
+                [hoveredChoice.candidate.cultivatedAreaId]
+
+            return {
+                zoneId: hoveredChoice.candidate.zoneId,
+                cityId: hoveredChoice.candidate.cityId,
+                cityAreaId: cityAreaByCityId.get(hoveredChoice.candidate.cityId) ?? null,
+                shippingCompanyId: hoveredChoice.candidate.shippingCompanyId,
+                seaAreaIds: [...hoveredChoice.candidate.seaAreaIds],
+                sourceAreaIds
+            }
+        }
+
+        return null
     })
 
     resetAction(): void {

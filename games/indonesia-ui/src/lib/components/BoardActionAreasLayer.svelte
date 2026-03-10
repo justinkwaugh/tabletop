@@ -663,6 +663,69 @@
         return [...new Set([...hoveredProductionCompanyAreaIds, ...hoveredShippingCompanyAreaIds])]
     })
 
+    const hasHoveredRoutePreview: boolean = $derived.by(() => gameSession.hoveredRoutePreview !== null)
+
+    const hoveredRoutePreviewExemptAreaIds: readonly string[] = $derived.by(() => {
+        const hoveredRoutePreview = gameSession.hoveredRoutePreview
+        if (!hoveredRoutePreview) {
+            return []
+        }
+
+        const areaIds = new Set<string>()
+        for (const areaId of hoveredRoutePreview.sourceAreaIds) {
+            if (boardAreaPathById(areaId)) {
+                areaIds.add(areaId)
+            }
+        }
+        if (
+            hoveredRoutePreview.cityAreaId &&
+            boardAreaPathById(hoveredRoutePreview.cityAreaId)
+        ) {
+            areaIds.add(hoveredRoutePreview.cityAreaId)
+        }
+
+        return [...areaIds].sort((left, right) => left.localeCompare(right))
+    })
+
+    const hoveredRoutePreviewExemptAreaIdSet: ReadonlySet<string> = $derived.by(
+        () => new Set(hoveredRoutePreviewExemptAreaIds)
+    )
+
+    const hoveredRoutePreviewDimmedLandAreaIds: readonly string[] = $derived.by(() => {
+        if (!hasHoveredRoutePreview) {
+            return []
+        }
+
+        const dimmedAreaIds: string[] = []
+        for (const area of gameSession.gameState.board) {
+            if (area.type !== IndonesiaAreaType.Land) {
+                continue
+            }
+            if (!boardAreaPathById(area.id)) {
+                continue
+            }
+            if (hoveredRoutePreviewExemptAreaIdSet.has(area.id)) {
+                continue
+            }
+            dimmedAreaIds.push(area.id)
+        }
+
+        return dimmedAreaIds
+    })
+
+    const spotlightMaskExemptAreaIds: readonly string[] = $derived.by(() => {
+        return [
+            ...new Set([
+                ...hoveredCompanySpotlightAreaIds,
+                ...hoveredAvailableDeedOverlayAreaIds
+            ])
+        ].sort((left, right) => left.localeCompare(right))
+    })
+
+    const shouldRenderBoardSpotlightMask: boolean = $derived.by(() => {
+        return hoveredCompanySpotlightAreaIds.length > 0 || hoveredAvailableDeedOverlayAreaIds.length > 0
+    })
+
     const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
         const hoveredDeedId = gameSession.hoveredAvailableDeedId
         if (!hoveredDeedId) {
@@ -898,16 +961,13 @@
     }
 </script>
 
-{#if activeAreaInteraction || startCompanySelectionEnabled || hoveredCompanySpotlightAreaIds.length > 0}
+{#if activeAreaInteraction || startCompanySelectionEnabled || shouldRenderBoardSpotlightMask || hasHoveredRoutePreview}
     <g class="select-none" aria-label="Board action areas layer">
-        {#if hoveredCompanySpotlightAreaIds.length > 0}
+        {#if shouldRenderBoardSpotlightMask}
             <defs>
                 <mask id={PRODUCTION_HOVER_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
                     <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
-                    {#each hoveredCompanySpotlightAreaIds as areaId (areaId)}
-                        <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
-                    {/each}
-                    {#each hoveredAvailableDeedOverlayAreaIds as areaId (areaId)}
+                    {#each spotlightMaskExemptAreaIds as areaId (areaId)}
                         <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
                     {/each}
                 </mask>
@@ -965,9 +1025,22 @@
             {/each}
         {/if}
 
+        {#if hasHoveredRoutePreview}
+            {#each hoveredRoutePreviewDimmedLandAreaIds as areaId (areaId)}
+                <Area
+                    areaId={areaId}
+                    fill="#000000"
+                    stroke="none"
+                    fillOpacity="0.42"
+                    pointer-events="none"
+                />
+            {/each}
+        {/if}
+
         {#if activeAreaInteraction}
             {#if activeAreaInteraction.action === 'expand' &&
-                activeAreaInteraction.maskedAreaType === IndonesiaAreaType.Sea}
+                activeAreaInteraction.maskedAreaType === IndonesiaAreaType.Sea &&
+                !hasHoveredRoutePreview}
                 {#each interactiveValidAreaIds as areaId (areaId)}
                     <Area
                         areaId={areaId}
@@ -984,15 +1057,17 @@
                 {/each}
             {/if}
 
-            {#each maskedAreaIds as areaId (areaId)}
-                <Area
-                    areaId={areaId}
-                    fill="#000000"
-                    stroke="none"
-                    fillOpacity="0.5"
-                    pointer-events="none"
-                />
-            {/each}
+            {#if !hasHoveredRoutePreview}
+                {#each maskedAreaIds as areaId (areaId)}
+                    <Area
+                        areaId={areaId}
+                        fill="#000000"
+                        stroke="none"
+                        fillOpacity="0.5"
+                        pointer-events="none"
+                    />
+                {/each}
+            {/if}
 
             {#each interactiveValidAreaIds as areaId (areaId)}
                 <Area
@@ -1030,7 +1105,7 @@
                 />
             {/each}
 
-            {#if activeAreaInteraction.action === 'select-delivery-cultivated'}
+            {#if activeAreaInteraction.action === 'select-delivery-cultivated' && !hasHoveredRoutePreview}
                 <defs>
                     {#each deliverySelectableZones as zone (zone.key)}
                         <mask id={deliveryZoneOutlineMaskId(zone.key)} maskUnits="userSpaceOnUse">
@@ -1132,7 +1207,7 @@
                     {/if}
                 {/each}
             {:else}
-                {#if activeAreaInteraction.action !== 'select-delivery-city'}
+                {#if activeAreaInteraction.action !== 'select-delivery-city' && !hasHoveredRoutePreview}
                     {#each hoveredInteractiveAreaIds as areaId (areaId)}
                         <Area
                             areaId={areaId}
