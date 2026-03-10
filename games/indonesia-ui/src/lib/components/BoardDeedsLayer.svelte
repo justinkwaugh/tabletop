@@ -45,7 +45,6 @@
         fill: string
         stroke: string
         opacity: number
-        baseTintPatternId: string | null
         hatchPatternId: string | null
     }
 
@@ -56,14 +55,9 @@
         'R04:Production': 'deed-hatch-production',
         'R24:Production': 'deed-hatch-production'
     }
-    const DEED_SPICE_BASE_TINT_PATTERN_ID = 'deed-hatch-spice-base-tint'
-    const DEED_RUBBER_BASE_HATCH_PATTERN_ID = 'deed-hatch-rubber-base'
-    const DEED_SIAPSAJI_BASE_TINT_PATTERN_ID = 'deed-hatch-siapsaji-base-tint'
-    const DEED_RUBBER_DOUBLE_HATCH_PATTERN_ID = 'deed-hatch-rubber-double'
-    const DEED_SIAPSAJI_HATCH_PATTERN_ID = 'deed-hatch-siapsaji'
-    const DEED_SPICE_PRIMARY_TINT = companyDeedStyleForType('spice').textColor
-    const DEED_RUBBER_PRIMARY_TINT = companyDeedStyleForType('rubber').textColor
-    const DEED_SIAPSAJI_PRIMARY_TINT = '#8a5067'
+    const DEED_UNSTARTED_PRODUCTION_DOT_PATTERN_ID = 'deed-production-unstarted-dot'
+    const DEED_UNSTARTED_PRODUCTION_DENSE_DOT_PATTERN_ID = 'deed-production-unstarted-dense-dot'
+    const DEED_NEUTRAL_PATTERN_COLOR = '#2b231d'
     const DEED_LAYER_DATA: {
         cards: DeedCardEntry[]
         overlays: OverlayArea[]
@@ -92,7 +86,7 @@
                 continue
             }
 
-            const hatchPatternId = DEED_HATCH_PATTERN_BY_KEY[legacyPositionKey] ?? null
+            const legacyHatchPatternId = DEED_HATCH_PATTERN_BY_KEY[legacyPositionKey] ?? null
             const overlayFill = baseStyle.overlayFill
             const overlayStroke = baseStyle.overlayStroke
             const overlayAreaIds = isShipping
@@ -118,12 +112,13 @@
             })
 
             for (const areaId of overlayAreaIds) {
-                const resolvedHatchPatternId =
-                    cardKind === 'rubber' && hatchPatternId === 'deed-hatch-production'
-                        ? DEED_RUBBER_DOUBLE_HATCH_PATTERN_ID
-                        : cardKind === 'siapsaji' && hatchPatternId === 'deed-hatch-production'
-                          ? DEED_SIAPSAJI_HATCH_PATTERN_ID
-                          : hatchPatternId
+                const resolvedHatchPatternId = !isShipping
+                    ? legacyHatchPatternId === 'deed-hatch-production'
+                        ? DEED_UNSTARTED_PRODUCTION_DENSE_DOT_PATTERN_ID
+                        : DEED_UNSTARTED_PRODUCTION_DOT_PATTERN_ID
+                    : legacyHatchPatternId
+                const hasAdjacentConflict =
+                    !isShipping && legacyHatchPatternId === 'deed-hatch-production'
                 overlays.push({
                     key: `${deed.id}-${areaId}`,
                     deedId: deed.id,
@@ -132,16 +127,6 @@
                     fill: overlayFill,
                     stroke: overlayStroke,
                     opacity: isShipping ? baseStyle.overlayOpacity : 1,
-                    baseTintPatternId:
-                        resolvedHatchPatternId
-                            ? null
-                            : cardKind === 'spice'
-                            ? DEED_SPICE_BASE_TINT_PATTERN_ID
-                            : cardKind === 'rubber'
-                              ? DEED_RUBBER_BASE_HATCH_PATTERN_ID
-                            : cardKind === 'siapsaji'
-                              ? DEED_SIAPSAJI_BASE_TINT_PATTERN_ID
-                              : null,
                     hatchPatternId: resolvedHatchPatternId
                 })
             }
@@ -218,6 +203,40 @@
     >
         <defs>
             <pattern
+                id={DEED_UNSTARTED_PRODUCTION_DOT_PATTERN_ID}
+                patternUnits="userSpaceOnUse"
+                width="18"
+                height="18"
+            >
+                <circle cx="5" cy="5" r="1.8" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.38"></circle>
+                <circle cx="14" cy="14" r="1.8" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.3"></circle>
+            </pattern>
+            <pattern
+                id={DEED_UNSTARTED_PRODUCTION_DENSE_DOT_PATTERN_ID}
+                patternUnits="userSpaceOnUse"
+                width="12"
+                height="12"
+            >
+                <rect
+                    x="2"
+                    y="5"
+                    width="8"
+                    height="2"
+                    rx="1"
+                    fill={DEED_NEUTRAL_PATTERN_COLOR}
+                    fill-opacity="0.34"
+                ></rect>
+                <rect
+                    x="5"
+                    y="2"
+                    width="2"
+                    height="8"
+                    rx="1"
+                    fill={DEED_NEUTRAL_PATTERN_COLOR}
+                    fill-opacity="0.34"
+                ></rect>
+            </pattern>
+            <pattern
                 id="deed-hatch-shipping"
                 patternUnits="userSpaceOnUse"
                 width="24"
@@ -234,90 +253,6 @@
                 patternTransform="rotate(35)"
             >
                 <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.24"></rect>
-            </pattern>
-            <pattern id={DEED_RUBBER_DOUBLE_HATCH_PATTERN_ID} patternUnits="userSpaceOnUse" width="24" height="24">
-                <rect
-                    x="0"
-                    y="0"
-                    width="12"
-                    height="24"
-                    fill={DEED_RUBBER_PRIMARY_TINT}
-                    fill-opacity="0.12"
-                    transform="rotate(-32 12 12)"
-                ></rect>
-                <rect
-                    x="0"
-                    y="0"
-                    width="12"
-                    height="24"
-                    fill={DEED_RUBBER_PRIMARY_TINT}
-                    fill-opacity="0.16"
-                    transform="rotate(35 12 12)"
-                ></rect>
-            </pattern>
-            <pattern
-                id={DEED_SIAPSAJI_HATCH_PATTERN_ID}
-                patternUnits="userSpaceOnUse"
-                width="24"
-                height="24"
-                patternTransform="rotate(35)"
-            >
-                <rect
-                    x="0"
-                    y="0"
-                    width="12"
-                    height="24"
-                    fill={DEED_SIAPSAJI_PRIMARY_TINT}
-                    fill-opacity="0.32"
-                ></rect>
-            </pattern>
-            <pattern
-                id={DEED_SPICE_BASE_TINT_PATTERN_ID}
-                patternUnits="userSpaceOnUse"
-                width="24"
-                height="24"
-                patternTransform="rotate(-32)"
-            >
-                <rect
-                    x="0"
-                    y="0"
-                    width="12"
-                    height="24"
-                    fill={DEED_SPICE_PRIMARY_TINT}
-                    fill-opacity="0.14"
-                ></rect>
-            </pattern>
-            <pattern
-                id={DEED_RUBBER_BASE_HATCH_PATTERN_ID}
-                patternUnits="userSpaceOnUse"
-                width="24"
-                height="24"
-                patternTransform="rotate(-32)"
-            >
-                <rect
-                    x="0"
-                    y="0"
-                    width="12"
-                    height="24"
-                    fill={DEED_RUBBER_PRIMARY_TINT}
-                    fill-opacity="0.12"
-                ></rect>
-            </pattern>
-            <pattern
-                id={DEED_SIAPSAJI_BASE_TINT_PATTERN_ID}
-                patternUnits="userSpaceOnUse"
-                width="24"
-                height="24"
-                patternTransform="rotate(-32)"
-            >
-                <rect
-                    x="0"
-                    y="0"
-                    width="12"
-                    height="24"
-                    fill={DEED_SIAPSAJI_PRIMARY_TINT}
-                    fill-opacity="0.14"
-                ></rect>
             </pattern>
         </defs>
 
@@ -337,17 +272,6 @@
                     opacity={overlay.opacity}
                     pointer-events="none"
                 />
-                {#if overlay.baseTintPatternId}
-                    <Area
-                        areaId={overlay.areaId}
-                        fill={`url(#${overlay.baseTintPatternId})`}
-                        stroke="transparent"
-                        fillOpacity={1}
-                        strokeWidth={0}
-                        opacity={overlay.opacity}
-                        pointer-events="none"
-                    />
-                {/if}
                 {#if overlay.hatchPatternId}
                     <Area
                         areaId={overlay.areaId}
@@ -408,17 +332,6 @@
                 opacity={overlay.opacity}
                 pointer-events="none"
             />
-            {#if overlay.baseTintPatternId}
-                <Area
-                    areaId={overlay.areaId}
-                    fill={`url(#${overlay.baseTintPatternId})`}
-                    stroke="transparent"
-                    fillOpacity={1}
-                    strokeWidth={0}
-                    opacity={overlay.opacity}
-                    pointer-events="none"
-                />
-            {/if}
             {#if overlay.hatchPatternId}
                 <Area
                     areaId={overlay.areaId}

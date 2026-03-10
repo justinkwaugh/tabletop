@@ -127,7 +127,7 @@ describe('finishOperatingCompany', () => {
 
         expect(nextState).toBe(MachineState.EndOfGame)
         expect(state.era).toBe(Era.C)
-        expect(state.phaseManager.currentPhase?.name).toBe(PhaseName.NewEra)
+        expect(state.phaseManager.currentPhase?.name).not.toBe(PhaseName.NewEra)
         expect(state.getPlayerState(playerId).cash).toBe(64)
         expect(state.operationsEarningsByPlayerId).toBeUndefined()
         expect(context.getPendingActions().some((pendingAction) => isRemoveCompanyDeed(pendingAction))).toBe(

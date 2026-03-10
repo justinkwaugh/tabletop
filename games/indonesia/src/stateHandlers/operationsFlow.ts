@@ -42,9 +42,6 @@ export function resolvePostOperationsState(
     const payoutMultiplier = shouldStartNewEra && state.era === Era.C ? 2 : 1
     state.settleOperationsIncomeToCash(payoutMultiplier)
     if (shouldStartNewEra && state.era === Era.C) {
-        if (state.phaseManager.currentPhase?.name !== PhaseName.NewEra) {
-            state.phaseManager.startPhase(PhaseName.NewEra, state.actionCount)
-        }
         return MachineState.EndOfGame
     }
 

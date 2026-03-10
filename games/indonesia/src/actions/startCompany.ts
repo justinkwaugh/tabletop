@@ -23,6 +23,7 @@ import {
 } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 import { queueRemovalForUnstartableAvailableDeeds } from '../operations/deedAvailability.js'
+import { chooseNewShippingStyle } from '../utils/shippingStyles.js'
 
 export type StartCompanyMetadata = Type.Static<typeof StartCompanyMetadata>
 export const StartCompanyMetadata = Type.Object({
@@ -89,7 +90,8 @@ export class HydratedStartCompany
         } else {
             newCompany = {
                 ...baseCompany,
-                type: deed.type
+                type: deed.type,
+                shipStyle: chooseNewShippingStyle(state, this.playerId)
             } satisfies ShippingCompany
         }
 

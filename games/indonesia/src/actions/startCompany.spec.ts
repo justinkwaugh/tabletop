@@ -245,4 +245,49 @@ describe('HydratedStartCompany.canStartCompany', () => {
             deedId: duplicateDeed.id
         })
     })
+
+    it('assigns distinct ship styles when the same player starts multiple shipping companies', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        state.machineState = MachineState.Acquisitions
+        state.activePlayerIds = [playerId]
+        state.getPlayerState(playerId).research.slots = 3
+
+        const shippingDeeds = state.availableDeeds.filter((deed) => deed.type === CompanyType.Shipping)
+        expect(shippingDeeds.length).toBeGreaterThanOrEqual(3)
+        const context = new MachineContext({
+            gameConfig: {},
+            gameState: state
+        })
+
+        const startedShippingStyles = new Set<string>()
+        for (const [index, deed] of shippingDeeds.slice(0, 3).entries()) {
+            const areaId = HydratedStartCompany.validAreaIds(state, playerId, deed.id).next().value
+            expect(areaId).toBeDefined()
+            if (!areaId) {
+                return
+            }
+
+            const action = new HydratedStartCompany(
+                createAction(StartCompany, {
+                    id: `start-shipping-${index}`,
+                    gameId: state.gameId,
+                    source: ActionSource.User,
+                    playerId,
+                    deedId: deed.id,
+                    areaId
+                })
+            )
+
+            action.apply(state, context)
+
+            expect(action.metadata?.company.type).toBe(CompanyType.Shipping)
+            if (action.metadata?.company.type === CompanyType.Shipping) {
+                expect(action.metadata.company.shipStyle).toBeDefined()
+                startedShippingStyles.add(action.metadata.company.shipStyle ?? '')
+            }
+        }
+
+        expect(startedShippingStyles).toEqual(new Set(['a', 'b', 'c']))
+    })
 })

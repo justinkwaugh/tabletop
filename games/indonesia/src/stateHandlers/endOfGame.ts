@@ -7,7 +7,6 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
-import { PhaseName } from '../definition/phases.js'
 
 type EndOfGameAction = HydratedAction
 
@@ -33,10 +32,6 @@ export class EndOfGameStateHandler implements MachineStateHandler<
     enter(context: MachineContext<HydratedIndonesiaGameState>) {
         const gameState = context.gameState
         gameState.activePlayerIds = []
-
-        if (gameState.phaseManager.currentPhase?.name !== PhaseName.NewEra) {
-            gameState.phaseManager.startPhase(PhaseName.NewEra, gameState.actionCount)
-        }
 
         let winnerId: string | undefined
         let winnerTotal = Number.NEGATIVE_INFINITY

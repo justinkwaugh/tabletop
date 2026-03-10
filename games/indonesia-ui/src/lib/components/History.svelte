@@ -10,7 +10,8 @@
         Era,
         INDONESIA_REGION_BY_AREA_ID,
         isGrowCity,
-        isIndonesiaNodeId
+        isIndonesiaNodeId,
+        MachineState
     } from '@tabletop/indonesia'
     import { ClockSolid } from 'flowbite-svelte-icons'
     import { getRegionName } from '$lib/definitions/regions.js'
@@ -28,6 +29,7 @@
         id: string
         phaseName: string
         start: number
+        showArrows: boolean
     }
 
     type HistoryItem = GameAction | PhaseHistoryMarker
@@ -45,6 +47,8 @@
     function isPhaseHistoryMarker(item: HistoryItem): item is PhaseHistoryMarker {
         return item.type === 'phase-marker'
     }
+
+    let showEndOfGameMarker = $derived(gameSession.gameState.machineState === MachineState.EndOfGame)
 
     let historyItems = $derived.by(() => {
         const aggregatedActions = Array.from(aggregateActions(gameSession.actions))
@@ -73,7 +77,8 @@
                     type: 'phase-marker',
                     id: `phase-${phase.name}-${phase.start}`,
                     phaseName,
-                    start: phase.start
+                    start: phase.start,
+                    showArrows: true
                 })
                 if (phase.name === 'NewEra') {
                     newEraCount += 1
@@ -93,13 +98,32 @@
                 type: 'phase-marker',
                 id: `phase-${phase.name}-${phase.start}`,
                 phaseName,
-                start: phase.start
+                start: phase.start,
+                showArrows: true
             })
             if (phase.name === 'NewEra') {
                 newEraCount += 1
             }
             nextPhaseIndex += 1
         }
+
+        if (showEndOfGameMarker) {
+            items.push({
+                type: 'phase-marker',
+                id: 'phase-end-of-game',
+                phaseName: 'END OF GAME',
+                start: Number.MAX_SAFE_INTEGER,
+                showArrows: false
+            })
+        }
+
+        items.unshift({
+            type: 'phase-marker',
+            id: 'phase-game-start',
+            phaseName: 'GAME STARTED',
+            start: -1,
+            showArrows: false
+        })
 
         return items.toReversed()
     })
@@ -149,21 +173,6 @@
 >
     <div class="overflow-auto h-full w-full" bind:this={scrollContainer}>
         <Timeline class="history-timeline ms-2 border-[#ad9c80]">
-            {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
-                <div
-                    class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
-                ></div>
-                <TimelineItem
-                    timeClass="text-[#7a5d3f]"
-                    title=""
-                    class="timeline-item px-2 text-left mb-5"
-                    date={timeAgo.format(gameSession.game.finishedAt)}
-                >
-                    <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
-                        The game has ended.
-                    </p>
-                </TimelineItem>
-            {/if}
             {#each historyItems as item (item.id)}
                 {#if isPhaseHistoryMarker(item)}
                     <div
@@ -172,7 +181,7 @@
                         class="relative left-[calc(-0.5rem-1px)] mb-4 flex w-[calc(100%+0.5rem+1px)] items-center justify-center border-y-2 border-[#7a5d3f] bg-[#ede2dc] py-2"
                     >
                         <div class="w-full text-center text-sm font-medium uppercase tracking-[0.08em] text-[#7a5d3f]">
-                            ↑ {item.phaseName} ↑
+                            {#if item.showArrows}↑ {/if}{item.phaseName}{#if item.showArrows} ↑{/if}
                         </div>
                     </div>
                 {:else}
@@ -238,19 +247,6 @@
                 </div>
                 {/if}
             {/each}
-            <div
-                class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
-            ></div>
-            <TimelineItem
-                timeClass="text-[#7a5d3f]"
-                title=""
-                class="timeline-item px-2 text-left mb-5"
-                date={timeAgo.format(gameSession.game.createdAt)}
-            >
-                <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
-                    The game was started
-                </p>
-            </TimelineItem>
         </Timeline>
     </div>
 </div>

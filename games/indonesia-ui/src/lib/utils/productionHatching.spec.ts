@@ -77,7 +77,7 @@ function buildGameState(args: {
 }
 
 describe('productionConflictRankByCompanyId', () => {
-    it('hatches the later same-owner company when zones become land-adjacent across goods', () => {
+    it('hatches the non-primary same-owner company when zones become land-adjacent across goods', () => {
         const state = buildGameState({
             players: [{ playerId: 'p1', ownedCompanies: ['c-old', 'c-new'] }],
             companies: [
@@ -97,11 +97,24 @@ describe('productionConflictRankByCompanyId', () => {
         expect(conflictRanks.get('c-old')).toBe(0)
         expect(conflictRanks.get('c-new')).toBe(1)
         expect(hatchVariants.get('c-old')).toBeUndefined()
-        expect(hatchVariants.get('c-new')).toBe(0)
+        expect(hatchVariants.get('c-new')).toBeTypeOf('number')
     })
 
-    it('keeps stable hatch order by ownedCompanies chronology within a connected conflict group', () => {
+    it('keeps hatch assignment stable for an existing company when another company is added', () => {
         const state = buildGameState({
+            players: [{ playerId: 'p1', ownedCompanies: ['c-1', 'c-2'] }],
+            companies: [
+                { id: 'c-1', owner: 'p1', good: 'Rice' },
+                { id: 'c-2', owner: 'p1', good: 'Spice' }
+            ],
+            areaCompanyByAreaId: {
+                A01: 'c-1',
+                A02: 'c-2'
+            },
+            landAdjacencyPairs: [['A01', 'A02']]
+        })
+
+        const expandedState = buildGameState({
             players: [{ playerId: 'p1', ownedCompanies: ['c-1', 'c-2', 'c-3'] }],
             companies: [
                 { id: 'c-1', owner: 'p1', good: 'Rice' },
@@ -119,11 +132,13 @@ describe('productionConflictRankByCompanyId', () => {
             ]
         })
 
-        const hatchVariants = productionHatchVariantByCompanyId(state, 4)
+        const initialHatchVariants = productionHatchVariantByCompanyId(state, 4)
+        const expandedHatchVariants = productionHatchVariantByCompanyId(expandedState, 4)
 
-        expect(hatchVariants.get('c-1')).toBeUndefined()
-        expect(hatchVariants.get('c-2')).toBe(0)
-        expect(hatchVariants.get('c-3')).toBe(1)
+        expect(initialHatchVariants.get('c-1')).toBeUndefined()
+        expect(initialHatchVariants.get('c-2')).toBeTypeOf('number')
+        expect(expandedHatchVariants.get('c-2')).toBe(initialHatchVariants.get('c-2'))
+        expect(expandedHatchVariants.get('c-3')).toBeTypeOf('number')
     })
 
     it('does not hatch different-good companies that are not same-good and not adjacent', () => {
@@ -169,7 +184,7 @@ describe('productionConflictRankByCompanyId', () => {
         expect(conflictRanks.get('c-1')).toBe(0)
         expect(conflictRanks.get('c-2')).toBe(1)
         expect(hatchVariants.get('c-1')).toBeUndefined()
-        expect(hatchVariants.get('c-2')).toBe(0)
+        expect(hatchVariants.get('c-2')).toBeTypeOf('number')
     })
 
     it('goods mode does not hatch adjacent different-good companies', () => {

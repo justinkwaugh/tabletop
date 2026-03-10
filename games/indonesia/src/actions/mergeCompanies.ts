@@ -17,6 +17,7 @@ import {
     isIndonesiaNodeId,
     type IndonesiaNodeId
 } from '../utils/indonesiaNodes.js'
+import { chooseMergedShippingStyle } from '../utils/shippingStyles.js'
 
 const MergeCompaniesOwnerPayment = Type.Object({
     companyId: Type.String(),
@@ -138,7 +139,8 @@ export class HydratedMergeCompanies
                 id: mergedCompanyId,
                 type: CompanyType.Shipping,
                 deeds: mergedDeeds,
-                owner: winnerId
+                owner: winnerId,
+                shipStyle: chooseMergedShippingStyle(state, winnerId, [companyA.id, companyB.id])
             }
         } else {
             assertExists(
