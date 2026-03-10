@@ -260,6 +260,14 @@
         [Era.C]: 2
     }
 
+    const GOOD_LABELS: Record<Good, string> = {
+        [Good.Rice]: 'rice',
+        [Good.Spice]: 'spice',
+        [Good.Rubber]: 'rubber',
+        [Good.Oil]: 'oil',
+        [Good.SiapSaji]: 'siap saji'
+    }
+
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
@@ -280,6 +288,29 @@
         const regionId = INDONESIA_REGION_BY_AREA_ID[cityAreaId]
         return regionId ? getRegionName(regionId) : cityAreaId
     }
+
+    const currentProductionGoodLabel = $derived.by(() => {
+        const deliveryPlanGood = gameSession.gameState.operatingCompanyDeliveryPlan?.good
+        if (deliveryPlanGood) {
+            return GOOD_LABELS[deliveryPlanGood]
+        }
+
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (!operatingCompanyId) {
+            return null
+        }
+
+        const operatingCompany = companyById.get(operatingCompanyId)
+        if (
+            operatingCompany &&
+            operatingCompany.type === CompanyType.Production &&
+            'good' in operatingCompany
+        ) {
+            return GOOD_LABELS[operatingCompany.good]
+        }
+
+        return null
+    })
 
     const mergerOptions = $derived.by(() => {
         if (!canProposeMerger) {
@@ -838,6 +869,28 @@
         )
     })
 
+    const productionDeliveryRequirementMessage = $derived.by(() => {
+        if (!showProductionOperationsPanel) {
+            return null
+        }
+        if (
+            gameSession.gameState.machineState !== MachineState.ProductionOperations ||
+            gameSession.productionOperationStage !== 'delivery'
+        ) {
+            return null
+        }
+
+        const remainingGoodsToShip = remainingGoodsToShipForCurrentProductionOperation
+        if (remainingGoodsToShip <= 0) {
+            return null
+        }
+
+        const goodsLabel = currentProductionGoodLabel ?? 'goods'
+        return shippedGoodsCountForCurrentProductionOperation > 0
+            ? `You must ship ${remainingGoodsToShip} more ${goodsLabel}.`
+            : `You must ship ${remainingGoodsToShip} ${goodsLabel}.`
+    })
+
     function plannedDeliveryRowKey(delivery: {
         zoneId: string
         cityId: string
@@ -1224,24 +1277,17 @@
                     return `You may expand up to ${remainingExpansions} ${areasLabel} or finish.`
                 }
 
-                const remainingGoodsToShip = remainingGoodsToShipForCurrentProductionOperation
-                const goodsLabel = remainingGoodsToShip === 1 ? 'good' : 'goods'
-                const baseMessage =
-                    shippedGoodsCountForCurrentProductionOperation > 0
-                        ? `Ship ${remainingGoodsToShip} more ${goodsLabel}.`
-                        : `Ship ${remainingGoodsToShip} ${goodsLabel}.`
-
                 if (gameSession.deliverySelectionStage === 'cultivated') {
-                    return `${baseMessage} Choose a production zone.`
+                    return 'Choose a delivery below or choose a production zone.'
                 }
                 if (gameSession.deliverySelectionStage === 'city') {
-                    return `${baseMessage} Choose a destination city.`
+                    return 'Choose a delivery below or choose a destination city.'
                 }
                 if (gameSession.deliverySelectionStage === 'shipping') {
-                    return `${baseMessage} Choose shipping.`
+                    return 'Choose a delivery below or choose shipping.'
                 }
 
-                return baseMessage
+                return 'Choose a delivery below.'
             }
             case MachineState.CityGrowth: {
                 if (gameSession.validActionTypes.includes(ActionType.GrowCity)) {
@@ -1672,7 +1718,7 @@
                         <span class="planned-delivery-header-spacer"></span>
                         <span class="planned-delivery-title">Delivery Plan</span>
                         <span class="planned-delivery-header-spacer"></span>
-                        <span class="planned-delivery-column-title">Ships</span>
+                        <span class="planned-delivery-header-spacer"></span>
                         <span class="planned-delivery-column-title planned-delivery-column-title-profit">
                             Profit
                         </span>
@@ -1757,7 +1803,9 @@
                                     {/if}
                                 </span>
                                 {#if row.quantity > 1}
-                                    <span class="planned-delivery-quantity">{row.quantity} goods</span>
+                                    <span class="planned-delivery-quantity">
+                                        {row.quantity} {currentProductionGoodLabel ?? 'goods'}
+                                    </span>
                                 {:else}
                                     <span></span>
                                 {/if}
@@ -1881,6 +1929,11 @@
                         {/each}
                     </div>
                 </div>
+            {/if}
+            {#if productionDeliveryRequirementMessage}
+                <span class="production-delivery-requirement">
+                    {productionDeliveryRequirementMessage}
+                </span>
             {/if}
             {#if showDeliveryShippingChoices}
                 <div class="delivery-shipping-choices" aria-label="Delivery shipping choices">
@@ -2304,6 +2357,7 @@
         border-bottom: 1px solid rgba(93, 68, 40, 0.58);
         border-radius: 0;
         margin: 0 0 7px;
+        padding-top: 12px;
         box-shadow: none;
     }
 
@@ -2336,12 +2390,15 @@
     }
 
     .planned-delivery-panel {
+        --planned-delivery-leading-column-width: 46px;
+        --planned-delivery-profit-column-width: 52px;
+
         width: min(100%, 520px);
         display: flex;
         flex-direction: column;
         align-items: stretch;
         gap: 4px;
-        padding: 2px 0 0;
+        padding: 6px 0 0;
     }
 
     .planned-delivery-title {
@@ -2355,15 +2412,22 @@
 
     .planned-delivery-header {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        grid-template-columns:
+            var(--planned-delivery-leading-column-width)
+            minmax(0, 1fr)
+            auto
+            auto
+            var(--planned-delivery-profit-column-width);
         align-items: end;
-        gap: 10px;
+        column-gap: 7px;
+        row-gap: 0;
         width: 100%;
         padding: 0 10px 2px;
     }
 
     .planned-delivery-header-spacer {
         display: block;
+        width: var(--planned-delivery-leading-column-width);
     }
 
     .planned-delivery-column-title {
@@ -2376,7 +2440,8 @@
     }
 
     .planned-delivery-column-title-profit {
-        text-align: right;
+        justify-self: center;
+        text-align: center;
     }
 
     .planned-delivery-table {
@@ -2388,9 +2453,15 @@
 
     .planned-delivery-row {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        grid-template-columns:
+            auto
+            minmax(0, 1fr)
+            auto
+            auto
+            var(--planned-delivery-profit-column-width);
         align-items: center;
-        gap: 10px;
+        column-gap: 7px;
+        row-gap: 0;
         width: 100%;
         border: 1px solid rgba(93, 68, 40, 0.14);
         border-radius: 10px;
@@ -2490,7 +2561,7 @@
         min-width: 92px;
         height: 40px;
         color: rgba(71, 53, 33, 0.9);
-        padding: 0 8px;
+        padding: 0 0 0 8px;
         font-size: 13px;
         line-height: 1;
         font-weight: 800;
@@ -2580,8 +2651,10 @@
     }
 
     .planned-delivery-city-name {
-        font-size: 14px;
+        font-size: 15px;
         line-height: 1.1;
+        font-weight: 500;
+        letter-spacing: 0.01em;
         color: rgba(51, 35, 20, 0.94);
     }
 
@@ -2604,12 +2677,21 @@
     }
 
     .planned-delivery-profit {
-        font-size: 13px;
+        justify-self: center;
+        font-size: 14px;
         line-height: 1;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: rgba(71, 53, 33, 0.88);
         white-space: nowrap;
+        text-align: center;
+    }
+
+    .production-delivery-requirement {
+        font-size: 14px;
+        line-height: 1.15;
+        letter-spacing: 0.01em;
+        color: rgba(71, 53, 33, 0.88);
     }
 
     .operating-company-message {

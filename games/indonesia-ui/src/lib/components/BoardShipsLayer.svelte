@@ -9,6 +9,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
+        areaId: string
         companyId: string
         x: number
         y: number
@@ -74,6 +75,31 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         () => new Set(activeShipSpotlightCompanyIds)
     )
 
+    const hoveredRouteShipFilter:
+        | {
+              shippingCompanyId: string
+              seaAreaIds: ReadonlySet<string>
+          }
+        | null = $derived.by(() => {
+        const plannedRoute = gameSession.hoveredPlannedDeliveryRoute
+        if (plannedRoute) {
+            return {
+                shippingCompanyId: plannedRoute.shippingCompanyId,
+                seaAreaIds: new Set(plannedRoute.seaAreaIds)
+            }
+        }
+
+        const hoveredChoice = gameSession.hoveredDeliveryShippingChoice
+        if (hoveredChoice) {
+            return {
+                shippingCompanyId: hoveredChoice.candidate.shippingCompanyId,
+                seaAreaIds: new Set(hoveredChoice.candidate.seaAreaIds)
+            }
+        }
+
+        return null
+    })
+
     const styleByShippingCompanyId = $derived.by(() => shippingStyleByCompanyId(gameSession.gameState))
 
     const shipMarkers: ShipMarkerEntry[] = $derived.by(() => {
@@ -118,6 +144,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
                 markers.push({
                     key: `${area.id}-${companyId}-${markerIndex}`,
+                    areaId: area.id,
                     companyId,
                     x: markerPoint.x,
                     y: markerPoint.y,
@@ -146,6 +173,9 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     })
 
     const dimmedShipMarkers: ShipMarkerEntry[] = $derived.by(() => {
+        if (hoveredRouteShipFilter) {
+            return []
+        }
         if (activeShipSpotlightCompanyIdSet.size === 0) {
             return shipMarkers
         }
@@ -153,10 +183,21 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     })
 
     const emphasizedShipMarkers: ShipMarkerEntry[] = $derived.by(() => {
+        if (hoveredRouteShipFilter) {
+            return shipMarkers.filter(
+                (ship) =>
+                    ship.companyId === hoveredRouteShipFilter.shippingCompanyId &&
+                    hoveredRouteShipFilter.seaAreaIds.has(ship.areaId)
+            )
+        }
         if (activeShipSpotlightCompanyIdSet.size === 0) {
             return []
         }
         return shipMarkers.filter((ship) => activeShipSpotlightCompanyIdSet.has(ship.companyId))
+    })
+
+    const shouldRenderEmphasizedShips: boolean = $derived.by(() => {
+        return hoveredRouteShipFilter !== null || activeShipSpotlightCompanyIdSet.size > 0
     })
 </script>
 
@@ -179,7 +220,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         </g>
     {/each}
 
-    {#if activeShipSpotlightCompanyIdSet.size > 0}
+    {#if shouldRenderEmphasizedShips}
         {#each emphasizedShipMarkers as ship (ship.key)}
             <ShipMarker
                 x={ship.x}
