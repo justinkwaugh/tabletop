@@ -306,9 +306,7 @@ export class IndonesiaGameSession extends GameSession<
         $derived.by(() => {
             const hoveredRouteKey = this.hoveredDeliveryRouteKeyOverride
             if (!hoveredRouteKey) {
-                return this.deliveryShippingChoices.length === 1
-                    ? this.deliveryShippingChoices[0] ?? null
-                    : null
+                return null
             }
 
             return (
