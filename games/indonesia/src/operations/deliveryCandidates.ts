@@ -14,6 +14,7 @@ import type {
 } from './deliveryCandidateTypes.js'
 
 export type { AtomicDeliveryCandidate, AtomicDeliveryChoice }
+export type { DeliveryOperationContext } from './deliveryCandidateTypes.js'
 
 export function listAtomicDeliveryCandidatesForPlayer(
     state: HydratedIndonesiaGameState,
@@ -73,3 +74,5 @@ export function isValidAtomicDeliveryChoiceForPlayer(
 }
 
 export { applyAtomicDeliveryCandidateToProblem, buildDeliveryOperationContext }
+export { isSafeAtomicDeliveryCandidate } from './deliveryCandidateContext.js'
+export { listAtomicDeliveryCandidatesFromContext } from './deliveryCandidatePathing.js'

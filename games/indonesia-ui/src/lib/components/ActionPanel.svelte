@@ -12,7 +12,10 @@
         ActionType,
         applyAtomicDeliveryCandidateToProblem,
         buildDeliveryOperationContext,
+        isSafeAtomicDeliveryCandidate,
+        listAtomicDeliveryCandidatesFromContext,
         type AtomicDeliveryCandidate,
+        type DeliveryOperationContext,
         BID_RESEARCH_MULTIPLIERS,
         CompanyType,
         Era,
@@ -168,6 +171,36 @@
     let selectedPlannedRouteOptionOrderByRowKey = $state<Record<string, number>>({})
     let nextPlannedRouteOptionOrder = $state(0)
     let selectedCustomDeliveryRouteKey = $state<string>('')
+
+    const customDeliveryRouteOptions: PlannedDeliveryRouteOption[] = $derived.by(() => {
+        if (!showDeliveryShippingChoices) {
+            return []
+        }
+
+        return gameSession.deliveryShippingChoices.map(({ routeKey, candidate }) => ({
+            key: routeKey,
+            zoneId: candidate.zoneId,
+            cityId: candidate.cityId,
+            shippingCompanyId: candidate.shippingCompanyId,
+            seaAreaIds: candidate.seaAreaIds,
+            cultivatedAreaId: candidate.cultivatedAreaId,
+            shipCount: candidate.seaAreaIds.length,
+            shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE,
+            candidate
+        }))
+    })
+
+    const selectedCustomDeliveryRouteOption = $derived.by(() => {
+        if (customDeliveryRouteOptions.length === 0) {
+            return null
+        }
+
+        return (
+            customDeliveryRouteOptions.find(
+                (option) => option.key === selectedCustomDeliveryRouteKey
+            ) ?? customDeliveryRouteOptions[0]
+        )
+    })
 
     const turnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() => {
         const bidByPlayerId = gameSession.gameState.turnOrderBids ?? {}
@@ -943,7 +976,8 @@
         originalTarget: number,
         shippedSoFar: number,
         alreadySelectedCount: number,
-        routeOption: PlannedDeliveryRouteOption
+        routeOption: PlannedDeliveryRouteOption,
+        minimumResidualRowCount = 0
     ) {
         const candidate = routeOption.candidate
         if (!candidate) {
@@ -962,7 +996,10 @@
         }
 
         const residualPlan = solveDeliveryProblem(nextProblem)
-        return residualPlan.totalDelivered >= remainingRequiredAfterCandidate ? nextProblem : null
+        return residualPlan.totalDelivered >= remainingRequiredAfterCandidate &&
+            residualPlan.deliveries.length >= minimumResidualRowCount
+            ? nextProblem
+            : null
     }
 
     const plannedDeliveryRows: PlannedDeliveryRow[] = $derived.by(() => {
@@ -1062,9 +1099,50 @@
         const tentativeDeliveryContext = myPlayerId
             ? buildDeliveryOperationContext(gameSession.gameState, myPlayerId)
             : null
+        const customSelectedRouteOption = selectedCustomDeliveryRouteOption
+        let deliveryPlanForDisplay = deliveryPlan
+        let baseTentativeProblem = tentativeDeliveryContext?.problem ?? null
+        let baseTentativeSelectionCount = 0
+        let candidateContextForDisplay: DeliveryOperationContext | null = tentativeDeliveryContext
+
+        if (tentativeDeliveryContext && customSelectedRouteOption) {
+            const problemAfterCustomSelection = applyTentativeRouteOptionIfCompatible(
+                tentativeDeliveryContext.problem,
+                tentativeDeliveryContext.originalTarget,
+                tentativeDeliveryContext.shippedSoFar,
+                0,
+                customSelectedRouteOption
+            )
+            if (problemAfterCustomSelection) {
+                deliveryPlanForDisplay = solveDeliveryProblem(problemAfterCustomSelection)
+                baseTentativeProblem = problemAfterCustomSelection
+                baseTentativeSelectionCount = 1
+                const deliveredCultivatedAreaIdSet = new Set(
+                    tentativeDeliveryContext.deliveredCultivatedAreaIdSet
+                )
+                if (customSelectedRouteOption.cultivatedAreaId) {
+                    deliveredCultivatedAreaIdSet.add(
+                        customSelectedRouteOption.cultivatedAreaId as (typeof tentativeDeliveryContext.deliveredCultivatedAreaIdSet extends Set<infer T> ? T : never)
+                    )
+                }
+                candidateContextForDisplay = {
+                    ...tentativeDeliveryContext,
+                    problem: problemAfterCustomSelection,
+                    shippedSoFar: tentativeDeliveryContext.shippedSoFar + 1,
+                    deliveredCultivatedAreaIdSet
+                }
+            }
+        }
+        const baselineRemainingRowCount = deliveryPlanForDisplay.deliveries.length
+        const safeCandidatesForDisplay = candidateContextForDisplay
+            ? listAtomicDeliveryCandidatesFromContext(candidateContextForDisplay).filter(
+                  (candidate) =>
+                      isSafeAtomicDeliveryCandidate(candidateContextForDisplay, candidate)
+              )
+            : []
 
         const requiredQuantityByKey = new Map<string, number>()
-        for (const criticalDelivery of deliveryPlan.criticalDeliveries ?? []) {
+        for (const criticalDelivery of deliveryPlanForDisplay.criticalDeliveries ?? []) {
             requiredQuantityByKey.set(
                 plannedDeliveryRowKey({
                     zoneId: criticalDelivery.zoneId,
@@ -1115,7 +1193,7 @@
             }
         }
 
-        const baseRemainingRows = deliveryPlan.deliveries
+        const baseRemainingRows = deliveryPlanForDisplay.deliveries
             .map((delivery, index) => {
                 const rowKey = plannedDeliveryRowKey({
                     zoneId: delivery.zoneId,
@@ -1128,7 +1206,7 @@
                     shippingCompanyId: delivery.shippingCompanyId,
                     seaAreaIds: delivery.seaPathAreaIds
                 })
-                const alternativeCandidates = gameSession.safeDeliveryCandidates
+                const alternativeCandidates = safeCandidatesForDisplay
                     .filter(
                         (candidate) =>
                             candidate.zoneId === delivery.zoneId &&
@@ -1180,21 +1258,6 @@
                     })
                 }
 
-                if (!routeOptionByShippingCompanyId.has(delivery.shippingCompanyId)) {
-                    routeOptionByShippingCompanyId.set(delivery.shippingCompanyId, {
-                        key: plannedRouteOptionKey,
-                        zoneId: delivery.zoneId,
-                        cityId: delivery.cityId,
-                        shippingCompanyId: delivery.shippingCompanyId,
-                        seaAreaIds: delivery.seaPathAreaIds,
-                        cultivatedAreaId: undefined,
-                        shipCount: delivery.seaPathAreaIds.length,
-                        shippingCost:
-                            delivery.seaPathAreaIds.length * SHIPPING_FEE_PER_SHIP_USE,
-                        candidate: undefined
-                    })
-                }
-
                 return {
                     key: rowKey,
                     zoneId: delivery.zoneId,
@@ -1215,6 +1278,45 @@
                     index
                 }
             })
+
+        const displayedRowsRemainStableAfterSelection = (
+            problemAfterSelection: NonNullable<ReturnType<typeof buildDeliveryOperationContext>>['problem'],
+            selectionCountAfterSelection: number,
+            selectedRowKeys: ReadonlySet<string>
+        ) => {
+            if (!tentativeDeliveryContext) {
+                return true
+            }
+
+            const minimumResidualRowCount = Math.max(
+                0,
+                baselineRemainingRowCount - (selectionCountAfterSelection + 1)
+            )
+
+            for (const baseRow of baseRemainingRows) {
+                if (selectedRowKeys.has(baseRow.key)) {
+                    continue
+                }
+
+                const hasCompatibleOption = baseRow.routeOptions.some(
+                    (routeOption) =>
+                        applyTentativeRouteOptionIfCompatible(
+                            problemAfterSelection,
+                            tentativeDeliveryContext.originalTarget,
+                            tentativeDeliveryContext.shippedSoFar,
+                            selectionCountAfterSelection,
+                            routeOption,
+                            minimumResidualRowCount
+                        ) !== null
+                )
+
+                if (!hasCompatibleOption) {
+                    return false
+                }
+            }
+
+            return true
+        }
 
         const baseRemainingRowByKey = new Map(baseRemainingRows.map((row) => [row.key, row]))
         const acceptedTentativeRouteOptionByRowKey = new Map<string, PlannedDeliveryRouteOption>()
@@ -1249,9 +1351,9 @@
             )
             .sort((left, right) => right.order - left.order)
 
-        if (tentativeDeliveryContext) {
-            let tentativeProblem = tentativeDeliveryContext.problem
-            let acceptedTentativeSelectionCount = 0
+        if (tentativeDeliveryContext && baseTentativeProblem) {
+            let tentativeProblem = baseTentativeProblem
+            let acceptedTentativeSelectionCount = baseTentativeSelectionCount
 
             for (const selection of explicitlySelectedRouteOptions) {
                 const nextProblem = applyTentativeRouteOptionIfCompatible(
@@ -1259,9 +1361,24 @@
                     tentativeDeliveryContext.originalTarget,
                     tentativeDeliveryContext.shippedSoFar,
                     acceptedTentativeSelectionCount,
-                    selection.routeOption
+                    selection.routeOption,
+                    Math.max(
+                        0,
+                        baselineRemainingRowCount - (acceptedTentativeSelectionCount + 1)
+                    )
                 )
                 if (!nextProblem) {
+                    continue
+                }
+                const selectedRowKeys = new Set(acceptedTentativeRouteOptionByRowKey.keys())
+                selectedRowKeys.add(selection.rowKey)
+                if (
+                    !displayedRowsRemainStableAfterSelection(
+                        nextProblem,
+                        acceptedTentativeSelectionCount + 1,
+                        selectedRowKeys
+                    )
+                ) {
                     continue
                 }
 
@@ -1273,8 +1390,8 @@
 
         const remainingRows = baseRemainingRows
             .map((baseRow) => {
-                let problemAfterOtherTentativeSelections = tentativeDeliveryContext?.problem ?? null
-                let otherTentativeSelectionCount = 0
+                let problemAfterOtherTentativeSelections = baseTentativeProblem
+                let otherTentativeSelectionCount = baseTentativeSelectionCount
                 if (problemAfterOtherTentativeSelections && tentativeDeliveryContext) {
                     for (const [selectedRowKey, selectedRouteOption] of acceptedTentativeRouteOptionByRowKey) {
                         if (selectedRowKey === baseRow.key) {
@@ -1286,7 +1403,11 @@
                             tentativeDeliveryContext.originalTarget,
                             tentativeDeliveryContext.shippedSoFar,
                             otherTentativeSelectionCount,
-                            selectedRouteOption
+                            selectedRouteOption,
+                            Math.max(
+                                0,
+                                baselineRemainingRowCount - (otherTentativeSelectionCount + 1)
+                            )
                         )
                         if (!nextProblem) {
                             continue
@@ -1303,13 +1424,32 @@
                     }
 
                     return (
-                        applyTentativeRouteOptionIfCompatible(
-                            problemAfterOtherTentativeSelections,
-                            tentativeDeliveryContext.originalTarget,
-                            tentativeDeliveryContext.shippedSoFar,
-                            otherTentativeSelectionCount,
-                            routeOption
-                        ) !== null
+                        (() => {
+                            const nextProblem = applyTentativeRouteOptionIfCompatible(
+                                problemAfterOtherTentativeSelections,
+                                tentativeDeliveryContext.originalTarget,
+                                tentativeDeliveryContext.shippedSoFar,
+                                otherTentativeSelectionCount,
+                                routeOption,
+                                Math.max(
+                                    0,
+                                    baselineRemainingRowCount - (otherTentativeSelectionCount + 1)
+                                )
+                            )
+                            if (!nextProblem) {
+                                return false
+                            }
+
+                            const selectedRowKeys = new Set(
+                                acceptedTentativeRouteOptionByRowKey.keys()
+                            )
+                            selectedRowKeys.add(baseRow.key)
+                            return displayedRowsRemainStableAfterSelection(
+                                nextProblem,
+                                otherTentativeSelectionCount + 1,
+                                selectedRowKeys
+                            )
+                        })()
                     )
                 })
                 const selectedRoute =
@@ -1333,7 +1473,7 @@
                     shipCount: selectedRoute.shipCount,
                     shippingCost: selectedRoute.shippingCost,
                     profit:
-                        baseRow.quantity * GOOD_REVENUE_BY_GOOD[deliveryPlan.good] -
+                        baseRow.quantity * GOOD_REVENUE_BY_GOOD[deliveryPlanForDisplay.good] -
                         selectedRoute.shippingCost,
                     destinationLabel: baseRow.destinationLabel,
                     required: baseRow.required,
@@ -1364,23 +1504,12 @@
             return null
         }
 
-        const routeOptions = gameSession.deliveryShippingChoices.map(({ routeKey, candidate }) => ({
-            key: routeKey,
-            zoneId: candidate.zoneId,
-            cityId: candidate.cityId,
-            shippingCompanyId: candidate.shippingCompanyId,
-            seaAreaIds: candidate.seaAreaIds,
-            cultivatedAreaId: candidate.cultivatedAreaId,
-            shipCount: candidate.seaAreaIds.length,
-            shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
-        }))
+        const routeOptions = customDeliveryRouteOptions
         if (routeOptions.length === 0) {
             return null
         }
 
-        const selectedRoute =
-            routeOptions.find((option) => option.key === selectedCustomDeliveryRouteKey) ??
-            routeOptions[0]
+        const selectedRoute = selectedCustomDeliveryRouteOption ?? routeOptions[0]
         const good =
             gameSession.gameState.operatingCompanyDeliveryPlan?.good ??
             (() => {
@@ -1403,6 +1532,36 @@
         }
     })
 
+    const plannedDeliveryBaselineRowCount = $derived.by(() => {
+        if (!showProductionOperationsPanel) {
+            return 0
+        }
+
+        const deliveryPlan = gameSession.gameState.operatingCompanyDeliveryPlan
+        if (!deliveryPlan) {
+            return 0
+        }
+
+        const myPlayerId = gameSession.myPlayer?.id
+        const tentativeDeliveryContext = myPlayerId
+            ? buildDeliveryOperationContext(gameSession.gameState, myPlayerId)
+            : null
+        if (tentativeDeliveryContext && selectedCustomDeliveryRouteOption) {
+            const problemAfterCustomSelection = applyTentativeRouteOptionIfCompatible(
+                tentativeDeliveryContext.problem,
+                tentativeDeliveryContext.originalTarget,
+                tentativeDeliveryContext.shippedSoFar,
+                0,
+                selectedCustomDeliveryRouteOption
+            )
+            if (problemAfterCustomSelection) {
+                return solveDeliveryProblem(problemAfterCustomSelection).deliveries.length
+            }
+        }
+
+        return deliveryPlan.deliveries.length
+    })
+
     $effect(() => {
         if (!showProductionOperationsPanel) {
             if (Object.keys(selectedPlannedRouteOptionKeyByRowKey).length > 0) {
@@ -1414,8 +1573,7 @@
             return
         }
 
-        const expectedRemainingRowCount =
-            gameSession.gameState.operatingCompanyDeliveryPlan?.deliveries.length ?? 0
+        const expectedRemainingRowCount = plannedDeliveryBaselineRowCount
         const actualRemainingRowCount = plannedDeliveryRows.filter((row) => !row.shipped).length
         if (
             actualRemainingRowCount < expectedRemainingRowCount &&
@@ -2260,11 +2418,6 @@
                     </div>
                 </div>
             {/if}
-            {#if productionDeliveryRequirementMessage}
-                <span class="production-delivery-requirement">
-                    {productionDeliveryRequirementMessage}
-                </span>
-            {/if}
             {#if customDeliveryRow}
                 <div class="planned-delivery-panel custom-delivery-panel">
                     <div class="planned-delivery-header" aria-hidden="true">
@@ -2315,23 +2468,23 @@
                                         {@const isSelectedRouteOption =
                                             routeOption.key === customDeliveryRow.selectedRoute.key}
                                         {#if customDeliveryRow.routeOptions.length === 1}
-                                            <span class="planned-delivery-ship-option is-static">
-                                                <span class="planned-delivery-ship-icon-wrap">
+                                            <span class="planned-delivery-ship-option is-static is-selected">
+                                                <span class="planned-delivery-ship-icon-wrap is-selected">
                                                     <svg
-                                                        class="planned-delivery-ship-icon-svg"
+                                                        class="planned-delivery-ship-icon-svg is-selected"
                                                         viewBox="0 0 60 42"
-                                                        width="50"
-                                                        height="36"
+                                                        width="54"
+                                                        height="38"
                                                     >
                                                         <ShipMarker
                                                             x={30}
                                                             y={21}
                                                             style={routeMarkerVisual.style}
-                                                            height={32}
+                                                            height={34}
                                                             outline={false}
                                                             hullFillColor={routeMarkerVisual.hullFillColor}
                                                             hullStrokeColor={routeMarkerVisual.hullStrokeColor}
-                                                            hullStrokeWidth={8}
+                                                            hullStrokeWidth={10}
                                                         />
                                                     </svg>
                                                 </span>
@@ -2393,6 +2546,11 @@
                         </div>
                     </div>
                 </div>
+            {/if}
+            {#if productionDeliveryRequirementMessage}
+                <span class="production-delivery-requirement">
+                    {productionDeliveryRequirementMessage}
+                </span>
             {/if}
             {#if showOptionalProductionExpansionDoneButton}
                 <button
