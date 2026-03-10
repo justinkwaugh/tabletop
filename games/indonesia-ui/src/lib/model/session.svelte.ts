@@ -130,6 +130,33 @@ export class IndonesiaGameSession extends GameSession<
         return validCompanyIds
     })
 
+    activeCompanySpotlightCompanyIds: string[] = $derived.by(() => {
+        if (this.hoveredCompanySpotlightCompanyIds.length > 0) {
+            return this.hoveredCompanySpotlightCompanyIds
+        }
+
+        const hoveredCompanyId = this.hoveredOperatingCompanyId
+        if (hoveredCompanyId) {
+            return [hoveredCompanyId]
+        }
+
+        if (this.hoveredRoutePreview !== null) {
+            return []
+        }
+
+        if (
+            this.deliverySelectionStage === 'cultivated' &&
+            this.gameState.operatingCompanyId &&
+            this.gameState.companies.some(
+                (company) => company.id === this.gameState.operatingCompanyId
+            )
+        ) {
+            return [this.gameState.operatingCompanyId]
+        }
+
+        return []
+    })
+
     hoveredAvailableDeedId: string | null = $derived.by(() => {
         const hoveredDeedId = this.hoveredAvailableDeedIdOverride
         if (!hoveredDeedId) {

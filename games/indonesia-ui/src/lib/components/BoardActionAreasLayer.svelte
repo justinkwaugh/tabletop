@@ -593,14 +593,7 @@
     })
 
     const hoveredSpotlightCompanyIds: readonly string[] = $derived.by(() => {
-        if (gameSession.hoveredCompanySpotlightCompanyIds.length > 0) {
-            return gameSession.hoveredCompanySpotlightCompanyIds
-        }
-        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
-        if (!hoveredCompanyId) {
-            return []
-        }
-        return [hoveredCompanyId]
+        return gameSession.activeCompanySpotlightCompanyIds
     })
 
     const hoveredProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
@@ -723,7 +716,10 @@
     })
 
     const shouldRenderBoardSpotlightMask: boolean = $derived.by(() => {
-        return hoveredCompanySpotlightAreaIds.length > 0 || hoveredAvailableDeedOverlayAreaIds.length > 0
+        return (
+            hoveredCompanySpotlightAreaIds.length > 0 ||
+            hoveredAvailableDeedOverlayAreaIds.length > 0
+        )
     })
 
     const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
@@ -1057,7 +1053,8 @@
                 {/each}
             {/if}
 
-            {#if !hasHoveredRoutePreview}
+            {#if !hasHoveredRoutePreview &&
+                activeAreaInteraction.action !== 'select-delivery-cultivated'}
                 {#each maskedAreaIds as areaId (areaId)}
                     <Area
                         areaId={areaId}
@@ -1105,7 +1102,7 @@
                 />
             {/each}
 
-            {#if activeAreaInteraction.action === 'select-delivery-cultivated' && !hasHoveredRoutePreview}
+            {#if false}
                 <defs>
                     {#each deliverySelectableZones as zone (zone.key)}
                         <mask id={deliveryZoneOutlineMaskId(zone.key)} maskUnits="userSpaceOnUse">
@@ -1166,46 +1163,6 @@
                         </mask>
                     {/each}
                 </defs>
-
-                {#each deliverySelectableZones as zone (zone.key)}
-                    {@const isHoveredZone = hoveredDeliveryZoneKey === zone.key}
-                    {@const outerMask = deliveryZoneOutlineMaskId(zone.key)}
-                    {@const innerMask = deliveryZoneInnerOutlineMaskId(zone.key)}
-                    {@const hoverMask = deliveryZoneHoverOutlineMaskId(zone.key)}
-
-                    <rect
-                        x="0"
-                        y="0"
-                        width={BOARD_WIDTH}
-                        height={BOARD_HEIGHT}
-                        fill="#fff8d7"
-                        fill-opacity="0.9"
-                        mask={`url(#${outerMask})`}
-                        pointer-events="none"
-                    />
-                    <rect
-                        x="0"
-                        y="0"
-                        width={BOARD_WIDTH}
-                        height={BOARD_HEIGHT}
-                        fill="#1f2937"
-                        fill-opacity="0.88"
-                        mask={`url(#${innerMask})`}
-                        pointer-events="none"
-                    />
-                    {#if isHoveredZone}
-                        <rect
-                            x="0"
-                            y="0"
-                            width={BOARD_WIDTH}
-                            height={BOARD_HEIGHT}
-                            fill="#fff8d7"
-                            fill-opacity="0.32"
-                            mask={`url(#${hoverMask})`}
-                            pointer-events="none"
-                        />
-                    {/if}
-                {/each}
             {:else}
                 {#if activeAreaInteraction.action !== 'select-delivery-city' && !hasHoveredRoutePreview}
                     {#each hoveredInteractiveAreaIds as areaId (areaId)}

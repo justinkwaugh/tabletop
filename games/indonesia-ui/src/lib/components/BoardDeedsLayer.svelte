@@ -196,10 +196,7 @@
     })
 
     const shouldDarkenDeedMarkersForCompanyHover: boolean = $derived.by(() => {
-        if (gameSession.hoveredCompanySpotlightCompanyIds.length > 0) {
-            return true
-        }
-        return !!gameSession.hoveredOperatingCompanyId
+        return gameSession.activeCompanySpotlightCompanyIds.length > 0
     })
 </script>
 

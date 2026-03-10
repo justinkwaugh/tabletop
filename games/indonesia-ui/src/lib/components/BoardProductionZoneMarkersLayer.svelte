@@ -983,33 +983,15 @@
         return markerEntries
     })
 
-    const hoveredProductionCompanyId: string | null = $derived.by(() => {
-        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
-        if (!hoveredCompanyId) {
-            return null
-        }
-        const hoveredCompany = gameSession.gameState.companies.find(
-            (company) => company.id === hoveredCompanyId
-        )
-        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Production) {
-            return null
-        }
-        return hoveredCompany.id
-    })
-
     const spotlightedProductionCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
         const productionCompanyIds = new Set<string>()
 
-        for (const companyId of gameSession.hoveredCompanySpotlightCompanyIds) {
+        for (const companyId of gameSession.activeCompanySpotlightCompanyIds) {
             const company = gameSession.gameState.companies.find((entry) => entry.id === companyId)
             if (!company || company.type !== CompanyType.Production) {
                 continue
             }
             productionCompanyIds.add(company.id)
-        }
-
-        if (productionCompanyIds.size === 0 && hoveredProductionCompanyId) {
-            productionCompanyIds.add(hoveredProductionCompanyId)
         }
 
         return productionCompanyIds
@@ -1071,9 +1053,7 @@
     })
 
     const maskAllZoneTagsDuringNonProductionCompanyHover: boolean = $derived.by(() => {
-        const hasAnyCompanySpotlight =
-            gameSession.hoveredOperatingCompanyId !== null ||
-            gameSession.hoveredCompanySpotlightCompanyIds.length > 0
+        const hasAnyCompanySpotlight = gameSession.activeCompanySpotlightCompanyIds.length > 0
         return hasAnyCompanySpotlight && spotlightedProductionCompanyIdSet.size === 0
     })
 

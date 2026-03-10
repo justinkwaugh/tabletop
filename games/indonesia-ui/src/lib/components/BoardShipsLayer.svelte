@@ -35,7 +35,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     )
 
     const hoveredShippingCompanyId: string | null = $derived.by(() => {
-        const hoveredCompanyId = gameSession.hoveredOperatingCompanyId
+        const hoveredCompanyId = gameSession.activeCompanySpotlightCompanyIds[0]
         if (!hoveredCompanyId) {
             return null
         }
@@ -48,7 +48,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     const spotlightedShippingCompanyIds: string[] = $derived.by(() => {
         const spotlightIds: string[] = []
-        for (const companyId of gameSession.hoveredCompanySpotlightCompanyIds) {
+        for (const companyId of gameSession.activeCompanySpotlightCompanyIds) {
             const company = companyById.get(companyId)
             if (!company || company.type !== CompanyType.Shipping) {
                 continue
