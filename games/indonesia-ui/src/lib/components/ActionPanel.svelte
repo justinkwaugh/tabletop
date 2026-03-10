@@ -2549,9 +2549,10 @@
         );
         box-shadow: inset 0 1px 0 rgba(255, 251, 242, 0.7);
         color: #3d2d1d;
+        font-family: inherit;
         font-size: 12px;
-        line-height: 1;
-        font-weight: 700;
+        line-height: inherit;
+        font-weight: 400;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         transition:
