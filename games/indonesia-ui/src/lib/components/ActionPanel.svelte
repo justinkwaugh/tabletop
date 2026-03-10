@@ -10,6 +10,9 @@
     import { Color } from '@tabletop/common'
     import {
         ActionType,
+        applyAtomicDeliveryCandidateToProblem,
+        buildDeliveryOperationContext,
+        type AtomicDeliveryCandidate,
         BID_RESEARCH_MULTIPLIERS,
         CompanyType,
         Era,
@@ -23,6 +26,7 @@
         MachineState,
         PassReason,
         SHIPPING_FEE_PER_SHIP_USE,
+        solveDeliveryProblem,
         type TurnOrderBid
     } from '@tabletop/indonesia'
     import { PlayerName } from '@tabletop/frontend-components'
@@ -139,6 +143,7 @@
         cultivatedAreaId?: string
         shipCount: number
         shippingCost: number
+        candidate?: AtomicDeliveryCandidate
     }
 
     type PlannedDeliveryRow = {
@@ -932,27 +937,31 @@
         return `${route.shippingCompanyId}|${route.seaAreaIds.join('>')}`
     }
 
-    function canUsePlannedDeliveryRouteOption(
-        remainingCapacityByShipUseKey: ReadonlyMap<string, number>,
-        routeOption: PlannedDeliveryRouteOption,
-        quantity: number
-    ): boolean {
-        return routeOption.seaAreaIds.every((seaAreaId) => {
-            const shipUseKey = `${routeOption.shippingCompanyId}|${seaAreaId}`
-            return (remainingCapacityByShipUseKey.get(shipUseKey) ?? 0) >= quantity
-        })
-    }
-
-    function applyPlannedDeliveryRouteOptionUsage(
-        remainingCapacityByShipUseKey: Map<string, number>,
-        routeOption: PlannedDeliveryRouteOption,
-        quantity: number
-    ): void {
-        for (const seaAreaId of routeOption.seaAreaIds) {
-            const shipUseKey = `${routeOption.shippingCompanyId}|${seaAreaId}`
-            const currentRemainingCapacity = remainingCapacityByShipUseKey.get(shipUseKey) ?? 0
-            remainingCapacityByShipUseKey.set(shipUseKey, currentRemainingCapacity - quantity)
+    function applyTentativeRouteOptionIfCompatible(
+        problem: NonNullable<ReturnType<typeof buildDeliveryOperationContext>>['problem'],
+        originalTarget: number,
+        shippedSoFar: number,
+        alreadySelectedCount: number,
+        routeOption: PlannedDeliveryRouteOption
+    ) {
+        const candidate = routeOption.candidate
+        if (!candidate) {
+            return null
         }
+
+        const nextProblem = applyAtomicDeliveryCandidateToProblem(problem, candidate)
+        if (!nextProblem) {
+            return null
+        }
+
+        const remainingRequiredAfterCandidate =
+            originalTarget - (shippedSoFar + alreadySelectedCount + 1)
+        if (remainingRequiredAfterCandidate <= 0) {
+            return nextProblem
+        }
+
+        const residualPlan = solveDeliveryProblem(nextProblem)
+        return residualPlan.totalDelivered >= remainingRequiredAfterCandidate ? nextProblem : null
     }
 
     const plannedDeliveryRows: PlannedDeliveryRow[] = $derived.by(() => {
@@ -1047,6 +1056,11 @@
         if (!deliveryPlan || deliveryPlan.deliveries.length === 0) {
             return completedRows
         }
+
+        const myPlayerId = gameSession.myPlayer?.id
+        const tentativeDeliveryContext = myPlayerId
+            ? buildDeliveryOperationContext(gameSession.gameState, myPlayerId)
+            : null
 
         const requiredQuantityByKey = new Map<string, number>()
         for (const criticalDelivery of deliveryPlan.criticalDeliveries ?? []) {
@@ -1160,7 +1174,8 @@
                         seaAreaIds: candidate.seaAreaIds,
                         cultivatedAreaId: candidate.cultivatedAreaId,
                         shipCount: candidate.seaAreaIds.length,
-                        shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+                        shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE,
+                        candidate
                     })
                 }
 
@@ -1174,7 +1189,8 @@
                         cultivatedAreaId: undefined,
                         shipCount: delivery.seaPathAreaIds.length,
                         shippingCost:
-                            delivery.seaPathAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+                            delivery.seaPathAreaIds.length * SHIPPING_FEE_PER_SHIP_USE,
+                        candidate: undefined
                     })
                 }
 
@@ -1232,53 +1248,69 @@
             )
             .sort((left, right) => right.order - left.order)
 
-        const remainingCapacityAfterTentativeSelections = new Map(remainingShipCapacityByShipUseKey)
-        for (const selection of explicitlySelectedRouteOptions) {
-            if (
-                !canUsePlannedDeliveryRouteOption(
-                    remainingCapacityAfterTentativeSelections,
-                    selection.routeOption,
-                    selection.quantity
-                )
-            ) {
-                continue
-            }
+        if (tentativeDeliveryContext) {
+            let tentativeProblem = tentativeDeliveryContext.problem
+            let acceptedTentativeSelectionCount = 0
 
-            acceptedTentativeRouteOptionByRowKey.set(selection.rowKey, selection.routeOption)
-            applyPlannedDeliveryRouteOptionUsage(
-                remainingCapacityAfterTentativeSelections,
-                selection.routeOption,
-                selection.quantity
-            )
+            for (const selection of explicitlySelectedRouteOptions) {
+                const nextProblem = applyTentativeRouteOptionIfCompatible(
+                    tentativeProblem,
+                    tentativeDeliveryContext.originalTarget,
+                    tentativeDeliveryContext.shippedSoFar,
+                    acceptedTentativeSelectionCount,
+                    selection.routeOption
+                )
+                if (!nextProblem) {
+                    continue
+                }
+
+                acceptedTentativeRouteOptionByRowKey.set(selection.rowKey, selection.routeOption)
+                tentativeProblem = nextProblem
+                acceptedTentativeSelectionCount += 1
+            }
         }
 
         const remainingRows = baseRemainingRows
             .map((baseRow) => {
-                const remainingCapacityForRow = new Map(remainingShipCapacityByShipUseKey)
-                for (const [selectedRowKey, selectedRouteOption] of acceptedTentativeRouteOptionByRowKey) {
-                    if (selectedRowKey === baseRow.key) {
-                        continue
-                    }
+                let problemAfterOtherTentativeSelections = tentativeDeliveryContext?.problem ?? null
+                let otherTentativeSelectionCount = 0
+                if (problemAfterOtherTentativeSelections && tentativeDeliveryContext) {
+                    for (const [selectedRowKey, selectedRouteOption] of acceptedTentativeRouteOptionByRowKey) {
+                        if (selectedRowKey === baseRow.key) {
+                            continue
+                        }
 
-                    const selectedRow = baseRemainingRowByKey.get(selectedRowKey)
-                    if (!selectedRow) {
-                        continue
-                    }
+                        const nextProblem = applyTentativeRouteOptionIfCompatible(
+                            problemAfterOtherTentativeSelections,
+                            tentativeDeliveryContext.originalTarget,
+                            tentativeDeliveryContext.shippedSoFar,
+                            otherTentativeSelectionCount,
+                            selectedRouteOption
+                        )
+                        if (!nextProblem) {
+                            continue
+                        }
 
-                    applyPlannedDeliveryRouteOptionUsage(
-                        remainingCapacityForRow,
-                        selectedRouteOption,
-                        selectedRow.quantity
-                    )
+                        problemAfterOtherTentativeSelections = nextProblem
+                        otherTentativeSelectionCount += 1
+                    }
                 }
 
-                const routeOptions = baseRow.routeOptions.filter((routeOption) =>
-                    canUsePlannedDeliveryRouteOption(
-                        remainingCapacityForRow,
-                        routeOption,
-                        baseRow.quantity
+                const routeOptions = baseRow.routeOptions.filter((routeOption) => {
+                    if (!tentativeDeliveryContext || !problemAfterOtherTentativeSelections) {
+                        return true
+                    }
+
+                    return (
+                        applyTentativeRouteOptionIfCompatible(
+                            problemAfterOtherTentativeSelections,
+                            tentativeDeliveryContext.originalTarget,
+                            tentativeDeliveryContext.shippedSoFar,
+                            otherTentativeSelectionCount,
+                            routeOption
+                        ) !== null
                     )
-                )
+                })
                 const selectedRoute =
                     acceptedTentativeRouteOptionByRowKey.get(baseRow.key) ??
                     routeOptions.find(
@@ -1333,6 +1365,32 @@
             }
             if (Object.keys(selectedPlannedRouteOptionOrderByRowKey).length > 0) {
                 selectedPlannedRouteOptionOrderByRowKey = {}
+            }
+            return
+        }
+
+        const expectedRemainingRowCount =
+            gameSession.gameState.operatingCompanyDeliveryPlan?.deliveries.length ?? 0
+        const actualRemainingRowCount = plannedDeliveryRows.filter((row) => !row.shipped).length
+        if (
+            actualRemainingRowCount < expectedRemainingRowCount &&
+            Object.keys(selectedPlannedRouteOptionOrderByRowKey).length > 0
+        ) {
+            const newestSelection = Object.entries(selectedPlannedRouteOptionOrderByRowKey).sort(
+                (left, right) => right[1] - left[1]
+            )[0]
+            if (newestSelection) {
+                const [newestRowKey] = newestSelection
+                const {
+                    [newestRowKey]: _removedRouteKey,
+                    ...remainingSelections
+                } = selectedPlannedRouteOptionKeyByRowKey
+                const {
+                    [newestRowKey]: _removedOrder,
+                    ...remainingSelectionOrders
+                } = selectedPlannedRouteOptionOrderByRowKey
+                selectedPlannedRouteOptionKeyByRowKey = remainingSelections
+                selectedPlannedRouteOptionOrderByRowKey = remainingSelectionOrders
             }
             return
         }
