@@ -190,19 +190,19 @@
             return overlay.deedId === activeDeedPreviewId
         })
     )
-    const hoveredAvailableDeedOverlayAreas: OverlayArea[] = $derived.by(() => {
-        const hoveredDeedId = activeDeedPreviewId
-        if (!hoveredDeedId) {
+    const activeDeedPreviewOverlayAreas: OverlayArea[] = $derived.by(() => {
+        const previewDeedId = activeDeedPreviewId
+        if (!previewDeedId) {
             return []
         }
-        return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId === hoveredDeedId)
+        return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId === previewDeedId)
     })
-    const nonHoveredVisibleDeedOverlayAreas: OverlayArea[] = $derived.by(() => {
-        const hoveredDeedId = activeDeedPreviewId
-        if (!hoveredDeedId) {
+    const inactiveDeedPreviewOverlayAreas: OverlayArea[] = $derived.by(() => {
+        const previewDeedId = activeDeedPreviewId
+        if (!previewDeedId) {
             return visibleDeedOverlayAreas
         }
-        return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId !== hoveredDeedId)
+        return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId !== previewDeedId)
     })
     const hoveredDeedCardEntry: DeedCardEntry | null = $derived.by(() => {
         const hoveredDeedId = hoveredAvailableDeedId
@@ -279,7 +279,7 @@
         <g
             style={`filter:${shouldDarkenDeedMarkersForCompanyHover ? `brightness(${HOVER_COMPANY_DEEDS_BRIGHTNESS})` : 'none'}`}
         >
-            {#each nonHoveredVisibleDeedOverlayAreas as overlay (overlay.key)}
+            {#each inactiveDeedPreviewOverlayAreas as overlay (overlay.key)}
                 <Area
                     areaId={overlay.areaId}
                     fill={overlay.fill}
@@ -339,7 +339,7 @@
             {/each}
         </g>
 
-        {#each hoveredAvailableDeedOverlayAreas as overlay (overlay.key)}
+        {#each activeDeedPreviewOverlayAreas as overlay (overlay.key)}
             <Area
                 areaId={overlay.areaId}
                 fill={overlay.fill}

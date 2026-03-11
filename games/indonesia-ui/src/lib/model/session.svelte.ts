@@ -893,22 +893,6 @@ export class IndonesiaGameSession extends GameSession<
         this.selectedStartCompanyDeedIdOverride = undefined
     }
 
-    setHoveredAvailableDeed(deedId: string | undefined): void {
-        if (!deedId) {
-            this.clearHoveredAvailableDeed()
-            return
-        }
-        this.hoverAvailableDeed(deedId)
-    }
-
-    setSelectedStartCompanyDeed(deedId: string | undefined): void {
-        if (!deedId) {
-            this.clearStagedStartCompanyDeed()
-            return
-        }
-        this.stageStartCompanyDeed(deedId)
-    }
-
     setHoveredPlayerCityReferenceCard(cardId: string | undefined): void {
         if (!cardId) {
             this.hoveredPlayerCityReferenceCardIdOverride = undefined
