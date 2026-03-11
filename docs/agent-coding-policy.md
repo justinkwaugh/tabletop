@@ -25,3 +25,5 @@
 23. Auto-selected transient state must be source-tracked (`auto` vs `manual`) so Undo/Back can behave deterministically.
 24. Do not rely on reactive/effect suppression hacks to control Undo/Back behavior. Effects may trigger on load/replay and create non-deterministic loops.
 25. Keep auto-selection idempotent and stage-gated: run only when in the exact stage that owns the choice, and only when choice cardinality is exactly one.
+26. Every new game UI must include a filled-out `ui-interaction-visual-contract.md` before or alongside the first complex interactive visual behavior (board dimming, highlighting, overlays, hover previews, selection chrome, or piece emphasis). Start from `docs/ui-interaction-visual-contract.md`.
+27. When a change introduces a new interactive visual mode or coupling, update that game's `ui-interaction-visual-contract.md` in the same change.
