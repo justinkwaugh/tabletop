@@ -8,6 +8,10 @@
     } from '$lib/components/CompanyDeed.svelte'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
     import {
+        deedTextLayoutForKeys,
+        type CompanyDeedTextLayout
+    } from '$lib/definitions/deedTextLayout.js'
+    import {
         BOARD_DEED_CARD_CORNER_RX,
         BOARD_DEED_CARD_CORNER_RY,
         BOARD_DEED_CARD_HEIGHT,
@@ -46,6 +50,7 @@
         deedId: string
         isShipping: boolean
         text: string
+        textLayout: CompanyDeedTextLayout | null
         cardKind: CompanyCardType
         shippingSizes: readonly ShippingSizeEntry[] | null
         cardX: number
@@ -120,6 +125,7 @@
                 deedId: deed.id,
                 isShipping,
                 text: regionName,
+                textLayout: deedTextLayoutForKeys(positionKeys),
                 cardKind,
                 shippingSizes: isShipping ? shippingSizeEntriesFromRecord(deed.sizes) : null,
                 cardX: cardPosition.x,
@@ -383,6 +389,7 @@
                         y={deed.cardY}
                         height={BOARD_DEED_CARD_HEIGHT}
                         text={deed.text}
+                        textLayout={deed.textLayout}
                         shippingSizes={deed.shippingSizes}
                     />
                     <rect
@@ -470,6 +477,7 @@
                     y={hoveredDeed.cardY}
                     height={BOARD_DEED_CARD_HEIGHT}
                     text={hoveredDeed.text}
+                    textLayout={hoveredDeed.textLayout}
                     shippingSizes={hoveredDeed.shippingSizes}
                 />
                 <rect

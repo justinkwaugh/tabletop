@@ -23,6 +23,10 @@
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
     import CompanyDeed, { deedCardKindFor } from '$lib/components/CompanyDeed.svelte'
     import { DEED_CARD_POSITIONS, DEED_CARD_POSITIONS_STORAGE_KEY } from '$lib/definitions/deedCardPositions.js'
+    import {
+        deedTextLayoutForKeys,
+        type CompanyDeedTextLayout
+    } from '$lib/definitions/deedTextLayout.js'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
     import {
         PRODUCTION_ZONE_MARKER_OFFSETS,
@@ -204,6 +208,7 @@
         legacyPositionKey: string
         regionId: string
         regionName: string
+        textLayout: CompanyDeedTextLayout | null
         cardKind: CompanyCardType
         shippingSizes: readonly ShippingSizeEntry[] | null
     } & Point
@@ -1569,9 +1574,10 @@
     const DEED_TUNE_ENTRIES: DeedTuneEntry[] = $derived.by(() => {
         const entries: DeedTuneEntry[] = []
         for (const deed of DEEDS_FOR_SELECTED_ERA) {
+            const positionKeys = deedPositionLookupKeys(deed)
             const positionKey = deedPositionRenderKey(deed)
             const legacyPositionKey = deedPositionKey(deed.region, deed.type)
-            const position = getDeedCardPositionByKeys(deedPositionLookupKeys(deed))
+            const position = getDeedCardPositionByKeys(positionKeys)
             if (!position) {
                 continue
             }
@@ -1582,6 +1588,7 @@
                 legacyPositionKey,
                 regionId: deed.region,
                 regionName: getRegionName(deed.region),
+                textLayout: deedTextLayoutForKeys(positionKeys),
                 cardKind: deedCardKindFor(deed),
                 shippingSizes: shippingSizeEntriesFromDeed(deed),
                 x: position.x,
@@ -1596,9 +1603,10 @@
     const ALL_DEED_TUNE_ENTRIES: DeedTuneEntry[] = $derived.by(() => {
         const entries: DeedTuneEntry[] = []
         for (const deed of Deeds) {
+            const positionKeys = deedPositionLookupKeys(deed)
             const positionKey = deedPositionRenderKey(deed)
             const legacyPositionKey = deedPositionKey(deed.region, deed.type)
-            const position = getDeedCardPositionByKeys(deedPositionLookupKeys(deed))
+            const position = getDeedCardPositionByKeys(positionKeys)
             if (!position) {
                 continue
             }
@@ -1609,6 +1617,7 @@
                 legacyPositionKey,
                 regionId: deed.region,
                 regionName: getRegionName(deed.region),
+                textLayout: deedTextLayoutForKeys(positionKeys),
                 cardKind: deedCardKindFor(deed),
                 shippingSizes: shippingSizeEntriesFromDeed(deed),
                 x: position.x,
@@ -3296,6 +3305,7 @@
                         y={deed.y}
                         height={DEED_CARD_HEIGHT}
                         text={deed.regionName}
+                        textLayout={deed.textLayout}
                         shippingSizes={deed.shippingSizes}
                     />
                     {#if colorMode === 'deeds'}

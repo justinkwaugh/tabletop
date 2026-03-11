@@ -110,6 +110,7 @@
         COMPANY_DEED_VIEWBOX_RY,
         COMPANY_DEED_VIEWBOX_WIDTH
     } from '$lib/definitions/companyDeedGeometry.js'
+    import type { CompanyDeedTextLayout } from '$lib/definitions/deedTextLayout.js'
 
     type CompanyDeedType = import('$lib/types/companyCard.js').CompanyCardType
 
@@ -127,6 +128,7 @@
         outlineColor,
         text = '',
         textColor,
+        textLayout = null,
         shippingSizes = null,
         hatchPatternId = null
     }: {
@@ -138,6 +140,7 @@
         outlineColor?: string
         text?: string
         textColor?: string
+        textLayout?: CompanyDeedTextLayout | null
         shippingSizes?: readonly ShippingSizeEntry[] | null
         hatchPatternId?: string | null
     } = $props()
@@ -152,17 +155,18 @@
     const outlineRy = $derived((height / COMPANY_DEED_VIEWBOX_HEIGHT) * COMPANY_DEED_VIEWBOX_RY)
     const resolvedOutlineColor = $derived(outlineColor ?? deedStyle.outlineColor)
     const resolvedTextColor = $derived(textColor ?? deedStyle.textColor)
-    const textXLocal = $derived(iconXLocal + width * deedStyle.textXRatio)
-    const textYLocal = $derived(iconYLocal + height * deedStyle.textYRatio)
-    const textSize = $derived(height * 0.23)
+    const textXLocal = $derived(iconXLocal + width * (textLayout?.textXRatio ?? deedStyle.textXRatio))
+    const textYLocal = $derived(iconYLocal + height * (textLayout?.textYRatio ?? deedStyle.textYRatio))
+    const textSize = $derived(height * (textLayout?.textSizeRatio ?? 0.23))
     const textLines = $derived.by(() => {
-        const trimmed = text.trim()
-        if (trimmed.length === 0) {
-            return []
+        if (textLayout?.lines && textLayout.lines.length > 0) {
+            return textLayout.lines
         }
-        return trimmed.split(/\s+/)
+
+        const trimmed = text.trim()
+        return trimmed.length === 0 ? [] : trimmed.split(/\s+/)
     })
-    const textLineHeight = $derived(textSize * 1.05)
+    const textLineHeight = $derived(textSize * (textLayout?.textLineHeightRatio ?? 1.05))
     const textStartYLocal = $derived(textYLocal - ((textLines.length - 1) * textLineHeight) / 2)
     const shippingSizeRow = $derived.by(() => shippingSizes ?? [])
     const shippingSizePairGap = $derived(width * 0.34)
