@@ -5,7 +5,7 @@ import { shadeHexColor } from '$lib/utils/color.js'
 import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
 import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
 import { Color } from '@tabletop/common'
-import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
+import { ActionType, CompanyType, MachineState, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
@@ -67,6 +67,16 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         }
         if (hoveredShippingCompanyId) {
             return [hoveredShippingCompanyId]
+        }
+        if (
+            gameSession.gameState.machineState === MachineState.ShippingOperations &&
+            gameSession.validActionTypes.includes(ActionType.Expand) &&
+            gameSession.gameState.operatingCompanyId
+        ) {
+            const operatingCompany = companyById.get(gameSession.gameState.operatingCompanyId)
+            if (operatingCompany?.type === CompanyType.Shipping) {
+                return [operatingCompany.id]
+            }
         }
         return []
     })
