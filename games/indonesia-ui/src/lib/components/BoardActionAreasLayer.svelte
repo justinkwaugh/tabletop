@@ -30,6 +30,12 @@
         type DeliverySelectableZone,
         type DeliverySelectableZoneMarker
     } from '$lib/components/boardActionAreas/deliveryZones.js'
+    import {
+        deriveStartCompanyDeeds,
+        selectedStartCompanyDeed as deriveSelectedStartCompanyDeed,
+        startCompanyDeedById as buildStartCompanyDeedById,
+        type StartCompanyDeedEntry
+    } from '$lib/components/boardActionAreas/startCompany.js'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { deedPositionLookupKeys } from '$lib/utils/deeds.js'
@@ -71,13 +77,6 @@
         outlineColor: string
         maskedAreaType: IndonesiaAreaType
         maskInvalidAreas: boolean
-    }
-
-    type StartCompanyDeedEntry = {
-        deedId: string
-        type: CompanyType
-        x: number
-        y: number
     }
 
     type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
@@ -131,40 +130,25 @@
     })
 
     const startCompanyDeeds: StartCompanyDeedEntry[] = $derived.by(() => {
-        if (!startCompanySelectionEnabled) {
-            return []
-        }
-
-        const deeds: StartCompanyDeedEntry[] = []
-        const availableDeeds = gameSession.gameState.availableDeeds
-        for (const deed of availableDeeds) {
-            const position = deedPositionLookupKeys(deed)
-                .map((key) => DEED_CARD_POSITIONS[key])
-                .find((point) => point !== undefined)
-            if (!position) {
-                continue
+        return deriveStartCompanyDeeds({
+            enabled: startCompanySelectionEnabled,
+            availableDeeds: gameSession.gameState.availableDeeds,
+            positionForDeed: (deed) => {
+                return (
+                    deedPositionLookupKeys(deed)
+                        .map((key) => DEED_CARD_POSITIONS[key])
+                        .find((point) => point !== undefined) ?? null
+                )
             }
-
-            deeds.push({
-                deedId: deed.id,
-                type: deed.type,
-                x: position.x,
-                y: position.y
-            })
-        }
-
-        return deeds
+        })
     })
 
     const startCompanyDeedById: Map<string, StartCompanyDeedEntry> = $derived.by(() => {
-        return new Map(startCompanyDeeds.map((deed) => [deed.deedId, deed]))
+        return buildStartCompanyDeedById(startCompanyDeeds)
     })
 
     const selectedStartCompanyDeed: StartCompanyDeedEntry | null = $derived.by(() => {
-        if (!selectedStartCompanyDeedId) {
-            return null
-        }
-        return startCompanyDeedById.get(selectedStartCompanyDeedId) ?? null
+        return deriveSelectedStartCompanyDeed(startCompanyDeedById, selectedStartCompanyDeedId)
     })
 
     const startCompanyValidAreaIds: readonly string[] = $derived.by(() => {
@@ -619,64 +603,8 @@
         return dimmedAreaIds
     })
 
-    const boardSpotlightState: BoardSpotlightState<HoveredProductionZoneMarker> = $derived.by(() => {
-        return deriveBoardSpotlightState<HoveredProductionZoneMarker>({
-            previewSource: gameSession.activeBoardPreview.source,
-            cityReferenceCardOverlayAreaIds: hoveredCityReferenceCardOverlayAreaIds,
-            cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
-            companySpotlightAreaIds: hoveredCompanySpotlightAreaIds,
-            productionCompanyAreaIds: spotlightedProductionCompanyAreaIds,
-            productionZoneMarkers: hoveredProductionZoneMarkers,
-            availableDeedOverlayAreaIds: hoveredAvailableDeedOverlayAreaIds,
-            availableShippingDeedOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
-            availableDeedOutlinedAreaIds: hoveredAvailableDeedOutlinedAreaIds,
-            availableDeedCardMaskRect: hoveredAvailableDeedCardMaskRect
-        })
-    })
-
-    const shouldRenderBoardSpotlightMask: boolean = $derived.by(
-        () => boardSpotlightState.source !== 'none'
-    )
-
-    const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(
-        () => boardSpotlightState.source === 'city-reference-card'
-    )
-
-    const hasVisibleCompanySpotlightPreview: boolean = $derived.by(
-        () =>
-            gameSession.activeBoardPreview.source === 'company' &&
-            boardSpotlightState.source === 'general'
-    )
-
-    const isShippingExpansionInteraction: boolean = $derived.by(() => {
-        return (
-            activeAreaInteraction?.action === 'expand' &&
-            activeAreaInteraction.maskedAreaType === IndonesiaAreaType.Sea
-        )
-    })
-
-    const shouldRenderExpansionSelectionSpotlightMask: boolean = $derived.by(() => {
-        return (
-            activeAreaInteraction?.action === 'expand' &&
-            interactiveValidAreaIds.length > 0 &&
-            !hasHoveredRoutePreview &&
-            !hasVisibleCompanySpotlightPreview &&
-            !hasHoveredCityReferenceCardSpotlight
-        )
-    })
-
-    const shouldRenderCityPlacementSpotlightMask: boolean = $derived.by(() => {
-        return (
-            activeAreaInteraction?.action === 'place-city' &&
-            interactiveValidAreaIds.length > 0 &&
-            !hasHoveredRoutePreview &&
-            !hasVisibleCompanySpotlightPreview &&
-            !hasHoveredCityReferenceCardSpotlight
-        )
-    })
-
     const spotlightedAvailableDeedId: string | null = $derived.by(() => {
-        return selectedStartCompanyDeedId ?? gameSession.hoveredAvailableDeedId
+        return gameSession.hoveredAvailableDeedId ?? selectedStartCompanyDeedId
     })
 
     const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
@@ -759,6 +687,77 @@
             rx: BOARD_DEED_CARD_CORNER_RX,
             ry: BOARD_DEED_CARD_CORNER_RY
         }
+    })
+
+    const effectiveBoardPreviewSource: 'none' | 'company' | 'available-deed' | 'city-reference-card' =
+        $derived.by(() => {
+            if (hoveredCityReferenceCardOverlayAreaIds.length > 0) {
+                return 'city-reference-card'
+            }
+
+            if (spotlightedAvailableDeedId && hoveredAvailableDeedOverlayAreaIds.length > 0) {
+                return 'available-deed'
+            }
+
+            if (gameSession.activeBoardPreview.source === 'company') {
+                return 'company'
+            }
+
+            return 'none'
+        })
+
+    const boardSpotlightState: BoardSpotlightState<HoveredProductionZoneMarker> = $derived.by(() => {
+        return deriveBoardSpotlightState<HoveredProductionZoneMarker>({
+            previewSource: effectiveBoardPreviewSource,
+            cityReferenceCardOverlayAreaIds: hoveredCityReferenceCardOverlayAreaIds,
+            cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
+            companySpotlightAreaIds: hoveredCompanySpotlightAreaIds,
+            productionCompanyAreaIds: spotlightedProductionCompanyAreaIds,
+            productionZoneMarkers: hoveredProductionZoneMarkers,
+            availableDeedOverlayAreaIds: hoveredAvailableDeedOverlayAreaIds,
+            availableShippingDeedOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
+            availableDeedOutlinedAreaIds: hoveredAvailableDeedOutlinedAreaIds,
+            availableDeedCardMaskRect: hoveredAvailableDeedCardMaskRect
+        })
+    })
+
+    const shouldRenderBoardSpotlightMask: boolean = $derived.by(
+        () => boardSpotlightState.source !== 'none'
+    )
+
+    const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(
+        () => boardSpotlightState.source === 'city-reference-card'
+    )
+
+    const hasVisibleCompanySpotlightPreview: boolean = $derived.by(
+        () => effectiveBoardPreviewSource === 'company' && boardSpotlightState.source === 'general'
+    )
+
+    const isShippingExpansionInteraction: boolean = $derived.by(() => {
+        return (
+            activeAreaInteraction?.action === 'expand' &&
+            activeAreaInteraction.maskedAreaType === IndonesiaAreaType.Sea
+        )
+    })
+
+    const shouldRenderExpansionSelectionSpotlightMask: boolean = $derived.by(() => {
+        return (
+            activeAreaInteraction?.action === 'expand' &&
+            interactiveValidAreaIds.length > 0 &&
+            !hasHoveredRoutePreview &&
+            !hasVisibleCompanySpotlightPreview &&
+            !hasHoveredCityReferenceCardSpotlight
+        )
+    })
+
+    const shouldRenderCityPlacementSpotlightMask: boolean = $derived.by(() => {
+        return (
+            activeAreaInteraction?.action === 'place-city' &&
+            interactiveValidAreaIds.length > 0 &&
+            !hasHoveredRoutePreview &&
+            !hasVisibleCompanySpotlightPreview &&
+            !hasHoveredCityReferenceCardSpotlight
+        )
     })
 
     const allowHoveredCityReferenceCardSpotlight: boolean = $derived.by(
@@ -1434,9 +1433,7 @@
                     cursor={applyingAreaAction ? 'default' : 'pointer'}
                     onmouseenter={() => {
                         hoveredStartCompanyDeedId = deed.deedId
-                        if (!selectedStartCompanyDeedId || selectedStartCompanyDeedId === deed.deedId) {
-                            gameSession.setHoveredAvailableDeed(deed.deedId)
-                        }
+                        gameSession.setHoveredAvailableDeed(deed.deedId)
                     }}
                     onmouseleave={() => {
                         if (hoveredStartCompanyDeedId === deed.deedId) {
