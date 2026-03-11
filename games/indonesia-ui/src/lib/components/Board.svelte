@@ -8,6 +8,7 @@
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
     import BoardProductionZoneMarkersLayer from '$lib/components/BoardProductionZoneMarkersLayer.svelte'
     import BoardResearchLayer from '$lib/components/BoardResearchLayer.svelte'
+    import BoardShippingExpansionSeaHighlightLayer from '$lib/components/BoardShippingExpansionSeaHighlightLayer.svelte'
     import BoardShippingRouteOverlayLayer from '$lib/components/BoardShippingRouteOverlayLayer.svelte'
     import BoardShipsLayer from '$lib/components/BoardShipsLayer.svelte'
     import BoardTurnOrderLayer from '$lib/components/BoardTurnOrderLayer.svelte'
@@ -69,6 +70,7 @@
                 <BoardDeedsLayer />
                 <BoardShippingRouteOverlayLayer />
                 <BoardCultivatedAreasLayer />
+                <BoardShippingExpansionSeaHighlightLayer />
                 <BoardShipsLayer />
                 <BoardProductionZoneMarkersLayer />
                 <BoardActionAreasLayer />

@@ -1046,15 +1046,17 @@
                 {/each}
             {/if}
 
-            {#each seaHighlightState.areaIds as areaId (areaId)}
-                <Area
-                    areaId={areaId}
-                    fill={SEA_HIGHLIGHT_FILL}
-                    stroke="none"
-                    fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
-                    pointer-events="none"
-                />
-            {/each}
+            {#if seaHighlightState.source === 'board-preview'}
+                {#each seaHighlightState.areaIds as areaId (areaId)}
+                    <Area
+                        areaId={areaId}
+                        fill={SEA_HIGHLIGHT_FILL}
+                        stroke="none"
+                        fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
+                        pointer-events="none"
+                    />
+                {/each}
+            {/if}
 
             {#if !hasHoveredCityReferenceCardSpotlight &&
                 activeAreaInteraction.action === 'place-city' &&
