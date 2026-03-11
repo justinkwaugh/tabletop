@@ -113,21 +113,21 @@
     {
       "gameId": "bus",
       "packageId": "bus",
-      "logicVersion": "1.4.0",
-      "uiVersion": "2.10.0",
+      "logicVersion": "2.0.0",
+      "uiVersion": "3.0.0",
       "priorLogicVersions": [
+        "1.4.0",
         "1.3.1",
         "1.3.0",
         "1.2.0",
-        "1.1.0",
-        "1.0.0"
+        "1.1.0"
       ],
       "priorUiVersions": [
+        "2.10.0",
         "2.9.1",
         "2.9.0",
         "2.8.0",
-        "2.7.0",
-        "2.6.0"
+        "2.7.0"
       ]
     }
   ]

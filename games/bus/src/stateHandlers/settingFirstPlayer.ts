@@ -35,14 +35,16 @@ export class SettingFirstPlayerStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedBusGameState>) {
-        const activePlayerId = context.gameState.startingPlayerAction
-        assert(activePlayerId, 'No active player for starting player action')
+        const gameState = context.gameState
+        const nextPlayerId = gameState.startingPlayerAction ?? gameState.turnManager.turnOrder[1]
+        assert(nextPlayerId, 'No new player for starting player action')
 
-        context.gameState.turnManager.startTurn(activePlayerId, context.gameState.actionCount)
-        context.gameState.activePlayerIds = [activePlayerId]
+        // This is wrong in the case of passing turn order to next player, but it will break existing games if we don't do it
+        gameState.turnManager.startTurn(nextPlayerId, gameState.actionCount)
+        gameState.activePlayerIds = [nextPlayerId]
 
         context.addSystemAction(SetFirstPlayer, {
-            playerId: activePlayerId
+            playerId: nextPlayerId
         })
     }
 
