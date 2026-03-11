@@ -17,6 +17,7 @@
         INDONESIA_REGION_BY_AREA_ID,
         IndonesiaNeighborDirection,
         INDONESIA_REGIONS,
+        MachineState,
         isIndonesiaNodeId,
         type IndonesiaNodeId,
         type ProductionDeed
@@ -103,6 +104,7 @@
     const ENABLE_NS_MARKER_DIRECTIONS = false
     const HOVER_COMPANY_ZONE_TAG_MASK_OPACITY = 0.26
     const SELECTION_ZONE_TAG_MASK_OPACITY = 0.42
+    const OPERATED_ZONE_TAG_MASK_OPACITY = 0.34
     const UI_PERF_STORAGE_KEY = 'indonesia-ui-perf'
     const UI_PERF_GLOBAL_KEY = '__indonesiaUiPerf'
 
@@ -1062,6 +1064,19 @@
         return gameSession.hoveredRoutePreview !== null
     })
 
+    const operatedCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
+        const state = gameSession.gameState.machineState
+        const inOperationsPhase =
+            state === MachineState.Operations ||
+            state === MachineState.ShippingOperations ||
+            state === MachineState.ProductionOperations
+        return inOperationsPhase ? new Set(gameSession.gameState.operatedCompanyIds) : new Set<string>()
+    })
+
+    function isMarkerUnavailable(marker: ProductionZoneMarkerEntry): boolean {
+        return operatedCompanyIdSet.has(marker.companyId)
+    }
+
     function isMarkerMaskedByRoutePreview(marker: ProductionZoneMarkerEntry): boolean {
         if (!hasHoveredRoutePreview) {
             return false
@@ -1070,6 +1085,9 @@
     }
 
     function isMarkerMasked(marker: ProductionZoneMarkerEntry): boolean {
+        if (isMarkerUnavailable(marker)) {
+            return true
+        }
         if (isMarkerMaskedByRoutePreview(marker)) {
             return true
         }
@@ -1107,6 +1125,9 @@
     function maskedOpacityForMarker(marker: ProductionZoneMarkerEntry): number {
         if (!isMarkerMasked(marker)) {
             return 0
+        }
+        if (isMarkerUnavailable(marker)) {
+            return OPERATED_ZONE_TAG_MASK_OPACITY
         }
         if (isMarkerMaskedByRoutePreview(marker)) {
             return HOVER_COMPANY_ZONE_TAG_MASK_OPACITY

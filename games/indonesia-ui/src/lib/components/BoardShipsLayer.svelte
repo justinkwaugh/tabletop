@@ -199,6 +199,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     const shouldRenderEmphasizedShips: boolean = $derived.by(() => {
         return hoveredRouteShipFilter !== null || activeShipSpotlightCompanyIdSet.size > 0
     })
+
 </script>
 
 <g class="pointer-events-none select-none" aria-label="Ships layer">

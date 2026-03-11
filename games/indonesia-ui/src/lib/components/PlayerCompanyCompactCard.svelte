@@ -35,7 +35,7 @@
 
     export type PlayerCompanyCardData = ProductionCompanyCardData | ShippingCompanyCardData
 
-    let { card }: { card: PlayerCompanyCardData } = $props()
+    let { card, unavailable = false }: { card: PlayerCompanyCardData; unavailable?: boolean } = $props()
     const SIMPLE_SHIP_ICON_COLOR = '#216e7a'
     // Board hatch patterns rotate vertical bands by -25/25/-35/35.
     // CSS gradients define band orientation differently, so we offset by +90
@@ -108,6 +108,7 @@
     class="company-mini-card"
     class:company-mini-card-hatched={hatchAngle !== null}
     class:company-mini-card-siapsaji={isSiapSajiProductionCard}
+    class:company-mini-card-unavailable={unavailable}
     style={cardStyle}
 >
     <span class="company-mini-deed-watermark" aria-hidden="true">{card.deedCount}</span>
@@ -204,6 +205,12 @@
 
     .company-mini-card-siapsaji {
         box-shadow: inset 0 0 0 1px rgb(111 76 95 / 0.45);
+    }
+
+    .company-mini-card-unavailable {
+        opacity: 0.58;
+        filter: saturate(0.32) brightness(0.92);
+        box-shadow: inset 0 0 0 1.5px rgba(31, 41, 55, 0.32);
     }
 
     .company-mini-layout {

@@ -10,6 +10,7 @@
         type HydratedIndonesiaPlayerState,
         CompanyType,
         Era,
+        MachineState,
     } from '@tabletop/indonesia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -79,6 +80,14 @@
 
     let productionHatchVariantByCompanyId = $derived.by(() => {
         return computeProductionHatchVariantByCompanyId(gameSession.gameState, 4)
+    })
+    let operatedCompanyIdSet = $derived.by(() => {
+        const state = gameSession.gameState.machineState
+        const inOperationsPhase =
+            state === MachineState.Operations ||
+            state === MachineState.ShippingOperations ||
+            state === MachineState.ProductionOperations
+        return inOperationsPhase ? new Set(gameSession.gameState.operatedCompanyIds) : new Set<string>()
     })
 
     let companyCards: PlayerCompanyCardData[] = $derived.by(() => {
@@ -210,16 +219,24 @@
             {#if !showNoCompaniesPreview && (companyCards.length > 0 || openCompanySlots > 0)}
                 <div class="player-company-cards" aria-label={`${player.name} companies`}>
                     {#each companyCards as card (card.id)}
+                        {@const unavailable = operatedCompanyIdSet.has(card.id)}
                         <div
                             class="player-company-card-hover-target"
-                            onmouseenter={() => {
+                            class:player-company-card-hover-target-unavailable={unavailable}
+                            onpointerenter={() => {
                                 gameSession.setHoveredOperatingCompany(card.id)
                             }}
-                            onmouseleave={() => {
+                            onpointerleave={() => {
+                                gameSession.setHoveredOperatingCompany(undefined)
+                            }}
+                            onfocusin={() => {
+                                gameSession.setHoveredOperatingCompany(card.id)
+                            }}
+                            onfocusout={() => {
                                 gameSession.setHoveredOperatingCompany(undefined)
                             }}
                         >
-                            <PlayerCompanyCompactCard {card} />
+                            <PlayerCompanyCompactCard {card} {unavailable} />
                         </div>
                     {/each}
 
@@ -481,6 +498,10 @@
     .player-company-card-hover-target {
         width: 100%;
         height: 100%;
+    }
+
+    .player-company-card-hover-target-unavailable {
+        cursor: default;
     }
 
     .player-company-slot-card {
