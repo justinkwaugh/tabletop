@@ -84,6 +84,10 @@
             gameSession.gameState.machineState === MachineState.ResearchAndDevelopment
     )
 
+    const allowHoveredResearchValuePreview: boolean = $derived.by(
+        () => !showResearchAdvanceHighlights
+    )
+
     const selectedResearchPlayerState: (typeof gameSession.gameState.players)[number] | null = $derived.by(
         () =>
             selectedPlayerId
@@ -95,7 +99,7 @@
 
     const hoveredResearchPlayerState: (typeof gameSession.gameState.players)[number] | null = $derived.by(
         () =>
-            hoveredPlayerId
+            allowHoveredResearchValuePreview && hoveredPlayerId
                 ? gameSession.gameState.players.find(
                       (playerState) => playerState.playerId === hoveredPlayerId
                   ) ?? null
@@ -217,8 +221,12 @@
                     `${row}-${columnIndex}`
                 )
                 for (let offsetIndex = 0; offsetIndex < playerIds.length; offsetIndex += 1) {
-                    const playerId = playerIds[offsetIndex]
-                    if (hoveredPlayerId && playerId !== hoveredPlayerId) {
+                const playerId = playerIds[offsetIndex]
+                    if (
+                        allowHoveredResearchValuePreview &&
+                        hoveredPlayerId &&
+                        playerId !== hoveredPlayerId
+                    ) {
                         continue
                     }
                     const offset = offsets[offsetIndex]
