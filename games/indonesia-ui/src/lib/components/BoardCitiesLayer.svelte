@@ -197,10 +197,7 @@
     })
 
     const hoveredRouteCityAreaId: string | null = $derived.by(() => {
-        if (gameSession.cityReferenceCardPreviewWins) {
-            return null
-        }
-        return gameSession.hoveredRoutePreview?.cityAreaId ?? null
+        return gameSession.activeRoutePreview?.cityAreaId ?? null
     })
 
     const hasHoveredRouteCity: boolean = $derived.by(() => hoveredRouteCityAreaId !== null)

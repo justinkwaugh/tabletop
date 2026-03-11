@@ -229,6 +229,18 @@ Current board layer stack from `Board.svelte`:
 - Forbidden uses:
   - turning on full-board spotlight by itself
 
+### `activeRoutePreview`
+- Meaning: route preview that is currently allowed to affect visuals after higher-precedence interaction rules are applied
+- Producer: `IndonesiaGameSession`
+- Consumers: `BoardShipsLayer`, `BoardCitiesLayer`, `BoardProductionZoneMarkersLayer`, `BoardActionAreasLayer`, `BoardShippingRouteOverlayLayer`
+- Permitted uses:
+  - route ship filtering
+  - route city/source emphasis
+  - route overlay rendering
+  - route-local dimming
+- Forbidden uses:
+  - bypassing precedence rules by reading lower-level hover route state directly
+
 ### `operatedCompanyIds`
 - Meaning: companies already operated in the current operations phase
 - Producer: game state
@@ -308,7 +320,7 @@ Before finalizing any highlight/dimming change, verify:
 When touching Indonesia UI interactive visuals:
 1. identify the intent row being changed in this document
 2. identify the primitive or primitives involved
-3. check whether the change widens `activeCompanySpotlightCompanyIds`, `highlightedShipCompanyIds`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, or `hoveredRoutePreview`
+3. check whether the change widens `activeCompanySpotlightCompanyIds`, `highlightedShipCompanyIds`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, `hoveredRoutePreview`, or `activeRoutePreview`
 4. decide whether the change belongs in `BoardActionAreasLayer` or a narrower piece-specific layer
 5. update this document in the same change if the interaction behavior or precedence changes
 

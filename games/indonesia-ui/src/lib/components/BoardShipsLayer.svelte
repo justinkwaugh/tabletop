@@ -48,22 +48,11 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
               seaAreaIds: ReadonlySet<string>
           }
         | null = $derived.by(() => {
-        if (gameSession.cityReferenceCardPreviewWins) {
-            return null
-        }
-        const plannedRoute = gameSession.hoveredPlannedDeliveryRoute
-        if (plannedRoute) {
+        const activeRoutePreview = gameSession.activeRoutePreview
+        if (activeRoutePreview) {
             return {
-                shippingCompanyId: plannedRoute.shippingCompanyId,
-                seaAreaIds: new Set(plannedRoute.seaAreaIds)
-            }
-        }
-
-        const hoveredChoice = gameSession.hoveredDeliveryShippingChoice
-        if (hoveredChoice) {
-            return {
-                shippingCompanyId: hoveredChoice.candidate.shippingCompanyId,
-                seaAreaIds: new Set(hoveredChoice.candidate.seaAreaIds)
+                shippingCompanyId: activeRoutePreview.shippingCompanyId,
+                seaAreaIds: new Set(activeRoutePreview.seaAreaIds)
             }
         }
 

@@ -51,12 +51,14 @@ type PlannedDeliveryRouteHover = {
 }
 
 type HoveredRoutePreviewState = {
+    routeKey: string
     zoneId: string
     cityId: string
     cityAreaId: string | null
     shippingCompanyId: string
     seaAreaIds: string[]
     sourceAreaIds: string[]
+    cultivatedAreaId: string | null
 }
 
 export class IndonesiaGameSession extends GameSession<
@@ -608,12 +610,14 @@ export class IndonesiaGameSession extends GameSession<
                     : [])
 
             return {
+                routeKey: `planned:${plannedRoute.shippingCompanyId}|${plannedRoute.cityId}|${plannedRoute.zoneId}|${plannedRoute.seaAreaIds.join('>')}`,
                 zoneId: plannedRoute.zoneId,
                 cityId: plannedRoute.cityId,
                 cityAreaId: cityAreaByCityId.get(plannedRoute.cityId) ?? null,
                 shippingCompanyId: plannedRoute.shippingCompanyId,
                 seaAreaIds: [...plannedRoute.seaAreaIds],
-                sourceAreaIds
+                sourceAreaIds,
+                cultivatedAreaId: plannedRoute.cultivatedAreaId ?? null
             }
         }
 
@@ -627,16 +631,26 @@ export class IndonesiaGameSession extends GameSession<
                 [hoveredChoice.candidate.cultivatedAreaId]
 
             return {
+                routeKey: hoveredChoice.routeKey,
                 zoneId: hoveredChoice.candidate.zoneId,
                 cityId: hoveredChoice.candidate.cityId,
                 cityAreaId: cityAreaByCityId.get(hoveredChoice.candidate.cityId) ?? null,
                 shippingCompanyId: hoveredChoice.candidate.shippingCompanyId,
                 seaAreaIds: [...hoveredChoice.candidate.seaAreaIds],
-                sourceAreaIds
+                sourceAreaIds,
+                cultivatedAreaId: hoveredChoice.candidate.cultivatedAreaId
             }
         }
 
         return null
+    })
+
+    activeRoutePreview: HoveredRoutePreviewState | null = $derived.by(() => {
+        if (this.cityReferenceCardPreviewWins) {
+            return null
+        }
+
+        return this.hoveredRoutePreview
     })
 
     resetAction(): void {

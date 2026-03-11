@@ -1070,11 +1070,11 @@
     })
 
     const hoveredRoutePreviewSourceAreaIdSet: ReadonlySet<string> = $derived.by(() => {
-        return new Set(gameSession.hoveredRoutePreview?.sourceAreaIds ?? [])
+        return new Set(gameSession.activeRoutePreview?.sourceAreaIds ?? [])
     })
 
     const hasHoveredRoutePreview: boolean = $derived.by(() => {
-        return !gameSession.cityReferenceCardPreviewWins && gameSession.hoveredRoutePreview !== null
+        return gameSession.activeRoutePreview !== null
     })
 
     const operatedCompanyIdSet: ReadonlySet<string> = $derived.by(() => {

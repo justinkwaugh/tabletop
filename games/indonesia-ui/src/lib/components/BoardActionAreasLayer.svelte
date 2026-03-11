@@ -712,10 +712,10 @@
         return [...new Set([...hoveredProductionCompanyAreaIds, ...hoveredShippingCompanyAreaIds])]
     })
 
-    const hasHoveredRoutePreview: boolean = $derived.by(() => gameSession.hoveredRoutePreview !== null)
+    const hasHoveredRoutePreview: boolean = $derived.by(() => gameSession.activeRoutePreview !== null)
 
     const hoveredRoutePreviewExemptAreaIds: readonly string[] = $derived.by(() => {
-        const hoveredRoutePreview = gameSession.hoveredRoutePreview
+        const hoveredRoutePreview = gameSession.activeRoutePreview
         if (!hoveredRoutePreview) {
             return []
         }
