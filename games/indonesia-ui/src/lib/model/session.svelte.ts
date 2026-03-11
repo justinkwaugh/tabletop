@@ -147,7 +147,14 @@ export class IndonesiaGameSession extends GameSession<
         })
     }
 
-    activeCompanySpotlightCompanyIds: string[] = $derived.by(() => {
+    private uniqueValidProductionCompanyIds(companyIds: readonly string[]): string[] {
+        return this.uniqueValidCompanyIds(companyIds).filter((companyId) => {
+            const company = this.gameState.companies.find((entry) => entry.id === companyId)
+            return company?.type === CompanyType.Production
+        })
+    }
+
+    hoveredCompanyPreviewCompanyIds: string[] = $derived.by(() => {
         if (this.suppressBoardEffectsForHistory) {
             return []
         }
@@ -161,7 +168,11 @@ export class IndonesiaGameSession extends GameSession<
             return [hoveredCompanyId]
         }
 
-        if (this.hoveredRoutePreview !== null) {
+        return []
+    })
+
+    deliveryCultivatedPreviewCompanyIds: string[] = $derived.by(() => {
+        if (this.suppressBoardEffectsForHistory || this.activeRoutePreview !== null) {
             return []
         }
 
@@ -178,18 +189,37 @@ export class IndonesiaGameSession extends GameSession<
         return []
     })
 
+    boardSpotlightCompanyIds: string[] = $derived.by(() => {
+        if (this.cityReferenceCardPreviewWins || this.activeRoutePreview !== null) {
+            return []
+        }
+
+        if (this.hoveredCompanyPreviewCompanyIds.length > 0) {
+            return this.hoveredCompanyPreviewCompanyIds
+        }
+
+        return this.deliveryCultivatedPreviewCompanyIds
+    })
+
+    boardSpotlightProductionCompanyIds: string[] = $derived.by(() => {
+        return this.uniqueValidProductionCompanyIds(this.boardSpotlightCompanyIds)
+    })
+
+    boardSpotlightShippingCompanyIds: string[] = $derived.by(() => {
+        return this.uniqueValidShippingCompanyIds(this.boardSpotlightCompanyIds)
+    })
+
+    hoveredShippingPreviewCompanyIds: string[] = $derived.by(() => {
+        return this.uniqueValidShippingCompanyIds(this.hoveredCompanyPreviewCompanyIds)
+    })
+
     highlightedShipCompanyIds: string[] = $derived.by(() => {
         if (this.suppressBoardEffectsForHistory || this.cityReferenceCardPreviewWins) {
             return []
         }
 
-        if (this.hoveredCompanySpotlightCompanyIds.length > 0) {
-            return this.uniqueValidShippingCompanyIds(this.hoveredCompanySpotlightCompanyIds)
-        }
-
-        const hoveredCompanyId = this.hoveredOperatingCompanyId
-        if (hoveredCompanyId) {
-            return this.uniqueValidShippingCompanyIds([hoveredCompanyId])
+        if (this.hoveredShippingPreviewCompanyIds.length > 0) {
+            return this.hoveredShippingPreviewCompanyIds
         }
 
         if (

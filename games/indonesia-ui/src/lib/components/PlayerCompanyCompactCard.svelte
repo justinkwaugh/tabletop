@@ -236,7 +236,7 @@
         padding-left: 3px;
     }
 
-    .company-mini-icon {
+    :global(.company-mini-icon) {
         width: 100%;
         height: 100%;
         display: block;
@@ -253,7 +253,7 @@
         margin-bottom: 5px;
     }
 
-    .company-mini-icon-shipping {
+    :global(.company-mini-icon-shipping) {
         width: 100%;
         height: 100%;
     }

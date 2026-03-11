@@ -104,7 +104,7 @@
         padding: 3px 2px;
     }
 
-    .goods-value-icon {
+    :global(.goods-value-icon) {
         display: block;
     }
 

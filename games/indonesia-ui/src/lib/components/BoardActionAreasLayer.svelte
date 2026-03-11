@@ -648,27 +648,22 @@
         return maskedIds
     })
 
-    const hoveredSpotlightCompanyIds: readonly string[] = $derived.by(() => {
-        return gameSession.activeCompanySpotlightCompanyIds
+    const spotlightedProductionCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
+        return new Set(gameSession.boardSpotlightProductionCompanyIds)
     })
 
-    const hoveredProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
-        if (hoveredSpotlightCompanyIds.length === 0) {
-            return []
-        }
-        const hoveredProductionCompanyIdSet = new Set(
-            hoveredSpotlightCompanyIds.filter((companyId) => {
-                const company = gameSession.gameState.companies.find((entry) => entry.id === companyId)
-                return !!company && company.type === CompanyType.Production
-            })
-        )
-        if (hoveredProductionCompanyIdSet.size <= 0) {
+    const spotlightedShippingCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
+        return new Set(gameSession.boardSpotlightShippingCompanyIds)
+    })
+
+    const spotlightedProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
+        if (spotlightedProductionCompanyIdSet.size === 0) {
             return []
         }
 
         const highlightedAreaIds: string[] = []
         for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!('companyId' in area) || !hoveredProductionCompanyIdSet.has(area.companyId)) {
+            if (!('companyId' in area) || !spotlightedProductionCompanyIdSet.has(area.companyId)) {
                 continue
             }
             if (!boardAreaPathById(area.id)) {
@@ -680,23 +675,17 @@
         return highlightedAreaIds.sort((left, right) => left.localeCompare(right))
     })
 
-    const hoveredShippingCompanyAreaIds: readonly string[] = $derived.by(() => {
-        if (hoveredSpotlightCompanyIds.length === 0) {
-            return []
-        }
-        const hoveredShippingCompanyIdSet = new Set(
-            hoveredSpotlightCompanyIds.filter((companyId) => {
-                const company = gameSession.gameState.companies.find((entry) => entry.id === companyId)
-                return !!company && company.type === CompanyType.Shipping
-            })
-        )
-        if (hoveredShippingCompanyIdSet.size <= 0) {
+    const spotlightedShippingCompanyAreaIds: readonly string[] = $derived.by(() => {
+        if (spotlightedShippingCompanyIdSet.size === 0) {
             return []
         }
 
         const highlightedSeaAreaIds: string[] = []
         for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!areaHasShips(area) || !area.ships.some((companyId) => hoveredShippingCompanyIdSet.has(companyId))) {
+            if (
+                !areaHasShips(area) ||
+                !area.ships.some((companyId) => spotlightedShippingCompanyIdSet.has(companyId))
+            ) {
                 continue
             }
             if (!boardAreaPathById(area.id)) {
@@ -709,7 +698,12 @@
     })
 
     const hoveredCompanySpotlightAreaIds: readonly string[] = $derived.by(() => {
-        return [...new Set([...hoveredProductionCompanyAreaIds, ...hoveredShippingCompanyAreaIds])]
+        return [
+            ...new Set([
+                ...spotlightedProductionCompanyAreaIds,
+                ...spotlightedShippingCompanyAreaIds
+            ])
+        ]
     })
 
     const hasHoveredRoutePreview: boolean = $derived.by(() => gameSession.activeRoutePreview !== null)
@@ -778,10 +772,10 @@
             }
         }
 
-        if (hoveredSpotlightCompanyIds.length > 0) {
+        if (gameSession.boardSpotlightCompanyIds.length > 0) {
             return {
                 source: 'company',
-                companyIds: hoveredSpotlightCompanyIds
+                companyIds: gameSession.boardSpotlightCompanyIds
             }
         }
 
@@ -808,7 +802,7 @@
                 source: 'general',
                 exemptAreaIds: hoveredCompanySpotlightAreaIds,
                 seaOverlayAreaIds: [],
-                outlinedLandAreaIds: hoveredProductionCompanyAreaIds,
+                outlinedLandAreaIds: spotlightedProductionCompanyAreaIds,
                 deedCardMaskRect: null,
                 cityReferenceCardMaskRect: null,
                 highlightedProductionZoneMarkers: hoveredProductionZoneMarkers
@@ -1037,12 +1031,7 @@
     })
 
     const hoveredProductionCompanyIds: readonly string[] = $derived.by(() => {
-        return hoveredSpotlightCompanyIds.filter((companyId) => {
-            const hoveredCompany = gameSession.gameState.companies.find(
-                (company) => company.id === companyId
-            )
-            return !!hoveredCompany && hoveredCompany.type === CompanyType.Production
-        })
+        return gameSession.boardSpotlightProductionCompanyIds
     })
 
     const hoveredProductionZoneMarkers: HoveredProductionZoneMarker[] = $derived.by(() => {

@@ -214,7 +214,7 @@
             return false
         }
 
-        if (gameSession.activeCompanySpotlightCompanyIds.length > 0) {
+        if (gameSession.hoveredCompanyPreviewCompanyIds.length > 0) {
             return true
         }
 

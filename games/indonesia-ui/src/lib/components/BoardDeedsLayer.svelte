@@ -224,7 +224,7 @@
         if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
-        return gameSession.activeCompanySpotlightCompanyIds.length > 0
+        return gameSession.hoveredCompanyPreviewCompanyIds.length > 0
     })
 </script>
 

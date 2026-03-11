@@ -23,12 +23,12 @@
     type CityReferenceCardEntry = {
         cardId: string
         era: Era.B | Era.C
-        label: string
+        label: (typeof CITY_REFERENCE_CARD_LABEL_BY_ERA)[Era.B | Era.C]
         x: number
         y: number
     }
 
-    const cityReferenceCards = $derived.by(() => {
+    const cityReferenceCards: CityReferenceCardEntry[] = $derived.by(() => {
         const playerState = gameSession.myPlayerState
         if (!playerState) {
             return []
@@ -130,11 +130,20 @@
             rx={BOARD_CITY_REFERENCE_CARD_RADIUS}
             fill="#ffffff"
             fill-opacity="0.001"
+            role="button"
+            tabindex="0"
+            aria-label={`Preview city card ${card.label}`}
             cursor="pointer"
             onmouseenter={() => {
                 gameSession.setHoveredPlayerCityReferenceCard(card.cardId)
             }}
             onmouseleave={() => {
+                gameSession.setHoveredPlayerCityReferenceCard(undefined)
+            }}
+            onfocus={() => {
+                gameSession.setHoveredPlayerCityReferenceCard(card.cardId)
+            }}
+            onblur={() => {
                 gameSession.setHoveredPlayerCityReferenceCard(undefined)
             }}
         />

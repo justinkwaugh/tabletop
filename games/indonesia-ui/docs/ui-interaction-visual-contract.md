@@ -122,31 +122,72 @@ Current board layer stack from `Board.svelte`:
 
 | Layer | Owns | Allowed Inputs | Must Not Own |
 | --- | --- | --- | --- |
-| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, local spotlight preview/state derivation | active area interaction, hovered deed/card ids, route preview area ids, spotlight area ids | ship emphasis logic, marker muting logic, card component styling |
+| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, local spotlight preview/state derivation | active area interaction, hovered deed/card ids, route preview area ids, `boardSpotlightProductionCompanyIds`, `boardSpotlightShippingCompanyIds` | ship emphasis logic, marker muting logic, card component styling |
 | `BoardShipsLayer` | ship rendering and ship emphasis | `highlightedShipCompanyIds`, route preview ship filter | board masks, sea overlay ownership |
-| `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | company spotlight ids, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
-| `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, company spotlight ids for deed dimming | board-wide spotlight ownership |
+| `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | `boardSpotlightProductionCompanyIds`, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
+| `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, `hoveredCompanyPreviewCompanyIds` for deed dimming | board-wide spotlight ownership |
 | `BoardCultivatedAreasLayer` | cultivated area fill and hatch rendering | board company occupancy, render style, hatch assignment | any hover/selection dimming policy |
-| `BoardCitiesLayer` | city beads, city demand tags, city-specific highlight/darken rules, mirror dimming for spotlight modes above the board mask | delivery city selection, route preview city, company spotlight presence, city-card-preview precedence | board spotlight mask ownership, route path rendering |
+| `BoardCitiesLayer` | city beads, city demand tags, city-specific highlight/darken rules, mirror dimming for spotlight modes above the board mask | delivery city selection, route preview city, `hoveredCompanyPreviewCompanyIds`, city-card-preview precedence | board spotlight mask ownership, route path rendering |
 | `BoardCityReferenceCardLayer` | future city reference card rendering and hover target | player city cards, current era, hovered board city card setter | board dimming, area outlines |
 | `PlayerState` | player-panel company hover targets | owned companies, operated company ids | board spotlight rendering |
 | `PlayerCompanyCompactCard` | compact card visuals and unavailable mute | card data, `unavailable` | hover ownership, hatch-on-card policy |
 
 ## 4. Shared State Contracts
 
-### `activeCompanySpotlightCompanyIds`
-- Meaning: companies that should drive board-wide company spotlight behavior
+### `hoveredCompanyPreviewCompanyIds`
+- Meaning: companies being previewed because of actual company hover/spotlight intent, not because of delivery-stage board spotlight
 - Producer: `IndonesiaGameSession`
-- Consumers: `BoardActionAreasLayer`, `BoardProductionZoneMarkersLayer`, `BoardCitiesLayer`, `BoardDeedsLayer`
+- Consumers: `BoardCitiesLayer`, `BoardDeedsLayer`
 - Permitted uses:
-  - production/shipping area spotlight exemptions
-  - ship emphasis for hovered shipping companies
-  - production zone marker filtering/masking
-  - demand tag darkening during company hover
+  - deed dimming during real company hover
+  - demand-tag darkening during real company hover
 - Forbidden uses:
-  - local-only ship emphasis for a temporary operation state that should not trigger board spotlight
+  - delivery-stage cultivated spotlight
+  - board-wide spotlight masking
+  - ship emphasis
+
+### `deliveryCultivatedPreviewCompanyIds`
+- Meaning: operating company ids that should drive the board spotlight during cultivated-source delivery selection
+- Producer: `IndonesiaGameSession`
+- Consumers: composed into `boardSpotlightCompanyIds`
+- Permitted uses:
+  - delivery-stage board spotlight sourcing
+- Forbidden uses:
+  - deed dimming
+  - city demand-tag hover dimming
+  - ship emphasis
+
+### `boardSpotlightCompanyIds`
+- Meaning: companies that should currently drive board-wide company spotlight behavior after precedence rules are applied
+- Producer: `IndonesiaGameSession`
+- Consumers: composed into `boardSpotlightProductionCompanyIds`, `boardSpotlightShippingCompanyIds`
+- Permitted uses:
+  - board-level spotlight sourcing
+- Forbidden uses:
+  - local-only ship emphasis
   - generic "anything highlighted" behavior
-- Risk note: this is currently the most overloaded shared state in the system
+  - hover-only card/city dimming decisions
+
+### `boardSpotlightProductionCompanyIds`
+- Meaning: production-company subset of the current board spotlight driver
+- Producer: `IndonesiaGameSession`
+- Consumers: `BoardActionAreasLayer`, `BoardProductionZoneMarkersLayer`
+- Permitted uses:
+  - cultivated-area spotlight exemptions
+  - production marker filtering/masking
+- Forbidden uses:
+  - ship emphasis
+  - deed/card hover dimming
+
+### `boardSpotlightShippingCompanyIds`
+- Meaning: shipping-company subset of the current board spotlight driver
+- Producer: `IndonesiaGameSession`
+- Consumers: `BoardActionAreasLayer`
+- Permitted uses:
+  - sea spotlight exemptions and overlays tied to board spotlight
+- Forbidden uses:
+  - ship emphasis
+  - marker masking
 
 ### `highlightedShipCompanyIds`
 - Meaning: shipping companies whose ship pieces should render emphasized
@@ -159,7 +200,7 @@ Current board layer stack from `Board.svelte`:
   - board dimming
   - sea overlay ownership
   - production marker masking
-- Refactor note: this was split out so ship emphasis no longer has to be inferred from `activeCompanySpotlightCompanyIds`
+- Refactor note: this was split out so ship emphasis no longer has to be inferred from the board spotlight state
 
 ### `hoveredAvailableDeedId`
 - Meaning: currently hovered available deed, or selected deed while start-company is staged
@@ -264,7 +305,7 @@ Current board layer stack from `Board.svelte`:
 
 ## 5. Forbidden Couplings
 
-- Do not reuse `activeCompanySpotlightCompanyIds` to drive local ship emphasis for shipping expansion.
+- Do not reuse `boardSpotlightCompanyIds` to drive local ship emphasis for shipping expansion.
 - Do not reuse ship emphasis state to turn on board dimming.
 - Do not let `BoardShipsLayer` become a producer of board spotlight state.
 - Do not let city-reference-card preview suppress a real in-progress action interaction unless the conflict rule explicitly says it wins.
@@ -320,7 +361,7 @@ Before finalizing any highlight/dimming change, verify:
 When touching Indonesia UI interactive visuals:
 1. identify the intent row being changed in this document
 2. identify the primitive or primitives involved
-3. check whether the change widens `activeCompanySpotlightCompanyIds`, `highlightedShipCompanyIds`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, `hoveredRoutePreview`, or `activeRoutePreview`
+3. check whether the change widens `hoveredCompanyPreviewCompanyIds`, `boardSpotlightCompanyIds`, `highlightedShipCompanyIds`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, `hoveredRoutePreview`, or `activeRoutePreview`
 4. decide whether the change belongs in `BoardActionAreasLayer` or a narrower piece-specific layer
 5. update this document in the same change if the interaction behavior or precedence changes
 
