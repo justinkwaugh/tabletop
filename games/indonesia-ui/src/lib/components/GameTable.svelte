@@ -43,6 +43,14 @@
 <!-- Full Height and Width with 8px padding-->
 <div class="bg-[#ede2dc]" style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
+        {#snippet mobileControlsContent()}
+            <HistoryControls
+                borderClass="border-b border-[#ad9c80]"
+                enabledColor="text-[#7a5d3f]"
+                disabledColor="text-[#b7a181]"
+                bgClass="bg-transparent"
+            />
+        {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
