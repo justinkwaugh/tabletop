@@ -48,7 +48,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
               seaAreaIds: ReadonlySet<string>
           }
         | null = $derived.by(() => {
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return null
         }
         const plannedRoute = gameSession.hoveredPlannedDeliveryRoute

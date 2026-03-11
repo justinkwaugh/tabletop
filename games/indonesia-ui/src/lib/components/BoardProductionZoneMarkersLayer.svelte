@@ -983,7 +983,7 @@
     })
 
     const spotlightedProductionCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return new Set<string>()
         }
 
@@ -1019,7 +1019,7 @@
     })
 
     const maskNonSelectableZoneTagsDuringDeliverySelection: boolean = $derived.by(() => {
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
         return (
@@ -1055,14 +1055,14 @@
     })
 
     const maskNonSpotlightZoneTagsDuringCompanyHover: boolean = $derived.by(() => {
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
         return spotlightedProductionCompanyIdSet.size > 0
     })
 
     const maskAllZoneTagsDuringNonProductionCompanyHover: boolean = $derived.by(() => {
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
         const hasAnyCompanySpotlight = gameSession.activeCompanySpotlightCompanyIds.length > 0
@@ -1074,7 +1074,7 @@
     })
 
     const hasHoveredRoutePreview: boolean = $derived.by(() => {
-        return gameSession.hoveredPlayerCityReferenceCard === null && gameSession.hoveredRoutePreview !== null
+        return !gameSession.cityReferenceCardPreviewWins && gameSession.hoveredRoutePreview !== null
     })
 
     const operatedCompanyIdSet: ReadonlySet<string> = $derived.by(() => {

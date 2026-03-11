@@ -98,6 +98,12 @@ Notes:
 - Reads: `hoveredRoutePreview`
 - Must not decide: company spotlight
 
+### Primitive: city-layer mirror dimming
+- Visual: dim city beads and demand markers in spotlight modes that darken the rest of the board, because `BoardCitiesLayer` renders above the board spotlight mask
+- Current owner: `BoardCitiesLayer.svelte`
+- Reads: city-card-preview precedence and other city-layer highlight states
+- Must not decide: which board areas are spotlighted
+
 ## 3. Layer Responsibilities
 
 Current board layer stack from `Board.svelte`:
@@ -119,7 +125,7 @@ Current board layer stack from `Board.svelte`:
 | `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | company spotlight ids, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
 | `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, company spotlight ids for deed dimming | board-wide spotlight ownership |
 | `BoardCultivatedAreasLayer` | cultivated area fill and hatch rendering | board company occupancy, render style, hatch assignment | any hover/selection dimming policy |
-| `BoardCitiesLayer` | city beads, city demand tags, city-specific highlight/darken rules | delivery city selection, route preview city, company spotlight presence | board spotlight mask, route path rendering |
+| `BoardCitiesLayer` | city beads, city demand tags, city-specific highlight/darken rules, mirror dimming for spotlight modes above the board mask | delivery city selection, route preview city, company spotlight presence, city-card-preview precedence | board spotlight mask ownership, route path rendering |
 | `BoardCityReferenceCardLayer` | future city reference card rendering and hover target | player city cards, current era, hovered board city card setter | board dimming, area outlines |
 | `PlayerState` | player-panel company hover targets | owned companies, operated company ids | board spotlight rendering |
 | `PlayerCompanyCompactCard` | compact card visuals and unavailable mute | card data, `unavailable` | hover ownership, hatch-on-card policy |
@@ -173,6 +179,17 @@ Current board layer stack from `Board.svelte`:
   - city-reference-card cutout mask
 - Forbidden uses:
   - suppression of live action interactions except where explicitly documented in coexistence rules
+
+### `cityReferenceCardPreviewWins`
+- Meaning: semantic precedence flag for whether city-card preview should suppress competing highlight systems
+- Producer: `IndonesiaGameSession`
+- Consumers: `BoardActionAreasLayer`, `BoardShipsLayer`, `BoardProductionZoneMarkersLayer`, `BoardCitiesLayer`, `BoardDeedsLayer`
+- Permitted uses:
+  - disabling competing hover spotlight systems while city-card preview is active
+  - documenting interaction precedence in code with one named contract
+- Forbidden uses:
+  - deciding the city-card preview regions themselves
+  - replacing the hovered-card payload
 
 ### `activeAreaInteraction`
 - Meaning: current explicit board-area action mode
@@ -266,6 +283,7 @@ Before finalizing any highlight/dimming change, verify:
 - city placement spotlight still works independently of city reference card preview
 - hovering a city reference card still dims the board, highlights valid future city regions, and leaves the hovered card bright
 - while a city reference card is hovered, competing company/deed/route/selection highlights do not visually override it
+- while a city reference card is hovered, city demand markers and beads dim through `BoardCitiesLayer` instead of staying full-bright above the board mask
 - route preview still highlights route ships/source/destination without turning on full-board spotlight
 - operated company cards remain muted during operations
 - operated production zone markers remain masked during operations
@@ -277,7 +295,7 @@ Before finalizing any highlight/dimming change, verify:
 When touching Indonesia UI interactive visuals:
 1. identify the intent row being changed in this document
 2. identify the primitive or primitives involved
-3. check whether the change widens `activeCompanySpotlightCompanyIds`, `highlightedShipCompanyIds`, `hoveredAvailableDeedId`, or `hoveredRoutePreview`
+3. check whether the change widens `activeCompanySpotlightCompanyIds`, `highlightedShipCompanyIds`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, or `hoveredRoutePreview`
 4. decide whether the change belongs in `BoardActionAreasLayer` or a narrower piece-specific layer
 5. update this document in the same change if the interaction behavior or precedence changes
 
@@ -304,7 +322,7 @@ Naming note:
 These are the highest-risk couplings to separate in later work:
 
 1. Narrow ship route-preview filtering separately from company spotlight.
-   Current smell: ship emphasis is now split, but route-preview ship filtering and city-card precedence still live partly in `BoardShipsLayer`.
+   Current smell: ship emphasis is now split, but route-preview ship filtering still lives partly in `BoardShipsLayer`.
 
 2. Split sea overlay visibility from mask exemption.
    Current smell: sea areas can be exempted from dimming without getting the intended blue overlay.

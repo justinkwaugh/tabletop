@@ -2,6 +2,19 @@
 
 See docs/agent-coding-policy.md for shared-code and shared-types rules.
 
+## General Debugging Policy
+
+- Treat bugs as deterministic unless proven otherwise. If behavior is wrong, there is a causal chain to identify.
+- Default to root-cause fixes, not symptom suppression.
+- Do not add guards, narrowing, fallback behavior, or render-path overrides unless you can explain the exact bad state/render path they are blocking.
+- Before fixing a bug, be able to state:
+  - the exact symptom
+  - the upstream cause
+  - the invariant being violated
+  - why the proposed change fixes that cause instead of only hiding it
+- If the root cause is not yet known, say that explicitly and keep tracing rather than writing “this shouldn’t happen” and patching around it.
+- If a containment fix is necessary, label it as containment, explain the unresolved root cause, and do not present it as a complete fix.
+
 ## Indonesia UI Action Pattern Note
 
 - Follow the `bus-ui` pattern: initiate game actions centrally on the session class and call those session methods from components, rather than calling `createPlayerAction`/`applyAction` directly in component files.

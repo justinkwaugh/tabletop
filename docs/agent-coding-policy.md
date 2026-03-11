@@ -27,3 +27,7 @@
 25. Keep auto-selection idempotent and stage-gated: run only when in the exact stage that owns the choice, and only when choice cardinality is exactly one.
 26. Every new game UI must include a filled-out `ui-interaction-visual-contract.md` before or alongside the first complex interactive visual behavior (board dimming, highlighting, overlays, hover previews, selection chrome, or piece emphasis). Start from `docs/ui-interaction-visual-contract.md`.
 27. When a change introduces a new interactive visual mode or coupling, update that game's `ui-interaction-visual-contract.md` in the same change.
+28. For bug fixes, default to root-cause correction, not symptom suppression. Do not add guards, narrowing, fallback behavior, or render-path overrides unless you can identify the causal chain that produces the bad behavior.
+29. Before applying a bug fix, be able to state all of the following: the exact symptom, the upstream cause, the invariant being violated, and why the proposed change fixes that cause rather than only hiding it.
+30. If the causal chain is not yet known, say so explicitly and continue tracing. Do not describe a state as “shouldn’t happen” and then patch around it as though that were an explanation.
+31. Containment fixes are allowed only when explicitly framed as containment. In that case, label them as such, explain the unresolved root cause, and do not present the fix as complete.

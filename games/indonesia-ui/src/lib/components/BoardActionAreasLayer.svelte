@@ -740,7 +740,7 @@
     })
 
     const spotlightMaskExemptAreaIds: readonly string[] = $derived.by(() => {
-        if (hasHoveredCityReferenceCardSpotlight) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return hoveredCityReferenceCardOverlayAreaIds
         }
 
@@ -761,9 +761,9 @@
         )
     })
 
-    const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(() => {
-        return hoveredCityReferenceCardOverlayAreaIds.length > 0
-    })
+    const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(
+        () => gameSession.cityReferenceCardPreviewWins && hoveredCityReferenceCardOverlayAreaIds.length > 0
+    )
 
     const isShippingExpansionInteraction: boolean = $derived.by(() => {
         return (

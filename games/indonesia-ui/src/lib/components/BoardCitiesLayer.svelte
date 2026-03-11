@@ -35,6 +35,8 @@
     const CITY_SELECTION_BEAD_RING_STROKE = 6.2
     const CITY_SELECTION_BEAD_RING_RADIUS = CITY_MARKER_HEIGHT * 0.38
     const HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS = 0.74
+    const CITY_REFERENCE_CARD_PREVIEW_DEMAND_TAG_BRIGHTNESS = 0.66
+    const CITY_REFERENCE_CARD_PREVIEW_CITY_OPACITY = 0.66
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
     const BOARD_CENTER = { x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2 }
@@ -170,7 +172,7 @@
     })
 
     const isSelectingDeliveryCity: boolean = $derived.by(() => {
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
         return (
@@ -195,7 +197,7 @@
     })
 
     const hoveredRouteCityAreaId: string | null = $derived.by(() => {
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return null
         }
         return gameSession.hoveredRoutePreview?.cityAreaId ?? null
@@ -203,11 +205,15 @@
 
     const hasHoveredRouteCity: boolean = $derived.by(() => hoveredRouteCityAreaId !== null)
 
+    const shouldDimCitiesForCityReferenceCardPreview: boolean = $derived.by(() => {
+        return gameSession.cityReferenceCardPreviewWins
+    })
+
     const shouldDimDemandTagsForCompanyHover: boolean = $derived.by(() => {
         if (gameSession.suppressBoardEffectsForHistory) {
             return false
         }
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
 
@@ -230,7 +236,15 @@
         {@const isHoveredSelectableDeliveryCity =
             isSelectableDeliveryCity && hoveredDeliveryCityAreaId === marker.areaId}
         {@const isHoveredRouteCity = hoveredRouteCityAreaId === marker.areaId}
-        <g opacity={hasHoveredRouteCity && !isHoveredRouteCity ? 0.34 : 1}>
+        <g
+            opacity={hasHoveredRouteCity
+                ? !isHoveredRouteCity
+                    ? 0.34
+                    : 1
+                : shouldDimCitiesForCityReferenceCardPreview
+                  ? CITY_REFERENCE_CARD_PREVIEW_CITY_OPACITY
+                  : 1}
+        >
             <GlassBeadMarker
                 x={marker.x}
                 y={marker.y}
@@ -272,12 +286,17 @@
                 isSelectableDeliveryCity && hoveredDeliveryCityAreaId === tag.areaId}
             {@const isHoveredRouteCity = hoveredRouteCityAreaId === tag.areaId}
             {@const darkened =
-                hasHoveredRouteCity
+                shouldDimCitiesForCityReferenceCardPreview
+                    ? true
+                    : hasHoveredRouteCity
                     ? !isHoveredRouteCity
                     : isSelectingDeliveryCity
                       ? false
                       : shouldDimDemandTagsForCompanyHover}
-            {@const darkenedBrightness = HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS}
+            {@const darkenedBrightness =
+                shouldDimCitiesForCityReferenceCardPreview
+                    ? CITY_REFERENCE_CARD_PREVIEW_DEMAND_TAG_BRIGHTNESS
+                    : HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS}
             <CityDemandMarker
                 x={tag.x}
                 y={tag.y}

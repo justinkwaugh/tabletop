@@ -177,7 +177,7 @@ export class IndonesiaGameSession extends GameSession<
     })
 
     highlightedShipCompanyIds: string[] = $derived.by(() => {
-        if (this.suppressBoardEffectsForHistory || this.hoveredPlayerCityReferenceCard !== null) {
+        if (this.suppressBoardEffectsForHistory || this.cityReferenceCardPreviewWins) {
             return []
         }
 
@@ -245,6 +245,10 @@ export class IndonesiaGameSession extends GameSession<
 
         return null
     })
+
+    cityReferenceCardPreviewWins: boolean = $derived.by(
+        () => this.hoveredPlayerCityReferenceCard !== null
+    )
 
     productionZoneRenderStyle: 'player' | 'goods' = $derived.by(() => {
         return this.productionZoneRenderStyleOverride ?? 'goods'

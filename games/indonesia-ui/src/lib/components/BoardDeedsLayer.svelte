@@ -179,7 +179,7 @@
             if (gameSession.suppressBoardEffectsForHistory) {
                 return false
             }
-            if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+            if (gameSession.cityReferenceCardPreviewWins) {
                 return false
             }
             if (showAllDeedOverlays) {
@@ -221,7 +221,7 @@
         if (gameSession.suppressBoardEffectsForHistory) {
             return false
         }
-        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+        if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
         return gameSession.activeCompanySpotlightCompanyIds.length > 0
