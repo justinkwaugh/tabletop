@@ -199,6 +199,20 @@
         }
         return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId !== hoveredDeedId)
     })
+    const hoveredDeedCardEntry: DeedCardEntry | null = $derived.by(() => {
+        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        if (!hoveredDeedId) {
+            return null
+        }
+        return DEED_CARD_ENTRIES.find((deed) => deed.deedId === hoveredDeedId) ?? null
+    })
+    const nonHoveredDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
+        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        if (!hoveredDeedId) {
+            return DEED_CARD_ENTRIES
+        }
+        return DEED_CARD_ENTRIES.filter((deed) => deed.deedId !== hoveredDeedId)
+    })
 
     const shouldDarkenDeedMarkersForCompanyHover: boolean = $derived.by(() => {
         if (gameSession.suppressBoardEffectsForHistory) {
@@ -217,36 +231,22 @@
             <pattern
                 id={DEED_UNSTARTED_PRODUCTION_DOT_PATTERN_ID}
                 patternUnits="userSpaceOnUse"
-                width="18"
-                height="18"
+                width="20"
+                height="20"
             >
-                <circle cx="5" cy="5" r="1.8" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.38"></circle>
-                <circle cx="14" cy="14" r="1.8" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.3"></circle>
+                <circle cx="5.5" cy="5.5" r="2.6" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.38"></circle>
+                <circle cx="15.5" cy="15.5" r="2.6" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.3"></circle>
             </pattern>
             <pattern
                 id={DEED_UNSTARTED_PRODUCTION_DENSE_DOT_PATTERN_ID}
                 patternUnits="userSpaceOnUse"
-                width="12"
-                height="12"
+                width="16"
+                height="16"
             >
-                <rect
-                    x="2"
-                    y="5"
-                    width="8"
-                    height="2"
-                    rx="1"
-                    fill={DEED_NEUTRAL_PATTERN_COLOR}
-                    fill-opacity="0.34"
-                ></rect>
-                <rect
-                    x="5"
-                    y="2"
-                    width="2"
-                    height="8"
-                    rx="1"
-                    fill={DEED_NEUTRAL_PATTERN_COLOR}
-                    fill-opacity="0.34"
-                ></rect>
+                <circle cx="4" cy="4" r="2.6" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.34"></circle>
+                <circle cx="12" cy="4" r="2.6" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.28"></circle>
+                <circle cx="4" cy="12" r="2.6" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.28"></circle>
+                <circle cx="12" cy="12" r="2.6" fill={DEED_NEUTRAL_PATTERN_COLOR} fill-opacity="0.34"></circle>
             </pattern>
             <pattern
                 id="deed-hatch-shipping"
@@ -297,7 +297,7 @@
                 {/if}
             {/each}
 
-            {#each DEED_CARD_ENTRIES as deed (deed.key)}
+            {#each nonHoveredDeedCardEntries as deed (deed.key)}
                 <g>
                     <CompanyDeed
                         type={deed.cardKind}
@@ -356,5 +356,38 @@
                 />
             {/if}
         {/each}
+
+        {#if hoveredDeedCardEntry}
+            <g>
+                <CompanyDeed
+                    type={hoveredDeedCardEntry.cardKind}
+                    x={hoveredDeedCardEntry.cardX}
+                    y={hoveredDeedCardEntry.cardY}
+                    height={BOARD_DEED_CARD_HEIGHT}
+                    text={hoveredDeedCardEntry.text}
+                    shippingSizes={hoveredDeedCardEntry.shippingSizes}
+                />
+                <rect
+                    x={hoveredDeedCardEntry.cardX - BOARD_DEED_CARD_WIDTH / 2}
+                    y={hoveredDeedCardEntry.cardY - BOARD_DEED_CARD_HEIGHT / 2}
+                    width={BOARD_DEED_CARD_WIDTH}
+                    height={BOARD_DEED_CARD_HEIGHT}
+                    rx={BOARD_DEED_CARD_CORNER_RX}
+                    ry={BOARD_DEED_CARD_CORNER_RY}
+                    fill="#ffffff"
+                    fill-opacity="0.001"
+                    stroke="none"
+                    pointer-events="all"
+                    onmouseenter={() => {
+                        gameSession.setHoveredAvailableDeed(hoveredDeedCardEntry.deedId)
+                    }}
+                    onmouseleave={() => {
+                        if (gameSession.hoveredAvailableDeedId === hoveredDeedCardEntry.deedId) {
+                            gameSession.setHoveredAvailableDeed(undefined)
+                        }
+                    }}
+                />
+            </g>
+        {/if}
     </g>
 {/if}

@@ -88,6 +88,15 @@
         y: number
     }
 
+    type DeedCardMaskRect = {
+        x: number
+        y: number
+        width: number
+        height: number
+        rx: number
+        ry: number
+    }
+
     function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
         ships: string[]
     } {
@@ -357,6 +366,9 @@
         }
 
         if (selectedStartCompanyDeedId && !startCompanyDeedById.has(selectedStartCompanyDeedId)) {
+            if (gameSession.hoveredAvailableDeedId === selectedStartCompanyDeedId) {
+                gameSession.setHoveredAvailableDeed(undefined)
+            }
             selectedStartCompanyDeedId = null
             hoveredAreaId = null
         }
@@ -528,7 +540,7 @@
                     selectedStartCompanyDeed.type === CompanyType.Shipping
                         ? IndonesiaAreaType.Sea
                         : IndonesiaAreaType.Land,
-                maskInvalidAreas: true
+                maskInvalidAreas: false
             }
         }
 
@@ -750,8 +762,12 @@
         )
     })
 
+    const spotlightedAvailableDeedId: string | null = $derived.by(() => {
+        return selectedStartCompanyDeedId ?? gameSession.hoveredAvailableDeedId
+    })
+
     const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
-        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        const hoveredDeedId = spotlightedAvailableDeedId
         if (!hoveredDeedId) {
             return []
         }
@@ -777,6 +793,46 @@
         }
 
         return []
+    })
+    const hoveredAvailableDeedOutlinedAreaIds: readonly string[] = $derived.by(() => {
+        const hoveredDeedId = spotlightedAvailableDeedId
+        if (!hoveredDeedId) {
+            return []
+        }
+
+        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        if (!deed || deed.type !== CompanyType.Production) {
+            return []
+        }
+
+        return hoveredAvailableDeedOverlayAreaIds
+    })
+    const hoveredAvailableDeedCardMaskRect: DeedCardMaskRect | null = $derived.by(() => {
+        const hoveredDeedId = spotlightedAvailableDeedId
+        if (!hoveredDeedId) {
+            return null
+        }
+
+        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        if (!deed) {
+            return null
+        }
+
+        const position = deedPositionLookupKeys(deed)
+            .map((key) => DEED_CARD_POSITIONS[key])
+            .find((point) => point !== undefined)
+        if (!position) {
+            return null
+        }
+
+        return {
+            x: position.x - BOARD_DEED_CARD_WIDTH / 2,
+            y: position.y - BOARD_DEED_CARD_HEIGHT / 2,
+            width: BOARD_DEED_CARD_WIDTH,
+            height: BOARD_DEED_CARD_HEIGHT,
+            rx: BOARD_DEED_CARD_CORNER_RX,
+            ry: BOARD_DEED_CARD_CORNER_RY
+        }
     })
 
     const hoveredProductionCompanyIds: readonly string[] = $derived.by(() => {
@@ -970,6 +1026,7 @@
             }
 
             await gameSession.startCompany(selectedStartCompanyDeedId, areaId)
+            gameSession.setHoveredAvailableDeed(undefined)
             selectedStartCompanyDeedId = null
         } finally {
             applyingAreaAction = false
@@ -981,6 +1038,7 @@
             return
         }
         selectedStartCompanyDeedId = deedId
+        gameSession.setHoveredAvailableDeed(deedId)
         hoveredAreaId = null
     }
 </script>
@@ -999,6 +1057,18 @@
                     {#each spotlightMaskExemptAreaIds as areaId (areaId)}
                         <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
                     {/each}
+                    {#if hoveredAvailableDeedCardMaskRect}
+                        <rect
+                            x={hoveredAvailableDeedCardMaskRect.x}
+                            y={hoveredAvailableDeedCardMaskRect.y}
+                            width={hoveredAvailableDeedCardMaskRect.width}
+                            height={hoveredAvailableDeedCardMaskRect.height}
+                            rx={hoveredAvailableDeedCardMaskRect.rx}
+                            ry={hoveredAvailableDeedCardMaskRect.ry}
+                            fill="#000000"
+                            pointer-events="none"
+                        />
+                    {/if}
                 </mask>
             </defs>
 
@@ -1014,6 +1084,31 @@
             />
 
             {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
+                <Area
+                    areaId={areaId}
+                    fill="none"
+                    stroke="#fff8d7"
+                    fillOpacity="0"
+                    strokeWidth="7.2"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
+                    opacity="0.9"
+                    pointer-events="none"
+                />
+                <Area
+                    areaId={areaId}
+                    fill="none"
+                    stroke="#1f2937"
+                    fillOpacity="0"
+                    strokeWidth="2.2"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
+                    opacity="0.88"
+                    pointer-events="none"
+                />
+            {/each}
+
+            {#each hoveredAvailableDeedOutlinedAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
                     fill="none"
@@ -1325,6 +1420,34 @@
             {#each startCompanyDeeds as deed (deed.deedId)}
                 {@const isSelected = selectedStartCompanyDeedId === deed.deedId}
                 {@const isHovered = hoveredStartCompanyDeedId === deed.deedId}
+                {#if isSelected}
+                    <rect
+                        x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
+                        y={deed.y - BOARD_DEED_CARD_HEIGHT / 2}
+                        width={BOARD_DEED_CARD_WIDTH}
+                        height={BOARD_DEED_CARD_HEIGHT}
+                        rx={BOARD_DEED_CARD_CORNER_RX}
+                        ry={BOARD_DEED_CARD_CORNER_RY}
+                        fill="none"
+                        stroke="#fff8d7"
+                        stroke-width="7.2"
+                        opacity="0.9"
+                        pointer-events="none"
+                    />
+                    <rect
+                        x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
+                        y={deed.y - BOARD_DEED_CARD_HEIGHT / 2}
+                        width={BOARD_DEED_CARD_WIDTH}
+                        height={BOARD_DEED_CARD_HEIGHT}
+                        rx={BOARD_DEED_CARD_CORNER_RX}
+                        ry={BOARD_DEED_CARD_CORNER_RY}
+                        fill="none"
+                        stroke="#1f2937"
+                        stroke-width="2.2"
+                        opacity="0.88"
+                        pointer-events="none"
+                    />
+                {/if}
                 <rect
                     x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
                     y={deed.y - BOARD_DEED_CARD_HEIGHT / 2}
@@ -1333,21 +1456,28 @@
                     rx={BOARD_DEED_CARD_CORNER_RX}
                     ry={BOARD_DEED_CARD_CORNER_RY}
                     fill={isSelected ? '#ffffff' : '#000000'}
-                    fill-opacity={isSelected ? 0.14 : isHovered ? 0.08 : 0.001}
-                    stroke={isSelected || isHovered ? startCompanyDeedOutlineColor : 'none'}
-                    stroke-width={isSelected ? 3 : 2}
+                    fill-opacity={isSelected ? 0.1 : isHovered ? 0.08 : 0.001}
+                    stroke="none"
+                    stroke-width={0}
                     pointer-events={applyingAreaAction ? 'none' : 'all'}
                     cursor={applyingAreaAction ? 'default' : 'pointer'}
                     onmouseenter={() => {
                         hoveredStartCompanyDeedId = deed.deedId
-                        gameSession.setHoveredAvailableDeed(deed.deedId)
+                        if (!selectedStartCompanyDeedId || selectedStartCompanyDeedId === deed.deedId) {
+                            gameSession.setHoveredAvailableDeed(deed.deedId)
+                        }
                     }}
                     onmouseleave={() => {
                         if (hoveredStartCompanyDeedId === deed.deedId) {
                             hoveredStartCompanyDeedId = null
                         }
-                        if (gameSession.hoveredAvailableDeedId === deed.deedId) {
-                            gameSession.setHoveredAvailableDeed(undefined)
+                        if (
+                            gameSession.hoveredAvailableDeedId === deed.deedId &&
+                            selectedStartCompanyDeedId !== deed.deedId
+                        ) {
+                            gameSession.setHoveredAvailableDeed(
+                                selectedStartCompanyDeedId ?? undefined
+                            )
                         }
                     }}
                     onpointerdown={() => {

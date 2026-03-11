@@ -3,7 +3,7 @@ export const PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY =
 
 export const PRODUCTION_ZONE_MARKER_OFFSETS = {
     D01: { x: -188.0, y: 39.6 },
-    D02: { x: -173.7, y: 26.7 },
+    D02: { x: -203.7, y: 40.9 },
     D03: { x: -39.0, y: 6.8 },
     D04: { x: -22.5, y: -24.3 },
     D09: { x: 43.5, y: -111.7 },

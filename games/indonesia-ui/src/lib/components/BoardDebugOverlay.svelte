@@ -99,8 +99,8 @@
     let cityDemandSelectedRegionId: string | null = $state(null)
     let cityDemandDraggingRegionId: string | null = $state(null)
     let cityDemandCopyStatus: string | null = $state(null)
-    let shipMarkerCount: 1 | 2 | 3 = $state(1)
-    let companyShipMarkerCount: 1 | 2 | 3 = $state(1)
+    let shipMarkerCount: 1 | 2 | 3 | 4 = $state(1)
+    let companyShipMarkerCount: 1 | 2 | 3 | 4 = $state(1)
     let shipMarkerPositions: Record<string, SeaShipLayout> = $state({})
     let shipMarkerPositionsLoaded = $state(false)
     let shipMarkerSelectedSeaId: string | null = $state(null)
@@ -122,7 +122,7 @@
     let layoutShowDeeds = $state(true)
     let layoutShowTags = $state(true)
     let layoutShowCityDemand = $state(true)
-    let layoutShipCountBySeaId: Record<string, 1 | 2 | 3> = $state({})
+    let layoutShipCountBySeaId: Record<string, 1 | 2 | 3 | 4> = $state({})
 
     type BoardNodeAreaType = 'Land' | 'Sea'
 
@@ -169,6 +169,7 @@
         1: Point[]
         2: Point[]
         3: Point[]
+        4: Point[]
     }
 
     type ShipTuneMarker = {
@@ -284,7 +285,7 @@
         oil: '#5a6070',
         siapsaji: '#8f4ea4'
     }
-    const SHIP_LAYOUT_OFFSETS: Record<1 | 2 | 3, Point[]> = {
+    const SHIP_LAYOUT_OFFSETS: Record<1 | 2 | 3 | 4, Point[]> = {
         1: [{ x: 0, y: 0 }],
         2: [
             { x: -24, y: 0 },
@@ -294,6 +295,12 @@
             { x: -26, y: 12 },
             { x: 0, y: -16 },
             { x: 26, y: 12 }
+        ],
+        4: [
+            { x: -28, y: 0 },
+            { x: 0, y: -22 },
+            { x: 28, y: 0 },
+            { x: 0, y: 22 }
         ]
     }
     const DEBUG_RESEARCH_ROW_COUNT_BY_ROW: Readonly<Record<ResearchRow, number>> = {
@@ -508,7 +515,8 @@
         return {
             1: layout[1].map((point) => ({ ...point })),
             2: layout[2].map((point) => ({ ...point })),
-            3: layout[3].map((point) => ({ ...point }))
+            3: layout[3].map((point) => ({ ...point })),
+            4: layout[4].map((point) => ({ ...point }))
         }
     }
 
@@ -525,6 +533,10 @@
                 y: baseY + offset.y
             })),
             3: SHIP_LAYOUT_OFFSETS[3].map((offset) => ({
+                x: baseX + offset.x,
+                y: baseY + offset.y
+            })),
+            4: SHIP_LAYOUT_OFFSETS[4].map((offset) => ({
                 x: baseX + offset.x,
                 y: baseY + offset.y
             }))
@@ -544,7 +556,7 @@
             return normalized
         }
 
-        for (const count of [1, 2, 3] as const) {
+        for (const count of [1, 2, 3, 4] as const) {
             const candidate = (value as Record<string, unknown>)[String(count)]
             if (!Array.isArray(candidate)) {
                 continue
@@ -617,7 +629,7 @@
 
     function setShipMarkerPosition(
         seaId: string,
-        count: 1 | 2 | 3,
+        count: 1 | 2 | 3 | 4,
         markerIndex: number,
         x: number,
         y: number
@@ -918,7 +930,7 @@
         cityDemandMarkerOffsets = {}
     }
 
-    function selectShipMarkerCount(nextCount: 1 | 2 | 3): void {
+    function selectShipMarkerCount(nextCount: 1 | 2 | 3 | 4): void {
         shipMarkerCount = nextCount
         const maxMarkerIndex = nextCount - 1
         if (shipMarkerSelectedIndex > maxMarkerIndex) {
@@ -926,26 +938,26 @@
         }
     }
 
-    function getLayoutShipCountForSeaId(seaId: string): 1 | 2 | 3 {
+    function getLayoutShipCountForSeaId(seaId: string): 1 | 2 | 3 | 4 {
         return layoutShipCountBySeaId[seaId] ?? 1
     }
 
-    function setLayoutShipCountForSeaId(seaId: string, shipCount: 1 | 2 | 3): void {
+    function setLayoutShipCountForSeaId(seaId: string, shipCount: 1 | 2 | 3 | 4): void {
         layoutShipCountBySeaId = {
             ...layoutShipCountBySeaId,
             [seaId]: shipCount
         }
     }
 
-    function setLayoutShipCountForAll(shipCount: 1 | 2 | 3): void {
-        const nextShipCountBySeaId: Record<string, 1 | 2 | 3> = {}
+    function setLayoutShipCountForAll(shipCount: 1 | 2 | 3 | 4): void {
+        const nextShipCountBySeaId: Record<string, 1 | 2 | 3 | 4> = {}
         for (const seaArea of SEA_DEBUG_MAP_AREAS) {
             nextShipCountBySeaId[seaArea.id] = shipCount
         }
         layoutShipCountBySeaId = nextShipCountBySeaId
     }
 
-    function selectCompanyShipMarkerCount(nextCount: 1 | 2 | 3): void {
+    function selectCompanyShipMarkerCount(nextCount: 1 | 2 | 3 | 4): void {
         companyShipMarkerCount = nextCount
     }
 
@@ -1943,7 +1955,7 @@
                 return ''
             }
             const layout = getShipLayoutForSeaArea(seaArea)
-            return `    ${seaId}: {\n        1: [${formatShipPoints(layout[1])}],\n        2: [${formatShipPoints(layout[2])}],\n        3: [${formatShipPoints(layout[3])}]\n    },`
+            return `    ${seaId}: {\n        1: [${formatShipPoints(layout[1])}],\n        2: [${formatShipPoints(layout[2])}],\n        3: [${formatShipPoints(layout[3])}],\n        4: [${formatShipPoints(layout[4])}]\n    },`
         })
         return `export const SEA_SHIP_MARKER_POSITIONS = {\n${lines.filter(Boolean).join('\n')}\n} as const`
     })
@@ -1951,7 +1963,7 @@
     const SHIP_MARKER_FULL_EXPORT_TEXT: string = $derived.by(() => {
         const lines = SEA_DEBUG_MAP_AREAS.map((seaArea) => {
             const layout = getShipLayoutForSeaArea(seaArea)
-            return `    ${seaArea.id}: {\n        1: [${formatShipPoints(layout[1])}],\n        2: [${formatShipPoints(layout[2])}],\n        3: [${formatShipPoints(layout[3])}]\n    },`
+            return `    ${seaArea.id}: {\n        1: [${formatShipPoints(layout[1])}],\n        2: [${formatShipPoints(layout[2])}],\n        3: [${formatShipPoints(layout[3])}],\n        4: [${formatShipPoints(layout[4])}]\n    },`
         })
         return `export const SEA_SHIP_MARKER_POSITIONS = {\n${lines.join('\n')}\n} as const`
     })
@@ -2570,6 +2582,13 @@
                 >
                     3
                 </button>
+                <button
+                    type="button"
+                    class:active={shipMarkerCount === 4}
+                    onclick={() => selectShipMarkerCount(4)}
+                >
+                    4
+                </button>
             </div>
             <div class="marker-tune-row">
                 <span>Selected Ship:</span>
@@ -2863,6 +2882,7 @@
                     <button type="button" onclick={() => setLayoutShipCountForAll(1)}>1</button>
                     <button type="button" onclick={() => setLayoutShipCountForAll(2)}>2</button>
                     <button type="button" onclick={() => setLayoutShipCountForAll(3)}>3</button>
+                    <button type="button" onclick={() => setLayoutShipCountForAll(4)}>4</button>
                 </div>
                 <div class="layout-ship-count-grid">
                     {#each SEA_DEBUG_MAP_AREAS as seaArea (seaArea.id)}
@@ -2890,6 +2910,13 @@
                                     onclick={() => setLayoutShipCountForSeaId(seaArea.id, 3)}
                                 >
                                     3
+                                </button>
+                                <button
+                                    type="button"
+                                    class:active={seaShipCount === 4}
+                                    onclick={() => setLayoutShipCountForSeaId(seaArea.id, 4)}
+                                >
+                                    4
                                 </button>
                             </div>
                         </div>
@@ -2942,6 +2969,13 @@
                     onclick={() => selectCompanyShipMarkerCount(3)}
                 >
                     3
+                </button>
+                <button
+                    type="button"
+                    class:active={companyShipMarkerCount === 4}
+                    onclick={() => selectCompanyShipMarkerCount(4)}
+                >
+                    4
                 </button>
             </div>
         </div>
