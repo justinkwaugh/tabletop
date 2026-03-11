@@ -48,11 +48,11 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
               seaAreaIds: ReadonlySet<string>
           }
         | null = $derived.by(() => {
-        const activeRoutePreview = gameSession.activeRoutePreview
+        const activeRoutePreview = gameSession.activeRoutePreviewVisualState
         if (activeRoutePreview) {
             return {
                 shippingCompanyId: activeRoutePreview.shippingCompanyId,
-                seaAreaIds: new Set(activeRoutePreview.seaAreaIds)
+                seaAreaIds: activeRoutePreview.seaAreaIdSet
             }
         }
 

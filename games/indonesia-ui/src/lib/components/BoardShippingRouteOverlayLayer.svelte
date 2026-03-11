@@ -244,7 +244,7 @@
         return areaIdsByCultivatedAreaId
     })
 
-    const hoveredDeliveryRoute = $derived(gameSession.activeRoutePreview)
+    const hoveredDeliveryRoute = $derived(gameSession.activeRoutePreviewVisualState)
 
     const deliveryShippingRouteOverlays: readonly DeliveryShippingRouteOverlay[] = $derived.by(() => {
         if (!routeOverlayReady || !hoveredDeliveryRoute) {

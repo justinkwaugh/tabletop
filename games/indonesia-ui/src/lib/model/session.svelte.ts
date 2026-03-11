@@ -61,6 +61,11 @@ type HoveredRoutePreviewState = {
     cultivatedAreaId: string | null
 }
 
+type ActiveRoutePreviewVisualState = HoveredRoutePreviewState & {
+    seaAreaIdSet: ReadonlySet<string>
+    sourceAreaIdSet: ReadonlySet<string>
+}
+
 type BoardPreviewIntent =
     | {
           source: 'none'
@@ -727,6 +732,19 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         return this.hoveredRoutePreview
+    })
+
+    activeRoutePreviewVisualState: ActiveRoutePreviewVisualState | null = $derived.by(() => {
+        const activeRoutePreview = this.activeRoutePreview
+        if (!activeRoutePreview) {
+            return null
+        }
+
+        return {
+            ...activeRoutePreview,
+            seaAreaIdSet: new Set(activeRoutePreview.seaAreaIds),
+            sourceAreaIdSet: new Set(activeRoutePreview.sourceAreaIds)
+        }
     })
 
     resetAction(): void {

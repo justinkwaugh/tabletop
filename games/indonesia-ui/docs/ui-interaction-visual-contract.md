@@ -273,6 +273,16 @@ Current board layer stack from `Board.svelte`:
 ### `activeRoutePreview`
 - Meaning: route preview that is currently allowed to affect visuals after higher-precedence interaction rules are applied
 - Producer: `IndonesiaGameSession`
+- Consumers: composed into `activeRoutePreviewVisualState`
+- Permitted uses:
+  - route preview sourcing after precedence rules
+- Forbidden uses:
+  - bypassing precedence rules by reading lower-level hover route state directly
+  - forcing each layer to rebuild its own route-preview sets
+
+### `activeRoutePreviewVisualState`
+- Meaning: route preview state normalized for visual consumers, including shared `seaAreaIdSet` and `sourceAreaIdSet`
+- Producer: `IndonesiaGameSession`
 - Consumers: `BoardShipsLayer`, `BoardCitiesLayer`, `BoardProductionZoneMarkersLayer`, `BoardActionAreasLayer`, `BoardShippingRouteOverlayLayer`
 - Permitted uses:
   - route ship filtering
@@ -280,7 +290,8 @@ Current board layer stack from `Board.svelte`:
   - route overlay rendering
   - route-local dimming
 - Forbidden uses:
-  - bypassing precedence rules by reading lower-level hover route state directly
+  - replacing broader route-preview precedence logic
+  - reintroducing per-layer ad hoc set derivation from `activeRoutePreview`
 
 ### `operatedCompanyIds`
 - Meaning: companies already operated in the current operations phase

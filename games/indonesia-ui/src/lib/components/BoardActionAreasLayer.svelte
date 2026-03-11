@@ -467,16 +467,18 @@
         ]
     })
 
-    const hasHoveredRoutePreview: boolean = $derived.by(() => gameSession.activeRoutePreview !== null)
+    const hasHoveredRoutePreview: boolean = $derived.by(
+        () => gameSession.activeRoutePreviewVisualState !== null
+    )
 
     const hoveredRoutePreviewExemptAreaIds: readonly string[] = $derived.by(() => {
-        const hoveredRoutePreview = gameSession.activeRoutePreview
+        const hoveredRoutePreview = gameSession.activeRoutePreviewVisualState
         if (!hoveredRoutePreview) {
             return []
         }
 
         const areaIds = new Set<string>()
-        for (const areaId of hoveredRoutePreview.sourceAreaIds) {
+        for (const areaId of hoveredRoutePreview.sourceAreaIdSet) {
             if (boardAreaPathById(areaId)) {
                 areaIds.add(areaId)
             }
