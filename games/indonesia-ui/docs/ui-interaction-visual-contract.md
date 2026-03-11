@@ -28,7 +28,7 @@ Status:
 | `delivery_zone_selection` | choose a cultivated source zone during delivery | valid source zones and matching marker hit targets | invalid land areas, non-selectable zone tags | unrelated ships unless route preview is active |
 | `delivery_city_selection` | choose a destination city during delivery | valid city beads and hovered city bead | generally no full-board dim; city-specific emphasis only | unrelated deed/card spotlight state |
 | `delivery_route_preview` | hover a delivery route or shipping choice | route path, route ships, source area, destination city bead/tag | unrelated ships, unrelated land areas, unrelated zone tags | full-board spotlight mask must not be introduced by route preview alone |
-| `city_reference_card_preview` | hover future city card `B` or `C` on board | valid future city regions, hovered city reference card | rest of board via spotlight mask | the hovered city reference card; competing hover spotlights should yield |
+| `city_reference_card_preview` | hover on-board city reference card (opening `A` card during initial `NewEra`, otherwise future `B`/`C` card) | valid regions for that card, hovered city reference card | rest of board via spotlight mask | the hovered city reference card; competing hover spotlights should yield |
 | `operated_company_unavailable` | company has already operated during operations phase | muted company card, masked production zone marker | only that company's card/marker representation | hover spotlight capability, ships |
 
 Notes:
@@ -128,7 +128,7 @@ Current board layer stack from `Board.svelte`:
 | `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, `activeCompanyPiecePreviewCompanyIds` for deed dimming | board-wide spotlight ownership |
 | `BoardCultivatedAreasLayer` | cultivated area fill and hatch rendering | board company occupancy, render style, hatch assignment | any hover/selection dimming policy |
 | `BoardCitiesLayer` | city beads, city demand tags, city-specific highlight/darken rules, mirror dimming for spotlight modes above the board mask | delivery city selection, route preview city, `activeCompanyPiecePreviewCompanyIds`, city-card-preview precedence | board spotlight mask ownership, route path rendering |
-| `BoardCityReferenceCardLayer` | future city reference card rendering and hover target | player city cards, current era, hovered board city card setter | board dimming, area outlines |
+| `BoardCityReferenceCardLayer` | on-board city reference card rendering and hover target | player city cards, current era, machine state, hovered board city card setter | board dimming, area outlines |
 | `PlayerState` | player-panel company hover targets | owned companies, operated company ids | board spotlight rendering |
 | `PlayerCompanyCompactCard` | compact card visuals and unavailable mute | card data, `unavailable` | hover ownership, hatch-on-card policy |
 
@@ -238,7 +238,7 @@ Current board layer stack from `Board.svelte`:
   - unrelated company hover behavior
 
 ### `hoveredPlayerCityReferenceCard`
-- Meaning: currently hovered on-board future city card
+- Meaning: currently hovered on-board city reference card
 - Producer: `IndonesiaGameSession`
 - Consumers: `BoardCityReferenceCardLayer`, `BoardActionAreasLayer`
 - Permitted uses:

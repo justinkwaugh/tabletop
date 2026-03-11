@@ -7,8 +7,10 @@
         BOARD_CITY_REFERENCE_CARD_RADIUS,
         BOARD_CITY_REFERENCE_CARD_WIDTH,
         CITY_REFERENCE_CARD_LEFT_X,
+        CITY_REFERENCE_CARD_MIDDLE_X,
         CITY_REFERENCE_CARD_RIGHT_X,
-        CITY_REFERENCE_CARD_TOP_Y
+        CITY_REFERENCE_CARD_TOP_Y,
+        visibleBoardCityReferenceCardEras
     } from '$lib/definitions/cityReferenceCardGeometry.js'
     import {
         BOARD_DEED_CARD_CORNER_RX,
@@ -680,11 +682,16 @@
             return null
         }
 
+        const visibleEras = visibleBoardCityReferenceCardEras(
+            gameSession.gameState.era,
+            gameSession.gameState.machineState
+        )
+        const cardIndex = visibleEras.indexOf(cityCard.era)
         const cardX =
-            gameSession.gameState.era === Era.B
+            cardIndex <= 0
                 ? CITY_REFERENCE_CARD_LEFT_X
-                : cityCard.era === Era.B
-                  ? CITY_REFERENCE_CARD_LEFT_X
+                : cardIndex === 1
+                  ? CITY_REFERENCE_CARD_MIDDLE_X
                   : CITY_REFERENCE_CARD_RIGHT_X
 
         return {

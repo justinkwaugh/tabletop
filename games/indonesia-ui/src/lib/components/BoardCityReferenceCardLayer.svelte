@@ -13,8 +13,10 @@
         BOARD_CITY_REFERENCE_CARD_WIDTH,
         CITY_REFERENCE_CARD_LABEL_BY_ERA,
         CITY_REFERENCE_CARD_LEFT_X,
+        CITY_REFERENCE_CARD_MIDDLE_X,
         CITY_REFERENCE_CARD_RIGHT_X,
-        CITY_REFERENCE_CARD_TOP_Y
+        CITY_REFERENCE_CARD_TOP_Y,
+        visibleBoardCityReferenceCardEras
     } from '$lib/definitions/cityReferenceCardGeometry.js'
     import { Era } from '@tabletop/indonesia'
 
@@ -22,8 +24,8 @@
 
     type CityReferenceCardEntry = {
         cardId: string
-        era: Era.B | Era.C
-        label: (typeof CITY_REFERENCE_CARD_LABEL_BY_ERA)[Era.B | Era.C]
+        era: Era
+        label: (typeof CITY_REFERENCE_CARD_LABEL_BY_ERA)[Era]
         x: number
         y: number
     }
@@ -34,28 +36,10 @@
             return []
         }
 
-        if (gameSession.gameState.era === Era.C) {
-            return []
-        }
-
-        if (gameSession.gameState.era === Era.B) {
-            const card = playerState.cityCards[Era.C][0]
-            if (!card) {
-                return []
-            }
-
-            return [
-                {
-                    cardId: card.id,
-                    era: Era.C,
-                    label: CITY_REFERENCE_CARD_LABEL_BY_ERA[Era.C],
-                    x: CITY_REFERENCE_CARD_LEFT_X,
-                    y: CITY_REFERENCE_CARD_TOP_Y
-                } satisfies CityReferenceCardEntry
-            ]
-        }
-
-        return ([Era.B, Era.C] as const)
+        return visibleBoardCityReferenceCardEras(
+            gameSession.gameState.era,
+            gameSession.gameState.machineState
+        )
             .map((era, index) => {
                 const card = playerState.cityCards[era][0]
                 if (!card) {
@@ -66,7 +50,12 @@
                     cardId: card.id,
                     era,
                     label: CITY_REFERENCE_CARD_LABEL_BY_ERA[era],
-                    x: index === 0 ? CITY_REFERENCE_CARD_LEFT_X : CITY_REFERENCE_CARD_RIGHT_X,
+                    x:
+                        index === 0
+                            ? CITY_REFERENCE_CARD_LEFT_X
+                            : index === 1
+                              ? CITY_REFERENCE_CARD_MIDDLE_X
+                              : CITY_REFERENCE_CARD_RIGHT_X,
                     y: CITY_REFERENCE_CARD_TOP_Y
                 } satisfies CityReferenceCardEntry
             })

@@ -34,6 +34,7 @@ import {
     IndonesiaAreaType,
     isIndonesiaNodeId
 } from '@tabletop/indonesia'
+import { visibleBoardCityReferenceCardEras } from '$lib/definitions/cityReferenceCardGeometry.js'
 import {
     hasManualDeliverySelection,
     getDeliverySelectionValue,
@@ -381,7 +382,10 @@ export class IndonesiaGameSession extends GameSession<
             return null
         }
 
-        for (const era of [Era.B, Era.C] as const) {
+        for (const era of visibleBoardCityReferenceCardEras(
+            this.gameState.era,
+            this.gameState.machineState
+        )) {
             const card = playerState.cityCards[era][0]
             if (!card || card.id !== hoveredCardId) {
                 continue
@@ -966,7 +970,10 @@ export class IndonesiaGameSession extends GameSession<
             return
         }
 
-        for (const era of [Era.B, Era.C] as const) {
+        for (const era of visibleBoardCityReferenceCardEras(
+            this.gameState.era,
+            this.gameState.machineState
+        )) {
             const card = playerState.cityCards[era][0]
             if (card?.id === cardId) {
                 this.hoveredPlayerCityReferenceCardIdOverride = card.id
