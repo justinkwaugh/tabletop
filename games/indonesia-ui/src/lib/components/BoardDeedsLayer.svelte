@@ -211,6 +211,9 @@
         }
         return DEED_CARD_ENTRIES.find((deed) => deed.deedId === hoveredDeedId) ?? null
     })
+    const hoveredDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
+        return hoveredDeedCardEntry ? [hoveredDeedCardEntry] : []
+    })
     const nonHoveredDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
         const hoveredDeedId = hoveredAvailableDeedId
         if (!hoveredDeedId) {
@@ -365,20 +368,20 @@
             {/if}
         {/each}
 
-        {#if hoveredDeedCardEntry}
-            {@const hoveredDeedId = hoveredDeedCardEntry.deedId}
+        {#each hoveredDeedCardEntries as hoveredDeed (hoveredDeed.deedId)}
+            {@const hoveredDeedId = hoveredDeed.deedId}
             <g>
                 <CompanyDeed
-                    type={hoveredDeedCardEntry.cardKind}
-                    x={hoveredDeedCardEntry.cardX}
-                    y={hoveredDeedCardEntry.cardY}
+                    type={hoveredDeed.cardKind}
+                    x={hoveredDeed.cardX}
+                    y={hoveredDeed.cardY}
                     height={BOARD_DEED_CARD_HEIGHT}
-                    text={hoveredDeedCardEntry.text}
-                    shippingSizes={hoveredDeedCardEntry.shippingSizes}
+                    text={hoveredDeed.text}
+                    shippingSizes={hoveredDeed.shippingSizes}
                 />
                 <rect
-                    x={hoveredDeedCardEntry.cardX - BOARD_DEED_CARD_WIDTH / 2}
-                    y={hoveredDeedCardEntry.cardY - BOARD_DEED_CARD_HEIGHT / 2}
+                    x={hoveredDeed.cardX - BOARD_DEED_CARD_WIDTH / 2}
+                    y={hoveredDeed.cardY - BOARD_DEED_CARD_HEIGHT / 2}
                     width={BOARD_DEED_CARD_WIDTH}
                     height={BOARD_DEED_CARD_HEIGHT}
                     rx={BOARD_DEED_CARD_CORNER_RX}
@@ -397,6 +400,6 @@
                     }}
                 />
             </g>
-        {/if}
+        {/each}
     </g>
 {/if}

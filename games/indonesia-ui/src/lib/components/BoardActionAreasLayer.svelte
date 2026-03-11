@@ -44,6 +44,7 @@
         startCompanyDeedById as buildStartCompanyDeedById,
         type StartCompanyDeedEntry
     } from '$lib/components/boardActionAreas/startCompany.js'
+    import StartCompanyDeedSelectionOverlay from '$lib/components/boardActionAreas/StartCompanyDeedSelectionOverlay.svelte'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { deedPositionLookupKeys } from '$lib/utils/deeds.js'
@@ -105,15 +106,6 @@
     const myPlayerId: string | null = $derived(gameSession.myPlayer?.id ?? null)
 
     const startCompanySelectionEnabled: boolean = $derived(gameSession.startCompanySelectionEnabled)
-
-    let hoveredStartCompanyDeedId: string | null = $derived.by(() => {
-        gameSession.updatingVisibleState
-        gameSession.gameState
-        if (!startCompanySelectionEnabled) {
-            return null
-        }
-        return null
-    })
 
     const selectedStartCompanyDeedId: string | null = $derived.by(() => {
         return gameSession.selectedStartCompanyDeedId
@@ -893,11 +885,7 @@
         }
     }
 
-    function selectStartCompanyDeed(deedId: string): void {
-        if (!startCompanySelectionEnabled || applyingAreaAction) {
-            return
-        }
-        gameSession.stageStartCompanyDeed(deedId)
+    function handleStartCompanyDeedStaged(): void {
         hoveredAreaId = null
     }
 </script>
@@ -1281,73 +1269,13 @@
         {/if}
 
         {#if startCompanySelectionEnabled}
-            {#each startCompanyDeeds as deed (deed.deedId)}
-                {@const isSelected = selectedStartCompanyDeedId === deed.deedId}
-                {@const isHovered = hoveredStartCompanyDeedId === deed.deedId}
-                {#if isSelected && !hasHoveredCityReferenceCardSpotlight}
-                    <rect
-                        x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
-                        y={deed.y - BOARD_DEED_CARD_HEIGHT / 2}
-                        width={BOARD_DEED_CARD_WIDTH}
-                        height={BOARD_DEED_CARD_HEIGHT}
-                        rx={BOARD_DEED_CARD_CORNER_RX}
-                        ry={BOARD_DEED_CARD_CORNER_RY}
-                        fill="none"
-                        stroke="#fff8d7"
-                        stroke-width="7.2"
-                        opacity="0.9"
-                        pointer-events="none"
-                    />
-                    <rect
-                        x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
-                        y={deed.y - BOARD_DEED_CARD_HEIGHT / 2}
-                        width={BOARD_DEED_CARD_WIDTH}
-                        height={BOARD_DEED_CARD_HEIGHT}
-                        rx={BOARD_DEED_CARD_CORNER_RX}
-                        ry={BOARD_DEED_CARD_CORNER_RY}
-                        fill="none"
-                        stroke="#1f2937"
-                        stroke-width="2.2"
-                        opacity="0.88"
-                        pointer-events="none"
-                    />
-                {/if}
-                <rect
-                    x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
-                    y={deed.y - BOARD_DEED_CARD_HEIGHT / 2}
-                    width={BOARD_DEED_CARD_WIDTH}
-                    height={BOARD_DEED_CARD_HEIGHT}
-                    rx={BOARD_DEED_CARD_CORNER_RX}
-                    ry={BOARD_DEED_CARD_CORNER_RY}
-                    fill={isSelected && !hasHoveredCityReferenceCardSpotlight ? '#ffffff' : '#000000'}
-                    fill-opacity={hasHoveredCityReferenceCardSpotlight
-                        ? 0.001
-                        : isSelected
-                          ? 0.1
-                          : isHovered
-                            ? 0.08
-                            : 0.001}
-                    stroke="none"
-                    stroke-width={0}
-                    pointer-events={applyingAreaAction ? 'none' : 'all'}
-                    cursor={applyingAreaAction ? 'default' : 'pointer'}
-                    onmouseenter={() => {
-                        hoveredStartCompanyDeedId = deed.deedId
-                        gameSession.hoverAvailableDeed(deed.deedId)
-                    }}
-                    onmouseleave={() => {
-                        if (hoveredStartCompanyDeedId === deed.deedId) {
-                            hoveredStartCompanyDeedId = null
-                        }
-                        if (gameSession.hoveredAvailableDeedId === deed.deedId) {
-                            gameSession.clearHoveredAvailableDeed()
-                        }
-                    }}
-                    onpointerdown={() => {
-                        selectStartCompanyDeed(deed.deedId)
-                    }}
-                />
-            {/each}
+            <StartCompanyDeedSelectionOverlay
+                deeds={startCompanyDeeds}
+                {selectedStartCompanyDeedId}
+                {applyingAreaAction}
+                {hasHoveredCityReferenceCardSpotlight}
+                onStageSelection={handleStartCompanyDeedStaged}
+            />
         {/if}
     </g>
 {/if}
