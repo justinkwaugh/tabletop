@@ -17,6 +17,10 @@
         BOARD_DEED_CARD_WIDTH
     } from '$lib/definitions/companyDeedGeometry.js'
     import {
+        deriveActiveAreaInteraction,
+        type ActiveAreaInteraction
+    } from '$lib/components/boardActionAreas/areaInteraction.js'
+    import {
         deriveBoardSpotlightState,
         type BoardSpotlightState,
         type SpotlightMaskRect
@@ -62,22 +66,6 @@
     const DELIVERY_ZONE_HOVER_OUTLINE_MASK_ID = 'delivery-zone-hover-outline-mask'
     const SEA_HIGHLIGHT_FILL = '#93c5fd'
     const SEA_HIGHLIGHT_FILL_OPACITY = 0.38
-
-    type AreaInteractionAction =
-        | 'place-city'
-        | 'grow-city'
-        | 'start-company'
-        | 'expand'
-        | 'remove-siap-saji-area'
-        | 'select-delivery-cultivated'
-        | 'select-delivery-city'
-    type ActiveAreaInteraction = {
-        action: AreaInteractionAction
-        validAreaIds: readonly string[]
-        outlineColor: string
-        maskedAreaType: IndonesiaAreaType
-        maskInvalidAreas: boolean
-    }
 
     type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
     type MarkerDirection = 'north' | 'east' | 'south' | 'west'
@@ -170,6 +158,43 @@
             return '#1f2937'
         }
         return gameSession.colors.getPlayerUiColor(myPlayerId)
+    })
+
+    const playerOutlineColor: string | null = $derived.by(() => {
+        if (!myPlayerId) {
+            return null
+        }
+        return gameSession.colors.getPlayerUiColor(myPlayerId)
+    })
+
+    const siapSajiRemovalAreaIds: readonly string[] = $derived.by(() => {
+        return gameSession.siapSajiRemovalAreaIds
+    })
+
+    const growCityValidAreaIds: readonly string[] = $derived.by(() => {
+        if (
+            !myPlayerId ||
+            !gameSession.isMyTurn ||
+            gameSession.gameState.machineState !== MachineState.CityGrowth ||
+            !gameSession.validActionTypes.includes(ActionType.GrowCity)
+        ) {
+            return []
+        }
+
+        return Array.from(HydratedGrowCity.validCityAreaIds(gameSession.gameState, myPlayerId))
+    })
+
+    const placeCityValidAreaIds: readonly string[] = $derived.by(() => {
+        if (
+            !myPlayerId ||
+            !gameSession.isMyTurn ||
+            !gameSession.isNewEra ||
+            !gameSession.validActionTypes.includes(ActionType.PlaceCity)
+        ) {
+            return []
+        }
+
+        return Array.from(HydratedPlaceCity.validAreaIds(gameSession.gameState, myPlayerId))
     })
 
     const shippingExpandValidAreaIds: readonly string[] = $derived.by(() => {
@@ -291,145 +316,34 @@
     })
 
     const activeAreaInteraction: ActiveAreaInteraction | null = $derived.by(() => {
-        if (gameSession.suppressBoardEffectsForHistory) {
-            return null
-        }
-
-        if (
-            myPlayerId &&
-            gameSession.isMyTurn &&
-            gameSession.gameState.machineState === MachineState.Mergers &&
-            gameSession.validActionTypes.includes(ActionType.RemoveSiapSajiArea)
-        ) {
-            const validAreaIds = gameSession.siapSajiRemovalAreaIds
-            if (validAreaIds.length === 0) {
-                return null
-            }
-
-            return {
-                action: 'remove-siap-saji-area',
-                validAreaIds,
-                outlineColor: '#fef3c7',
-                maskedAreaType: IndonesiaAreaType.Land,
-                maskInvalidAreas: true
-            }
-        }
-
-        if (
-            myPlayerId &&
-            gameSession.isMyTurn &&
-            gameSession.gameState.machineState === MachineState.CityGrowth &&
-            gameSession.validActionTypes.includes(ActionType.GrowCity)
-        ) {
-            const validAreaIds = Array.from(
-                HydratedGrowCity.validCityAreaIds(gameSession.gameState, myPlayerId)
-            )
-            if (validAreaIds.length === 0) {
-                return null
-            }
-
-            return {
-                action: 'grow-city',
-                validAreaIds,
-                outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
-                maskedAreaType: IndonesiaAreaType.Land,
-                maskInvalidAreas: true
-            }
-        }
-
-        if (
-            myPlayerId &&
-            gameSession.isMyTurn &&
-            gameSession.isNewEra &&
-            gameSession.validActionTypes.includes(ActionType.PlaceCity)
-        ) {
-            const validAreaIds = Array.from(
-                HydratedPlaceCity.validAreaIds(gameSession.gameState, myPlayerId)
-            )
-            if (validAreaIds.length === 0) {
-                return null
-            }
-
-            return {
-                action: 'place-city',
-                validAreaIds,
-                outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
-                maskedAreaType: IndonesiaAreaType.Land,
-                maskInvalidAreas: true
-            }
-        }
-
-        if (myPlayerId && shippingExpandValidAreaIds.length > 0) {
-            return {
-                action: 'expand',
-                validAreaIds: shippingExpandValidAreaIds,
-                outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
-                maskedAreaType: IndonesiaAreaType.Sea,
-                maskInvalidAreas: false
-            }
-        }
-
-        if (myPlayerId && productionExpandValidAreaIds.length > 0) {
-            return {
-                action: 'expand',
-                validAreaIds: productionExpandValidAreaIds,
-                outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
-                maskedAreaType: IndonesiaAreaType.Land,
-                maskInvalidAreas: true
-            }
-        }
-
-        if (myPlayerId && deliverySelectionEnabled) {
-            if (gameSession.deliverySelectionStage === 'cultivated') {
-                const validAreaIds = deliverySelectableAreaIds
-                if (validAreaIds.length === 0) {
-                    return null
-                }
-
-                return {
-                    action: 'select-delivery-cultivated',
-                    validAreaIds,
-                    outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
-                    maskedAreaType: IndonesiaAreaType.Land,
-                    maskInvalidAreas: true
-                }
-            }
-
-            if (gameSession.deliverySelectionStage === 'city') {
-                const validAreaIds = gameSession.deliveryAvailableCityAreaIds.filter((areaId) =>
-                    boardAreaPathById(areaId)
-                )
-                if (validAreaIds.length === 0) {
-                    return null
-                }
-
-                return {
-                    action: 'select-delivery-city',
-                    validAreaIds,
-                    outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
-                    maskedAreaType: IndonesiaAreaType.Land,
-                    maskInvalidAreas: false
-                }
-            }
-        }
-
-        if (myPlayerId && selectedStartCompanyDeed) {
-            if (startCompanyValidAreaIds.length === 0) {
-                return null
-            }
-            return {
-                action: 'start-company',
-                validAreaIds: startCompanyValidAreaIds,
-                outlineColor: gameSession.colors.getPlayerUiColor(myPlayerId),
-                maskedAreaType:
-                    selectedStartCompanyDeed.type === CompanyType.Shipping
-                        ? IndonesiaAreaType.Sea
-                        : IndonesiaAreaType.Land,
-                maskInvalidAreas: false
-            }
-        }
-
-        return null
+        return deriveActiveAreaInteraction({
+            myPlayerId,
+            isMyTurn: gameSession.isMyTurn,
+            suppressBoardEffectsForHistory: gameSession.suppressBoardEffectsForHistory,
+            canRemoveSiapSajiArea:
+                gameSession.gameState.machineState === MachineState.Mergers &&
+                gameSession.validActionTypes.includes(ActionType.RemoveSiapSajiArea),
+            siapSajiRemovalAreaIds,
+            canGrowCity:
+                gameSession.gameState.machineState === MachineState.CityGrowth &&
+                gameSession.validActionTypes.includes(ActionType.GrowCity),
+            growCityValidAreaIds,
+            canPlaceCity:
+                gameSession.isNewEra &&
+                gameSession.validActionTypes.includes(ActionType.PlaceCity),
+            placeCityValidAreaIds,
+            shippingExpandValidAreaIds,
+            productionExpandValidAreaIds,
+            deliverySelectionEnabled,
+            deliverySelectionStage: gameSession.deliverySelectionStage,
+            deliverySelectableAreaIds,
+            deliveryAvailableCityAreaIds: gameSession.deliveryAvailableCityAreaIds.filter((areaId) =>
+                boardAreaPathById(areaId)
+            ),
+            selectedStartCompanyDeedType: selectedStartCompanyDeed?.type ?? null,
+            startCompanyValidAreaIds,
+            playerOutlineColor
+        })
     })
 
     const interactiveValidAreaIds: readonly string[] = $derived.by(() =>
