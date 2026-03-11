@@ -122,19 +122,19 @@ Current board layer stack from `Board.svelte`:
 
 | Layer | Owns | Allowed Inputs | Must Not Own |
 | --- | --- | --- | --- |
-| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, local spotlight render-state derivation | active area interaction, `activeBoardPreview`, route preview area ids, `boardSpotlightProductionCompanyIds`, `boardSpotlightShippingCompanyIds` | ship emphasis logic, marker muting logic, card component styling |
+| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, local spotlight render-state derivation | active area interaction, `activeBoardPreviewIntent`, route preview area ids, `activeBoardSpotlightProductionCompanyIds`, `activeBoardSpotlightShippingCompanyIds` | ship emphasis logic, marker muting logic, card component styling |
 | `BoardShipsLayer` | ship rendering and ship emphasis | `activeShipVisualState` | board masks, sea overlay ownership |
-| `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | `boardSpotlightProductionCompanyIds`, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
-| `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, `hoveredCompanyPreviewCompanyIds` for deed dimming | board-wide spotlight ownership |
+| `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | `activeBoardSpotlightProductionCompanyIds`, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
+| `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, `activeCompanyPiecePreviewCompanyIds` for deed dimming | board-wide spotlight ownership |
 | `BoardCultivatedAreasLayer` | cultivated area fill and hatch rendering | board company occupancy, render style, hatch assignment | any hover/selection dimming policy |
-| `BoardCitiesLayer` | city beads, city demand tags, city-specific highlight/darken rules, mirror dimming for spotlight modes above the board mask | delivery city selection, route preview city, `hoveredCompanyPreviewCompanyIds`, city-card-preview precedence | board spotlight mask ownership, route path rendering |
+| `BoardCitiesLayer` | city beads, city demand tags, city-specific highlight/darken rules, mirror dimming for spotlight modes above the board mask | delivery city selection, route preview city, `activeCompanyPiecePreviewCompanyIds`, city-card-preview precedence | board spotlight mask ownership, route path rendering |
 | `BoardCityReferenceCardLayer` | future city reference card rendering and hover target | player city cards, current era, hovered board city card setter | board dimming, area outlines |
 | `PlayerState` | player-panel company hover targets | owned companies, operated company ids | board spotlight rendering |
 | `PlayerCompanyCompactCard` | compact card visuals and unavailable mute | card data, `unavailable` | hover ownership, hatch-on-card policy |
 
 ## 4. Shared State Contracts
 
-### `hoveredCompanyPreviewCompanyIds`
+### `activeCompanyPiecePreviewCompanyIds`
 - Meaning: companies being previewed because of actual company hover/spotlight intent, not because of delivery-stage board spotlight
 - Producer: `IndonesiaGameSession`
 - Consumers: `BoardCitiesLayer`, `BoardDeedsLayer`
@@ -146,10 +146,10 @@ Current board layer stack from `Board.svelte`:
   - board-wide spotlight masking
   - ship emphasis
 
-### `deliveryCultivatedPreviewCompanyIds`
+### `deliveryCultivatedBoardPreviewCompanyIds`
 - Meaning: operating company ids that should drive the board spotlight during cultivated-source delivery selection
 - Producer: `IndonesiaGameSession`
-- Consumers: composed into `boardSpotlightCompanyIds`
+- Consumers: composed into `activeBoardSpotlightCompanyIds`
 - Permitted uses:
   - delivery-stage board spotlight sourcing
 - Forbidden uses:
@@ -157,10 +157,10 @@ Current board layer stack from `Board.svelte`:
   - city demand-tag hover dimming
   - ship emphasis
 
-### `boardSpotlightCompanyIds`
+### `activeBoardSpotlightCompanyIds`
 - Meaning: companies that should currently drive board-wide company spotlight behavior after precedence rules are applied
 - Producer: `IndonesiaGameSession`
-- Consumers: composed into `boardSpotlightProductionCompanyIds`, `boardSpotlightShippingCompanyIds`
+- Consumers: composed into `activeBoardSpotlightProductionCompanyIds`, `activeBoardSpotlightShippingCompanyIds`
 - Permitted uses:
   - board-level spotlight sourcing
 - Forbidden uses:
@@ -168,7 +168,7 @@ Current board layer stack from `Board.svelte`:
   - generic "anything highlighted" behavior
   - hover-only card/city dimming decisions
 
-### `boardSpotlightProductionCompanyIds`
+### `activeBoardSpotlightProductionCompanyIds`
 - Meaning: production-company subset of the current board spotlight driver
 - Producer: `IndonesiaGameSession`
 - Consumers: `BoardActionAreasLayer`, `BoardProductionZoneMarkersLayer`
@@ -179,7 +179,7 @@ Current board layer stack from `Board.svelte`:
   - ship emphasis
   - deed/card hover dimming
 
-### `boardSpotlightShippingCompanyIds`
+### `activeBoardSpotlightShippingCompanyIds`
 - Meaning: shipping-company subset of the current board spotlight driver
 - Producer: `IndonesiaGameSession`
 - Consumers: `BoardActionAreasLayer`
@@ -188,19 +188,6 @@ Current board layer stack from `Board.svelte`:
 - Forbidden uses:
   - ship emphasis
   - marker masking
-
-### `highlightedShipCompanyIds`
-- Meaning: shipping companies whose ship pieces should render emphasized
-- Producer: `IndonesiaGameSession`
-- Consumers: compatibility subset of `activeShipVisualState`
-- Permitted uses:
-  - shipping company hover ship emphasis
-  - operating shipping company emphasis during sea expansion
-- Forbidden uses:
-  - board dimming
-  - sea overlay ownership
-  - production marker masking
-- Refactor note: this was split out so ship emphasis no longer has to be inferred from the board spotlight state
 
 ### `activeShipVisualState`
 - Meaning: normalized ship-emphasis state after precedence rules are applied
@@ -271,7 +258,7 @@ Current board layer stack from `Board.svelte`:
   - deciding the city-card preview regions themselves
   - replacing the hovered-card payload
 
-### `activeBoardPreview`
+### `activeBoardPreviewIntent`
 - Meaning: semantic answer to “what currently wins board-preview precedence?” after session-level hover/selection rules are applied, but before layer-local geometry/visibility checks
 - Producer: `IndonesiaGameSession`
 - Consumers: `BoardActionAreasLayer`
@@ -353,7 +340,7 @@ Current board layer stack from `Board.svelte`:
 
 ## 5. Forbidden Couplings
 
-- Do not reuse `boardSpotlightCompanyIds` to drive local ship emphasis for shipping expansion.
+- Do not reuse `activeBoardSpotlightCompanyIds` to drive local ship emphasis for shipping expansion.
 - Do not reuse ship emphasis state to turn on board dimming.
 - Do not let `BoardShipsLayer` become a producer of board spotlight state.
 - Do not let `BoardShipsLayer` recompute route-preview-vs-company-spotlight precedence from lower-level signals when `activeShipVisualState` already encodes it.
@@ -410,7 +397,7 @@ Before finalizing any highlight/dimming change, verify:
 When touching Indonesia UI interactive visuals:
 1. identify the intent row being changed in this document
 2. identify the primitive or primitives involved
-3. check whether the change widens `hoveredCompanyPreviewCompanyIds`, `boardSpotlightCompanyIds`, `activeBoardPreview`, `highlightedShipCompanyIds`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, `activeDeedPreviewId`, `hoveredRoutePreview`, or `activeRoutePreview`
+3. check whether the change widens `activeCompanyPiecePreviewCompanyIds`, `activeBoardSpotlightCompanyIds`, `activeBoardPreviewIntent`, `activeShipVisualState`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, `activeDeedPreviewId`, `hoveredRoutePreview`, or `activeRoutePreview`
 4. decide whether the change belongs in `BoardActionAreasLayer` or a narrower piece-specific layer
 5. update this document in the same change if the interaction behavior or precedence changes
 
@@ -449,7 +436,7 @@ These are the highest-risk couplings to separate in later work:
    Current smell: partially reduced; `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, and `activeDeedPreviewId` are now separate, but some deed-layer render naming still reflects the older combined hover path.
 
 5. Normalize ship visual intent.
-   Current smell: reduced; ship emphasis precedence now derives centrally in `activeShipVisualState`, but compatibility state like `highlightedShipCompanyIds` still exists for transition clarity.
+   Current smell: reduced; ship emphasis precedence now derives centrally in `activeShipVisualState`, with `BoardShipsLayer` acting as a pure consumer.
 
 6. Move toward explicit interaction-mode naming.
    Current smell: broad shared state names hide whether the effect is board-wide or piece-local.

@@ -989,7 +989,7 @@
 
         const productionCompanyIds = new Set<string>()
 
-        for (const companyId of gameSession.boardSpotlightProductionCompanyIds) {
+        for (const companyId of gameSession.activeBoardSpotlightProductionCompanyIds) {
             productionCompanyIds.add(companyId)
         }
 
@@ -1061,7 +1061,7 @@
         if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
-        const hasAnyCompanySpotlight = gameSession.boardSpotlightCompanyIds.length > 0
+        const hasAnyCompanySpotlight = gameSession.activeBoardSpotlightCompanyIds.length > 0
         return hasAnyCompanySpotlight && spotlightedProductionCompanyIdSet.size === 0
     })
 

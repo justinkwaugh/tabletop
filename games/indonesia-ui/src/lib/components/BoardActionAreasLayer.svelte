@@ -393,11 +393,11 @@
     })
 
     const spotlightedProductionCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
-        return new Set(gameSession.boardSpotlightProductionCompanyIds)
+        return new Set(gameSession.activeBoardSpotlightProductionCompanyIds)
     })
 
     const spotlightedShippingCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
-        return new Set(gameSession.boardSpotlightShippingCompanyIds)
+        return new Set(gameSession.activeBoardSpotlightShippingCompanyIds)
     })
 
     const spotlightedProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
@@ -462,7 +462,7 @@
         )
     })
 
-    const spotlightedAvailableDeedId: string | null = $derived.by(() => {
+    const activeDeedPreviewId: string | null = $derived.by(() => {
         return gameSession.activeDeedPreviewId
     })
 
@@ -482,20 +482,20 @@
     const shippingDeedSeaOverlayState: ShippingDeedSeaOverlayState = $derived.by(() => {
         return deriveShippingDeedSeaOverlayState({
             shippingDeedIds: availableShippingDeedIds,
-            activeDeedPreviewId: spotlightedAvailableDeedId,
+            activeDeedPreviewId,
             showAllDeedOverlays,
             suppressBoardEffectsForHistory: gameSession.suppressBoardEffectsForHistory,
             cityReferenceCardPreviewWins: gameSession.cityReferenceCardPreviewWins
         })
     })
 
-    const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
-        const hoveredDeedId = spotlightedAvailableDeedId
-        if (!hoveredDeedId) {
+    const activeDeedPreviewOverlayAreaIds: readonly string[] = $derived.by(() => {
+        const previewDeedId = activeDeedPreviewId
+        if (!previewDeedId) {
             return []
         }
 
-        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === previewDeedId)
         if (!deed) {
             return []
         }
@@ -517,20 +517,20 @@
 
         return []
     })
-    const hoveredAvailableDeedOutlinedAreaIds: readonly string[] = $derived.by(() => {
-        const hoveredDeedId = spotlightedAvailableDeedId
-        if (!hoveredDeedId) {
+    const activeProductionDeedPreviewOutlinedAreaIds: readonly string[] = $derived.by(() => {
+        const previewDeedId = activeDeedPreviewId
+        if (!previewDeedId) {
             return []
         }
 
-        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === previewDeedId)
         if (!deed || deed.type !== CompanyType.Production) {
             return []
         }
 
-        return hoveredAvailableDeedOverlayAreaIds
+        return activeDeedPreviewOverlayAreaIds
     })
-    const hoveredAvailableShippingDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
+    const activeShippingDeedPreviewOverlayAreaIds: readonly string[] = $derived.by(() => {
         const activeShippingPreviewDeedId = shippingDeedSeaOverlayState.activeShippingPreviewDeedId
         if (!activeShippingPreviewDeedId) {
             return []
@@ -543,15 +543,15 @@
             return []
         }
 
-        return hoveredAvailableDeedOverlayAreaIds
+        return activeDeedPreviewOverlayAreaIds
     })
-    const hoveredAvailableDeedCardMaskRect: SpotlightMaskRect | null = $derived.by(() => {
-        const hoveredDeedId = spotlightedAvailableDeedId
-        if (!hoveredDeedId) {
+    const activeDeedPreviewCardMaskRect: SpotlightMaskRect | null = $derived.by(() => {
+        const previewDeedId = activeDeedPreviewId
+        if (!previewDeedId) {
             return null
         }
 
-        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === previewDeedId)
         if (!deed) {
             return null
         }
@@ -579,11 +579,11 @@
                 return 'city-reference-card'
             }
 
-            if (spotlightedAvailableDeedId && hoveredAvailableDeedOverlayAreaIds.length > 0) {
+            if (activeDeedPreviewId && activeDeedPreviewOverlayAreaIds.length > 0) {
                 return 'available-deed'
             }
 
-            if (gameSession.activeBoardPreview.source === 'company') {
+            if (gameSession.activeBoardPreviewIntent.source === 'company') {
                 return 'company'
             }
 
@@ -598,10 +598,10 @@
             companySpotlightAreaIds: hoveredCompanySpotlightAreaIds,
             productionCompanyAreaIds: spotlightedProductionCompanyAreaIds,
             productionZoneMarkers: hoveredProductionZoneMarkers,
-            availableDeedOverlayAreaIds: hoveredAvailableDeedOverlayAreaIds,
-            availableShippingDeedOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
-            availableDeedOutlinedAreaIds: hoveredAvailableDeedOutlinedAreaIds,
-            availableDeedCardMaskRect: hoveredAvailableDeedCardMaskRect
+            availableDeedOverlayAreaIds: activeDeedPreviewOverlayAreaIds,
+            availableShippingDeedOverlayAreaIds: activeShippingDeedPreviewOverlayAreaIds,
+            availableDeedOutlinedAreaIds: activeProductionDeedPreviewOutlinedAreaIds,
+            availableDeedCardMaskRect: activeDeedPreviewCardMaskRect
         })
     })
 
@@ -711,7 +711,7 @@
     })
 
     const hoveredProductionCompanyIds: readonly string[] = $derived.by(() => {
-        return gameSession.boardSpotlightProductionCompanyIds
+        return gameSession.activeBoardSpotlightProductionCompanyIds
     })
 
     const hoveredProductionZoneMarkers: HoveredProductionZoneMarker[] = $derived.by(() => {

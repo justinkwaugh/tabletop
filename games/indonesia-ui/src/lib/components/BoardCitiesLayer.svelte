@@ -218,7 +218,7 @@
             return false
         }
 
-        if (gameSession.hoveredCompanyPreviewCompanyIds.length > 0) {
+        if (gameSession.activeCompanyPiecePreviewCompanyIds.length > 0) {
             return true
         }
 

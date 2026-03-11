@@ -207,7 +207,7 @@ export class IndonesiaGameSession extends GameSession<
         })
     }
 
-    hoveredCompanyPreviewCompanyIds: string[] = $derived.by(() => {
+    activeCompanyPiecePreviewCompanyIds: string[] = $derived.by(() => {
         if (this.suppressBoardEffectsForHistory) {
             return []
         }
@@ -224,7 +224,7 @@ export class IndonesiaGameSession extends GameSession<
         return []
     })
 
-    deliveryCultivatedPreviewCompanyIds: string[] = $derived.by(() => {
+    deliveryCultivatedBoardPreviewCompanyIds: string[] = $derived.by(() => {
         if (this.suppressBoardEffectsForHistory || this.activeRoutePreview !== null) {
             return []
         }
@@ -242,27 +242,27 @@ export class IndonesiaGameSession extends GameSession<
         return []
     })
 
-    boardSpotlightCompanyIds: string[] = $derived.by(() => {
+    activeBoardSpotlightCompanyIds: string[] = $derived.by(() => {
         if (this.cityReferenceCardPreviewWins || this.activeRoutePreview !== null) {
             return []
         }
 
-        if (this.hoveredCompanyPreviewCompanyIds.length > 0) {
-            return this.hoveredCompanyPreviewCompanyIds
+        if (this.activeCompanyPiecePreviewCompanyIds.length > 0) {
+            return this.activeCompanyPiecePreviewCompanyIds
         }
 
-        return this.deliveryCultivatedPreviewCompanyIds
+        return this.deliveryCultivatedBoardPreviewCompanyIds
     })
 
-    boardSpotlightProductionCompanyIds: string[] = $derived.by(() => {
-        return this.uniqueValidProductionCompanyIds(this.boardSpotlightCompanyIds)
+    activeBoardSpotlightProductionCompanyIds: string[] = $derived.by(() => {
+        return this.uniqueValidProductionCompanyIds(this.activeBoardSpotlightCompanyIds)
     })
 
-    boardSpotlightShippingCompanyIds: string[] = $derived.by(() => {
-        return this.uniqueValidShippingCompanyIds(this.boardSpotlightCompanyIds)
+    activeBoardSpotlightShippingCompanyIds: string[] = $derived.by(() => {
+        return this.uniqueValidShippingCompanyIds(this.activeBoardSpotlightCompanyIds)
     })
 
-    activeBoardPreview: BoardPreviewIntent = $derived.by(() => {
+    activeBoardPreviewIntent: BoardPreviewIntent = $derived.by(() => {
         const hoveredCityCard = this.hoveredPlayerCityReferenceCard
         if (hoveredCityCard) {
             return {
@@ -279,10 +279,10 @@ export class IndonesiaGameSession extends GameSession<
             }
         }
 
-        if (this.boardSpotlightCompanyIds.length > 0) {
+        if (this.activeBoardSpotlightCompanyIds.length > 0) {
             return {
                 source: 'company',
-                companyIds: this.boardSpotlightCompanyIds
+                companyIds: this.activeBoardSpotlightCompanyIds
             }
         }
 
@@ -291,8 +291,8 @@ export class IndonesiaGameSession extends GameSession<
         }
     })
 
-    hoveredShippingPreviewCompanyIds: string[] = $derived.by(() => {
-        return this.uniqueValidShippingCompanyIds(this.hoveredCompanyPreviewCompanyIds)
+    activeShippingPiecePreviewCompanyIds: string[] = $derived.by(() => {
+        return this.uniqueValidShippingCompanyIds(this.activeCompanyPiecePreviewCompanyIds)
     })
 
     activeShipVisualState: ActiveShipVisualState = $derived.by(() => {
@@ -313,8 +313,8 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         const emphasizedCompanyIds =
-            this.hoveredShippingPreviewCompanyIds.length > 0
-                ? this.hoveredShippingPreviewCompanyIds
+            this.activeShippingPiecePreviewCompanyIds.length > 0
+                ? this.activeShippingPiecePreviewCompanyIds
                 : this.gameState.machineState === MachineState.ShippingOperations &&
                     this.validActionTypes.includes(ActionType.Expand) &&
                     this.gameState.operatingCompanyId
@@ -332,13 +332,6 @@ export class IndonesiaGameSession extends GameSession<
             emphasizedCompanyIds,
             emphasizedCompanyIdSet: new Set(emphasizedCompanyIds)
         }
-    })
-
-    highlightedShipCompanyIds: string[] = $derived.by(() => {
-        if (this.activeShipVisualState.source !== 'company-spotlight') {
-            return []
-        }
-        return this.activeShipVisualState.emphasizedCompanyIds
     })
 
     selectedStartCompanyDeedId: string | null = $derived.by(() => {

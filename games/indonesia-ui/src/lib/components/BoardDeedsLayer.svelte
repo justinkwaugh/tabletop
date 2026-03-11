@@ -245,17 +245,17 @@
         }
         return visibleShippingDeedOverlayAreas.filter((overlay) => overlay.deedId !== previewDeedId)
     })
-    const hoveredDeedCardEntry: DeedCardEntry | null = $derived.by(() => {
+    const foregroundHoveredDeedCardEntry: DeedCardEntry | null = $derived.by(() => {
         const hoveredDeedId = hoveredAvailableDeedId
         if (!hoveredDeedId) {
             return null
         }
         return DEED_CARD_ENTRIES.find((deed) => deed.deedId === hoveredDeedId) ?? null
     })
-    const hoveredDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
-        return hoveredDeedCardEntry ? [hoveredDeedCardEntry] : []
+    const foregroundHoveredDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
+        return foregroundHoveredDeedCardEntry ? [foregroundHoveredDeedCardEntry] : []
     })
-    const nonHoveredDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
+    const backgroundDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
         const hoveredDeedId = hoveredAvailableDeedId
         if (!hoveredDeedId) {
             return DEED_CARD_ENTRIES
@@ -270,7 +270,7 @@
         if (gameSession.cityReferenceCardPreviewWins) {
             return false
         }
-        return gameSession.hoveredCompanyPreviewCompanyIds.length > 0
+        return gameSession.activeCompanyPiecePreviewCompanyIds.length > 0
     })
 </script>
 
@@ -375,7 +375,7 @@
                 {/if}
             {/each}
 
-            {#each nonHoveredDeedCardEntries as deed (deed.key)}
+            {#each backgroundDeedCardEntries as deed (deed.key)}
                 <g>
                     <CompanyDeed
                         type={deed.cardKind}
@@ -461,7 +461,7 @@
             {/if}
         {/each}
 
-        {#each hoveredDeedCardEntries as hoveredDeed (hoveredDeed.deedId)}
+        {#each foregroundHoveredDeedCardEntries as hoveredDeed (hoveredDeed.deedId)}
             {@const hoveredDeedId = hoveredDeed.deedId}
             <g>
                 <CompanyDeed
