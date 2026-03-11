@@ -18,7 +18,7 @@
 
     import { IndonesiaGameSession } from '$lib/model/session.svelte.js'
     import type { HydratedIndonesiaGameState, IndonesiaGameState } from '@tabletop/indonesia'
-    import ScriptinaProFont from '$lib/fonts/Scriptina Pro.woff2'
+    import ScriptinaProFont from '$lib/fonts/ScriptinaPro.woff2'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
     let {

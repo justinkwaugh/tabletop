@@ -12,6 +12,7 @@ import {
     SetFirstPlayer
 } from '../actions/setFirstPlayer.js'
 import { HydratedBusGameState } from '../model/gameState.js'
+import { getNextActionState } from '../utils/nextActionState.js'
 
 type SettingFirstPlayerAction = HydratedSetFirstPlayer
 
@@ -36,8 +37,13 @@ export class SettingFirstPlayerStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedBusGameState>) {
         const gameState = context.gameState
-        const nextPlayerId = gameState.startingPlayerAction ?? gameState.turnManager.turnOrder[1]
-        assert(nextPlayerId, 'No new player for starting player action')
+        const currentFirstPlayerId = gameState.turnManager.turnOrder[0]
+        assert(currentFirstPlayerId, 'No current first player')
+        const nextPlayerId =
+            gameState.startingPlayerAction ??
+            gameState.turnManager.nextPlayer(currentFirstPlayerId, (playerId) => {
+                return gameState.getPlayerState(playerId).actions > 0
+            })
 
         // This is wrong in the case of passing turn order to next player, but it will break existing games if we don't do it
         gameState.turnManager.startTurn(nextPlayerId, gameState.actionCount)
@@ -56,7 +62,7 @@ export class SettingFirstPlayerStateHandler implements MachineStateHandler<
             case isSetFirstPlayer(action): {
                 context.gameState.startingPlayerAction = undefined
                 context.gameState.turnManager.endTurn(context.gameState.actionCount)
-                return MachineState.ChoosingActions
+                return getNextActionState(context.gameState)
             }
             // Leave this comment if you want the template to generate code for valid actions
             default: {
