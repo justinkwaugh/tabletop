@@ -3,6 +3,14 @@
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
     import {
+        BOARD_CITY_REFERENCE_CARD_HEIGHT,
+        BOARD_CITY_REFERENCE_CARD_RADIUS,
+        BOARD_CITY_REFERENCE_CARD_WIDTH,
+        CITY_REFERENCE_CARD_LEFT_X,
+        CITY_REFERENCE_CARD_RIGHT_X,
+        CITY_REFERENCE_CARD_TOP_Y
+    } from '$lib/definitions/cityReferenceCardGeometry.js'
+    import {
         BOARD_DEED_CARD_CORNER_RX,
         BOARD_DEED_CARD_CORNER_RY,
         BOARD_DEED_CARD_HEIGHT,
@@ -14,6 +22,7 @@
     import {
         ActionType,
         CompanyType,
+        Era,
         HydratedExpand,
         HydratedGrowCity,
         HydratedPlaceCity,
@@ -88,7 +97,7 @@
         y: number
     }
 
-    type DeedCardMaskRect = {
+    type SpotlightMaskRect = {
         x: number
         y: number
         width: number
@@ -732,7 +741,8 @@
         return [
             ...new Set([
                 ...hoveredCompanySpotlightAreaIds,
-                ...hoveredAvailableDeedOverlayAreaIds
+                ...hoveredAvailableDeedOverlayAreaIds,
+                ...hoveredCityReferenceCardOverlayAreaIds
             ])
         ].sort((left, right) => left.localeCompare(right))
     })
@@ -740,8 +750,13 @@
     const shouldRenderBoardSpotlightMask: boolean = $derived.by(() => {
         return (
             hoveredCompanySpotlightAreaIds.length > 0 ||
-            hoveredAvailableDeedOverlayAreaIds.length > 0
+            hoveredAvailableDeedOverlayAreaIds.length > 0 ||
+            hoveredCityReferenceCardOverlayAreaIds.length > 0
         )
+    })
+
+    const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(() => {
+        return hoveredCityReferenceCardOverlayAreaIds.length > 0
     })
 
     const shouldRenderExpansionSelectionSpotlightMask: boolean = $derived.by(() => {
@@ -758,7 +773,8 @@
             activeAreaInteraction?.action === 'place-city' &&
             interactiveValidAreaIds.length > 0 &&
             !hasHoveredRoutePreview &&
-            !hasActiveCompanySpotlight
+            !hasActiveCompanySpotlight &&
+            !hasHoveredCityReferenceCardSpotlight
         )
     })
 
@@ -807,7 +823,7 @@
 
         return hoveredAvailableDeedOverlayAreaIds
     })
-    const hoveredAvailableDeedCardMaskRect: DeedCardMaskRect | null = $derived.by(() => {
+    const hoveredAvailableDeedCardMaskRect: SpotlightMaskRect | null = $derived.by(() => {
         const hoveredDeedId = spotlightedAvailableDeedId
         if (!hoveredDeedId) {
             return null
@@ -832,6 +848,55 @@
             height: BOARD_DEED_CARD_HEIGHT,
             rx: BOARD_DEED_CARD_CORNER_RX,
             ry: BOARD_DEED_CARD_CORNER_RY
+        }
+    })
+
+    const hoveredCityReferenceCardOverlayAreaIds: readonly string[] = $derived.by(() => {
+        const cityCard = gameSession.hoveredPlayerCityReferenceCard
+        if (!cityCard) {
+            return []
+        }
+
+        const areaIds = new Set<string>()
+        for (const regionId of cityCard.regions) {
+            if (gameSession.gameState.board.hasCityInRegion(regionId)) {
+                continue
+            }
+
+            for (const area of gameSession.gameState.board.coastalAreasForRegion(regionId)) {
+                if (area.type !== 'EmptyLand') {
+                    continue
+                }
+                if (!boardAreaPathById(area.id)) {
+                    continue
+                }
+                areaIds.add(area.id)
+            }
+        }
+
+        return [...areaIds].sort((left, right) => left.localeCompare(right))
+    })
+
+    const hoveredCityReferenceCardMaskRect: SpotlightMaskRect | null = $derived.by(() => {
+        const cityCard = gameSession.hoveredPlayerCityReferenceCard
+        if (!cityCard) {
+            return null
+        }
+
+        const cardX =
+            gameSession.gameState.era === Era.B
+                ? CITY_REFERENCE_CARD_LEFT_X
+                : cityCard.era === Era.B
+                  ? CITY_REFERENCE_CARD_LEFT_X
+                  : CITY_REFERENCE_CARD_RIGHT_X
+
+        return {
+            x: cardX,
+            y: CITY_REFERENCE_CARD_TOP_Y,
+            width: BOARD_CITY_REFERENCE_CARD_WIDTH,
+            height: BOARD_CITY_REFERENCE_CARD_HEIGHT,
+            rx: BOARD_CITY_REFERENCE_CARD_RADIUS,
+            ry: BOARD_CITY_REFERENCE_CARD_RADIUS
         }
     })
 
@@ -1069,6 +1134,18 @@
                             pointer-events="none"
                         />
                     {/if}
+                    {#if hoveredCityReferenceCardMaskRect}
+                        <rect
+                            x={hoveredCityReferenceCardMaskRect.x}
+                            y={hoveredCityReferenceCardMaskRect.y}
+                            width={hoveredCityReferenceCardMaskRect.width}
+                            height={hoveredCityReferenceCardMaskRect.height}
+                            rx={hoveredCityReferenceCardMaskRect.rx}
+                            ry={hoveredCityReferenceCardMaskRect.ry}
+                            fill="#000000"
+                            pointer-events="none"
+                        />
+                    {/if}
                 </mask>
             </defs>
 
@@ -1109,6 +1186,31 @@
             {/each}
 
             {#each hoveredAvailableDeedOutlinedAreaIds as areaId (areaId)}
+                <Area
+                    areaId={areaId}
+                    fill="none"
+                    stroke="#fff8d7"
+                    fillOpacity="0"
+                    strokeWidth="7.2"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
+                    opacity="0.9"
+                    pointer-events="none"
+                />
+                <Area
+                    areaId={areaId}
+                    fill="none"
+                    stroke="#1f2937"
+                    fillOpacity="0"
+                    strokeWidth="2.2"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
+                    opacity="0.88"
+                    pointer-events="none"
+                />
+            {/each}
+
+            {#each hoveredCityReferenceCardOverlayAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
                     fill="none"
@@ -1237,7 +1339,8 @@
 
             {#if activeAreaInteraction.action === 'place-city' &&
                 !hasHoveredRoutePreview &&
-                !hasActiveCompanySpotlight}
+                !hasActiveCompanySpotlight &&
+                !hasHoveredCityReferenceCardSpotlight}
                 {#each interactiveValidAreaIds as areaId (areaId)}
                     <Area
                         areaId={areaId}

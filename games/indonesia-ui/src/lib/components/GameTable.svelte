@@ -13,6 +13,7 @@
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import GoodsValueStrip from '$lib/components/GoodsValueStrip.svelte'
 
     import { IndonesiaGameSession } from '$lib/model/session.svelte.js'
@@ -71,7 +72,7 @@
             <div class="shrink-0">
                 <Header />
                 {#if gameSession.gameState.result}
-                    <!-- <GameEndPanel /> -->
+                    <GameEndPanel />
                 {:else}
                     <ActionPanel />
                 {/if}

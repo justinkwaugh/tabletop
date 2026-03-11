@@ -37,10 +37,6 @@
 
     let { card, unavailable = false }: { card: PlayerCompanyCardData; unavailable?: boolean } = $props()
     const SIMPLE_SHIP_ICON_COLOR = '#216e7a'
-    // Board hatch patterns rotate vertical bands by -25/25/-35/35.
-    // CSS gradients define band orientation differently, so we offset by +90
-    // to visually match the on-board hatch slant.
-    const HATCH_ANGLES = [65, 115, 55, 125] as const
 
     const cardKind: CompanyCardType = $derived.by(() => {
         if (card.type === CompanyType.Shipping) {
@@ -62,24 +58,12 @@
         return upcomingEraEntry
     })
 
-    const hatchAngle = $derived.by(() => {
-        if (card.hatchVariant === null) {
-            return null
-        }
-        const normalizedIndex = ((card.hatchVariant % HATCH_ANGLES.length) + HATCH_ANGLES.length) % HATCH_ANGLES.length
-        return HATCH_ANGLES[normalizedIndex]
-    })
-
     const isSiapSajiProductionCard = $derived(
         card.type === CompanyType.Production && card.good === Good.SiapSaji
     )
 
     const cardStyle = $derived.by(() => {
-        let style = `--company-outline:${deedStyle.outlineColor}; --company-fill:${deedStyle.overlayFill}; --company-text:${deedStyle.textColor};`
-        if (hatchAngle !== null) {
-            style += ` --company-hatch-angle:${hatchAngle}deg;`
-        }
-        return style
+        return `--company-outline:${deedStyle.outlineColor}; --company-fill:${deedStyle.overlayFill}; --company-text:${deedStyle.textColor};`
     })
     const middleMetric = $derived.by(() => {
         if (card.type === CompanyType.Production) {
@@ -106,7 +90,6 @@
 
 <article
     class="company-mini-card"
-    class:company-mini-card-hatched={hatchAngle !== null}
     class:company-mini-card-siapsaji={isSiapSajiProductionCard}
     class:company-mini-card-unavailable={unavailable}
     style={cardStyle}
@@ -191,16 +174,6 @@
         min-height: 46px;
         height: 100%;
         box-sizing: border-box;
-    }
-
-    .company-mini-card-hatched {
-        background:
-            repeating-linear-gradient(
-                var(--company-hatch-angle, 25deg),
-                rgb(255 255 255 / 0.2) 0 6px,
-                transparent 6px 12px
-            ),
-            var(--company-fill);
     }
 
     .company-mini-card-siapsaji {

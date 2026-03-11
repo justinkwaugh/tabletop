@@ -8,6 +8,7 @@ import {
     type AtomicDeliveryCandidate,
     ChooseOperatingCompany,
     DeliverGood,
+    Era,
     Expand,
     GrowCity,
     HydratedProposeMerger,
@@ -65,6 +66,7 @@ export class IndonesiaGameSession extends GameSession<
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
     hoveredCompanySpotlightCompanyIdsOverride: string[] | undefined = $state()
     hoveredAvailableDeedIdOverride: string | undefined = $state()
+    hoveredPlayerCityReferenceCardIdOverride: string | undefined = $state()
     productionZoneRenderStyleOverride: 'player' | 'goods' | undefined = $state()
     deliverySelectionOverrides: StagedSelectionState<DeliverySelectionValueByStage> = $state({})
     hoveredDeliveryCityAreaIdOverride: string | undefined = $state()
@@ -178,6 +180,33 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         return deed.id
+    })
+
+    hoveredPlayerCityReferenceCard = $derived.by(() => {
+        if (this.suppressBoardEffectsForHistory) {
+            return null
+        }
+
+        const hoveredCardId = this.hoveredPlayerCityReferenceCardIdOverride
+        const playerState = this.myPlayerState
+        if (!hoveredCardId || !playerState) {
+            return null
+        }
+
+        for (const era of [Era.B, Era.C] as const) {
+            const card = playerState.cityCards[era][0]
+            if (!card || card.id !== hoveredCardId) {
+                continue
+            }
+
+            return {
+                id: card.id,
+                era,
+                regions: [...card.regions]
+            }
+        }
+
+        return null
     })
 
     productionZoneRenderStyle: 'player' | 'goods' = $derived.by(() => {
@@ -667,6 +696,26 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         this.hoveredAvailableDeedIdOverride = deed.id
+    }
+
+    setHoveredPlayerCityReferenceCard(cardId: string | undefined): void {
+        if (!cardId) {
+            this.hoveredPlayerCityReferenceCardIdOverride = undefined
+            return
+        }
+
+        const playerState = this.myPlayerState
+        if (!playerState) {
+            return
+        }
+
+        for (const era of [Era.B, Era.C] as const) {
+            const card = playerState.cityCards[era][0]
+            if (card?.id === cardId) {
+                this.hoveredPlayerCityReferenceCardIdOverride = card.id
+                return
+            }
+        }
     }
 
     setProductionZoneRenderStyle(style: 'player' | 'goods'): void {

@@ -2,6 +2,7 @@
     import { onMount } from 'svelte'
     import boardImg from '$lib/images/indo_map_sm.jpg'
     import BoardActionAreasLayer from '$lib/components/BoardActionAreasLayer.svelte'
+    import BoardCityReferenceCardLayer from '$lib/components/BoardCityReferenceCardLayer.svelte'
     import BoardCitiesLayer from '$lib/components/BoardCitiesLayer.svelte'
     import BoardCultivatedAreasLayer from '$lib/components/BoardCultivatedAreasLayer.svelte'
     import BoardDeedsLayer from '$lib/components/BoardDeedsLayer.svelte'
@@ -63,6 +64,7 @@
             viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
             aria-label="Indonesia board state layer"
         >
+            <BoardCityReferenceCardLayer />
             {#if !debugOverlayActive}
                 <BoardDeedsLayer />
                 <BoardShippingRouteOverlayLayer />
