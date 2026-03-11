@@ -18,7 +18,22 @@ export type BoardSpotlightState<TMarker> = {
 }
 
 export type BoardSpotlightDerivationInput<TMarker> = {
-    previewSource: 'none' | 'company' | 'available-deed' | 'city-reference-card'
+    previewIntent:
+        | {
+              source: 'none'
+          }
+        | {
+              source: 'company'
+              companyIds: readonly string[]
+          }
+        | {
+              source: 'available-deed'
+              deedId: string
+          }
+        | {
+              source: 'city-reference-card'
+              cardId: string
+          }
     cityReferenceCardOverlayAreaIds: readonly string[]
     cityReferenceCardMaskRect: SpotlightMaskRect | null
     companySpotlightAreaIds: readonly string[]
@@ -30,58 +45,92 @@ export type BoardSpotlightDerivationInput<TMarker> = {
     availableDeedCardMaskRect: SpotlightMaskRect | null
 }
 
+export type ActiveBoardSpotlightVisualState<TMarker> = BoardSpotlightState<TMarker> & {
+    previewSource: 'none' | 'company' | 'available-deed' | 'city-reference-card'
+    shouldRenderMask: boolean
+    hasCityReferenceCardSpotlight: boolean
+    hasVisibleCompanySpotlight: boolean
+}
+
 export function deriveBoardSpotlightState<TMarker>(
     input: BoardSpotlightDerivationInput<TMarker>
-): BoardSpotlightState<TMarker> {
+): ActiveBoardSpotlightVisualState<TMarker> {
+    const previewSource: 'none' | 'company' | 'available-deed' | 'city-reference-card' =
+        input.previewIntent.source === 'city-reference-card' &&
+        input.cityReferenceCardOverlayAreaIds.length > 0
+            ? 'city-reference-card'
+            : input.previewIntent.source === 'available-deed' &&
+                input.availableDeedOverlayAreaIds.length > 0
+              ? 'available-deed'
+              : input.previewIntent.source === 'company'
+                ? 'company'
+                : 'none'
+
     if (
-        input.previewSource === 'city-reference-card' &&
+        previewSource === 'city-reference-card' &&
         input.cityReferenceCardOverlayAreaIds.length > 0
     ) {
         return {
+            previewSource,
             source: 'city-reference-card',
             exemptAreaIds: input.cityReferenceCardOverlayAreaIds,
             seaOverlayAreaIds: [],
             outlinedLandAreaIds: input.cityReferenceCardOverlayAreaIds,
             deedCardMaskRect: null,
             cityReferenceCardMaskRect: input.cityReferenceCardMaskRect,
-            highlightedProductionZoneMarkers: []
+            highlightedProductionZoneMarkers: [],
+            shouldRenderMask: true,
+            hasCityReferenceCardSpotlight: true,
+            hasVisibleCompanySpotlight: false
         }
     }
 
-    if (input.previewSource === 'company') {
+    if (previewSource === 'company') {
         return {
+            previewSource,
             source: 'general',
             exemptAreaIds: input.companySpotlightAreaIds,
             seaOverlayAreaIds: [],
             outlinedLandAreaIds: input.productionCompanyAreaIds,
             deedCardMaskRect: null,
             cityReferenceCardMaskRect: null,
-            highlightedProductionZoneMarkers: input.productionZoneMarkers
+            highlightedProductionZoneMarkers: input.productionZoneMarkers,
+            shouldRenderMask: true,
+            hasCityReferenceCardSpotlight: false,
+            hasVisibleCompanySpotlight: true
         }
     }
 
     if (
-        input.previewSource === 'available-deed' &&
+        previewSource === 'available-deed' &&
         input.availableDeedOverlayAreaIds.length > 0
     ) {
         return {
+            previewSource,
             source: 'general',
             exemptAreaIds: input.availableDeedOverlayAreaIds,
             seaOverlayAreaIds: input.availableShippingDeedOverlayAreaIds,
             outlinedLandAreaIds: input.availableDeedOutlinedAreaIds,
             deedCardMaskRect: input.availableDeedCardMaskRect,
             cityReferenceCardMaskRect: null,
-            highlightedProductionZoneMarkers: []
+            highlightedProductionZoneMarkers: [],
+            shouldRenderMask: true,
+            hasCityReferenceCardSpotlight: false,
+            hasVisibleCompanySpotlight: false
         }
     }
 
     return {
+        previewSource,
         source: 'none',
         exemptAreaIds: [],
         seaOverlayAreaIds: [],
         outlinedLandAreaIds: [],
         deedCardMaskRect: null,
         cityReferenceCardMaskRect: null,
-        highlightedProductionZoneMarkers: []
+        highlightedProductionZoneMarkers: [],
+        shouldRenderMask: false,
+        hasCityReferenceCardSpotlight: false,
+        hasVisibleCompanySpotlight: false
     }
 }

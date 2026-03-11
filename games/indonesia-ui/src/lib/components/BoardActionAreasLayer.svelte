@@ -22,7 +22,7 @@
     } from '$lib/components/boardActionAreas/areaInteraction.js'
     import {
         deriveBoardSpotlightState,
-        type BoardSpotlightState,
+        type ActiveBoardSpotlightVisualState,
         type SpotlightMaskRect
     } from '$lib/components/boardActionAreas/boardSpotlight.js'
     import {
@@ -573,48 +573,32 @@
         }
     })
 
-    const effectiveBoardPreviewSource: 'none' | 'company' | 'available-deed' | 'city-reference-card' =
+    const activeBoardSpotlightVisualState: ActiveBoardSpotlightVisualState<HoveredProductionZoneMarker> =
         $derived.by(() => {
-            if (hoveredCityReferenceCardOverlayAreaIds.length > 0) {
-                return 'city-reference-card'
-            }
-
-            if (activeDeedPreviewId && activeDeedPreviewOverlayAreaIds.length > 0) {
-                return 'available-deed'
-            }
-
-            if (gameSession.activeBoardPreviewIntent.source === 'company') {
-                return 'company'
-            }
-
-            return 'none'
+            return deriveBoardSpotlightState<HoveredProductionZoneMarker>({
+                previewIntent: gameSession.activeBoardPreviewIntent,
+                cityReferenceCardOverlayAreaIds: hoveredCityReferenceCardOverlayAreaIds,
+                cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
+                companySpotlightAreaIds: hoveredCompanySpotlightAreaIds,
+                productionCompanyAreaIds: spotlightedProductionCompanyAreaIds,
+                productionZoneMarkers: hoveredProductionZoneMarkers,
+                availableDeedOverlayAreaIds: activeDeedPreviewOverlayAreaIds,
+                availableShippingDeedOverlayAreaIds: activeShippingDeedPreviewOverlayAreaIds,
+                availableDeedOutlinedAreaIds: activeProductionDeedPreviewOutlinedAreaIds,
+                availableDeedCardMaskRect: activeDeedPreviewCardMaskRect
+            })
         })
-
-    const boardSpotlightState: BoardSpotlightState<HoveredProductionZoneMarker> = $derived.by(() => {
-        return deriveBoardSpotlightState<HoveredProductionZoneMarker>({
-            previewSource: effectiveBoardPreviewSource,
-            cityReferenceCardOverlayAreaIds: hoveredCityReferenceCardOverlayAreaIds,
-            cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
-            companySpotlightAreaIds: hoveredCompanySpotlightAreaIds,
-            productionCompanyAreaIds: spotlightedProductionCompanyAreaIds,
-            productionZoneMarkers: hoveredProductionZoneMarkers,
-            availableDeedOverlayAreaIds: activeDeedPreviewOverlayAreaIds,
-            availableShippingDeedOverlayAreaIds: activeShippingDeedPreviewOverlayAreaIds,
-            availableDeedOutlinedAreaIds: activeProductionDeedPreviewOutlinedAreaIds,
-            availableDeedCardMaskRect: activeDeedPreviewCardMaskRect
-        })
-    })
 
     const shouldRenderBoardSpotlightMask: boolean = $derived.by(
-        () => boardSpotlightState.source !== 'none'
+        () => activeBoardSpotlightVisualState.shouldRenderMask
     )
 
     const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(
-        () => boardSpotlightState.source === 'city-reference-card'
+        () => activeBoardSpotlightVisualState.hasCityReferenceCardSpotlight
     )
 
     const hasVisibleCompanySpotlightPreview: boolean = $derived.by(
-        () => effectiveBoardPreviewSource === 'company' && boardSpotlightState.source === 'general'
+        () => activeBoardSpotlightVisualState.hasVisibleCompanySpotlight
     )
 
     const shouldRenderExpansionSelectionSpotlightMask: boolean = $derived.by(() => {
@@ -639,7 +623,7 @@
 
     const seaHighlightState: SeaHighlightState = $derived.by(() => {
         return deriveSeaHighlightState({
-            boardPreviewSeaAreaIds: boardSpotlightState.seaOverlayAreaIds,
+            boardPreviewSeaAreaIds: activeBoardSpotlightVisualState.seaOverlayAreaIds,
             activeAreaInteractionAction: activeAreaInteraction?.action ?? null,
             activeAreaInteractionMaskedAreaType: activeAreaInteraction?.maskedAreaType ?? null,
             interactiveValidAreaIds,
@@ -888,29 +872,29 @@
             <defs>
                 <mask id={PRODUCTION_HOVER_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
                     <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
-                    {#each boardSpotlightState.exemptAreaIds as areaId (areaId)}
+                    {#each activeBoardSpotlightVisualState.exemptAreaIds as areaId (areaId)}
                         <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
                     {/each}
-                    {#if boardSpotlightState.deedCardMaskRect}
+                    {#if activeBoardSpotlightVisualState.deedCardMaskRect}
                         <rect
-                            x={boardSpotlightState.deedCardMaskRect.x}
-                            y={boardSpotlightState.deedCardMaskRect.y}
-                            width={boardSpotlightState.deedCardMaskRect.width}
-                            height={boardSpotlightState.deedCardMaskRect.height}
-                            rx={boardSpotlightState.deedCardMaskRect.rx}
-                            ry={boardSpotlightState.deedCardMaskRect.ry}
+                            x={activeBoardSpotlightVisualState.deedCardMaskRect.x}
+                            y={activeBoardSpotlightVisualState.deedCardMaskRect.y}
+                            width={activeBoardSpotlightVisualState.deedCardMaskRect.width}
+                            height={activeBoardSpotlightVisualState.deedCardMaskRect.height}
+                            rx={activeBoardSpotlightVisualState.deedCardMaskRect.rx}
+                            ry={activeBoardSpotlightVisualState.deedCardMaskRect.ry}
                             fill="#000000"
                             pointer-events="none"
                         />
                     {/if}
-                    {#if boardSpotlightState.cityReferenceCardMaskRect}
+                    {#if activeBoardSpotlightVisualState.cityReferenceCardMaskRect}
                         <rect
-                            x={boardSpotlightState.cityReferenceCardMaskRect.x}
-                            y={boardSpotlightState.cityReferenceCardMaskRect.y}
-                            width={boardSpotlightState.cityReferenceCardMaskRect.width}
-                            height={boardSpotlightState.cityReferenceCardMaskRect.height}
-                            rx={boardSpotlightState.cityReferenceCardMaskRect.rx}
-                            ry={boardSpotlightState.cityReferenceCardMaskRect.ry}
+                            x={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.x}
+                            y={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.y}
+                            width={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.width}
+                            height={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.height}
+                            rx={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.rx}
+                            ry={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.ry}
                             fill="#000000"
                             pointer-events="none"
                         />
@@ -929,7 +913,7 @@
                 pointer-events="none"
             />
 
-            {#each boardSpotlightState.outlinedLandAreaIds as areaId (areaId)}
+            {#each activeBoardSpotlightVisualState.outlinedLandAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
                     fill="none"
@@ -954,7 +938,7 @@
                 />
             {/each}
 
-            {#each boardSpotlightState.highlightedProductionZoneMarkers as marker (marker.key)}
+            {#each activeBoardSpotlightVisualState.highlightedProductionZoneMarkers as marker (marker.key)}
                 <CompanyZoneMarker
                     x={marker.x}
                     y={marker.y}

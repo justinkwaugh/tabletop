@@ -122,7 +122,7 @@ Current board layer stack from `Board.svelte`:
 
 | Layer | Owns | Allowed Inputs | Must Not Own |
 | --- | --- | --- | --- |
-| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, local spotlight render-state derivation | active area interaction, `activeBoardPreviewIntent`, route preview area ids, `activeBoardSpotlightProductionCompanyIds`, `activeBoardSpotlightShippingCompanyIds` | ship emphasis logic, marker muting logic, card component styling |
+| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, normalized local `activeBoardSpotlightVisualState` derivation/rendering | active area interaction, `activeBoardPreviewIntent`, route preview area ids, `activeBoardSpotlightProductionCompanyIds`, `activeBoardSpotlightShippingCompanyIds` | ship emphasis logic, marker muting logic, card component styling |
 | `BoardShipsLayer` | ship rendering and ship emphasis | `activeShipVisualState` | board masks, sea overlay ownership |
 | `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | `activeBoardSpotlightProductionCompanyIds`, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
 | `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, `activeCompanyPiecePreviewCompanyIds` for deed dimming | board-wide spotlight ownership |
@@ -440,3 +440,6 @@ These are the highest-risk couplings to separate in later work:
 
 6. Move toward explicit interaction-mode naming.
    Current smell: broad shared state names hide whether the effect is board-wide or piece-local.
+
+7. Normalize board spotlight visual state.
+   Current smell: reduced; `BoardActionAreasLayer` now renders a normalized `activeBoardSpotlightVisualState`, but the geometry inputs that feed it still originate in that layer rather than a broader shared contract.
