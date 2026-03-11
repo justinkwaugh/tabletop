@@ -122,7 +122,7 @@ Current board layer stack from `Board.svelte`:
 
 | Layer | Owns | Allowed Inputs | Must Not Own |
 | --- | --- | --- | --- |
-| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks | active area interaction, hovered deed/card ids, route preview area ids, spotlight area ids | ship emphasis logic, marker muting logic, card component styling |
+| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, local spotlight preview/state derivation | active area interaction, hovered deed/card ids, route preview area ids, spotlight area ids | ship emphasis logic, marker muting logic, card component styling |
 | `BoardShipsLayer` | ship rendering and ship emphasis | `highlightedShipCompanyIds`, route preview ship filter | board masks, sea overlay ownership |
 | `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | company spotlight ids, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
 | `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, company spotlight ids for deed dimming | board-wide spotlight ownership |
@@ -205,6 +205,17 @@ Current board layer stack from `Board.svelte`:
   - ship emphasis in other layers
   - marker/card styling decisions outside action layer
 - Risk note: local ownership is good, but the downstream visual consequences still interact with global spotlight state
+
+### `boardSpotlightPreview` (local to `BoardActionAreasLayer`)
+- Meaning: semantic answer to “what is currently driving the board spotlight?” with explicit precedence between company hover, deed preview, and city-card preview
+- Producer: `BoardActionAreasLayer`
+- Consumers: `BoardActionAreasLayer`
+- Permitted uses:
+  - deriving board spotlight render state
+  - deciding which interaction suppresses other spotlight-capable interactions within the action layer
+- Forbidden uses:
+  - driving ship emphasis directly
+  - replacing broader session-level hover state
 
 ### `hoveredRoutePreview`
 - Meaning: currently hovered delivery route preview context

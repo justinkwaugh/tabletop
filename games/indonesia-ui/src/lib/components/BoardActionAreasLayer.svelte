@@ -118,6 +118,23 @@
         highlightedProductionZoneMarkers: readonly HoveredProductionZoneMarker[]
     }
 
+    type BoardSpotlightPreview =
+        | {
+              source: 'none'
+          }
+        | {
+              source: 'company'
+              companyIds: readonly string[]
+          }
+        | {
+              source: 'available-deed'
+              deedId: string
+          }
+        | {
+              source: 'city-reference-card'
+              cardId: string
+          }
+
     function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
         ships: string[]
     } {
@@ -635,10 +652,6 @@
         return gameSession.activeCompanySpotlightCompanyIds
     })
 
-    const hasActiveCompanySpotlight: boolean = $derived.by(() => {
-        return hoveredSpotlightCompanyIds.length > 0
-    })
-
     const hoveredProductionCompanyAreaIds: readonly string[] = $derived.by(() => {
         if (hoveredSpotlightCompanyIds.length === 0) {
             return []
@@ -749,8 +762,36 @@
         return dimmedAreaIds
     })
 
-    const boardSpotlightState: BoardSpotlightState = $derived.by(() => {
+    const boardSpotlightPreview: BoardSpotlightPreview = $derived.by(() => {
         if (hoveredCityReferenceCardOverlayAreaIds.length > 0) {
+            const cityCard = gameSession.hoveredPlayerCityReferenceCard
+            return {
+                source: 'city-reference-card',
+                cardId: cityCard?.id ?? 'unknown-city-reference-card'
+            }
+        }
+
+        if (spotlightedAvailableDeedId && hoveredAvailableDeedOverlayAreaIds.length > 0) {
+            return {
+                source: 'available-deed',
+                deedId: spotlightedAvailableDeedId
+            }
+        }
+
+        if (hoveredSpotlightCompanyIds.length > 0) {
+            return {
+                source: 'company',
+                companyIds: hoveredSpotlightCompanyIds
+            }
+        }
+
+        return {
+            source: 'none'
+        }
+    })
+
+    const boardSpotlightState: BoardSpotlightState = $derived.by(() => {
+        if (boardSpotlightPreview.source === 'city-reference-card') {
             return {
                 source: 'city-reference-card',
                 exemptAreaIds: hoveredCityReferenceCardOverlayAreaIds,
@@ -762,14 +803,31 @@
             }
         }
 
-        const exemptAreaIds = [
-            ...new Set([
-                ...hoveredCompanySpotlightAreaIds,
-                ...hoveredAvailableDeedOverlayAreaIds
-            ])
-        ].sort((left, right) => left.localeCompare(right))
+        if (boardSpotlightPreview.source === 'company') {
+            return {
+                source: 'general',
+                exemptAreaIds: hoveredCompanySpotlightAreaIds,
+                seaOverlayAreaIds: [],
+                outlinedLandAreaIds: hoveredProductionCompanyAreaIds,
+                deedCardMaskRect: null,
+                cityReferenceCardMaskRect: null,
+                highlightedProductionZoneMarkers: hoveredProductionZoneMarkers
+            }
+        }
 
-        if (exemptAreaIds.length === 0) {
+        if (boardSpotlightPreview.source === 'available-deed') {
+            return {
+                source: 'general',
+                exemptAreaIds: hoveredAvailableDeedOverlayAreaIds,
+                seaOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
+                outlinedLandAreaIds: hoveredAvailableDeedOutlinedAreaIds,
+                deedCardMaskRect: hoveredAvailableDeedCardMaskRect,
+                cityReferenceCardMaskRect: null,
+                highlightedProductionZoneMarkers: []
+            }
+        }
+
+        if (boardSpotlightPreview.source === 'none') {
             return {
                 source: 'none',
                 exemptAreaIds: [],
@@ -782,18 +840,13 @@
         }
 
         return {
-            source: 'general',
-            exemptAreaIds,
-            seaOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
-            outlinedLandAreaIds: [
-                ...new Set([
-                    ...hoveredProductionCompanyAreaIds,
-                    ...hoveredAvailableDeedOutlinedAreaIds
-                ])
-            ].sort((left, right) => left.localeCompare(right)),
-            deedCardMaskRect: hoveredAvailableDeedCardMaskRect,
+            source: 'none',
+            exemptAreaIds: [],
+            seaOverlayAreaIds: [],
+            outlinedLandAreaIds: [],
+            deedCardMaskRect: null,
             cityReferenceCardMaskRect: null,
-            highlightedProductionZoneMarkers: hoveredProductionZoneMarkers
+            highlightedProductionZoneMarkers: []
         }
     })
 
@@ -802,7 +855,11 @@
     )
 
     const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(
-        () => boardSpotlightState.source === 'city-reference-card'
+        () => boardSpotlightPreview.source === 'city-reference-card'
+    )
+
+    const hasVisibleCompanySpotlightPreview: boolean = $derived.by(
+        () => boardSpotlightPreview.source === 'company'
     )
 
     const isShippingExpansionInteraction: boolean = $derived.by(() => {
@@ -817,7 +874,7 @@
             activeAreaInteraction?.action === 'expand' &&
             interactiveValidAreaIds.length > 0 &&
             !hasHoveredRoutePreview &&
-            !hasActiveCompanySpotlight &&
+            !hasVisibleCompanySpotlightPreview &&
             !hasHoveredCityReferenceCardSpotlight
         )
     })
@@ -827,7 +884,7 @@
             activeAreaInteraction?.action === 'place-city' &&
             interactiveValidAreaIds.length > 0 &&
             !hasHoveredRoutePreview &&
-            !hasActiveCompanySpotlight &&
+            !hasVisibleCompanySpotlightPreview &&
             !hasHoveredCityReferenceCardSpotlight
         )
     })
@@ -1350,7 +1407,7 @@
             {#if !hasHoveredCityReferenceCardSpotlight &&
                 activeAreaInteraction.action === 'expand' &&
                 !hasHoveredRoutePreview &&
-                !hasActiveCompanySpotlight}
+                !hasVisibleCompanySpotlightPreview}
                 {#each interactiveValidAreaIds as areaId (areaId)}
                     {#if isShippingExpansionInteraction}
                         <Area
@@ -1390,7 +1447,7 @@
             {#if !hasHoveredCityReferenceCardSpotlight &&
                 activeAreaInteraction.action === 'place-city' &&
                 !hasHoveredRoutePreview &&
-                !hasActiveCompanySpotlight &&
+                !hasVisibleCompanySpotlightPreview &&
                 !hasHoveredCityReferenceCardSpotlight}
                 {#each interactiveValidAreaIds as areaId (areaId)}
                     <Area
@@ -1420,7 +1477,7 @@
 
             {#if !hasHoveredCityReferenceCardSpotlight &&
                 !hasHoveredRoutePreview &&
-                !hasActiveCompanySpotlight &&
+                !hasVisibleCompanySpotlightPreview &&
                 activeAreaInteraction.action !== 'select-delivery-cultivated' &&
                 activeAreaInteraction.action !== 'expand' &&
                 activeAreaInteraction.action !== 'place-city'}
