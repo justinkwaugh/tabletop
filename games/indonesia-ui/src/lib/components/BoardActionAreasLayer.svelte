@@ -26,7 +26,9 @@
         type SpotlightMaskRect
     } from '$lib/components/boardActionAreas/boardSpotlight.js'
     import {
+        deriveShippingDeedSeaOverlayState,
         deriveSeaHighlightState,
+        type ShippingDeedSeaOverlayState,
         type SeaHighlightState
     } from '$lib/components/boardActionAreas/seaHighlight.js'
     import {
@@ -504,6 +506,29 @@
         return gameSession.activeDeedPreviewId
     })
 
+    const showAllDeedOverlays: boolean = $derived.by(() => {
+        return (
+            !gameSession.suppressBoardEffectsForHistory &&
+            gameSession.gameState.machineState === MachineState.Acquisitions
+        )
+    })
+
+    const availableShippingDeedIds: readonly string[] = $derived.by(() => {
+        return gameSession.gameState.availableDeeds
+            .filter((deed) => deed.type === CompanyType.Shipping)
+            .map((deed) => deed.id)
+    })
+
+    const shippingDeedSeaOverlayState: ShippingDeedSeaOverlayState = $derived.by(() => {
+        return deriveShippingDeedSeaOverlayState({
+            shippingDeedIds: availableShippingDeedIds,
+            activeDeedPreviewId: spotlightedAvailableDeedId,
+            showAllDeedOverlays,
+            suppressBoardEffectsForHistory: gameSession.suppressBoardEffectsForHistory,
+            cityReferenceCardPreviewWins: gameSession.cityReferenceCardPreviewWins
+        })
+    })
+
     const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
         const hoveredDeedId = spotlightedAvailableDeedId
         if (!hoveredDeedId) {
@@ -546,12 +571,14 @@
         return hoveredAvailableDeedOverlayAreaIds
     })
     const hoveredAvailableShippingDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
-        const hoveredDeedId = spotlightedAvailableDeedId
-        if (!hoveredDeedId) {
+        const activeShippingPreviewDeedId = shippingDeedSeaOverlayState.activeShippingPreviewDeedId
+        if (!activeShippingPreviewDeedId) {
             return []
         }
 
-        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        const deed = gameSession.gameState.availableDeeds.find(
+            (entry) => entry.id === activeShippingPreviewDeedId
+        )
         if (!deed || deed.type !== CompanyType.Shipping) {
             return []
         }

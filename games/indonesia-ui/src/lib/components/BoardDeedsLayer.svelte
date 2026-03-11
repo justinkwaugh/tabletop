@@ -14,6 +14,10 @@
         BOARD_DEED_CARD_WIDTH
     } from '$lib/definitions/companyDeedGeometry.js'
     import {
+        deriveShippingDeedSeaOverlayState,
+        type ShippingDeedSeaOverlayState
+    } from '$lib/components/boardActionAreas/seaHighlight.js'
+    import {
         deedPositionLookupKeys,
         deedPositionKey,
         shippingSizeEntriesFromRecord,
@@ -176,6 +180,21 @@
             state === MachineState.ProductionOperations
         return inOperationsState && !showDeedsDuringExpansionSelection
     })
+    const shippingDeedIds: readonly string[] = $derived.by(() => {
+        return DEED_CARD_ENTRIES.filter((deed) => deed.isShipping).map((deed) => deed.deedId)
+    })
+    const shippingDeedSeaOverlayState: ShippingDeedSeaOverlayState = $derived.by(() => {
+        return deriveShippingDeedSeaOverlayState({
+            shippingDeedIds,
+            activeDeedPreviewId,
+            showAllDeedOverlays,
+            suppressBoardEffectsForHistory: gameSession.suppressBoardEffectsForHistory,
+            cityReferenceCardPreviewWins: gameSession.cityReferenceCardPreviewWins
+        })
+    })
+    const visibleShippingDeedIdSet: ReadonlySet<string> = $derived.by(() => {
+        return new Set(shippingDeedSeaOverlayState.visibleShippingDeedIds)
+    })
     const visibleDeedOverlayAreas: OverlayArea[] = $derived.by(() =>
         DEED_OVERLAY_AREAS.filter((overlay) => {
             if (gameSession.suppressBoardEffectsForHistory) {
@@ -190,19 +209,41 @@
             return overlay.deedId === activeDeedPreviewId
         })
     )
-    const activeDeedPreviewOverlayAreas: OverlayArea[] = $derived.by(() => {
+    const visibleLandDeedOverlayAreas: OverlayArea[] = $derived.by(() => {
+        return visibleDeedOverlayAreas.filter((overlay) => !overlay.isShipping)
+    })
+    const activeLandDeedPreviewOverlayAreas: OverlayArea[] = $derived.by(() => {
         const previewDeedId = activeDeedPreviewId
         if (!previewDeedId) {
             return []
         }
-        return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId === previewDeedId)
+        return visibleLandDeedOverlayAreas.filter((overlay) => overlay.deedId === previewDeedId)
     })
-    const inactiveDeedPreviewOverlayAreas: OverlayArea[] = $derived.by(() => {
+    const inactiveLandDeedPreviewOverlayAreas: OverlayArea[] = $derived.by(() => {
         const previewDeedId = activeDeedPreviewId
         if (!previewDeedId) {
-            return visibleDeedOverlayAreas
+            return visibleLandDeedOverlayAreas
         }
-        return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId !== previewDeedId)
+        return visibleLandDeedOverlayAreas.filter((overlay) => overlay.deedId !== previewDeedId)
+    })
+    const visibleShippingDeedOverlayAreas: OverlayArea[] = $derived.by(() => {
+        return DEED_OVERLAY_AREAS.filter(
+            (overlay) => overlay.isShipping && visibleShippingDeedIdSet.has(overlay.deedId)
+        )
+    })
+    const activeShippingDeedPreviewOverlayAreas: OverlayArea[] = $derived.by(() => {
+        const previewDeedId = shippingDeedSeaOverlayState.activeShippingPreviewDeedId
+        if (!previewDeedId) {
+            return []
+        }
+        return visibleShippingDeedOverlayAreas.filter((overlay) => overlay.deedId === previewDeedId)
+    })
+    const inactiveShippingDeedPreviewOverlayAreas: OverlayArea[] = $derived.by(() => {
+        const previewDeedId = shippingDeedSeaOverlayState.activeShippingPreviewDeedId
+        if (!previewDeedId) {
+            return visibleShippingDeedOverlayAreas
+        }
+        return visibleShippingDeedOverlayAreas.filter((overlay) => overlay.deedId !== previewDeedId)
     })
     const hoveredDeedCardEntry: DeedCardEntry | null = $derived.by(() => {
         const hoveredDeedId = hoveredAvailableDeedId
@@ -282,7 +323,33 @@
         <g
             style={`filter:${shouldDarkenDeedMarkersForCompanyHover ? `brightness(${HOVER_COMPANY_DEEDS_BRIGHTNESS})` : 'none'}`}
         >
-            {#each inactiveDeedPreviewOverlayAreas as overlay (overlay.key)}
+            {#each inactiveLandDeedPreviewOverlayAreas as overlay (overlay.key)}
+                <Area
+                    areaId={overlay.areaId}
+                    fill={overlay.fill}
+                    stroke={overlay.stroke}
+                    fillOpacity="1"
+                    fillRule="evenodd"
+                    strokeWidth="1.9"
+                    strokeLineJoin="round"
+                    strokeLineCap="round"
+                    opacity={overlay.opacity}
+                    pointer-events="none"
+                />
+                {#if overlay.hatchPatternId}
+                    <Area
+                        areaId={overlay.areaId}
+                        fill={`url(#${overlay.hatchPatternId})`}
+                        stroke="transparent"
+                        fillOpacity={1}
+                        strokeWidth={0}
+                        opacity={overlay.opacity}
+                        pointer-events="none"
+                    />
+                {/if}
+            {/each}
+
+            {#each inactiveShippingDeedPreviewOverlayAreas as overlay (overlay.key)}
                 <Area
                     areaId={overlay.areaId}
                     fill={overlay.fill}
@@ -342,7 +409,33 @@
             {/each}
         </g>
 
-        {#each activeDeedPreviewOverlayAreas as overlay (overlay.key)}
+        {#each activeLandDeedPreviewOverlayAreas as overlay (overlay.key)}
+            <Area
+                areaId={overlay.areaId}
+                fill={overlay.fill}
+                stroke={overlay.stroke}
+                fillOpacity="1"
+                fillRule="evenodd"
+                strokeWidth="1.9"
+                strokeLineJoin="round"
+                strokeLineCap="round"
+                opacity={overlay.opacity}
+                pointer-events="none"
+            />
+            {#if overlay.hatchPatternId}
+                <Area
+                    areaId={overlay.areaId}
+                    fill={`url(#${overlay.hatchPatternId})`}
+                    stroke="transparent"
+                    fillOpacity={1}
+                    strokeWidth={0}
+                    opacity={overlay.opacity}
+                    pointer-events="none"
+                />
+            {/if}
+        {/each}
+
+        {#each activeShippingDeedPreviewOverlayAreas as overlay (overlay.key)}
             <Area
                 areaId={overlay.areaId}
                 fill={overlay.fill}

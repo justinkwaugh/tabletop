@@ -59,8 +59,8 @@ Notes:
 
 ### Primitive: sea overlay fill
 - Visual: translucent blue fill on active sea regions
-- Current owner: `BoardActionAreasLayer.svelte` for interaction-owned sea highlight state; `BoardDeedsLayer.svelte` for static deed overlay rendering
-- Reads: explicit interaction sea-highlight area ids
+- Current owner: shared sea-visual derivation in `boardActionAreas/seaHighlight.ts`, rendered by `BoardActionAreasLayer.svelte` for explicit sea highlight and consumed by `BoardDeedsLayer.svelte` for the deed-driven sea overlay slice
+- Reads: explicit interaction sea-highlight area ids and shared shipping-deed sea visibility state
 - Must not decide: which ships are emphasized
 - Contract note: sea areas may be exempt from dimming without being visually highlighted; the blue overlay fill is a separate explicit decision
 
@@ -426,7 +426,7 @@ These are the highest-risk couplings to separate in later work:
    Current smell: ship emphasis is now split, but route-preview ship filtering still lives partly in `BoardShipsLayer`.
 
 2. Split sea overlay visibility from mask exemption.
-   Current smell: partially reduced; interaction-owned sea highlight state is explicit in `BoardActionAreasLayer`, but deed-layer sea overlays are still separate from that path.
+   Current smell: reduced; shipping-deed sea visibility now derives through shared sea-visual state, but mask exemption and sea-render assignment still need to remain conceptually separate in future changes.
 
 3. Split route-preview-local dimming from board spotlight assumptions.
    Current smell: several layers react to `hoveredRoutePreview`, but the coordination is only partially documented in code.

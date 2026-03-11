@@ -1,8 +1,45 @@
 import { IndonesiaAreaType } from '@tabletop/indonesia'
 
+export type ShippingDeedSeaOverlayState = {
+    visibleShippingDeedIds: readonly string[]
+    activeShippingPreviewDeedId: string | null
+}
+
 export type SeaHighlightState = {
     source: 'none' | 'board-preview' | 'shipping-expansion'
     areaIds: readonly string[]
+}
+
+export function deriveShippingDeedSeaOverlayState(input: {
+    shippingDeedIds: readonly string[]
+    activeDeedPreviewId: string | null
+    showAllDeedOverlays: boolean
+    suppressBoardEffectsForHistory: boolean
+    cityReferenceCardPreviewWins: boolean
+}): ShippingDeedSeaOverlayState {
+    if (input.suppressBoardEffectsForHistory || input.cityReferenceCardPreviewWins) {
+        return {
+            visibleShippingDeedIds: [],
+            activeShippingPreviewDeedId: null
+        }
+    }
+
+    const activeShippingPreviewDeedId =
+        input.activeDeedPreviewId && input.shippingDeedIds.includes(input.activeDeedPreviewId)
+            ? input.activeDeedPreviewId
+            : null
+
+    if (input.showAllDeedOverlays) {
+        return {
+            visibleShippingDeedIds: input.shippingDeedIds,
+            activeShippingPreviewDeedId
+        }
+    }
+
+    return {
+        visibleShippingDeedIds: activeShippingPreviewDeedId ? [activeShippingPreviewDeedId] : [],
+        activeShippingPreviewDeedId
+    }
 }
 
 export function deriveSeaHighlightState(input: {
