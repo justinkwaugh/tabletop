@@ -250,11 +250,11 @@ export class IndonesiaGameSession extends GameSession<
             }
         }
 
-        const hoveredDeedId = this.hoveredAvailableDeedId
-        if (hoveredDeedId) {
+        const deedPreviewId = this.activeDeedPreviewId
+        if (deedPreviewId) {
             return {
                 source: 'available-deed',
-                deedId: hoveredDeedId
+                deedId: deedPreviewId
             }
         }
 
@@ -313,10 +313,6 @@ export class IndonesiaGameSession extends GameSession<
             return null
         }
 
-        if (this.selectedStartCompanyDeedId) {
-            return this.selectedStartCompanyDeedId
-        }
-
         const hoveredDeedId = this.hoveredAvailableDeedIdOverride
         if (!hoveredDeedId) {
             return null
@@ -328,6 +324,10 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         return deed.id
+    })
+
+    activeDeedPreviewId: string | null = $derived.by(() => {
+        return this.hoveredAvailableDeedId ?? this.selectedStartCompanyDeedId
     })
 
     hoveredPlayerCityReferenceCard = $derived.by(() => {
@@ -862,12 +862,7 @@ export class IndonesiaGameSession extends GameSession<
             validCompanyIds.length > 0 ? validCompanyIds : undefined
     }
 
-    setHoveredAvailableDeed(deedId: string | undefined): void {
-        if (!deedId) {
-            this.hoveredAvailableDeedIdOverride = undefined
-            return
-        }
-
+    hoverAvailableDeed(deedId: string): void {
         const deed = this.gameState.availableDeeds.find((entry) => entry.id === deedId)
         if (!deed) {
             return
@@ -876,12 +871,11 @@ export class IndonesiaGameSession extends GameSession<
         this.hoveredAvailableDeedIdOverride = deed.id
     }
 
-    setSelectedStartCompanyDeed(deedId: string | undefined): void {
-        if (!deedId) {
-            this.selectedStartCompanyDeedIdOverride = undefined
-            return
-        }
+    clearHoveredAvailableDeed(): void {
+        this.hoveredAvailableDeedIdOverride = undefined
+    }
 
+    stageStartCompanyDeed(deedId: string): void {
         if (!this.startCompanySelectionEnabled) {
             return
         }
@@ -891,7 +885,28 @@ export class IndonesiaGameSession extends GameSession<
             return
         }
 
+        this.hoveredAvailableDeedIdOverride = undefined
         this.selectedStartCompanyDeedIdOverride = deed.id
+    }
+
+    clearStagedStartCompanyDeed(): void {
+        this.selectedStartCompanyDeedIdOverride = undefined
+    }
+
+    setHoveredAvailableDeed(deedId: string | undefined): void {
+        if (!deedId) {
+            this.clearHoveredAvailableDeed()
+            return
+        }
+        this.hoverAvailableDeed(deedId)
+    }
+
+    setSelectedStartCompanyDeed(deedId: string | undefined): void {
+        if (!deedId) {
+            this.clearStagedStartCompanyDeed()
+            return
+        }
+        this.stageStartCompanyDeed(deedId)
     }
 
     setHoveredPlayerCityReferenceCard(cardId: string | undefined): void {

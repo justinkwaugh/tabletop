@@ -203,8 +203,32 @@ Current board layer stack from `Board.svelte`:
 - Refactor note: this was split out so ship emphasis no longer has to be inferred from the board spotlight state
 
 ### `hoveredAvailableDeedId`
-- Meaning: currently hovered available deed, or selected deed while start-company is staged
-- Producer: `IndonesiaGameSession` plus `BoardActionAreasLayer` start-company staging
+- Meaning: currently hovered available deed card
+- Producer: `IndonesiaGameSession`
+- Consumers: `BoardDeedsLayer`
+- Permitted uses:
+  - deed card hover ordering/chrome
+  - hover-only deed card interactions
+- Forbidden uses:
+  - start-company staged selection ownership
+  - board spotlight sourcing when a staged deed selection is active
+  - unrelated company hover behavior
+
+### `selectedStartCompanyDeedId`
+- Meaning: available deed selected for staged start-company interaction
+- Producer: `IndonesiaGameSession`
+- Consumers: `BoardActionAreasLayer`
+- Permitted uses:
+  - start-company staged selection ownership
+  - selected deed card chrome
+  - `Back`/`Undo` local interaction clearing before action-history undo
+- Forbidden uses:
+  - generic deed hover behavior
+  - non-start-company preview ownership
+
+### `activeDeedPreviewId`
+- Meaning: deed id that should currently drive deed-region preview and board deed spotlight precedence after session-level hover/selection rules are applied
+- Producer: `IndonesiaGameSession`
 - Consumers: `BoardDeedsLayer`, `BoardActionAreasLayer`
 - Permitted uses:
   - deed-region preview overlays
@@ -332,7 +356,7 @@ Current board layer stack from `Board.svelte`:
 | --- | --- | --- | --- |
 | `company_card_hover_spotlight` | `shipping_expand_selection` | no | shipping expansion keeps ship emphasis local; company spotlight must not suppress sea expansion overlays |
 | `company_card_hover_spotlight` | `production_expand_selection` | no | explicit expansion selection wins |
-| `shipping_deed_hover_preview` | `start_company_selection` | yes | selected deed becomes spotlight source; unrelated deed hover must not clear selection spotlight |
+| `shipping_deed_hover_preview` | `start_company_selection` | yes | hovered deed preview may temporarily win while hovered; when hover ends, preview returns to the selected staged deed without clearing selection |
 | `city_reference_card_preview` | `shipping_expand_selection` | yes | city-card preview wins visually while hovered |
 | `city_reference_card_preview` | `start_company_selection` | yes | city-card preview wins visually while hovered |
 | `city_reference_card_preview` | `company_card_hover_spotlight` | no | city-card preview wins |
@@ -372,7 +396,7 @@ Before finalizing any highlight/dimming change, verify:
 When touching Indonesia UI interactive visuals:
 1. identify the intent row being changed in this document
 2. identify the primitive or primitives involved
-3. check whether the change widens `hoveredCompanyPreviewCompanyIds`, `boardSpotlightCompanyIds`, `activeBoardPreview`, `highlightedShipCompanyIds`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, `hoveredRoutePreview`, or `activeRoutePreview`
+3. check whether the change widens `hoveredCompanyPreviewCompanyIds`, `boardSpotlightCompanyIds`, `activeBoardPreview`, `highlightedShipCompanyIds`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, `activeDeedPreviewId`, `hoveredRoutePreview`, or `activeRoutePreview`
 4. decide whether the change belongs in `BoardActionAreasLayer` or a narrower piece-specific layer
 5. update this document in the same change if the interaction behavior or precedence changes
 
@@ -408,7 +432,7 @@ These are the highest-risk couplings to separate in later work:
    Current smell: several layers react to `hoveredRoutePreview`, but the coordination is only partially documented in code.
 
 4. Narrow start-company selected deed state.
-   Current smell: selected deed and hovered deed currently share part of the same spotlight source path.
+   Current smell: partially reduced; `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, and `activeDeedPreviewId` are now separate, but some deed-layer render naming still reflects the older combined hover path.
 
 5. Move toward explicit interaction-mode naming.
    Current smell: broad shared state names hide whether the effect is board-wide or piece-local.

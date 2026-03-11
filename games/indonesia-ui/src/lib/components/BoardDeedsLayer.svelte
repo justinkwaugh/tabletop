@@ -152,6 +152,8 @@
 
     const DEED_CARD_ENTRIES: DeedCardEntry[] = $derived(DEED_LAYER_DATA.cards)
     const DEED_OVERLAY_AREAS: OverlayArea[] = $derived(DEED_LAYER_DATA.overlays)
+    const hoveredAvailableDeedId: string | null = $derived(gameSession.hoveredAvailableDeedId)
+    const activeDeedPreviewId: string | null = $derived(gameSession.activeDeedPreviewId)
     const showAllDeedOverlays: boolean = $derived(
         !gameSession.suppressBoardEffectsForHistory &&
             gameSession.gameState.machineState === MachineState.Acquisitions
@@ -185,32 +187,32 @@
             if (showAllDeedOverlays) {
                 return true
             }
-            return overlay.deedId === gameSession.hoveredAvailableDeedId
+            return overlay.deedId === activeDeedPreviewId
         })
     )
     const hoveredAvailableDeedOverlayAreas: OverlayArea[] = $derived.by(() => {
-        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        const hoveredDeedId = activeDeedPreviewId
         if (!hoveredDeedId) {
             return []
         }
         return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId === hoveredDeedId)
     })
     const nonHoveredVisibleDeedOverlayAreas: OverlayArea[] = $derived.by(() => {
-        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        const hoveredDeedId = activeDeedPreviewId
         if (!hoveredDeedId) {
             return visibleDeedOverlayAreas
         }
         return visibleDeedOverlayAreas.filter((overlay) => overlay.deedId !== hoveredDeedId)
     })
     const hoveredDeedCardEntry: DeedCardEntry | null = $derived.by(() => {
-        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        const hoveredDeedId = hoveredAvailableDeedId
         if (!hoveredDeedId) {
             return null
         }
         return DEED_CARD_ENTRIES.find((deed) => deed.deedId === hoveredDeedId) ?? null
     })
     const nonHoveredDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
-        const hoveredDeedId = gameSession.hoveredAvailableDeedId
+        const hoveredDeedId = hoveredAvailableDeedId
         if (!hoveredDeedId) {
             return DEED_CARD_ENTRIES
         }
@@ -325,11 +327,11 @@
                         stroke="none"
                         pointer-events="all"
                         onmouseenter={() => {
-                            gameSession.setHoveredAvailableDeed(deed.deedId)
+                            gameSession.hoverAvailableDeed(deed.deedId)
                         }}
                         onmouseleave={() => {
-                            if (gameSession.hoveredAvailableDeedId === deed.deedId) {
-                                gameSession.setHoveredAvailableDeed(undefined)
+                            if (hoveredAvailableDeedId === deed.deedId) {
+                                gameSession.clearHoveredAvailableDeed()
                             }
                         }}
                     />
@@ -386,11 +388,11 @@
                     stroke="none"
                     pointer-events="all"
                     onmouseenter={() => {
-                        gameSession.setHoveredAvailableDeed(hoveredDeedId)
+                        gameSession.hoverAvailableDeed(hoveredDeedId)
                     }}
                     onmouseleave={() => {
-                        if (gameSession.hoveredAvailableDeedId === hoveredDeedId) {
-                            gameSession.setHoveredAvailableDeed(undefined)
+                        if (hoveredAvailableDeedId === hoveredDeedId) {
+                            gameSession.clearHoveredAvailableDeed()
                         }
                     }}
                 />

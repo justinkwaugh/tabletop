@@ -509,7 +509,7 @@
     })
 
     const spotlightedAvailableDeedId: string | null = $derived.by(() => {
-        return gameSession.hoveredAvailableDeedId
+        return gameSession.activeDeedPreviewId
     })
 
     const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
@@ -887,7 +887,7 @@
             }
 
             await gameSession.startCompany(selectedStartCompanyDeedId, areaId)
-            gameSession.setSelectedStartCompanyDeed(undefined)
+            gameSession.clearStagedStartCompanyDeed()
         } finally {
             applyingAreaAction = false
         }
@@ -897,8 +897,7 @@
         if (!startCompanySelectionEnabled || applyingAreaAction) {
             return
         }
-        gameSession.setHoveredAvailableDeed(undefined)
-        gameSession.setSelectedStartCompanyDeed(deedId)
+        gameSession.stageStartCompanyDeed(deedId)
         hoveredAreaId = null
     }
 </script>
@@ -1334,16 +1333,14 @@
                     cursor={applyingAreaAction ? 'default' : 'pointer'}
                     onmouseenter={() => {
                         hoveredStartCompanyDeedId = deed.deedId
-                        if (!selectedStartCompanyDeedId) {
-                            gameSession.setHoveredAvailableDeed(deed.deedId)
-                        }
+                        gameSession.hoverAvailableDeed(deed.deedId)
                     }}
                     onmouseleave={() => {
                         if (hoveredStartCompanyDeedId === deed.deedId) {
                             hoveredStartCompanyDeedId = null
                         }
-                        if (!selectedStartCompanyDeedId && gameSession.hoveredAvailableDeedId === deed.deedId) {
-                            gameSession.setHoveredAvailableDeed(undefined)
+                        if (gameSession.hoveredAvailableDeedId === deed.deedId) {
+                            gameSession.clearHoveredAvailableDeed()
                         }
                     }}
                     onpointerdown={() => {
