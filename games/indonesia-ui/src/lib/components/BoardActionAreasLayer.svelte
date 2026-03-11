@@ -102,7 +102,16 @@
         gameSession.gameState
         return null
     })
-    let hoveredDeliveryZoneKey: string | null = $state(null)
+    let hoveredDeliveryZoneKey: string | null = $derived.by(() => {
+        gameSession.updatingVisibleState
+        if (
+            !deliverySelectionEnabled ||
+            gameSession.deliverySelectionStage !== 'cultivated'
+        ) {
+            return null
+        }
+        return null
+    })
     let applyingAreaAction = $state(false)
 
     const myPlayerId: string | null = $derived(gameSession.myPlayer?.id ?? null)
@@ -269,12 +278,6 @@
 
     const deliveryZoneByKey: Map<string, DeliverySelectableZone> = $derived.by(() => {
         return buildDeliveryZoneByKey(deliverySelectableZones)
-    })
-
-    $effect(() => {
-        if (activeAreaInteraction?.action !== 'select-delivery-cultivated') {
-            hoveredDeliveryZoneKey = null
-        }
     })
 
     $effect(() => {

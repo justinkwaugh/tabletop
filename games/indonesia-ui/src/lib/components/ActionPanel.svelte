@@ -48,8 +48,7 @@
     let passingMergerAnnouncement = $state(false)
     let placingMergerBid = $state(false)
     let passingMergerBid = $state(false)
-    let selectedMergerOptionKey = $state('')
-    let mergerBidInput = $state('0')
+    let selectedMergerOptionKeyDraft = $state('')
     type PlannedDeliveryHoverTarget = Parameters<typeof gameSession.setHoveredPlannedDeliveryRoute>[0]
     let pendingPlannedDeliveryHoverTimeout: ReturnType<typeof setTimeout> | undefined
 
@@ -170,7 +169,7 @@
     let selectedPlannedRouteOptionKeyByRowKey = $state<Record<string, string>>({})
     let selectedPlannedRouteOptionOrderByRowKey = $state<Record<string, number>>({})
     let nextPlannedRouteOptionOrder = $state(0)
-    let selectedCustomDeliveryRouteKey = $state<string>('')
+    let selectedCustomDeliveryRouteKeyDraft = $state<string>('')
 
     const customDeliveryRouteOptions: PlannedDeliveryRouteOption[] = $derived.by(() => {
         if (!showDeliveryShippingChoices) {
@@ -188,6 +187,23 @@
             shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE,
             candidate
         }))
+    })
+
+    const selectedCustomDeliveryRouteKey = $derived.by(() => {
+        if (!showDeliveryShippingChoices) {
+            return ''
+        }
+
+        if (
+            selectedCustomDeliveryRouteKeyDraft &&
+            gameSession.deliveryShippingChoices.some(
+                (choice) => choice.routeKey === selectedCustomDeliveryRouteKeyDraft
+            )
+        ) {
+            return selectedCustomDeliveryRouteKeyDraft
+        }
+
+        return gameSession.deliveryShippingChoices[0]?.routeKey ?? ''
     })
 
     const selectedCustomDeliveryRouteOption = $derived.by(() => {
@@ -407,6 +423,18 @@
             .filter((row): row is MergerOptionRow => row !== null)
     })
 
+    const selectedMergerOptionKey = $derived.by(() => {
+        if (!canProposeMerger || mergerOptionRows.length === 0) {
+            return ''
+        }
+
+        if (mergerOptionRows.some((row) => row.key === selectedMergerOptionKeyDraft)) {
+            return selectedMergerOptionKeyDraft
+        }
+
+        return mergerOptionRows[0]?.key ?? ''
+    })
+
     const selectedMergerOptionIndex = $derived.by(() =>
         mergerOptionRows.findIndex((row) => row.key === selectedMergerOptionKey)
     )
@@ -554,6 +582,14 @@
             minimumBid += proposal.bidIncrement - offset
         }
         return minimumBid
+    })
+
+    let mergerBidInput: string = $derived.by(() => {
+        if (!canPlaceMergerBid && !canPassMergerBid) {
+            return '0'
+        }
+
+        return String(mergerMinimumNextBid)
     })
 
     const mergerBidAmount = $derived.by(() => {
@@ -787,26 +823,6 @@
             clearPendingPlannedDeliveryHoverTimeout()
             gameSession.setHoveredPlannedDeliveryRoute(undefined)
         }
-    })
-
-    $effect(() => {
-        if (!canProposeMerger || mergerOptionRows.length === 0) {
-            selectedMergerOptionKey = ''
-            return
-        }
-
-        if (!mergerOptionRows.some((row) => row.key === selectedMergerOptionKey)) {
-            selectedMergerOptionKey = mergerOptionRows[0]?.key ?? ''
-        }
-    })
-
-    $effect(() => {
-        if (!canPlaceMergerBid && !canPassMergerBid) {
-            mergerBidInput = '0'
-            return
-        }
-
-        mergerBidInput = String(mergerMinimumNextBid)
     })
 
     type OwnedOperatingCompanyEntry = {
@@ -1631,26 +1647,6 @@
         }
     })
 
-    $effect(() => {
-        if (!showDeliveryShippingChoices) {
-            if (selectedCustomDeliveryRouteKey) {
-                selectedCustomDeliveryRouteKey = ''
-            }
-            return
-        }
-
-        if (
-            selectedCustomDeliveryRouteKey &&
-            gameSession.deliveryShippingChoices.some(
-                (choice) => choice.routeKey === selectedCustomDeliveryRouteKey
-            )
-        ) {
-            return
-        }
-
-        selectedCustomDeliveryRouteKey = gameSession.deliveryShippingChoices[0]?.routeKey ?? ''
-    })
-
     const remainingProductionExpansionCount = $derived.by(() => {
         if (
             gameSession.productionOperationStage !== 'mandatory-expansion' &&
@@ -1820,7 +1816,7 @@
             return
         }
 
-        selectedMergerOptionKey = selectedRow.key
+        selectedMergerOptionKeyDraft = selectedRow.key
     }
 
     function selectNextMergerOption(): void {
@@ -2500,7 +2496,7 @@
                                                 aria-label={`Use ${routeOption.shipCount} ships from shipping company ${routeOption.shippingCompanyId}`}
                                                 aria-pressed={isSelectedRouteOption}
                                                 onclick={() => {
-                                                    selectedCustomDeliveryRouteKey = routeOption.key
+                                                    selectedCustomDeliveryRouteKeyDraft = routeOption.key
                                                 }}
                                                 onmouseenter={() => {
                                                     gameSession.setHoveredDeliveryRoute(routeOption.key)
