@@ -983,6 +983,10 @@
     })
 
     const spotlightedProductionCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+            return new Set<string>()
+        }
+
         const productionCompanyIds = new Set<string>()
 
         for (const companyId of gameSession.activeCompanySpotlightCompanyIds) {
@@ -1015,6 +1019,9 @@
     })
 
     const maskNonSelectableZoneTagsDuringDeliverySelection: boolean = $derived.by(() => {
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+            return false
+        }
         return (
             gameSession.deliverySelectionEnabled &&
             gameSession.deliverySelectionStage === 'cultivated'
@@ -1048,10 +1055,16 @@
     })
 
     const maskNonSpotlightZoneTagsDuringCompanyHover: boolean = $derived.by(() => {
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+            return false
+        }
         return spotlightedProductionCompanyIdSet.size > 0
     })
 
     const maskAllZoneTagsDuringNonProductionCompanyHover: boolean = $derived.by(() => {
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+            return false
+        }
         const hasAnyCompanySpotlight = gameSession.activeCompanySpotlightCompanyIds.length > 0
         return hasAnyCompanySpotlight && spotlightedProductionCompanyIdSet.size === 0
     })
@@ -1061,7 +1074,7 @@
     })
 
     const hasHoveredRoutePreview: boolean = $derived.by(() => {
-        return gameSession.hoveredRoutePreview !== null
+        return gameSession.hoveredPlayerCityReferenceCard === null && gameSession.hoveredRoutePreview !== null
     })
 
     const operatedCompanyIdSet: ReadonlySet<string> = $derived.by(() => {

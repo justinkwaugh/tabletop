@@ -740,6 +740,10 @@
     })
 
     const spotlightMaskExemptAreaIds: readonly string[] = $derived.by(() => {
+        if (hasHoveredCityReferenceCardSpotlight) {
+            return hoveredCityReferenceCardOverlayAreaIds
+        }
+
         return [
             ...new Set([
                 ...hoveredCompanySpotlightAreaIds,
@@ -773,7 +777,8 @@
             activeAreaInteraction?.action === 'expand' &&
             interactiveValidAreaIds.length > 0 &&
             !hasHoveredRoutePreview &&
-            !hasActiveCompanySpotlight
+            !hasActiveCompanySpotlight &&
+            !hasHoveredCityReferenceCardSpotlight
         )
     })
 
@@ -873,9 +878,9 @@
         }
     })
 
-    const allowHoveredCityReferenceCardSpotlight: boolean = $derived.by(() => {
-        return !activeAreaInteraction && !startCompanySelectionEnabled && !hasHoveredRoutePreview
-    })
+    const allowHoveredCityReferenceCardSpotlight: boolean = $derived.by(
+        () => !gameSession.suppressBoardEffectsForHistory
+    )
 
     const hoveredCityReferenceCardOverlayAreaIds: readonly string[] = $derived.by(() => {
         if (!allowHoveredCityReferenceCardSpotlight) {
@@ -1156,7 +1161,7 @@
                     {#each spotlightMaskExemptAreaIds as areaId (areaId)}
                         <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
                     {/each}
-                    {#if hoveredAvailableDeedCardMaskRect}
+                    {#if hoveredAvailableDeedCardMaskRect && !hasHoveredCityReferenceCardSpotlight}
                         <rect
                             x={hoveredAvailableDeedCardMaskRect.x}
                             y={hoveredAvailableDeedCardMaskRect.y}
@@ -1194,65 +1199,67 @@
                 pointer-events="none"
             />
 
-            {#each hoveredAvailableShippingDeedOverlayAreaIds as areaId (areaId)}
-                <Area
-                    areaId={areaId}
-                    fill={SEA_HIGHLIGHT_FILL}
-                    stroke="none"
-                    fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
-                    pointer-events="none"
-                />
-            {/each}
+            {#if !hasHoveredCityReferenceCardSpotlight}
+                {#each hoveredAvailableShippingDeedOverlayAreaIds as areaId (areaId)}
+                    <Area
+                        areaId={areaId}
+                        fill={SEA_HIGHLIGHT_FILL}
+                        stroke="none"
+                        fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
+                        pointer-events="none"
+                    />
+                {/each}
 
-            {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
-                <Area
-                    areaId={areaId}
-                    fill="none"
-                    stroke="#fff8d7"
-                    fillOpacity="0"
-                    strokeWidth="7.2"
-                    strokeLineJoin="round"
-                    strokeLineCap="round"
-                    opacity="0.9"
-                    pointer-events="none"
-                />
-                <Area
-                    areaId={areaId}
-                    fill="none"
-                    stroke="#1f2937"
-                    fillOpacity="0"
-                    strokeWidth="2.2"
-                    strokeLineJoin="round"
-                    strokeLineCap="round"
-                    opacity="0.88"
-                    pointer-events="none"
-                />
-            {/each}
+                {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
+                    <Area
+                        areaId={areaId}
+                        fill="none"
+                        stroke="#fff8d7"
+                        fillOpacity="0"
+                        strokeWidth="7.2"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
+                        opacity="0.9"
+                        pointer-events="none"
+                    />
+                    <Area
+                        areaId={areaId}
+                        fill="none"
+                        stroke="#1f2937"
+                        fillOpacity="0"
+                        strokeWidth="2.2"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
+                        opacity="0.88"
+                        pointer-events="none"
+                    />
+                {/each}
 
-            {#each hoveredAvailableDeedOutlinedAreaIds as areaId (areaId)}
-                <Area
-                    areaId={areaId}
-                    fill="none"
-                    stroke="#fff8d7"
-                    fillOpacity="0"
-                    strokeWidth="7.2"
-                    strokeLineJoin="round"
-                    strokeLineCap="round"
-                    opacity="0.9"
-                    pointer-events="none"
-                />
-                <Area
-                    areaId={areaId}
-                    fill="none"
-                    stroke="#1f2937"
-                    fillOpacity="0"
-                    strokeWidth="2.2"
-                    strokeLineJoin="round"
-                    strokeLineCap="round"
-                    opacity="0.88"
-                    pointer-events="none"
-                />
-            {/each}
+                {#each hoveredAvailableDeedOutlinedAreaIds as areaId (areaId)}
+                    <Area
+                        areaId={areaId}
+                        fill="none"
+                        stroke="#fff8d7"
+                        fillOpacity="0"
+                        strokeWidth="7.2"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
+                        opacity="0.9"
+                        pointer-events="none"
+                    />
+                    <Area
+                        areaId={areaId}
+                        fill="none"
+                        stroke="#1f2937"
+                        fillOpacity="0"
+                        strokeWidth="2.2"
+                        strokeLineJoin="round"
+                        strokeLineCap="round"
+                        opacity="0.88"
+                        pointer-events="none"
+                    />
+                {/each}
+            {/if}
 
             {#each hoveredCityReferenceCardOverlayAreaIds as areaId (areaId)}
                 <Area
@@ -1279,20 +1286,22 @@
                 />
             {/each}
 
-            {#each hoveredProductionZoneMarkers as marker (marker.key)}
-                <CompanyZoneMarker
-                    x={marker.x}
-                    y={marker.y}
-                    targetX={marker.targetX}
-                    targetY={marker.targetY}
-                    playerColor={marker.ownerColor}
-                    goodType={marker.goodType}
-                    goodsCount={marker.goodsCount}
-                    hatchPatternId={marker.hatchPatternId}
-                    direction={marker.direction}
-                    highlighted={true}
-                />
-            {/each}
+            {#if !hasHoveredCityReferenceCardSpotlight}
+                {#each hoveredProductionZoneMarkers as marker (marker.key)}
+                    <CompanyZoneMarker
+                        x={marker.x}
+                        y={marker.y}
+                        targetX={marker.targetX}
+                        targetY={marker.targetY}
+                        playerColor={marker.ownerColor}
+                        goodType={marker.goodType}
+                        goodsCount={marker.goodsCount}
+                        hatchPatternId={marker.hatchPatternId}
+                        direction={marker.direction}
+                        highlighted={true}
+                    />
+                {/each}
+            {/if}
         {/if}
 
         {#if shouldRenderExpansionSelectionSpotlightMask}
@@ -1339,7 +1348,7 @@
             />
         {/if}
 
-        {#if hasHoveredRoutePreview}
+        {#if hasHoveredRoutePreview && !hasHoveredCityReferenceCardSpotlight}
             {#each hoveredRoutePreviewDimmedLandAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
@@ -1352,7 +1361,8 @@
         {/if}
 
         {#if activeAreaInteraction}
-            {#if activeAreaInteraction.action === 'expand' &&
+            {#if !hasHoveredCityReferenceCardSpotlight &&
+                activeAreaInteraction.action === 'expand' &&
                 !hasHoveredRoutePreview &&
                 !hasActiveCompanySpotlight}
                 {#each interactiveValidAreaIds as areaId (areaId)}
@@ -1391,7 +1401,8 @@
                 {/each}
             {/if}
 
-            {#if activeAreaInteraction.action === 'place-city' &&
+            {#if !hasHoveredCityReferenceCardSpotlight &&
+                activeAreaInteraction.action === 'place-city' &&
                 !hasHoveredRoutePreview &&
                 !hasActiveCompanySpotlight &&
                 !hasHoveredCityReferenceCardSpotlight}
@@ -1421,7 +1432,8 @@
                 {/each}
             {/if}
 
-            {#if !hasHoveredRoutePreview &&
+            {#if !hasHoveredCityReferenceCardSpotlight &&
+                !hasHoveredRoutePreview &&
                 !hasActiveCompanySpotlight &&
                 activeAreaInteraction.action !== 'select-delivery-cultivated' &&
                 activeAreaInteraction.action !== 'expand' &&
@@ -1535,7 +1547,9 @@
                     {/each}
                 </defs>
             {:else}
-                {#if activeAreaInteraction.action !== 'select-delivery-city' && !hasHoveredRoutePreview}
+                {#if !hasHoveredCityReferenceCardSpotlight &&
+                    activeAreaInteraction.action !== 'select-delivery-city' &&
+                    !hasHoveredRoutePreview}
                     {#each hoveredInteractiveAreaIds as areaId (areaId)}
                         <Area
                             areaId={areaId}
@@ -1577,7 +1591,7 @@
             {#each startCompanyDeeds as deed (deed.deedId)}
                 {@const isSelected = selectedStartCompanyDeedId === deed.deedId}
                 {@const isHovered = hoveredStartCompanyDeedId === deed.deedId}
-                {#if isSelected}
+                {#if isSelected && !hasHoveredCityReferenceCardSpotlight}
                     <rect
                         x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
                         y={deed.y - BOARD_DEED_CARD_HEIGHT / 2}
@@ -1612,8 +1626,14 @@
                     height={BOARD_DEED_CARD_HEIGHT}
                     rx={BOARD_DEED_CARD_CORNER_RX}
                     ry={BOARD_DEED_CARD_CORNER_RY}
-                    fill={isSelected ? '#ffffff' : '#000000'}
-                    fill-opacity={isSelected ? 0.1 : isHovered ? 0.08 : 0.001}
+                    fill={isSelected && !hasHoveredCityReferenceCardSpotlight ? '#ffffff' : '#000000'}
+                    fill-opacity={hasHoveredCityReferenceCardSpotlight
+                        ? 0.001
+                        : isSelected
+                          ? 0.1
+                          : isHovered
+                            ? 0.08
+                            : 0.001}
                     stroke="none"
                     stroke-width={0}
                     pointer-events={applyingAreaAction ? 'none' : 'all'}

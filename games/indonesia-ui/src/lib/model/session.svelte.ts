@@ -7,6 +7,7 @@ import {
     ActionType,
     type AtomicDeliveryCandidate,
     ChooseOperatingCompany,
+    CompanyType,
     DeliverGood,
     Era,
     Expand,
@@ -120,8 +121,12 @@ export class IndonesiaGameSession extends GameSession<
             return []
         }
 
+        return this.uniqueValidCompanyIds(candidateCompanyIds)
+    })
+
+    private uniqueValidCompanyIds(companyIds: readonly string[]): string[] {
         const validCompanyIds: string[] = []
-        for (const companyId of candidateCompanyIds) {
+        for (const companyId of companyIds) {
             if (!this.gameState.companies.some((company) => company.id === companyId)) {
                 continue
             }
@@ -131,7 +136,14 @@ export class IndonesiaGameSession extends GameSession<
             validCompanyIds.push(companyId)
         }
         return validCompanyIds
-    })
+    }
+
+    private uniqueValidShippingCompanyIds(companyIds: readonly string[]): string[] {
+        return this.uniqueValidCompanyIds(companyIds).filter((companyId) => {
+            const company = this.gameState.companies.find((entry) => entry.id === companyId)
+            return company?.type === CompanyType.Shipping
+        })
+    }
 
     activeCompanySpotlightCompanyIds: string[] = $derived.by(() => {
         if (this.suppressBoardEffectsForHistory) {
@@ -159,6 +171,31 @@ export class IndonesiaGameSession extends GameSession<
             )
         ) {
             return [this.gameState.operatingCompanyId]
+        }
+
+        return []
+    })
+
+    highlightedShipCompanyIds: string[] = $derived.by(() => {
+        if (this.suppressBoardEffectsForHistory || this.hoveredPlayerCityReferenceCard !== null) {
+            return []
+        }
+
+        if (this.hoveredCompanySpotlightCompanyIds.length > 0) {
+            return this.uniqueValidShippingCompanyIds(this.hoveredCompanySpotlightCompanyIds)
+        }
+
+        const hoveredCompanyId = this.hoveredOperatingCompanyId
+        if (hoveredCompanyId) {
+            return this.uniqueValidShippingCompanyIds([hoveredCompanyId])
+        }
+
+        if (
+            this.gameState.machineState === MachineState.ShippingOperations &&
+            this.validActionTypes.includes(ActionType.Expand) &&
+            this.gameState.operatingCompanyId
+        ) {
+            return this.uniqueValidShippingCompanyIds([this.gameState.operatingCompanyId])
         }
 
         return []
@@ -669,16 +706,7 @@ export class IndonesiaGameSession extends GameSession<
             return
         }
 
-        const validCompanyIds: string[] = []
-        for (const companyId of companyIds) {
-            if (!this.gameState.companies.some((company) => company.id === companyId)) {
-                continue
-            }
-            if (validCompanyIds.includes(companyId)) {
-                continue
-            }
-            validCompanyIds.push(companyId)
-        }
+        const validCompanyIds = this.uniqueValidCompanyIds(companyIds)
 
         this.hoveredCompanySpotlightCompanyIdsOverride =
             validCompanyIds.length > 0 ? validCompanyIds : undefined

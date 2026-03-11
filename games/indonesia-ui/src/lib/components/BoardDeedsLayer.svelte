@@ -179,6 +179,9 @@
             if (gameSession.suppressBoardEffectsForHistory) {
                 return false
             }
+            if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+                return false
+            }
             if (showAllDeedOverlays) {
                 return true
             }
@@ -216,6 +219,9 @@
 
     const shouldDarkenDeedMarkersForCompanyHover: boolean = $derived.by(() => {
         if (gameSession.suppressBoardEffectsForHistory) {
+            return false
+        }
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
             return false
         }
         return gameSession.activeCompanySpotlightCompanyIds.length > 0

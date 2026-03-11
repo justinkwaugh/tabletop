@@ -1,5 +1,9 @@
 # Indonesia UI Hover Rendering Notes
 
+Companion document:
+- `docs/ui-interaction-visual-contract.md` is now the canonical cross-interaction contract for highlight, dimming, overlay, and emphasis behavior.
+- This file remains useful for route-preview-specific notes and board layer ordering.
+
 This note documents the intended ownership and precedence of hover/highlight/dim behavior on the Indonesia board.
 
 It exists because multiple visual mechanisms look similar but are not interchangeable:

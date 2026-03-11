@@ -5,7 +5,7 @@ import { shadeHexColor } from '$lib/utils/color.js'
 import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
 import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
 import { Color } from '@tabletop/common'
-import { ActionType, CompanyType, MachineState, isIndonesiaNodeId } from '@tabletop/indonesia'
+import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
@@ -34,51 +34,8 @@ import { ActionType, CompanyType, MachineState, isIndonesiaNodeId } from '@table
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
 
-    const hoveredShippingCompanyId: string | null = $derived.by(() => {
-        const hoveredCompanyId = gameSession.activeCompanySpotlightCompanyIds[0]
-        if (!hoveredCompanyId) {
-            return null
-        }
-        const hoveredCompany = companyById.get(hoveredCompanyId)
-        if (!hoveredCompany || hoveredCompany.type !== CompanyType.Shipping) {
-            return null
-        }
-        return hoveredCompany.id
-    })
-
-    const spotlightedShippingCompanyIds: string[] = $derived.by(() => {
-        const spotlightIds: string[] = []
-        for (const companyId of gameSession.activeCompanySpotlightCompanyIds) {
-            const company = companyById.get(companyId)
-            if (!company || company.type !== CompanyType.Shipping) {
-                continue
-            }
-            if (spotlightIds.includes(company.id)) {
-                continue
-            }
-            spotlightIds.push(company.id)
-        }
-        return spotlightIds
-    })
-
     const activeShipSpotlightCompanyIds: string[] = $derived.by(() => {
-        if (spotlightedShippingCompanyIds.length > 0) {
-            return spotlightedShippingCompanyIds
-        }
-        if (hoveredShippingCompanyId) {
-            return [hoveredShippingCompanyId]
-        }
-        if (
-            gameSession.gameState.machineState === MachineState.ShippingOperations &&
-            gameSession.validActionTypes.includes(ActionType.Expand) &&
-            gameSession.gameState.operatingCompanyId
-        ) {
-            const operatingCompany = companyById.get(gameSession.gameState.operatingCompanyId)
-            if (operatingCompany?.type === CompanyType.Shipping) {
-                return [operatingCompany.id]
-            }
-        }
-        return []
+        return gameSession.highlightedShipCompanyIds
     })
 
     const activeShipSpotlightCompanyIdSet: ReadonlySet<string> = $derived.by(
@@ -91,6 +48,9 @@ import { ActionType, CompanyType, MachineState, isIndonesiaNodeId } from '@table
               seaAreaIds: ReadonlySet<string>
           }
         | null = $derived.by(() => {
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+            return null
+        }
         const plannedRoute = gameSession.hoveredPlannedDeliveryRoute
         if (plannedRoute) {
             return {

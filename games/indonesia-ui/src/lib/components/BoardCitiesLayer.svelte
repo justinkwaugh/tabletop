@@ -170,6 +170,9 @@
     })
 
     const isSelectingDeliveryCity: boolean = $derived.by(() => {
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+            return false
+        }
         return (
             !gameSession.suppressBoardEffectsForHistory &&
             gameSession.deliverySelectionEnabled &&
@@ -192,6 +195,9 @@
     })
 
     const hoveredRouteCityAreaId: string | null = $derived.by(() => {
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
+            return null
+        }
         return gameSession.hoveredRoutePreview?.cityAreaId ?? null
     })
 
@@ -199,6 +205,9 @@
 
     const shouldDimDemandTagsForCompanyHover: boolean = $derived.by(() => {
         if (gameSession.suppressBoardEffectsForHistory) {
+            return false
+        }
+        if (gameSession.hoveredPlayerCityReferenceCard !== null) {
             return false
         }
 
