@@ -118,23 +118,6 @@
         highlightedProductionZoneMarkers: readonly HoveredProductionZoneMarker[]
     }
 
-    type BoardSpotlightPreview =
-        | {
-              source: 'none'
-          }
-        | {
-              source: 'company'
-              companyIds: readonly string[]
-          }
-        | {
-              source: 'available-deed'
-              deedId: string
-          }
-        | {
-              source: 'city-reference-card'
-              cardId: string
-          }
-
     function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
         ships: string[]
     } {
@@ -756,36 +739,11 @@
         return dimmedAreaIds
     })
 
-    const boardSpotlightPreview: BoardSpotlightPreview = $derived.by(() => {
-        if (hoveredCityReferenceCardOverlayAreaIds.length > 0) {
-            const cityCard = gameSession.hoveredPlayerCityReferenceCard
-            return {
-                source: 'city-reference-card',
-                cardId: cityCard?.id ?? 'unknown-city-reference-card'
-            }
-        }
-
-        if (spotlightedAvailableDeedId && hoveredAvailableDeedOverlayAreaIds.length > 0) {
-            return {
-                source: 'available-deed',
-                deedId: spotlightedAvailableDeedId
-            }
-        }
-
-        if (gameSession.boardSpotlightCompanyIds.length > 0) {
-            return {
-                source: 'company',
-                companyIds: gameSession.boardSpotlightCompanyIds
-            }
-        }
-
-        return {
-            source: 'none'
-        }
-    })
-
     const boardSpotlightState: BoardSpotlightState = $derived.by(() => {
-        if (boardSpotlightPreview.source === 'city-reference-card') {
+        if (
+            gameSession.activeBoardPreview.source === 'city-reference-card' &&
+            hoveredCityReferenceCardOverlayAreaIds.length > 0
+        ) {
             return {
                 source: 'city-reference-card',
                 exemptAreaIds: hoveredCityReferenceCardOverlayAreaIds,
@@ -797,7 +755,7 @@
             }
         }
 
-        if (boardSpotlightPreview.source === 'company') {
+        if (gameSession.activeBoardPreview.source === 'company') {
             return {
                 source: 'general',
                 exemptAreaIds: hoveredCompanySpotlightAreaIds,
@@ -809,25 +767,16 @@
             }
         }
 
-        if (boardSpotlightPreview.source === 'available-deed') {
+        if (
+            gameSession.activeBoardPreview.source === 'available-deed' &&
+            hoveredAvailableDeedOverlayAreaIds.length > 0
+        ) {
             return {
                 source: 'general',
                 exemptAreaIds: hoveredAvailableDeedOverlayAreaIds,
                 seaOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
                 outlinedLandAreaIds: hoveredAvailableDeedOutlinedAreaIds,
                 deedCardMaskRect: hoveredAvailableDeedCardMaskRect,
-                cityReferenceCardMaskRect: null,
-                highlightedProductionZoneMarkers: []
-            }
-        }
-
-        if (boardSpotlightPreview.source === 'none') {
-            return {
-                source: 'none',
-                exemptAreaIds: [],
-                seaOverlayAreaIds: [],
-                outlinedLandAreaIds: [],
-                deedCardMaskRect: null,
                 cityReferenceCardMaskRect: null,
                 highlightedProductionZoneMarkers: []
             }
@@ -849,11 +798,13 @@
     )
 
     const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(
-        () => boardSpotlightPreview.source === 'city-reference-card'
+        () => boardSpotlightState.source === 'city-reference-card'
     )
 
     const hasVisibleCompanySpotlightPreview: boolean = $derived.by(
-        () => boardSpotlightPreview.source === 'company'
+        () =>
+            gameSession.activeBoardPreview.source === 'company' &&
+            boardSpotlightState.source === 'general'
     )
 
     const isShippingExpansionInteraction: boolean = $derived.by(() => {

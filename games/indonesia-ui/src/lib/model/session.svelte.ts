@@ -61,6 +61,23 @@ type HoveredRoutePreviewState = {
     cultivatedAreaId: string | null
 }
 
+type BoardPreviewIntent =
+    | {
+          source: 'none'
+      }
+    | {
+          source: 'company'
+          companyIds: readonly string[]
+      }
+    | {
+          source: 'available-deed'
+          deedId: string
+      }
+    | {
+          source: 'city-reference-card'
+          cardId: string
+      }
+
 export class IndonesiaGameSession extends GameSession<
     IndonesiaGameState,
     HydratedIndonesiaGameState
@@ -207,6 +224,35 @@ export class IndonesiaGameSession extends GameSession<
 
     boardSpotlightShippingCompanyIds: string[] = $derived.by(() => {
         return this.uniqueValidShippingCompanyIds(this.boardSpotlightCompanyIds)
+    })
+
+    activeBoardPreview: BoardPreviewIntent = $derived.by(() => {
+        const hoveredCityCard = this.hoveredPlayerCityReferenceCard
+        if (hoveredCityCard) {
+            return {
+                source: 'city-reference-card',
+                cardId: hoveredCityCard.id
+            }
+        }
+
+        const hoveredDeedId = this.hoveredAvailableDeedId
+        if (hoveredDeedId) {
+            return {
+                source: 'available-deed',
+                deedId: hoveredDeedId
+            }
+        }
+
+        if (this.boardSpotlightCompanyIds.length > 0) {
+            return {
+                source: 'company',
+                companyIds: this.boardSpotlightCompanyIds
+            }
+        }
+
+        return {
+            source: 'none'
+        }
     })
 
     hoveredShippingPreviewCompanyIds: string[] = $derived.by(() => {
