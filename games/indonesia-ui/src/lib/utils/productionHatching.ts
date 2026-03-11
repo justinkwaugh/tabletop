@@ -294,11 +294,7 @@ export function productionHatchVariantByCompanyId(
             continue
         }
 
-        let hash = 0
-        for (let index = 0; index < companyId.length; index += 1) {
-            hash = (hash * 33 + companyId.charCodeAt(index)) >>> 0
-        }
-        hatchVariantByCompanyId.set(companyId, hash % hatchPatternCount)
+        hatchVariantByCompanyId.set(companyId, conflictRank % hatchPatternCount)
     }
 
     return hatchVariantByCompanyId

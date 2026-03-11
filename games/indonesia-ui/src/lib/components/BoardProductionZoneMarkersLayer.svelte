@@ -755,10 +755,7 @@
 
         const hatchVariantByCompanyId = productionHatchVariantByCompanyId(
             gameSession.gameState,
-            HATCH_PATTERN_IDS.length,
-            {
-                mode: gameSession.productionZoneRenderStyle
-            }
+            HATCH_PATTERN_IDS.length
         )
 
         const regionFallbackCenterById = new Map<string, Point>()

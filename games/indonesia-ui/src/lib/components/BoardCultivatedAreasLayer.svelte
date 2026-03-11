@@ -98,10 +98,7 @@
         const entries: CultivatedRenderEntry[] = []
         const hatchVariantByCompanyId = productionHatchVariantByCompanyId(
             gameSession.gameState,
-            HATCH_PATTERN_IDS.length,
-            {
-                mode: gameSession.productionZoneRenderStyle
-            }
+            HATCH_PATTERN_IDS.length
         )
         const renderByGoods = gameSession.productionZoneRenderStyle === 'goods'
         for (const area of Object.values(gameSession.gameState.board.areas)) {
@@ -146,7 +143,7 @@
             patternUnits="userSpaceOnUse"
             width="24"
             height="24"
-            patternTransform="rotate(25)"
+            patternTransform="rotate(-25)"
         >
             <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.22"></rect>
         </pattern>
@@ -155,7 +152,7 @@
             patternUnits="userSpaceOnUse"
             width="24"
             height="24"
-            patternTransform="rotate(-25)"
+            patternTransform="rotate(25)"
         >
             <rect x="0" y="0" width="12" height="24" fill="#ffffff" fill-opacity="0.22"></rect>
         </pattern>
@@ -182,7 +179,7 @@
             patternUnits="userSpaceOnUse"
             width="24"
             height="24"
-            patternTransform="rotate(25)"
+            patternTransform="rotate(-25)"
         >
             <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.3"></rect>
         </pattern>
@@ -191,7 +188,7 @@
             patternUnits="userSpaceOnUse"
             width="24"
             height="24"
-            patternTransform="rotate(-25)"
+            patternTransform="rotate(25)"
         >
             <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.3"></rect>
         </pattern>

@@ -37,10 +37,10 @@
 
     let { card }: { card: PlayerCompanyCardData } = $props()
     const SIMPLE_SHIP_ICON_COLOR = '#216e7a'
-    // Board hatch patterns rotate vertical bands by 25/-25/35/-35.
+    // Board hatch patterns rotate vertical bands by -25/25/-35/35.
     // CSS gradients define band orientation differently, so we offset by +90
     // to visually match the on-board hatch slant.
-    const HATCH_ANGLES = [115, 65, 125, 55] as const
+    const HATCH_ANGLES = [65, 115, 55, 125] as const
 
     const cardKind: CompanyCardType = $derived.by(() => {
         if (card.type === CompanyType.Shipping) {

@@ -97,7 +97,7 @@ describe('productionConflictRankByCompanyId', () => {
         expect(conflictRanks.get('c-old')).toBe(0)
         expect(conflictRanks.get('c-new')).toBe(1)
         expect(hatchVariants.get('c-old')).toBeUndefined()
-        expect(hatchVariants.get('c-new')).toBeTypeOf('number')
+        expect(hatchVariants.get('c-new')).toBe(1)
     })
 
     it('keeps hatch assignment stable for an existing company when another company is added', () => {
@@ -136,9 +136,9 @@ describe('productionConflictRankByCompanyId', () => {
         const expandedHatchVariants = productionHatchVariantByCompanyId(expandedState, 4)
 
         expect(initialHatchVariants.get('c-1')).toBeUndefined()
-        expect(initialHatchVariants.get('c-2')).toBeTypeOf('number')
+        expect(initialHatchVariants.get('c-2')).toBe(1)
         expect(expandedHatchVariants.get('c-2')).toBe(initialHatchVariants.get('c-2'))
-        expect(expandedHatchVariants.get('c-3')).toBeTypeOf('number')
+        expect(expandedHatchVariants.get('c-3')).toBe(2)
     })
 
     it('does not hatch different-good companies that are not same-good and not adjacent', () => {
@@ -184,7 +184,7 @@ describe('productionConflictRankByCompanyId', () => {
         expect(conflictRanks.get('c-1')).toBe(0)
         expect(conflictRanks.get('c-2')).toBe(1)
         expect(hatchVariants.get('c-1')).toBeUndefined()
-        expect(hatchVariants.get('c-2')).toBeTypeOf('number')
+        expect(hatchVariants.get('c-2')).toBe(1)
     })
 
     it('goods mode does not hatch adjacent different-good companies', () => {

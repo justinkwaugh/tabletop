@@ -258,22 +258,6 @@
             fill={goodsFillColor}
             clip-path={`url(#${bodyClipPathId})`}
         ></rect>
-        {#if hatchPatternId}
-            <path
-                d={bodyPath}
-                fill={`url(#${hatchPatternId})`}
-                stroke="none"
-                stroke-width="0"
-                opacity="0.9"
-            ></path>
-            <path
-                d={bodyPath}
-                fill={`url(#${hatchPatternId})`}
-                stroke="none"
-                stroke-width="0"
-                opacity="0.55"
-            ></path>
-        {/if}
         <path
             d={bodyPath}
             fill="none"
