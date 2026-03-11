@@ -31,6 +31,7 @@ import {
     type HydratedIndonesiaGameState,
     type IndonesiaGameState,
     IndonesiaNeighborDirection,
+    IndonesiaAreaType,
     isIndonesiaNodeId
 } from '@tabletop/indonesia'
 import {
@@ -64,6 +65,10 @@ type HoveredRoutePreviewState = {
 type ActiveRoutePreviewVisualState = HoveredRoutePreviewState & {
     seaAreaIdSet: ReadonlySet<string>
     sourceAreaIdSet: ReadonlySet<string>
+    exemptAreaIds: string[]
+    exemptAreaIdSet: ReadonlySet<string>
+    dimmedLandAreaIds: string[]
+    dimmedLandAreaIdSet: ReadonlySet<string>
 }
 
 type BoardPreviewIntent =
@@ -772,10 +777,32 @@ export class IndonesiaGameSession extends GameSession<
             return null
         }
 
+        const exemptAreaIdSet = new Set<string>(activeRoutePreview.sourceAreaIds)
+        if (activeRoutePreview.cityAreaId) {
+            exemptAreaIdSet.add(activeRoutePreview.cityAreaId)
+        }
+
+        const dimmedLandAreaIds: string[] = []
+        for (const area of this.gameState.board) {
+            if (area.type !== IndonesiaAreaType.Land) {
+                continue
+            }
+            if (exemptAreaIdSet.has(area.id)) {
+                continue
+            }
+            dimmedLandAreaIds.push(area.id)
+        }
+
+        const exemptAreaIds = [...exemptAreaIdSet].sort((left, right) => left.localeCompare(right))
+
         return {
             ...activeRoutePreview,
             seaAreaIdSet: new Set(activeRoutePreview.seaAreaIds),
-            sourceAreaIdSet: new Set(activeRoutePreview.sourceAreaIds)
+            sourceAreaIdSet: new Set(activeRoutePreview.sourceAreaIds),
+            exemptAreaIds,
+            exemptAreaIdSet,
+            dimmedLandAreaIds,
+            dimmedLandAreaIdSet: new Set(dimmedLandAreaIds)
         }
     })
 

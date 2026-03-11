@@ -454,52 +454,12 @@
         () => gameSession.activeRoutePreviewVisualState !== null
     )
 
-    const hoveredRoutePreviewExemptAreaIds: readonly string[] = $derived.by(() => {
-        const hoveredRoutePreview = gameSession.activeRoutePreviewVisualState
-        if (!hoveredRoutePreview) {
-            return []
-        }
-
-        const areaIds = new Set<string>()
-        for (const areaId of hoveredRoutePreview.sourceAreaIdSet) {
-            if (boardAreaPathById(areaId)) {
-                areaIds.add(areaId)
-            }
-        }
-        if (
-            hoveredRoutePreview.cityAreaId &&
-            boardAreaPathById(hoveredRoutePreview.cityAreaId)
-        ) {
-            areaIds.add(hoveredRoutePreview.cityAreaId)
-        }
-
-        return [...areaIds].sort((left, right) => left.localeCompare(right))
-    })
-
-    const hoveredRoutePreviewExemptAreaIdSet: ReadonlySet<string> = $derived.by(
-        () => new Set(hoveredRoutePreviewExemptAreaIds)
-    )
-
     const hoveredRoutePreviewDimmedLandAreaIds: readonly string[] = $derived.by(() => {
-        if (!hasHoveredRoutePreview) {
-            return []
-        }
-
-        const dimmedAreaIds: string[] = []
-        for (const area of gameSession.gameState.board) {
-            if (area.type !== IndonesiaAreaType.Land) {
-                continue
-            }
-            if (!boardAreaPathById(area.id)) {
-                continue
-            }
-            if (hoveredRoutePreviewExemptAreaIdSet.has(area.id)) {
-                continue
-            }
-            dimmedAreaIds.push(area.id)
-        }
-
-        return dimmedAreaIds
+        return (
+            gameSession.activeRoutePreviewVisualState?.dimmedLandAreaIds.filter((areaId) =>
+                !!boardAreaPathById(areaId)
+            ) ?? []
+        )
     })
 
     const spotlightedAvailableDeedId: string | null = $derived.by(() => {

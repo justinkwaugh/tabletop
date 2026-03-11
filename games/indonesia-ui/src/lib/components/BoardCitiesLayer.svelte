@@ -202,6 +202,10 @@
 
     const hasHoveredRouteCity: boolean = $derived.by(() => hoveredRouteCityAreaId !== null)
 
+    const hoveredRoutePreviewDimmedCityAreaIdSet: ReadonlySet<string> = $derived.by(() => {
+        return gameSession.activeRoutePreviewVisualState?.dimmedLandAreaIdSet ?? new Set<string>()
+    })
+
     const shouldDimCitiesForCityReferenceCardPreview: boolean = $derived.by(() => {
         return gameSession.cityReferenceCardPreviewWins
     })
@@ -233,9 +237,10 @@
         {@const isHoveredSelectableDeliveryCity =
             isSelectableDeliveryCity && hoveredDeliveryCityAreaId === marker.areaId}
         {@const isHoveredRouteCity = hoveredRouteCityAreaId === marker.areaId}
+        {@const isDimmedForRoutePreview = hoveredRoutePreviewDimmedCityAreaIdSet.has(marker.areaId)}
         <g
             opacity={hasHoveredRouteCity
-                ? !isHoveredRouteCity
+                ? isDimmedForRoutePreview && !isHoveredRouteCity
                     ? 0.34
                     : 1
                 : shouldDimCitiesForCityReferenceCardPreview

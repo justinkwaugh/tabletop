@@ -96,8 +96,8 @@ Notes:
 
 ### Primitive: route-local dimming
 - Visual: dim unrelated land/cities/ships during route preview without enabling full-board spotlight
-- Current owner: split between `BoardCitiesLayer.svelte`, `BoardShipsLayer.svelte`, `BoardProductionZoneMarkersLayer.svelte`, and `BoardActionAreasLayer.svelte`
-- Reads: `hoveredRoutePreview`
+- Current owner: shared route-preview visual state in `IndonesiaGameSession`, consumed by `BoardCitiesLayer.svelte`, `BoardShipsLayer.svelte`, `BoardProductionZoneMarkersLayer.svelte`, and `BoardActionAreasLayer.svelte`
+- Reads: `activeRoutePreviewVisualState`
 - Must not decide: company spotlight
 
 ### Primitive: city-layer mirror dimming
@@ -305,7 +305,7 @@ Current board layer stack from `Board.svelte`:
   - forcing each layer to rebuild its own route-preview sets
 
 ### `activeRoutePreviewVisualState`
-- Meaning: route preview state normalized for visual consumers, including shared `seaAreaIdSet` and `sourceAreaIdSet`
+- Meaning: route preview state normalized for visual consumers, including shared `seaAreaIdSet`, `sourceAreaIdSet`, `exemptAreaIdSet`, and `dimmedLandAreaIdSet`
 - Producer: `IndonesiaGameSession`
 - Consumers: `BoardShipsLayer`, `BoardCitiesLayer`, `BoardProductionZoneMarkersLayer`, `BoardActionAreasLayer`, `BoardShippingRouteOverlayLayer`
 - Permitted uses:
@@ -429,7 +429,7 @@ These are the highest-risk couplings to separate in later work:
    Current smell: reduced; shipping-deed sea visibility now derives through shared sea-visual state, but mask exemption and sea-render assignment still need to remain conceptually separate in future changes.
 
 3. Split route-preview-local dimming from board spotlight assumptions.
-   Current smell: several layers react to `hoveredRoutePreview`, but the coordination is only partially documented in code.
+   Current smell: reduced; route-preview dim/exempt area policy now derives centrally in `activeRoutePreviewVisualState`, but ship/marker/city rendering still consumes different slices of that shared contract.
 
 4. Narrow start-company selected deed state.
    Current smell: partially reduced; `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, and `activeDeedPreviewId` are now separate, but some deed-layer render naming still reflects the older combined hover path.
