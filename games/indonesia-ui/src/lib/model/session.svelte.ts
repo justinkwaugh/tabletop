@@ -91,6 +91,7 @@ export class IndonesiaGameSession extends GameSession<
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
     hoveredCompanySpotlightCompanyIdsOverride: string[] | undefined = $state()
     hoveredAvailableDeedIdOverride: string | undefined = $state()
+    selectedStartCompanyDeedIdOverride: string | undefined = $state()
     hoveredPlayerCityReferenceCardIdOverride: string | undefined = $state()
     productionZoneRenderStyleOverride: 'player' | 'goods' | undefined = $state()
     deliverySelectionOverrides: StagedSelectionState<DeliverySelectionValueByStage> = $state({})
@@ -104,6 +105,15 @@ export class IndonesiaGameSession extends GameSession<
         () =>
             this.isMyTurn &&
             this.gameState.machineState === MachineState.ResearchAndDevelopment
+    )
+
+    startCompanySelectionEnabled = $derived.by(
+        () =>
+            !this.suppressBoardEffectsForHistory &&
+            !!this.myPlayer?.id &&
+            this.isMyTurn &&
+            this.gameState.machineState === MachineState.Acquisitions &&
+            this.gameState.availableDeeds.length > 0
     )
 
     currentResearchPlayerId: string | null = $derived.by(
@@ -284,9 +294,27 @@ export class IndonesiaGameSession extends GameSession<
         return []
     })
 
+    selectedStartCompanyDeedId: string | null = $derived.by(() => {
+        if (!this.startCompanySelectionEnabled) {
+            return null
+        }
+
+        const deedId = this.selectedStartCompanyDeedIdOverride
+        if (!deedId) {
+            return null
+        }
+
+        const deed = this.gameState.availableDeeds.find((entry) => entry.id === deedId)
+        return deed?.id ?? null
+    })
+
     hoveredAvailableDeedId: string | null = $derived.by(() => {
         if (this.suppressBoardEffectsForHistory) {
             return null
+        }
+
+        if (this.selectedStartCompanyDeedId) {
+            return this.selectedStartCompanyDeedId
         }
 
         const hoveredDeedId = this.hoveredAvailableDeedIdOverride
@@ -371,7 +399,11 @@ export class IndonesiaGameSession extends GameSession<
     )
 
     midAction = $derived.by(() => {
-        return hasManualDeliverySelection(this.deliverySelectionOverrides) || !!this.selectedResearchPlayerIdOverride
+        return (
+            hasManualDeliverySelection(this.deliverySelectionOverrides) ||
+            !!this.selectedStartCompanyDeedId ||
+            !!this.selectedResearchPlayerIdOverride
+        )
     })
 
     safeDeliveryCandidates: AtomicDeliveryCandidate[] = $derived.by(() => {
@@ -752,6 +784,7 @@ export class IndonesiaGameSession extends GameSession<
         this.hoveredOperatingCompanyIdOverride = undefined
         this.hoveredCompanySpotlightCompanyIdsOverride = undefined
         this.hoveredAvailableDeedIdOverride = undefined
+        this.selectedStartCompanyDeedIdOverride = undefined
         this.deliverySelectionOverrides = {}
         this.hoveredDeliveryCityAreaIdOverride = undefined
         this.hoveredDeliveryRouteKeyOverride = undefined
@@ -770,6 +803,11 @@ export class IndonesiaGameSession extends GameSession<
             this.deliverySelectionOverrides = nextState
             this.hoveredDeliveryCityAreaIdOverride = undefined
             this.hoveredDeliveryRouteKeyOverride = undefined
+            return
+        }
+
+        if (this.selectedStartCompanyDeedIdOverride) {
+            this.selectedStartCompanyDeedIdOverride = undefined
             return
         }
 
@@ -836,6 +874,24 @@ export class IndonesiaGameSession extends GameSession<
         }
 
         this.hoveredAvailableDeedIdOverride = deed.id
+    }
+
+    setSelectedStartCompanyDeed(deedId: string | undefined): void {
+        if (!deedId) {
+            this.selectedStartCompanyDeedIdOverride = undefined
+            return
+        }
+
+        if (!this.startCompanySelectionEnabled) {
+            return
+        }
+
+        const deed = this.gameState.availableDeeds.find((entry) => entry.id === deedId)
+        if (!deed) {
+            return
+        }
+
+        this.selectedStartCompanyDeedIdOverride = deed.id
     }
 
     setHoveredPlayerCityReferenceCard(cardId: string | undefined): void {

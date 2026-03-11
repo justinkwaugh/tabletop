@@ -364,6 +364,7 @@
         {/each}
 
         {#if hoveredDeedCardEntry}
+            {@const hoveredDeedId = hoveredDeedCardEntry.deedId}
             <g>
                 <CompanyDeed
                     type={hoveredDeedCardEntry.cardKind}
@@ -385,10 +386,10 @@
                     stroke="none"
                     pointer-events="all"
                     onmouseenter={() => {
-                        gameSession.setHoveredAvailableDeed(hoveredDeedCardEntry.deedId)
+                        gameSession.setHoveredAvailableDeed(hoveredDeedId)
                     }}
                     onmouseleave={() => {
-                        if (gameSession.hoveredAvailableDeedId === hoveredDeedCardEntry.deedId) {
+                        if (gameSession.hoveredAvailableDeedId === hoveredDeedId) {
                             gameSession.setHoveredAvailableDeed(undefined)
                         }
                     }}

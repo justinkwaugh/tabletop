@@ -26,6 +26,10 @@
         type SpotlightMaskRect
     } from '$lib/components/boardActionAreas/boardSpotlight.js'
     import {
+        deriveSeaHighlightState,
+        type SeaHighlightState
+    } from '$lib/components/boardActionAreas/seaHighlight.js'
+    import {
         deliverySelectableAreaIds as deriveDeliverySelectableAreaIds,
         deliveryZoneByAreaId as buildDeliveryZoneByAreaId,
         deliveryZoneByKey as buildDeliveryZoneByKey,
@@ -90,22 +94,29 @@
         return Array.isArray(area.ships)
     }
 
-    let hoveredAreaId: string | null = $state(null)
+    let hoveredAreaId: string | null = $derived.by(() => {
+        gameSession.updatingVisibleState
+        gameSession.gameState
+        return null
+    })
     let hoveredDeliveryZoneKey: string | null = $state(null)
-    let hoveredStartCompanyDeedId: string | null = $state(null)
-    let selectedStartCompanyDeedId: string | null = $state(null)
     let applyingAreaAction = $state(false)
 
     const myPlayerId: string | null = $derived(gameSession.myPlayer?.id ?? null)
 
-    const startCompanySelectionEnabled: boolean = $derived.by(() => {
-        return (
-            !gameSession.suppressBoardEffectsForHistory &&
-            !!myPlayerId &&
-            gameSession.isMyTurn &&
-            gameSession.gameState.machineState === MachineState.Acquisitions &&
-            gameSession.gameState.availableDeeds.length > 0
-        )
+    const startCompanySelectionEnabled: boolean = $derived(gameSession.startCompanySelectionEnabled)
+
+    let hoveredStartCompanyDeedId: string | null = $derived.by(() => {
+        gameSession.updatingVisibleState
+        gameSession.gameState
+        if (!startCompanySelectionEnabled) {
+            return null
+        }
+        return null
+    })
+
+    const selectedStartCompanyDeedId: string | null = $derived.by(() => {
+        return gameSession.selectedStartCompanyDeedId
     })
 
     const canApplyStartCompanyAction: boolean = $derived.by(() => {
@@ -264,28 +275,6 @@
 
     const deliveryZoneByKey: Map<string, DeliverySelectableZone> = $derived.by(() => {
         return buildDeliveryZoneByKey(deliverySelectableZones)
-    })
-
-    $effect(() => {
-        if (!startCompanySelectionEnabled) {
-            selectedStartCompanyDeedId = null
-            hoveredStartCompanyDeedId = null
-            gameSession.setHoveredAvailableDeed(undefined)
-            hoveredAreaId = null
-            return
-        }
-
-        if (selectedStartCompanyDeedId && !startCompanyDeedById.has(selectedStartCompanyDeedId)) {
-            if (gameSession.hoveredAvailableDeedId === selectedStartCompanyDeedId) {
-                gameSession.setHoveredAvailableDeed(undefined)
-            }
-            selectedStartCompanyDeedId = null
-            hoveredAreaId = null
-        }
-
-        if (hoveredStartCompanyDeedId && !startCompanyDeedById.has(hoveredStartCompanyDeedId)) {
-            hoveredStartCompanyDeedId = null
-        }
     })
 
     $effect(() => {
@@ -520,7 +509,7 @@
     })
 
     const spotlightedAvailableDeedId: string | null = $derived.by(() => {
-        return gameSession.hoveredAvailableDeedId ?? selectedStartCompanyDeedId
+        return gameSession.hoveredAvailableDeedId
     })
 
     const hoveredAvailableDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
@@ -649,13 +638,6 @@
         () => effectiveBoardPreviewSource === 'company' && boardSpotlightState.source === 'general'
     )
 
-    const isShippingExpansionInteraction: boolean = $derived.by(() => {
-        return (
-            activeAreaInteraction?.action === 'expand' &&
-            activeAreaInteraction.maskedAreaType === IndonesiaAreaType.Sea
-        )
-    })
-
     const shouldRenderExpansionSelectionSpotlightMask: boolean = $derived.by(() => {
         return (
             activeAreaInteraction?.action === 'expand' &&
@@ -674,6 +656,18 @@
             !hasVisibleCompanySpotlightPreview &&
             !hasHoveredCityReferenceCardSpotlight
         )
+    })
+
+    const seaHighlightState: SeaHighlightState = $derived.by(() => {
+        return deriveSeaHighlightState({
+            boardPreviewSeaAreaIds: boardSpotlightState.seaOverlayAreaIds,
+            activeAreaInteractionAction: activeAreaInteraction?.action ?? null,
+            activeAreaInteractionMaskedAreaType: activeAreaInteraction?.maskedAreaType ?? null,
+            interactiveValidAreaIds,
+            hasHoveredRoutePreview,
+            hasVisibleCompanySpotlightPreview,
+            hasHoveredCityReferenceCardSpotlight
+        })
     })
 
     const allowHoveredCityReferenceCardSpotlight: boolean = $derived.by(
@@ -893,8 +887,7 @@
             }
 
             await gameSession.startCompany(selectedStartCompanyDeedId, areaId)
-            gameSession.setHoveredAvailableDeed(undefined)
-            selectedStartCompanyDeedId = null
+            gameSession.setSelectedStartCompanyDeed(undefined)
         } finally {
             applyingAreaAction = false
         }
@@ -904,8 +897,8 @@
         if (!startCompanySelectionEnabled || applyingAreaAction) {
             return
         }
-        selectedStartCompanyDeedId = deedId
-        gameSession.setHoveredAvailableDeed(deedId)
+        gameSession.setHoveredAvailableDeed(undefined)
+        gameSession.setSelectedStartCompanyDeed(deedId)
         hoveredAreaId = null
     }
 </script>
@@ -961,16 +954,6 @@
                 mask={`url(#${PRODUCTION_HOVER_SPOTLIGHT_MASK_ID})`}
                 pointer-events="none"
             />
-
-            {#each boardSpotlightState.seaOverlayAreaIds as areaId (areaId)}
-                <Area
-                    areaId={areaId}
-                    fill={SEA_HIGHLIGHT_FILL}
-                    stroke="none"
-                    fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
-                    pointer-events="none"
-                />
-            {/each}
 
             {#each boardSpotlightState.outlinedLandAreaIds as areaId (areaId)}
                 <Area
@@ -1075,15 +1058,7 @@
                 !hasHoveredRoutePreview &&
                 !hasVisibleCompanySpotlightPreview}
                 {#each interactiveValidAreaIds as areaId (areaId)}
-                    {#if isShippingExpansionInteraction}
-                        <Area
-                            areaId={areaId}
-                            fill={SEA_HIGHLIGHT_FILL}
-                            stroke="none"
-                            fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
-                            pointer-events="none"
-                        />
-                    {:else}
+                    {#if activeAreaInteraction.maskedAreaType !== IndonesiaAreaType.Sea}
                         <Area
                             areaId={areaId}
                             fill="none"
@@ -1109,6 +1084,16 @@
                     {/if}
                 {/each}
             {/if}
+
+            {#each seaHighlightState.areaIds as areaId (areaId)}
+                <Area
+                    areaId={areaId}
+                    fill={SEA_HIGHLIGHT_FILL}
+                    stroke="none"
+                    fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
+                    pointer-events="none"
+                />
+            {/each}
 
             {#if !hasHoveredCityReferenceCardSpotlight &&
                 activeAreaInteraction.action === 'place-city' &&
@@ -1349,19 +1334,16 @@
                     cursor={applyingAreaAction ? 'default' : 'pointer'}
                     onmouseenter={() => {
                         hoveredStartCompanyDeedId = deed.deedId
-                        gameSession.setHoveredAvailableDeed(deed.deedId)
+                        if (!selectedStartCompanyDeedId) {
+                            gameSession.setHoveredAvailableDeed(deed.deedId)
+                        }
                     }}
                     onmouseleave={() => {
                         if (hoveredStartCompanyDeedId === deed.deedId) {
                             hoveredStartCompanyDeedId = null
                         }
-                        if (
-                            gameSession.hoveredAvailableDeedId === deed.deedId &&
-                            selectedStartCompanyDeedId !== deed.deedId
-                        ) {
-                            gameSession.setHoveredAvailableDeed(
-                                selectedStartCompanyDeedId ?? undefined
-                            )
+                        if (!selectedStartCompanyDeedId && gameSession.hoveredAvailableDeedId === deed.deedId) {
+                            gameSession.setHoveredAvailableDeed(undefined)
                         }
                     }}
                     onpointerdown={() => {
