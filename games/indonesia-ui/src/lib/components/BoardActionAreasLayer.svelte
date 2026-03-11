@@ -108,6 +108,16 @@
         ry: number
     }
 
+    type BoardSpotlightState = {
+        source: 'none' | 'general' | 'city-reference-card'
+        exemptAreaIds: readonly string[]
+        seaOverlayAreaIds: readonly string[]
+        outlinedLandAreaIds: readonly string[]
+        deedCardMaskRect: SpotlightMaskRect | null
+        cityReferenceCardMaskRect: SpotlightMaskRect | null
+        highlightedProductionZoneMarkers: readonly HoveredProductionZoneMarker[]
+    }
+
     function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
         ships: string[]
     } {
@@ -739,30 +749,60 @@
         return dimmedAreaIds
     })
 
-    const spotlightMaskExemptAreaIds: readonly string[] = $derived.by(() => {
-        if (gameSession.cityReferenceCardPreviewWins) {
-            return hoveredCityReferenceCardOverlayAreaIds
+    const boardSpotlightState: BoardSpotlightState = $derived.by(() => {
+        if (hoveredCityReferenceCardOverlayAreaIds.length > 0) {
+            return {
+                source: 'city-reference-card',
+                exemptAreaIds: hoveredCityReferenceCardOverlayAreaIds,
+                seaOverlayAreaIds: [],
+                outlinedLandAreaIds: hoveredCityReferenceCardOverlayAreaIds,
+                deedCardMaskRect: null,
+                cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
+                highlightedProductionZoneMarkers: []
+            }
         }
 
-        return [
+        const exemptAreaIds = [
             ...new Set([
                 ...hoveredCompanySpotlightAreaIds,
-                ...hoveredAvailableDeedOverlayAreaIds,
-                ...hoveredCityReferenceCardOverlayAreaIds
+                ...hoveredAvailableDeedOverlayAreaIds
             ])
         ].sort((left, right) => left.localeCompare(right))
+
+        if (exemptAreaIds.length === 0) {
+            return {
+                source: 'none',
+                exemptAreaIds: [],
+                seaOverlayAreaIds: [],
+                outlinedLandAreaIds: [],
+                deedCardMaskRect: null,
+                cityReferenceCardMaskRect: null,
+                highlightedProductionZoneMarkers: []
+            }
+        }
+
+        return {
+            source: 'general',
+            exemptAreaIds,
+            seaOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
+            outlinedLandAreaIds: [
+                ...new Set([
+                    ...hoveredProductionCompanyAreaIds,
+                    ...hoveredAvailableDeedOutlinedAreaIds
+                ])
+            ].sort((left, right) => left.localeCompare(right)),
+            deedCardMaskRect: hoveredAvailableDeedCardMaskRect,
+            cityReferenceCardMaskRect: null,
+            highlightedProductionZoneMarkers: hoveredProductionZoneMarkers
+        }
     })
 
-    const shouldRenderBoardSpotlightMask: boolean = $derived.by(() => {
-        return (
-            hoveredCompanySpotlightAreaIds.length > 0 ||
-            hoveredAvailableDeedOverlayAreaIds.length > 0 ||
-            hoveredCityReferenceCardOverlayAreaIds.length > 0
-        )
-    })
+    const shouldRenderBoardSpotlightMask: boolean = $derived.by(
+        () => boardSpotlightState.source !== 'none'
+    )
 
     const hasHoveredCityReferenceCardSpotlight: boolean = $derived.by(
-        () => gameSession.cityReferenceCardPreviewWins && hoveredCityReferenceCardOverlayAreaIds.length > 0
+        () => boardSpotlightState.source === 'city-reference-card'
     )
 
     const isShippingExpansionInteraction: boolean = $derived.by(() => {
@@ -1158,29 +1198,29 @@
             <defs>
                 <mask id={PRODUCTION_HOVER_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
                     <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
-                    {#each spotlightMaskExemptAreaIds as areaId (areaId)}
+                    {#each boardSpotlightState.exemptAreaIds as areaId (areaId)}
                         <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
                     {/each}
-                    {#if hoveredAvailableDeedCardMaskRect && !hasHoveredCityReferenceCardSpotlight}
+                    {#if boardSpotlightState.deedCardMaskRect}
                         <rect
-                            x={hoveredAvailableDeedCardMaskRect.x}
-                            y={hoveredAvailableDeedCardMaskRect.y}
-                            width={hoveredAvailableDeedCardMaskRect.width}
-                            height={hoveredAvailableDeedCardMaskRect.height}
-                            rx={hoveredAvailableDeedCardMaskRect.rx}
-                            ry={hoveredAvailableDeedCardMaskRect.ry}
+                            x={boardSpotlightState.deedCardMaskRect.x}
+                            y={boardSpotlightState.deedCardMaskRect.y}
+                            width={boardSpotlightState.deedCardMaskRect.width}
+                            height={boardSpotlightState.deedCardMaskRect.height}
+                            rx={boardSpotlightState.deedCardMaskRect.rx}
+                            ry={boardSpotlightState.deedCardMaskRect.ry}
                             fill="#000000"
                             pointer-events="none"
                         />
                     {/if}
-                    {#if hoveredCityReferenceCardMaskRect}
+                    {#if boardSpotlightState.cityReferenceCardMaskRect}
                         <rect
-                            x={hoveredCityReferenceCardMaskRect.x}
-                            y={hoveredCityReferenceCardMaskRect.y}
-                            width={hoveredCityReferenceCardMaskRect.width}
-                            height={hoveredCityReferenceCardMaskRect.height}
-                            rx={hoveredCityReferenceCardMaskRect.rx}
-                            ry={hoveredCityReferenceCardMaskRect.ry}
+                            x={boardSpotlightState.cityReferenceCardMaskRect.x}
+                            y={boardSpotlightState.cityReferenceCardMaskRect.y}
+                            width={boardSpotlightState.cityReferenceCardMaskRect.width}
+                            height={boardSpotlightState.cityReferenceCardMaskRect.height}
+                            rx={boardSpotlightState.cityReferenceCardMaskRect.rx}
+                            ry={boardSpotlightState.cityReferenceCardMaskRect.ry}
                             fill="#000000"
                             pointer-events="none"
                         />
@@ -1199,69 +1239,17 @@
                 pointer-events="none"
             />
 
-            {#if !hasHoveredCityReferenceCardSpotlight}
-                {#each hoveredAvailableShippingDeedOverlayAreaIds as areaId (areaId)}
-                    <Area
-                        areaId={areaId}
-                        fill={SEA_HIGHLIGHT_FILL}
-                        stroke="none"
-                        fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
-                        pointer-events="none"
-                    />
-                {/each}
+            {#each boardSpotlightState.seaOverlayAreaIds as areaId (areaId)}
+                <Area
+                    areaId={areaId}
+                    fill={SEA_HIGHLIGHT_FILL}
+                    stroke="none"
+                    fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
+                    pointer-events="none"
+                />
+            {/each}
 
-                {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
-                    <Area
-                        areaId={areaId}
-                        fill="none"
-                        stroke="#fff8d7"
-                        fillOpacity="0"
-                        strokeWidth="7.2"
-                        strokeLineJoin="round"
-                        strokeLineCap="round"
-                        opacity="0.9"
-                        pointer-events="none"
-                    />
-                    <Area
-                        areaId={areaId}
-                        fill="none"
-                        stroke="#1f2937"
-                        fillOpacity="0"
-                        strokeWidth="2.2"
-                        strokeLineJoin="round"
-                        strokeLineCap="round"
-                        opacity="0.88"
-                        pointer-events="none"
-                    />
-                {/each}
-
-                {#each hoveredAvailableDeedOutlinedAreaIds as areaId (areaId)}
-                    <Area
-                        areaId={areaId}
-                        fill="none"
-                        stroke="#fff8d7"
-                        fillOpacity="0"
-                        strokeWidth="7.2"
-                        strokeLineJoin="round"
-                        strokeLineCap="round"
-                        opacity="0.9"
-                        pointer-events="none"
-                    />
-                    <Area
-                        areaId={areaId}
-                        fill="none"
-                        stroke="#1f2937"
-                        fillOpacity="0"
-                        strokeWidth="2.2"
-                        strokeLineJoin="round"
-                        strokeLineCap="round"
-                        opacity="0.88"
-                        pointer-events="none"
-                    />
-                {/each}
-            {/if}
-
-            {#each hoveredCityReferenceCardOverlayAreaIds as areaId (areaId)}
+            {#each boardSpotlightState.outlinedLandAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
                     fill="none"
@@ -1286,22 +1274,20 @@
                 />
             {/each}
 
-            {#if !hasHoveredCityReferenceCardSpotlight}
-                {#each hoveredProductionZoneMarkers as marker (marker.key)}
-                    <CompanyZoneMarker
-                        x={marker.x}
-                        y={marker.y}
-                        targetX={marker.targetX}
-                        targetY={marker.targetY}
-                        playerColor={marker.ownerColor}
-                        goodType={marker.goodType}
-                        goodsCount={marker.goodsCount}
-                        hatchPatternId={marker.hatchPatternId}
-                        direction={marker.direction}
-                        highlighted={true}
-                    />
-                {/each}
-            {/if}
+            {#each boardSpotlightState.highlightedProductionZoneMarkers as marker (marker.key)}
+                <CompanyZoneMarker
+                    x={marker.x}
+                    y={marker.y}
+                    targetX={marker.targetX}
+                    targetY={marker.targetY}
+                    playerColor={marker.ownerColor}
+                    goodType={marker.goodType}
+                    goodsCount={marker.goodsCount}
+                    hatchPatternId={marker.hatchPatternId}
+                    direction={marker.direction}
+                    highlighted={true}
+                />
+            {/each}
         {/if}
 
         {#if shouldRenderExpansionSelectionSpotlightMask}

@@ -43,6 +43,7 @@ Notes:
 - Current owner: `BoardActionAreasLayer.svelte`
 - Reads: spotlight exempt area ids, deed-card mask rect, city-reference-card mask rect
 - Must not decide: ship emphasis, marker masking, card hover state
+- Contract note: exemption from the mask is separate from visible highlight styling
 
 ### Primitive: expansion spotlight mask
 - Visual: dark board with valid expansion areas punched out
@@ -61,6 +62,7 @@ Notes:
 - Current owner: `BoardActionAreasLayer.svelte` and `BoardDeedsLayer.svelte`
 - Reads: hovered shipping deed sea ids or shipping expansion valid sea ids
 - Must not decide: which ships are emphasized
+- Contract note: sea areas may be exempt from dimming without being visually highlighted; the blue overlay fill is a separate explicit decision
 
 ### Primitive: dual outline
 - Visual: pale outer stroke plus dark inner stroke
