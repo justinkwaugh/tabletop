@@ -123,7 +123,7 @@ Current board layer stack from `Board.svelte`:
 | Layer | Owns | Allowed Inputs | Must Not Own |
 | --- | --- | --- | --- |
 | `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, local spotlight render-state derivation | active area interaction, `activeBoardPreview`, route preview area ids, `boardSpotlightProductionCompanyIds`, `boardSpotlightShippingCompanyIds` | ship emphasis logic, marker muting logic, card component styling |
-| `BoardShipsLayer` | ship rendering and ship emphasis | `highlightedShipCompanyIds`, route preview ship filter | board masks, sea overlay ownership |
+| `BoardShipsLayer` | ship rendering and ship emphasis | `activeShipVisualState` | board masks, sea overlay ownership |
 | `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | `boardSpotlightProductionCompanyIds`, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
 | `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, `hoveredCompanyPreviewCompanyIds` for deed dimming | board-wide spotlight ownership |
 | `BoardCultivatedAreasLayer` | cultivated area fill and hatch rendering | board company occupancy, render style, hatch assignment | any hover/selection dimming policy |
@@ -192,7 +192,7 @@ Current board layer stack from `Board.svelte`:
 ### `highlightedShipCompanyIds`
 - Meaning: shipping companies whose ship pieces should render emphasized
 - Producer: `IndonesiaGameSession`
-- Consumers: `BoardShipsLayer`
+- Consumers: compatibility subset of `activeShipVisualState`
 - Permitted uses:
   - shipping company hover ship emphasis
   - operating shipping company emphasis during sea expansion
@@ -201,6 +201,19 @@ Current board layer stack from `Board.svelte`:
   - sea overlay ownership
   - production marker masking
 - Refactor note: this was split out so ship emphasis no longer has to be inferred from the board spotlight state
+
+### `activeShipVisualState`
+- Meaning: normalized ship-emphasis state after precedence rules are applied
+- Producer: `IndonesiaGameSession`
+- Consumers: `BoardShipsLayer`
+- Permitted uses:
+  - route-preview ship filtering
+  - shipping company hover ship emphasis
+  - operating shipping company emphasis during sea expansion
+- Forbidden uses:
+  - board masks
+  - sea overlay ownership
+  - board spotlight sourcing
 
 ### `hoveredAvailableDeedId`
 - Meaning: currently hovered available deed card
@@ -343,6 +356,7 @@ Current board layer stack from `Board.svelte`:
 - Do not reuse `boardSpotlightCompanyIds` to drive local ship emphasis for shipping expansion.
 - Do not reuse ship emphasis state to turn on board dimming.
 - Do not let `BoardShipsLayer` become a producer of board spotlight state.
+- Do not let `BoardShipsLayer` recompute route-preview-vs-company-spotlight precedence from lower-level signals when `activeShipVisualState` already encodes it.
 - Do not let city-reference-card preview suppress a real in-progress action interaction unless the conflict rule explicitly says it wins.
 - Do not treat sea overlay visibility as interchangeable with sea exemption from the mask.
 - Do not treat "selected deed" as merely "hovered deed that persists"; selected-state visuals and hover preview are separate concepts.
@@ -434,5 +448,8 @@ These are the highest-risk couplings to separate in later work:
 4. Narrow start-company selected deed state.
    Current smell: partially reduced; `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, and `activeDeedPreviewId` are now separate, but some deed-layer render naming still reflects the older combined hover path.
 
-5. Move toward explicit interaction-mode naming.
+5. Normalize ship visual intent.
+   Current smell: reduced; ship emphasis precedence now derives centrally in `activeShipVisualState`, but compatibility state like `highlightedShipCompanyIds` still exists for transition clarity.
+
+6. Move toward explicit interaction-mode naming.
    Current smell: broad shared state names hide whether the effect is board-wide or piece-local.

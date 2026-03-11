@@ -34,30 +34,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
 
-    const activeShipSpotlightCompanyIds: string[] = $derived.by(() => {
-        return gameSession.highlightedShipCompanyIds
-    })
-
-    const activeShipSpotlightCompanyIdSet: ReadonlySet<string> = $derived.by(
-        () => new Set(activeShipSpotlightCompanyIds)
-    )
-
-    const hoveredRouteShipFilter:
-        | {
-              shippingCompanyId: string
-              seaAreaIds: ReadonlySet<string>
-          }
-        | null = $derived.by(() => {
-        const activeRoutePreview = gameSession.activeRoutePreviewVisualState
-        if (activeRoutePreview) {
-            return {
-                shippingCompanyId: activeRoutePreview.shippingCompanyId,
-                seaAreaIds: activeRoutePreview.seaAreaIdSet
-            }
-        }
-
-        return null
-    })
+    const activeShipVisualState = $derived(gameSession.activeShipVisualState)
 
     const styleByShippingCompanyId = $derived.by(() => shippingStyleByCompanyId(gameSession.gameState))
 
@@ -132,38 +109,42 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     })
 
     const dimmedShipMarkers: ShipMarkerEntry[] = $derived.by(() => {
-        if (hoveredRouteShipFilter) {
+        if (activeShipVisualState.source === 'route-preview') {
             return []
         }
-        if (activeShipSpotlightCompanyIdSet.size === 0) {
+        if (activeShipVisualState.source === 'none') {
             return shipMarkers
         }
-        return shipMarkers.filter((ship) => !activeShipSpotlightCompanyIdSet.has(ship.companyId))
+        return shipMarkers.filter(
+            (ship) => !activeShipVisualState.emphasizedCompanyIdSet.has(ship.companyId)
+        )
     })
 
     const emphasizedShipMarkers: ShipMarkerEntry[] = $derived.by(() => {
-        if (hoveredRouteShipFilter) {
+        if (activeShipVisualState.source === 'route-preview') {
             return shipMarkers.filter(
                 (ship) =>
-                    ship.companyId === hoveredRouteShipFilter.shippingCompanyId &&
-                    hoveredRouteShipFilter.seaAreaIds.has(ship.areaId)
+                    ship.companyId === activeShipVisualState.shippingCompanyId &&
+                    activeShipVisualState.seaAreaIdSet.has(ship.areaId)
             )
         }
-        if (activeShipSpotlightCompanyIdSet.size === 0) {
+        if (activeShipVisualState.source === 'none') {
             return []
         }
-        return shipMarkers.filter((ship) => activeShipSpotlightCompanyIdSet.has(ship.companyId))
+        return shipMarkers.filter((ship) =>
+            activeShipVisualState.emphasizedCompanyIdSet.has(ship.companyId)
+        )
     })
 
     const shouldRenderEmphasizedShips: boolean = $derived.by(() => {
-        return hoveredRouteShipFilter !== null || activeShipSpotlightCompanyIdSet.size > 0
+        return activeShipVisualState.source !== 'none'
     })
 
 </script>
 
 <g class="pointer-events-none select-none" aria-label="Ships layer">
     {#each dimmedShipMarkers as ship (ship.key)}
-        <g opacity={activeShipSpotlightCompanyIdSet.size > 0 ? DIMMED_SHIP_OPACITY : 1}>
+        <g opacity={activeShipVisualState.source === 'company-spotlight' ? DIMMED_SHIP_OPACITY : 1}>
             <ShipMarker
                 x={ship.x}
                 y={ship.y}

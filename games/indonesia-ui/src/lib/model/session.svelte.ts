@@ -71,6 +71,22 @@ type ActiveRoutePreviewVisualState = HoveredRoutePreviewState & {
     dimmedLandAreaIdSet: ReadonlySet<string>
 }
 
+type ActiveShipVisualState =
+    | {
+          source: 'none'
+      }
+    | {
+          source: 'company-spotlight'
+          emphasizedCompanyIds: string[]
+          emphasizedCompanyIdSet: ReadonlySet<string>
+      }
+    | {
+          source: 'route-preview'
+          shippingCompanyId: string
+          seaAreaIds: string[]
+          seaAreaIdSet: ReadonlySet<string>
+      }
+
 type BoardPreviewIntent =
     | {
           source: 'none'
@@ -279,24 +295,50 @@ export class IndonesiaGameSession extends GameSession<
         return this.uniqueValidShippingCompanyIds(this.hoveredCompanyPreviewCompanyIds)
     })
 
-    highlightedShipCompanyIds: string[] = $derived.by(() => {
+    activeShipVisualState: ActiveShipVisualState = $derived.by(() => {
         if (this.suppressBoardEffectsForHistory || this.cityReferenceCardPreviewWins) {
+            return {
+                source: 'none'
+            }
+        }
+
+        const activeRoutePreview = this.activeRoutePreviewVisualState
+        if (activeRoutePreview) {
+            return {
+                source: 'route-preview',
+                shippingCompanyId: activeRoutePreview.shippingCompanyId,
+                seaAreaIds: [...activeRoutePreview.seaAreaIds],
+                seaAreaIdSet: new Set(activeRoutePreview.seaAreaIds)
+            }
+        }
+
+        const emphasizedCompanyIds =
+            this.hoveredShippingPreviewCompanyIds.length > 0
+                ? this.hoveredShippingPreviewCompanyIds
+                : this.gameState.machineState === MachineState.ShippingOperations &&
+                    this.validActionTypes.includes(ActionType.Expand) &&
+                    this.gameState.operatingCompanyId
+                  ? this.uniqueValidShippingCompanyIds([this.gameState.operatingCompanyId])
+                  : []
+
+        if (emphasizedCompanyIds.length === 0) {
+            return {
+                source: 'none'
+            }
+        }
+
+        return {
+            source: 'company-spotlight',
+            emphasizedCompanyIds,
+            emphasizedCompanyIdSet: new Set(emphasizedCompanyIds)
+        }
+    })
+
+    highlightedShipCompanyIds: string[] = $derived.by(() => {
+        if (this.activeShipVisualState.source !== 'company-spotlight') {
             return []
         }
-
-        if (this.hoveredShippingPreviewCompanyIds.length > 0) {
-            return this.hoveredShippingPreviewCompanyIds
-        }
-
-        if (
-            this.gameState.machineState === MachineState.ShippingOperations &&
-            this.validActionTypes.includes(ActionType.Expand) &&
-            this.gameState.operatingCompanyId
-        ) {
-            return this.uniqueValidShippingCompanyIds([this.gameState.operatingCompanyId])
-        }
-
-        return []
+        return this.activeShipVisualState.emphasizedCompanyIds
     })
 
     selectedStartCompanyDeedId: string | null = $derived.by(() => {
