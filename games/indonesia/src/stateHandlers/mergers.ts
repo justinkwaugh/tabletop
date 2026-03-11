@@ -302,6 +302,10 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
         state: HydratedIndonesiaGameState,
         context: MachineContext<HydratedIndonesiaGameState>
     ): void {
+        if (HydratedMergeCompanies.canMergeCompanies(state) || this.hasPendingMergeCompanies(context)) {
+            return
+        }
+
         const currentBidderId = state.mergerCurrentBidderId
         if (!currentBidderId || !state.activeMergerProposal || !state.activeMergerAuction) {
             return

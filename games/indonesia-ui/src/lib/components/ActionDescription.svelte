@@ -645,6 +645,18 @@
         )
     }
 
+    function shippingOperationCouldNotExpand(action: GameAction): boolean {
+        return aggregatedPassActions(action).some(
+            (passAction) => passAction.reason === PassReason.SkipShippingExpansion
+        )
+    }
+
+    function shippingOperationChoseNotToExpand(action: GameAction): boolean {
+        return aggregatedPassActions(action).some(
+            (passAction) => passAction.reason === PassReason.FinishOptionalShippingExpansion
+        )
+    }
+
     function productionOperationSkippedExpansion(action: GameAction): boolean {
         return aggregatedPassActions(action).some(
             (passAction) => passAction.reason === PassReason.FinishOptionalProductionExpansion
@@ -744,6 +756,8 @@
             {@const chooseAction = aggregatedChooseOperatingCompanyAction(action)}
             {@const operationInProgress = operationSummaryIsInProgress(action)}
             {@const skippedExpansion = operationSummaryHasSkipExpandPass(action)}
+            {@const shippingCouldNotExpand = shippingOperationCouldNotExpand(action)}
+            {@const shippingChoseNotToExpand = shippingOperationChoseNotToExpand(action)}
             <span class={`inline-flex flex-col gap-1 text-left align-top ${operationSummaryAlignClass}`}>
                 {#if chooseAction?.metadata?.companyType === CompanyType.Shipping}
                     <span>
@@ -753,7 +767,9 @@
                         shipping company
                         {#if action.count > 0}
                             expanded into {action.count} {action.count === 1 ? 'area' : 'areas'}
-                        {:else if skippedExpansion || !operationInProgress}
+                        {:else if shippingCouldNotExpand}
+                            could not expand
+                        {:else if shippingChoseNotToExpand || !operationInProgress}
                             chose not to expand
                         {:else}
                             began operating

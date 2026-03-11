@@ -42,6 +42,8 @@
     const DELIVERY_ZONE_OUTLINE_MASK_ID = 'delivery-zone-outline-mask'
     const DELIVERY_ZONE_INNER_OUTLINE_MASK_ID = 'delivery-zone-inner-outline-mask'
     const DELIVERY_ZONE_HOVER_OUTLINE_MASK_ID = 'delivery-zone-hover-outline-mask'
+    const SEA_HIGHLIGHT_FILL = '#93c5fd'
+    const SEA_HIGHLIGHT_FILL_OPACITY = 0.38
 
     type AreaInteractionAction =
         | 'place-city'
@@ -759,6 +761,13 @@
         return hoveredCityReferenceCardOverlayAreaIds.length > 0
     })
 
+    const isShippingExpansionInteraction: boolean = $derived.by(() => {
+        return (
+            activeAreaInteraction?.action === 'expand' &&
+            activeAreaInteraction.maskedAreaType === IndonesiaAreaType.Sea
+        )
+    })
+
     const shouldRenderExpansionSelectionSpotlightMask: boolean = $derived.by(() => {
         return (
             activeAreaInteraction?.action === 'expand' &&
@@ -823,6 +832,19 @@
 
         return hoveredAvailableDeedOverlayAreaIds
     })
+    const hoveredAvailableShippingDeedOverlayAreaIds: readonly string[] = $derived.by(() => {
+        const hoveredDeedId = spotlightedAvailableDeedId
+        if (!hoveredDeedId) {
+            return []
+        }
+
+        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === hoveredDeedId)
+        if (!deed || deed.type !== CompanyType.Shipping) {
+            return []
+        }
+
+        return hoveredAvailableDeedOverlayAreaIds
+    })
     const hoveredAvailableDeedCardMaskRect: SpotlightMaskRect | null = $derived.by(() => {
         const hoveredDeedId = spotlightedAvailableDeedId
         if (!hoveredDeedId) {
@@ -851,7 +873,15 @@
         }
     })
 
+    const allowHoveredCityReferenceCardSpotlight: boolean = $derived.by(() => {
+        return !activeAreaInteraction && !startCompanySelectionEnabled && !hasHoveredRoutePreview
+    })
+
     const hoveredCityReferenceCardOverlayAreaIds: readonly string[] = $derived.by(() => {
+        if (!allowHoveredCityReferenceCardSpotlight) {
+            return []
+        }
+
         const cityCard = gameSession.hoveredPlayerCityReferenceCard
         if (!cityCard) {
             return []
@@ -878,6 +908,10 @@
     })
 
     const hoveredCityReferenceCardMaskRect: SpotlightMaskRect | null = $derived.by(() => {
+        if (!allowHoveredCityReferenceCardSpotlight) {
+            return null
+        }
+
         const cityCard = gameSession.hoveredPlayerCityReferenceCard
         if (!cityCard) {
             return null
@@ -1160,6 +1194,16 @@
                 pointer-events="none"
             />
 
+            {#each hoveredAvailableShippingDeedOverlayAreaIds as areaId (areaId)}
+                <Area
+                    areaId={areaId}
+                    fill={SEA_HIGHLIGHT_FILL}
+                    stroke="none"
+                    fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
+                    pointer-events="none"
+                />
+            {/each}
+
             {#each hoveredProductionCompanyAreaIds as areaId (areaId)}
                 <Area
                     areaId={areaId}
@@ -1312,28 +1356,38 @@
                 !hasHoveredRoutePreview &&
                 !hasActiveCompanySpotlight}
                 {#each interactiveValidAreaIds as areaId (areaId)}
-                    <Area
-                        areaId={areaId}
-                        fill="none"
-                        stroke="#fff8d7"
-                        fillOpacity="0"
-                        strokeWidth="6.2"
-                        strokeLineJoin="round"
-                        strokeLineCap="round"
-                        opacity="0.9"
-                        pointer-events="none"
-                    />
-                    <Area
-                        areaId={areaId}
-                        fill="none"
-                        stroke="#1f2937"
-                        fillOpacity="0"
-                        strokeWidth="2.1"
-                        strokeLineJoin="round"
-                        strokeLineCap="round"
-                        opacity="0.88"
-                        pointer-events="none"
-                    />
+                    {#if isShippingExpansionInteraction}
+                        <Area
+                            areaId={areaId}
+                            fill={SEA_HIGHLIGHT_FILL}
+                            stroke="none"
+                            fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
+                            pointer-events="none"
+                        />
+                    {:else}
+                        <Area
+                            areaId={areaId}
+                            fill="none"
+                            stroke="#fff8d7"
+                            fillOpacity="0"
+                            strokeWidth="6.2"
+                            strokeLineJoin="round"
+                            strokeLineCap="round"
+                            opacity="0.9"
+                            pointer-events="none"
+                        />
+                        <Area
+                            areaId={areaId}
+                            fill="none"
+                            stroke="#1f2937"
+                            fillOpacity="0"
+                            strokeWidth="2.1"
+                            strokeLineJoin="round"
+                            strokeLineCap="round"
+                            opacity="0.88"
+                            pointer-events="none"
+                        />
+                    {/if}
                 {/each}
             {/if}
 

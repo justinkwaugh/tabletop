@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { nextMergerBidderId } from '../operations/mergers.js'
+import { activeAuctionParticipantCount, nextMergerBidderId } from '../operations/mergers.js'
 
 export type PassMergerBidMetadata = Type.Static<typeof PassMergerBidMetadata>
 export const PassMergerBidMetadata = Type.Object({})
@@ -73,6 +73,10 @@ export class HydratedPassMergerBid
             return false
         }
 
+        if (activeAuctionParticipantCount(auction) <= 1) {
+            return false
+        }
+
         if (auction.highBid === undefined) {
             return false
         }
@@ -86,6 +90,9 @@ export class HydratedPassMergerBid
         }
         const auction = state.activeMergerAuction
         if (!auction) {
+            return false
+        }
+        if (activeAuctionParticipantCount(auction) <= 1) {
             return false
         }
 
