@@ -58,7 +58,9 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 - Use one solve for one operating company/good type context at a time against current phase demand/capacity state.
 - Preferred solver formulation:
   - **max-flow** for mandatory maximum-delivery calculation;
-  - **min-cost max-flow** with **minimum shipping cost** as tie-break policy.
+  - **min-cost max-flow** with lexicographic tie-breaks:
+    1. minimize **non-owned shipping cost** (maximize operating-player net income)
+    2. among equal-income solutions, minimize **total shipping cost**
 - Inputs and constraints that must be encoded:
   - source supply per production zone (goods currently cultivated by operating company);
   - city sink demand per good (remaining demand this operations phase; demand does not refresh per producer);
@@ -99,7 +101,9 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 1. Production revenue table is codified in `definition/operationsEconomy.ts`.
 2. `city.demand` semantics are codified as **delivered-so-far in current operations phase**.
 3. City demand is reset at **operations phase entry**.
-4. Tie-break policy target is codified as **minimum shipping cost**.
+4. Tie-break policy is codified as:
+   - first minimize **non-owned shipping cost** (maximize operating-player net income)
+   - then minimize **total shipping cost**.
 
 #### DeliverGood Remaining Open Items Before Full Implementation
 
