@@ -16,6 +16,20 @@
         BOARD_DEED_CARD_HEIGHT,
         BOARD_DEED_CARD_WIDTH
     } from '$lib/definitions/companyDeedGeometry.js'
+    import {
+        deriveBoardSpotlightState,
+        type BoardSpotlightState,
+        type SpotlightMaskRect
+    } from '$lib/components/boardActionAreas/boardSpotlight.js'
+    import {
+        deliverySelectableAreaIds as deriveDeliverySelectableAreaIds,
+        deliveryZoneByAreaId as buildDeliveryZoneByAreaId,
+        deliveryZoneByKey as buildDeliveryZoneByKey,
+        deriveDeliverySelectableZoneMarkers,
+        deriveDeliverySelectableZones,
+        type DeliverySelectableZone,
+        type DeliverySelectableZoneMarker
+    } from '$lib/components/boardActionAreas/deliveryZones.js'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { deedPositionLookupKeys } from '$lib/utils/deeds.js'
@@ -28,8 +42,6 @@
         HydratedPlaceCity,
         HydratedStartCompany,
         IndonesiaAreaType,
-        IndonesiaNeighborDirection,
-        isIndonesiaNodeId,
         MachineState
     } from '@tabletop/indonesia'
 
@@ -83,39 +95,6 @@
         goodsCount: number
         hatchPatternId: string | null
         direction: MarkerDirection
-    }
-
-    type DeliverySelectableZone = {
-        key: string
-        companyId: string
-        allAreaIds: readonly string[]
-        remainingAreaIds: readonly string[]
-    }
-
-    type DeliverySelectableZoneMarker = {
-        key: string
-        zoneKey: string
-        x: number
-        y: number
-    }
-
-    type SpotlightMaskRect = {
-        x: number
-        y: number
-        width: number
-        height: number
-        rx: number
-        ry: number
-    }
-
-    type BoardSpotlightState = {
-        source: 'none' | 'general' | 'city-reference-card'
-        exemptAreaIds: readonly string[]
-        seaOverlayAreaIds: readonly string[]
-        outlinedLandAreaIds: readonly string[]
-        deedCardMaskRect: SpotlightMaskRect | null
-        cityReferenceCardMaskRect: SpotlightMaskRect | null
-        highlightedProductionZoneMarkers: readonly HoveredProductionZoneMarker[]
     }
 
     function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
@@ -250,131 +229,32 @@
     const deliverySelectionEnabled: boolean = $derived.by(() => gameSession.deliverySelectionEnabled)
 
     const deliverySelectableZones: DeliverySelectableZone[] = $derived.by(() => {
-        if (
-            !myPlayerId ||
-            !deliverySelectionEnabled ||
-            gameSession.deliverySelectionStage !== 'cultivated'
-        ) {
-            return []
-        }
-
-        const operatingCompanyId = gameSession.gameState.operatingCompanyId
-        if (!operatingCompanyId) {
-            return []
-        }
-
         const operatingCompany = gameSession.gameState.companies.find(
-            (company) => company.id === operatingCompanyId
+            (company) => company.id === gameSession.gameState.operatingCompanyId
         )
-        if (!operatingCompany || operatingCompany.type !== CompanyType.Production) {
-            return []
-        }
 
-        const companyAreaIds = Object.values(gameSession.gameState.board.areas)
-            .filter((area) => 'companyId' in area && area.companyId === operatingCompanyId)
-            .map((area) => area.id)
-            .filter((areaId) => !!boardAreaPathById(areaId))
-            .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
-
-        if (companyAreaIds.length === 0) {
-            return []
-        }
-
-        const companyAreaIdSet = new Set(companyAreaIds)
-        const remainingDeliverableAreaIdSet = new Set(gameSession.deliveryAvailableCultivatedAreaIds)
-        const unvisited = [...companyAreaIds]
-        const zones: DeliverySelectableZone[] = []
-
-        while (unvisited.length > 0) {
-            const seedAreaId = unvisited.shift()
-            if (!seedAreaId) {
-                continue
-            }
-
-            const queue: string[] = [seedAreaId]
-            const zoneAreaIds: string[] = []
-            companyAreaIdSet.delete(seedAreaId)
-
-            while (queue.length > 0) {
-                const currentAreaId = queue.shift()
-                if (!currentAreaId) {
-                    continue
-                }
-
-                zoneAreaIds.push(currentAreaId)
-                if (!isIndonesiaNodeId(currentAreaId)) {
-                    continue
-                }
-                const currentNode = gameSession.gameState.board.graph.nodeById(currentAreaId)
-                if (!currentNode) {
-                    continue
-                }
-
-                for (const neighborNode of gameSession.gameState.board.graph.neighborsOf(
-                    currentNode,
-                    IndonesiaNeighborDirection.Land
-                )) {
-                    if (!companyAreaIdSet.has(neighborNode.id)) {
-                        continue
-                    }
-
-                    companyAreaIdSet.delete(neighborNode.id)
-                    queue.push(neighborNode.id)
-                    const remainingIndex = unvisited.indexOf(neighborNode.id)
-                    if (remainingIndex >= 0) {
-                        unvisited.splice(remainingIndex, 1)
-                    }
-                }
-            }
-
-            zoneAreaIds.sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
-            const remainingAreaIds = zoneAreaIds.filter((areaId) =>
-                remainingDeliverableAreaIdSet.has(areaId)
-            )
-            if (remainingAreaIds.length === 0) {
-                continue
-            }
-
-            zones.push({
-                key: zoneAreaIds[0] ?? `zone-${zones.length}`,
-                companyId: operatingCompanyId,
-                allAreaIds: zoneAreaIds,
-                remainingAreaIds
-            })
-        }
-
-        return zones.sort((left, right) =>
-            left.key.localeCompare(right.key, undefined, { numeric: true })
-        )
+        return deriveDeliverySelectableZones({
+            enabled: !!myPlayerId && deliverySelectionEnabled,
+            deliverySelectionStage: gameSession.deliverySelectionStage,
+            operatingCompanyId: gameSession.gameState.operatingCompanyId ?? null,
+            operatingCompanyType: operatingCompany?.type ?? null,
+            boardAreas: gameSession.gameState.board.areas,
+            boardGraph: gameSession.gameState.board.graph,
+            isVisibleAreaId: (areaId) => !!boardAreaPathById(areaId),
+            deliveryAvailableCultivatedAreaIds: gameSession.deliveryAvailableCultivatedAreaIds
+        })
     })
 
     const deliverySelectableAreaIds: readonly string[] = $derived.by(() => {
-        if (deliverySelectableZones.length === 0) {
-            return []
-        }
-
-        const areaIds = new Set<string>()
-        for (const zone of deliverySelectableZones) {
-            for (const areaId of zone.allAreaIds) {
-                areaIds.add(areaId)
-            }
-        }
-
-        return [...areaIds].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+        return deriveDeliverySelectableAreaIds(deliverySelectableZones)
     })
 
     const deliveryZoneByAreaId: Map<string, DeliverySelectableZone> = $derived.by(() => {
-        const byAreaId = new Map<string, DeliverySelectableZone>()
-        for (const zone of deliverySelectableZones) {
-            for (const areaId of zone.allAreaIds) {
-                byAreaId.set(areaId, zone)
-            }
-        }
-        return byAreaId
+        return buildDeliveryZoneByAreaId(deliverySelectableZones)
     })
 
     const deliveryZoneByKey: Map<string, DeliverySelectableZone> = $derived.by(() => {
-        return new Map(deliverySelectableZones.map((zone) => [zone.key, zone]))
+        return buildDeliveryZoneByKey(deliverySelectableZones)
     })
 
     $effect(() => {
@@ -739,58 +619,19 @@
         return dimmedAreaIds
     })
 
-    const boardSpotlightState: BoardSpotlightState = $derived.by(() => {
-        if (
-            gameSession.activeBoardPreview.source === 'city-reference-card' &&
-            hoveredCityReferenceCardOverlayAreaIds.length > 0
-        ) {
-            return {
-                source: 'city-reference-card',
-                exemptAreaIds: hoveredCityReferenceCardOverlayAreaIds,
-                seaOverlayAreaIds: [],
-                outlinedLandAreaIds: hoveredCityReferenceCardOverlayAreaIds,
-                deedCardMaskRect: null,
-                cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
-                highlightedProductionZoneMarkers: []
-            }
-        }
-
-        if (gameSession.activeBoardPreview.source === 'company') {
-            return {
-                source: 'general',
-                exemptAreaIds: hoveredCompanySpotlightAreaIds,
-                seaOverlayAreaIds: [],
-                outlinedLandAreaIds: spotlightedProductionCompanyAreaIds,
-                deedCardMaskRect: null,
-                cityReferenceCardMaskRect: null,
-                highlightedProductionZoneMarkers: hoveredProductionZoneMarkers
-            }
-        }
-
-        if (
-            gameSession.activeBoardPreview.source === 'available-deed' &&
-            hoveredAvailableDeedOverlayAreaIds.length > 0
-        ) {
-            return {
-                source: 'general',
-                exemptAreaIds: hoveredAvailableDeedOverlayAreaIds,
-                seaOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
-                outlinedLandAreaIds: hoveredAvailableDeedOutlinedAreaIds,
-                deedCardMaskRect: hoveredAvailableDeedCardMaskRect,
-                cityReferenceCardMaskRect: null,
-                highlightedProductionZoneMarkers: []
-            }
-        }
-
-        return {
-            source: 'none',
-            exemptAreaIds: [],
-            seaOverlayAreaIds: [],
-            outlinedLandAreaIds: [],
-            deedCardMaskRect: null,
-            cityReferenceCardMaskRect: null,
-            highlightedProductionZoneMarkers: []
-        }
+    const boardSpotlightState: BoardSpotlightState<HoveredProductionZoneMarker> = $derived.by(() => {
+        return deriveBoardSpotlightState<HoveredProductionZoneMarker>({
+            previewSource: gameSession.activeBoardPreview.source,
+            cityReferenceCardOverlayAreaIds: hoveredCityReferenceCardOverlayAreaIds,
+            cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
+            companySpotlightAreaIds: hoveredCompanySpotlightAreaIds,
+            productionCompanyAreaIds: spotlightedProductionCompanyAreaIds,
+            productionZoneMarkers: hoveredProductionZoneMarkers,
+            availableDeedOverlayAreaIds: hoveredAvailableDeedOverlayAreaIds,
+            availableShippingDeedOverlayAreaIds: hoveredAvailableShippingDeedOverlayAreaIds,
+            availableDeedOutlinedAreaIds: hoveredAvailableDeedOutlinedAreaIds,
+            availableDeedCardMaskRect: hoveredAvailableDeedCardMaskRect
+        })
     })
 
     const shouldRenderBoardSpotlightMask: boolean = $derived.by(
@@ -1002,47 +843,17 @@
     })
 
     const deliverySelectableZoneMarkers: readonly DeliverySelectableZoneMarker[] = $derived.by(() => {
-        if (
-            activeAreaInteraction?.action !== 'select-delivery-cultivated' ||
-            deliverySelectableZones.length === 0 ||
-            typeof window === 'undefined'
-        ) {
-            return []
-        }
-
-        const selectableZoneKeySet = new Set(deliverySelectableZones.map((zone) => zone.key))
         const markerEntries = (
             window as Window & {
                 __indonesiaProductionZoneMarkerEntries?: HoveredProductionZoneMarker[]
             }
         ).__indonesiaProductionZoneMarkerEntries
-        if (!Array.isArray(markerEntries) || markerEntries.length === 0) {
-            return []
-        }
-
-        const operatingCompanyId = gameSession.gameState.operatingCompanyId
-        if (!operatingCompanyId) {
-            return []
-        }
-
-        return markerEntries
-            .filter((marker) => marker.companyId === operatingCompanyId)
-            .map((marker) => {
-                const zoneAreaIds = [...marker.zoneAreaIds].sort((left, right) =>
-                    left.localeCompare(right, undefined, { numeric: true })
-                )
-                const zoneKey = zoneAreaIds[0]
-                if (!zoneKey || !selectableZoneKeySet.has(zoneKey)) {
-                    return null
-                }
-                return {
-                    key: marker.key,
-                    zoneKey,
-                    x: marker.x,
-                    y: marker.y
-                } satisfies DeliverySelectableZoneMarker
-            })
-            .filter((entry): entry is DeliverySelectableZoneMarker => entry !== null)
+        return deriveDeliverySelectableZoneMarkers({
+            activeAreaInteractionAction: activeAreaInteraction?.action ?? null,
+            deliverySelectableZones,
+            markerEntries: Array.isArray(markerEntries) ? markerEntries : [],
+            operatingCompanyId: gameSession.gameState.operatingCompanyId ?? null
+        })
     })
 
     function selectDeliveryCultivatedZone(
