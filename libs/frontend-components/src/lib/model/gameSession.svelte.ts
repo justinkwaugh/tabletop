@@ -550,7 +550,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.suppressStateChangeActions = false
         this.pendingHistoryAnimationIntent = undefined
 
-        if (historyAnimationIntent === 'none') {
+        if (historyAnimationIntent === 'silent-swap') {
             // Silent history replay setup/restore should swap visible state without any transition noise.
         } else if (oldState && actions.length > 0) {
             // With actions, generate intermediate states and notify for each, giving each their own

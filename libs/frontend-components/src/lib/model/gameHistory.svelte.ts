@@ -2,7 +2,7 @@ import { GameState, RunMode, type GameAction, type HydratedGameState } from '@ta
 import type { GameContext } from './gameContext.svelte.js'
 
 export type StepDirection = 'forward' | 'backward'
-export type HistoryAnimationIntent = 'full-action' | 'state-only' | 'none'
+export type HistoryAnimationIntent = 'full-action' | 'state-only' | 'silent-swap'
 
 export type HistoryEnterCallback = () => void
 export type HistoryActionCallback = (
@@ -326,7 +326,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
 
             await this.gotoAction(normalizedStartIndex - 1, {
                 ensureHistory: true,
-                animationIntent: 'none',
+                animationIntent: 'silent-swap',
                 exact: true
             })
             await this.waitForTransitionSettled()
@@ -341,11 +341,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             await this.waitForTransitionSettled()
 
             if (returnTarget.type === 'live') {
-                this.exitHistory('none')
+                this.exitHistory('silent-swap')
             } else {
                 await this.gotoAction(returnTarget.actionIndex, {
                     ensureHistory: true,
-                    animationIntent: 'none',
+                    animationIntent: 'silent-swap',
                     exact: true
                 })
             }
