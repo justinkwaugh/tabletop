@@ -17,6 +17,13 @@
 
     let gameSession = getGameSession()
     let scrollContainer: HTMLDivElement | undefined = $state()
+    type ReplayUiState = {
+        activeActionId: string
+        frozenActions: GameAction[]
+        frozenScrollTop: number
+        showFinishedMarker: boolean
+    }
+    let replayUiState = $state<ReplayUiState | null>(null)
 
     let reversedActions = $derived.by(() => {
         const aggregated = Array.from(aggregateActions(gameSession.actions))
@@ -28,6 +35,12 @@
             )
         return reversed
     })
+    let displayedActions = $derived(replayUiState ? replayUiState.frozenActions : reversedActions)
+    let showFinishedMarker = $derived(
+        replayUiState
+            ? replayUiState.showFinishedMarker
+            : !!(gameSession.game.finishedAt && !gameSession.isViewingHistory)
+    )
 
     function actionTimeLabel(action: GameAction): string {
         return action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'
@@ -56,7 +69,7 @@
     }
 
     async function jumpToHistoryAction(action: GameAction) {
-        if (!canJumpToHistoryAction(action)) {
+        if (!canJumpToHistoryAction(action) || replayUiState) {
             return
         }
         await gameSession.history.goToActionIndex(action.index as number)
@@ -65,21 +78,48 @@
     }
 
     async function replayHistoryAction(action: GameAction) {
+        if (replayUiState) {
+            return
+        }
+
         const replayRange = replayRangeForAction(action)
         if (!replayRange) {
             return
         }
 
-        await gameSession.history.replayRange(replayRange.startIndex, replayRange.endIndex)
+        const nextReplayUiState: ReplayUiState = {
+            activeActionId: action.id,
+            frozenActions: displayedActions.slice(),
+            frozenScrollTop: scrollContainer?.scrollTop ?? 0,
+            showFinishedMarker
+        }
+        replayUiState = nextReplayUiState
+        await tick()
+        scrollContainer?.scrollTo({ top: nextReplayUiState.frozenScrollTop, behavior: 'auto' })
+
+        try {
+            await gameSession.history.replayRange(replayRange.startIndex, replayRange.endIndex)
+        } finally {
+            replayUiState = null
+            await tick()
+            scrollContainer?.scrollTo({ top: nextReplayUiState.frozenScrollTop, behavior: 'auto' })
+        }
     }
 </script>
 
 <div
-    class="rounded-lg border border-gray-500 text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
+    class="relative rounded-lg border border-gray-500 text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
 >
-    <div class="overflow-auto h-full w-full" bind:this={scrollContainer}>
+    {#if replayUiState}
+        <div
+            class="pointer-events-none absolute right-2 top-2 z-10 rounded border border-gray-600 bg-gray-950/90 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-gray-300"
+        >
+            Previewing action
+        </div>
+    {/if}
+    <div class={`${replayUiState ? 'overflow-hidden' : 'overflow-auto'} h-full w-full`} bind:this={scrollContainer}>
         <Timeline class="ms-2 dark:border-gray-500">
-            {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
+            {#if showFinishedMarker}
                 <div
                     class="absolute w-3 h-3 bg-gray-800 rounded-full mt-1.5 -start-1.5 border dark:border-gray-500 dark:bg-black"
                 ></div>
@@ -87,19 +127,30 @@
                     timeClass="dark:text-gray-400"
                     title=""
                     class="timeline-item text-left mb-5"
-                    date={timeAgo.format(gameSession.game.finishedAt)}
+                    date={timeAgo.format(gameSession.game.finishedAt!)}
                 >
                     <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                         The game has ended.
                     </p>
                 </TimelineItem>
             {/if}
-            {#each reversedActions as action, i (action.id)}
+            {#each displayedActions as action, i (action.id)}
                 <div
                     role="button"
-                    tabindex={canJumpToHistoryAction(action) ? 0 : -1}
+                    tabindex={canJumpToHistoryAction(action) && !replayUiState ? 0 : -1}
+                    aria-disabled={replayUiState ? 'true' : undefined}
+                    class={`rounded-md transition-colors ${
+                        replayUiState?.activeActionId === action.id
+                            ? 'bg-gray-800/70 ring-1 ring-gray-500/80'
+                            : replayUiState
+                              ? 'opacity-60'
+                              : ''
+                    }`}
                     onclick={async () => await replayHistoryAction(action)}
                     onkeydown={async (event) => {
+                        if (replayUiState) {
+                            return
+                        }
                         if (event.key !== 'Enter' && event.key !== ' ') {
                             return
                         }
@@ -124,9 +175,10 @@
                             {#if canJumpToHistoryAction(action)}
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-0 rounded px-0 py-0 text-gray-400 opacity-100 transition-colors hover:bg-gray-700/20 hover:text-gray-200 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/70"
+                                    class="inline-flex items-center gap-0 rounded px-0 py-0 text-gray-400 opacity-100 transition-colors hover:bg-gray-700/20 hover:text-gray-200 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/70 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400"
                                     aria-label="Jump to this action in history"
                                     title="Jump to this action in history"
+                                    disabled={!!replayUiState}
                                     onclick={async (event) => {
                                         event.stopPropagation()
                                         await jumpToHistoryAction(action)

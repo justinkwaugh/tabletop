@@ -326,7 +326,8 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
 
             await this.gotoAction(normalizedStartIndex - 1, {
                 ensureHistory: true,
-                animationIntent: 'none'
+                animationIntent: 'none',
+                exact: true
             })
             await this.waitForTransitionSettled()
             await this.waitMs(holdMs)
@@ -344,7 +345,8 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             } else {
                 await this.gotoAction(returnTarget.actionIndex, {
                     ensureHistory: true,
-                    animationIntent: 'none'
+                    animationIntent: 'none',
+                    exact: true
                 })
             }
             await this.waitForTransitionSettled()
@@ -369,12 +371,14 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         toActionIndex,
         stopPlayback = true,
         predicate,
-        animationIntent = 'state-only'
+        animationIntent = 'state-only',
+        exact = false
     }: {
         toActionIndex?: number
         stopPlayback?: boolean
         predicate?: () => boolean
         animationIntent?: HistoryAnimationIntent
+        exact?: boolean
     } = {}) {
         const perfEnabled = uiPerfInstrumentationEnabled() && typeof performance !== 'undefined'
         const stepStartAt = perfEnabled ? performance.now() : 0
@@ -405,10 +409,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         } while (
             (this.actionIndex >= 0 &&
                 ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
-                    this.shouldAutoStepAction(
-                        this.historyContext.actions[this.actionIndex],
-                        this.historyContext.actions.at(this.actionIndex + 1)
-                    ))) ||
+                    (!exact &&
+                        this.shouldAutoStepAction(
+                            this.historyContext.actions[this.actionIndex],
+                            this.historyContext.actions.at(this.actionIndex + 1)
+                        )))) ||
             (predicate && predicate() === false)
         )
         this.onHistoryAction(
@@ -448,13 +453,15 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         stopPlayback = true,
         animated = false,
         predicate,
-        animationIntent = animated ? 'full-action' : 'state-only'
+        animationIntent = animated ? 'full-action' : 'state-only',
+        exact = false
     }: {
         toActionIndex?: number
         stopPlayback?: boolean
         animated?: boolean
         predicate?: () => boolean
         animationIntent?: HistoryAnimationIntent
+        exact?: boolean
     } = {}) {
         const perfEnabled = uiPerfInstrumentationEnabled() && typeof performance !== 'undefined'
         const stepStartAt = perfEnabled ? performance.now() : 0
@@ -493,10 +500,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         } while (
             (this.actionIndex < this.historyContext.actions.length - 1 &&
                 ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
-                    this.shouldAutoStepAction(
-                        nextAction,
-                        this.historyContext.actions.at(this.actionIndex + 1)
-                    ))) ||
+                    (!exact &&
+                        this.shouldAutoStepAction(
+                            nextAction,
+                            this.historyContext.actions.at(this.actionIndex + 1)
+                        )))) ||
             (predicate && predicate() === false)
         )
         this.onHistoryAction(this.historyContext.actions[this.actionIndex], animationIntent)
@@ -537,8 +545,13 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         actionIndex: number,
         {
             ensureHistory = false,
-            animationIntent = 'state-only'
-        }: { ensureHistory?: boolean; animationIntent?: HistoryAnimationIntent } = {}
+            animationIntent = 'state-only',
+            exact = false
+        }: {
+            ensureHistory?: boolean
+            animationIntent?: HistoryAnimationIntent
+            exact?: boolean
+        } = {}
     ) {
         if (!this.historyContext) {
             if (this.gameContext.actions.length === 0) {
@@ -559,9 +572,9 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         if (actionIndex < this.actionIndex) {
-            await this.stepBackward({ toActionIndex: actionIndex, animationIntent })
+            await this.stepBackward({ toActionIndex: actionIndex, animationIntent, exact })
         } else if (actionIndex > this.actionIndex) {
-            await this.stepForward({ toActionIndex: actionIndex, animationIntent })
+            await this.stepForward({ toActionIndex: actionIndex, animationIntent, exact })
         }
     }
 

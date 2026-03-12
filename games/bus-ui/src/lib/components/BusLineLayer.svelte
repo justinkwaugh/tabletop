@@ -215,16 +215,35 @@
         return routeRenderLayers.find((layer) => layer.id === animatedSegment.playerId)
     })
 
-    const animatedGrowingRouteSegmentKey = $derived.by(() => {
+    function undirectedSegmentKey(left: BusNodeId, right: BusNodeId): string {
+        return left < right ? `${left}:${right}` : `${right}:${left}`
+    }
+
+    const animatedGrowingRouteSegment = $derived.by(() => {
         const animatedSegment = animatedGrowingBusLineSegment
         const routeLayer = animatedGrowingRouteLayer
         if (!animatedSegment || !routeLayer) {
             return undefined
         }
 
-        return routeLayer.segments.find((segment) =>
-            segment.key.includes(`:${animatedSegment.sourceNodeId}-${animatedSegment.targetNodeId}:`)
-        )?.key
+        const animatedEdgeKey = undirectedSegmentKey(
+            animatedSegment.sourceNodeId,
+            animatedSegment.targetNodeId
+        )
+
+        return routeLayer.segments.find((segment) => {
+            const [, , renderedNodes] = segment.key.split(':')
+            if (!renderedNodes) {
+                return false
+            }
+
+            const [fromNodeId, toNodeId] = renderedNodes.split('-')
+            if (!isBusNodeId(fromNodeId) || !isBusNodeId(toNodeId)) {
+                return false
+            }
+
+            return undirectedSegmentKey(fromNodeId, toNodeId) === animatedEdgeKey
+        })
     })
 
     const animatedGrowingBusLineSegmentColor = $derived.by(() => {
@@ -237,41 +256,48 @@
 
     const animatedGrowingBusLineSegmentPoints = $derived.by(() => {
         const animatedSegment = animatedGrowingBusLineSegment
-        const routeLayer = animatedGrowingRouteLayer
-        const segmentKey = animatedGrowingRouteSegmentKey
-        if (!animatedSegment || !routeLayer || !segmentKey) {
-            return undefined
-        }
-
-        const baseSegment = routeLayer.segments.find((segment) => segment.key === segmentKey)
-        if (!baseSegment) {
+        const baseSegment = animatedGrowingRouteSegment
+        if (!animatedSegment || !baseSegment) {
             return undefined
         }
 
         const progress = Math.max(0, Math.min(animatedSegment.progress, 1))
-        const dx = baseSegment.x2 - baseSegment.x1
-        const dy = baseSegment.y2 - baseSegment.y1
-        const length = Math.hypot(dx, dy)
-        const unitX = length === 0 ? 0 : dx / length
-        const unitY = length === 0 ? 0 : dy / length
         const startOverlap = (ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2) / 2
+        const [, , renderedNodes] = baseSegment.key.split(':')
+        const [renderedFromNodeId, renderedToNodeId] = renderedNodes?.split('-') ?? []
+        const growsWithRenderedDirection =
+            renderedFromNodeId === animatedSegment.sourceNodeId &&
+            renderedToNodeId === animatedSegment.targetNodeId
+        const startX = growsWithRenderedDirection ? baseSegment.x1 : baseSegment.x2
+        const startY = growsWithRenderedDirection ? baseSegment.y1 : baseSegment.y2
+        const endX = growsWithRenderedDirection ? baseSegment.x2 : baseSegment.x1
+        const endY = growsWithRenderedDirection ? baseSegment.y2 : baseSegment.y1
+        const directedDx = endX - startX
+        const directedDy = endY - startY
+        const directedLength = Math.hypot(directedDx, directedDy)
+        const directedUnitX = directedLength === 0 ? 0 : directedDx / directedLength
+        const directedUnitY = directedLength === 0 ? 0 : directedDy / directedLength
 
         return {
-            x1: baseSegment.x1 - unitX * startOverlap,
-            y1: baseSegment.y1 - unitY * startOverlap,
-            x2: baseSegment.x1 + (baseSegment.x2 - baseSegment.x1) * progress,
-            y2: baseSegment.y1 + (baseSegment.y2 - baseSegment.y1) * progress,
+            x1: startX - directedUnitX * startOverlap,
+            y1: startY - directedUnitY * startOverlap,
+            x2: startX + (endX - startX) * progress,
+            y2: startY + (endY - startY) * progress,
             progress
         }
     })
 
     function shouldHideAnimatedRouteSegment(layerId: string, segmentKey: string): boolean {
-        return layerId === animatedGrowingBusLineSegment?.playerId && segmentKey === animatedGrowingRouteSegmentKey
+        return (
+            layerId === animatedGrowingBusLineSegment?.playerId &&
+            segmentKey === animatedGrowingRouteSegment?.key
+        )
     }
 
     function shouldHideAnimatedRouteArrow(layer: RouteRenderLayer, arrowKey: string): boolean {
         const animatedSegment = animatedGrowingBusLineSegment
-        if (!animatedSegment || layer.id !== animatedSegment.playerId) {
+        const renderedSegment = animatedGrowingRouteSegment
+        if (!animatedSegment || !renderedSegment || layer.id !== animatedSegment.playerId) {
             return false
         }
 
@@ -279,7 +305,19 @@
             return true
         }
 
-        return arrowKey === `${layer.id}:arrow:end:${animatedSegment.targetNodeId}`
+        if (layer.segments[0]?.key === renderedSegment.key) {
+            const [, , renderedNodes] = renderedSegment.key.split(':')
+            const [fromNodeId] = renderedNodes?.split('-') ?? []
+            return arrowKey === `${layer.id}:arrow:start:${fromNodeId}`
+        }
+
+        if (layer.segments[layer.segments.length - 1]?.key === renderedSegment.key) {
+            const [, , renderedNodes] = renderedSegment.key.split(':')
+            const [, toNodeId] = renderedNodes?.split('-') ?? []
+            return arrowKey === `${layer.id}:arrow:end:${toNodeId}`
+        }
+
+        return false
     }
 
     const ambiguousPreviewTargetNodeId = $derived.by(() => {
