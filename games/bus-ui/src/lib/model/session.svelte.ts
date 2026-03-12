@@ -225,7 +225,7 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        if (!action || this.processingActions) {
+        if (!action || this.processingActions || this.isExploring) {
             return
         }
 
