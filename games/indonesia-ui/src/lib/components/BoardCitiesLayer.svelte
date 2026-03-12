@@ -2,9 +2,12 @@
     import { CITY_DEMAND_MARKER_POSITIONS_BY_REGION } from '$lib/definitions/cityDemandMarkerPositions.js'
     import CityDemandMarker from '$lib/components/CityDemandMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
+    import type { CityDemandViewMode } from '$lib/model/cityDemandView.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
     import { ActionType, Good, MachineState } from '@tabletop/indonesia'
+
+    let { demandViewMode = 'remaining' }: { demandViewMode?: CityDemandViewMode } = $props()
 
     type BeadTone = 'amber' | 'green' | 'red'
 
@@ -143,10 +146,20 @@
                 continue
             }
 
-            const demands = DEMAND_GOOD_ORDER.map((good) => ({
+            const remainingDemands = DEMAND_GOOD_ORDER.map((good) => ({
                 good,
                 count: gameSession.gameState.remainingCityDemandForGood(city, good)
             })).filter((entry) => entry.count > 0)
+            const deliveredDemands = DEMAND_GOOD_ORDER.map((good) => ({
+                good,
+                count: gameSession.gameState.currentCityDemandForGood(city, good)
+            })).filter((entry) => entry.count > 0)
+            const isDemandMet = remainingDemands.length === 0
+            if (demandViewMode === 'delivered' && !isDemandMet && deliveredDemands.length === 0) {
+                continue
+            }
+
+            const demands = demandViewMode === 'delivered' && !isDemandMet ? deliveredDemands : remainingDemands
 
             const regionId = areaRegionById.get(city.area)
             const regionPosition = regionId
@@ -163,7 +176,7 @@
                 y,
                 targetX: markerPosition.x,
                 targetY: markerPosition.y,
-                isDemandMet: demands.length === 0,
+                isDemandMet,
                 demands
             })
         }
@@ -310,6 +323,7 @@
                 hovered={isHoveredSelectableDeliveryCity || isHoveredRouteCity}
                 darkened={darkened}
                 {darkenedBrightness}
+                emptyLabel="DEMAND MET"
             />
         {/each}
     </g>

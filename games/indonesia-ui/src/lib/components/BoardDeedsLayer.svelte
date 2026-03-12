@@ -168,24 +168,6 @@
         !gameSession.suppressBoardEffectsForHistory &&
             gameSession.gameState.machineState === MachineState.Acquisitions
     )
-    const showDeedsDuringExpansionSelection: boolean = $derived.by(() => {
-        if (gameSession.suppressBoardEffectsForHistory) {
-            return false
-        }
-
-        const state = gameSession.gameState.machineState
-        const inExpansionSubstate =
-            state === MachineState.ShippingOperations || state === MachineState.ProductionOperations
-        return inExpansionSubstate && gameSession.validActionTypes.includes(ActionType.Expand)
-    })
-    const hideDeedsDuringOperations: boolean = $derived.by(() => {
-        const state = gameSession.gameState.machineState
-        const inOperationsState =
-            state === MachineState.Operations ||
-            state === MachineState.ShippingOperations ||
-            state === MachineState.ProductionOperations
-        return inOperationsState && !showDeedsDuringExpansionSelection
-    })
     const shippingDeedIds: readonly string[] = $derived.by(() => {
         return DEED_CARD_ENTRIES.filter((deed) => deed.isShipping).map((deed) => deed.deedId)
     })
@@ -280,11 +262,10 @@
     })
 </script>
 
-{#if !hideDeedsDuringOperations}
-    <g
-        class="select-none"
-        aria-label="Available deeds layer"
-    >
+<g
+    class="select-none"
+    aria-label="Available deeds layer"
+>
         <defs>
             <pattern
                 id={DEED_UNSTARTED_PRODUCTION_DOT_PATTERN_ID}
@@ -503,4 +484,3 @@
             </g>
         {/each}
     </g>
-{/if}

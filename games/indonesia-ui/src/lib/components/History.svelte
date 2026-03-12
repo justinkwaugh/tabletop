@@ -203,7 +203,7 @@
                         class="timeline-item text-left mb-5"
                         date=""
                     >
-                        <span class="group mb-1 inline-flex items-center gap-2 text-xs text-[#7a5d3f]">
+                        <span class="group mb-1 inline-flex items-center gap-1 text-xs text-[#7a5d3f]">
                             <span>{actionTimeLabel(item)}</span>
                             {#if canJumpToHistoryAction(item)}
                                 <button

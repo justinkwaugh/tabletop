@@ -29,6 +29,7 @@
         hovered = false,
         darkened = false,
         darkenedBrightness = 0.34,
+        emptyLabel = 'DEMAND MET',
         demands
     }: {
         x: number
@@ -40,6 +41,7 @@
         hovered?: boolean
         darkened?: boolean
         darkenedBrightness?: number
+        emptyLabel?: string
         demands: readonly DemandEntry[]
     } = $props()
 
@@ -66,15 +68,15 @@
     const entryGap = 0
     const boardWidth = 2646
     const boardHeight = 1280
-    const demandMetLabel = 'DEMAND MET'
-    const demandMetWidth = 94
+    const defaultEmptyLabelWidth = 94
     const pageBackgroundFill = '#ede2dc'
     const demandMetTextColor = '#55412d'
     const isDemandMetMarker = $derived(demandMet || demands.length === 0)
+    const emptyLabelWidth = $derived(Math.max(defaultEmptyLabelWidth, emptyLabel.length * 7.2))
 
     const totalEntriesWidth = $derived.by(() => {
         if (isDemandMetMarker) {
-            return demandMetWidth
+            return emptyLabelWidth
         }
         if (demands.length === 0) {
             return 0
@@ -288,7 +290,7 @@
             letter-spacing="0.4"
             style="font-variant-numeric: tabular-nums;"
         >
-            {demandMetLabel}
+            {emptyLabel}
         </text>
     {:else}
         {#each laidOutEntries.entries as entry (entry.good)}

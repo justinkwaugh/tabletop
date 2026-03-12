@@ -13,7 +13,9 @@
     import BoardShipsLayer from '$lib/components/BoardShipsLayer.svelte'
     import BoardTurnOrderLayer from '$lib/components/BoardTurnOrderLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
+    import type { CityDemandViewMode } from '$lib/model/cityDemandView.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { MachineState } from '@tabletop/indonesia'
 
     const BOARD_WIDTH = 2646
     const BOARD_HEIGHT = 1280
@@ -23,6 +25,15 @@
     let debugOverlayActive = $state(false)
     let debugOverlayEnabled = $state(false)
     let hoveredTurnOrderPlayerId = $state<string | null>(null)
+    let cityDemandViewMode = $state<CityDemandViewMode>('remaining')
+    const cityDemandViewable = $derived.by(() => {
+        const state = gameSession.gameState.machineState
+        const inOperationsState =
+            state === MachineState.Operations ||
+            state === MachineState.ShippingOperations ||
+            state === MachineState.ProductionOperations
+        return inOperationsState && gameSession.gameState.producedGoodsOnBoard().size > 0
+    })
 
     onMount(() => {
         if (typeof window === 'undefined') {
@@ -55,6 +66,28 @@
 
 <div class="board-shell">
     <div class="board-surface relative h-[1280px] w-[2646px]">
+        {#if cityDemandViewable}
+            <div class="city-demand-toggle" role="group" aria-label="City demand view">
+                <button
+                    type="button"
+                    class:active={cityDemandViewMode === 'remaining'}
+                    onclick={() => {
+                        cityDemandViewMode = 'remaining'
+                    }}
+                >
+                    Demand
+                </button>
+                <button
+                    type="button"
+                    class:active={cityDemandViewMode === 'delivered'}
+                    onclick={() => {
+                        cityDemandViewMode = 'delivered'
+                    }}
+                >
+                    Delivered
+                </button>
+            </div>
+        {/if}
         <img
             src={boardImg}
             alt="Indonesia game board"
@@ -84,7 +117,7 @@
                 <BoardShipsLayer />
                 <BoardProductionZoneMarkersLayer />
                 <BoardActionAreasLayer />
-                <BoardCitiesLayer />
+                <BoardCitiesLayer demandViewMode={cityDemandViewMode} />
                 <BoardTurnOrderLayer
                     selectedPlayerId={
                         gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
@@ -166,5 +199,48 @@
 
     .board-image {
         filter: none;
+    }
+
+    .city-demand-toggle {
+        position: absolute;
+        top: 6px;
+        left: 16px;
+        z-index: 3;
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 999px;
+        border: 1px solid rgba(122, 93, 63, 0.42);
+        background: rgba(244, 235, 225, 0.94);
+        box-shadow: 0 2px 10px rgba(85, 62, 40, 0.12);
+    }
+
+    .city-demand-toggle button {
+        border: 0;
+        background: transparent;
+        color: #6f5135;
+        font-family: 'Avenir Next', 'Helvetica Neue', sans-serif;
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 1;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 9px 13px 8px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition:
+            background-color 120ms ease,
+            color 120ms ease,
+            box-shadow 120ms ease;
+    }
+
+    .city-demand-toggle button:hover {
+        background: rgba(122, 93, 63, 0.08);
+    }
+
+    .city-demand-toggle button.active {
+        background: #7a5d3f;
+        color: #f7efe6;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
 </style>
